@@ -22,24 +22,30 @@ import {
 import {
   Color,
   CubeCamera,
+  DirectionalLight,
   HalfFloatType,
   LinearMipmapLinearFilter,
   Matrix4,
   Mesh,
   NoToneMapping,
+  PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
   Scene,
   Uniform,
   Vector3,
   WebGLCubeRenderTarget,
-  WebGLRenderer
+  WebGLRenderer,
+  WebGLRenderTarget
 } from 'three'
 
 import { meterScene } from './exposure'
 import { createMoon, placeMoon } from './moon'
 import { createOcean } from './ocean'
 import { EARTH_RADIUS, type SceneParams } from './params'
+import { PropContext } from './props/context'
+import { createProps } from './props'
+import { bindShadow } from './shadow'
 import { createTerrain, terrainHeight } from './terrain'
 
 const DEG = Math.PI / 180
@@ -223,6 +229,29 @@ export async function renderScene(
   tu.skyIrradiance.value.copy(skyIrradiance)
   scene.add(terrain)
 
+  // --- Sun light, shadows and props -----------------------------------------
+  // Standard-material props are lit by a directional light carrying the same
+  // irradiance as the custom shaders, plus the sky cube map as environment.
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = PCFShadowMap
+  scene.environment = envTarget.texture
+  const sun = new DirectionalLight(sunIrradiance.clone(), 1)
+  const forward = camera.getWorldDirection(new Vector3()).setY(0).normalize()
+  const focus = camera.position.clone().addScaledVector(forward, 150).setY(0)
+  sun.target.position.copy(focus)
+  sun.position.copy(focus).addScaledVector(lightDirectionWorld, 3000)
+  // Always render a shadow map: the custom shaders' shadow sampler must be
+  // bound to a real depth texture. Below the horizon the light carries no
+  // energy anyway.
+  sun.castShadow = true
+  sun.shadow.mapSize.set(4096, 4096)
+  Object.assign(sun.shadow.camera, { left: -320, right: 320, top: 320, bottom: -320, near: 10, far: 6500 })
+  sun.shadow.camera.updateProjectionMatrix()
+  sun.shadow.bias = -0.0002
+  sun.shadow.normalBias = 0.03
+  scene.add(sun, sun.target)
+  scene.add(createProps(new PropContext(params, camera)))
+
   // --- Exposure ---------------------------------------------------------------
   const sceneLuminance = meterScene(renderer, envScene, camera, dip)
   const evBias: Record<SceneParams['timeOfDay'], number> = {
@@ -269,6 +298,22 @@ export async function renderScene(
 
   // --- Render once ------------------------------------------------------------
   cubeCamera.update(renderer, envScene)
+  {
+    // Render the shadow map once with only the props, then let the custom
+    // terrain and ocean shaders sample it.
+    ocean.visible = false
+    terrain.visible = false
+    const scratch = new WebGLRenderTarget(4, 4)
+    renderer.setRenderTarget(scratch)
+    renderer.render(scene, camera)
+    renderer.setRenderTarget(null)
+    scratch.dispose()
+    ocean.visible = true
+    terrain.visible = params.coast.type === 'beach'
+    bindShadow(ocean.material.uniforms, sun)
+    bindShadow(terrain.material.uniforms, sun)
+    renderer.shadowMap.autoUpdate = false
+  }
   composer.render()
 
   generator.dispose({ textures: false })

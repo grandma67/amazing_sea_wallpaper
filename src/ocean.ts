@@ -8,6 +8,7 @@ import {
 } from 'three'
 
 import { createPolarGrid } from './grid'
+import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { TERRAIN_GLSL, terrainUniforms } from './terrain'
 import { EARTH_RADIUS, type SceneParams } from './params'
 import { CASCADE_SIZE, synthesizeOcean } from './spectrum'
@@ -106,6 +107,7 @@ void main() {
 const fragmentShader = /* glsl */ `
 #define PI 3.14159265359
 ${TERRAIN_GLSL}
+${SHADOW_GLSL}
 ${SURF_GLSL}
 uniform vec3 absorption;
 uniform vec3 sandAlbedo;
@@ -232,6 +234,7 @@ void main() {
   float F = fresnel(NoV);
 
   // Sun glitter.
+  float shadow = sunShadow(vWorld);
   vec3 L = sunDirection;
   float NoL = dot(N, L);
   vec3 specular = vec3(0.0);
@@ -240,12 +243,12 @@ void main() {
     float NoH = max(dot(N, H), 0.0);
     float VoH = max(dot(V, H), 0.0);
     float G = smithG1(NoV, alpha) * smithG1(NoL, alpha);
-    specular = fresnel(VoH) * ggx(NoH, alpha) * G / (4.0 * NoV) * sunIrradiance;
+    specular = fresnel(VoH) * ggx(NoH, alpha) * G / (4.0 * NoV) * sunIrradiance * shadow;
   }
 
   // Light scattered out of the water body, plus extra transmission through
   // crests when looking toward the sun.
-  vec3 ambient = skyIrradiance + sunIrradiance * max(L.y, 0.0);
+  vec3 ambient = skyIrradiance + sunIrradiance * max(L.y, 0.0) * mix(0.4, 1.0, shadow);
   vec3 body = deepColor * ambient / PI;
   float crest = clamp(vHeight / waveHeight + 0.5, 0.0, 1.0);
   float backlit = pow(max(dot(V, -L) * 0.5 + 0.5, 0.0), 6.0);
@@ -334,6 +337,7 @@ export function createOcean(
       surfPhase: { value: params.coast.surfPhase },
       absorption: { value: new Vector3(...ocean.water.absorption) },
       sandAlbedo: { value: new Color(...params.coast.sand.albedo) },
+      ...shadowUniforms(),
       earthRadius: { value: EARTH_RADIUS },
       envMap: { value: null as Texture | null },
       envMaxLod: { value: 8 },

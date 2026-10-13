@@ -10,6 +10,7 @@ import {
 
 import { createPolarGrid } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
+import { SHADOW_GLSL, shadowUniforms } from './shadow'
 
 // Procedural coast: a shoreline (curved, wobbly) with a sloping beach rising
 // to dunes inland and a sea floor falling away offshore. The same height
@@ -210,17 +211,46 @@ export function coastFrame(coast: CoastParams): CoastFrame {
   }
 }
 
-export function terrainHeight(coast: CoastParams, x: number, z: number): number {
-  if (coast.type !== 'beach') return -200
-  const { origin, normal } = coastFrame(coast)
+/** How far the waterline is pushed seaward at along-shore coordinate `a`. */
+function shoreOffset(coast: CoastParams, a: number): number {
   const [ox, oz] = coast.noiseOffset
+  return (
+    coast.curvature * a * a +
+    coast.wobble * (vnoise(a / 220 + ox, 3.7 + oz) * 2 - 1) +
+    coast.wobble * 0.3 * (vnoise(a / 55 + ox, 9.1 + oz) * 2 - 1)
+  )
+}
+
+/** World (x, z) → [seaward distance from the waterline, along-shore]. */
+export function worldToShore(coast: CoastParams, x: number, z: number): [number, number] {
+  const { origin, normal } = coastFrame(coast)
   const dx = x - origin[0]
   const dz = z - origin[1]
   const a = dx * -normal[1] + dz * normal[0]
-  let s = dx * normal[0] + dz * normal[1]
-  s -= coast.curvature * a * a
-  s -= coast.wobble * (vnoise(a / 220 + ox, 3.7 + oz) * 2 - 1)
-  s -= coast.wobble * 0.3 * (vnoise(a / 55 + ox, 9.1 + oz) * 2 - 1)
+  const s = dx * normal[0] + dz * normal[1] - shoreOffset(coast, a)
+  return [s, a]
+}
+
+/** [seaward distance, along-shore] → world (x, z). Exact inverse of worldToShore. */
+export function shoreToWorld(coast: CoastParams, s: number, a: number): [number, number] {
+  const { origin, normal } = coastFrame(coast)
+  const raw = s + shoreOffset(coast, a)
+  return [origin[0] - normal[1] * a + normal[0] * raw, origin[1] + normal[0] * a + normal[1] * raw]
+}
+
+/** Upward-facing surface normal of the terrain by finite differences. */
+export function terrainNormal(coast: CoastParams, x: number, z: number, e = 0.5): [number, number, number] {
+  const h = terrainHeight(coast, x, z)
+  const nx = h - terrainHeight(coast, x + e, z)
+  const nz = h - terrainHeight(coast, x, z + e)
+  const l = Math.hypot(nx, e, nz)
+  return [nx / l, e / l, nz / l]
+}
+
+export function terrainHeight(coast: CoastParams, x: number, z: number): number {
+  if (coast.type !== 'beach') return -200
+  const [ox, oz] = coast.noiseOffset
+  const [s] = worldToShore(coast, x, z)
 
   const u = -s
   const qx = x + ox
@@ -284,6 +314,7 @@ void main() {
 const fragmentShader = /* glsl */ `
 #define PI 3.14159265359
 ${TERRAIN_GLSL}
+${SHADOW_GLSL}
 uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
 uniform vec3 skyIrradiance;
@@ -339,7 +370,8 @@ void main() {
 
   vec3 L = sunDirection;
   vec3 V = normalize(cameraPosition - vWorld);
-  float NoL = max(dot(N, L), 0.0);
+  float shadow = sunShadow(vWorld);
+  float NoL = max(dot(N, L), 0.0) * shadow;
   // Soft wrap lighting stands in for the missing ambient occlusion/shadowing.
   vec3 diffuse = albedo / PI * (sunIrradiance * NoL + skyIrradiance * (0.6 + 0.4 * N.y));
   vec3 color = diffuse;
@@ -359,7 +391,7 @@ void main() {
     float alpha = clamp(0.08 + footprint * 0.4, 0.08, 0.6);
     float a2 = alpha * alpha;
     float d = NoH * NoH * (a2 - 1.0) + 1.0;
-    float NoLw = max(dot(Nw, L), 0.0);
+    float NoLw = max(dot(Nw, L), 0.0) * shadow;
     float k = alpha * 0.5;
     float G = NoLw / (NoLw * (1.0 - k) + k) * NoV / (NoV * (1.0 - k) + k);
     float spec = a2 / (PI * d * d) * F * G / (4.0 * NoV);
@@ -391,7 +423,8 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       sandAlbedo: { value: new Color(...coast.sand.albedo) },
       runup: { value: coast.runup },
       groundCover: { value: new Color(...params.biome.groundCover) },
-      groundCoverAmount: { value: params.biome.groundCoverAmount }
+      groundCoverAmount: { value: params.biome.groundCoverAmount },
+      ...shadowUniforms()
     }
   })
   const mesh = new Mesh(createPolarGrid({ rings: 600, segments: 1024, outerRadius: 120_000 }), material)
