@@ -290,6 +290,8 @@ uniform vec3 skyIrradiance;
 uniform samplerCube envMap;
 uniform vec3 sandAlbedo;
 uniform float runup;
+uniform vec3 groundCover;
+uniform float groundCoverAmount;
 varying vec3 vWorld;
 
 void main() {
@@ -319,6 +321,16 @@ void main() {
   vec3 albedo = sandAlbedo * (0.82 + 0.3 * patches);
   float wrack = 1.0 - smoothstep(0.0, 0.08, abs(h - runup * 1.25 - 0.1 * (vnoise(vec2(sa.y / 6.0, 2.0)) - 0.5)));
   albedo *= 1.0 - 0.35 * wrack * smoothstep(0.4, 0.7, vnoise(vec2(sa.y / 2.0, 5.0)));
+
+  // Vegetation behind the beach: patchy ground cover thickening inland, thin
+  // on steep slopes and dune crests.
+  float inland = -sa.x;
+  float coverStart = beachWidth * 0.75 + duneWidth * 0.3;
+  float cover = smoothstep(coverStart, coverStart + duneWidth + 30.0, inland);
+  cover *= smoothstep(0.25, 0.65, fbm(q / 25.0) * 0.6 + fbm(q / 4.0) * 0.4 + cover * 0.25);
+  cover *= smoothstep(0.75, 0.9, N.y) * groundCoverAmount;
+  vec3 coverAlbedo = groundCover * (0.6 + 0.8 * fbm(q / 9.0 + 4.0));
+  albedo = mix(albedo, coverAlbedo, cover);
 
   // Wet sand below the run-up line: darker and glossy.
   float wetLine = runup * (0.85 + 0.3 * vnoise(vec2(sa.y / 25.0, 7.0)));
@@ -377,7 +389,9 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       skyIrradiance: { value: new Color() },
       envMap: { value: null as Texture | null },
       sandAlbedo: { value: new Color(...coast.sand.albedo) },
-      runup: { value: coast.runup }
+      runup: { value: coast.runup },
+      groundCover: { value: new Color(...params.biome.groundCover) },
+      groundCoverAmount: { value: params.biome.groundCoverAmount }
     }
   })
   const mesh = new Mesh(createPolarGrid({ rings: 600, segments: 1024, outerRadius: 120_000 }), material)

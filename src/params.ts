@@ -1,5 +1,6 @@
 import { MoonPhase } from 'astronomy-engine'
 
+import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
 import { Random } from './random'
 
 // Everything random about a scene is decided here, from the date alone.
@@ -16,31 +17,6 @@ export type TimeOfDay =
   | 'daylight'
   | 'midday'
   | 'night'
-
-export interface WaterStyle {
-  name: string
-  /** Albedo-like color of light scattered back out of deep water (linear). */
-  deep: [number, number, number]
-  /** Color of light transmitted through thin wave crests (linear). */
-  scatter: [number, number, number]
-  /** Absorption coefficients per metre (linear RGB); sets shallow-water tint. */
-  absorption: [number, number, number]
-  /** Sand palettes that suit this water, by name. */
-  sands: readonly SandStyle['name'][]
-}
-
-export interface SandStyle {
-  name: 'white' | 'golden' | 'grey' | 'black'
-  /** Dry sand albedo (linear). */
-  albedo: [number, number, number]
-}
-
-export const SAND_STYLES: Record<SandStyle['name'], SandStyle> = {
-  white: { name: 'white', albedo: [0.62, 0.58, 0.5] },
-  golden: { name: 'golden', albedo: [0.46, 0.36, 0.23] },
-  grey: { name: 'grey', albedo: [0.26, 0.24, 0.22] },
-  black: { name: 'black', albedo: [0.06, 0.06, 0.065] }
-}
 
 export interface CoastParams {
   type: 'open-sea' | 'beach'
@@ -89,6 +65,7 @@ export interface SceneParams {
   /** Geodetic latitude used to anchor the atmosphere model (degrees). */
   latitudeDeg: number
 
+  biome: Biome
   coast: CoastParams
 
   camera: {
@@ -131,49 +108,6 @@ export function dirFromAzEl(azDeg: number, elDeg: number): [number, number, numb
 function elevationOf(d: [number, number, number]): number {
   return Math.asin(Math.max(-1, Math.min(1, d[1]))) / DEG
 }
-
-const WATER_STYLES: readonly (readonly [WaterStyle, number])[] = [
-  [
-    {
-      name: 'deep ocean',
-      deep: [0.004, 0.016, 0.034],
-      scatter: [0.0, 0.1, 0.13],
-      absorption: [0.5, 0.12, 0.08],
-      sands: ['golden', 'grey', 'white']
-    },
-    3
-  ],
-  [
-    {
-      name: 'tropical',
-      deep: [0.0, 0.035, 0.05],
-      scatter: [0.02, 0.3, 0.26],
-      absorption: [0.42, 0.065, 0.05],
-      sands: ['white', 'white', 'golden']
-    },
-    2
-  ],
-  [
-    {
-      name: 'northern',
-      deep: [0.006, 0.02, 0.022],
-      scatter: [0.03, 0.1, 0.075],
-      absorption: [0.6, 0.2, 0.22],
-      sands: ['grey', 'black', 'golden']
-    },
-    2
-  ],
-  [
-    {
-      name: 'mediterranean',
-      deep: [0.002, 0.02, 0.05],
-      scatter: [0.0, 0.14, 0.2],
-      absorption: [0.45, 0.08, 0.05],
-      sands: ['golden', 'white', 'grey']
-    },
-    2
-  ]
-]
 
 const SUN_ELEVATION: Record<TimeOfDay, [number, number]> = {
   'golden-hour': [1.5, 9],
@@ -266,7 +200,7 @@ function swell(
 function generateCoast(
   seed: string,
   headingDeg: number,
-  water: WaterStyle,
+  biome: Biome,
   ocean: Pick<SceneParams['ocean'], 'swellHeight' | 'swellWavelength' | 'windSpeed'>
 ): { coast: CoastParams; eyeHeight: number | null } {
   const rng = Random.derive(seed, 'coast')
@@ -298,7 +232,7 @@ function generateCoast(
     surfAmplitude,
     surfWavelength: rng.range(18, 40),
     surfPhase: rng.range(0, Math.PI * 2),
-    sand: SAND_STYLES[rng.pick(water.sands)],
+    sand: SAND_STYLES[rng.pick(biome.sands)],
     noiseOffset: [rng.range(-5000, 5000), rng.range(-5000, 5000)]
   }
 
@@ -392,9 +326,10 @@ export function generateParams(date: string): SceneParams {
   ])()
   const windHeadingDeg = rng.range(0, 360)
 
-  const water = rng.weighted(WATER_STYLES)
+  const biome = rng.weighted(BIOMES)
+  const water = Random.derive(seed, 'water').pick(biome.water)
   const oceanState = { windSpeed, windHeadingDeg, ...swell(seed, windHeadingDeg) }
-  const { coast, eyeHeight } = generateCoast(seed, headingDeg, water, oceanState)
+  const { coast, eyeHeight } = generateCoast(seed, headingDeg, biome, oceanState)
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',
@@ -406,7 +341,7 @@ export function generateParams(date: string): SceneParams {
   }
   const titleParts = [
     timeLabel[timeOfDay],
-    coast.type === 'beach' ? `${coast.sand.name} sand beach` : seaName(windSpeed)
+    coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(windSpeed)
   ]
   if (moonElevationDeg > 1 && moonIllumination > 0.05) titleParts.push(moonPhaseName(moonPhaseDeg))
 
@@ -423,6 +358,7 @@ export function generateParams(date: string): SceneParams {
     moonIllumination,
     moonScale: rng.range(1.2, 2.4),
     latitudeDeg: rng.range(5, 50),
+    biome,
     coast,
     camera: {
       heightM: eyeHeight ?? heightM,
