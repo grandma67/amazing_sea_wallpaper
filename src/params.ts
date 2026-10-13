@@ -18,8 +18,14 @@ export type TimeOfDay =
   | 'midday'
   | 'night'
 
+export type Composition = 'shoreline' | 'along-beach' | 'framed' | 'overlook'
+
 export interface CoastParams {
   type: 'open-sea' | 'beach'
+  /** shoreline: at the water looking out; along-beach: the beach recedes into
+   * the distance; framed: just inside the tree line looking out past plants;
+   * overlook: high on the hillside above the bay. */
+  composition: Composition
   /** Azimuth pointing from land out to sea, perpendicular to the shore. */
   seawardAzimuthDeg: number
   /** Horizontal distance from the camera to the waterline (m). */
@@ -34,6 +40,8 @@ export interface CoastParams {
   beachWidth: number
   duneHeight: number
   duneWidth: number
+  /** Height of the rolling hills inland (m). */
+  hillHeight: number
   sandbarDistance: number
   sandbarHeight: number
   /** Height wave run-up reaches on the beach (m); the wet-sand band. */
@@ -212,6 +220,7 @@ function generateCoast(
   const surfAmplitude = Math.min(1.6, ocean.swellHeight * 0.45 + ocean.windSpeed * 0.02)
   const coast: CoastParams = {
     type,
+    composition: 'shoreline',
     seawardAzimuthDeg: headingDeg - offset,
     distanceToWater: rng.weighted<() => number>([
       [() => rng.range(4, 15), 3],
@@ -226,6 +235,7 @@ function generateCoast(
     beachWidth: rng.range(25, 80),
     duneHeight: rng.range(1.5, 9),
     duneWidth: rng.range(15, 50),
+    hillHeight: 0,
     sandbarDistance: rng.range(50, 140),
     sandbarHeight: 0,
     runup: 0.25 + surfAmplitude * rng.range(0.4, 0.8),
@@ -242,7 +252,7 @@ function generateCoast(
     coast.sandbarHeight = depthAtBar * rng.range(0.25, 0.6)
   }
 
-  const eyeHeight =
+  let eyeHeight =
     type === 'beach'
       ? rng.weighted<() => number>([
           [() => rng.range(1.4, 2.2), 6],
@@ -250,6 +260,41 @@ function generateCoast(
           [() => rng.range(25, 70), 1]
         ])()
       : null
+
+  // Hills behind the beach: gentle most days, sometimes proper high ground.
+  const hrng = Random.derive(seed, 'hills')
+  coast.hillHeight = hrng.chance(0.4) ? coast.duneHeight * 1.5 : hrng.range(15, 45)
+
+  // Composition: where the camera stands relative to the shore.
+  const crng = Random.derive(seed, 'composition')
+  if (type === 'beach') {
+    coast.composition = crng.weighted<Composition>([
+      ['shoreline', 3],
+      ['along-beach', 3],
+      ['framed', 2],
+      ['overlook', 2]
+    ])
+    const side = crng.chance(0.5) ? 1 : -1
+    switch (coast.composition) {
+      case 'along-beach':
+        coast.seawardAzimuthDeg = headingDeg - side * crng.range(62, 84)
+        coast.distanceToWater = crng.range(8, coast.beachWidth * 0.8)
+        eyeHeight = crng.chance(0.75) ? crng.range(1.4, 2.2) : crng.range(5, 18)
+        break
+      case 'framed':
+        coast.seawardAzimuthDeg = headingDeg - side * crng.range(10, 45)
+        coast.distanceToWater = coast.beachWidth + crng.range(15, 60)
+        eyeHeight = crng.range(1.5, 2.1)
+        break
+      case 'overlook':
+        coast.seawardAzimuthDeg = headingDeg - side * crng.range(15, 55)
+        coast.distanceToWater = coast.beachWidth + coast.duneWidth + crng.range(120, 450)
+        eyeHeight = crng.range(15, 50)
+        break
+      case 'shoreline':
+        break
+    }
+  }
   return { coast, eyeHeight }
 }
 

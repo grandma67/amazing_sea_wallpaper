@@ -42,7 +42,7 @@ function rockGeometry(rng: Random, stack: boolean): BufferGeometry {
     const n = stack
       ? new Vector3(rng.normal(), rng.normal() * 0.15, rng.normal()).normalize()
       : new Vector3(rng.normal(), rng.normal() * 0.7, rng.normal()).normalize()
-    return { n, d: rng.range(0.4, 0.8) }
+    return { n, d: stack ? rng.range(0.55, 0.85) : rng.range(0.4, 0.8) }
   })
   if (stack) planes.push({ n: new Vector3(rng.normal() * 0.3, 1, rng.normal() * 0.3).normalize(), d: rng.range(0.6, 0.85) })
   // Flat-ish bottom so rocks sit on the ground.
@@ -191,7 +191,7 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
       const s = rng.range(60, 520)
       const a = camA + rng.normal(0, 500)
       const size = rng.range(7, 22)
-      const aspect = new Vector3(rng.range(0.7, 1.3), rng.range(1.3, 2.6), rng.range(0.7, 1.3))
+      const aspect = new Vector3(rng.range(0.9, 1.5), rng.range(1.1, 2.0), rng.range(0.9, 1.5))
       const before = instances.length
       place(s, a, size, aspect, 0.25, true)
       if (instances.length > before) {

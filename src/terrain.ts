@@ -29,6 +29,7 @@ uniform float seabedDepth;
 uniform float beachWidth;
 uniform float duneHeight;
 uniform float duneWidth;
+uniform float hillHeight;
 uniform float sandbarDistance;
 uniform float sandbarHeight;
 uniform vec2 noiseOffset;
@@ -138,8 +139,9 @@ float terrainHeightAt(vec2 p, vec2 sa) {
   float beach = u > 0.0 ? beachSlope * beachWidth * (1.0 - exp(-u / beachWidth)) : u * beachSlope;
   float duneMask = smoothstep(beachWidth, beachWidth + duneWidth, u);
   float dunes = duneHeight * duneMask * (0.45 + 0.55 * fbm(q / 40.0));
-  float hills = duneHeight * 1.5 * smoothstep(beachWidth + duneWidth, beachWidth + duneWidth + 400.0, u) *
-    fbm(q / 350.0);
+  // Rolling hills inland, rising over a few hundred metres behind the dunes.
+  float hills = hillHeight * smoothstep(beachWidth + duneWidth, beachWidth + duneWidth + 500.0, u) *
+    (0.25 + 0.75 * fbm(q / 450.0)) * smoothstep(-0.2, 1.0, fbm(q / 1400.0 + 7.0));
   float bumps = 0.35 * (fbm(q / 7.0) - 0.5) * smoothstep(0.0, beachWidth, u);
   float land = beach + dunes + hills + bumps;
 
@@ -265,7 +267,10 @@ export function terrainHeight(coast: CoastParams, x: number, z: number): number 
   const dunes = coast.duneHeight * duneMask * (0.45 + 0.55 * fbm(qx / 40, qz / 40))
   const hillStart = coast.beachWidth + coast.duneWidth
   const hills =
-    coast.duneHeight * 1.5 * smoothstep(hillStart, hillStart + 400, u) * fbm(qx / 350, qz / 350)
+    coast.hillHeight *
+    smoothstep(hillStart, hillStart + 500, u) *
+    (0.25 + 0.75 * fbm(qx / 450, qz / 450)) *
+    smoothstep(-0.2, 1, fbm(qx / 1400 + 7, qz / 1400 + 7))
   const bumps = 0.35 * (fbm(qx / 7, qz / 7) - 0.5) * smoothstep(0, coast.beachWidth, u)
   const land = beach + dunes + hills + bumps
 
@@ -287,6 +292,7 @@ export function terrainUniforms(coast: CoastParams): Record<string, { value: unk
     beachWidth: { value: coast.beachWidth },
     duneHeight: { value: coast.duneHeight },
     duneWidth: { value: coast.duneWidth },
+    hillHeight: { value: coast.hillHeight },
     sandbarDistance: { value: coast.sandbarDistance },
     sandbarHeight: { value: coast.sandbarHeight },
     noiseOffset: { value: new Vector2(...coast.noiseOffset) },
