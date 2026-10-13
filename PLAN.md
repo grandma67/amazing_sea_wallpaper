@@ -9,7 +9,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | Milestone | State |
 |---|---|
 | 1. Skeleton: Vite + three.js app, date seed, ocean + sky + camera | ✅ Done (2026-10-13) |
-| 2. Realism core: FFT ocean, water shading, beach terrain, shoreline foam | ⬜ Not started |
+| 2. Realism core: FFT ocean, water shading, beach terrain, shoreline foam | ✅ Done (2026-10-14) |
 | 3. Biomes & assets: rocks, vegetation, birds, ships | ⬜ Not started |
 | 4. Variation: time of day, weather, night/moon, composition validator | ⬜ Not started |
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | ⬜ Not started |
@@ -51,7 +51,7 @@ Notes: takram packages are Beta; they need the pmndrs `EffectComposer`, not the 
 three.js examples. The path tracer needs static CPU-side geometry, so the ocean would have
 to be baked to a mesh for that mode.
 
-## Current implementation (after M1)
+## Current implementation (after M2)
 
 How to run:
 - `npm run dev` → open the printed URL. `?date=YYYY-MM-DD` picks a day; `?w=1920&h=1080`
@@ -67,11 +67,21 @@ Source map:
 - `src/params.ts` — date → `SceneParams` (time of day, sun/moon directions, camera, wind,
   water style, title). Moon phase is real (astronomy-engine); the moon is placed at the
   physically correct angular distance from the sun so its lit side is consistent.
-- `src/waves.ts` — 92 wind waves sampled from a Pierson–Moskowitz spectrum + 4 swell waves.
-- `src/ocean.ts` — camera-centred polar grid (0.25 m → 120 km), Gerstner displacement,
-  per-pixel Gerstner normals with footprint filtering (unresolved ripples → GGX roughness),
-  sky reflection from a cube map, analytic sun glitter, body/backlit-crest scattering,
-  whitecaps from the surface Jacobian, Earth curvature.
+- `src/fft.ts` — iterative radix-2 2D inverse FFT (CPU, Float64).
+- `src/spectrum.ts` — Tessendorf synthesis: JONSWAP wind sea (Mitsuyasu spreading) + narrow
+  swell peak, normalised to target significant heights, on 3 cascades (256², patch sizes
+  ≈ L, L/6.37, L/37 so tiles never align). Eight fields packed into four complex IFFTs →
+  half-float textures A (displacement, ∂Dx/∂z), B (slopes, ∂Dx/∂x, ∂Dz/∂z), C (slope
+  moments, mipmapped for LEAN-style sub-pixel roughness). ~0.3 s on the CPU.
+- `src/grid.ts` — camera-centred polar grid (geometric ring spacing to 120 km).
+- `src/ocean.ts` — FFT displacement + normals, Jacobian whitecaps, sky reflection, sun glitter,
+  backlit crests, large "gust" patches of rougher/calmer water, Earth curvature. Near shore:
+  swell damped by depth, refracted surf crest lines parallel to the shore (in sets), see-through
+  shallows (per-channel absorption, sand floor, caustics), whitewater/streak/shoreline foam.
+- `src/terrain.ts` — shared GLSL + TypeScript-mirrored height function (integer hash noise so
+  CPU and GPU agree): wobbly curved shoreline, beach slope levelling into dunes and inland hills,
+  sea floor with optional submerged sandbar. Sand shading: albedo patches, wrack line, wind
+  ripples, glossy wet band below the run-up line, swash foam. Voronoi "foam with holes" lace.
 - `src/scene.ts` — takram atmosphere anchored on WGS84 (local Y-up frame via
   `getNorthUpEastFrame`), sky + env cube, sun/sky irradiance, aerial perspective, exposure,
   bloom, vignette, AgX tone mapping, saturation/contrast.
@@ -95,6 +105,17 @@ M1 findings:
 - Known weaknesses for M2: near-field water looks slightly smeared/stretched and the
   wave pattern is a bit regular; no clouds (biggest realism gap, M4); night has no stars
   (M4); blue-hour scenes facing away from the sun are still a little bright/pink.
+
+M2 findings:
+- 65% of dates are beaches now (camera on the sand at eye height, dune top, or drone);
+  shoreline runs diagonally across the frame. Sand palettes: white/golden/grey/black.
+- Gotchas fixed along the way: inland beach slope must level off (was a ramp into the sky);
+  ocean must `discard` over land; GLSL `smoothstep` with reversed edges is undefined (Metal);
+  **screen-space derivatives explode on silhouettes → clamp `footprint`, otherwise NaN normals
+  become white bloom dashes** (Metal fast-math also defeats `isnan` checks).
+- Remaining for later: distant land is bare and flat-looking (vegetation/rocks in M3), no
+  shadows/AO on dunes, foam at grazing distances is approximate, dawn scenes still pinkish,
+  breaking waves are foam bands, not curling lips.
 
 ## 1. Seed → scene parameters (deterministic)
 
@@ -188,6 +209,9 @@ M1 findings:
   6.39. Gerstner-sum ocean (FFT deferred to M2), physical sky, real moon phase, auto exposure,
   night "lunar mode", 4K download, Playwright snapshot + contact-sheet scripts.
 - 2026-10-13: Added animated loading splash (waves, boat, sun).
+- 2026-10-14: Started using git (repo-local identity). Commits per logical step from now on.
+- 2026-10-14: **M2 done.** FFT ocean (3 cascades, LEAN roughness), procedural beaches with surf,
+  shallow-water optics, caustics, foam, wet sand. 4K still ~1.3 s on M2 Max.
 
 ## References
 
