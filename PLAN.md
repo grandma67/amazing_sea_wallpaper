@@ -1,0 +1,201 @@
+# Amazing Sea Wallpaper — Plan
+
+A daily, date-seeded, realistic 4K (3840×2160) wallpaper of sea and beach scenes, rendered
+**in the browser with three.js** and hosted on GitHub Pages. Each day varies camera angle,
+time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
+
+## Status
+
+| Milestone | State |
+|---|---|
+| 1. Skeleton: Vite + three.js app, date seed, ocean + sky + camera | ✅ Done (2026-10-13) |
+| 2. Realism core: FFT ocean, water shading, beach terrain, shoreline foam | ⬜ Not started |
+| 3. Biomes & assets: rocks, vegetation, birds, ships | ⬜ Not started |
+| 4. Variation: time of day, weather, night/moon, composition validator | ⬜ Not started |
+| 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | ⬜ Not started |
+| 6. Polish: contact sheet of ~50 dates, tune weights | ⬜ Not started |
+
+Legend: ⬜ not started · 🟨 in progress · ✅ done
+
+## Decision: web-only rendering (three.js)
+
+**Final decision (2026-10-13): render entirely with web tech**, because it fits the GitHub
+Pages deployment: the site is a static app, and each visitor's browser renders the day's scene.
+
+Consequences:
+- No image storage problem: Pages hosts only HTML/JS/assets. Any past date is re-rendered on
+  demand (`?date=2026-10-13`), so the archive is free.
+- The seed → scene parameters mapping is exactly deterministic. Pixels may differ very slightly
+  between GPUs/browsers; acceptable.
+- Because we produce a still, not a game, we can spend seconds per image: supersampling,
+  accumulated soft shadows, expensive shaders.
+
+Rejected alternatives (kept for reference): Blender/Cycles headless (photoreal, but needs a
+render step outside the browser); AI image generation (needs paid API/GPU, less control).
+
+## Tech stack
+
+| Concern | Choice |
+|---|---|
+| Build | Vite + TypeScript |
+| Renderer | three.js `WebGLRenderer` (WebGPU/TSL later if useful) |
+| Sky & atmosphere | `@takram/three-atmosphere` — Bruneton precomputed atmospheric scattering: Sky, SunLight, Stars, AerialPerspective (haze). Fallback: three.js `Sky` (Preetham) |
+| Clouds | `@takram/three-clouds` — volumetric clouds, cloud shadows, light shafts, haze |
+| Ocean | Custom GPU FFT ocean (Tessendorf, Phillips/JONSWAP spectrum) rendered to displacement + normal textures; references: jbouny/fft-ocean, three.js OceanShaders, `webgl-fft-ocean` |
+| Post-processing | `postprocessing` (pmndrs) EffectComposer (required by takram): AgX tone mapping, bloom, god rays, depth of field, grain, vignette |
+| Assets | glTF models + CC0 textures: Poly Haven, Quaternius, Kenney |
+| Seeded RNG | Hash date string (cyrb128 / SHA-256) → sfc32 / mulberry32 |
+| Optional later | `three-gpu-pathtracer` (WebGL path tracing) for an experimental "photoreal" mode |
+
+Notes: takram packages are Beta; they need the pmndrs `EffectComposer`, not the one from
+three.js examples. The path tracer needs static CPU-side geometry, so the ocean would have
+to be baked to a mesh for that mode.
+
+## Current implementation (after M1)
+
+How to run:
+- `npm run dev` → open the printed URL. `?date=YYYY-MM-DD` picks a day; `?w=1920&h=1080`
+  overrides the default 3840×2160.
+- `node scripts/snapshot.mjs --url <dev-url> [--w 1920 --h 1080] DATE | today | FROM..TO`
+  renders days in headless Chrome to `out/DATE.jpg` + `out/DATE.json` (`DEBUG=1` prints
+  exposure/lighting values).
+- `node scripts/contact-sheet.mjs [--dir out] [--cols 4]` → `out/contact-sheet.jpg` grid for
+  reviewing many dates at once.
+
+Source map:
+- `src/random.ts` — cyrb128 hash + sfc32 PRNG; `Random.derive()` for independent streams.
+- `src/params.ts` — date → `SceneParams` (time of day, sun/moon directions, camera, wind,
+  water style, title). Moon phase is real (astronomy-engine); the moon is placed at the
+  physically correct angular distance from the sun so its lit side is consistent.
+- `src/waves.ts` — 92 wind waves sampled from a Pierson–Moskowitz spectrum + 4 swell waves.
+- `src/ocean.ts` — camera-centred polar grid (0.25 m → 120 km), Gerstner displacement,
+  per-pixel Gerstner normals with footprint filtering (unresolved ripples → GGX roughness),
+  sky reflection from a cube map, analytic sun glitter, body/backlit-crest scattering,
+  whitecaps from the surface Jacobian, Earth curvature.
+- `src/scene.ts` — takram atmosphere anchored on WGS84 (local Y-up frame via
+  `getNorthUpEastFrame`), sky + env cube, sun/sky irradiance, aerial perspective, exposure,
+  bloom, vignette, AgX tone mapping, saturation/contrast.
+- `src/exposure.ts` — auto exposure: renders the sky into a 32² float cube and averages the
+  luminance of directions inside the camera frustum (sea ≈ dim sky reflection).
+- `src/moon.ts` — night only: phase-shaded moon disc. At night the atmosphere is lit *from
+  the moon's direction* (moonlight = reflected sunlight) and then graded dark/blue.
+- `src/main.ts` — page: renders once, date prev/next/today links, JPEG download.
+- Splash screen (`index.html` + `src/style.css`): pure-CSS animated SVG waves, bobbing
+  sailboat and glowing sun while rendering; fades out after ≥1.2 s. Animations use only
+  `transform`/`opacity` so they keep running on the compositor while the GPU render blocks the
+  main thread; disabled under `prefers-reduced-motion`.
+
+M1 findings:
+- 4K (3840×2160) renders in ~1.5 s on an M2 Max (Metal via ANGLE); 1080p ~1 s.
+- Production bundle ~830 kB (211 kB gzip); takram precomputes its LUTs on the GPU, so no
+  extra asset downloads yet.
+- Bloom rang (pink arc) around the sun → highlights clamped before bloom.
+- Horizon showed dark dashes (sky model's black "ground" peeking under the polygonal far
+  edge) → ground albedo set and curvature reduced by 10%. Faint traces remain — revisit in M2.
+- Known weaknesses for M2: near-field water looks slightly smeared/stretched and the
+  wave pattern is a bit regular; no clouds (biggest realism gap, M4); night has no stars
+  (M4); blue-hour scenes facing away from the sun are still a little bright/pink.
+
+## 1. Seed → scene parameters (deterministic)
+
+- `seed = hash("YYYY-MM-DD")` → seeded PRNG. Same date = same scene everywhere.
+- All randomness goes through one `params.ts` → a plain `SceneParams` object (also shown on
+  the page and serializable to JSON for debugging).
+- Seeded parameters:
+  - **Biome / coast type:** tropical (palms, turquoise water), Mediterranean (cliffs, pines),
+    Nordic (dark rocks, cold light), desert dunes, volcanic black sand.
+  - **Time of day:** weighted toward golden hour and blue hour. Drives sun elevation/azimuth.
+    Night scenes use moonlight + stars.
+  - **Moon:** phase from the real date; position randomized; custom moon disc shaded by phase.
+  - **Weather:** clear / scattered clouds / overcast / storm; fog/haze density; wind speed
+    (drives ocean spectrum: wave height, choppiness, foam).
+  - **Camera:** height (beach level, cliff top, drone), heading, focal length 24–85 mm,
+    horizon on rule-of-thirds lines.
+  - **Props (probabilistic):** rocks/boulders, vegetation density, bird flock, 0–3 ships
+    (sailboat, fishing boat, distant freighter), lighthouse.
+- **Composition validator:** reject and re-roll (derived sub-seed) when the camera faces a
+  cliff, a ship sits dead center, the horizon is hidden, etc.
+
+## 2. Scene construction
+
+1. **Ocean:** GPU FFT simulation → displacement/normal/foam (Jacobian) textures; large grid
+   with LOD or projected grid to the horizon. Water shader: Fresnel reflection of the sky,
+   sun glint, subsurface/scatter color, depth-based absorption (turquoise shallows → dark
+   deep), whitecaps from foam map.
+2. **Beach terrain:** seeded heightfield (fBm noise + shaped beach slope / cliffs); sand, wet
+   sand (darker, glossy near waterline), rock materials blended by height/slope.
+3. **Shoreline:** foam band from water depth (scene depth vs. water surface) + animated-phase
+   swash lines frozen at a seeded moment.
+4. **Sky:** takram atmosphere driven by sun/moon direction; volumetric clouds per weather;
+   stars at night.
+5. **Scattering:** `InstancedMesh` placement of vegetation/rocks via slope + height masks with
+   Poisson-disc sampling.
+6. **Ships & birds:** glTF models; ships posed to sampled wave height/normal; birds as
+   instanced flock with seeded wing poses.
+7. **Post:** AgX tone mapping, bloom on sun glint, god rays, subtle DOF, grain, vignette.
+
+## 3. Rendering a 4K still in the browser
+
+- Render offscreen at 3840×2160 regardless of screen size; show a scaled preview.
+- Quality through accumulation: N jittered frames (sub-pixel camera jitter) averaged → clean
+  anti-aliasing and softer shadows.
+- If the GPU's max render-target size or memory is too small (some mobiles): render in tiles
+  and stitch, or fall back to a lower resolution.
+- "Download 4K" button → `canvas.toBlob()` → PNG/JPEG named `sea-YYYY-MM-DD.jpg`.
+
+## 4. Deployment (GitHub Pages)
+
+- GitHub Actions: on push to `main` → `vite build` → `actions/deploy-pages`.
+- The site always renders "today" (in the visitor's local date, or UTC — decide in M5).
+- **Optional CI snapshot** (for a stable `/latest.jpg` URL usable by wallpaper tools that
+  can't run JS): daily cron job runs Playwright/headless Chromium, renders the page, saves the
+  JPEG, publishes it as a Release asset + `latest.jpg`. Caveat: CI runners have no GPU
+  (SwiftShader software WebGL), so this is slow — acceptable for one frame, verify in M5.
+
+## 5. Website
+
+- `index.html`: today's wallpaper fullscreen, title + parameters (e.g. "Volcanic shore, blue
+  hour, waxing crescent"), Download 4K button.
+- Date picker / prev-next to browse any date (rendered on demand).
+- Debug panel (lil-gui) in dev mode to override any parameter.
+
+## 6. Milestone details
+
+1. **Skeleton** — Vite + TS + three.js; date → seed → params; simple ocean (three.js `Water`)
+   + takram sky + camera; renders and downloads at 4K.
+2. **Realism core** — FFT ocean, water shader, beach terrain, shoreline foam. Makes or breaks it.
+3. **Biomes & assets** — rocks, vegetation, birds, ships.
+4. **Variation** — time of day, weather/clouds, night + moon; composition validator.
+5. **Deploy** — Pages workflow; 4K export robustness (tiling/fallback); optional CI snapshot.
+6. **Polish** — contact-sheet page rendering ~50 dates as thumbnails; tune weights; fix ugly
+   combinations.
+
+## Risks & fallbacks
+
+- **Realism ceiling of real-time shading** → lean on accumulation, good atmosphere (takram),
+  careful water shading, CC0 photo-scanned assets; experimental path-traced mode later.
+- **Weak devices can't render 4K** → tile rendering or lower-res fallback.
+- **Beta dependencies (takram)** → pin versions; Preetham `Sky` as fallback.
+- **Asset download size** → compress glTF (Draco/Meshopt), KTX2 textures, lazy-load per biome.
+
+## Log
+
+- 2026-10-13: Researched approaches; initially leaned toward Blender + Cycles headless.
+- 2026-10-13: Confirmed Blender is free/open source; reviewed library alternatives.
+- 2026-10-13: **Final decision: web-only rendering with three.js** (fits GitHub Pages
+  deployment). Plan rewritten around browser rendering; archive = re-render any date.
+- 2026-10-13: **M1 done.** Vite + TS + three.js 0.186, takram atmosphere 0.19, postprocessing
+  6.39. Gerstner-sum ocean (FFT deferred to M2), physical sky, real moon phase, auto exposure,
+  night "lunar mode", 4K download, Playwright snapshot + contact-sheet scripts.
+- 2026-10-13: Added animated loading splash (waves, boat, sun).
+
+## References
+
+- @takram/three-atmosphere — https://unpkg.com/@takram/three-atmosphere@0.13.2/README.md
+- @takram/three-clouds — https://cdn.jsdelivr.net/npm/@takram/three-clouds@0.7.4/README.md
+- takram three-geospatial docs — https://docsearch.algolia.com/mcp/docs/repo/takram-design-engineering/three-geospatial
+- three-gpu-pathtracer — https://github.com/gkjohnson/three-gpu-pathtracer
+- jbouny/fft-ocean — https://awesome.ecosyste.ms/projects/github.com%2Fjbouny%2Ffft-ocean
+- three.js OceanShaders — https://app.unpkg.com/three.fbo-helper@1.1.1/files/demo/node_modules/three/examples/js/shaders/OceanShaders.js
+- webgl-fft-ocean — https://npmjs.com/package/webgl-fft-ocean
+- Ocean Rendering with FFT for Real-Time Applications — https://dspace.zcu.cz/items/a04534b1-2a3b-4457-96ca-0bc326a2b72b/full
