@@ -10,7 +10,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 |---|---|
 | 1. Skeleton: Vite + three.js app, date seed, ocean + sky + camera | ✅ Done (2026-10-13) |
 | 2. Realism core: FFT ocean, water shading, beach terrain, shoreline foam | ✅ Done (2026-10-14) |
-| 3. Biomes & assets: rocks, vegetation, birds, ships | ⬜ Not started |
+| 3. Biomes & assets: rocks, vegetation, birds, ships | ✅ Done (2026-10-14) |
 | 4. Variation: time of day, weather, night/moon, composition validator | ⬜ Not started |
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | ⬜ Not started |
 | 6. Polish: contact sheet of ~50 dates, tune weights | ⬜ Not started |
@@ -51,7 +51,7 @@ Notes: takram packages are Beta; they need the pmndrs `EffectComposer`, not the 
 three.js examples. The path tracer needs static CPU-side geometry, so the ocean would have
 to be baked to a mesh for that mode.
 
-## Current implementation (after M2)
+## Current implementation (after M3)
 
 How to run:
 - `npm run dev` → open the printed URL. `?date=YYYY-MM-DD` picks a day; `?w=1920&h=1080`
@@ -105,6 +105,35 @@ M1 findings:
 - Known weaknesses for M2: near-field water looks slightly smeared/stretched and the
   wave pattern is a bit regular; no clouds (biggest realism gap, M4); night has no stars
   (M4); blue-hour scenes facing away from the sun are still a little bright/pink.
+
+- `src/biome.ts` — tropical / mediterranean / nordic / volcanic / desert; each picks water,
+  sand, rock colours, sea-stack odds, plant mix, foliage and ground-cover tint.
+- `src/shadow.ts` — lets the custom terrain/ocean shaders sample the sun's PCF shadow map.
+- `src/props/` — all procedural, seeded per date (no downloaded assets):
+  - `context.ts` placement helpers (frustum test, ground height, derived RNG streams);
+  - `builder.ts` tiny mesh builder (tubes, lumpy oriented blobs, quads, vertex colours);
+  - `rocks.ts` fractured boulders (noisy sphere sliced by planes, ridged creases, wet
+    darkening), waterline clusters, beach pebbles, stratified sea stacks;
+  - `vegetation.ts` palms, stone pines, cypresses, spruce-like conifers, bushes, dune grass;
+    zoned in shore coordinates with forest/clearing noise; hero plants for framed shots;
+  - `birds.ts` gull flocks (3 poses; silhouettes against low sun);
+  - `ships.ts` sailboats, fishing boats, distant container ships.
+- Props use MeshStandardMaterial lit by a DirectionalLight carrying the same sun irradiance as
+  the custom shaders + the sky cube as `scene.environment`, so all lighting shares one unit.
+- `CoastParams.composition`: shoreline / along-beach / framed / overlook; `hillHeight` inland.
+
+M3 findings & deviations:
+- **Deviation:** props are procedural instead of CC0 glTF downloads — zero asset weight,
+  per-date variety, nothing external to host. Close-ups are somewhat stylised; at wallpaper
+  scale they read well.
+- A `sampler2DShadow` bound to a non-depth texture rejects the draw (sea/sand vanished when
+  the sun was down) → always render a shadow map, even when the light carries no energy.
+- three's `IcosahedronGeometry(1, n)` subdivides faces (n+1)² times — detail 5 is only 720
+  faces; rocks use detail 30.
+- Polish backlog: cypress/stone-pine close-ups look toy-like; boats lack reflections and
+  wakes (env-cube reflections can't show local objects → planar reflection pass?); dusk
+  scenes can be over-purple; terrain under trees has no ambient occlusion; distant shoreline
+  still occasionally sparkles.
 
 M2 findings:
 - 65% of dates are beaches now (camera on the sand at eye height, dune top, or drone);
@@ -212,6 +241,8 @@ M2 findings:
 - 2026-10-14: Started using git (repo-local identity). Commits per logical step from now on.
 - 2026-10-14: **M2 done.** FFT ocean (3 cascades, LEAN roughness), procedural beaches with surf,
   shallow-water optics, caustics, foam, wet sand. 4K still ~1.3 s on M2 Max.
+- 2026-10-14: **M3 done.** Biomes, sun shadows, procedural rocks/sea stacks, vegetation, gulls,
+  boats; four camera compositions. 4K ~1.5 s.
 
 ## References
 

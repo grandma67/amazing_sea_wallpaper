@@ -84,8 +84,8 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
       ],
       rockChance: 0.45,
       seaStackChance: 0.15,
-      groundCover: [0.05, 0.12, 0.03],
-      groundCoverAmount: 0.95,
+      groundCover: [0.045, 0.075, 0.03],
+      groundCoverAmount: 0.85,
       vegetation: [
         ['palm', 6],
         ['bush', 3],
