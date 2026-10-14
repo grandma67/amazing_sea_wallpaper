@@ -14,7 +14,8 @@ import type { Random } from '../random'
 import { shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
-import { fbm3, noise3 } from './noise'
+import { noise3 } from './noise'
+import { acacia, birch, broadleaf, bush, conifer, cypress, olive, pandanus, stonePine } from './trees'
 
 // Procedural plants, generated per scene from the seed, then scattered over
 // the land behind the beach. Geometry is built at a nominal size with its
@@ -29,7 +30,6 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
   a[2] + (b[2] - a[2]) * t
 ]
 
-const BARK: RGB = [0.16, 0.12, 0.09]
 const PALM_BARK: RGB = [0.3, 0.26, 0.21]
 const DRY: RGB = [0.28, 0.22, 0.12]
 
@@ -110,132 +110,6 @@ function palm(rng: Random, foliage: RGB): BufferGeometry {
   return b.build()
 }
 
-/** Leafy canopy colour: lighter on top where it catches the sky. */
-function canopyColor(foliage: RGB, seed: number, offset: Vector3) {
-  return (n: Vector3): RGB => {
-    const k = 0.7 + 0.35 * n.y + 0.35 * fbm3(n.x * 3 + offset.x, n.y * 3, n.z * 3 + offset.z, seed)
-    return scale(foliage, k)
-  }
-}
-
-function lumpy(seed: number, amount: number) {
-  return (n: Vector3): number => 1 - amount * 0.5 + amount * fbm3(n.x * 2.5, n.y * 2.5, n.z * 2.5, seed)
-}
-
-function stonePine(rng: Random, foliage: RGB): BufferGeometry {
-  const b = new MeshBuilder()
-  const height = rng.range(9, 14)
-  const lean = height * rng.range(0.03, 0.15)
-  const trunk = Array.from({ length: 12 }, (_, i) => {
-    const t = i / 11
-    return new Vector3(lean * Math.sin(t * 1.6), height * 0.8 * t, 0)
-  })
-  b.tube(trunk, t => 0.28 * (1 - 0.5 * t), t => scale(BARK, 1.1 + 0.2 * Math.sin(t * 40)), 8)
-  const top = trunk[trunk.length - 1]
-  const seed = rng.int(0, 1e6)
-  // Umbrella: a ring of flattened lumpy clouds of needles.
-  const clouds = rng.int(5, 8)
-  const spread = rng.range(2.5, 4.5)
-  for (let i = 0; i < clouds; i++) {
-    const az = (i / clouds) * Math.PI * 2 + rng.normal(0, 0.3)
-    const r = i === 0 ? 0 : spread * rng.range(0.4, 1)
-    const center = top.clone().add(new Vector3(Math.cos(az) * r, rng.range(0.5, 1.6), Math.sin(az) * r))
-    const size = rng.range(1.8, 3)
-    // Each cloud is a cluster of smaller needle tufts.
-    for (let k = 0; k < 9; k++) {
-      const offset = new Vector3(rng.normal(0, size * 0.45), rng.normal(0, size * 0.12), rng.normal(0, size * 0.45))
-      const tuft = size * rng.range(0.35, 0.6)
-      b.blob(
-        center.clone().add(offset),
-        new Vector3(tuft, tuft * 0.55, tuft),
-        canopyColor(foliage, seed + i * 13 + k, center),
-        lumpy(seed + i * 13 + k, 0.7),
-        4
-      )
-    }
-  }
-  return b.build()
-}
-
-function cypress(rng: Random, foliage: RGB): BufferGeometry {
-  const b = new MeshBuilder()
-  const height = rng.range(10, 17)
-  const width = height * rng.range(0.08, 0.12)
-  const seed = rng.int(0, 1e6)
-  b.tube([new Vector3(), new Vector3(0, 1.2, 0)], () => 0.18, () => BARK, 6)
-  b.blob(
-    new Vector3(0, height * 0.52, 0),
-    new Vector3(width, height * 0.5, width),
-    canopyColor(scale(foliage, 0.75), seed, new Vector3()),
-    // Taper to a point at the top.
-    n => (1 - 0.55 * Math.max(n.y, 0) ** 1.5) * (0.85 + 0.3 * fbm3(n.x * 4, n.y * 9, n.z * 4, seed)),
-    8
-  )
-  return b.build()
-}
-
-function conifer(rng: Random, foliage: RGB): BufferGeometry {
-  const b = new MeshBuilder()
-  const height = rng.range(10, 18)
-  const seed = rng.int(0, 1e6)
-  const leaf = scale(foliage, 0.8)
-  b.tube([new Vector3(), new Vector3(0, height, 0)], t => 0.25 * (1 - t) + 0.03, () => BARK, 6)
-  // Whorls of drooping branch sprays, shorter toward the top.
-  const whorls = rng.int(9, 14)
-  for (let w = 0; w < whorls; w++) {
-    const t = (w + rng.range(-0.2, 0.2)) / whorls
-    const y = height * (0.2 + 0.78 * t)
-    const reach = (1 - t) * height * 0.24 + 0.35
-    const branches = rng.int(6, 10)
-    for (let k = 0; k < branches; k++) {
-      const az = (k / branches) * Math.PI * 2 + rng.normal(0, 0.25)
-      const dir = new Vector3(Math.cos(az), -0.35 - 0.2 * rng.float(), Math.sin(az)).normalize()
-      const len = reach * rng.range(0.75, 1.1)
-      const center = new Vector3(0, y, 0).addScaledVector(dir, len * 0.5)
-      const shade = 0.7 + 0.5 * rng.float() + 0.25 * t
-      // A flat spray of needles lying along the branch.
-      b.blob(
-        center,
-        new Vector3(len * 0.55, len * 0.12, len * 0.3),
-        n => scale(leaf, shade * (0.8 + 0.3 * n.y)),
-        n => 0.65 + 0.7 * fbm3(n.x * 5 + k, n.y * 5, n.z * 5 + w, seed),
-        4,
-        new Quaternion().setFromUnitVectors(new Vector3(1, 0, 0), dir)
-      )
-    }
-  }
-  b.blob(
-    new Vector3(0, height * 0.99, 0),
-    new Vector3(0.3, height * 0.06, 0.3),
-    () => scale(leaf, 1.1),
-    () => 1,
-    3
-  )
-  return b.build()
-}
-
-function bush(rng: Random, foliage: RGB): BufferGeometry {
-  const b = new MeshBuilder()
-  const seed = rng.int(0, 1e6)
-  const lumps = rng.int(2, 5)
-  for (let i = 0; i < lumps; i++) {
-    const size = rng.range(0.5, 1.1)
-    const center = new Vector3(rng.normal(0, 0.5), size * 0.45, rng.normal(0, 0.5))
-    for (let k = 0; k < 5; k++) {
-      const tuft = size * rng.range(0.4, 0.7)
-      const offset = new Vector3(rng.normal(0, size * 0.4), rng.normal(0, size * 0.25), rng.normal(0, size * 0.4))
-      b.blob(
-        center.clone().add(offset),
-        new Vector3(tuft, tuft * 0.75, tuft),
-        canopyColor(scale(foliage, 1.1), seed + i * 7 + k, center),
-        lumpy(seed + i * 7 + k, 0.8),
-        4
-      )
-    }
-  }
-  return b.build()
-}
-
 function grass(rng: Random, foliage: RGB): BufferGeometry {
   const b = new MeshBuilder()
   const blades = rng.int(14, 26)
@@ -282,6 +156,8 @@ interface KindSpec {
   leanSeaward: boolean
   minSlope: number
   castShadow: boolean
+  /** Distinct meshes generated per scene; more means less visible repetition. */
+  variants: number
 }
 
 const KINDS: Record<VegetationKind, KindSpec> = {
@@ -295,7 +171,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     tilt: 0.35,
     leanSeaward: true,
     minSlope: 0.8,
-    castShadow: true
+    castShadow: true,
+    variants: 5
   },
   'stone-pine': {
     build: stonePine,
@@ -307,7 +184,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     tilt: 0.12,
     leanSeaward: false,
     minSlope: 0.75,
-    castShadow: true
+    castShadow: true,
+    variants: 5
   },
   cypress: {
     build: cypress,
@@ -319,7 +197,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     tilt: 0.03,
     leanSeaward: false,
     minSlope: 0.8,
-    castShadow: true
+    castShadow: true,
+    variants: 4
   },
   conifer: {
     build: conifer,
@@ -331,7 +210,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     tilt: 0.05,
     leanSeaward: false,
     minSlope: 0.75,
-    castShadow: true
+    castShadow: true,
+    variants: 5
   },
   bush: {
     build: bush,
@@ -343,7 +223,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     tilt: 0.1,
     leanSeaward: false,
     minSlope: 0.7,
-    castShadow: true
+    castShadow: true,
+    variants: 5
   },
   grass: {
     build: grass,
@@ -355,11 +236,75 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     tilt: 0.15,
     leanSeaward: false,
     minSlope: 0.6,
-    castShadow: false
+    castShadow: false,
+    variants: 3
+  },
+  broadleaf: {
+    build: broadleaf,
+    inland: (bw, dw) => [bw + dw * 0.6, 2500],
+    maxDistance: 2500,
+    count: 220,
+    scale: [0.75, 1.35],
+    clumping: 0.55,
+    tilt: 0.06,
+    leanSeaward: false,
+    minSlope: 0.75,
+    castShadow: true,
+    variants: 6
+  },
+  olive: {
+    build: olive,
+    inland: (bw, dw) => [bw + dw * 0.4, 1800],
+    maxDistance: 1800,
+    count: 220,
+    scale: [0.8, 1.3],
+    clumping: 0.5,
+    tilt: 0.1,
+    leanSeaward: false,
+    minSlope: 0.75,
+    castShadow: true,
+    variants: 6
+  },
+  birch: {
+    build: birch,
+    inland: (bw, dw) => [bw + dw * 0.8, 3000],
+    maxDistance: 3000,
+    count: 400,
+    scale: [0.7, 1.2],
+    clumping: 0.5,
+    tilt: 0.06,
+    leanSeaward: false,
+    minSlope: 0.75,
+    castShadow: true,
+    variants: 6
+  },
+  acacia: {
+    build: acacia,
+    inland: (bw, dw) => [bw + dw * 0.5, 2500],
+    maxDistance: 2500,
+    count: 60,
+    scale: [0.8, 1.4],
+    clumping: 0.45,
+    tilt: 0.05,
+    leanSeaward: false,
+    minSlope: 0.8,
+    castShadow: true,
+    variants: 5
+  },
+  pandanus: {
+    build: pandanus,
+    inland: (bw, dw) => [bw * 0.5, bw + dw + 120],
+    maxDistance: 1200,
+    count: 120,
+    scale: [0.8, 1.3],
+    clumping: 0.5,
+    tilt: 0.25,
+    leanSeaward: true,
+    minSlope: 0.8,
+    castShadow: true,
+    variants: 5
   }
 }
-
-const VARIANTS = 3
 
 export function createVegetation(ctx: PropContext): InstancedMesh[] {
   const { params } = ctx
@@ -382,7 +327,18 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     side: DoubleSide
   })
 
-  const order: VegetationKind[] = ['palm', 'stone-pine', 'conifer', 'cypress', 'bush']
+  const order: VegetationKind[] = [
+    'palm',
+    'stone-pine',
+    'olive',
+    'broadleaf',
+    'birch',
+    'acacia',
+    'pandanus',
+    'conifer',
+    'cypress',
+    'bush'
+  ]
   const heroKind =
     coast.composition === 'framed' ? order.find(k => kinds.some(([kind]) => kind === k)) : undefined
 
@@ -461,15 +417,18 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
         : rng.range(0, Math.PI * 2)
       q.setFromAxisAngle(tiltAxis, tilt).multiply(new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), yaw))
       p.set(x, y - 0.1 * size, z)
-      s.setScalar(size)
+      // Slightly different proportions per instance, so copies of the same
+      // variant don't read as clones.
+      const girth = rng.range(0.85, 1.15)
+      s.set(size * girth, size * rng.range(0.88, 1.12), size * girth)
       placed.push(new Matrix4().compose(p, q, s))
       const tint = 0.8 + 0.4 * rng.float()
       colors.push(new Color(tint, tint * (0.9 + 0.2 * rng.float()), tint))
     }
     if (placed.length === 0) continue
 
-    for (let v = 0; v < VARIANTS; v++) {
-      const indices = placed.map((_, i) => i).filter(i => i % VARIANTS === v)
+    for (let v = 0; v < spec.variants; v++) {
+      const indices = placed.map((_, i) => i).filter(i => i % spec.variants === v)
       if (indices.length === 0) continue
       const mesh = new InstancedMesh(spec.build(rng, biome.foliage), material, indices.length)
       indices.forEach((i, j) => {

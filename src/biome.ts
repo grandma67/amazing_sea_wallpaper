@@ -53,7 +53,18 @@ const WATER: Record<string, WaterStyle> = {
   }
 }
 
-export type VegetationKind = 'palm' | 'stone-pine' | 'cypress' | 'conifer' | 'bush' | 'grass'
+export type VegetationKind =
+  | 'palm'
+  | 'pandanus'
+  | 'stone-pine'
+  | 'olive'
+  | 'cypress'
+  | 'broadleaf'
+  | 'conifer'
+  | 'birch'
+  | 'acacia'
+  | 'bush'
+  | 'grass'
 
 export interface Biome {
   name: 'tropical' | 'mediterranean' | 'nordic' | 'volcanic' | 'desert'
@@ -88,6 +99,8 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
       groundCoverAmount: 0.85,
       vegetation: [
         ['palm', 6],
+        ['pandanus', 2],
+        ['broadleaf', 1.5],
         ['bush', 3],
         ['grass', 2]
       ],
@@ -111,7 +124,9 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
       groundCoverAmount: 0.8,
       vegetation: [
         ['stone-pine', 4],
+        ['olive', 3],
         ['cypress', 2],
+        ['broadleaf', 1.5],
         ['bush', 4],
         ['grass', 1]
       ],
@@ -136,6 +151,7 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
       vegetation: [
         ['grass', 6],
         ['conifer', 3],
+        ['birch', 2],
         ['bush', 1]
       ],
       foliage: [0.04, 0.08, 0.04]
@@ -158,7 +174,8 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
       vegetation: [
         ['grass', 4],
         ['bush', 3],
-        ['palm', 1]
+        ['palm', 1],
+        ['broadleaf', 1]
       ],
       foliage: [0.05, 0.13, 0.04]
     },
@@ -179,6 +196,7 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
       groundCoverAmount: 0.2,
       vegetation: [
         ['bush', 1],
+        ['acacia', 1],
         ['grass', 1]
       ],
       foliage: [0.12, 0.12, 0.06]
