@@ -2,13 +2,13 @@ import { BlendFunction, Effect, EffectAttribute } from 'postprocessing'
 import { Uniform, Vector3, Vector4, type PerspectiveCamera } from 'three'
 
 import { CLOUD_GENERA } from './cloudTypes'
-import { dirFromAzEl, type SceneParams } from './params'
+import { dirFromAzEl, type RainbowParams, type SceneParams, type StormParams } from './params'
 import { boltTops } from './props/storm'
 import { Random } from './random'
 
-// Screen-space parts of a storm, applied after exposure on top of the
-// composited clouds: distant rain shafts, the lightning flash on the cloud
-// base, and rain falling right in front of the camera.
+// Screen-space rain, applied after exposure on top of the composited clouds:
+// distant rain shafts, rainbows, the lightning flash on the cloud base, and
+// rain falling right in front of the camera.
 
 const DEG = Math.PI / 180
 const MAX = 4
@@ -18,13 +18,13 @@ const MAX = 4
  * the volumetric clouds and haze don't composite), hidden behind anything
  * nearer than the shaft. */
 class RainShaftEffect extends Effect {
-  constructor(params: SceneParams, camera: PerspectiveCamera) {
+  constructor(params: SceneParams, curtains: StormParams['curtains'], camera: PerspectiveCamera) {
     const base = CLOUD_GENERA.cumulonimbus.altitude
     const tanHalfH = Math.tan((camera.fov * DEG) / 2) * camera.aspect
     const shafts: Vector4[] = []
     const shapes: Vector4[] = []
     const rng = Random.derive(params.seed, 'rain-shafts')
-    params.storm!.curtains.slice(0, MAX).forEach(curtain => {
+    curtains.slice(0, MAX).forEach(curtain => {
       const [dx, , dz] = dirFromAzEl(curtain.azimuthDeg, 0)
       const foot = new Vector3(dx, 0, dz).multiplyScalar(curtain.distance).add(camera.position).setY(0)
       const top = foot.clone().setY(base)
@@ -86,6 +86,80 @@ class RainShaftEffect extends Effect {
           ['shafts', new Uniform(shafts)],
           ['shapes', new Uniform(shapes)],
           ['count', new Uniform(count)]
+        ])
+      }
+    )
+  }
+}
+
+/**
+ * A rainbow in the rain: sunlight refracted and reflected inside drops comes
+ * back at 42° around the antisolar point (red outside, violet inside), the
+ * secondary bow at ~51° with the colours reversed, a brighter sky inside the
+ * primary and Alexander's darker band between the two. Only where there's
+ * rain — in front of distant scenery, patchy along the arc.
+ */
+class RainbowEffect extends Effect {
+  constructor(params: SceneParams, rainbow: RainbowParams, camera: PerspectiveCamera) {
+    const [sx, sy, sz] = params.sunDirection
+    super(
+      'RainbowEffect',
+      /* glsl */ `
+      uniform vec3 antisolar;
+      uniform mat4 cameraWorld;
+      uniform mat4 projectionInverse;
+      uniform float strength;
+      uniform float secondary;
+      uniform float seed;
+      float hash1(float x) { return fract(sin(x * 127.1 + seed) * 43758.5453); }
+      float noise1(float x) {
+        float i = floor(x);
+        float f = fract(x);
+        return mix(hash1(i), hash1(i + 1.0), f * f * (3.0 - 2.0 * f));
+      }
+      // Colours across a bow, t = 0 violet (inner) … 1 red (outer); the
+      // sun's half-degree disc blurs the edges.
+      vec3 bow(float t) {
+        vec3 c;
+        c.r = smoothstep(0.35, 0.75, t) + 0.35 * (1.0 - smoothstep(0.0, 0.18, t));
+        c.g = exp(-pow((t - 0.5) / 0.22, 2.0));
+        c.b = 1.0 - smoothstep(0.1, 0.45, t);
+        return c * smoothstep(0.0, 0.1, t) * (1.0 - smoothstep(0.88, 1.0, t));
+      }
+      void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth, out vec4 outputColor) {
+        vec4 view = projectionInverse * vec4(uv * 2.0 - 1.0, 1.0, 1.0);
+        vec3 dir = normalize((cameraWorld * vec4(view.xyz / view.w, 0.0)).xyz);
+        float theta = degrees(acos(clamp(dot(dir, antisolar), -1.0, 1.0)));
+        // Where the rain is: kilometres away, patchy along the arc, fading
+        // a little below the horizon.
+        float distance = -getViewZ(depth);
+        vec3 side = normalize(cross(antisolar, vec3(0.0, 1.0, 0.0)));
+        float phi = atan(dot(dir, side), dir.y);
+        float rain = smoothstep(800.0, 2500.0, distance) *
+          smoothstep(0.25, 0.65, noise1(phi * 2.5) * 0.7 + noise1(phi * 7.0 + 3.0) * 0.3) *
+          mix(0.5, 1.0, smoothstep(-0.02, 0.01, dir.y));
+        vec3 c = inputColor.rgb;
+        float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        float k = strength * rain;
+        // Brighter inside the primary, darker in Alexander's band.
+        c *= 1.0 + k * (0.12 * smoothstep(20.0, 40.0, theta) * (1.0 - smoothstep(40.0, 41.0, theta)) -
+          0.08 * smoothstep(42.5, 43.5, theta) * (1.0 - smoothstep(49.5, 50.5, theta)));
+        vec3 light = bow((theta - 40.4) / 2.3) + secondary * 0.43 * bow(1.0 - (theta - 50.0) / 3.8);
+        // Added light, scaled to the scene so it reads on dark rain and on
+        // brighter sky alike.
+        c += light * k * (0.05 + 0.35 * lum);
+        outputColor = vec4(c, inputColor.a);
+      }`,
+      {
+        blendFunction: BlendFunction.SET,
+        attributes: EffectAttribute.DEPTH,
+        uniforms: new Map<string, Uniform>([
+          ['antisolar', new Uniform(new Vector3(-sx, -sy, -sz))],
+          ['cameraWorld', new Uniform(camera.matrixWorld)],
+          ['projectionInverse', new Uniform(camera.projectionMatrixInverse)],
+          ['strength', new Uniform(rainbow.strength)],
+          ['secondary', new Uniform(rainbow.secondary ? 1 : 0)],
+          ['seed', new Uniform(params.ocean.time % 100)]
         ])
       }
     )
@@ -179,12 +253,15 @@ class RainEffect extends Effect {
   }
 }
 
-/** The day's storm effects, in compositing order. */
+/** The day's rain effects (storm or rainbow shower), in compositing order. */
 export function stormEffects(params: SceneParams, camera: PerspectiveCamera): Effect[] {
-  const storm = params.storm
-  if (storm == null) return []
   const effects: Effect[] = []
-  if (storm.curtains.length > 0) effects.push(new RainShaftEffect(params, camera))
+  const { rainbow, storm } = params
+  if (rainbow != null) {
+    effects.push(new RainShaftEffect(params, rainbow.showers, camera), new RainbowEffect(params, rainbow, camera))
+  }
+  if (storm == null) return effects
+  if (storm.curtains.length > 0) effects.push(new RainShaftEffect(params, storm.curtains, camera))
   const tops = boltTops(params, camera.position)
   if (tops.length > 0) effects.push(new FlashEffect(tops, camera))
   if (storm.rain > 0) effects.push(new RainEffect(storm.rain, camera.aspect, params.ocean.windSpeed))

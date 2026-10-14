@@ -355,7 +355,8 @@ export async function renderScene(
   }
   setStormBrightness(props, sceneLuminance)
   composer.addPass(new EffectPass(camera, new GradeEffect(exposure, scotopic, whiteBalance)))
-  if (params.storm != null) composer.addPass(new EffectPass(camera, ...stormEffects(params, camera)))
+  const rain = stormEffects(params, camera)
+  if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
   if (clouds != null) composer.addPass(new AccumulatePass())
   composer.addPass(

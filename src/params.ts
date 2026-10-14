@@ -62,6 +62,15 @@ export type WeatherKind = 'clear' | 'cirrus' | 'few' | 'scattered' | 'broken' | 
  * islets; penguin rookeries in the Southern Ocean. */
 export type ColonyKind = 'gannet' | 'puffin' | 'tropical' | 'penguin'
 
+export interface RainbowParams {
+  /** 0..1: how much of the bow's light the rain gives back. */
+  strength: number
+  /** Whether the fainter secondary bow (≈51°) shows. */
+  secondary: boolean
+  /** The shower's rain shafts, around the antisolar point. */
+  showers: StormParams['curtains']
+}
+
 /** A thunderstorm or squall over the sea: a rare event (see generateStorm). */
 export interface StormParams {
   /** Rain shafts hanging from the cloud base: azimuth (deg, world), distance
@@ -120,6 +129,8 @@ export interface SceneParams {
   storm: StormParams | null
   /** An offshore island with a seabird colony (props/colony.ts). */
   colony: ColonyKind | null
+  /** A passing shower opposite a low sun, and the rainbow in it. */
+  rainbow: RainbowParams | null
 
   camera: {
     /** Above sea level for open sea; above the ground on a beach. */
@@ -467,6 +478,19 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   // Night needs a reasonably bright moon to be worth looking at.
   if (timeOfDay === 'night' && moonIllumination < 0.35) timeOfDay = 'blue-hour'
   const isEvening = rng.chance(0.5)
+  // The weather has its own random stream, so drawing it here doesn't shift
+  // any other parameter of the day.
+  const weather = generateWeather(seed, timeOfDay)
+
+  // Rainbows: a shower passing on a sunny, showery day while the sun is low
+  // (the bow is a 42° circle around the point opposite the sun, so it's only
+  // above the horizon when the sun is below 42°). On those days the camera
+  // turns its back to the sun.
+  const rainbowRng = Random.derive(seed, 'rainbow')
+  const rainbowDay =
+    (timeOfDay === 'golden-hour' || timeOfDay === 'daylight') &&
+    (weather.kind === 'scattered' || weather.kind === 'broken') &&
+    rainbowRng.chance(0.15)
 
   // Camera heading, then the sun relative to it. Low suns are usually framed
   // in or near the view for glitter paths; high suns can be anywhere.
@@ -474,8 +498,8 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   const [elMin, elMax] = SUN_ELEVATION[timeOfDay]
   const sunElevationDeg = rng.range(elMin, elMax)
   const lowSun = timeOfDay !== 'midday' && timeOfDay !== 'daylight'
-  const relSunAz =
-    lowSun && rng.chance(0.7) ? rng.normal(0, 18 * framing) : rng.range(-180, 180)
+  const drawnSunAz = lowSun && rng.chance(0.7) ? rng.normal(0, 18 * framing) : rng.range(-180, 180)
+  const relSunAz = rainbowDay ? 180 + rainbowRng.normal(0, 10 * framing) : drawnSunAz
   const sunDirection = dirFromAzEl(headingDeg + relSunAz, sunElevationDeg)
 
   // Place the moon at the physically correct angular distance from the sun
@@ -514,16 +538,16 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     [() => rng.range(6, 25), 4],
     [() => rng.range(40, 160), 2]
   ])()
-  const focalLengthMm = rng.weighted<() => number>([
+  const drawnFocalLength = rng.weighted<() => number>([
     [() => rng.range(18, 28), 3],
     [() => rng.range(28, 50), 4],
     [() => rng.range(50, 90), 2]
   ])()
+  // A rainbow spans 84°: go wide to get most of the arc in.
+  const focalLengthMm = rainbowDay ? Math.min(drawnFocalLength, rainbowRng.range(14, 22)) : drawnFocalLength
 
   // Wind: mostly calm-to-moderate seas, fresher under heavy cloud (fronts)
-  // and lighter on clear days. The weather has its own random stream, so this
-  // doesn't shift any other parameter of the day.
-  const weather = generateWeather(seed, timeOfDay)
+  // and lighter on clear days.
   const windByWeather: Record<WeatherKind, number> = {
     clear: 0.85,
     cirrus: 0.95,
@@ -585,12 +609,26 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     night: 'Moonlit night'
   }
   const colony = pickColony(seed, basin.name, biome)
+  let rainbow: RainbowParams | null = null
+  if (rainbowDay && storm == null) {
+    const antisolarAz = headingDeg + relSunAz + 180
+    rainbow = {
+      strength: rainbowRng.range(0.5, 1),
+      secondary: rainbowRng.chance(0.6),
+      showers: Array.from({ length: rainbowRng.int(1, 3) }, () => ({
+        azimuthDeg: antisolarAz + rainbowRng.range(-35, 35),
+        distance: rainbowRng.range(2500, 9000),
+        width: rainbowRng.range(1500, 5000)
+      }))
+    }
+  }
 
   const titleParts = [
     timeLabel[timeOfDay],
     coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(oceanState.windSpeed),
     basin.label
   ]
+  if (rainbow != null) titleParts.push('rainbow')
   if (colony != null) titleParts.push(colony === 'penguin' ? 'penguin colony' : 'seabird island')
   if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
   if (storm != null) {
@@ -626,6 +664,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     weather,
     storm,
     colony,
+    rainbow,
     camera: {
       heightM: eyeHeight ?? heightM,
       headingDeg,
