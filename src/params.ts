@@ -2,6 +2,7 @@ import { MoonPhase } from 'astronomy-engine'
 
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
 import { CLOUD_GENERA, pickFormations, type CloudGenus } from './cloudTypes'
+import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { Random } from './random'
 
 // Everything random about a scene is decided here, from the date alone.
@@ -101,6 +102,14 @@ export interface SceneParams {
   latitudeDeg: number
 
   biome: Biome
+  /** Which of Earth's oceans this is (oceans.ts). */
+  sea: {
+    ocean: OceanName
+    label: string
+    /** Indian Ocean south-west monsoon season. */
+    monsoon: boolean
+    ice: IceParams | null
+  }
   coast: CoastParams
   weather: WeatherParams
   storm: StormParams | null
@@ -512,10 +521,27 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     weather.sunVisibility = srng.chance(0.4) ? srng.range(0.15, 0.4) : srng.range(0, 0.05)
   }
 
-  const biome = rng.weighted(BIOMES)
+  let biome = rng.weighted(BIOMES)
   addFormations(seed, weather, biome)
-  const water = Random.derive(seed, 'water').pick(biome.water)
-  const oceanState = { windSpeed, windHeadingDeg, ...swell(seed, windHeadingDeg) }
+  const waterRng = Random.derive(seed, 'water')
+  const orng = Random.derive(seed, 'ocean')
+  const { basin, monsoon, ice } = pickOcean(orng, biome, Number(date.slice(5, 7)))
+  const water = basin.water ?? waterRng.pick(biome.water)
+  // Polar coasts: tundra grass and shrubs (and birch in the Arctic), no trees
+  // from warmer climates.
+  if (basin.water != null) {
+    const hardy = basin.name === 'arctic' ? ['grass', 'bush', 'birch'] : ['grass', 'bush']
+    const vegetation = biome.vegetation.filter(([kind]) => hardy.includes(kind))
+    biome = { ...biome, vegetation: vegetation.length > 0 ? vegetation : [['grass', 1]] }
+  }
+  // The ocean shapes its sea: Southern gales, Pacific groundswell, monsoon
+  // seas; pack ice smothers waves, leaving calm leads between the floes.
+  const iceCalm = ice != null && ice.packIce > 0 ? 0.4 : 1
+  windSpeed = Math.min(24, windSpeed * basin.wind * (monsoon ? 1.35 : 1))
+  const oceanSwell = swell(seed, windHeadingDeg)
+  oceanSwell.swellHeight *= basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm
+  oceanSwell.swellWavelength = Math.min(320, oceanSwell.swellWavelength * basin.swellWavelength)
+  const oceanState = { windSpeed: windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
   const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, biome, oceanState)
 
   const timeLabel: Record<TimeOfDay, string> = {
@@ -528,8 +554,10 @@ export function generateParams(date: string, attempt = 0): SceneParams {
   }
   const titleParts = [
     timeLabel[timeOfDay],
-    coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(windSpeed)
+    coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(oceanState.windSpeed),
+    basin.label
   ]
+  if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
   if (storm != null) {
     titleParts.push(storm.bolts.length > 0 ? 'thunderstorm' : 'squall')
   } else {
@@ -538,6 +566,11 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     if (skyTitle != null && timeOfDay !== 'night') titleParts.push(skyTitle)
   }
   if (moonElevationDeg > 1 && moonIllumination > 0.05) titleParts.push(moonPhaseName(moonPhaseDeg))
+
+  const moonScale = rng.range(1.2, 2.4)
+  rng.float() // was the latitude draw; keeps the rest of the main stream in place
+  const [latMin, latMax] = biome.name === 'tropical' ? [5, 23] : basin.latitude
+  const latitudeDeg = orng.range(latMin, latMax)
 
   return {
     date,
@@ -550,9 +583,10 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     moonElevationDeg,
     moonPhaseDeg,
     moonIllumination,
-    moonScale: rng.range(1.2, 2.4),
-    latitudeDeg: rng.range(5, 50),
+    moonScale,
+    latitudeDeg,
     biome,
+    sea: { ocean: basin.name, label: basin.label, monsoon, ice },
     coast,
     weather,
     storm,
