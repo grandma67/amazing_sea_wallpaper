@@ -29,12 +29,13 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.3 | Trees: more variety, less repetition; bark and leaf meshes | ✅ |
 | 7.4 | Wind: plants bend with the day's wind; sea state follows | ✅ |
 | 7.5 | Cloud formations: research cloud types; per-type layer configs | ✅ |
-| 7.6 | Storms: research; dark clouds, strong waves, rain, lightning as a random event | ⬜ |
-| 7.7 | Five oceans: research their differences; per-ocean water, waves, ice | ⬜ |
+| 7.6 | Storms: research; dark clouds, strong waves, rain, lightning as a random event | ✅ |
+| 7.7 | Five earth's oceans: research their differences; per-ocean water, waves, ice | ⬜ |
 | 7.8 | Marine animals: dolphins, swordfish, whales | ⬜ |
 | 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ⬜ |
 | 7.10 | Bird-nesting islands (research) | ⬜ |
 | 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ⬜ |
+| 7.12 | Rainbow (added to TODO.md 2026-10-14) | ⬜ |
 
 7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
 antifouling below the waterline, rust patches + streaks scaled by vessel age; sails as
@@ -61,6 +62,14 @@ weather kind picks one genus per étage; cool coasts lean stratiform (marine str
 stratus), tropical ones cumulus. Cirrocumulus skies use 3× smaller cells. Overcast was navy
 because the exposure meter only sees the clear sky: heavy cloud now adds up to +1.1 EV (faded
 out at low sun), a warmer white balance and less saturation.
+
+7.6 notes: `generateStorm()` in params.ts — 7% of non-night days (~5% overall): weather kind
+`storm`, cumulonimbus (base 600 m, 9.5 km tall) ± altostratus, wind 14–22 m/s (the FFT sea and
+plants follow), 1–4 rain shafts, lightning in 75% of storms, rain on the lens in 40%.
+`props/storm.ts` builds bolts (midpoint-displaced, forked, camera-facing ribbons, ~250× sky
+luminance so bloom glows); `stormEffects.ts` draws rain shafts (screen space + depth test), the
+flash on the cloud base and lens rain. Lesson: transparent meshes (or dithered ones) don't
+composite with takram's clouds/aerial perspective — they see the depth buffer only.
 
 ## Decision: web-only rendering (three.js)
 
@@ -347,6 +356,7 @@ M2 findings:
 - 2026-10-14: 7.3 done — branching trees with bark and leaf meshes, five new species.
 - 2026-10-14: 7.4 done — plants bend with the wind; wind follows the weather.
 - 2026-10-14: 7.5 done — skies built from cloud genera; overcast reads grey.
+- 2026-10-14: 7.6 done — storms with rain shafts and lightning.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
