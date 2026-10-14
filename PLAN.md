@@ -15,6 +15,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | 🟨 Ready — needs push + Pages enabled |
 | 6. Polish: contact sheet of ~50 dates, tune weights | ✅ Done (2026-10-14) |
 | 7. Wishlist from `TODO.md` (see below) | ✅ Done (2026-10-14) |
+| 8. Performance: faster renders, same image (see "Performance pass") | ✅ Done (2026-10-14) |
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done
 
@@ -198,7 +199,9 @@ Source map:
   swell peak, normalised to target significant heights, on 3 cascades (256², patch sizes
   ≈ L, L/6.37, L/37 so tiles never align). Eight fields packed into four complex IFFTs →
   half-float textures A (displacement, ∂Dx/∂z), B (slopes, ∂Dx/∂x, ∂Dz/∂z), C (slope
-  moments, mipmapped for LEAN-style sub-pixel roughness). ~0.3 s on the CPU.
+  moments, mipmapped for LEAN-style sub-pixel roughness). ~0.2 s of CPU, run on a worker
+  (`src/spectrumWorker.ts`) while the GPU precomputes the atmosphere; `ocean.ts` wraps the
+  returned half-float arrays in textures.
 - `src/grid.ts` — camera-centred polar grid (geometric ring spacing to 120 km).
 - `src/ocean.ts` — FFT displacement + normals, Jacobian whitecaps, sky reflection, sun glitter,
   backlit crests, large "gust" patches of rougher/calmer water, Earth curvature. Near shore:
@@ -256,6 +259,9 @@ M1 findings:
   repo, MIT), `stars.bin`).
 - `src/accumulate.ts` — `AccumulatePass`: running mean over frames in linear HDR before bloom;
   the still is rendered 64× so the stochastic clouds converge.
+- `src/stillScene.ts` — `StillScenePass`, the scene pass used while accumulating: renders the
+  scene once (without the screen-door spray), keeps its colour + depth, and on later frames
+  restores them and redraws only the spray. Bloom/tone mapping run on the last frame only.
 - Stars (Yale BSC via takram `StarsMaterial`) at night / late twilight, rotated to the date's
   sidereal orientation; excluded from exposure metering. Blue hour gets a cooler white balance.
 - `src/camera.ts` — shared camera construction; `src/composition.ts` — ray-grid frame coverage
@@ -280,6 +286,60 @@ M6 (polish) changes:
 - Patchy cloud shadows on sea and sand (`cloudShadow()` in shadow.ts), seeded by the weather.
 - Nearby tall plants/bushes only at the frame sides; framed-shot hero trees 9–30 m away.
 - Night: moon kept 4–18° high and the camera turned toward it → moon + glitter path.
+
+## Performance pass (2026-10-14)
+
+Goal: faster renders without changing the image. Every change was checked by rendering
+2026-10-01..16 at 4K (JPEG q=1) before/after and diffing pixels; two runs of the old code
+already differ by ≤5/255 on a few pixels (GPU nondeterminism), which is the noise floor.
+
+Profile of the old code (4K, M2 Max, cloudy day ≈ 4.4 s inside `renderScene`):
+the 63 extra accumulation frames ≈ 2.2 s (≈ 1.2 s of it re-rendering the unchanged scene at
+4K/MSAA, plus bloom/tone mapping every frame), atmosphere LUT precompute ≈ 0.9 s (every day),
+cloudy env cube ≈ 0.45 s, props ≈ 0.1–0.5 s (CPU), ocean FFT ≈ 0.18 s (CPU), shader linking
+≈ 0.48 s (92 programs).
+
+Changes (one commit each):
+1. **Still scene during accumulation** (`stillScene.ts`): only clouds and spray change between
+   frames. Frame 1 renders the scene without spray and blits colour + depth to a cache; later
+   frames restore both (fullscreen quad writing `gl_FragDepth`) and draw only the spray (moved
+   to layer 31 for that draw). The final bloom/tone-map pass is enabled on the last frame only.
+   Days without spray are pixel-identical; with spray ≤0.05% of pixels differ, all where
+   droplets cross MSAA edges (the restored depth is per pixel, not per sample) — invisible.
+2. **Env cube shader reuse** (`clouds.ts`): each face's composer was disposed before the next
+   face was built, releasing its programs, so the identical next face recompiled the clouds,
+   shadow, resolve and effect shaders. Disposing after all faces: 92 → 52 programs, 475 →
+   287 ms of linking. Identical output.
+3. **Ocean FFT on a worker** (`spectrumWorker.ts`): runs while the main thread waits on the
+   atmosphere precompute (the main thread is idle ~0.8 s there). Identical output (same code,
+   arrays transferred bit-exact). Falls back to the main thread if no worker.
+
+Results (4K, M2 Max, wall time per date incl. page load, 16 dates):
+
+| | before | after |
+|---|---|---|
+| cloudy days (11) | 4.4 s avg (3.6–5.2) | 2.9 s avg (2.5–3.3) — −33% |
+| clear days (5) | 1.46 s avg | 1.28 s avg — −12% |
+
+SwiftShader (software WebGL, as on the CI runner), 960×540, 64 frames, production builds:
+cloudy 2026-10-13 235 s → 80 s (3×, pixel-identical); clear 2026-10-08 23 s → 24 s.
+Re-rendering the scene every frame is far costlier in software, so the daily snapshot job
+gains the most. (Benchmark gotcha: a sleeping Mac stretches wall time — run under
+`caffeinate -i`; and check the preview port really serves this app.)
+
+Considered and rejected:
+- *Overlap props/terrain building with the atmosphere precompute on the main thread* — tried;
+  no gain, the generator's idle-callback steps just wait for the CPU work.
+- *Ship precomputed atmosphere LUTs* (`PrecomputedTexturesLoader`) instead of generating them
+  (~0.9 s, same every day): 10 MB (takram's EXRs, half float) to 48 MB (our float32 output)
+  to download, and half float would change the sky slightly. Not worth it.
+- *One shared CloudsEffect for all six env faces*: would need resetting its private frame
+  counter and history buffers; fragile and risks changing the reflections. The shader reuse
+  above captured most of the cost.
+- *`renderer.compileAsync` / KHR_parallel_shader_compile*: most programs belong to
+  postprocessing/takram passes outside the scene graph, and Khronos notes total link time
+  stays about the same.
+- Fewer frames, lower cloud resolution or quality presets: faster, but change the image.
 
 Future ideas (not planned): cliffs/headlands, breaking-wave lips, boat wakes, foam/wet-sand
 planar reflections, per-pixel cloud shadows matching the actual clouds (BSM), ambient
@@ -445,6 +505,9 @@ M2 findings:
   resolution, README. Waiting on push + enabling Pages in the repo settings.
 - 2026-10-14: **M4 done.** Weather + volumetric clouds (with cloudy reflections), frame
   accumulation, stars, twilight grading, composition validator. 4K ~3–4 s.
+- 2026-10-14: **Performance pass.** Still-scene accumulation, env-cube shader reuse, ocean FFT
+  on a worker. Cloudy 4K 4.4 → 2.9 s, clear 1.46 → 1.28 s; SwiftShader cloudy 3× faster;
+  image unchanged.
 
 ## References
 
