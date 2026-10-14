@@ -11,7 +11,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | 1. Skeleton: Vite + three.js app, date seed, ocean + sky + camera | ✅ Done (2026-10-13) |
 | 2. Realism core: FFT ocean, water shading, beach terrain, shoreline foam | ✅ Done (2026-10-14) |
 | 3. Biomes & assets: rocks, vegetation, birds, ships | ✅ Done (2026-10-14) |
-| 4. Variation: time of day, weather, night/moon, composition validator | ⬜ Not started |
+| 4. Variation: time of day, weather, night/moon, composition validator | ✅ Done (2026-10-14) |
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | ⬜ Not started |
 | 6. Polish: contact sheet of ~50 dates, tune weights | ⬜ Not started |
 
@@ -51,7 +51,7 @@ Notes: takram packages are Beta; they need the pmndrs `EffectComposer`, not the 
 three.js examples. The path tracer needs static CPU-side geometry, so the ocean would have
 to be baked to a mesh for that mode.
 
-## Current implementation (after M3)
+## Current implementation (after M4)
 
 How to run:
 - `npm run dev` → open the printed URL. `?date=YYYY-MM-DD` picks a day; `?w=1920&h=1080`
@@ -121,6 +121,30 @@ M1 findings:
 - Props use MeshStandardMaterial lit by a DirectionalLight carrying the same sun irradiance as
   the custom shaders + the sky cube as `scene.environment`, so all lighting shares one unit.
 - `CoastParams.composition`: shoreline / along-beach / framed / overlook; `hillHeight` inland.
+
+- `src/clouds.ts` — @takram/three-clouds volumetric clouds configured from `params.weather`
+  (clear / cirrus / few / scattered / broken / overcast → coverage, per-layer density,
+  seeded pattern, `sunVisibility`), plus `renderCloudyEnvironment()` which re-renders the
+  reflection cube per face with clouds. Assets self-hosted in `public/assets/`
+  (`local_weather.png`, `shape*.bin`, `turbulence.png`, `stbn.bin` (downloaded from takram's
+  repo, MIT), `stars.bin`).
+- `src/accumulate.ts` — `AccumulatePass`: running mean over frames in linear HDR before bloom;
+  the still is rendered 64× so the stochastic clouds converge.
+- Stars (Yale BSC via takram `StarsMaterial`) at night / late twilight, rotated to the date's
+  sidereal orientation; excluded from exposure metering. Blue hour gets a cooler white balance.
+- `src/camera.ts` — shared camera construction; `src/composition.ts` — ray-grid frame coverage
+  (sky/sea/land) and re-roll of coast/composition (sub-seeded) for bad framings.
+
+M4 findings:
+- takram clouds' TAA (variance clipping) leaves residual noise on a static camera — averaging
+  frames ourselves fixes it. 4K with clouds ≈ 3–4 s on M2 Max (was ~1.5 s).
+- postprocessing's `EffectComposer.setSize()` resizes the *renderer* — restore it after
+  rendering side composers (the env cube), or everything comes out low-res.
+- A mirror-sharp sun highlight is ~1000× the sky radiance: even 2% sun visibility under
+  overcast showed a glitter path → overcast direct sun ≈ 0 and the sun disc is hidden.
+- Backlog: per-pixel cloud shadows in the custom terrain/ocean shaders (currently a global
+  `sunVisibility`); dusk still leans purple; residual fine cloud grain; validator ignores
+  props (very close trees can block the view); night could use a visible moon more often.
 
 M3 findings & deviations:
 - **Deviation:** props are procedural instead of CC0 glTF downloads — zero asset weight,
@@ -243,6 +267,8 @@ M2 findings:
   shallow-water optics, caustics, foam, wet sand. 4K still ~1.3 s on M2 Max.
 - 2026-10-14: **M3 done.** Biomes, sun shadows, procedural rocks/sea stacks, vegetation, gulls,
   boats; four camera compositions. 4K ~1.5 s.
+- 2026-10-14: **M4 done.** Weather + volumetric clouds (with cloudy reflections), frame
+  accumulation, stars, twilight grading, composition validator. 4K ~3–4 s.
 
 ## References
 
