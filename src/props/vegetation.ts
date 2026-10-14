@@ -199,7 +199,7 @@ function conifer(rng: Random, foliage: RGB): BufferGeometry {
         new Vector3(len * 0.55, len * 0.12, len * 0.3),
         n => scale(leaf, shade * (0.8 + 0.3 * n.y)),
         n => 0.65 + 0.7 * fbm3(n.x * 5 + k, n.y * 5, n.z * 5 + w, seed),
-        3,
+        4,
         new Quaternion().setFromUnitVectors(new Vector3(1, 0, 0), dir)
       )
     }
@@ -411,12 +411,12 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       for (let tries = 0; tries < 200 && placed.length < heroes; tries++) {
         const edge = (rng.chance(0.5) ? 1 : -1) * halfFov * rng.range(0.55, 1.05)
         const dir = forward.clone().applyAxisAngle(new Vector3(0, 1, 0), edge)
-        const dist = rng.range(6, 30)
+        const dist = rng.range(9, 30)
         const x = camera.position.x + dir.x * dist
         const z = camera.position.z + dir.z * dist
         const y = ctx.ground(x, z)
         if (y < coast.runup + 0.6) continue
-        const size = spec.scale[1] * rng.range(0.8, 1.05)
+        const size = spec.scale[0] + (spec.scale[1] - spec.scale[0]) * rng.range(0.4, 0.9)
         const yaw = rng.range(0, Math.PI * 2)
         q.setFromAxisAngle(new Vector3(0, 1, 0), yaw)
         placed.push(new Matrix4().compose(new Vector3(x, y - 0.1, z), q, new Vector3().setScalar(size)))
@@ -441,6 +441,15 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       if (n[1] < spec.minSlope) continue
       const size = spec.scale[0] + (spec.scale[1] - spec.scale[0]) * rng.float()
       if (!ctx.visible(x, y + 6 * size, z, 8 * size)) continue
+      // Tall plants close to the camera only at the sides of the frame, so
+      // they frame the sea instead of blocking it.
+      // Bushes likewise, at a closer range, and never right at our feet.
+      const near = kind === 'grass' ? 0 : kind === 'bush' ? 12 : 25
+      if (kind === 'bush' && ctx.distance(x, z) < 6) continue
+      if (ctx.distance(x, z) < near) {
+        const ndc = new Vector3(x, y + 3 * size, z).project(ctx.camera)
+        if (Math.abs(ndc.x) < 0.6) continue
+      }
 
       const tiltAxis = spec.leanSeaward
         ? new Vector3(seaward.z, 0, -seaward.x)
