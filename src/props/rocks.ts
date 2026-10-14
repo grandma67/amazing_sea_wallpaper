@@ -12,6 +12,7 @@ import {
 } from 'three'
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 
+import type { Biome, RGB } from '../biome'
 import type { Random } from '../random'
 import { shoreToWorld } from '../terrain'
 import type { PropContext } from './context'
@@ -77,34 +78,115 @@ function rockGeometry(rng: Random, stack: boolean): BufferGeometry {
   return geometry
 }
 
-function rockMaterial(color: [number, number, number], runup: number): MeshStandardMaterial {
+/** Growth on the rocks: moss on top, lichen spots, algae in the splash zone. */
+export interface RockGrowth {
+  moss: number
+  mossColor: RGB
+  lichen: number
+  lichenColor: RGB
+  algae: number
+  algaeColor: RGB
+}
+
+const GROWTH: Record<Biome['name'], { chance: number; growth: RockGrowth }> = {
+  tropical: {
+    chance: 0.7,
+    growth: { moss: 0.3, mossColor: [0.06, 0.12, 0.03], lichen: 0.2, lichenColor: [0.45, 0.42, 0.35], algae: 0.9, algaeColor: [0.05, 0.1, 0.03] }
+  },
+  mediterranean: {
+    chance: 0.75,
+    growth: { moss: 0.15, mossColor: [0.1, 0.12, 0.05], lichen: 0.8, lichenColor: [0.55, 0.38, 0.08], algae: 0.7, algaeColor: [0.07, 0.09, 0.03] }
+  },
+  nordic: {
+    chance: 0.9,
+    growth: { moss: 0.9, mossColor: [0.07, 0.11, 0.03], lichen: 0.6, lichenColor: [0.5, 0.5, 0.42], algae: 1, algaeColor: [0.08, 0.07, 0.02] }
+  },
+  volcanic: {
+    chance: 0.8,
+    growth: { moss: 0.8, mossColor: [0.1, 0.16, 0.04], lichen: 0.3, lichenColor: [0.45, 0.45, 0.4], algae: 0.6, algaeColor: [0.05, 0.08, 0.03] }
+  },
+  desert: {
+    chance: 0.2,
+    growth: { moss: 0, mossColor: [0, 0, 0], lichen: 0.4, lichenColor: [0.5, 0.32, 0.1], algae: 0.5, algaeColor: [0.08, 0.08, 0.03] }
+  }
+}
+
+function rockMaterial(color: RGB, runup: number, growth: RockGrowth | null): MeshStandardMaterial {
   const material = new MeshStandardMaterial({
     color: new Color(...color),
     vertexColors: true,
     roughness: 0.88,
     metalness: 0
   })
-  // Rocks are darker and glossier where waves wash over them.
+  const g = growth ?? { moss: 0, mossColor: [0, 0, 0], lichen: 0, lichenColor: [0, 0, 0], algae: 0, algaeColor: [0, 0, 0] }
+  // Rocks are darker and glossier where waves wash over them, slick with
+  // algae just above and below the water, and mossy and lichen-spotted on
+  // top where it stays dry.
   material.onBeforeCompile = shader => {
     shader.uniforms.wetLine = { value: runup * 1.3 }
+    shader.uniforms.moss = { value: g.moss }
+    shader.uniforms.mossColor = { value: new Color(...g.mossColor) }
+    shader.uniforms.lichen = { value: g.lichen }
+    shader.uniforms.lichenColor = { value: new Color(...g.lichenColor) }
+    shader.uniforms.algae = { value: g.algae }
+    shader.uniforms.algaeColor = { value: new Color(...g.algaeColor) }
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying float vWorldY;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vRockWorld;\nvarying vec3 vRockNormal;')
       .replace(
         '#include <project_vertex>',
         `#include <project_vertex>
-        vec4 rockWorld = vec4(transformed, 1.0);
+        mat4 rockModel = modelMatrix;
         #ifdef USE_INSTANCING
-          rockWorld = instanceMatrix * rockWorld;
+          rockModel = modelMatrix * instanceMatrix;
         #endif
-        vWorldY = (modelMatrix * rockWorld).y;`
+        vRockWorld = (rockModel * vec4(transformed, 1.0)).xyz;
+        vRockNormal = normalize(mat3(rockModel) * objectNormal);`
       )
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vWorldY;\nuniform float wetLine;')
+      .replace(
+        '#include <common>',
+        `#include <common>
+        varying vec3 vRockWorld;
+        varying vec3 vRockNormal;
+        uniform float wetLine;
+        uniform float moss;
+        uniform vec3 mossColor;
+        uniform float lichen;
+        uniform vec3 lichenColor;
+        uniform float algae;
+        uniform vec3 algaeColor;
+        float rockHash(vec3 p) {
+          p = fract(p * 0.3183099 + 0.1);
+          p *= 17.0;
+          return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+        }
+        float rockNoise(vec3 x) {
+          vec3 i = floor(x);
+          vec3 f = fract(x);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(
+            mix(mix(rockHash(i), rockHash(i + vec3(1, 0, 0)), f.x), mix(rockHash(i + vec3(0, 1, 0)), rockHash(i + vec3(1, 1, 0)), f.x), f.y),
+            mix(mix(rockHash(i + vec3(0, 0, 1)), rockHash(i + vec3(1, 0, 1)), f.x), mix(rockHash(i + vec3(0, 1, 1)), rockHash(i + vec3(1, 1, 1)), f.x), f.y),
+            f.z);
+        }`
+      )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
-        float rockWet = 1.0 - smoothstep(wetLine * 0.6, wetLine, vWorldY);
-        diffuseColor.rgb *= mix(1.0, 0.5, rockWet);`
+        float rockWet = 1.0 - smoothstep(wetLine * 0.6, wetLine, vRockWorld.y);
+        diffuseColor.rgb *= mix(1.0, 0.5, rockWet);
+        vec3 q = vRockWorld;
+        float patches = rockNoise(q * 0.9) * 0.65 + rockNoise(q * 3.7) * 0.35;
+        // Algae: a slick band around the water line.
+        float algaeBand = (1.0 - smoothstep(wetLine * 0.7, wetLine * 1.4, q.y)) * smoothstep(0.25, 0.5, patches);
+        diffuseColor.rgb = mix(diffuseColor.rgb, algaeColor * (0.7 + 0.6 * rockNoise(q * 9.0)), algae * algaeBand);
+        // Moss on upward faces above the splash zone.
+        float dry = smoothstep(wetLine * 1.3, wetLine * 2.2, q.y);
+        float mossMask = smoothstep(0.35, 0.8, vRockNormal.y) * smoothstep(0.42, 0.62, patches) * dry;
+        diffuseColor.rgb = mix(diffuseColor.rgb, mossColor * (0.6 + 0.8 * rockNoise(q * 11.0)), moss * mossMask);
+        // Crusty lichen spots on dry stone.
+        float spots = smoothstep(0.72, 0.78, rockNoise(q * 5.5)) * dry;
+        diffuseColor.rgb = mix(diffuseColor.rgb, lichenColor, lichen * spots * 0.8);`
       )
       .replace(
         '#include <roughnessmap_fragment>',
@@ -213,7 +295,8 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
   if (instances.length === 0) return []
 
   const color = rng.pick(biome.rockColors)
-  const material = rockMaterial(color, coast.runup)
+  const growthSpec = GROWTH[biome.name]
+  const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null)
   const meshes: InstancedMesh[] = []
   const m = new Matrix4()
   const q = new Quaternion()
