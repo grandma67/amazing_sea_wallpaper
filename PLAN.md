@@ -31,7 +31,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.5 | Cloud formations: research cloud types; per-type layer configs | ✅ |
 | 7.6 | Storms: research; dark clouds, strong waves, rain, lightning as a random event | ✅ |
 | 7.7 | Five earth's oceans: research their differences; per-ocean water, waves, ice | ✅ |
-| 7.8 | Marine animals: dolphins, swordfish, whales | ⬜ |
+| 7.8 | Marine animals: dolphins, swordfish, whales | ✅ |
 | 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ⬜ |
 | 7.10 | Bird-nesting islands (research) | ⬜ |
 | 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ⬜ |
@@ -80,6 +80,13 @@ monsoon Jun–Sep), polar water. `props/ice.ts`: pack-ice floes (instanced slabs
 distance, in noise fields with open leads; damp the sea to 40% wind), glacier bergs (noisy
 sphere + fracture planes, blue fresh faces), tabular bergs (banded slabs, 2.5–18 km). Polar
 coasts keep only grass, shrubs and (Arctic) birch. Title shows the ocean.
+
+7.8 notes: `props/marine.ts` — 35% of non-storm days; species weighted by ocean (orcas only on
+cool coasts). Lofted spine bodies (radius profiles), countershading, orca eye patch/saddle,
+humpback barnacles and long white flippers, fish tail vertical vs. cetacean flukes horizontal.
+Poses: dolphin leap/roll, orca surfacing, humpback flukes/breach/blow, swordfish leap; spray
+crowns. Turned roughly side-on to the camera — head-on animals read as blobs. Gotcha:
+`MeshBuilder.tube` along −x has angle 0 pointing *up*.
 
 ## Decision: web-only rendering (three.js)
 
@@ -368,6 +375,7 @@ M2 findings:
 - 2026-10-14: 7.5 done — skies built from cloud genera; overcast reads grey.
 - 2026-10-14: 7.6 done — storms with rain shafts and lightning.
 - 2026-10-14: 7.7 done — five oceans with their own seas; polar ice.
+- 2026-10-14: 7.8 done — dolphins, orcas, humpbacks, swordfish.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
