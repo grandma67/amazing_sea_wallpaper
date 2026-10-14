@@ -383,7 +383,7 @@ void main() {
 
   vec3 L = sunDirection;
   vec3 V = normalize(cameraPosition - vWorld);
-  float shadow = sunShadow(vWorld);
+  float shadow = sunShadow(vWorld) * cloudShadow(vWorld);
   float NoL = max(dot(N, L), 0.0) * shadow;
   // Soft wrap lighting stands in for the missing ambient occlusion/shadowing.
   vec3 diffuse = albedo / PI * (sunIrradiance * NoL + skyIrradiance * (0.6 + 0.4 * N.y));

@@ -332,9 +332,11 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
   const table: Record<WeatherKind, { coverage: [number, number]; layers: [number, number, number]; sun: [number, number] }> = {
     clear: { coverage: [0, 0], layers: [0, 0, 0], sun: [1, 1] },
     cirrus: { coverage: [0.45, 0.6], layers: [0, 0, 1.4], sun: [0.95, 1] },
-    few: { coverage: [0.25, 0.34], layers: [1, 0.6, 1], sun: [0.95, 1] },
-    scattered: { coverage: [0.36, 0.46], layers: [1, 1, 1], sun: [0.75, 1] },
-    broken: { coverage: [0.48, 0.58], layers: [1, 1, 0.8], sun: [0.35, 0.9] },
+    // Patchy cloud shade on sea and sand is per pixel (shadow.ts); this is
+    // only the overall dimming on top.
+    few: { coverage: [0.25, 0.34], layers: [1, 0.6, 1], sun: [0.97, 1] },
+    scattered: { coverage: [0.36, 0.46], layers: [1, 1, 1], sun: [0.9, 1] },
+    broken: { coverage: [0.48, 0.58], layers: [1, 1, 0.8], sun: [0.7, 1] },
     overcast: { coverage: [0.68, 0.8], layers: [1.3, 1.3, 0.5], sun: [0, 0.002] }
   }
   const t = table[kind]

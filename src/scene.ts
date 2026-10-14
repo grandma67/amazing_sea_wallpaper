@@ -51,7 +51,7 @@ import { createOcean } from './ocean'
 import type { SceneParams } from './params'
 import { PropContext } from './props/context'
 import { createProps } from './props'
-import { bindShadow } from './shadow'
+import { bindCloudShadow, bindShadow } from './shadow'
 import { createTerrain } from './terrain'
 
 const DEG = Math.PI / 180
@@ -388,6 +388,8 @@ export async function renderScene(
     terrain.visible = params.coast.type === 'beach'
     bindShadow(ocean.material.uniforms, sun)
     bindShadow(terrain.material.uniforms, sun)
+    bindCloudShadow(ocean.material.uniforms, params.weather, lightDirectionWorld)
+    bindCloudShadow(terrain.material.uniforms, params.weather, lightDirectionWorld)
     renderer.shadowMap.autoUpdate = false
   }
   // Volumetric clouds converge over frames (temporal upscaling and

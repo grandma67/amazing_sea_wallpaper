@@ -234,7 +234,7 @@ void main() {
   float F = fresnel(NoV);
 
   // Sun glitter.
-  float shadow = sunShadow(vWorld);
+  float shadow = sunShadow(vWorld) * cloudShadow(vWorld);
   vec3 L = sunDirection;
   float NoL = dot(N, L);
   vec3 specular = vec3(0.0);
