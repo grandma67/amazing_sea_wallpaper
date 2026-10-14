@@ -59,6 +59,7 @@ import { synthesizeOceanAsync } from './spectrum'
 import { StillScenePass } from './stillScene'
 import { stormEffects } from './stormEffects'
 import { bindCloudShadow, bindShadow } from './shadow'
+import { SkyDenoiseEffect } from './skyDenoise'
 import { createTerrain } from './terrain'
 
 const DEG = Math.PI / 180
@@ -98,6 +99,14 @@ export interface RenderResult {
   canvas: HTMLCanvasElement
   params: SceneParams
   debug: Record<string, unknown>
+}
+
+/** Low-discrepancy sequence in [0, 1): well-spread sub-pixel offsets. */
+function halton(index: number, base: number): number {
+  let result = 0
+  let f = 1 / base
+  for (let i = index; i > 0; i = Math.floor(i / base), f /= base) result += f * (i % base)
+  return result
 }
 
 export async function renderScene(
@@ -355,6 +364,10 @@ export async function renderScene(
   if (clouds != null) {
     // Clouds are soft: ray march them at no more than ~1080p.
     clouds.resolution.scale = Math.min(1, 1920 / width)
+    // A still doesn't need temporal upscaling (one ray per 4×4 block per
+    // frame): march every pixel every frame, and the accumulated frames
+    // below supersample them.
+    clouds.temporalUpscale = false
     // The clouds render into buffers that aerial perspective composites.
     clouds.events.addEventListener('change', event => {
       if (event.property === 'atmosphereOverlay') aerialPerspective.overlay = clouds.atmosphereOverlay
@@ -372,6 +385,11 @@ export async function renderScene(
   if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
   if (clouds != null) composer.addPass(new AccumulatePass())
+  // What the average leaves of the light-shaft noise in the clouds, smoothed
+  // once on the final frame.
+  const skyDenoise =
+    clouds != null ? new EffectPass(camera, new SkyDenoiseEffect(1 / clouds.resolution.scale)) : null
+  if (skyDenoise != null) composer.addPass(skyDenoise)
   // Bloom and tone mapping only matter for the final frame.
   const finish = new EffectPass(
     camera,
@@ -445,10 +463,24 @@ export async function renderScene(
   // Volumetric clouds converge over frames (temporal upscaling and
   // stochastic sampling), so render the still repeatedly before capturing.
   const frames = clouds != null ? Math.max(1, cloudFrames) : 1
+  // Each frame looks through a different point of every cloud pixel. The
+  // ray marcher only jitters samples along its rays, so without this the
+  // fine detail noise aliases into the same speckle in every frame and never
+  // averages out (worst at the grazing angles of beach views). Frame 0 is
+  // unjittered: it is the one the still scene is cached from.
+  const cloudPixel = clouds != null ? 1 / clouds.resolution.scale : 1
   for (let i = 0; i < frames; i++) {
-    finish.enabled = i === frames - 1
+    if (i > 0) {
+      const dx = (halton(i, 2) - 0.5) * cloudPixel
+      const dy = (halton(i, 3) - 0.5) * cloudPixel
+      camera.setViewOffset(width, height, dx, dy, width, height)
+    }
+    const last = i === frames - 1
+    finish.enabled = last
+    if (skyDenoise != null) skyDenoise.enabled = last
     composer.render(1 / 60)
   }
+  camera.clearViewOffset()
 
   generator.dispose({ textures: false })
   const gl = renderer.getContext()

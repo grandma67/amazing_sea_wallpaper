@@ -14,7 +14,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | 4. Variation: time of day, weather, night/moon, composition validator | ✅ Done (2026-10-14) |
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | 🟨 Ready — needs push + Pages enabled |
 | 6. Polish: contact sheet of ~50 dates, tune weights | ✅ Done (2026-10-14) |
-| 7. Wishlist from `TODO.md` (see below) | 🟨 7.16, 7.19, 7.20 open |
+| 7. Wishlist from `TODO.md` (see below) | 🟨 7.16, 7.20 open |
 | 8. Performance: faster renders, same image (see "Performance pass") | ✅ Done (2026-10-14) |
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done
@@ -43,8 +43,9 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.16 | Add view from clif/top of the mountain | ⬜ |
 | 7.17 | Accessing newer date than today - redirect us to today. Also the button to next day should not work on such dates. | ✅ |
 | 7.18 | Add new api - /random, accessing it loads a random date before today | ✅ |
-| 7.19 | Clouds looks unreal with grains and spots and less like fog, research online for fix | ⬜ |
+| 7.19 | Clouds looks unreal with grains and spots and less like fog, research online for fix | ✅ |
 | 7.20 | Wave break is unreal and too spotty, reasearch online how to do waves, and wave-splashes | ⬜ |
+| 7.21 | Research fog, which climate and temperatures create it and add it to the simulation | ⬜ |
 
 7.17/7.18 notes: a future `?date=` renders today and rewrites the URL (`history.replaceState`,
 no reload); → is disabled on today. `?future=1` lifts the limit — `scripts/snapshot.mjs` sets
@@ -53,6 +54,28 @@ it so upcoming days can still be previewed. `/random/` is a second Vite page
 yesterday and `location.replace`s to `../?date=…`, keeping other options. GitHub Pages
 redirects `/random` → `/random/`; Vite's dev/preview servers serve the app for `/random`
 instead, so `main.ts` forwards that path. A "Random" button sits in the footer.
+
+7.19 notes (cloud grain). Diagnosed by rendering one grainy day (2026-10-05) with one setting
+changed at a time and measuring high-frequency energy in the sky:
+- *Spots* in a 4×4-ish pattern came from takram's temporal upscaling: each pixel gets a fresh
+  ray only every 16 frames, so 64 accumulated frames held ~4 real samples. Off for stills.
+- The ray marcher jitters samples only *along* rays, never across the pixel, so the detail
+  noise sampled the same point every frame. Accumulated frames now get Halton sub-pixel
+  camera offsets (in cloud pixels) and become a true supersample.
+- The remaining fine *grain* was the light-shaft term: inside the clouds shader,
+  `applyAerialPerspective(…, shadowLength, color)` uses a one-sample-per-pixel estimate of
+  the cloud-shadowed air in front of each cloud — tens of km at beach-view grazing angles.
+  It converges, but needed ~256 frames. `skyDenoise.ts` smooths it once on the final frame:
+  5×5 taps a cloud pixel apart, sky pixels only (depth = far), weighted by log-luminance
+  similarity so cloud edges, rims and silhouettes stay sharp. Matches the 256-frame image.
+- Ruled out (no effect on grain): mipmapped 3D noise, bigger/more shadow cascades, shadow
+  `maxFar`, finer light-shaft or primary steps, BSM jitter/TAA, haze. Turning light shafts
+  off removes the grain but also the shadowed air under the deck (flat, hazy scenes).
+- Cost: cloudy 4K 2.9 → 3.8 s avg (M2 Max); SwiftShader 960×540/24 frames 54 → 61 s.
+  Keeping temporal upscaling with jitter + denoise was faster but left colour mottling.
+- References: blue-noise jitter + temporal accumulation (handmade.network "Fast High-Quality
+  Cloudscape through Noise and Reprojection"); distance LOD and a cheap box-blur denoise
+  for cloud noise (80.lv, "Creating volumetric clouds for mobile in UE5").
 
 7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
 antifouling below the waterline, rust patches + streaks scaled by vessel age; sails as
@@ -525,6 +548,7 @@ M2 findings:
 - 2026-10-14: Added 7.16–7.20 to the wishlist.
 - 2026-10-14: 7.17 done — future dates show today; → disabled on today.
 - 2026-10-14: 7.18 done — `/random` jumps to a random past day.
+- 2026-10-14: 7.19 done — cloud grain: no temporal upscaling, sub-pixel jitter, sky denoise.
 
 ## References
 
