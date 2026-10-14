@@ -1,7 +1,8 @@
 // Render wallpapers for one or more dates in headless Chrome and save them.
 //
 //   node scripts/snapshot.mjs [--url http://localhost:5173/] [--out out]
-//        [--w 3840 --h 2160] [--quality 0.92] DATE [DATE...]
+//        [--w 3840 --h 2160] [--quality 0.92] [--frames 64]
+//        [--angle metal|swiftshader] [--channel chrome|chromium] DATE [DATE...]
 //
 // DATE can be YYYY-MM-DD, "today", or a range "2026-10-01..2026-10-07".
 // Expects a server (vite dev or preview) to be running at --url.
@@ -22,7 +23,12 @@ const outDir = option('out', 'out')
 const width = Number(option('w', 3840))
 const height = Number(option('h', 2160))
 const quality = Number(option('quality', 0.92))
+const frames = option('frames', null)
 const channel = option('channel', process.env.CI ? undefined : 'chrome')
+// 'metal' uses the Mac's GPU; 'swiftshader' is software WebGL (CI runners
+// have no GPU).
+const angle = option('angle', process.env.CI ? 'swiftshader' : 'metal')
+const timeoutMs = Number(option('timeout', 30 * 60_000))
 
 function expandDates(specs) {
   const dates = []
@@ -46,9 +52,10 @@ await mkdir(outDir, { recursive: true })
 
 const browser = await chromium.launch({
   channel,
-  args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=metal', '--enable-unsafe-swiftshader']
+  args: ['--ignore-gpu-blocklist', '--enable-gpu', `--use-angle=${angle}`, '--enable-unsafe-swiftshader']
 })
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+page.setDefaultTimeout(timeoutMs)
 page.on('console', msg => {
   if (msg.type() === 'error' || msg.type() === 'warning') console.log(`[browser ${msg.type()}]`, msg.text())
 })
@@ -60,6 +67,7 @@ for (const date of dates) {
   url.searchParams.set('date', date)
   url.searchParams.set('w', String(width))
   url.searchParams.set('h', String(height))
+  if (frames != null) url.searchParams.set('frames', frames)
   await page.goto(url.toString())
   await page.waitForFunction(() => window.__sea != null)
   const { dataUrl, params } = await page.evaluate(async quality => {

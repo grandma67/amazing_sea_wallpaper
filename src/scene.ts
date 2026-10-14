@@ -97,7 +97,9 @@ export async function renderScene(
   params: SceneParams,
   width: number,
   height: number,
-  canvas?: HTMLCanvasElement
+  canvas?: HTMLCanvasElement,
+  /** Frames averaged when clouds are present (fewer = faster, grainier). */
+  cloudFrames = 64
 ): Promise<RenderResult> {
   const renderer = new WebGLRenderer({
     canvas,
@@ -354,7 +356,20 @@ export async function renderScene(
   // --- Render once ------------------------------------------------------------
   cubeCamera.update(renderer, envScene)
   if (cloudAssets != null) {
-    renderCloudyEnvironment(renderer, envScene, envTarget, camera.position, params.weather, textures, cloudAssets, worldToECEF, lightECEF)
+    // Reflections are blurry; they need far fewer frames than the main view.
+    const envFrames = Math.max(2, Math.round(cloudFrames / 5))
+    renderCloudyEnvironment(
+      renderer,
+      envScene,
+      envTarget,
+      camera.position,
+      params.weather,
+      textures,
+      cloudAssets,
+      worldToECEF,
+      lightECEF,
+      envFrames
+    )
   }
   {
     // Render the shadow map once with only the props, then let the custom
@@ -374,7 +389,7 @@ export async function renderScene(
   }
   // Volumetric clouds converge over frames (temporal upscaling and
   // stochastic sampling), so render the still repeatedly before capturing.
-  const frames = clouds != null ? 64 : 1
+  const frames = clouds != null ? Math.max(1, cloudFrames) : 1
   for (let i = 0; i < frames; i++) composer.render(1 / 60)
 
   generator.dispose({ textures: false })
