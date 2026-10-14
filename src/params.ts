@@ -223,12 +223,17 @@ function swell(
 
 function generateCoast(
   seed: string,
+  attempt: number,
   headingDeg: number,
   biome: Biome,
   ocean: Pick<SceneParams['ocean'], 'swellHeight' | 'swellWavelength' | 'windSpeed'>
 ): { coast: CoastParams; eyeHeight: number | null } {
-  const rng = Random.derive(seed, 'coast')
-  const type = rng.chance(0.65) ? 'beach' : 'open-sea'
+  // Retries (see composition.ts) re-roll only the coast and composition.
+  const suffix = attempt > 0 ? `#${attempt}` : ''
+  const rng = Random.derive(seed, `coast${suffix}`)
+  // Beach or open sea is decided once per date; retries keep it.
+  const type = Random.derive(seed, 'coast').chance(0.65) ? 'beach' : 'open-sea'
+  rng.float() // keep attempt 0's stream identical to the original draw order
 
   // Look out to sea at an angle so the shoreline runs diagonally across the
   // frame; either side.
@@ -282,7 +287,7 @@ function generateCoast(
   coast.hillHeight = hrng.chance(0.4) ? coast.duneHeight * 1.5 : hrng.range(15, 45)
 
   // Composition: where the camera stands relative to the shore.
-  const crng = Random.derive(seed, 'composition')
+  const crng = Random.derive(seed, `composition${suffix}`)
   if (type === 'beach') {
     coast.composition = crng.weighted<Composition>([
       ['shoreline', 3],
@@ -343,7 +348,7 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
   }
 }
 
-export function generateParams(date: string): SceneParams {
+export function generateParams(date: string, attempt = 0): SceneParams {
   const seed = `amazing-sea:${date}`
   const rng = new Random(seed)
 
@@ -419,7 +424,7 @@ export function generateParams(date: string): SceneParams {
   const biome = rng.weighted(BIOMES)
   const water = Random.derive(seed, 'water').pick(biome.water)
   const oceanState = { windSpeed, windHeadingDeg, ...swell(seed, windHeadingDeg) }
-  const { coast, eyeHeight } = generateCoast(seed, headingDeg, biome, oceanState)
+  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, biome, oceanState)
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',

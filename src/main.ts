@@ -1,4 +1,4 @@
-import { generateParams } from './params'
+import { generateSceneParams } from './composition'
 import { renderScene } from './scene'
 
 // URL options:
@@ -29,7 +29,7 @@ const date = requested != null && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? reques
 const width = Number(query.get('w') ?? 3840)
 const height = Number(query.get('h') ?? 2160)
 
-const params = generateParams(date)
+const params = generateSceneParams(date)
 const canvas = document.getElementById('wallpaper') as HTMLCanvasElement
 const splash = document.getElementById('splash') as HTMLElement
 const status = document.getElementById('status') as HTMLElement

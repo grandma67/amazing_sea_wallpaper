@@ -32,7 +32,6 @@ import {
   Mesh,
   NoToneMapping,
   PCFShadowMap,
-  PerspectiveCamera,
   PlaneGeometry,
   Points,
   Scene,
@@ -44,15 +43,16 @@ import {
 } from 'three'
 
 import { AccumulatePass } from './accumulate'
+import { createCamera } from './camera'
 import { createClouds, loadCloudAssets, renderCloudyEnvironment } from './clouds'
 import { meterScene } from './exposure'
 import { createMoon, placeMoon } from './moon'
 import { createOcean } from './ocean'
-import { EARTH_RADIUS, type SceneParams } from './params'
+import type { SceneParams } from './params'
 import { PropContext } from './props/context'
 import { createProps } from './props'
 import { bindShadow } from './shadow'
-import { createTerrain, terrainHeight } from './terrain'
+import { createTerrain } from './terrain'
 
 const DEG = Math.PI / 180
 const REAL_MOON_ANGULAR_RADIUS = 0.0045
@@ -133,21 +133,8 @@ export async function renderScene(
   ])
 
   // --- Camera ---------------------------------------------------------------
-  const aspect = width / height
-  const hfov = 2 * Math.atan(18 / params.camera.focalLengthMm)
-  const vfov = 2 * Math.atan(Math.tan(hfov / 2) / aspect)
-  const camera = new PerspectiveCamera(vfov / DEG, aspect, 0.5, 400_000)
-  const ground = params.coast.type === 'beach' ? Math.max(terrainHeight(params.coast, 0, 0), 0) : 0
-  const h = ground + params.camera.heightM
-  camera.position.set(0, h, 0)
-  // Solve pitch so the true (dipped) horizon lands at the chosen height.
-  const dip = Math.acos(EARTH_RADIUS / (EARTH_RADIUS + h))
-  const ndcY = 1 - 2 * params.camera.horizonFraction
-  const pitch = -dip - Math.atan(ndcY * Math.tan(vfov / 2))
-  camera.rotation.order = 'YXZ'
-  camera.rotation.set(pitch, -params.camera.headingDeg * DEG, params.camera.rollDeg * DEG)
-  camera.updateMatrixWorld()
-  camera.updateProjectionMatrix()
+  const { camera, dip } = createCamera(params, width, height)
+  const vfov = camera.fov * DEG
 
   // --- Sky ------------------------------------------------------------------
   const makeSky = (withSun: boolean): SkyMaterial => {
@@ -402,7 +389,7 @@ export async function renderScene(
       sceneLuminance,
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),
-      pitchDeg: pitch / DEG,
+      pitchDeg: camera.rotation.x / DEG,
       vfovDeg: vfov / DEG
     }
   }
