@@ -14,7 +14,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | 4. Variation: time of day, weather, night/moon, composition validator | ✅ Done (2026-10-14) |
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | 🟨 Ready — needs push + Pages enabled |
 | 6. Polish: contact sheet of ~50 dates, tune weights | ✅ Done (2026-10-14) |
-| 7. Wishlist from `TODO.md` (see below) | 🟨 In progress |
+| 7. Wishlist from `TODO.md` (see below) | ✅ Done (2026-10-14) |
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done
 
@@ -38,7 +38,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.12 | Rainbow - in rain or sea splash | ✅ |
 | 7.13 | Wave break on shore, splashes on rocks | ✅ |
 | 7.14 | Reasearch and add shore seen mountains, volcano alive and dormant | ✅ |
-| 7.15 | Reasearch online how rain drops affects sea and add it to your simulation | ⬜ |
+| 7.15 | Reasearch online how rain drops affects sea and add it to your simulation | ✅ |
 
 7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
 antifouling below the waterline, rust patches + streaks scaled by vessel age; sails as
@@ -133,6 +133,15 @@ toned rock, forest below a treeline, snow above a seeded snow line (always on po
 dark ash round active craters. Active (40%): steam or ash plume of spray-sprite puffs bending
 downwind; at sunset/blue hour lava glows (`userData.glow`, shared with lightning). Excluded from
 the planar reflection — it has no aerial perspective, so the mirror image was a dark ghost.
+
+7.15 notes (research: Melsheimer et al. / Nystuen 1990 via SAR literature; Worthington splash
+studies): rain *damps* waves longer than ~10 cm (turbulent mixed layer of 10–20 cm raises
+attenuation by orders of magnitude; waves < 25 cm hit hardest) and *adds* ring-wave roughness
+below ~5 cm. Each drop: crater → crown → Worthington jet → outward capillary ring. In
+`ocean.ts` (uniform `rain` = storm lens rain): shortest cascade × (1 − 0.6 rain), GGX variance
++0.006 rain (matte sheen), procedural ring waves on two jittered grids (0.5 m / 0.31 m cells,
+random ages, Gaussian-derivative ring profile) faded by pixel footprint, splash specks at fresh
+impacts.
 
 ## Decision: web-only rendering (three.js)
 
@@ -428,6 +437,7 @@ M2 findings:
 - 2026-10-14: 7.12 done — rainbows in showers (and spray bows).
 - 2026-10-14: 7.13 done — spray on breaking waves and rocks.
 - 2026-10-14: 7.14 done — mountains and volcanoes on the horizon.
+- 2026-10-14: 7.15 done — raindrops ring and dull the sea. Milestone 7 complete.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
