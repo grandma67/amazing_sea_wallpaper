@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Amazing Sea Wallpaper — random day</title>
+    <meta name="robots" content="noindex" />
+    <script>
+      // /random: jump to a random day before today (local time), from 2000 on.
+      // Other options (?w=, ?h=, ?portrait=, ?frames=) are passed through.
+      ;(function () {
+        var dayMs = 86400000
+        var now = new Date()
+        var today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+        var first = Date.UTC(2000, 0, 1)
+        var days = Math.round((today - first) / dayMs)
+        var day = new Date(first + Math.floor(Math.random() * days) * dayMs)
+        var query = new URLSearchParams(location.search)
+        query.set('date', day.toISOString().slice(0, 10))
+        location.replace('../?' + query.toString())
+      })()
+    </script>
+  </head>
+  <body style="background: #0b1e3a"></body>
+</html>

@@ -16,7 +16,8 @@ birds, dolphins and whales.
   Hover the bottom edge for the title, previous/next day and **Download**.
 - On a phone held upright it renders a portrait wallpaper at the screen's own
   shape: the same day's scene, recomposed for a tall frame.
-- `?date=2026-12-24` renders a specific day; `?w=2560&h=1440` sets the size
+- `?date=2026-06-21` renders a specific day (future days show today);
+  `/random` jumps to a random past day; `?w=2560&h=1440` sets the size
   (taller than wide = portrait); `?portrait=1` / `?portrait=0` forces the
   orientation; `?frames=24` renders faster with slightly grainier clouds.
 - `/latest.jpg` (4K) and `/latest-portrait.jpg` (1290×2796) are today's (UTC)

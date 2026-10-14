@@ -14,7 +14,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | 4. Variation: time of day, weather, night/moon, composition validator | ✅ Done (2026-10-14) |
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | 🟨 Ready — needs push + Pages enabled |
 | 6. Polish: contact sheet of ~50 dates, tune weights | ✅ Done (2026-10-14) |
-| 7. Wishlist from `TODO.md` (see below) | ✅ Done (2026-10-14) |
+| 7. Wishlist from `TODO.md` (see below) | 🟨 7.16, 7.19, 7.20 open |
 | 8. Performance: faster renders, same image (see "Performance pass") | ✅ Done (2026-10-14) |
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done
@@ -41,10 +41,18 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.14 | Reasearch and add shore seen mountains, volcano alive and dormant | ✅ |
 | 7.15 | Reasearch online how rain drops affects sea and add it to your simulation | ✅ |
 | 7.16 | Add view from clif/top of the mountain | ⬜ |
-| 7.17 | Accessing newer date than today - redirect us to today. Also the button to next day should not work on such dates. | ⬜ |
-| 7.18 | Add new api - /random, accessing it loads a random date before today | ⬜ |
+| 7.17 | Accessing newer date than today - redirect us to today. Also the button to next day should not work on such dates. | ✅ |
+| 7.18 | Add new api - /random, accessing it loads a random date before today | ✅ |
 | 7.19 | Clouds looks unreal with grains and spots and less like fog, research online for fix | ⬜ |
 | 7.20 | Wave break is unreal and too spotty, reasearch online how to do waves, and wave-splashes | ⬜ |
+
+7.17/7.18 notes: a future `?date=` renders today and rewrites the URL (`history.replaceState`,
+no reload); → is disabled on today. `?future=1` lifts the limit — `scripts/snapshot.mjs` sets
+it so upcoming days can still be previewed. `/random/` is a second Vite page
+(`random/index.html`, a build input) whose inline script picks a day from 2000-01-01 to
+yesterday and `location.replace`s to `../?date=…`, keeping other options. GitHub Pages
+redirects `/random` → `/random/`; Vite's dev/preview servers serve the app for `/random`
+instead, so `main.ts` forwards that path. A "Random" button sits in the footer.
 
 7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
 antifouling below the waterline, rust patches + streaks scaled by vessel age; sails as
@@ -513,6 +521,10 @@ M2 findings:
 - 2026-10-14: **Performance pass.** Still-scene accumulation, env-cube shader reuse, ocean FFT
   on a worker. Cloudy 4K 4.4 → 2.9 s, clear 1.46 → 1.28 s; SwiftShader cloudy 3× faster;
   image unchanged.
+
+- 2026-10-14: Added 7.16–7.20 to the wishlist.
+- 2026-10-14: 7.17 done — future dates show today; → disabled on today.
+- 2026-10-14: 7.18 done — `/random` jumps to a random past day.
 
 ## References
 
