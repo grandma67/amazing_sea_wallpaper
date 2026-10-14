@@ -11,6 +11,7 @@ import {
   CubeCamera,
   Data3DTexture,
   HalfFloatType,
+  ImageBitmapLoader,
   LinearFilter,
   LinearMipMapLinearFilter,
   Mesh,
@@ -21,18 +22,18 @@ import {
   RepeatWrapping,
   Scene,
   ShaderMaterial,
-  TextureLoader,
+  Texture,
   Vector2,
   type Camera,
   type Matrix4,
   type PerspectiveCamera,
-  type Texture,
   type Vector3,
   type WebGLCubeRenderTarget,
   type WebGLRenderer
 } from 'three'
 
 import { AccumulatePass } from './accumulate'
+import { assetUrl } from './assets'
 import { CLOUD_GENERA } from './cloudTypes'
 import type { WeatherParams } from './params'
 
@@ -46,8 +47,6 @@ export interface CloudAssets {
   turbulence: Texture
   stbn: Data3DTexture
 }
-
-const asset = (name: string): string => `${import.meta.env.BASE_URL}assets/${name}`
 
 function repeat3D(texture: Data3DTexture): Data3DTexture {
   texture.format = RedFormat
@@ -71,6 +70,20 @@ function repeat2D(texture: Texture, mipmaps: boolean): Texture {
   return texture
 }
 
+/** Loads an image as a texture. Unlike TextureLoader this needs no DOM, so it
+ * also works on the render worker; the bitmap is decoded the way TextureLoader
+ * would upload it (flipped, no premultiplied alpha or colour conversion). */
+async function loadImageTexture(url: string): Promise<Texture> {
+  const loader = new ImageBitmapLoader().setOptions({
+    imageOrientation: 'flipY',
+    premultiplyAlpha: 'none',
+    colorSpaceConversion: 'none'
+  })
+  const texture = new Texture(await loader.loadAsync(url))
+  texture.flipY = false
+  return texture
+}
+
 let assets: Promise<CloudAssets> | null = null
 
 export function loadCloudAssets(): Promise<CloudAssets> {
@@ -86,11 +99,11 @@ export function loadCloudAssets(): Promise<CloudAssets> {
       depth: CLOUD_SHAPE_DETAIL_TEXTURE_SIZE
     })
     const [localWeather, shape, shapeDetail, turbulence, stbn] = await Promise.all([
-      new TextureLoader().loadAsync(asset('local_weather.png')),
-      shapeLoader.loadAsync(asset('shape.bin')),
-      detailLoader.loadAsync(asset('shape_detail.bin')),
-      new TextureLoader().loadAsync(asset('turbulence.png')),
-      new STBNLoader().loadAsync(asset('stbn.bin'))
+      loadImageTexture(assetUrl('local_weather.png')),
+      shapeLoader.loadAsync(assetUrl('shape.bin')),
+      detailLoader.loadAsync(assetUrl('shape_detail.bin')),
+      loadImageTexture(assetUrl('turbulence.png')),
+      new STBNLoader().loadAsync(assetUrl('stbn.bin'))
     ])
     return {
       localWeather: repeat2D(localWeather, true),

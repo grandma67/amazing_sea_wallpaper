@@ -44,6 +44,7 @@ import {
 } from 'three'
 
 import { AccumulatePass } from './accumulate'
+import { assetUrl } from './assets'
 import { createCamera } from './camera'
 import { createClouds, loadCloudAssets, renderCloudyEnvironment } from './clouds'
 import { meterScene } from './exposure'
@@ -96,9 +97,29 @@ class GradeEffect extends Effect {
 }
 
 export interface RenderResult {
-  canvas: HTMLCanvasElement
   params: SceneParams
   debug: Record<string, unknown>
+}
+
+/** Resolves once the GPU has finished the commands issued so far. Waiting for
+ * this between accumulation frames keeps the GPU from queueing seconds of
+ * work at once, so the browser can still draw the page (the splash's
+ * animation) in between, and gives the event loop a turn. */
+function gpuIdle(gl: WebGL2RenderingContext): Promise<void> {
+  const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)
+  gl.flush()
+  return new Promise(resolve => {
+    const poll = (): void => {
+      const status = sync == null ? gl.ALREADY_SIGNALED : gl.clientWaitSync(sync, 0, 0)
+      if (status === gl.TIMEOUT_EXPIRED) {
+        setTimeout(poll, 2)
+        return
+      }
+      if (sync != null) gl.deleteSync(sync)
+      resolve()
+    }
+    setTimeout(poll, 0)
+  })
 }
 
 /** Low-discrepancy sequence in [0, 1): well-spread sub-pixel offsets. */
@@ -113,7 +134,7 @@ export async function renderScene(
   params: SceneParams,
   width: number,
   height: number,
-  canvas?: HTMLCanvasElement,
+  canvas?: HTMLCanvasElement | OffscreenCanvas,
   /** Frames averaged when clouds are present (fewer = faster, grainier). */
   cloudFrames = 64
 ): Promise<RenderResult> {
@@ -193,7 +214,7 @@ export async function renderScene(
   // to the sky of this date and drawn behind the clouds.
   const starryTwilight = params.timeOfDay === 'blue-hour' && params.sunElevationDeg < -4
   if (night || starryTwilight) {
-    const data = await new ArrayBufferLoader().loadAsync(`${import.meta.env.BASE_URL}assets/stars.bin`)
+    const data = await new ArrayBufferLoader().loadAsync(assetUrl('stars.bin'))
     const geometry = new StarsGeometry(data)
     const eciToWorld = new Matrix4()
       .extractRotation(worldToECEF)
@@ -479,6 +500,7 @@ export async function renderScene(
     finish.enabled = last
     if (skyDenoise != null) skyDenoise.enabled = last
     composer.render(1 / 60)
+    if (!last) await gpuIdle(renderer.getContext() as WebGL2RenderingContext)
   }
   camera.clearViewOffset()
 
@@ -486,7 +508,6 @@ export async function renderScene(
   const gl = renderer.getContext()
   const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
   return {
-    canvas: renderer.domElement,
     params,
     debug: {
       gpu: debugInfo != null ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown',

@@ -4,17 +4,6 @@ A daily, date-seeded, photorealistic 4K sea-and-beach wallpaper, rendered **in t
 with three.js** and hosted on GitHub Pages. The date is the seed: same day, same scene,
 everywhere; any date can be re-rendered on demand, so the archive is free.
 
-## Status
-
-Milestones 1–8 are done (M5: the Pages workflow is pushed; `main` has unpushed commits since).
-Wishlist items still open:
-
-| # | Item | State |
-|---|---|---|
-| 7.16 | View from a cliff / mountain top | ⬜ |
-| 7.21 | Fog: research which climates/temperatures create it; add it | ⬜ |
-| 7.22 | Lighthouse: research where they stand and how the beam looks | ⬜ |
-
 ## Versions
 
 Informal (no git tags); each is a milestone. Dates are 2026.

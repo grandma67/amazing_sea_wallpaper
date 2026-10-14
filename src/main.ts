@@ -1,5 +1,6 @@
 import { generateSceneParams } from './composition'
-import { renderScene } from './scene'
+import type { SceneParams } from './params'
+import type { RenderReply, RenderRequest } from './renderWorker'
 
 // URL options:
 //   /random/           a random day before today (public/random/index.html)
@@ -10,6 +11,7 @@ import { renderScene } from './scene'
 //                      limited devices; taller than wide = portrait)
 //   ?portrait=1|0      force a portrait (phone) or landscape composition
 //   ?frames=24         cloud accumulation frames (default 64; fewer = faster)
+//   ?worker=0          render on the main thread instead of a worker
 
 function localDateString(d: Date): string {
   const pad = (n: number): string => String(n).padStart(2, '0')
@@ -80,6 +82,68 @@ const width = Number(query.get('w') ?? resolution?.[0] ?? 3840)
 const height = Number(query.get('h') ?? resolution?.[1] ?? 2160)
 const frames = Number(query.get('frames') ?? 64)
 
+interface Rendered {
+  debug: Record<string, unknown>
+  toBlob(mime: string, quality: number): Promise<Blob>
+}
+
+/** Can the canvas be handed to a worker and rendered there with WebGL 2? */
+function offscreenWebGL2(): boolean {
+  if (query.get('worker') === '0') return false
+  if (typeof OffscreenCanvas === 'undefined' || !('transferControlToOffscreen' in HTMLCanvasElement.prototype))
+    return false
+  const gl = new OffscreenCanvas(1, 1).getContext('webgl2')
+  gl?.getExtension('WEBGL_lose_context')?.loseContext()
+  return gl != null
+}
+
+/** Renders the wallpaper into the canvas: on a worker where the browser can,
+ * so the GPU work never blocks the page (and the splash animation); otherwise
+ * on the main thread. */
+async function startRender(params: SceneParams, canvas: HTMLCanvasElement): Promise<Rendered> {
+  if (!offscreenWebGL2()) {
+    const { renderScene } = await import('./scene')
+    const { debug } = await renderScene(params, width, height, canvas, frames)
+    return {
+      debug,
+      toBlob: (mime, quality) =>
+        new Promise((resolve, reject) =>
+          canvas.toBlob(blob => (blob != null ? resolve(blob) : reject(new Error('empty canvas'))), mime, quality)
+        )
+    }
+  }
+  const worker = new Worker(new URL('./renderWorker.ts', import.meta.url), { type: 'module' })
+  const send = (request: RenderRequest, transfer: Transferable[] = []): void => worker.postMessage(request, transfer)
+  const blobs = new Map<number, (blob: Blob) => void>()
+  const offscreen = canvas.transferControlToOffscreen()
+  const debug = await new Promise<Record<string, unknown>>((resolve, reject) => {
+    worker.onerror = event => reject(new Error(event.message || 'render worker failed to start'))
+    worker.onmessage = (event: MessageEvent<RenderReply>) => {
+      const message = event.data
+      if (message.type === 'done') resolve(message.debug)
+      else if (message.type === 'error') reject(new Error(message.message))
+      else {
+        blobs.get(message.id)?.(message.blob)
+        blobs.delete(message.id)
+      }
+    }
+    send(
+      { type: 'render', canvas: offscreen, params, width, height, frames, pageUrl: window.location.href },
+      [offscreen]
+    )
+  })
+  let nextId = 0
+  return {
+    debug,
+    toBlob: (mime, quality) =>
+      new Promise(resolve => {
+        const id = nextId++
+        blobs.set(id, resolve)
+        send({ type: 'blob', id, mime, quality })
+      })
+  }
+}
+
 const params = generateSceneParams(date, width / height)
 const canvas = document.getElementById('wallpaper') as HTMLCanvasElement
 const splash = document.getElementById('splash') as HTMLElement
@@ -90,7 +154,7 @@ const ready = (async () => {
   // Let the "Rendering…" text paint before the GPU work blocks the thread.
   await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)))
   if (resolution == null) throw new Error('this browser does not support WebGL 2')
-  const result = await renderScene(params, width, height, canvas, frames)
+  const rendered = await startRender(params, canvas)
   void hideSplash()
 
   document.getElementById('title')!.textContent = params.title
@@ -104,21 +168,16 @@ const ready = (async () => {
   else next.setAttribute('aria-disabled', 'true')
   ;(document.getElementById('today') as HTMLAnchorElement).href = linkFor(today)
   document.getElementById('download')!.addEventListener('click', () => {
-    canvas.toBlob(
-      blob => {
-        if (blob == null) return
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(blob)
-        a.download = `amazing-sea-${date}${width < height ? '-portrait' : ''}.jpg`
-        a.click()
-        URL.revokeObjectURL(a.href)
-      },
-      'image/jpeg',
-      0.95
-    )
+    void rendered.toBlob('image/jpeg', 0.95).then(blob => {
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `amazing-sea-${date}${width < height ? '-portrait' : ''}.jpg`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    })
   })
   document.getElementById('info')!.hidden = false
-  return result
+  return { params, ...rendered }
 })().catch((error: unknown) => {
   status.textContent = `Rendering failed: ${String(error)}`
   throw error
@@ -136,7 +195,7 @@ async function hideSplash(): Promise<void> {
 // Hook for scripts/snapshot.mjs.
 declare global {
   interface Window {
-    __sea: { ready: Promise<unknown>; params: typeof params }
+    __sea: { ready: Promise<Rendered & { params: SceneParams }>; params: SceneParams }
   }
 }
 window.__sea = { ready, params }

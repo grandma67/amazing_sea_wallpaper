@@ -73,9 +73,15 @@ for (const date of dates) {
   await page.waitForFunction(() => window.__sea != null)
   const { dataUrl, params } = await page.evaluate(async quality => {
     const result = await window.__sea.ready
-    const canvas = document.getElementById('wallpaper')
+    // The canvas may belong to the render worker: ask it for the image.
+    const blob = await result.toBlob('image/jpeg', quality)
+    const dataUrl = await new Promise(resolve => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.readAsDataURL(blob)
+    })
     return {
-      dataUrl: canvas.toDataURL('image/jpeg', quality),
+      dataUrl,
       params: { ...window.__sea.params, debug: result.debug }
     }
   }, quality)
