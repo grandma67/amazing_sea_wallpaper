@@ -12,7 +12,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | 2. Realism core: FFT ocean, water shading, beach terrain, shoreline foam | ✅ Done (2026-10-14) |
 | 3. Biomes & assets: rocks, vegetation, birds, ships | ✅ Done (2026-10-14) |
 | 4. Variation: time of day, weather, night/moon, composition validator | ✅ Done (2026-10-14) |
-| 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | ⬜ Not started |
+| 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | 🟨 Ready — needs push + Pages enabled |
 | 6. Polish: contact sheet of ~50 dates, tune weights | ⬜ Not started |
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done
@@ -134,6 +134,20 @@ M1 findings:
   sidereal orientation; excluded from exposure metering. Blue hour gets a cooler white balance.
 - `src/camera.ts` — shared camera construction; `src/composition.ts` — ray-grid frame coverage
   (sky/sea/land) and re-roll of coast/composition (sub-seeded) for bad framings.
+
+- `.github/workflows/pages.yml` — build + deploy to Pages on push to `main`; daily 00:05 UTC run
+  also renders today's (UTC) wallpaper with headless Chromium + SwiftShader at 4K / 24 frames
+  into `/latest.jpg`, `/latest.json`, `/daily/DATE.jpg` (allowed to fail without blocking).
+  Only the current day's image is in each Pages artifact; the archive is "re-render any date".
+- Page: default resolution adapts to the device (4K desktop, 1920 on small screens, capped by
+  GPU limits); `?frames=` trades grain for speed; favicon; README with usage and credits.
+
+M5 findings:
+- SwiftShader (software WebGL) works with Playwright's Chromium headless shell. 4K / 24 frames
+  ≈ 258 s on an M2 Max (12 cores) → expect roughly 15–20 min on a 4-vCPU GitHub runner.
+  1080p / 64 frames was 444 s — the reflection cube's per-face clouds dominated, so its frame
+  count now scales with `?frames`.
+- To go live: push `main`, then *Settings → Pages → Source: GitHub Actions*.
 
 M4 findings:
 - takram clouds' TAA (variance clipping) leaves residual noise on a static camera — averaging
@@ -267,6 +281,8 @@ M2 findings:
   shallow-water optics, caustics, foam, wet sand. 4K still ~1.3 s on M2 Max.
 - 2026-10-14: **M3 done.** Biomes, sun shadows, procedural rocks/sea stacks, vegetation, gulls,
   boats; four camera compositions. 4K ~1.5 s.
+- 2026-10-14: M5 prepared: Pages workflow with daily SwiftShader snapshot, device-aware
+  resolution, README. Waiting on push + enabling Pages in the repo settings.
 - 2026-10-14: **M4 done.** Weather + volumetric clouds (with cloudy reflections), frame
   accumulation, stars, twilight grading, composition validator. 4K ~3–4 s.
 
