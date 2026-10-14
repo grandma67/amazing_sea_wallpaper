@@ -39,6 +39,8 @@ import {
   WebGLRenderTarget
 } from 'three'
 
+import { AccumulatePass } from './accumulate'
+import { createClouds, loadCloudAssets } from './clouds'
 import { meterScene } from './exposure'
 import { createMoon, placeMoon } from './moon'
 import { createOcean } from './ocean'
@@ -119,7 +121,10 @@ export async function renderScene(
   const moonECEF = toECEF(params.moonDirection)
 
   const generator = new PrecomputedTexturesGenerator(renderer, { combinedScattering: false })
-  const textures = await generator.update()
+  const [textures, cloudAssets] = await Promise.all([
+    generator.update(),
+    params.weather.kind === 'clear' ? Promise.resolve(null) : loadCloudAssets()
+  ])
 
   // --- Camera ---------------------------------------------------------------
   const aspect = width / height
@@ -187,7 +192,10 @@ export async function renderScene(
 
   // --- Lighting -------------------------------------------------------------
   const cameraECEF = camera.position.clone().applyMatrix4(worldToECEF)
+  // Clouds dim the direct light reaching the scene (a global stand-in for
+  // per-pixel cloud shadows in the custom shaders).
   const sunIrradiance = getSunLightColor(textures.transmittanceTexture, cameraECEF, lightECEF, new Color())
+    .multiplyScalar(params.weather.sunVisibility)
   const skyProbe = new SkyLightProbe({ irradianceTexture: textures.irradianceTexture })
   skyProbe.worldToECEFMatrix.copy(worldToECEF)
   skyProbe.position.copy(camera.position)
@@ -276,8 +284,27 @@ export async function renderScene(
   })
   composer.setSize(width, height, false)
   composer.addPass(new RenderPass(scene, camera))
-  composer.addPass(new EffectPass(camera, aerialPerspective))
+  const clouds =
+    cloudAssets != null
+      ? createClouds(camera, params.weather, textures, cloudAssets, worldToECEF, lightECEF)
+      : null
+  if (clouds != null) {
+    // Clouds are soft: ray march them at no more than ~1080p.
+    clouds.resolution.scale = Math.min(1, 1920 / width)
+    // The clouds render into buffers that aerial perspective composites.
+    clouds.events.addEventListener('change', event => {
+      if (event.property === 'atmosphereOverlay') aerialPerspective.overlay = clouds.atmosphereOverlay
+      if (event.property === 'atmosphereShadow') aerialPerspective.shadow = clouds.atmosphereShadow
+      if (event.property === 'atmosphereShadowLength')
+        aerialPerspective.shadowLength = clouds.atmosphereShadowLength
+    })
+    composer.addPass(new EffectPass(camera, clouds, aerialPerspective))
+  } else {
+    composer.addPass(new EffectPass(camera, aerialPerspective))
+  }
   composer.addPass(new EffectPass(camera, new GradeEffect(exposure, night ? 1 : 0)))
+  // Average stochastic cloud noise over frames, in linear HDR before bloom.
+  if (clouds != null) composer.addPass(new AccumulatePass())
   composer.addPass(
     new EffectPass(
       camera,
@@ -314,7 +341,10 @@ export async function renderScene(
     bindShadow(terrain.material.uniforms, sun)
     renderer.shadowMap.autoUpdate = false
   }
-  composer.render()
+  // Volumetric clouds converge over frames (temporal upscaling and
+  // stochastic sampling), so render the still repeatedly before capturing.
+  const frames = clouds != null ? 64 : 1
+  for (let i = 0; i < frames; i++) composer.render(1 / 60)
 
   generator.dispose({ textures: false })
   const gl = renderer.getContext()

@@ -53,6 +53,21 @@ export interface CoastParams {
   noiseOffset: [number, number]
 }
 
+export type WeatherKind = 'clear' | 'cirrus' | 'few' | 'scattered' | 'broken' | 'overcast'
+
+export interface WeatherParams {
+  kind: WeatherKind
+  /** Cloud coverage, 0..1 (takram clouds' global coverage). */
+  coverage: number
+  /** Density multipliers for the low, mid and high (cirrus) cloud layers. */
+  layerDensity: [number, number, number]
+  /** Fraction of direct sunlight reaching the scene through the clouds. */
+  sunVisibility: number
+  /** Seeded offsets so each day gets its own cloud pattern. */
+  weatherOffset: [number, number]
+  shapeOffset: [number, number, number]
+}
+
 export interface SceneParams {
   date: string
   seed: string
@@ -75,6 +90,7 @@ export interface SceneParams {
 
   biome: Biome
   coast: CoastParams
+  weather: WeatherParams
 
   camera: {
     /** Above sea level for open sea; above the ground on a beach. */
@@ -298,6 +314,35 @@ function generateCoast(
   return { coast, eyeHeight }
 }
 
+function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
+  const rng = Random.derive(seed, 'weather')
+  const kind = rng.weighted<WeatherKind>([
+    ['clear', 12],
+    ['cirrus', 13],
+    ['few', 20],
+    ['scattered', 25],
+    ['broken', 18],
+    ['overcast', timeOfDay === 'night' ? 2 : 7]
+  ])
+  const table: Record<WeatherKind, { coverage: [number, number]; layers: [number, number, number]; sun: [number, number] }> = {
+    clear: { coverage: [0, 0], layers: [0, 0, 0], sun: [1, 1] },
+    cirrus: { coverage: [0.45, 0.6], layers: [0, 0, 1.4], sun: [0.95, 1] },
+    few: { coverage: [0.25, 0.34], layers: [1, 0.6, 1], sun: [0.95, 1] },
+    scattered: { coverage: [0.36, 0.46], layers: [1, 1, 1], sun: [0.75, 1] },
+    broken: { coverage: [0.48, 0.58], layers: [1, 1, 0.8], sun: [0.35, 0.9] },
+    overcast: { coverage: [0.68, 0.8], layers: [1.3, 1.3, 0.5], sun: [0.02, 0.07] }
+  }
+  const t = table[kind]
+  return {
+    kind,
+    coverage: rng.range(...t.coverage),
+    layerDensity: t.layers,
+    sunVisibility: rng.range(...t.sun),
+    weatherOffset: [rng.range(0, 1), rng.range(0, 1)],
+    shapeOffset: [rng.range(0, 1), rng.range(0, 1), rng.range(0, 1)]
+  }
+}
+
 export function generateParams(date: string): SceneParams {
   const seed = `amazing-sea:${date}`
   const rng = new Random(seed)
@@ -405,6 +450,7 @@ export function generateParams(date: string): SceneParams {
     latitudeDeg: rng.range(5, 50),
     biome,
     coast,
+    weather: generateWeather(seed, timeOfDay),
     camera: {
       heightM: eyeHeight ?? heightM,
       headingDeg,
