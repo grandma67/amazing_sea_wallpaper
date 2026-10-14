@@ -35,8 +35,8 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ✅ |
 | 7.10 | Bird-nesting islands (research) | ✅ |
 | 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ✅ |
-| 7.12 | Rainbow - in rain or sea splash | ⬜ |
-| 7.13 | Wave break on shore, splashes on rocks | ⬜ |
+| 7.12 | Rainbow - in rain or sea splash | ✅ |
+| 7.13 | Wave break on shore, splashes on rocks | ✅ |
 | 7.14 | Reasearch and add shore seen mountains, volcano alive and dormant | ⬜ |
 | 7.15 | Reasearch online how rain drops affects sea and add it to your simulation | ⬜ |
 
@@ -109,6 +109,21 @@ horizontal FOV, and `measureFrame` casts rays in the frame's shape. `main.ts`: p
 `(orientation: portrait)` or w < h; phones render at their screen shape (long side 2560, or
 1920 on small screens). Touch screens keep the info bar visible, stacked. CI also publishes
 `latest-portrait.jpg` (1290×2796). Vertical glitter paths make great phone wallpapers.
+
+7.12 notes: `SceneParams.rainbow` — 15% of golden-hour/daylight days with scattered/broken
+cloud (~13 days in 2026): the camera turns its back to the sun (relSunAz 180°; main-stream
+draws kept), a wide lens (14–22 mm), 1–3 shower shafts around the antisolar point. The bow is
+a screen-space effect (`RainbowEffect` in stormEffects.ts): angle from the antisolar point →
+primary 40.4–42.7° (red outside), secondary 50–53.8° reversed (60% of days), brighter inside,
+Alexander's dark band, patchy along the arc, only beyond ~1–2.5 km. The weather is now drawn
+before the heading (own stream, no other day changes). Spray bows: see 7.13.
+
+7.13 notes: `props/surf.ts` — `surfCycle`/`surfSets` mirror SURF_GLSL in terrain.ts, so crests
+are solved exactly along the shore (cycle = 0.75) and spray only where the wave is breaking
+(0.15 m < depth < 1.5 × break depth, in a set). Rocks in ≤ 2.5 m of water get spray fountains.
+Spray = point sprites, per-frame screen-door alpha (the frame average makes them soft — a
+fixed dither looked like glitter), sky + sun lit, forward-scatter glow, spray bow at 42°.
+Breaking lips are still foam/spray, not curling geometry.
 
 ## Decision: web-only rendering (three.js)
 
@@ -401,6 +416,8 @@ M2 findings:
 - 2026-10-14: 7.9 done — geese, sea ducks, flamingos.
 - 2026-10-14: 7.10 done — seabird nesting islands.
 - 2026-10-14: 7.11 done — portrait mode for phones.
+- 2026-10-14: 7.12 done — rainbows in showers (and spray bows).
+- 2026-10-14: 7.13 done — spray on breaking waves and rocks.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
