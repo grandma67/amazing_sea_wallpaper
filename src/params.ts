@@ -62,6 +62,18 @@ export type WeatherKind = 'clear' | 'cirrus' | 'few' | 'scattered' | 'broken' | 
  * islets; penguin rookeries in the Southern Ocean. */
 export type ColonyKind = 'gannet' | 'puffin' | 'tropical' | 'penguin'
 
+/** Seals and sea lions hauled out on the rocks (props/pinnipeds.ts):
+ * - seal: harbour and grey seals (true seals: no ear flaps, they lie on
+ *   their bellies, often in a "banana" with head and tail up), on the
+ *   skerries of the North Atlantic and North Pacific, and the Arctic;
+ * - sea-lion: eared seals propped up on long fore flippers — California,
+ *   Steller, Galápagos, South American and Australian sea lions;
+ * - fur-seal: smaller, dark eared seals in dense, noisy colonies — Cape fur
+ *   seals on the Namibian desert coast, Antarctic and South American ones;
+ * - elephant-seal: huge, blubbery true seals of the Southern Ocean and
+ *   California, bulls with a trunk-like nose. */
+export type PinnipedKind = 'seal' | 'sea-lion' | 'fur-seal' | 'elephant-seal'
+
 /**
  * Big landforms seen from the shore: a coastal range (fjord walls, Andes,
  * Big Sur) or a volcano — a steep, concave stratovolcano cone (Fuji, Mayon,
@@ -151,6 +163,8 @@ export interface SceneParams {
   storm: StormParams | null
   /** An offshore island with a seabird colony (props/colony.ts). */
   colony: ColonyKind | null
+  /** Seals or sea lions hauled out on an islet or the colony's rocks. */
+  pinnipeds: PinnipedKind | null
   /** A passing shower opposite a low sun, and the rainbow in it. */
   rainbow: RainbowParams | null
   /** Mountains or a volcano on the horizon (props/landforms.ts). */
@@ -510,6 +524,49 @@ function pickColony(seed: string, ocean: OceanName, biome: Biome): ColonyKind | 
   return northern && rng.chance(0.5) ? 'puffin' : 'gannet'
 }
 
+/** Where each kind of seal lives, by coast and ocean (relative weights). */
+const PINNIPEDS: Record<Biome['name'], Partial<Record<OceanName, readonly (readonly [PinnipedKind, number])[]>>> = {
+  // Norway, Scotland, Iceland; Alaska and British Columbia (Steller sea
+  // lions); Svalbard and Greenland; Tierra del Fuego.
+  nordic: {
+    atlantic: [['seal', 1]],
+    pacific: [['seal', 2], ['sea-lion', 1]],
+    arctic: [['seal', 1]],
+    southern: [['fur-seal', 1], ['elephant-seal', 1]]
+  },
+  // California (sea lions, elephant seals and harbour seals share the
+  // Channel Islands), south-west Australia (Australian sea lions). The
+  // Mediterranean monk seal is nearly gone.
+  mediterranean: {
+    pacific: [['sea-lion', 3], ['seal', 1], ['elephant-seal', 1]],
+    indian: [['sea-lion', 1]]
+  },
+  // Namibia's Skeleton Coast (Cape fur seals by the hundred thousand); the
+  // Atacama and Peru (South American sea lions and fur seals).
+  desert: {
+    atlantic: [['fur-seal', 1]],
+    pacific: [['sea-lion', 2], ['fur-seal', 1]]
+  },
+  // Galápagos sea lions; Iceland's and Japan's seals; Heard Island.
+  volcanic: {
+    pacific: [['sea-lion', 2], ['seal', 1]],
+    atlantic: [['seal', 1]],
+    southern: [['elephant-seal', 2], ['fur-seal', 2]]
+  },
+  // Only the Galápagos, right on the equator, has sea lions on tropical
+  // shores (Hawaiian monk seals are too few).
+  tropical: { pacific: [['sea-lion', 1]] }
+}
+
+function pickPinnipeds(seed: string, ocean: OceanName, biome: Biome): PinnipedKind | null {
+  const rng = Random.derive(seed, 'pinnipeds')
+  const table = PINNIPEDS[biome.name][ocean]
+  // Tropical sea lions are confined to one archipelago: rarer.
+  const chance = biome.name === 'tropical' ? 0.06 : 0.2
+  if (table == null || !rng.chance(chance)) return null
+  return rng.weighted(table)
+}
+
 /**
  * Scene parameters for a date. `aspect` (width / height) only recomposes the
  * shot — portrait phones get the same day's scene, framed for a tall image —
@@ -668,6 +725,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     night: 'Moonlit night'
   }
   const colony = pickColony(seed, basin.name, biome)
+  const pinnipeds = pickPinnipeds(seed, basin.name, biome)
   const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect))
   let rainbow: RainbowParams | null = null
   if (rainbowDay && storm == null) {
@@ -701,6 +759,15 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   }
   if (rainbow != null) titleParts.push('rainbow')
   if (colony != null) titleParts.push(colony === 'penguin' ? 'penguin colony' : 'seabird island')
+  if (pinnipeds != null) {
+    const names: Record<PinnipedKind, string> = {
+      seal: 'seals',
+      'sea-lion': 'sea lions',
+      'fur-seal': 'fur seals',
+      'elephant-seal': 'elephant seals'
+    }
+    titleParts.push(names[pinnipeds])
+  }
   if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
   if (storm != null) {
     titleParts.push(storm.bolts.length > 0 ? 'thunderstorm' : 'squall')
@@ -735,6 +802,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     weather,
     storm,
     colony,
+    pinnipeds,
     rainbow,
     landform,
     camera: {

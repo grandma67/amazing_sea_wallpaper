@@ -136,6 +136,7 @@ export function createColony(ctx: PropContext): Object3D[] {
   mesh.castShadow = true
   mesh.receiveShadow = true
   mesh.updateMatrixWorld()
+  mesh.userData.island = true
   objects.push(mesh)
 
   // Penguins crowd the gentle lower slopes.
