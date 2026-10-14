@@ -17,6 +17,8 @@ body {
 }
 
 /* --- Splash screen ------------------------------------------------------- */
+/* Every animation here is transform or opacity only, on its own layer
+   (will-change), so the compositor runs it without the main thread. */
 
 #splash {
   position: fixed;
@@ -43,6 +45,7 @@ body {
   background: radial-gradient(circle, #fff3c4 0%, #ffc778 60%, #ff9f6e 100%);
   box-shadow: 0 0 12vmin 3vmin rgb(255 190 120 / 0.45);
   animation: sun-glow 4s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 #status {
@@ -55,6 +58,7 @@ body {
   letter-spacing: 0.12em;
   color: #eaf3ff;
   animation: breathe 2.4s ease-in-out infinite;
+  will-change: opacity;
 }
 
 .splash-sea {
@@ -102,6 +106,7 @@ body {
   margin-left: -4.5vmin;
   transform-origin: 50% 90%;
   animation: bob 2.6s ease-in-out infinite;
+  will-change: transform;
 }
 
 .boat .hull {
