@@ -306,9 +306,17 @@ export async function renderScene(
   // camera set to daylight white balance would record.
   const whiteBalance =
     params.timeOfDay === 'blue-hour' ? new Color(0.6, 0.85, 1.25) : new Color(1, 1, 1)
+  // The meter only sees the clear sky, but a thick deck hides the sun and
+  // turns the light grey: open up and neutralise the blue skylight, as a
+  // camera on auto exposure and white balance would.
+  const gloom = night ? 0 : 1 - params.weather.sunVisibility
+  whiteBalance.lerp(new Color(1.12, 1.0, 0.84).multiply(whiteBalance), gloom)
   // Night vision blends in from dusk: partly desaturated and blue at blue hour.
   const scotopic = night ? 1 : params.timeOfDay === 'blue-hour' ? 0.5 : 0
-  const exposure = (0.16 / Math.max(sceneLuminance, 1e-9)) * 2 ** evBias[params.timeOfDay]
+  const exposure = (0.16 / Math.max(sceneLuminance, 1e-9)) * 2 **
+      (evBias[params.timeOfDay] +
+        // Low suns light the clouds from below and the horizon stays bright.
+        1.1 * gloom * Math.min(Math.max(params.sunElevationDeg / 15, 0), 1))
 
   // --- Post-processing ------------------------------------------------------
   const aerialPerspective = new AerialPerspectiveEffect(camera)
@@ -356,7 +364,7 @@ export async function renderScene(
       new VignetteEffect({ offset: 0.35, darkness: 0.35 }),
       new ToneMappingEffect({ mode: ToneMappingMode.AGX }),
       // AgX is neutral but flat; add a little punch.
-      new HueSaturationEffect({ saturation: 0.15 }),
+      new HueSaturationEffect({ saturation: 0.15 - 0.3 * gloom }),
       new BrightnessContrastEffect({ contrast: 0.08 })
     )
   )

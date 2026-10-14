@@ -1,6 +1,7 @@
 import { MoonPhase } from 'astronomy-engine'
 
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
+import { CLOUD_GENERA, pickFormations, type CloudGenus } from './cloudTypes'
 import { Random } from './random'
 
 // Everything random about a scene is decided here, from the date alone.
@@ -59,8 +60,8 @@ export interface WeatherParams {
   kind: WeatherKind
   /** Cloud coverage, 0..1 (takram clouds' global coverage). */
   coverage: number
-  /** Density multipliers for the low, mid and high (cirrus) cloud layers. */
-  layerDensity: [number, number, number]
+  /** Cloud genera in the sky, at most one per étage (low, middle, high). */
+  formations: CloudGenus[]
   /** Fraction of direct sunlight reaching the scene through the clouds. */
   sunVisibility: number
   /** Seeded offsets so each day gets its own cloud pattern. */
@@ -329,25 +330,37 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
     ['broken', 18],
     ['overcast', timeOfDay === 'night' || timeOfDay === 'blue-hour' ? 2 : 7]
   ])
-  const table: Record<WeatherKind, { coverage: [number, number]; layers: [number, number, number]; sun: [number, number] }> = {
-    clear: { coverage: [0, 0], layers: [0, 0, 0], sun: [1, 1] },
-    cirrus: { coverage: [0.45, 0.6], layers: [0, 0, 1.4], sun: [0.95, 1] },
-    // Patchy cloud shade on sea and sand is per pixel (shadow.ts); this is
-    // only the overall dimming on top.
-    few: { coverage: [0.25, 0.34], layers: [1, 0.6, 1], sun: [0.97, 1] },
-    scattered: { coverage: [0.36, 0.46], layers: [1, 1, 1], sun: [0.9, 1] },
-    broken: { coverage: [0.48, 0.58], layers: [1, 1, 0.8], sun: [0.7, 1] },
-    overcast: { coverage: [0.68, 0.8], layers: [1.3, 1.3, 0.5], sun: [0, 0.002] }
+  const coverage: Record<WeatherKind, [number, number]> = {
+    clear: [0, 0],
+    cirrus: [0.45, 0.6],
+    few: [0.25, 0.34],
+    scattered: [0.36, 0.46],
+    broken: [0.48, 0.58],
+    overcast: [0.68, 0.8]
   }
-  const t = table[kind]
   return {
     kind,
-    coverage: rng.range(...t.coverage),
-    layerDensity: t.layers,
-    sunVisibility: rng.range(...t.sun),
+    coverage: rng.range(...coverage[kind]),
+    formations: [],
+    sunVisibility: 1,
     weatherOffset: [rng.range(0, 1), rng.range(0, 1)],
     shapeOffset: [rng.range(0, 1), rng.range(0, 1), rng.range(0, 1)]
   }
+}
+
+/** Which clouds make up the sky; its own stream, and it depends on the coast. */
+function addFormations(seed: string, weather: WeatherParams, biome: Biome): void {
+  const frng = Random.derive(seed, 'formations')
+  const { kind } = weather
+  weather.formations = pickFormations(frng, kind, {
+    cool: biome.name === 'nordic' || biome.name === 'volcanic',
+    tropical: biome.name === 'tropical'
+  })
+  // Patchy cloud shade on sea and sand is per pixel (shadow.ts); this is only
+  // the overall dimming on top. A mirror-sharp sun glint is ~1000× the sky,
+  // so even a sliver of sun under overcast would show a glitter path.
+  for (const genus of weather.formations) weather.sunVisibility *= frng.range(...CLOUD_GENERA[genus].sunVisibility)
+  if (kind === 'overcast') weather.sunVisibility = Math.min(weather.sunVisibility, 0.002)
 }
 
 export function generateParams(date: string, attempt = 0): SceneParams {
@@ -444,6 +457,7 @@ export function generateParams(date: string, attempt = 0): SceneParams {
   const windHeadingDeg = rng.range(0, 360)
 
   const biome = rng.weighted(BIOMES)
+  addFormations(seed, weather, biome)
   const water = Random.derive(seed, 'water').pick(biome.water)
   const oceanState = { windSpeed, windHeadingDeg, ...swell(seed, windHeadingDeg) }
   const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, biome, oceanState)
@@ -461,6 +475,8 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(windSpeed)
   ]
   if (coast.type === 'beach' && windSpeed >= 10) titleParts.push('windy')
+  const skyTitle = weather.formations.map(g => CLOUD_GENERA[g].title).find(t => t != null)
+  if (skyTitle != null && timeOfDay !== 'night') titleParts.push(skyTitle)
   if (moonElevationDeg > 1 && moonIllumination > 0.05) titleParts.push(moonPhaseName(moonPhaseDeg))
 
   return {

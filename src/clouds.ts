@@ -33,6 +33,7 @@ import {
 } from 'three'
 
 import { AccumulatePass } from './accumulate'
+import { CLOUD_GENERA } from './cloudTypes'
 import type { WeatherParams } from './params'
 
 // Volumetric clouds (takram three-clouds). Assets are self-hosted in
@@ -124,12 +125,33 @@ export function createClouds(
   clouds.localWeatherOffset.set(...weather.weatherOffset)
   clouds.shapeOffset.set(...weather.shapeOffset)
 
-  // Scale each default layer's density by today's weather.
-  const layers = CloudLayers.DEFAULT.clone()
-  weather.layerDensity.forEach((scale, i) => {
-    layers[i].densityScale *= scale
-  })
+  // One layer per cloud genus in today's sky; each étage reads its own
+  // channel of the weather map so the layers don't line up.
+  const channels = { low: 'r', middle: 'g', high: 'b' } as const
+  const layers = new CloudLayers(
+    weather.formations.map(genus => {
+      const spec = CLOUD_GENERA[genus]
+      const [expTerm, exponent, linearTerm, constantTerm] = spec.densityProfile
+      return {
+        channel: channels[spec.etage],
+        altitude: spec.altitude,
+        height: spec.height,
+        densityScale: spec.densityScale,
+        shapeAmount: spec.shapeAmount,
+        shapeDetailAmount: spec.shapeDetailAmount,
+        weatherExponent: spec.weatherExponent,
+        shapeAlteringBias: spec.shapeAlteringBias,
+        coverageFilterWidth: spec.coverageFilterWidth,
+        densityProfile: { expTerm, exponent, linearTerm, constantTerm },
+        // Only the lower, thicker layers cast noticeable shadows.
+        shadow: spec.etage !== 'high'
+      }
+    })
+  )
   clouds.cloudLayers.copy(layers)
+  const cellScale = weather.formations.length > 0 ? (CLOUD_GENERA[weather.formations[0]].cellScale ?? 1) : 1
+  clouds.localWeatherRepeat.multiplyScalar(cellScale)
+  clouds.shapeRepeat.multiplyScalar(cellScale)
   return clouds
 }
 
