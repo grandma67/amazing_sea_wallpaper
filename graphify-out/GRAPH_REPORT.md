@@ -1,137 +1,164 @@
 # Graph Report - amazing_sea_wallpaper  (2026-10-14)
 
 ## Corpus Check
-- 39 files · ~56,608 words
+- 16 files · ~81,634 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 6 file(s) not represented in the graph (top: .bin 4, (none) 1, .css 1)
 
 ## Summary
-- 358 nodes · 826 edges · 19 communities (12 shown, 7 thin omitted)
-- Extraction: 81% EXTRACTED · 19% INFERRED · 0% AMBIGUOUS · INFERRED: 160 edges (avg confidence: 0.85)
-- Token cost: 104,676 input · 0 output
+- 511 nodes · 1241 edges · 21 communities (18 shown, 3 thin omitted)
+- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 108 edges (avg confidence: 0.85)
+- Token cost: 14,000 input · 6,000 output
 
 ## Community Hubs (Navigation)
-- Render Pipeline & Passes
-- Procedural Mesh & Ships
-- Plan, Docs & Deploy
-- Biomes & Scene Params
-- NPM Dependencies
-- Snapshot Scripts
-- Prop Context & Birds
-- App Entry & Routing
-- FFT Ocean Spectrum
+- Biomes, Terrain & Birds
+- Biome & Cloud Config Tables
+- Camera, Composition & FFT
+- Plan, Pages & Design Decisions
+- Mesh Builder & Ships
+- Trees & Vegetation
+- Daily Deploy & Snapshots
+- Clouds, Exposure & Reflection
+- App Entry & Date Navigation
+- Marine Life
 - TypeScript Config
+- Package Manifest
+- Cloud Assets & Still Render
+- Runtime Dependencies
+- Accumulate Pass
+- Still Scene Pass
+- Dev Dependencies
+- NPM Scripts
 - Cloud Weather Texture
-- Favicon Artwork
-- Turbulence Texture
-- Splash Screen
-- Biomes & Props Concepts
-- Wallpaper Canvas
-- Auto Exposure
-- Planar Reflection
+- Sea Sunset Favicon
+- Turbulence Noise Texture
 
 ## God Nodes (most connected - your core abstractions)
-1. `MeshBuilder` - 25 edges
-2. `three` - 21 edges
-3. `Random` - 19 edges
-4. `renderScene()` - 19 edges
-5. `generateParams()` - 17 edges
-6. `createShips()` - 17 edges
-7. `createRocks()` - 15 edges
-8. `hull()` - 15 edges
-9. `createVegetation()` - 15 edges
+1. `three` - 33 edges
+2. `MeshBuilder` - 25 edges
+3. `Random` - 24 edges
+4. `PropContext` - 21 edges
+5. `SceneParams` - 19 edges
+6. `RGB` - 19 edges
+7. `generateParams()` - 17 edges
+8. `createShips()` - 16 edges
+9. `hull()` - 15 edges
 10. `catamaran()` - 14 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Render today's wallpaper step (SwiftShader snapshot)` --implements--> `Optional CI snapshot via SwiftShader`  [INFERRED]
-  .github/workflows/pages.yml → PLAN.md
-- `Deploy to GitHub Pages workflow` --conceptually_related_to--> `Decision: web-only rendering (three.js)`  [INFERRED]
-  .github/workflows/pages.yml → PLAN.md
-- `Amazing Sea Wallpaper README` --references--> `/latest.jpg daily snapshot`  [EXTRACTED]
-  README.md → .github/workflows/pages.yml
-- `Amazing Sea Wallpaper README` --references--> `Deploy to GitHub Pages workflow`  [EXTRACTED]
-  README.md → .github/workflows/pages.yml
-- `Render today's wallpaper step (SwiftShader snapshot)` --calls--> `scripts/snapshot.mjs headless renderer`  [EXTRACTED]
-  .github/workflows/pages.yml → PLAN.md
+- `Random day redirect script` --conceptually_related_to--> `Date-seeded deterministic SceneParams`  [INFERRED]
+  random/index.html → PLAN.md
+- `Random day redirect script` --shares_data_with--> `URL parameters (?date, ?w, ?h, ?portrait, ?frames)`  [INFERRED]
+  random/index.html → README.md
+- `Look` --references--> `RGB`  [EXTRACTED]
+  src/props/marine.ts → src/biome.ts
+- `HullSpec` --references--> `RGB`  [EXTRACTED]
+  src/props/ships.ts → src/biome.ts
+- `Foliage` --references--> `RGB`  [EXTRACTED]
+  src/props/trees.ts → src/biome.ts
 
 ## Import Cycles
 - None detected.
 
 ## Hyperedges (group relationships)
-- **Sky & image pipeline (takram atmosphere + clouds + pmndrs post + accumulation)** — plan_takram_three_atmosphere, plan_takram_three_clouds, plan_pmndrs_postprocessing, plan_frame_accumulation, plan_agx_tone_mapping [EXTRACTED 1.00]
-- **Daily latest.jpg snapshot flow** — _github_workflows_pages_daily_cron, _github_workflows_pages_render_todays_wallpaper, plan_snapshot_script, _github_workflows_pages_latest_jpg [EXTRACTED 1.00]
-- **Deterministic date-seeded scene generation** — plan_date_seed, plan_cyrb128_sfc32_prng, plan_sceneparams, plan_composition_validator, plan_biomes [INFERRED 0.85]
+- **Daily headless snapshot pipeline** — _github_workflows_pages_daily_cron, _github_workflows_pages_render_today_s_wallpaper, scripts_snapshot, _github_workflows_pages_swiftshader, _github_workflows_pages_latest_jpg [EXTRACTED 1.00]
 - **Sunset seascape composition** — public_favicon_sky_gradient, public_favicon_sun, public_favicon_wave_layers [EXTRACTED 1.00]
+- **Still-image accumulation and performance pipeline** — plan_frame_accumulation, plan_still_scene_pass, plan_env_cube_shader_reuse, plan_spectrum_worker, plan_sky_denoise [EXTRACTED 1.00]
+- **Date navigation flow (URL date, future clamp, random day)** — readme_url_parameters, plan_future_date_clamp, plan_random_route, index_info_footer, random_index_random_redirect [INFERRED 0.85]
+- **Shore surf and spray system** — plan_surf_cycle, plan_wave_break_whitewater, plan_crest_rock_spray, plan_rainbow [EXTRACTED 1.00]
 
-## Communities (19 total, 7 thin omitted)
+## Communities (21 total, 3 thin omitted)
 
-### Community 0 - "Render Pipeline & Passes"
-Cohesion: 0.08
-Nodes (46): postprocessing, three, AccumulatePass, createCamera(), SceneCamera, asset(), CloudAssets, createClouds() (+38 more)
-
-### Community 1 - "Procedural Mesh & Ships"
-Cohesion: 0.13
-Nodes (44): gull(), MeshBuilder, fbm3(), hash3(), noise3(), ANTIFOULING, box(), cabin() (+36 more)
-
-### Community 2 - "Plan, Docs & Deploy"
-Cohesion: 0.05
-Nodes (45): build job, Daily cron 00:05 UTC, deploy job, Deploy to GitHub Pages workflow, /latest.jpg daily snapshot, Render today's wallpaper step (SwiftShader snapshot), #info footer (title, prev/today/next, Download), AgX tone mapping (+37 more)
-
-### Community 3 - "Biomes & Scene Params"
-Cohesion: 0.12
-Nodes (26): Biome, BIOMES, SAND_STYLES, SandStyle, VegetationKind, WATER, WaterStyle, CoastParams (+18 more)
-
-### Community 4 - "NPM Dependencies"
+### Community 0 - "Biomes, Terrain & Birds"
 Cohesion: 0.07
-Nodes (28): dependencies, astronomy-engine, postprocessing, @takram/three-atmosphere, @takram/three-clouds, @takram/three-geospatial, three, devDependencies (+20 more)
+Nodes (60): three, Biome, RGB, WATER, LandformParams, BILL, BLACK, createBirds() (+52 more)
 
-### Community 5 - "Snapshot Scripts"
-Cohesion: 0.08
-Nodes (19): playwright, args, cols, dir, files, htmlFile, out, width (+11 more)
+### Community 1 - "Biome & Cloud Config Tables"
+Cohesion: 0.06
+Nodes (52): BIOMES, SAND_STYLES, SandStyle, WaterStyle, CLOUD_GENERA, CloudGenus, CloudGenusSpec, Etage (+44 more)
 
-### Community 6 - "Prop Context & Birds"
-Cohesion: 0.14
-Nodes (18): RGB, BILL, BLACK, createBirds(), GREY, WHITE, PropContext, createProps() (+10 more)
+### Community 2 - "Camera, Composition & FFT"
+Cohesion: 0.07
+Nodes (46): createCamera(), SceneCamera, acceptable(), FrameCoverage, generateSceneParams(), measureFrame(), cache, ifft1d() (+38 more)
 
-### Community 7 - "App Entry & Routing"
-Cohesion: 0.12
-Nodes (18): canvas, frames, height, hideSplash(), linkFor(), localDateString(), params, query (+10 more)
+### Community 3 - "Plan, Pages & Design Decisions"
+Cohesion: 0.06
+Nodes (40): index.html page, Download button, Info footer (title, prev/today/next, Download), src/main.ts module entry, Random button link (./random/), Splash screen (animated SVG waves, boat, sun), #wallpaper canvas, Wallpaper page (index.html) (+32 more)
 
-### Community 8 - "FFT Ocean Spectrum"
-Cohesion: 0.21
-Nodes (14): cache, ifft1d(), ifft2d(), tables(), angleDiff(), Cascade, CASCADE_SIZE, jonswap() (+6 more)
+### Community 4 - "Mesh Builder & Ships"
+Cohesion: 0.16
+Nodes (28): MeshBuilder, hash3(), noise3(), ANTIFOULING, box(), cabin(), catamaran(), containerShip() (+20 more)
 
-### Community 9 - "TypeScript Config"
+### Community 5 - "Trees & Vegetation"
+Cohesion: 0.13
+Nodes (39): VegetationKind, acacia(), Bark, birch(), birchBark(), broadleaf(), bush(), conifer() (+31 more)
+
+### Community 6 - "Daily Deploy & Snapshots"
+Cohesion: 0.06
+Nodes (28): GitHub Pages Deploy Workflow, build job, Daily cron 00:05 UTC, deploy job, /latest.jpg snapshot, /latest-portrait.jpg snapshot, Render today's wallpaper step, SwiftShader software WebGL (+20 more)
+
+### Community 7 - "Clouds, Exposure & Reflection"
+Cohesion: 0.15
+Nodes (15): createClouds(), renderCloudyEnvironment(), meterScene(), createMoon(), placeMoon(), setGlowBrightness(), setSprayLighting(), PlanarReflection (+7 more)
+
+### Community 8 - "App Entry & Date Navigation"
+Cohesion: 0.11
+Nodes (19): canvas, frames, height, hideSplash(), linkFor(), localDateString(), params, portraitQuery (+11 more)
+
+### Community 9 - "Marine Life"
+Cohesion: 0.26
+Nodes (15): Animal, blow(), BodyShape, createMarineLife(), dolphin(), humpback(), Look, LOOKS (+7 more)
+
+### Community 10 - "TypeScript Config"
 Cohesion: 0.14
 Nodes (13): compilerOptions, isolatedModules, lib, module, moduleResolution, noEmit, noUnusedLocals, noUnusedParameters (+5 more)
 
-### Community 10 - "Cloud Weather Texture"
+### Community 11 - "Package Manifest"
+Cohesion: 0.18
+Nodes (10): name, private, type, version, astronomy-engine, @takram/three-atmosphere, @takram/three-clouds, @takram/three-geospatial (+2 more)
+
+### Community 12 - "Cloud Assets & Still Render"
+Cohesion: 0.33
+Nodes (6): postprocessing, asset(), CloudAssets, loadCloudAssets(), repeat2D(), repeat3D()
+
+### Community 13 - "Runtime Dependencies"
+Cohesion: 0.29
+Nodes (7): dependencies, astronomy-engine, postprocessing, @takram/three-atmosphere, @takram/three-clouds, @takram/three-geospatial, three
+
+### Community 16 - "Dev Dependencies"
+Cohesion: 0.40
+Nodes (5): devDependencies, playwright, @types/three, typescript, vite
+
+### Community 17 - "NPM Scripts"
+Cohesion: 0.40
+Nodes (5): scripts, build, dev, preview, snapshot
+
+### Community 18 - "Cloud Weather Texture"
 Cohesion: 0.67
 Nodes (3): Local Weather Texture, RGB-Packed Noise Channels, Tileable Cellular/Worley-style Noise
 
-### Community 11 - "Favicon Artwork"
+### Community 19 - "Sea Sunset Favicon"
 Cohesion: 0.50
 Nodes (4): Sea Sunset Favicon, Sky Gradient (dusk blue to peach), Setting Sun Circle, Layered Ocean Waves
 
 ## Knowledge Gaps
-- **30 isolated node(s):** `@types/three`, `typescript`, `Daily cron 00:05 UTC`, `Blender/Cycles headless (rejected)`, `AI image generation (rejected)` (+25 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 138 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **18 isolated node(s):** `Sky Gradient (dusk blue to peach)`, `Setting Sun Circle`, `Layered Ocean Waves`, `@types/three`, `typescript` (+13 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 155 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `three` connect `Render Pipeline & Passes` to `FFT Ocean Spectrum`, `Procedural Mesh & Ships`, `NPM Dependencies`, `Prop Context & Birds`?**
-  _High betweenness centrality (0.308) - this node is a cross-community bridge._
-- **Are the 4 inferred relationships involving `generateParams()` (e.g. with `.chance()` and `.normal()`) actually correct?**
-  _`generateParams()` has 4 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `@types/three`, `typescript`, `Daily cron 00:05 UTC` to the rest of the system?**
-  _30 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Render Pipeline & Passes` be split into smaller, more focused modules?**
-  _Cohesion score 0.0764423076923077 - nodes in this community are weakly interconnected._
-- **Why does `playwright` connect `Snapshot Scripts` to `NPM Dependencies`?**
-  _High betweenness centrality (0.295) - this node is a cross-community bridge._
-- **Should `Procedural Mesh & Ships` be split into smaller, more focused modules?**
-  _Cohesion score 0.1326709526592636 - nodes in this community are weakly interconnected._
-- **Why does `Amazing Sea Wallpaper README` connect `Plan, Docs & Deploy` to `Snapshot Scripts`?**
-  _High betweenness centrality (0.211) - this node is a cross-community bridge._
+- **Why does `three` connect `Biomes, Terrain & Birds` to `Biome & Cloud Config Tables`, `Camera, Composition & FFT`, `Mesh Builder & Ships`, `Trees & Vegetation`, `Clouds, Exposure & Reflection`, `Marine Life`, `Package Manifest`, `Cloud Assets & Still Render`?**
+  _High betweenness centrality (0.322) - this node is a cross-community bridge._
+- **What connects `Sky Gradient (dusk blue to peach)`, `Setting Sun Circle`, `Layered Ocean Waves` to the rest of the system?**
+  _18 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Biomes, Terrain & Birds` be split into smaller, more focused modules?**
+  _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
+- **Why does `playwright` connect `Daily Deploy & Snapshots` to `Package Manifest`?**
+  _High betweenness centrality (0.261) - this node is a cross-community bridge._
+- **Should `Biome & Cloud Config Tables` be split into smaller, more focused modules?**
+  _Cohesion score 0.057859703020993344 - nodes in this community are weakly interconnected._
+- **Why does `Amazing Sea Wallpaper README` connect `Plan, Pages & Design Decisions` to `Daily Deploy & Snapshots`?**
+  _High betweenness centrality (0.109) - this node is a cross-community bridge._
+- **Should `Camera, Composition & FFT` be split into smaller, more focused modules?**
+  _Cohesion score 0.07207792207792207 - nodes in this community are weakly interconnected._
