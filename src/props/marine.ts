@@ -418,7 +418,7 @@ export function createMarineLife(ctx: PropContext): Object3D[] {
   const tries = species === 'humpback' || species === 'orca' ? 240 : 120
   for (let i = 0; i < tries && center == null; i++) {
     const reach = lens * (1 + Math.floor(i / 60))
-    center = ctx.seaPoint(rng, [-0.75, -0.05], near * lens, far * reach, 4)
+    center = ctx.seaPoint(rng, [-0.75, 0.9], near * lens, far * reach, 4)
   }
   if (center == null) return []
 
