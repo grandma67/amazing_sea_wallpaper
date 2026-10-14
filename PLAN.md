@@ -34,7 +34,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.8 | Marine animals: dolphins, swordfish, whales | ✅ |
 | 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ✅ |
 | 7.10 | Bird-nesting islands (research) | ✅ |
-| 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ⬜ |
+| 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ✅ |
 | 7.12 | Rainbow - in rain or sea splash | ⬜ |
 | 7.13 | Wave break on shore, splashes on rocks | ⬜ |
 | 7.14 | Reasearch and add shore seen mountains, volcano alive and dormant | ⬜ |
@@ -101,6 +101,14 @@ vertex colours — thick on ledges, vertical streaks down the cliffs), puffin is
 via the rock material), tropical islet, penguin rookery (instanced penguins on slopes with
 n.y > 0.75). 70–180 m wide, 300–1500 m offshore, footprint checked to be all water; 60–700
 circling gulls/gannets. Gotcha: the stack geometry spans y ≈ −0.45…0.75 — sink by 0.1 h only.
+
+7.11 notes: portrait = same scene, recomposed. `generateParams(date, attempt, aspect)`: the 36 mm
+side maps to the image's long side (`camera.ts`), low-sun azimuth spread and night moon framing
+scale with min(1, aspect) (one draw each, so nothing else shifts), storm placement uses the real
+horizontal FOV, and `measureFrame` casts rays in the frame's shape. `main.ts`: portrait when
+`(orientation: portrait)` or w < h; phones render at their screen shape (long side 2560, or
+1920 on small screens). Touch screens keep the info bar visible, stacked. CI also publishes
+`latest-portrait.jpg` (1290×2796). Vertical glitter paths make great phone wallpapers.
 
 ## Decision: web-only rendering (three.js)
 
@@ -392,6 +400,7 @@ M2 findings:
 - 2026-10-14: 7.8 done — dolphins, orcas, humpbacks, swordfish.
 - 2026-10-14: 7.9 done — geese, sea ducks, flamingos.
 - 2026-10-14: 7.10 done — seabird nesting islands.
+- 2026-10-14: 7.11 done — portrait mode for phones.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
