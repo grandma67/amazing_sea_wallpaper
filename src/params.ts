@@ -322,7 +322,7 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
     ['few', 20],
     ['scattered', 25],
     ['broken', 18],
-    ['overcast', timeOfDay === 'night' ? 2 : 7]
+    ['overcast', timeOfDay === 'night' || timeOfDay === 'blue-hour' ? 2 : 7]
   ])
   const table: Record<WeatherKind, { coverage: [number, number]; layers: [number, number, number]; sun: [number, number] }> = {
     clear: { coverage: [0, 0], layers: [0, 0, 0], sun: [1, 1] },

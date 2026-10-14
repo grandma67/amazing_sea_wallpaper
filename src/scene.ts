@@ -1,11 +1,14 @@
 import {
   AerialPerspectiveEffect,
+  getECIToECEFRotationMatrix,
   getSunLightColor,
   PrecomputedTexturesGenerator,
   SkyLightProbe,
-  SkyMaterial
+  SkyMaterial,
+  StarsGeometry,
+  StarsMaterial
 } from '@takram/three-atmosphere'
-import { Ellipsoid, Geodetic, radians } from '@takram/three-geospatial'
+import { ArrayBufferLoader, Ellipsoid, Geodetic, radians } from '@takram/three-geospatial'
 import {
   BlendFunction,
   BloomEffect,
@@ -31,6 +34,7 @@ import {
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
+  Points,
   Scene,
   Uniform,
   Vector3,
@@ -55,15 +59,16 @@ const REAL_MOON_ANGULAR_RADIUS = 0.0045
 
 /** Exposure and night-time colour grading, applied before bloom/tone mapping. */
 class GradeEffect extends Effect {
-  constructor(exposure: number, night: number) {
+  constructor(exposure: number, night: number, whiteBalance: Color) {
     super(
       'GradeEffect',
       /* glsl */ `
       uniform float exposure;
       uniform float night;
+      uniform vec3 whiteBalance;
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
         // Clamp extreme highlights (the sun disc) so bloom doesn't ring.
-        vec3 c = min(inputColor.rgb * exposure, vec3(40.0));
+        vec3 c = min(inputColor.rgb * exposure * whiteBalance, vec3(40.0));
         // Scotopic vision: desaturate and shift toward blue in moonlight.
         float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
         vec3 nightColor = lum * vec3(0.45, 0.7, 1.35);
@@ -74,7 +79,8 @@ class GradeEffect extends Effect {
         blendFunction: BlendFunction.SET,
         uniforms: new Map<string, Uniform>([
           ['exposure', new Uniform(exposure)],
-          ['night', new Uniform(night)]
+          ['night', new Uniform(night)],
+          ['whiteBalance', new Uniform(whiteBalance)]
         ])
       }
     )
@@ -173,6 +179,32 @@ export async function renderScene(
   const envScene = new Scene()
   envScene.add(skyMesh(makeSky(false)))
 
+  // Stars at night and late twilight: the real bright-star catalogue, turned
+  // to the sky of this date and drawn behind the clouds.
+  const starryTwilight = params.timeOfDay === 'blue-hour' && params.sunElevationDeg < -4
+  if (night || starryTwilight) {
+    const data = await new ArrayBufferLoader().loadAsync(`${import.meta.env.BASE_URL}assets/stars.bin`)
+    const geometry = new StarsGeometry(data)
+    const eciToWorld = new Matrix4()
+      .extractRotation(worldToECEF)
+      .transpose()
+      .multiply(getECIToECEFRotationMatrix(new Date(`${params.date}T00:00:00Z`).getTime() + params.ocean.time * 1000))
+    for (const target of [scene, envScene]) {
+      const material = new StarsMaterial({ ...textures })
+      material.worldToECEFMatrix.copy(worldToECEF)
+      material.sunDirection.copy(lightECEF)
+      // At night the sky is rendered at "daylight" scale and graded down
+      // afterwards (see above), so the stars need the same boost.
+      material.intensity = night ? 4000 : 6
+      material.pointSize = Math.max(1, height / 1080)
+      const stars = new Points(geometry, material)
+      stars.setRotationFromMatrix(eciToWorld)
+      stars.frustumCulled = false
+      stars.renderOrder = -0.5
+      target.add(stars)
+    }
+  }
+
   const moonAngularRadius = REAL_MOON_ANGULAR_RADIUS * params.moonScale
   if (night) {
     const moonDir = new Vector3(...params.moonDirection)
@@ -262,15 +294,23 @@ export async function renderScene(
   scene.add(createProps(new PropContext(params, camera)))
 
   // --- Exposure ---------------------------------------------------------------
+  // Meter the sky without the (artificially boosted) stars.
+  const starFields = envScene.children.filter(o => o instanceof Points)
+  starFields.forEach(o => (o.visible = false))
   const sceneLuminance = meterScene(renderer, envScene, camera, dip)
+  starFields.forEach(o => (o.visible = true))
   const evBias: Record<SceneParams['timeOfDay'], number> = {
     'golden-hour': 0,
     'sun-on-horizon': -0.3,
-    'blue-hour': -1.2,
+    'blue-hour': -0.9,
     daylight: 0,
     midday: 0,
-    night: -3.3
+    night: -2.7
   }
+  // Twilight under the Bruneton sky skews magenta; cool it toward the blue a
+  // camera set to daylight white balance would record.
+  const whiteBalance =
+    params.timeOfDay === 'blue-hour' ? new Color(0.84, 0.93, 1.15) : new Color(1, 1, 1)
   const exposure = (0.16 / Math.max(sceneLuminance, 1e-9)) * 2 ** evBias[params.timeOfDay]
 
   // --- Post-processing ------------------------------------------------------
@@ -303,7 +343,7 @@ export async function renderScene(
   } else {
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }
-  composer.addPass(new EffectPass(camera, new GradeEffect(exposure, night ? 1 : 0)))
+  composer.addPass(new EffectPass(camera, new GradeEffect(exposure, night ? 1 : 0, whiteBalance)))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
   if (clouds != null) composer.addPass(new AccumulatePass())
   composer.addPass(
