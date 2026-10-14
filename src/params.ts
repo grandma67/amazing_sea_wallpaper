@@ -129,7 +129,10 @@ export interface SceneParams {
      * The renderer solves the camera pitch from this. */
     horizonFraction: number
     rollDeg: number
+    /** 35 mm-equivalent focal length, applied to the image's long side. */
     focalLengthMm: number
+    /** Width / height of the image the scene is composed for. */
+    aspect: number
   }
 
   ocean: {
@@ -401,11 +404,17 @@ function addFormations(seed: string, weather: WeatherParams, biome: Biome): void
  * frontal storms pass through often enough to make them a chance event.
  * Not at night: the scene is moonlit and a storm would hide the moon.
  */
-function generateStorm(seed: string, timeOfDay: TimeOfDay, headingDeg: number, focalLengthMm: number): StormParams | null {
+/** Half the horizontal field of view (degrees) of a lens on an image. */
+export function horizontalHalfFovDeg(focalLengthMm: number, aspect: number): number {
+  const longHalf = Math.atan(18 / focalLengthMm)
+  return (aspect >= 1 ? longHalf : Math.atan(Math.tan(longHalf) * aspect)) / DEG
+}
+
+function generateStorm(seed: string, timeOfDay: TimeOfDay, headingDeg: number, halfFovDeg: number): StormParams | null {
   const rng = Random.derive(seed, 'storm')
   if (timeOfDay === 'night' || !rng.chance(0.07)) return null
   // Keep strikes and shafts inside the frame (a little narrower than the lens).
-  const halfFov = Math.min(30, (Math.atan(18 / focalLengthMm) / DEG) * 0.8)
+  const halfFov = Math.min(30, halfFovDeg * 0.8)
   const curtains = Array.from({ length: rng.int(1, 4) }, () => ({
     azimuthDeg: headingDeg + rng.range(-halfFov * 1.6, halfFov * 1.6),
     distance: rng.range(3000, 16000),
@@ -431,7 +440,14 @@ function pickColony(seed: string, ocean: OceanName, biome: Biome): ColonyKind | 
   return northern && rng.chance(0.5) ? 'puffin' : 'gannet'
 }
 
-export function generateParams(date: string, attempt = 0): SceneParams {
+/**
+ * Scene parameters for a date. `aspect` (width / height) only recomposes the
+ * shot — portrait phones get the same day's scene, framed for a tall image —
+ * and never changes what's in it.
+ */
+export function generateParams(date: string, attempt = 0, aspect = 16 / 9): SceneParams {
+  // A tall frame is narrow: keep low suns and the moon well inside it.
+  const framing = Math.min(1, aspect)
   const seed = `amazing-sea:${date}`
   const rng = new Random(seed)
 
@@ -459,7 +475,7 @@ export function generateParams(date: string, attempt = 0): SceneParams {
   const sunElevationDeg = rng.range(elMin, elMax)
   const lowSun = timeOfDay !== 'midday' && timeOfDay !== 'daylight'
   const relSunAz =
-    lowSun && rng.chance(0.7) ? rng.normal(0, 18) : rng.range(-180, 180)
+    lowSun && rng.chance(0.7) ? rng.normal(0, 18 * framing) : rng.range(-180, 180)
   const sunDirection = dirFromAzEl(headingDeg + relSunAz, sunElevationDeg)
 
   // Place the moon at the physically correct angular distance from the sun
@@ -488,7 +504,7 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     if (timeOfDay === 'night') {
       // Turn toward the moon so its glitter path runs across the water.
       const moonAzDeg = Math.atan2(moonDirection[0], -moonDirection[2]) / DEG
-      headingDeg = moonAzDeg + Random.derive(seed, 'moon-framing').normal(0, 14)
+      headingDeg = moonAzDeg + Random.derive(seed, 'moon-framing').normal(0, 14 * framing)
     }
   }
   const moonElevationDeg = elevationOf(moonDirection)
@@ -525,7 +541,7 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     ])() * windByWeather[weather.kind]
   const windHeadingDeg = rng.range(0, 360)
 
-  const storm = generateStorm(seed, timeOfDay, headingDeg, focalLengthMm)
+  const storm = generateStorm(seed, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect))
   if (storm != null) {
     const srng = Random.derive(seed, 'storm-weather')
     weather.kind = 'storm'
@@ -619,7 +635,8 @@ export function generateParams(date: string, attempt = 0): SceneParams {
         [() => rng.range(0.45, 0.55), 1]
       ])(),
       rollDeg: rng.normal(0, 0.3),
-      focalLengthMm
+      focalLengthMm,
+      aspect
     },
     ocean: {
       ...oceanState,

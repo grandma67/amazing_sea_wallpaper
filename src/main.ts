@@ -4,7 +4,8 @@ import { renderScene } from './scene'
 // URL options:
 //   ?date=YYYY-MM-DD   render a specific day (default: today, local time)
 //   ?w=1920&h=1080     output resolution (default: 3840×2160, less on small or
-//                      limited devices)
+//                      limited devices; taller than wide = portrait)
+//   ?portrait=1|0      force a portrait (phone) or landscape composition
 //   ?frames=24         cloud accumulation frames (default 64; fewer = faster)
 
 function localDateString(d: Date): string {
@@ -29,7 +30,14 @@ const today = localDateString(new Date())
 const requested = query.get('date')
 const date = requested != null && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today
 
-/** 4K on desktops; on phones and GPUs with small limits, something they can do. */
+// Phones held upright get a portrait wallpaper: the same day's scene,
+// composed for a tall frame.
+const portraitQuery = query.get('portrait')
+const portrait =
+  portraitQuery != null ? portraitQuery === '1' : window.matchMedia('(orientation: portrait)').matches
+
+/** 4K on desktops; on phones, the screen's own resolution and shape; on GPUs
+ * with small limits, something they can do. */
 function defaultResolution(): [number, number] | null {
   const gl = document.createElement('canvas').getContext('webgl2')
   if (gl == null) return null
@@ -38,7 +46,15 @@ function defaultResolution(): [number, number] | null {
     gl.getParameter(gl.MAX_TEXTURE_SIZE) as number
   )
   gl.getExtension('WEBGL_lose_context')?.loseContext()
-  const small = Math.max(screen.width, screen.height) * devicePixelRatio < 2000
+  const screenLong = Math.max(screen.width, screen.height) * devicePixelRatio
+  const screenShort = Math.min(screen.width, screen.height) * devicePixelRatio
+  const small = screenLong < 2000
+  if (portrait) {
+    // Tall phone screens (~9:19.5); never wider than 3:4.
+    const shape = Math.min(0.75, Math.max(0.42, screenShort / screenLong))
+    const long = Math.min(maxSize, small ? 1920 : Math.min(3840, Math.max(2560, Math.round(screenLong))))
+    return [Math.round(long * shape), long]
+  }
   const width = Math.min(maxSize, small ? 1920 : 3840)
   return [width, Math.round((width * 9) / 16)]
 }
@@ -48,7 +64,7 @@ const width = Number(query.get('w') ?? resolution?.[0] ?? 3840)
 const height = Number(query.get('h') ?? resolution?.[1] ?? 2160)
 const frames = Number(query.get('frames') ?? 64)
 
-const params = generateSceneParams(date)
+const params = generateSceneParams(date, width / height)
 const canvas = document.getElementById('wallpaper') as HTMLCanvasElement
 const splash = document.getElementById('splash') as HTMLElement
 const status = document.getElementById('status') as HTMLElement
@@ -75,7 +91,7 @@ const ready = (async () => {
         if (blob == null) return
         const a = document.createElement('a')
         a.href = URL.createObjectURL(blob)
-        a.download = `amazing-sea-${date}.jpg`
+        a.download = `amazing-sea-${date}${width < height ? '-portrait' : ''}.jpg`
         a.click()
         URL.revokeObjectURL(a.href)
       },

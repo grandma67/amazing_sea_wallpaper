@@ -52,6 +52,10 @@ jobs:
             --w 3840 --h 2160 --frames 24 --quality 0.92 "$TODAY"
           cp "dist/daily/$TODAY.jpg" dist/latest.jpg
           cp "dist/daily/$TODAY.json" dist/latest.json
+          # Portrait for phones (iPhone Pro Max size; ~40% of the 4K pixels).
+          node scripts/snapshot.mjs --url http://localhost:4173/ --out dist/daily/portrait \
+            --w 1290 --h 2796 --frames 24 --quality 0.92 "$TODAY"
+          cp "dist/daily/portrait/$TODAY.jpg" dist/latest-portrait.jpg
 
       - uses: actions/upload-pages-artifact@v3
         with:

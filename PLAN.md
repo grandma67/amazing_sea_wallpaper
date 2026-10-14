@@ -38,6 +38,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.12 | Rainbow - in rain or sea splash | ⬜ |
 | 7.13 | Wave break on shore, splashes on rocks | ⬜ |
 | 7.14 | Reasearch and add shore seen mountains, volcano alive and dormant | ⬜ |
+| 7.15 | Reasearch online how rain drops affects sea and add it to your simulation | ⬜ |
 
 7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
 antifouling below the waterline, rust patches + streaks scaled by vessel age; sails as

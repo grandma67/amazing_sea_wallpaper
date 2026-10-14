@@ -14,8 +14,12 @@ export interface FrameCoverage {
   land: number
 }
 
-export function measureFrame(params: SceneParams, columns = 32, rows = 18): FrameCoverage {
-  const { camera } = createCamera(params, 16, 9)
+export function measureFrame(params: SceneParams): FrameCoverage {
+  // ~576 rays over the frame, in its shape.
+  const aspect = params.camera.aspect
+  const columns = Math.round(Math.sqrt(576 * aspect))
+  const rows = Math.round(576 / columns)
+  const { camera } = createCamera(params, aspect, 1)
   const counts = { sky: 0, sea: 0, land: 0 }
   const dir = new Vector3()
   const p = new Vector3()
@@ -48,11 +52,12 @@ function acceptable(c: FrameCoverage): boolean {
   return c.sea >= 0.12 && c.sky >= 0.2 && c.land <= 0.6
 }
 
-/** Scene parameters for a date, re-rolling the composition if needed. */
-export function generateSceneParams(date: string): SceneParams {
+/** Scene parameters for a date and image shape (width / height), re-rolling
+ * the composition if needed. */
+export function generateSceneParams(date: string, aspect = 16 / 9): SceneParams {
   let best: { params: SceneParams; score: number } | null = null
   for (let attempt = 0; attempt < 8; attempt++) {
-    const params = generateParams(date, attempt)
+    const params = generateParams(date, attempt, aspect)
     if (params.coast.type !== 'beach') return params
     const coverage = measureFrame(params)
     if (acceptable(coverage)) return params

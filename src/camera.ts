@@ -15,8 +15,9 @@ export interface SceneCamera {
  * pitch solved so the (dipped) horizon lands at the chosen height. */
 export function createCamera(params: SceneParams, width: number, height: number): SceneCamera {
   const aspect = width / height
-  const hfov = 2 * Math.atan(18 / params.camera.focalLengthMm)
-  const vfov = 2 * Math.atan(Math.tan(hfov / 2) / aspect)
+  // The lens's 36 mm side lies along the image's long side.
+  const longHalf = Math.atan(18 / params.camera.focalLengthMm)
+  const vfov = aspect >= 1 ? 2 * Math.atan(Math.tan(longHalf) / aspect) : 2 * longHalf
   const camera = new PerspectiveCamera(vfov / DEG, aspect, 0.5, 400_000)
   const ground = params.coast.type === 'beach' ? Math.max(terrainHeight(params.coast, 0, 0), 0) : 0
   const h = ground + params.camera.heightM

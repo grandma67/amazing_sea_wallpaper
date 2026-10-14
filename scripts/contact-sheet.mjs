@@ -34,7 +34,7 @@ const html = `<!doctype html><style>
   body { margin: 0; background: #111; color: #ddd; font: 13px system-ui; }
   main { display: grid; grid-template-columns: repeat(${cols}, 1fr); gap: 6px; padding: 6px; }
   figure { margin: 0; }
-  img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; }
+  img { width: 100%; display: block; }
   figcaption { padding: 3px 2px 6px; }
 </style><main>${cells.join('')}</main>`
 

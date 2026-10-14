@@ -5,17 +5,23 @@ with three.js. The date is the seed: everyone sees the same scene on the same
 day, and any past or future day can be rendered again.
 
 Every date decides the time of day, sun and moon (with the real moon phase),
-weather and clouds, the coast and its biome (tropical, mediterranean, nordic,
-volcanic, desert), the camera, the sea state, rocks, plants, birds and boats.
+weather and clouds (from cirrus to thunderstorms), which of the five oceans and
+what kind of coast (tropical, mediterranean, nordic, volcanic, desert), the
+camera, the sea state, sea ice, rocks, plants, boats, seabird islands, migrating
+birds, dolphins and whales.
 
 ## Use it
 
 - Open the site: it renders today's wallpaper at 4K (less on small devices).
   Hover the bottom edge for the title, previous/next day and **Download**.
-- `?date=2026-12-24` renders a specific day; `?w=2560&h=1440` sets the size;
-  `?frames=24` renders faster with slightly grainier clouds.
-- `/latest.jpg` is today's (UTC) wallpaper rendered by the daily GitHub Action,
-  for wallpaper tools that can't run JavaScript.
+- On a phone held upright it renders a portrait wallpaper at the screen's own
+  shape: the same day's scene, recomposed for a tall frame.
+- `?date=2026-12-24` renders a specific day; `?w=2560&h=1440` sets the size
+  (taller than wide = portrait); `?portrait=1` / `?portrait=0` forces the
+  orientation; `?frames=24` renders faster with slightly grainier clouds.
+- `/latest.jpg` (4K) and `/latest-portrait.jpg` (1290×2796) are today's (UTC)
+  wallpapers rendered by the daily GitHub Action, for wallpaper tools that
+  can't run JavaScript.
 
 ## Develop
 
@@ -44,7 +50,8 @@ node scripts/contact-sheet.mjs --dir out --cols 4
   cascades; LEAN-style roughness; refracted surf, see-through shallows, caustics
   and Voronoi foam near the shore.
 - **Land and props:** procedural coastline, dunes and hills; procedural rocks,
-  sea stacks, palms, pines, conifers, grass, gulls and boats — no downloaded models.
+  sea stacks, trees, grass, sea ice and icebergs, boats, birds, dolphins and
+  whales — no downloaded models.
 - **Image:** auto exposure, AgX tone mapping, bloom; the frame is rendered many
   times and averaged so the stochastic clouds converge.
 
