@@ -200,6 +200,24 @@ function smoothstep(e0: number, e1: number, x: number): number {
   return t * t * (3 - 2 * t)
 }
 
+// Mirrors of the surf functions in ocean.ts (SURF_GLSL), for placing spray
+// on the breaking crests.
+
+/** Where a point sits in the surf cycle, 0..1; crests peak at 0.75. */
+export function surfCycle(coast: CoastParams, s: number, a: number): number {
+  const [ox, oz] = coast.noiseOffset
+  const phase =
+    (2 * Math.PI * s) / coast.surfWavelength + coast.surfPhase + 2.5 * vnoise(a / 90 + ox, 1.3 + oz)
+  const w = phase / (2 * Math.PI)
+  return w - Math.floor(w)
+}
+
+/** Waves come in sets: 0 where a crest fades out, 1 where it's big. */
+export function surfSets(coast: CoastParams, s: number, a: number): number {
+  const [ox, oz] = coast.noiseOffset
+  return smoothstep(0.15, 0.7, vnoise(a / 60 + s / 90 + ox, 5.5 + oz))
+}
+
 export interface CoastFrame {
   origin: [number, number]
   normal: [number, number]

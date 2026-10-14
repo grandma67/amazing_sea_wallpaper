@@ -52,6 +52,7 @@ import type { SceneParams } from './params'
 import { PropContext } from './props/context'
 import { createProps } from './props'
 import { setStormBrightness } from './props/storm'
+import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
 import { stormEffects } from './stormEffects'
 import { bindCloudShadow, bindShadow } from './shadow'
@@ -289,6 +290,7 @@ export async function renderScene(
   sun.shadow.normalBias = 0.03
   scene.add(sun, sun.target)
   const props = createProps(new PropContext(params, camera))
+  setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, skyIrradiance)
   scene.add(props)
 
   // --- Exposure ---------------------------------------------------------------
