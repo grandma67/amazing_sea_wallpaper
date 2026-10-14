@@ -35,7 +35,9 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ⬜ |
 | 7.10 | Bird-nesting islands (research) | ⬜ |
 | 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ⬜ |
-| 7.12 | Rainbow (added to TODO.md 2026-10-14) | ⬜ |
+| 7.12 | Rainbow - in rain or sea splash | ⬜ |
+| 7.13 | Wave break on shore, splashes on rocks | ⬜ |
+| 7.14 | Reasearch and add shore seen mountains, volcano alive and dormant | ⬜ |
 
 7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
 antifouling below the waterline, rust patches + streaks scaled by vessel age; sails as

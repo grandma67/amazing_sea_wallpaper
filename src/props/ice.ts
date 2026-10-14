@@ -163,19 +163,10 @@ export function createIce(ctx: PropContext): (Mesh | InstancedMesh)[] {
   const ice = ctx.params.sea.ice
   if (ice == null) return []
   const rng = ctx.rng('ice')
-  const camera = ctx.camera
   const objects: (Mesh | InstancedMesh)[] = []
 
-  /** A random point on the open sea in view, `distance` range in metres. */
-  const seaPoint = (ndcY: [number, number], minDistance: number, maxDistance: number): Vector3 | null => {
-    const ndc = new Vector3(rng.range(-1.05, 1.05), rng.range(...ndcY), 0.5)
-    const dir = ndc.unproject(camera).sub(camera.position).normalize()
-    if (dir.y >= -0.0003) return null
-    const distance = -camera.position.y / dir.y
-    if (distance < minDistance || distance > maxDistance) return null
-    const p = camera.position.clone().addScaledVector(dir, distance).setY(0)
-    return ctx.ground(p.x, p.z) < -0.6 ? p : null
-  }
+  const seaPoint = (ndcY: [number, number], minDistance: number, maxDistance: number): Vector3 | null =>
+    ctx.seaPoint(rng, ndcY, minDistance, maxDistance)
 
   if (ice.packIce > 0) {
     const variants = Array.from({ length: 6 }, () => floe(rng))
