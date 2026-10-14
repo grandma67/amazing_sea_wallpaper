@@ -287,7 +287,8 @@ export async function renderScene(
   }
 
   // --- Ocean ----------------------------------------------------------------
-  const ocean = createOcean(params, await oceanSurface, renderer.capabilities.getMaxAnisotropy())
+  const surface = await oceanSurface
+  const ocean = createOcean(params, surface, renderer.capabilities.getMaxAnisotropy())
   const u = ocean.material.uniforms
   u.envMap.value = envTarget.texture
   u.sunDirection.value.copy(lightDirectionWorld)
@@ -325,7 +326,7 @@ export async function renderScene(
   sun.shadow.bias = -0.0002
   sun.shadow.normalBias = 0.03
   scene.add(sun, sun.target)
-  const props = createProps(new PropContext(params, camera))
+  const props = createProps(new PropContext(params, camera, surface))
   setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, skyIrradiance)
   scene.add(props)
 

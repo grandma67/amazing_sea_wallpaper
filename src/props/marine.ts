@@ -1,10 +1,11 @@
-import { DoubleSide, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3, type BufferGeometry } from 'three'
+import { DoubleSide, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3, type BufferGeometry, type Object3D } from 'three'
 
 import type { RGB } from '../biome'
 import type { OceanName } from '../oceans'
 import type { Random } from '../random'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
+import { SprayBuilder } from './surf'
 
 // Marine animals caught at the surface — the moments people photograph:
 //
@@ -22,6 +23,13 @@ import type { PropContext } from './context'
 //
 // Bodies are lofted along a spine (nose → tail on local −x), countershaded
 // (dark back, pale belly), with fins, and posed by pitching the whole animal.
+//
+// The sea hides everything below the surface, so what shows is where the
+// animal breaks it: wherever the body crosses the waterline the water is
+// torn white (a collar of foam, drops thrown up — more for a fast leap), a
+// leaper leaves a column of falling water and a foam patch where it left the
+// sea, and a whale's breath hangs over it. Splashes are spray sprites
+// (surf.ts), so they're soft and lit like the surf.
 
 type Species = 'dolphin' | 'orca' | 'humpback' | 'swordfish'
 
@@ -140,8 +148,12 @@ class Animal {
     }
   }
 
+  /** The mesh, with its spine and radii kept for finding the waterline. */
   build(): BufferGeometry {
-    return this.b.build()
+    const geometry = this.b.build()
+    geometry.userData.spine = this.spine
+    geometry.userData.radii = this.spine.map((_, i) => this.shape.radius(i / (this.spine.length - 1)))
+    return geometry
   }
 }
 
@@ -269,35 +281,76 @@ function swordfish(rng: Random): BufferGeometry {
   return a.build()
 }
 
-/** White water where an animal breaks the surface: a crown of spray. */
-function splash(rng: Random, size: number, height: number): BufferGeometry {
-  const b = new MeshBuilder()
-  const white: RGB = [0.8, 0.82, 0.84]
-  const count = Math.round(40 + size * 30)
+/** A mass of churned white water: big, nearly opaque puffs, densest and
+ * highest in the middle. Lifted a little off the mean surface so wave
+ * crests in front don't swallow it at grazing angles. */
+function whitewater(spray: SprayBuilder, rng: Random, at: Vector3, radius: number, height: number, count: number): void {
   for (let i = 0; i < count; i++) {
+    const r = radius * Math.sqrt(rng.float())
     const a = rng.range(0, Math.PI * 2)
-    const y = height * rng.float() ** 2
-    // Drops fly up and out: the crown widens with height.
-    const r = size * rng.range(0.3, 0.9) * (1 + (y / Math.max(height, 0.01)) * 0.6)
-    const s = size * rng.range(0.025, 0.07) * (1 - (y / Math.max(height, 0.01)) * 0.5)
-    b.blob(new Vector3(Math.cos(a) * r, y, Math.sin(a) * r), new Vector3(s, s * rng.range(0.6, 1.4), s), () => white, () => rng.range(0.8, 1.15), 3)
+    const core = 1 - r / radius
+    const y = 0.1 + height * core * rng.float() ** 1.5
+    const p = at.clone().add(new Vector3(Math.cos(a) * r, y, Math.sin(a) * r))
+    spray.add(p, radius * rng.range(0.25, 0.5), rng.range(0.6, 0.95))
   }
-  // Foam disc on the water.
-  b.blob(new Vector3(0, 0, 0), new Vector3(size * 1.1, 0.03, size * 1.1), () => white, () => 1, 6)
-  return b.build()
 }
 
-/** A white plume of breath above a surfacing whale. */
-function blow(rng: Random, height: number): BufferGeometry {
-  const b = new MeshBuilder()
-  const mist: RGB = [0.75, 0.77, 0.8]
-  for (let i = 0; i < 26; i++) {
-    const y = height * rng.float() ** 0.7
-    const spread = 0.25 + (y / height) * height * 0.22
-    const s = 0.25 + (y / height) * height * 0.12
-    b.blob(new Vector3(rng.normal(0, spread * 0.4), y, rng.normal(0, spread * 0.4)), new Vector3(s, s, s), () => mist, () => rng.range(0.85, 1.15), 3)
+/** White water where a body breaks the surface: a boil of foam, a crown of
+ * drops thrown up and out, and mist; `energy` 0..1 scales it from a gentle
+ * roll to a leap. */
+function crown(spray: SprayBuilder, rng: Random, at: Vector3, size: number, energy: number): void {
+  const height = size * (0.5 + 3 * energy)
+  whitewater(spray, rng, at, size * (0.6 + energy), height * 0.4, Math.round(6 + 70 * energy))
+  for (let i = 0, n = Math.round(60 + 600 * energy * size); i < n; i++) {
+    const a = rng.range(0, Math.PI * 2)
+    const t = rng.float()
+    const y = 0.1 + height * t * rng.range(0.3, 1)
+    // Drops fly up and out: the crown widens with height.
+    const r = size * (0.5 + 0.5 * rng.float()) * (1 + t * 0.8)
+    spray.add(new Vector3(at.x + Math.cos(a) * r, at.y + y, at.z + Math.sin(a) * r), rng.range(0.04, 0.12), rng.range(0.6, 1) * (1 - 0.5 * t))
   }
-  return b.build()
+  for (let i = 0, n = Math.round(4 + 20 * energy); i < n; i++) {
+    const p = at.clone().add(new Vector3(rng.normal(0, size), height * rng.float() * 0.8, rng.normal(0, size)))
+    spray.add(p, rng.range(0.5, 1) * size, rng.range(0.06, 0.14))
+  }
+  foam(spray, rng, at, size * (1.5 + energy))
+}
+
+/** A patch of foam on the water, densest in the middle; `stretch` drags it
+ * out into a slick behind a moving animal. */
+function foam(spray: SprayBuilder, rng: Random, at: Vector3, radius: number, stretch = new Vector3()): void {
+  for (let i = 0, n = Math.round(30 + 40 * radius); i < n; i++) {
+    const a = rng.range(0, Math.PI * 2)
+    const r = radius * Math.sqrt(rng.float())
+    const p = at.clone().add(new Vector3(Math.cos(a) * r, rng.range(0.08, 0.2), Math.sin(a) * r))
+    p.addScaledVector(stretch, rng.float())
+    spray.add(p, radius * rng.range(0.2, 0.4), rng.range(0.3, 0.6))
+  }
+}
+
+/** Water streaming back down where a leaper left the sea: a white column
+ * collapsing into a boil of foam, with drops falling round it; `fresh` 1
+ * just after it left … 0 when it has all fallen back. */
+function exitSplash(spray: SprayBuilder, rng: Random, at: Vector3, size: number, fresh: number): void {
+  const height = size * (0.6 + 2.6 * fresh)
+  whitewater(spray, rng, at, size * (0.8 + 0.6 * (1 - fresh)), height, Math.round(30 + 60 * fresh))
+  for (let i = 0, n = Math.round(400 * size * (0.3 + fresh)); i < n; i++) {
+    const t = rng.float()
+    const spread = size * (0.3 + 0.6 * t)
+    const p = at.clone().add(new Vector3(rng.normal(0, spread), 0.1 + height * t ** 1.5, rng.normal(0, spread)))
+    spray.add(p, rng.range(0.04, 0.1), rng.range(0.6, 1) * (1 - 0.5 * t))
+  }
+  foam(spray, rng, at, size * 2)
+}
+
+/** A whale's breath: a bushy column of mist widening as it rises. */
+function blow(spray: SprayBuilder, rng: Random, at: Vector3, height: number): void {
+  for (let i = 0; i < 260; i++) {
+    const t = rng.float() ** 0.7
+    const spread = 0.2 + t * height * 0.18
+    const p = at.clone().add(new Vector3(rng.normal(0, spread), height * t, rng.normal(0, spread)))
+    spray.add(p, 0.25 + t * height * 0.12, rng.range(0.08, 0.2))
+  }
 }
 
 const SPECIES_BY_OCEAN: Record<OceanName, readonly (readonly [Species, number])[]> = {
@@ -308,7 +361,7 @@ const SPECIES_BY_OCEAN: Record<OceanName, readonly (readonly [Species, number])[
   arctic: [['orca', 2], ['humpback', 3]]
 }
 
-export function createMarineLife(ctx: PropContext): Group[] {
+export function createMarineLife(ctx: PropContext): Object3D[] {
   const { params } = ctx
   const rng = ctx.rng('marine')
   if (!rng.chance(0.35) || params.storm != null) return []
@@ -317,16 +370,20 @@ export function createMarineLife(ctx: PropContext): Group[] {
   if (params.biome.name === 'tropical' || params.biome.name === 'desert') table = table.filter(([s]) => s !== 'orca')
   const species = rng.weighted(table)
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.3, side: DoubleSide })
-  const foam = new MeshStandardMaterial({ vertexColors: true, roughness: 0.9 })
+  const spray = new SprayBuilder()
   // Mostly side-on to the camera, the view that shows an animal's shape.
   const forward = ctx.camera.getWorldDirection(new Vector3())
   const heading =
     Math.atan2(-forward.z, forward.x) + (rng.chance(0.5) ? 1 : -1) * Math.PI / 2 + rng.normal(0, 0.35)
-  const groups: Group[] = []
+  const along = (yaw: number, distance: number): Vector3 => new Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).multiplyScalar(distance)
+  const objects: Object3D[] = []
+  /** The point on the waves above or below `p`. */
+  const onSea = (p: Vector3): Vector3 => p.clone().setY(ctx.seaLevel(p.x, p.z))
 
   /** Place a posed animal: `pitch` raises the nose (rad), `height` = height
-   * of the body's middle above the water (m). */
-  const place = (geometry: BufferGeometry, at: Vector3, yaw: number, pitch: number, height: number): Group => {
+   * of the body's middle above the water (m). Where its body crosses the
+   * waterline, the water breaks white (`energy` 0..1: how hard). */
+  const place = (geometry: BufferGeometry, at: Vector3, yaw: number, pitch: number, height: number, energy: number): Group => {
     const group = new Group()
     const mesh = new Mesh(geometry, material)
     mesh.castShadow = true
@@ -336,20 +393,33 @@ export function createMarineLife(ctx: PropContext): Group[] {
     )
     mesh.position.set(0, height, 0)
     group.add(mesh)
-    group.position.copy(at)
-    groups.push(group)
+    group.position.copy(onSea(at))
+    group.updateMatrixWorld(true)
+    objects.push(group)
+    // The body pierces the surface along the runs of spine where its top is
+    // above the water and its belly below; the water breaks white at both
+    // ends of each run (around a leaper's body, or a rolling back).
+    const spine = (geometry.userData.spine as Vector3[]).map(p => p.clone().applyMatrix4(mesh.matrixWorld))
+    const radii = geometry.userData.radii as number[]
+    const pierces = spine.map((p, i) => Math.abs(p.y - ctx.seaLevel(p.x, p.z)) < radii[i])
+    for (let i = 0; i < spine.length; i++) {
+      if (!pierces[i] || (pierces[i - 1] === true && pierces[i + 1] === true)) continue
+      crown(spray, rng, onSea(spine[i]), Math.max(0.3, radii[i] * 1.6), energy)
+    }
     return group
   }
-  const addSplash = (group: Group, size: number, height: number, offset = new Vector3()): void => {
-    const s = new Mesh(splash(rng, size, height), foam)
-    s.position.copy(offset)
-    group.add(s)
-  }
 
-  // Close enough to see, far enough not to be a portrait.
-  const [near, far] = species === 'humpback' ? [100, 1000] : species === 'orca' ? [50, 500] : [30, 250]
+  // Close enough to see, far enough not to be a portrait; a long lens
+  // reaches further. If the frame has no sea that near, look further out.
+  const lens = Math.min(2.5, Math.max(0.7, params.camera.focalLengthMm / 35))
+  const [near, far] = species === 'humpback' ? [90, 500] : species === 'orca' ? [60, 350] : [40, 220]
   let center: Vector3 | null = null
-  for (let i = 0; i < 80 && center == null; i++) center = ctx.seaPoint(rng, [-0.75, -0.05], near, far, 4)
+  // Small animals are lost beyond about twice their range; whales carry.
+  const tries = species === 'humpback' || species === 'orca' ? 240 : 120
+  for (let i = 0; i < tries && center == null; i++) {
+    const reach = lens * (1 + Math.floor(i / 60))
+    center = ctx.seaPoint(rng, [-0.75, -0.05], near * lens, far * reach, 4)
+  }
   if (center == null) return []
 
   switch (species) {
@@ -360,13 +430,19 @@ export function createMarineLife(ctx: PropContext): Group[] {
         if (ctx.ground(at.x, at.z) > -2) continue
         const yaw = heading + rng.normal(0, 0.15)
         if (rng.chance(0.45)) {
-          // Leaping: clear of the water at some point on the arc.
+          // Leaping, somewhere on its arc (phase −1 leaving the water … 1
+          // landing): water streams off where it left the sea, and the nose
+          // throws up a splash where it goes back in.
           const phase = rng.range(-1, 1)
-          const g = place(dolphin(rng, 0.12), at, yaw, -phase * 0.7, 0.6 + (1 - phase * phase) * rng.range(0.6, 1.3))
-          if (Math.abs(phase) > 0.55) addSplash(g, 0.9, 0.8, new Vector3(phase * 1.2, 0, 0).applyAxisAngle(new Vector3(0, 1, 0), yaw))
+          const reach = rng.range(1.8, 2.6)
+          const lift = rng.range(0.6, 1.3)
+          place(dolphin(rng, 0.12), at.clone().add(along(yaw, phase * reach)), yaw, -phase * 0.7, (1 - phase * phase) * (0.6 + lift) - 0.15, 0.8)
+          exitSplash(spray, rng, onSea(at.clone().add(along(yaw, -reach))), 0.9, (1 - phase) / 2)
         } else {
-          // Rolling at the surface: back and fin above water.
-          place(dolphin(rng, 0.05), at, yaw, rng.normal(0, 0.08), -0.12)
+          // Rolling at the surface: back and fin above water, a little
+          // white water where the head and tail stock break it.
+          place(dolphin(rng, 0.05), at, yaw, rng.normal(0, 0.08), -0.15, 0.15)
+          foam(spray, rng, onSea(at.clone().add(along(yaw, -1.2))), 0.5, along(yaw, -2))
         }
       }
       break
@@ -376,7 +452,11 @@ export function createMarineLife(ctx: PropContext): Group[] {
       for (let i = 0; i < pod; i++) {
         const at = center.clone().add(new Vector3(rng.normal(0, 12), 0, rng.normal(0, 12)))
         if (ctx.ground(at.x, at.z) > -3) continue
-        place(orca(rng, i === 0 || rng.chance(0.3)), at, heading + rng.normal(0, 0.1), rng.normal(0, 0.05), -0.85)
+        const yaw = heading + rng.normal(0, 0.1)
+        place(orca(rng, i === 0 || rng.chance(0.3)), at, yaw, rng.normal(0.03, 0.04), -0.6, 0.25)
+        // Surfacing: a wash of white water off the head, a slick behind.
+        foam(spray, rng, onSea(at.clone().add(along(yaw, -3))), 0.6, along(yaw, -4))
+        if (rng.chance(0.5)) blow(spray, rng, onSea(at.clone().add(along(yaw, 1.5))), rng.range(1.5, 2.5))
       }
       break
     }
@@ -389,26 +469,31 @@ export function createMarineLife(ctx: PropContext): Group[] {
       const geometry = humpback(rng)
       const length = 13.5
       if (pose === 'flukes') {
-        // Diving: tail stock and flukes raised clear of the water.
-        const g = place(geometry, center, heading, -1.25, -length * 0.3)
-        addSplash(g, 1.6, 0.6)
+        // Diving: tail stock and flukes raised clear of the water, water
+        // pouring off the trailing edge.
+        const g = place(geometry, center, heading, -1.25, -length * 0.3, 0.35)
+        const tail = (geometry.userData.spine as Vector3[]).at(-1)!.clone().applyMatrix4(g.children[0].matrixWorld)
+        exitSplash(spray, rng, onSea(tail), 1.2, 0.3)
       } else if (pose === 'breach') {
-        const g = place(geometry, center, heading, rng.range(0.9, 1.25), length * 0.12)
-        addSplash(g, 4, 3.5)
+        // Bursting out of the sea: a wall of white water round the body.
+        place(geometry, center, heading, rng.range(0.9, 1.25), length * 0.12, 1)
+        exitSplash(spray, rng, onSea(center), 3, 1)
       } else {
-        // Surfacing: humped back, breath plume.
-        const g = place(geometry, center, heading, 0.03, -length * 0.1)
-        const plume = new Mesh(blow(rng, rng.range(4, 6)), foam)
-        plume.position.set(length * 0.3, 0.5, 0).applyAxisAngle(new Vector3(0, 1, 0), heading)
-        g.add(plume)
+        // Surfacing: humped back, breath plume, a slick of foam.
+        place(geometry, center, heading, 0.03, -length * 0.065, 0.3)
+        blow(spray, rng, onSea(center.clone().add(along(heading, length * 0.3))).add(new Vector3(0, 0.5, 0)), rng.range(4, 6))
+        foam(spray, rng, onSea(center.clone().add(along(heading, -length * 0.2))), 2, along(heading, -6))
       }
       break
     }
     case 'swordfish': {
-      const g = place(swordfish(rng), center, heading, rng.range(0.7, 1.2), rng.range(0.8, 1.6))
-      addSplash(g, 1.2, 1.2, new Vector3(-0.6, 0, 0).applyAxisAngle(new Vector3(0, 1, 0), heading))
+      const phase = rng.range(-0.8, 0.4)
+      place(swordfish(rng), center, heading, 0.4 - phase, rng.range(0.6, 1.4), 0.8)
+      exitSplash(spray, rng, onSea(center.clone().add(along(heading, -1.5))), 0.6, (1 - phase) / 2)
       break
     }
   }
-  return groups
+  const points = spray.build()
+  if (points != null) objects.push(points)
+  return objects
 }

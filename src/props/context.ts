@@ -1,7 +1,8 @@
-import { Frustum, Matrix4, Vector3, type PerspectiveCamera } from 'three'
+import { DataUtils, Frustum, Matrix4, Vector3, type PerspectiveCamera } from 'three'
 
 import type { SceneParams } from '../params'
 import { Random } from '../random'
+import { CASCADE_SIZE, type OceanSurface } from '../spectrum'
 import { terrainHeight } from '../terrain'
 
 /** Shared inputs for placing props deterministically in view. */
@@ -11,7 +12,9 @@ export class PropContext {
 
   constructor(
     readonly params: SceneParams,
-    readonly camera: PerspectiveCamera
+    readonly camera: PerspectiveCamera,
+    /** The frozen wave field, for floating things on the waves. */
+    private readonly surface: OceanSurface | null = null
   ) {
     camera.updateMatrixWorld()
     this.frustum.setFromProjectionMatrix(
@@ -26,6 +29,30 @@ export class PropContext {
 
   ground(x: number, z: number): number {
     return terrainHeight(this.params.coast, x, z)
+  }
+
+  /** Height of the open-sea waves at (x, z): the sum of the FFT cascades'
+   * heights, sampled like the ocean shader does (ignoring the small
+   * sideways displacement and the damping in the shallows). */
+  seaLevel(x: number, z: number): number {
+    if (this.surface == null) return 0
+    const n = CASCADE_SIZE
+    let h = 0
+    for (const { size, a } of this.surface.cascades) {
+      const u = (x / size) * n - 0.5
+      const v = (z / size) * n - 0.5
+      const i = Math.floor(u)
+      const j = Math.floor(v)
+      const fu = u - i
+      const fv = v - j
+      const at = (di: number, dj: number): number => {
+        const col = (((i + di) % n) + n) % n
+        const row = (((j + dj) % n) + n) % n
+        return DataUtils.fromHalfFloat(a[(row * n + col) * 4 + 1])
+      }
+      h += (at(0, 0) * (1 - fu) + at(1, 0) * fu) * (1 - fv) + (at(0, 1) * (1 - fu) + at(1, 1) * fu) * fv
+    }
+    return h
   }
 
   distance(x: number, z: number): number {
