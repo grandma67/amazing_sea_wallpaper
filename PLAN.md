@@ -14,8 +14,25 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | 4. Variation: time of day, weather, night/moon, composition validator | ✅ Done (2026-10-14) |
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | 🟨 Ready — needs push + Pages enabled |
 | 6. Polish: contact sheet of ~50 dates, tune weights | ✅ Done (2026-10-14) |
+| 7. Wishlist from `TODO.md` (see below) | 🟨 In progress |
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done
+
+## Milestone 7: wishlist (from TODO.md)
+
+Order chosen for value vs. effort; each item is committed separately.
+
+| # | Item | State |
+|---|---|---|
+| 7.1 | Ships: more models, random colours, rust/weathering, better quality | ⬜ |
+| 7.2 | Algae and moss on stones (wet zone algae, moss on tops inland) | ⬜ |
+| 7.3 | Trees: bark detail, more variety, less visible repetition | ⬜ |
+| 7.4 | Wind: plants bend with the day's wind; sea state follows | ⬜ |
+| 7.5 | Cloud formations: research cloud types; per-type layer configs | ⬜ |
+| 7.6 | Storms: dark clouds, strong waves, rain haze, lightning | ⬜ |
+| 7.7 | Five oceans: research their differences; per-ocean water, waves, ice | ⬜ |
+| 7.8 | Marine animals: dolphins, swordfish, whales | ⬜ |
+| 7.9 | Migratory birds: V-formations of geese/cranes | ⬜ |
 
 ## Decision: web-only rendering (three.js)
 
@@ -298,6 +315,7 @@ M2 findings:
   shallow-water optics, caustics, foam, wet sand. 4K still ~1.3 s on M2 Max.
 - 2026-10-14: **M3 done.** Biomes, sun shadows, procedural rocks/sea stacks, vegetation, gulls,
   boats; four camera compositions. 4K ~1.5 s.
+- 2026-10-14: Added milestone 7 from the user's TODO.md wishlist.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
