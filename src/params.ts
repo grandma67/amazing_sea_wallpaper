@@ -330,7 +330,7 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
     few: { coverage: [0.25, 0.34], layers: [1, 0.6, 1], sun: [0.95, 1] },
     scattered: { coverage: [0.36, 0.46], layers: [1, 1, 1], sun: [0.75, 1] },
     broken: { coverage: [0.48, 0.58], layers: [1, 1, 0.8], sun: [0.35, 0.9] },
-    overcast: { coverage: [0.68, 0.8], layers: [1.3, 1.3, 0.5], sun: [0.02, 0.07] }
+    overcast: { coverage: [0.68, 0.8], layers: [1.3, 1.3, 0.5], sun: [0, 0.002] }
   }
   const t = table[kind]
   return {

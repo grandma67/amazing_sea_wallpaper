@@ -40,7 +40,7 @@ import {
 } from 'three'
 
 import { AccumulatePass } from './accumulate'
-import { createClouds, loadCloudAssets } from './clouds'
+import { createClouds, loadCloudAssets, renderCloudyEnvironment } from './clouds'
 import { meterScene } from './exposure'
 import { createMoon, placeMoon } from './moon'
 import { createOcean } from './ocean'
@@ -150,7 +150,8 @@ export async function renderScene(
     material.sunDirection.copy(lightECEF)
     material.moonDirection.copy(moonECEF)
     material.moonAngularRadius = REAL_MOON_ANGULAR_RADIUS * params.moonScale
-    material.sun = withSun && !night
+    // Under a closed overcast deck the sun disc can't be seen.
+    material.sun = withSun && !night && params.weather.kind !== 'overcast'
     material.moon = !night
     // Below the sky model's horizon, show something sea-like rather than black
     // in case it peeks out under the ocean's polygonal silhouette.
@@ -325,6 +326,9 @@ export async function renderScene(
 
   // --- Render once ------------------------------------------------------------
   cubeCamera.update(renderer, envScene)
+  if (cloudAssets != null) {
+    renderCloudyEnvironment(renderer, envScene, envTarget, camera.position, params.weather, textures, cloudAssets, worldToECEF, lightECEF)
+  }
   {
     // Render the shadow map once with only the props, then let the custom
     // terrain and ocean shaders sample it.

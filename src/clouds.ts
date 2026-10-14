@@ -1,4 +1,4 @@
-import type { PrecomputedTextures } from '@takram/three-atmosphere'
+import { AerialPerspectiveEffect, type PrecomputedTextures } from '@takram/three-atmosphere'
 import {
   CLOUD_SHAPE_DETAIL_TEXTURE_SIZE,
   CLOUD_SHAPE_TEXTURE_SIZE,
@@ -6,20 +6,33 @@ import {
   CloudsEffect
 } from '@takram/three-clouds'
 import { DataTextureLoader, parseUint8Array, STBNLoader } from '@takram/three-geospatial'
+import { EffectComposer, EffectPass, RenderPass } from 'postprocessing'
 import {
+  CubeCamera,
   Data3DTexture,
+  HalfFloatType,
   LinearFilter,
   LinearMipMapLinearFilter,
+  Mesh,
   NoColorSpace,
+  OrthographicCamera,
+  PlaneGeometry,
   RedFormat,
   RepeatWrapping,
+  Scene,
+  ShaderMaterial,
   TextureLoader,
+  Vector2,
   type Camera,
   type Matrix4,
+  type PerspectiveCamera,
   type Texture,
-  type Vector3
+  type Vector3,
+  type WebGLCubeRenderTarget,
+  type WebGLRenderer
 } from 'three'
 
+import { AccumulatePass } from './accumulate'
 import type { WeatherParams } from './params'
 
 // Volumetric clouds (takram three-clouds). Assets are self-hosted in
@@ -118,4 +131,88 @@ export function createClouds(
   })
   clouds.cloudLayers.copy(layers)
   return clouds
+}
+
+/**
+ * Re-render the sky environment cube with clouds, so water and wet sand
+ * reflect them. Each face goes through a small sky → clouds → aerial
+ * perspective → accumulate pipeline and is then copied into the cube.
+ */
+export function renderCloudyEnvironment(
+  renderer: WebGLRenderer,
+  skyScene: Scene,
+  target: WebGLCubeRenderTarget,
+  position: Vector3,
+  weather: WeatherParams,
+  textures: PrecomputedTextures,
+  cloudAssets: CloudAssets,
+  worldToECEF: Matrix4,
+  lightECEF: Vector3,
+  frames = 12
+): void {
+  const size = target.width
+  // EffectComposer.setSize also resizes the renderer; restore it afterwards.
+  const rendererSize = renderer.getSize(new Vector2())
+  const cubeCamera = new CubeCamera(0.5, 400_000, target)
+  cubeCamera.position.copy(position)
+  cubeCamera.coordinateSystem = renderer.coordinateSystem
+  cubeCamera.updateCoordinateSystem()
+  cubeCamera.updateMatrixWorld()
+
+  const copy = new Mesh(
+    new PlaneGeometry(2, 2),
+    new ShaderMaterial({
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() {
+          vUv = position.xy * 0.5 + 0.5;
+          gl_Position = vec4(position.xy, 0.0, 1.0);
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D map;
+        varying vec2 vUv;
+        void main() { gl_FragColor = texture2D(map, vUv); }`,
+      uniforms: { map: { value: null as Texture | null } },
+      depthTest: false,
+      depthWrite: false
+    })
+  )
+  copy.frustumCulled = false
+  const copyScene = new Scene().add(copy)
+  const copyCamera = new OrthographicCamera()
+
+  const generateMipmaps = target.texture.generateMipmaps
+  const faces = cubeCamera.children as PerspectiveCamera[]
+  faces.forEach((faceCamera, face) => {
+    const aerialPerspective = new AerialPerspectiveEffect(faceCamera)
+    Object.assign(aerialPerspective, textures)
+    aerialPerspective.worldToECEFMatrix.copy(worldToECEF)
+    aerialPerspective.sunDirection.copy(lightECEF)
+    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF)
+    clouds.qualityPreset = 'medium'
+    clouds.temporalUpscale = false
+    clouds.events.addEventListener('change', event => {
+      if (event.property === 'atmosphereOverlay') aerialPerspective.overlay = clouds.atmosphereOverlay
+      if (event.property === 'atmosphereShadow') aerialPerspective.shadow = clouds.atmosphereShadow
+      if (event.property === 'atmosphereShadowLength')
+        aerialPerspective.shadowLength = clouds.atmosphereShadowLength
+    })
+    const accumulate = new AccumulatePass()
+    const composer = new EffectComposer(renderer, { frameBufferType: HalfFloatType })
+    composer.autoRenderToScreen = false
+    composer.addPass(new RenderPass(skyScene, faceCamera))
+    composer.addPass(new EffectPass(faceCamera, clouds, aerialPerspective))
+    composer.addPass(accumulate)
+    composer.setSize(size, size, false)
+    for (let i = 0; i < frames; i++) composer.render(1 / 60)
+
+    copy.material.uniforms.map.value = accumulate.texture
+    target.texture.generateMipmaps = face === 5 && generateMipmaps
+    renderer.setRenderTarget(target, face)
+    renderer.render(copyScene, copyCamera)
+    composer.dispose()
+  })
+  target.texture.generateMipmaps = generateMipmaps
+  renderer.setRenderTarget(null)
+  renderer.setSize(rendererSize.x, rendererSize.y, false)
 }

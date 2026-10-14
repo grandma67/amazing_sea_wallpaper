@@ -85,6 +85,11 @@ export class AccumulatePass extends Pass {
     renderer.render(this.scene, this.camera)
   }
 
+  /** The running mean so far. */
+  get texture(): Texture {
+    return this.read.texture
+  }
+
   override setSize(width: number, height: number): void {
     this.read.setSize(width, height)
     this.write.setSize(width, height)
