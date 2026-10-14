@@ -141,6 +141,41 @@ export interface FogParams {
   seed: number
 }
 
+/**
+ * A lighthouse. They stand where ships need a mark: on headlands and rocky
+ * points, on reefs and rocks out at sea (Eddystone, Bell Rock, Fastnet),
+ * and at harbour mouths; most on the rocky, foggy, busy coasts of northern
+ * Europe, New England, Japan and the Mediterranean, fewer on the empty
+ * tropical and desert shores and almost none in the polar seas.
+ *
+ * The light is a lamp inside a Fresnel lens of glass panels; each panel
+ * gathers the light into a beam a few degrees wide, and the lens turns, so
+ * each beam sweeps round and a ship sees a flash as it passes. The panels'
+ * grouping and the turning speed give each light its own "character" on the
+ * chart, e.g. "Fl(2) W 15s" (two white flashes every 15 s). On a point, the
+ * landward side is screened off. The beams themselves only show where
+ * there's something to scatter them: haze, sea spray, above all fog.
+ */
+export interface LighthouseParams {
+  /** point: on a rocky point of the shore; rock: on a rock out at sea. */
+  site: 'point' | 'rock'
+  /** white; red (Norway, Sweden); red or black bands; bare granite
+   * (wave-swept rock towers). */
+  paint: 'white' | 'red' | 'red-bands' | 'black-bands' | 'granite'
+  /** Tower height (m), base to lantern top. */
+  height: number
+  /** Chart character, e.g. "Fl(2) W 15s". */
+  character: string
+  /** Beams in a group (flashes per group) and groups round the lens. */
+  flashes: number
+  groups: number
+  /** Where the lens has turned to: azimuth (deg, world) of the first beam. */
+  beamAzimuthDeg: number
+  /** Lit from sunset to sunrise, and in fog. */
+  lit: boolean
+  seed: number
+}
+
 export interface WeatherParams {
   kind: WeatherKind
   /** Cloud coverage, 0..1 (takram clouds' global coverage). */
@@ -196,6 +231,8 @@ export interface SceneParams {
   landform: LandformParams | null
   /** Sea fog or sea smoke (fog.ts). */
   fog: FogParams | null
+  /** A lighthouse on a point or a rock (props/lighthouse.ts, lighthouse.ts). */
+  lighthouse: LighthouseParams | null
 
   camera: {
     /** Above sea level for open sea; above the ground on a beach. */
@@ -651,6 +688,52 @@ function pickPinnipeds(seed: string, ocean: OceanName, biome: Biome): PinnipedKi
   return rng.weighted(table)
 }
 
+/** How likely a lighthouse is on each coast. */
+const LIGHTHOUSE_CHANCE: Record<Biome['name'], number> = { nordic: 0.16, mediterranean: 0.14, volcanic: 0.1, desert: 0.06, tropical: 0.06 }
+
+function pickLighthouse(
+  seed: string,
+  biome: Biome,
+  ocean: OceanName,
+  coastType: CoastParams['type'],
+  timeOfDay: TimeOfDay,
+  fog: FogParams | null
+): LighthouseParams | null {
+  const rng = Random.derive(seed, 'lighthouse')
+  // Polar seas: a handful of lights for thousands of kilometres of coast.
+  const polar = ocean === 'arctic' || ocean === 'southern' ? 0.2 : 1
+  if (!rng.chance(LIGHTHOUSE_CHANCE[biome.name] * polar)) return null
+  const site = coastType === 'beach' && rng.chance(0.6) ? 'point' : 'rock'
+  // Rock towers are squat granite or painted; Scandinavian lights are often
+  // red cast iron; banded towers everywhere.
+  const paints: [LighthouseParams['paint'], number][] =
+    biome.name === 'nordic'
+      ? [['white', 2], ['red', 3], ['red-bands', 2], ['black-bands', 1]]
+      : biome.name === 'mediterranean'
+        ? [['white', 5], ['black-bands', 1], ['red-bands', 1]]
+        : [['white', 3], ['red-bands', 2], ['black-bands', 2]]
+  if (site === 'rock') paints.push(['granite', 3])
+  const paint = rng.weighted(paints)
+  const height = site === 'rock' ? rng.range(22, 45) : rng.range(14, 32)
+  // Group flashing (several panels close together) or single flashes.
+  const flashes = rng.weighted<number>([[1, 3], [2, 2], [3, 1]])
+  const groups = rng.weighted<number>([[1, 2], [2, 2], [3, 1], [4, 1]])
+  const period = Math.round(rng.range(2, 6) * flashes * groups / 1.5) * 1.5
+  const character = `${flashes > 1 ? `Fl(${flashes})` : 'Fl'} W ${Math.max(3, period)}s`
+  const dark = timeOfDay === 'night' || timeOfDay === 'blue-hour' || timeOfDay === 'sun-on-horizon'
+  return {
+    site,
+    paint,
+    height,
+    character,
+    flashes,
+    groups,
+    beamAzimuthDeg: rng.range(0, 360),
+    lit: dark || fog != null,
+    seed: rng.int(0, 1_000_000)
+  }
+}
+
 /**
  * Scene parameters for a date. `aspect` (width / height) only recomposes the
  * shot — portrait phones get the same day's scene, framed for a tall image —
@@ -820,6 +903,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   }
   const colony = pickColony(seed, basin.name, biome)
   const pinnipeds = pickPinnipeds(seed, basin.name, biome)
+  const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog)
   const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect))
   let rainbow: RainbowParams | null = null
   if (rainbowDay && storm == null) {
@@ -862,6 +946,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     }
     titleParts.push(names[pinnipeds])
   }
+  if (lighthouse != null) titleParts.push('lighthouse')
   if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
   if (fog != null) titleParts.push(fog.kind === 'sea-smoke' ? 'sea smoke' : fog.start > 0 ? 'fog bank' : 'fog')
   if (storm != null) {
@@ -901,6 +986,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     rainbow,
     landform,
     fog,
+    lighthouse,
     camera: {
       heightM: eyeHeight ?? heightM,
       headingDeg,

@@ -49,10 +49,12 @@ import { createCamera } from './camera'
 import { createClouds, loadCloudAssets, renderCloudyEnvironment } from './clouds'
 import { meterScene } from './exposure'
 import { FogEffect } from './fog'
+import { LighthouseBeamEffect } from './lighthouse'
 import { createMoon, placeMoon } from './moon'
 import { createOcean } from './ocean'
 import type { SceneParams } from './params'
 import { PropContext } from './props/context'
+import type { LanternInfo } from './props/lighthouse'
 import { createProps } from './props'
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
@@ -404,6 +406,24 @@ export async function renderScene(
   }
   setGlowBrightness(props, sceneLuminance)
   const grade = new GradeEffect(exposure, scotopic, whiteBalance)
+  // A lit lighthouse's beams in the haze, in the scene's radiance units: a
+  // fixed lamp, so they stand out more the darker the sky.
+  let lantern: LanternInfo | null = null
+  props.traverse(o => {
+    if (o.userData.lighthouse != null) lantern = o.userData.lighthouse as LanternInfo
+  })
+  const beamScale: Record<SceneParams['timeOfDay'], number> = {
+    night: 5e6,
+    'blue-hour': 1.2e6,
+    'sun-on-horizon': 5e5,
+    'golden-hour': 1.5e5,
+    daylight: 1e5,
+    midday: 1e5
+  }
+  const beams =
+    lantern != null && params.lighthouse?.lit === true
+      ? [new LighthouseBeamEffect(params.lighthouse, lantern, params.fog, camera, sceneLuminance * beamScale[params.timeOfDay])]
+      : []
   if (params.fog != null) {
     // Sunlight the fog layer takes out of the direct beam comes back as
     // diffuse light inside it.
@@ -412,9 +432,9 @@ export async function renderScene(
     const beam = fog.start === 0 ? Math.exp(-((3.912 / fog.visibility) * fog.height) / sinEl) : 1
     const above = sunIrradiance.clone().multiplyScalar(1 / Math.max(beam, 1e-12))
     const diffuse = skyIrradiance.clone().add(above.multiplyScalar((1 - beam) * sinEl * 0.7))
-    composer.addPass(new EffectPass(camera, new FogEffect(fog, camera, lightDirectionWorld, sunIrradiance, diffuse), grade))
+    composer.addPass(new EffectPass(camera, new FogEffect(fog, camera, lightDirectionWorld, sunIrradiance, diffuse), ...beams, grade))
   } else {
-    composer.addPass(new EffectPass(camera, grade))
+    composer.addPass(new EffectPass(camera, ...beams, grade))
   }
   const rain = stormEffects(params, camera)
   if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))

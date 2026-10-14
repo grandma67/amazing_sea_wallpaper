@@ -19,7 +19,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.7 (M7) | 10-14 | Wishlist 7.1–7.15: better ships, moss on rocks, branching trees, wind, cloud genera, storms + lightning, five oceans + polar ice, dolphins/whales, migratory birds, seabird islands, portrait mode, rainbows, surf spray, mountains + volcanoes, rain on the sea |
 | 0.8 | 10-14 | Performance: still-scene accumulation, env-cube shader reuse, FFT on a worker — cloudy 4K 4.4 → 2.9 s, same image |
 | 0.9 | 10-14 | Future dates show today; `/random`; cloud grain fix (no temporal upscaling, sub-pixel jitter, sky denoise); wave-break redesign (beach-facing breakers, roller whitewater, foam weave, soft spray) |
-| 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day |
+| 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day; lighthouses on points and rocks, lit at dusk, night and in fog, with beams scattered by haze and fog |
 
 ## Decisions
 
@@ -60,6 +60,10 @@ Playwright (headless snapshots).
   wave height on the CPU so things float on the actual waves.
 - **Fog:** `fog.ts` screen-space exponential-height fog from depth (closed-form optical
   depth, forward-scattering glow), before exposure; `params.ts` picks it by climate.
+- **Lighthouse:** `params.ts` picks site, paint, height and light character by coast;
+  `props/lighthouse.ts` builds tower, lantern and cottage on a rock mound or stack;
+  `lighthouse.ts` draws the beams in screen space (closest approach of view ray and beam
+  axis, haze + fog scattering, depth-occluded) and the flash glare, before exposure.
 - **Frame:** `camera.ts`, `composition.ts` (ray-grid coverage, re-roll bad framings),
   `reflection.ts` (planar reflection), `accumulate.ts` + `stillScene.ts` (render the scene
   once, redraw only clouds/spray per frame), `skyDenoise.ts` (smooths light-shaft grain once).
@@ -87,6 +91,11 @@ Playwright (headless snapshots).
   when searching for sea points — a low horizon leaves no sea below NDC 0.
 - Exponential fog with a large scale height and dense extinction fills the whole sky; a
   fog *bank* needs a scale height of only tens of metres.
+
+- Lights of fixed power (lanterns, beams) are scaled per time of day against the metered
+  sky, or they vanish at dusk and blind at night.
+- Pre-existing: thin pink/white outlines on distant ridges and tree silhouettes at blue hour
+  (seen on 2026-09-11, also without the lighthouse).
 
 ## Ideas (not planned)
 
