@@ -71,7 +71,7 @@ class GradeEffect extends Effect {
         vec3 c = min(inputColor.rgb * exposure * whiteBalance, vec3(40.0));
         // Scotopic vision: desaturate and shift toward blue in moonlight.
         float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
-        vec3 nightColor = lum * vec3(0.45, 0.7, 1.35);
+        vec3 nightColor = lum * vec3(0.33, 0.62, 1.4);
         c = mix(c, mix(c, nightColor, 0.85), night);
         outputColor = vec4(c, inputColor.a);
       }`,
@@ -257,6 +257,7 @@ export async function renderScene(
   tu.sunDirection.value.copy(lightDirectionWorld)
   tu.sunIrradiance.value.copy(sunIrradiance)
   tu.skyIrradiance.value.copy(skyIrradiance)
+  tu.pixelAngle.value = vfov / height
   scene.add(terrain)
 
   // --- Sun light, shadows and props -----------------------------------------
@@ -299,7 +300,9 @@ export async function renderScene(
   // Twilight under the Bruneton sky skews magenta; cool it toward the blue a
   // camera set to daylight white balance would record.
   const whiteBalance =
-    params.timeOfDay === 'blue-hour' ? new Color(0.84, 0.93, 1.15) : new Color(1, 1, 1)
+    params.timeOfDay === 'blue-hour' ? new Color(0.6, 0.85, 1.25) : new Color(1, 1, 1)
+  // Night vision blends in from dusk: partly desaturated and blue at blue hour.
+  const scotopic = night ? 1 : params.timeOfDay === 'blue-hour' ? 0.5 : 0
   const exposure = (0.16 / Math.max(sceneLuminance, 1e-9)) * 2 ** evBias[params.timeOfDay]
 
   // --- Post-processing ------------------------------------------------------
@@ -332,7 +335,7 @@ export async function renderScene(
   } else {
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }
-  composer.addPass(new EffectPass(camera, new GradeEffect(exposure, night ? 1 : 0, whiteBalance)))
+  composer.addPass(new EffectPass(camera, new GradeEffect(exposure, scotopic, whiteBalance)))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
   if (clouds != null) composer.addPass(new AccumulatePass())
   composer.addPass(

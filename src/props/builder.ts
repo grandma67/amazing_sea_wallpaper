@@ -103,6 +103,15 @@ export class MeshBuilder {
     geometry.setAttribute('color', new BufferAttribute(new Float32Array(this.colors), 3))
     geometry.setIndex(this.indices)
     geometry.computeVertexNormals()
+    // Blob poles only touch zero-area triangles, leaving zero normals that
+    // become NaN in the shader (and white bloom specks). Point them up/down.
+    const normals = geometry.attributes.normal as BufferAttribute
+    for (let i = 0; i < normals.count; i++) {
+      const x = normals.getX(i)
+      const y = normals.getY(i)
+      const z = normals.getZ(i)
+      if (x * x + y * y + z * z < 1e-12) normals.setXYZ(i, 0, 1, 0)
+    }
     return geometry
   }
 }

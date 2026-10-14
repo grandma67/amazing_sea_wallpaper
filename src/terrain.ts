@@ -132,7 +132,9 @@ float terrainHeightAt(vec2 p, vec2 sa) {
   vec2 q = p + noiseOffset;
 
   float sea = -s * nearshoreSlope;
-  sea = -seabedDepth * (1.0 - exp(sea / seabedDepth));
+  // Clamped: far inland this overflows to infinity, and mix(inf, land, 1)
+  // below is inf * 0 = NaN (white specks along distant skylines).
+  sea = -seabedDepth * (1.0 - exp(min(sea / seabedDepth, 10.0)));
   sea += sandbarHeight * exp(-pow((s - sandbarDistance) / 22.0, 2.0));
 
   // Rises with the beach slope, levelling off at the back of the beach.
@@ -258,7 +260,7 @@ export function terrainHeight(coast: CoastParams, x: number, z: number): number 
   const qx = x + ox
   const qz = z + oz
   let sea = -s * coast.nearshoreSlope
-  sea = -coast.seabedDepth * (1 - Math.exp(sea / coast.seabedDepth))
+  sea = -coast.seabedDepth * (1 - Math.exp(Math.min(sea / coast.seabedDepth, 10)))
   sea += coast.sandbarHeight * Math.exp(-(((s - coast.sandbarDistance) / 22) ** 2))
 
   const beach =
@@ -329,6 +331,7 @@ uniform vec3 sandAlbedo;
 uniform float runup;
 uniform vec3 groundCover;
 uniform float groundCoverAmount;
+uniform float pixelAngle;
 varying vec3 vWorld;
 
 void main() {
@@ -338,9 +341,13 @@ void main() {
   vec2 q = p + noiseOffset;
 
   // Normal from finite differences, at a step matched to the pixel size.
-  // Derivatives blow up on silhouette edges; an unbounded footprint turns the
-  // finite-difference normal into NaN, which bloom smears into white glows.
-  float footprint = clamp(max(length(dFdx(p)), length(dFdy(p))), 0.0, 200.0);
+  // Ground size of a pixel, from distance and the camera's per-pixel angle
+  // (stretched at grazing angles). Screen-space derivatives can be NaN on
+  // distant silhouette edges, which turned the normal into NaN and bloom into
+  // white specks, so they are not used here.
+  vec3 toCamera = cameraPosition - vWorld;
+  float grazing = max(abs(normalize(toCamera).y), 0.05);
+  float footprint = clamp(length(toCamera) * pixelAngle / grazing, 0.001, 200.0);
   float e = max(0.03, footprint);
   float hx = terrainHeight(p + vec2(e, 0.0));
   float hz = terrainHeight(p + vec2(0.0, e));
@@ -430,6 +437,7 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       runup: { value: coast.runup },
       groundCover: { value: new Color(...params.biome.groundCover) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
+      pixelAngle: { value: 0.001 },
       ...shadowUniforms()
     }
   })
