@@ -26,7 +26,7 @@ Order chosen for value vs. effort; each item is committed separately.
 |---|---|---|
 | 7.1 | Ships: more models, random colours, rust/weathering, better quality | ✅ |
 | 7.2 | Algae and moss on stones (random, in suitable biomes) | ✅ |
-| 7.3 | Trees: more variety, less repetition; bark and leaf meshes | ⬜ |
+| 7.3 | Trees: more variety, less repetition; bark and leaf meshes | ✅ |
 | 7.4 | Wind: plants bend with the day's wind; sea state follows | ⬜ |
 | 7.5 | Cloud formations: research cloud types; per-type layer configs | ⬜ |
 | 7.6 | Storms: research; dark clouds, strong waves, rain, lightning as a random event | ⬜ |
@@ -41,6 +41,13 @@ antifouling below the waterline, rust patches + streaks scaled by vessel age; sa
 cambered grids with panel seams; superstructures with window bands. Types: sloop,
 catamaran, motor yacht, trawler (outriggers, A-frame), dhow (lateen rig; tropical/desert),
 container ship, tanker.
+
+7.3 notes: `src/props/trees.ts` — recursive limb skeleton (`growTree`) with species bark
+(furrowed / birch / pine plates) and leaf meshes at twig tips (`leaves`, crown-depth shading);
+needle `spray` cards for spruce and cypress. Species: palm, pandanus, stone pine, olive, cypress,
+broadleaf, spruce, birch, acacia, shrubs. 4–6 variants per kind + per-instance proportions.
+Leaf area had to be ~10× the first attempt before distant crowns stopped looking bare.
+Dense Mediterranean 4K: ~5 s (was ~3.5 s). Palms and dune grass unchanged.
 
 ## Decision: web-only rendering (three.js)
 
@@ -324,6 +331,7 @@ M2 findings:
 - 2026-10-14: **M3 done.** Biomes, sun shadows, procedural rocks/sea stacks, vegetation, gulls,
   boats; four camera compositions. 4K ~1.5 s.
 - 2026-10-14: Added milestone 7 from the user's TODO.md wishlist.
+- 2026-10-14: 7.3 done — branching trees with bark and leaf meshes, five new species.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
