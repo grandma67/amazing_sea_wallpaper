@@ -15,6 +15,7 @@ import { shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { noise3 } from './noise'
+import { windMaterials, type Bend } from './wind'
 import { acacia, birch, broadleaf, bush, conifer, cypress, olive, pandanus, stonePine } from './trees'
 
 // Procedural plants, generated per scene from the seed, then scattered over
@@ -158,6 +159,8 @@ interface KindSpec {
   castShadow: boolean
   /** Distinct meshes generated per scene; more means less visible repetition. */
   variants: number
+  /** How the plant bends in the wind. */
+  bend: Bend
 }
 
 const KINDS: Record<VegetationKind, KindSpec> = {
@@ -172,7 +175,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: true,
     minSlope: 0.8,
     castShadow: true,
-    variants: 5
+    variants: 5,
+    bend: { height: 10, flex: 0.3 }
   },
   'stone-pine': {
     build: stonePine,
@@ -185,7 +189,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: false,
     minSlope: 0.75,
     castShadow: true,
-    variants: 5
+    variants: 5,
+    bend: { height: 10, flex: 0.08 }
   },
   cypress: {
     build: cypress,
@@ -198,7 +203,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: false,
     minSlope: 0.8,
     castShadow: true,
-    variants: 4
+    variants: 4,
+    bend: { height: 13, flex: 0.1 }
   },
   conifer: {
     build: conifer,
@@ -211,7 +217,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: false,
     minSlope: 0.75,
     castShadow: true,
-    variants: 5
+    variants: 5,
+    bend: { height: 14, flex: 0.07 }
   },
   bush: {
     build: bush,
@@ -224,7 +231,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: false,
     minSlope: 0.7,
     castShadow: true,
-    variants: 5
+    variants: 5,
+    bend: { height: 1.5, flex: 0.2 }
   },
   grass: {
     build: grass,
@@ -237,7 +245,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: false,
     minSlope: 0.6,
     castShadow: false,
-    variants: 3
+    variants: 3,
+    bend: { height: 0.8, flex: 0.7 }
   },
   broadleaf: {
     build: broadleaf,
@@ -250,7 +259,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: false,
     minSlope: 0.75,
     castShadow: true,
-    variants: 6
+    variants: 6,
+    bend: { height: 10, flex: 0.12 }
   },
   olive: {
     build: olive,
@@ -263,7 +273,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: false,
     minSlope: 0.75,
     castShadow: true,
-    variants: 6
+    variants: 6,
+    bend: { height: 6, flex: 0.1 }
   },
   birch: {
     build: birch,
@@ -276,7 +287,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: false,
     minSlope: 0.75,
     castShadow: true,
-    variants: 6
+    variants: 6,
+    bend: { height: 13, flex: 0.18 }
   },
   acacia: {
     build: acacia,
@@ -289,7 +301,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: false,
     minSlope: 0.8,
     castShadow: true,
-    variants: 5
+    variants: 5,
+    bend: { height: 6, flex: 0.07 }
   },
   pandanus: {
     build: pandanus,
@@ -302,7 +315,8 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     leanSeaward: true,
     minSlope: 0.8,
     castShadow: true,
-    variants: 5
+    variants: 5,
+    bend: { height: 6, flex: 0.2 }
   }
 }
 
@@ -427,10 +441,13 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     }
     if (placed.length === 0) continue
 
+    const bent = windMaterials(material, params, spec.bend)
+
     for (let v = 0; v < spec.variants; v++) {
       const indices = placed.map((_, i) => i).filter(i => i % spec.variants === v)
       if (indices.length === 0) continue
-      const mesh = new InstancedMesh(spec.build(rng, biome.foliage), material, indices.length)
+      const mesh = new InstancedMesh(spec.build(rng, biome.foliage), bent.material, indices.length)
+      mesh.customDepthMaterial = bent.depth
       indices.forEach((i, j) => {
         mesh.setMatrixAt(j, m.copy(placed[i]))
         mesh.setColorAt(j, colors[i])

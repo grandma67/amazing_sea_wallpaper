@@ -423,12 +423,24 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     [() => rng.range(50, 90), 2]
   ])()
 
-  // Wind: mostly calm-to-moderate seas.
-  const windSpeed = rng.weighted<() => number>([
-    [() => rng.range(1.5, 4), 3],
-    [() => rng.range(4, 8), 4],
-    [() => rng.range(8, 14), 2]
-  ])()
+  // Wind: mostly calm-to-moderate seas, fresher under heavy cloud (fronts)
+  // and lighter on clear days. The weather has its own random stream, so this
+  // doesn't shift any other parameter of the day.
+  const weather = generateWeather(seed, timeOfDay)
+  const windByWeather: Record<WeatherKind, number> = {
+    clear: 0.85,
+    cirrus: 0.95,
+    few: 0.95,
+    scattered: 1,
+    broken: 1.15,
+    overcast: 1.3
+  }
+  const windSpeed =
+    rng.weighted<() => number>([
+      [() => rng.range(1.5, 4), 3],
+      [() => rng.range(4, 8), 4],
+      [() => rng.range(8, 14), 2]
+    ])() * windByWeather[weather.kind]
   const windHeadingDeg = rng.range(0, 360)
 
   const biome = rng.weighted(BIOMES)
@@ -448,6 +460,7 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     timeLabel[timeOfDay],
     coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(windSpeed)
   ]
+  if (coast.type === 'beach' && windSpeed >= 10) titleParts.push('windy')
   if (moonElevationDeg > 1 && moonIllumination > 0.05) titleParts.push(moonPhaseName(moonPhaseDeg))
 
   return {
@@ -465,7 +478,7 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     latitudeDeg: rng.range(5, 50),
     biome,
     coast,
-    weather: generateWeather(seed, timeOfDay),
+    weather,
     camera: {
       heightM: eyeHeight ?? heightM,
       headingDeg,
