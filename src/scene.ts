@@ -51,7 +51,9 @@ import { createOcean } from './ocean'
 import type { SceneParams } from './params'
 import { PropContext } from './props/context'
 import { createProps } from './props'
+import { setStormBrightness } from './props/storm'
 import { renderPlanarReflection } from './reflection'
+import { stormEffects } from './stormEffects'
 import { bindCloudShadow, bindShadow } from './shadow'
 import { createTerrain } from './terrain'
 
@@ -147,7 +149,7 @@ export async function renderScene(
     material.moonDirection.copy(moonECEF)
     material.moonAngularRadius = REAL_MOON_ANGULAR_RADIUS * params.moonScale
     // Under a closed overcast deck the sun disc can't be seen.
-    material.sun = withSun && !night && params.weather.kind !== 'overcast'
+    material.sun = withSun && !night && params.weather.sunVisibility > 0.1
     material.moon = !night
     // Below the sky model's horizon, show something sea-like rather than black
     // in case it peeks out under the ocean's polygonal silhouette.
@@ -286,7 +288,8 @@ export async function renderScene(
   sun.shadow.bias = -0.0002
   sun.shadow.normalBias = 0.03
   scene.add(sun, sun.target)
-  scene.add(createProps(new PropContext(params, camera)))
+  const props = createProps(new PropContext(params, camera))
+  scene.add(props)
 
   // --- Exposure ---------------------------------------------------------------
   // Meter the sky without the (artificially boosted) stars.
@@ -309,7 +312,9 @@ export async function renderScene(
   // The meter only sees the clear sky, but a thick deck hides the sun and
   // turns the light grey: open up and neutralise the blue skylight, as a
   // camera on auto exposure and white balance would.
-  const gloom = night ? 0 : 1 - params.weather.sunVisibility
+  const storm = params.storm != null
+  // Storms stay dark and moody: only a little of that lift.
+  const gloom = (night ? 0 : 1 - params.weather.sunVisibility) * (storm ? 0.35 : 1)
   whiteBalance.lerp(new Color(1.12, 1.0, 0.84).multiply(whiteBalance), gloom)
   // Night vision blends in from dusk: partly desaturated and blue at blue hour.
   const scotopic = night ? 1 : params.timeOfDay === 'blue-hour' ? 0.5 : 0
@@ -348,7 +353,9 @@ export async function renderScene(
   } else {
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }
+  setStormBrightness(props, sceneLuminance)
   composer.addPass(new EffectPass(camera, new GradeEffect(exposure, scotopic, whiteBalance)))
+  if (params.storm != null) composer.addPass(new EffectPass(camera, ...stormEffects(params, camera)))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
   if (clouds != null) composer.addPass(new AccumulatePass())
   composer.addPass(

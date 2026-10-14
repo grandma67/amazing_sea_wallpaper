@@ -99,7 +99,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     coverageFilterWidth: 0.45,
     densityProfile: [0, 0, 0.6, 0.4],
     sunVisibility: [0.15, 0.6],
-    title: 'thunderheads'
+    title: 'thunderstorm'
   },
   stratocumulus: {
     etage: 'low',

@@ -63,7 +63,8 @@ const CLOUD_SHADOW_STRENGTH: Record<WeatherParams['kind'], number> = {
   few: 0.8,
   scattered: 0.85,
   broken: 0.9,
-  overcast: 0
+  overcast: 0,
+  storm: 0.9
 }
 
 export function bindCloudShadow(

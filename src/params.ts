@@ -54,7 +54,18 @@ export interface CoastParams {
   noiseOffset: [number, number]
 }
 
-export type WeatherKind = 'clear' | 'cirrus' | 'few' | 'scattered' | 'broken' | 'overcast'
+export type WeatherKind = 'clear' | 'cirrus' | 'few' | 'scattered' | 'broken' | 'overcast' | 'storm'
+
+/** A thunderstorm or squall over the sea: a rare event (see generateStorm). */
+export interface StormParams {
+  /** Rain shafts hanging from the cloud base: azimuth (deg, world), distance
+   * and width (m). */
+  curtains: { azimuthDeg: number; distance: number; width: number }[]
+  /** Lightning strikes caught in the frame. */
+  bolts: { azimuthDeg: number; distance: number; seed: number }[]
+  /** Rain falling at the camera, 0..1 (streaks over the image). */
+  rain: number
+}
 
 export interface WeatherParams {
   kind: WeatherKind
@@ -92,6 +103,7 @@ export interface SceneParams {
   biome: Biome
   coast: CoastParams
   weather: WeatherParams
+  storm: StormParams | null
 
   camera: {
     /** Above sea level for open sea; above the ground on a beach. */
@@ -336,7 +348,8 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
     few: [0.25, 0.34],
     scattered: [0.36, 0.46],
     broken: [0.48, 0.58],
-    overcast: [0.68, 0.8]
+    overcast: [0.68, 0.8],
+    storm: [0.55, 0.68]
   }
   return {
     kind,
@@ -352,6 +365,8 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
 function addFormations(seed: string, weather: WeatherParams, biome: Biome): void {
   const frng = Random.derive(seed, 'formations')
   const { kind } = weather
+  // Storms bring their own cumulonimbus (generateStorm).
+  if (kind === 'storm') return
   weather.formations = pickFormations(frng, kind, {
     cool: biome.name === 'nordic' || biome.name === 'volcanic',
     tropical: biome.name === 'tropical'
@@ -361,6 +376,34 @@ function addFormations(seed: string, weather: WeatherParams, biome: Biome): void
   // so even a sliver of sun under overcast would show a glitter path.
   for (const genus of weather.formations) weather.sunVisibility *= frng.range(...CLOUD_GENERA[genus].sunVisibility)
   if (kind === 'overcast') weather.sunVisibility = Math.min(weather.sunVisibility, 0.002)
+}
+
+/**
+ * Storms: towering cumulonimbus with dark bases, a gale whipping up the sea,
+ * grey rain shafts under the cells and, in most of them, lightning. Over the
+ * open ocean thunderstorms are rarer than over land, but squall lines and
+ * frontal storms pass through often enough to make them a chance event.
+ * Not at night: the scene is moonlit and a storm would hide the moon.
+ */
+function generateStorm(seed: string, timeOfDay: TimeOfDay, headingDeg: number, focalLengthMm: number): StormParams | null {
+  const rng = Random.derive(seed, 'storm')
+  if (timeOfDay === 'night' || !rng.chance(0.07)) return null
+  // Keep strikes and shafts inside the frame (a little narrower than the lens).
+  const halfFov = Math.min(30, (Math.atan(18 / focalLengthMm) / DEG) * 0.8)
+  const curtains = Array.from({ length: rng.int(1, 4) }, () => ({
+    azimuthDeg: headingDeg + rng.range(-halfFov * 1.6, halfFov * 1.6),
+    distance: rng.range(3000, 16000),
+    width: rng.range(800, 4000)
+  }))
+  const lightning = rng.chance(0.75)
+  const bolts = lightning
+    ? Array.from({ length: rng.weighted([[1, 4], [2, 2], [3, 1]] as const) }, () => ({
+        azimuthDeg: headingDeg + rng.range(-halfFov, halfFov),
+        distance: rng.range(2500, 14000),
+        seed: rng.int(0, 1_000_000)
+      }))
+    : []
+  return { curtains, bolts, rain: rng.chance(0.4) ? rng.range(0.3, 1) : 0 }
 }
 
 export function generateParams(date: string, attempt = 0): SceneParams {
@@ -446,15 +489,28 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     few: 0.95,
     scattered: 1,
     broken: 1.15,
-    overcast: 1.3
+    overcast: 1.3,
+    storm: 1
   }
-  const windSpeed =
+  let windSpeed =
     rng.weighted<() => number>([
       [() => rng.range(1.5, 4), 3],
       [() => rng.range(4, 8), 4],
       [() => rng.range(8, 14), 2]
     ])() * windByWeather[weather.kind]
   const windHeadingDeg = rng.range(0, 360)
+
+  const storm = generateStorm(seed, timeOfDay, headingDeg, focalLengthMm)
+  if (storm != null) {
+    const srng = Random.derive(seed, 'storm-weather')
+    weather.kind = 'storm'
+    weather.coverage = srng.range(0.55, 0.68)
+    weather.formations = srng.chance(0.6) ? ['cumulonimbus', 'altostratus'] : ['cumulonimbus']
+    // Gale-force gusts under the cells; the spectrum turns them into a high,
+    // breaking sea.
+    windSpeed = srng.range(14, 22)
+    weather.sunVisibility = srng.chance(0.4) ? srng.range(0.15, 0.4) : srng.range(0, 0.05)
+  }
 
   const biome = rng.weighted(BIOMES)
   addFormations(seed, weather, biome)
@@ -474,9 +530,13 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     timeLabel[timeOfDay],
     coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(windSpeed)
   ]
-  if (coast.type === 'beach' && windSpeed >= 10) titleParts.push('windy')
-  const skyTitle = weather.formations.map(g => CLOUD_GENERA[g].title).find(t => t != null)
-  if (skyTitle != null && timeOfDay !== 'night') titleParts.push(skyTitle)
+  if (storm != null) {
+    titleParts.push(storm.bolts.length > 0 ? 'thunderstorm' : 'squall')
+  } else {
+    if (coast.type === 'beach' && windSpeed >= 10) titleParts.push('windy')
+    const skyTitle = weather.formations.map(g => CLOUD_GENERA[g].title).find(t => t != null)
+    if (skyTitle != null && timeOfDay !== 'night') titleParts.push(skyTitle)
+  }
   if (moonElevationDeg > 1 && moonIllumination > 0.05) titleParts.push(moonPhaseName(moonPhaseDeg))
 
   return {
@@ -495,6 +555,7 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     biome,
     coast,
     weather,
+    storm,
     camera: {
       heightM: eyeHeight ?? heightM,
       headingDeg,
