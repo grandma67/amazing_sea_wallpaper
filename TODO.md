@@ -6,5 +6,6 @@ Add tree veriety, the model repetition is seen, try to improve it, add bark and 
 The ship models are too repetitive and low quality, improve the model, and make it random where possible, for exampel colors, rand rust.
 Learn about all our 5 oceans and their differences, take insperation to make it more realistic.
 Add marine animals - dolphins, sword-fish, whales
-Add Migratory birds
+Add Migratory birds, reserach online about them - for example ducks, flamingo, goose.
 Add bird nesting islands, reserach online.
+Mobile phone mode - create interesting view for mobile client which is vertical and not horizontal as it is now.

@@ -97,6 +97,16 @@ export class MeshBuilder {
     }
   }
 
+  /** Append another builder's mesh, shifted by `offset`. */
+  merge(other: MeshBuilder, offset: Vector3): void {
+    const base = this.positions.length / 3
+    for (let i = 0; i < other.positions.length; i += 3) {
+      this.positions.push(other.positions[i] + offset.x, other.positions[i + 1] + offset.y, other.positions[i + 2] + offset.z)
+    }
+    this.colors.push(...other.colors)
+    for (const index of other.indices) this.indices.push(index + base)
+  }
+
   build(): BufferGeometry {
     const geometry = new BufferGeometry()
     geometry.setAttribute('position', new BufferAttribute(new Float32Array(this.positions), 3))

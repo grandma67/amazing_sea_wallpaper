@@ -24,15 +24,23 @@ Order chosen for value vs. effort; each item is committed separately.
 
 | # | Item | State |
 |---|---|---|
-| 7.1 | Ships: more models, random colours, rust/weathering, better quality | ⬜ |
-| 7.2 | Algae and moss on stones (wet zone algae, moss on tops inland) | ⬜ |
-| 7.3 | Trees: bark detail, more variety, less visible repetition | ⬜ |
+| 7.1 | Ships: more models, random colours, rust/weathering, better quality | ✅ |
+| 7.2 | Algae and moss on stones (random, in suitable biomes) | ⬜ |
+| 7.3 | Trees: more variety, less repetition; bark and leaf meshes | ⬜ |
 | 7.4 | Wind: plants bend with the day's wind; sea state follows | ⬜ |
 | 7.5 | Cloud formations: research cloud types; per-type layer configs | ⬜ |
-| 7.6 | Storms: dark clouds, strong waves, rain haze, lightning | ⬜ |
+| 7.6 | Storms: research; dark clouds, strong waves, rain, lightning as a random event | ⬜ |
 | 7.7 | Five oceans: research their differences; per-ocean water, waves, ice | ⬜ |
 | 7.8 | Marine animals: dolphins, swordfish, whales | ⬜ |
-| 7.9 | Migratory birds: V-formations of geese/cranes | ⬜ |
+| 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ⬜ |
+| 7.10 | Bird-nesting islands (research) | ⬜ |
+| 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ⬜ |
+
+7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
+antifouling below the waterline, rust patches + streaks scaled by vessel age; sails as
+cambered grids with panel seams; superstructures with window bands. Types: sloop,
+catamaran, motor yacht, trawler (outriggers, A-frame), dhow (lateen rig; tropical/desert),
+container ship, tanker.
 
 ## Decision: web-only rendering (three.js)
 
