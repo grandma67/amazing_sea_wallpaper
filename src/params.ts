@@ -116,6 +116,31 @@ export interface StormParams {
   rain: number
 }
 
+/**
+ * Fog over the sea. Fog forms when air cools to its dew point:
+ * - advection (sea) fog: warm, moist air flowing over colder water — above
+ *   all the cold upwelling currents of west coasts: California and Chile in
+ *   summer, the Namib (Benguela) and Atacama coasts nearly all year — and
+ *   the North Sea, Newfoundland and the Arctic in spring and summer. It
+ *   needs a light breeze; stronger winds (≳ 5 m/s) mix it up into a low
+ *   stratus deck. It often lies offshore as a bank and rolls in;
+ * - steam fog, "Arctic sea smoke": very cold air over far warmer water
+ *   (≳ 10 °C apart) in polar winters — thin, wispy columns rising off a calm
+ *   sea under a clear sky.
+ * Fog is likeliest at dawn and burns off as the sun climbs.
+ */
+export interface FogParams {
+  kind: 'advection' | 'sea-smoke'
+  /** Visibility in the fog at sea level (m): contrast falls to 2% there. */
+  visibility: number
+  /** Scale height of the fog layer (m): it thins out exponentially above. */
+  height: number
+  /** Horizontal distance where the fog starts (m): 0 = we're in it; else a
+   * bank lying offshore. */
+  start: number
+  seed: number
+}
+
 export interface WeatherParams {
   kind: WeatherKind
   /** Cloud coverage, 0..1 (takram clouds' global coverage). */
@@ -169,6 +194,8 @@ export interface SceneParams {
   rainbow: RainbowParams | null
   /** Mountains or a volcano on the horizon (props/landforms.ts). */
   landform: LandformParams | null
+  /** Sea fog or sea smoke (fog.ts). */
+  fog: FogParams | null
 
   camera: {
     /** Above sea level for open sea; above the ground on a beach. */
@@ -480,6 +507,63 @@ function generateStorm(seed: string, timeOfDay: TimeOfDay, headingDeg: number, h
   return { curtains, bolts, rain: rng.chance(0.4) ? rng.range(0.3, 1) : 0 }
 }
 
+/** Monthly fog season for a coast, as a chance multiplier (northern
+ * hemisphere months; the Southern Ocean's seasons are flipped). */
+function fogSeason(month: number, summer: boolean): number {
+  const warm = month >= 5 && month <= 9
+  return warm === summer ? 1 : 0.35
+}
+
+function pickFog(
+  seed: string,
+  biome: Biome,
+  ocean: OceanName,
+  month: number,
+  timeOfDay: TimeOfDay,
+  weather: WeatherParams,
+  windSpeed: number
+): FogParams | null {
+  const rng = Random.derive(seed, 'fog')
+  // Gales and showers clear it away.
+  if (weather.kind === 'storm' || windSpeed > 11) return null
+  const southern = ocean === 'southern'
+  // Advection fog where warm air meets cold water.
+  const advection: Partial<Record<Biome['name'], Partial<Record<OceanName, number>>>> = {
+    mediterranean: { pacific: 0.3 * fogSeason(month, true), atlantic: 0.04 },
+    desert: { atlantic: 0.3, pacific: 0.25 },
+    nordic: { atlantic: 0.14 * fogSeason(month, true), pacific: 0.16 * fogSeason(month, true), arctic: 0.25 * fogSeason(month, true), southern: 0.12 },
+    volcanic: { pacific: 0.08, atlantic: 0.1, southern: 0.12 }
+  }
+  // Sea smoke where bitter air meets open water in a polar winter.
+  const winter = southern ? month >= 5 && month <= 9 : month <= 3 || month >= 11
+  const smoke = winter && (ocean === 'arctic' || southern) ? 0.25 : winter && biome.name === 'nordic' ? 0.06 : 0
+  // Fog peaks around dawn and burns off by midday.
+  const hour: Record<TimeOfDay, number> = { 'golden-hour': 1.2, 'sun-on-horizon': 1.3, 'blue-hour': 1.3, night: 1.1, daylight: 0.8, midday: 0.4 }
+  // The breeze that brings sea fog in must be light: stronger winds lift it.
+  const breeze = windSpeed < 6 ? 1 : (11 - windSpeed) / 5
+  const advectionChance = (advection[biome.name]?.[ocean] ?? (biome.name === 'tropical' ? 0.01 : 0.03)) * hour[timeOfDay] * breeze
+  // Sea smoke needs a calm sea and a clear, cold sky.
+  const smokeChance = smoke * (windSpeed < 5 ? 1 : 0) * (weather.kind === 'clear' || weather.kind === 'few' || weather.kind === 'cirrus' ? 1 : 0.3)
+  const draw = rng.float()
+  if (draw < smokeChance) {
+    return { kind: 'sea-smoke', visibility: rng.range(400, 2500), height: rng.range(6, 25), start: 0, seed: rng.int(0, 100_000) }
+  }
+  if (draw < smokeChance + advectionChance) {
+    // Half the time it's a bank offshore, rolling in.
+    const bank = rng.chance(0.5)
+    return {
+      kind: 'advection',
+      visibility: bank ? rng.range(80, 300) : rng.range(250, 1500),
+      // A bank is a low wall a few tens of metres thick; inside the fog it
+      // thins out over the marine layer's first hundred metres or so.
+      height: bank ? rng.range(18, 50) : rng.range(30, 120),
+      start: bank ? rng.range(400, 2500) : 0,
+      seed: rng.int(0, 100_000)
+    }
+  }
+  return null
+}
+
 function pickLandform(
   seed: string,
   biome: Biome,
@@ -710,6 +794,16 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   // seas; pack ice smothers waves, leaving calm leads between the floes.
   const iceCalm = ice != null && ice.packIce > 0 ? 0.4 : 1
   windSpeed = Math.min(24, windSpeed * basin.wind * (monsoon ? 1.35 : 1))
+  const fog = rainbowDay ? null : pickFog(seed, biome, basin.name, Number(date.slice(5, 7)), timeOfDay, weather, windSpeed)
+  if (fog != null) {
+    // Fog comes with light airs: the sea calms under it.
+    windSpeed = Math.min(windSpeed, fog.kind === 'sea-smoke' ? 3 : 6)
+    // Inside the fog the sun is dimmed by the layer between it and us.
+    if (fog.start === 0) {
+      const sinEl = Math.max(0.05, Math.sin(sunElevationDeg * DEG))
+      weather.sunVisibility *= Math.exp(-((3.912 / fog.visibility) * fog.height) / sinEl)
+    }
+  }
   const oceanSwell = swell(seed, windHeadingDeg)
   oceanSwell.swellHeight *= basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm
   oceanSwell.swellWavelength = Math.min(320, oceanSwell.swellWavelength * basin.swellWavelength)
@@ -769,6 +863,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     titleParts.push(names[pinnipeds])
   }
   if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
+  if (fog != null) titleParts.push(fog.kind === 'sea-smoke' ? 'sea smoke' : fog.start > 0 ? 'fog bank' : 'fog')
   if (storm != null) {
     titleParts.push(storm.bolts.length > 0 ? 'thunderstorm' : 'squall')
   } else {
@@ -805,6 +900,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     pinnipeds,
     rainbow,
     landform,
+    fog,
     camera: {
       heightM: eyeHeight ?? heightM,
       headingDeg,

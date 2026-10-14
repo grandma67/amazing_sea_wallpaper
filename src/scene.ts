@@ -48,6 +48,7 @@ import { assetUrl } from './assets'
 import { createCamera } from './camera'
 import { createClouds, loadCloudAssets, renderCloudyEnvironment } from './clouds'
 import { meterScene } from './exposure'
+import { FogEffect } from './fog'
 import { createMoon, placeMoon } from './moon'
 import { createOcean } from './ocean'
 import type { SceneParams } from './params'
@@ -402,7 +403,19 @@ export async function renderScene(
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }
   setGlowBrightness(props, sceneLuminance)
-  composer.addPass(new EffectPass(camera, new GradeEffect(exposure, scotopic, whiteBalance)))
+  const grade = new GradeEffect(exposure, scotopic, whiteBalance)
+  if (params.fog != null) {
+    // Sunlight the fog layer takes out of the direct beam comes back as
+    // diffuse light inside it.
+    const { fog } = params
+    const sinEl = Math.max(0.05, Math.sin(Math.max(params.sunElevationDeg, 0) * DEG))
+    const beam = fog.start === 0 ? Math.exp(-((3.912 / fog.visibility) * fog.height) / sinEl) : 1
+    const above = sunIrradiance.clone().multiplyScalar(1 / Math.max(beam, 1e-12))
+    const diffuse = skyIrradiance.clone().add(above.multiplyScalar((1 - beam) * sinEl * 0.7))
+    composer.addPass(new EffectPass(camera, new FogEffect(fog, camera, lightDirectionWorld, sunIrradiance, diffuse), grade))
+  } else {
+    composer.addPass(new EffectPass(camera, grade))
+  }
   const rain = stormEffects(params, camera)
   if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.

@@ -19,6 +19,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.7 (M7) | 10-14 | Wishlist 7.1–7.15: better ships, moss on rocks, branching trees, wind, cloud genera, storms + lightning, five oceans + polar ice, dolphins/whales, migratory birds, seabird islands, portrait mode, rainbows, surf spray, mountains + volcanoes, rain on the sea |
 | 0.8 | 10-14 | Performance: still-scene accumulation, env-cube shader reuse, FFT on a worker — cloudy 4K 4.4 → 2.9 s, same image |
 | 0.9 | 10-14 | Future dates show today; `/random`; cloud grain fix (no temporal upscaling, sub-pixel jitter, sky denoise); wave-break redesign (beach-facing breakers, roller whitewater, foam weave, soft spray) |
+| 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day |
 
 ## Decisions
 
@@ -54,8 +55,11 @@ Playwright (headless snapshots).
   per étage); `exposure.ts` meters a 32² sky cube; `moon.ts`; `stormEffects.ts` rain shafts,
   lightning flash, lens rain, rainbows.
 - **Props** (`src/props/`): rocks, trees/vegetation (+ `wind.ts` bending), birds, migratory
-  flocks, ships, marine life, ice, colonies, landforms, storm bolts, surf/rock spray; built
-  with `builder.ts` (`MeshBuilder`).
+  flocks, ships, marine life, ice, colonies, pinnipeds, landforms, storm bolts, surf/rock
+  spray; built with `builder.ts` (`MeshBuilder`). `PropContext.seaLevel()` samples the FFT
+  wave height on the CPU so things float on the actual waves.
+- **Fog:** `fog.ts` screen-space exponential-height fog from depth (closed-form optical
+  depth, forward-scattering glow), before exposure; `params.ts` picks it by climate.
 - **Frame:** `camera.ts`, `composition.ts` (ray-grid coverage, re-roll bad framings),
   `reflection.ts` (planar reflection), `accumulate.ts` + `stillScene.ts` (render the scene
   once, redraw only clouds/spray per frame), `skyDenoise.ts` (smooths light-shaft grain once).
@@ -78,6 +82,11 @@ Playwright (headless snapshots).
 - A mirror-sharp sun is ~1000× sky radiance: any sun under overcast shows a glitter path.
 - Place flocks by a view ray reaching the target altitude, not fixed NDC heights.
 - Benchmarks: run under `caffeinate -i`; GPU noise floor is ≤5/255 on a few pixels.
+- Anything sitting at mean sea level (splashes, foam) is hidden by wave crests at grazing
+  angles: place it on `seaLevel()` and lift it a little. Use the whole frame's NDC range
+  when searching for sea points — a low horizon leaves no sea below NDC 0.
+- Exponential fog with a large scale height and dense extinction fills the whole sky; a
+  fog *bank* needs a scale height of only tens of metres.
 
 ## Ideas (not planned)
 
