@@ -32,7 +32,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.6 | Storms: research; dark clouds, strong waves, rain, lightning as a random event | ✅ |
 | 7.7 | Five earth's oceans: research their differences; per-ocean water, waves, ice | ✅ |
 | 7.8 | Marine animals: dolphins, swordfish, whales | ✅ |
-| 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ⬜ |
+| 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ✅ |
 | 7.10 | Bird-nesting islands (research) | ⬜ |
 | 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ⬜ |
 | 7.12 | Rainbow - in rain or sea splash | ⬜ |
@@ -87,6 +87,13 @@ humpback barnacles and long white flippers, fish tail vertical vs. cetacean fluk
 Poses: dolphin leap/roll, orca surfacing, humpback flukes/breach/blow, swordfish leap; spray
 crowns. Turned roughly side-on to the camera — head-on animals read as blobs. Gotcha:
 `MeshBuilder.tube` along −x has angle 0 pointing *up*.
+
+7.9 notes: `props/migratory.ts` — geese (V skeins / slanting lines, 50–250 m away, 15–70 m up)
+and eider-like sea ducks (wavering strings 1–4 m over the waves) on cool coasts, 4× likelier in
+Mar–May and Sep–Nov; flamingos on warm non-polar coasts — wading flocks (standing, feeding,
+one-legged poses) in 2–55 cm of water, or flying lines. Lesson: pick flock positions by a view
+ray that reaches the chosen altitude; fixed NDC heights land underwater when the camera
+pitches down.
 
 ## Decision: web-only rendering (three.js)
 
@@ -376,6 +383,7 @@ M2 findings:
 - 2026-10-14: 7.6 done — storms with rain shafts and lightning.
 - 2026-10-14: 7.7 done — five oceans with their own seas; polar ice.
 - 2026-10-14: 7.8 done — dolphins, orcas, humpbacks, swordfish.
+- 2026-10-14: 7.9 done — geese, sea ducks, flamingos.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
