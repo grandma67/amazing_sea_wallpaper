@@ -33,7 +33,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.7 | Five earth's oceans: research their differences; per-ocean water, waves, ice | ✅ |
 | 7.8 | Marine animals: dolphins, swordfish, whales | ✅ |
 | 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ✅ |
-| 7.10 | Bird-nesting islands (research) | ⬜ |
+| 7.10 | Bird-nesting islands (research) | ✅ |
 | 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ⬜ |
 | 7.12 | Rainbow - in rain or sea splash | ⬜ |
 | 7.13 | Wave break on shore, splashes on rocks | ⬜ |
@@ -94,6 +94,12 @@ Mar–May and Sep–Nov; flamingos on warm non-polar coasts — wading flocks (s
 one-legged poses) in 2–55 cm of water, or flying lines. Lesson: pick flock positions by a view
 ray that reaches the chosen altitude; fixed NDC heights land underwater when the camera
 pitches down.
+
+7.10 notes: `SceneParams.colony` (15% of days) + `props/colony.ts`: gannetry (guano baked into
+vertex colours — thick on ledges, vertical streaks down the cliffs), puffin island (moss cap
+via the rock material), tropical islet, penguin rookery (instanced penguins on slopes with
+n.y > 0.75). 70–180 m wide, 300–1500 m offshore, footprint checked to be all water; 60–700
+circling gulls/gannets. Gotcha: the stack geometry spans y ≈ −0.45…0.75 — sink by 0.1 h only.
 
 ## Decision: web-only rendering (three.js)
 
@@ -384,6 +390,7 @@ M2 findings:
 - 2026-10-14: 7.7 done — five oceans with their own seas; polar ice.
 - 2026-10-14: 7.8 done — dolphins, orcas, humpbacks, swordfish.
 - 2026-10-14: 7.9 done — geese, sea ducks, flamingos.
+- 2026-10-14: 7.10 done — seabird nesting islands.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
