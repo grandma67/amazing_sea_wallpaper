@@ -13,7 +13,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | 3. Biomes & assets: rocks, vegetation, birds, ships | ✅ Done (2026-10-14) |
 | 4. Variation: time of day, weather, night/moon, composition validator | ✅ Done (2026-10-14) |
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | 🟨 Ready — needs push + Pages enabled |
-| 6. Polish: contact sheet of ~50 dates, tune weights | ⬜ Not started |
+| 6. Polish: contact sheet of ~50 dates, tune weights | ✅ Done (2026-10-14) |
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done
 
@@ -51,7 +51,7 @@ Notes: takram packages are Beta; they need the pmndrs `EffectComposer`, not the 
 three.js examples. The path tracer needs static CPU-side geometry, so the ocean would have
 to be baked to a mesh for that mode.
 
-## Current implementation (after M4)
+## Current implementation (after M6)
 
 How to run:
 - `npm run dev` → open the printed URL. `?date=YYYY-MM-DD` picks a day; `?w=1920&h=1080`
@@ -141,6 +141,23 @@ M1 findings:
   Only the current day's image is in each Pages artifact; the archive is "re-render any date".
 - Page: default resolution adapts to the device (4K desktop, 1920 on small screens, capped by
   GPU limits); `?frames=` trades grain for speed; favicon; README with usage and credits.
+
+M6 (polish) changes:
+- **Root cause of the recurring white skyline specks:** terrain height was NaN far inland —
+  the sea-floor `exp()` overflowed to ∞ and `mix(∞, land, 1)` = ∞·0 = NaN. Clamped (GLSL + TS).
+  Also: terrain footprint from distance × pixel angle (screen derivatives can be NaN on
+  silhouettes); zero normals at procedural blob poles fixed.
+- Blue hour reads as blue hour: cool white balance (0.6, 0.85, 1.25) + half-strength scotopic
+  shift (the Bruneton twilight sky is strongly magenta).
+- `src/reflection.ts` — planar reflection of land/props (mirrored camera + oblique clip plane,
+  half-res, mipmapped) blended over the cloudy env reflection in the ocean shader.
+- Patchy cloud shadows on sea and sand (`cloudShadow()` in shadow.ts), seeded by the weather.
+- Nearby tall plants/bushes only at the frame sides; framed-shot hero trees 9–30 m away.
+- Night: moon kept 4–18° high and the camera turned toward it → moon + glitter path.
+
+Future ideas (not planned): cliffs/headlands, breaking-wave lips, boat wakes, foam/wet-sand
+planar reflections, per-pixel cloud shadows matching the actual clouds (BSM), ambient
+occlusion under trees, a lighter "low power" mode for phones.
 
 M5 findings:
 - SwiftShader (software WebGL) works with Playwright's Chromium headless shell. 4K / 24 frames
@@ -281,6 +298,9 @@ M2 findings:
   shallow-water optics, caustics, foam, wet sand. 4K still ~1.3 s on M2 Max.
 - 2026-10-14: **M3 done.** Biomes, sun shadows, procedural rocks/sea stacks, vegetation, gulls,
   boats; four camera compositions. 4K ~1.5 s.
+- 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
+  framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
+  and Pages is enabled.
 - 2026-10-14: M5 prepared: Pages workflow with daily SwiftShader snapshot, device-aware
   resolution, README. Waiting on push + enabling Pages in the repo settings.
 - 2026-10-14: **M4 done.** Weather + volumetric clouds (with cloudy reflections), frame
