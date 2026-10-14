@@ -30,7 +30,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.4 | Wind: plants bend with the day's wind; sea state follows | ✅ |
 | 7.5 | Cloud formations: research cloud types; per-type layer configs | ✅ |
 | 7.6 | Storms: research; dark clouds, strong waves, rain, lightning as a random event | ✅ |
-| 7.7 | Five earth's oceans: research their differences; per-ocean water, waves, ice | ⬜ |
+| 7.7 | Five earth's oceans: research their differences; per-ocean water, waves, ice | ✅ |
 | 7.8 | Marine animals: dolphins, swordfish, whales | ⬜ |
 | 7.9 | Migratory birds (research: ducks, flamingos, geese…) | ⬜ |
 | 7.10 | Bird-nesting islands (research) | ⬜ |
@@ -70,6 +70,14 @@ plants follow), 1–4 rain shafts, lightning in 75% of storms, rain on the lens 
 luminance so bloom glows); `stormEffects.ts` draws rain shafts (screen space + depth test), the
 flash on the cloud base and lens rain. Lesson: transparent meshes (or dithered ones) don't
 composite with takram's clouds/aerial perspective — they see the depth buffer only.
+
+7.7 notes: `src/oceans.ts` — research summary in the header. Biome → ocean weights (2026:
+Atlantic 143 days, Pacific 121, Indian 64, Arctic 20, Southern 17). Per ocean: latitude, wind
+and swell multipliers (Southern 1.35× wind, 1.7× swell; Pacific 1.35× swell wavelength; Indian
+monsoon Jun–Sep), polar water. `props/ice.ts`: pack-ice floes (instanced slabs, sized with
+distance, in noise fields with open leads; damp the sea to 40% wind), glacier bergs (noisy
+sphere + fracture planes, blue fresh faces), tabular bergs (banded slabs, 2.5–18 km). Polar
+coasts keep only grass, shrubs and (Arctic) birch. Title shows the ocean.
 
 ## Decision: web-only rendering (three.js)
 
@@ -357,6 +365,7 @@ M2 findings:
 - 2026-10-14: 7.4 done — plants bend with the wind; wind follows the weather.
 - 2026-10-14: 7.5 done — skies built from cloud genera; overcast reads grey.
 - 2026-10-14: 7.6 done — storms with rain shafts and lightning.
+- 2026-10-14: 7.7 done — five oceans with their own seas; polar ice.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
