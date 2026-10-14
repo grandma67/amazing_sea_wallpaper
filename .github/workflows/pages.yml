@@ -1,0 +1,68 @@
+# Builds the site and publishes it to GitHub Pages. Visitors' browsers render
+# the wallpaper themselves; this job also renders today's (UTC) wallpaper in
+# headless Chromium so wallpaper tools can fetch a plain /latest.jpg.
+#
+# Runners have no GPU, so the snapshot uses SwiftShader (software WebGL) and
+# fewer cloud frames; it can take tens of minutes. If it fails, the site is
+# still deployed without a fresh latest.jpg.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '5 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Render today's wallpaper
+        continue-on-error: true
+        timeout-minutes: 120
+        run: |
+          npx playwright install --with-deps chromium
+          npx vite preview --port 4173 --strictPort &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/ > /dev/null && break; sleep 1; done
+          TODAY=$(date -u +%F)
+          node scripts/snapshot.mjs --url http://localhost:4173/ --out dist/daily \
+            --w 3840 --h 2160 --frames 24 --quality 0.92 "$TODAY"
+          cp "dist/daily/$TODAY.jpg" dist/latest.jpg
+          cp "dist/daily/$TODAY.json" dist/latest.json
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
