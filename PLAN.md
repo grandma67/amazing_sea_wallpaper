@@ -25,7 +25,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | # | Item | State |
 |---|---|---|
 | 7.1 | Ships: more models, random colours, rust/weathering, better quality | ✅ |
-| 7.2 | Algae and moss on stones (random, in suitable biomes) | ⬜ |
+| 7.2 | Algae and moss on stones (random, in suitable biomes) | ✅ |
 | 7.3 | Trees: more variety, less repetition; bark and leaf meshes | ⬜ |
 | 7.4 | Wind: plants bend with the day's wind; sea state follows | ⬜ |
 | 7.5 | Cloud formations: research cloud types; per-type layer configs | ⬜ |
