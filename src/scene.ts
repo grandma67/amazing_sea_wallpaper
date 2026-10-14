@@ -51,6 +51,7 @@ import { createOcean } from './ocean'
 import type { SceneParams } from './params'
 import { PropContext } from './props/context'
 import { createProps } from './props'
+import { renderPlanarReflection } from './reflection'
 import { bindCloudShadow, bindShadow } from './shadow'
 import { createTerrain } from './terrain'
 
@@ -161,7 +162,9 @@ export async function renderScene(
   }
 
   const scene = new Scene()
-  scene.add(skyMesh(makeSky(true)))
+  const sky = skyMesh(makeSky(true))
+  sky.userData.sky = true
+  scene.add(sky)
 
   // Environment map of the sky (without the sun disc; the ocean shader adds
   // sun glitter analytically) for water reflections.
@@ -190,6 +193,7 @@ export async function renderScene(
       stars.setRotationFromMatrix(eciToWorld)
       stars.frustumCulled = false
       stars.renderOrder = -0.5
+      stars.userData.sky = true
       target.add(stars)
     }
   }
@@ -200,6 +204,7 @@ export async function renderScene(
     for (const target of [scene, envScene]) {
       const moon = createMoon()
       placeMoon(moon, camera.position, moonDir, moonAngularRadius, new Vector3(...params.sunDirection))
+      moon.userData.sky = true
       target.add(moon)
     }
   }
@@ -390,6 +395,15 @@ export async function renderScene(
     bindShadow(terrain.material.uniforms, sun)
     bindCloudShadow(ocean.material.uniforms, params.weather, lightDirectionWorld)
     bindCloudShadow(terrain.material.uniforms, params.weather, lightDirectionWorld)
+
+    // Mirror image of land and props for the water (sky comes from the cube).
+    if (params.coast.type === 'beach' || scene.getObjectByName('props')!.children.length > 0) {
+      const hide = [ocean, ...scene.children.filter(o => o.userData.sky === true)]
+      const reflection = renderPlanarReflection(renderer, scene, camera, width, height, hide)
+      ocean.material.uniforms.planarMap.value = reflection.target.texture
+      ocean.material.uniforms.planarMatrix.value.copy(reflection.textureMatrix)
+      ocean.material.uniforms.planarOn.value = 1
+    }
     renderer.shadowMap.autoUpdate = false
   }
   // Volumetric clouds converge over frames (temporal upscaling and

@@ -1,5 +1,6 @@
 import {
   Color,
+  Matrix4,
   Mesh,
   ShaderMaterial,
   Vector3,
@@ -125,6 +126,9 @@ uniform vec3 cascadeSize;
 
 uniform samplerCube envMap;
 uniform float envMaxLod;
+uniform sampler2D planarMap;
+uniform mat4 planarMatrix;
+uniform float planarOn;
 uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
 uniform vec3 skyIrradiance;
@@ -231,6 +235,14 @@ void main() {
   R.y = abs(R.y);
   float lod = clamp(log2(alpha * 164.0), 0.0, envMaxLod);
   vec3 reflected = textureLod(envMap, R, lod).rgb;
+  // Land, rocks, trees and boats mirrored in the water (reflection.ts), over
+  // the sky reflection, shifted by the waves and blurred by roughness.
+  if (planarOn > 0.5) {
+    vec4 projected = planarMatrix * vec4(vWorld.x, 0.0, vWorld.z, 1.0);
+    vec2 uv = projected.xy / projected.w + N.xz * 0.04;
+    vec4 planar = textureLod(planarMap, uv, clamp(log2(alpha * 300.0), 0.0, 6.0));
+    reflected = mix(reflected, planar.rgb, clamp(planar.a, 0.0, 1.0));
+  }
   float F = fresnel(NoV);
 
   // Sun glitter.
@@ -340,6 +352,9 @@ export function createOcean(
       ...shadowUniforms(),
       earthRadius: { value: EARTH_RADIUS },
       envMap: { value: null as Texture | null },
+      planarMap: { value: null as Texture | null },
+      planarMatrix: { value: new Matrix4() },
+      planarOn: { value: 0 },
       envMaxLod: { value: 8 },
       sunDirection: { value: new Vector3(...params.sunDirection) },
       sunIrradiance: { value: new Color(0, 0, 0) },
