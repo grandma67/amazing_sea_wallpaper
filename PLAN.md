@@ -37,7 +37,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.11 | Mobile mode: an interesting vertical (portrait) view for phones | ✅ |
 | 7.12 | Rainbow - in rain or sea splash | ✅ |
 | 7.13 | Wave break on shore, splashes on rocks | ✅ |
-| 7.14 | Reasearch and add shore seen mountains, volcano alive and dormant | ⬜ |
+| 7.14 | Reasearch and add shore seen mountains, volcano alive and dormant | ✅ |
 | 7.15 | Reasearch online how rain drops affects sea and add it to your simulation | ⬜ |
 
 7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
@@ -124,6 +124,15 @@ are solved exactly along the shore (cycle = 0.75) and spray only where the wave 
 Spray = point sprites, per-frame screen-door alpha (the frame average makes them soft — a
 fixed dither looked like glitter), sky + sun lit, forward-scatter glow, spray bow at 42°.
 Breaking lips are still foam/spray, not curling geometry.
+
+7.14 notes: `SceneParams.landform` (by biome: volcanic 55%, nordic 40%, others 20–25%) +
+`props/landforms.ts`: coastal range (ridged-fbm heightfield, 25–70 km wide), stratovolcano
+(concave cone, summit crater, radial gullies; Fuji/Mayon/Etna) or shield (Hawaii), 12–70 km out.
+Every vertex drops with the ocean's curvature so the feet sink behind the horizon. Colours:
+toned rock, forest below a treeline, snow above a seeded snow line (always on polar coasts),
+dark ash round active craters. Active (40%): steam or ash plume of spray-sprite puffs bending
+downwind; at sunset/blue hour lava glows (`userData.glow`, shared with lightning). Excluded from
+the planar reflection — it has no aerial perspective, so the mirror image was a dark ghost.
 
 ## Decision: web-only rendering (three.js)
 
@@ -418,6 +427,7 @@ M2 findings:
 - 2026-10-14: 7.11 done — portrait mode for phones.
 - 2026-10-14: 7.12 done — rainbows in showers (and spray bows).
 - 2026-10-14: 7.13 done — spray on breaking waves and rocks.
+- 2026-10-14: 7.14 done — mountains and volcanoes on the horizon.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
