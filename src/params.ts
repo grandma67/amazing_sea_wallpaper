@@ -373,7 +373,7 @@ export function generateParams(date: string, attempt = 0): SceneParams {
 
   // Camera heading, then the sun relative to it. Low suns are usually framed
   // in or near the view for glitter paths; high suns can be anywhere.
-  const headingDeg = rng.range(0, 360)
+  let headingDeg = rng.range(0, 360)
   const [elMin, elMax] = SUN_ELEVATION[timeOfDay]
   const sunElevationDeg = rng.range(elMin, elMax)
   const lowSun = timeOfDay !== 'midday' && timeOfDay !== 'daylight'
@@ -394,13 +394,21 @@ export function generateParams(date: string, attempt = 0): SceneParams {
       const candidate = offsetDirection(sunDirection, elongation * DEG, rng.range(0, 2 * Math.PI))
       const el = elevationOf(candidate)
       const facing = candidate[0] * view[0] + candidate[2] * view[2]
-      const score = (el > 4 && el < 40 ? 1 : -1) + facing + rng.range(0, 0.5)
+      // At night the moon is the subject: keep it low enough to share the
+      // frame with the sea.
+      const [lo, hi] = timeOfDay === 'night' ? [4, 18] : [4, 40]
+      const score = (el > lo && el < hi ? 1 : -1) + facing + rng.range(0, 0.5)
       if (score > bestScore) {
         bestScore = score
         best = candidate
       }
     }
     moonDirection = best
+    if (timeOfDay === 'night') {
+      // Turn toward the moon so its glitter path runs across the water.
+      const moonAzDeg = Math.atan2(moonDirection[0], -moonDirection[2]) / DEG
+      headingDeg = moonAzDeg + Random.derive(seed, 'moon-framing').normal(0, 14)
+    }
   }
   const moonElevationDeg = elevationOf(moonDirection)
 
