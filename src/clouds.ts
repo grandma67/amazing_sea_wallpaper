@@ -205,6 +205,10 @@ export function renderCloudyEnvironment(
 
   const generateMipmaps = target.texture.generateMipmaps
   const faces = cubeCamera.children as PerspectiveCamera[]
+  // Disposed only after all faces: disposing a face's materials would release
+  // their shader programs, and the next (identical) face would compile them
+  // all over again.
+  const composers: EffectComposer[] = []
   faces.forEach((faceCamera, face) => {
     const aerialPerspective = new AerialPerspectiveEffect(faceCamera)
     Object.assign(aerialPerspective, textures)
@@ -232,8 +236,9 @@ export function renderCloudyEnvironment(
     target.texture.generateMipmaps = face === 5 && generateMipmaps
     renderer.setRenderTarget(target, face)
     renderer.render(copyScene, copyCamera)
-    composer.dispose()
+    composers.push(composer)
   })
+  composers.forEach(composer => composer.dispose())
   target.texture.generateMipmaps = generateMipmaps
   renderer.setRenderTarget(null)
   renderer.setSize(rendererSize.x, rendererSize.y, false)
