@@ -8,7 +8,7 @@ import type { PropContext } from './context'
 
 // Lightning bolts: forked channels from the cloud base to the sea. Their
 // brightness depends on the metered exposure, so scene.ts sets it later (see
-// setStormBrightness). Rain shafts, the flash on the clouds and falling rain
+// setGlowBrightness). Rain shafts, the flash on the clouds and falling rain
 // are screen-space effects (stormEffects.ts).
 
 const CLOUD_BASE = CLOUD_GENERA.cumulonimbus.altitude
@@ -92,17 +92,21 @@ export function createStorm(ctx: PropContext): Object3D[] {
       bolt(brng, base, toCamera, width).build(),
       new MeshBasicMaterial({ vertexColors: true, side: DoubleSide })
     )
-    mesh.userData.storm = 'bolt'
+    // Far brighter than anything else in the frame.
+    mesh.userData.glow = { color: [0.85, 0.9, 1], scale: 250 }
     objects.push(mesh)
   }
   return objects
 }
 
-/** Lightning is far brighter than anything else in the frame
- * (`sceneLuminance` = metered sky luminance). */
-export function setStormBrightness(root: Object3D, sceneLuminance: number): void {
+/**
+ * Light self-luminous props (lightning, lava) once the exposure is known:
+ * `userData.glow` = { color, scale } relative to the metered sky luminance.
+ */
+export function setGlowBrightness(root: Object3D, sceneLuminance: number): void {
   root.traverse(o => {
-    if (o.userData.storm !== 'bolt') return
-    ;((o as Mesh).material as MeshBasicMaterial).color.setRGB(0.85, 0.9, 1).multiplyScalar(sceneLuminance * 250)
+    const glow = o.userData.glow as { color: [number, number, number]; scale: number } | undefined
+    if (glow == null) return
+    ;((o as Mesh).material as MeshBasicMaterial).color.setRGB(...glow.color).multiplyScalar(sceneLuminance * glow.scale)
   })
 }

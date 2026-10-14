@@ -62,6 +62,28 @@ export type WeatherKind = 'clear' | 'cirrus' | 'few' | 'scattered' | 'broken' | 
  * islets; penguin rookeries in the Southern Ocean. */
 export type ColonyKind = 'gannet' | 'puffin' | 'tropical' | 'penguin'
 
+/**
+ * Big landforms seen from the shore: a coastal range (fjord walls, Andes,
+ * Big Sur) or a volcano — a steep, concave stratovolcano cone (Fuji, Mayon,
+ * Etna) or a broad shield (Hawaii) — dormant and often snow-capped, or
+ * active with a steam or ash plume and, after sunset, glowing lava.
+ */
+export interface LandformParams {
+  kind: 'range' | 'strato' | 'shield'
+  /** World azimuth and distance (m) of its centre. */
+  azimuthDeg: number
+  distance: number
+  /** Peak height above the sea and width across the view (m). */
+  height: number
+  width: number
+  /** Height above which snow lies (m); Infinity for none. */
+  snowLine: number
+  plume: 'steam' | 'ash' | null
+  /** Lava glowing at the crater and down the flank (dusk and dark only). */
+  lava: boolean
+  seed: number
+}
+
 export interface RainbowParams {
   /** 0..1: how much of the bow's light the rain gives back. */
   strength: number
@@ -131,6 +153,8 @@ export interface SceneParams {
   colony: ColonyKind | null
   /** A passing shower opposite a low sun, and the rainbow in it. */
   rainbow: RainbowParams | null
+  /** Mountains or a volcano on the horizon (props/landforms.ts). */
+  landform: LandformParams | null
 
   camera: {
     /** Above sea level for open sea; above the ground on a beach. */
@@ -442,6 +466,41 @@ function generateStorm(seed: string, timeOfDay: TimeOfDay, headingDeg: number, h
   return { curtains, bolts, rain: rng.chance(0.4) ? rng.range(0.3, 1) : 0 }
 }
 
+function pickLandform(
+  seed: string,
+  biome: Biome,
+  ocean: OceanName,
+  timeOfDay: TimeOfDay,
+  headingDeg: number,
+  halfFovDeg: number
+): LandformParams | null {
+  const rng = Random.derive(seed, 'landform')
+  const chance: Record<Biome['name'], number> = { volcanic: 0.55, nordic: 0.4, mediterranean: 0.25, tropical: 0.2, desert: 0.2 }
+  if (!rng.chance(chance[biome.name])) return null
+  const volcanoChance: Record<Biome['name'], number> = { volcanic: 0.85, nordic: 0.15, mediterranean: 0.3, tropical: 0.45, desert: 0.1 }
+  const volcano = rng.chance(volcanoChance[biome.name])
+  const kind = volcano ? (rng.chance(0.75) ? 'strato' : 'shield') : 'range'
+  const height = kind === 'range' ? rng.range(900, 2600) : kind === 'strato' ? rng.range(1500, 3800) : rng.range(1200, 4000)
+  const distance = rng.range(12_000, kind === 'shield' ? 70_000 : 45_000)
+  const width = kind === 'range' ? rng.range(25_000, 70_000) : kind === 'strato' ? height * rng.range(6, 9) : height * rng.range(18, 28)
+  // Snow on high peaks; always in polar and nordic seas, never in deserts.
+  const polar = ocean === 'arctic' || ocean === 'southern'
+  const snowLine = biome.name === 'desert' ? Infinity : polar ? height * rng.range(0.15, 0.4) : biome.name === 'nordic' ? height * rng.range(0.35, 0.6) : height > 2800 || rng.chance(0.3) ? height * rng.range(0.6, 0.85) : Infinity
+  const active = volcano && rng.chance(0.4)
+  const dark = timeOfDay === 'sun-on-horizon' || timeOfDay === 'blue-hour'
+  return {
+    kind,
+    azimuthDeg: headingDeg + rng.range(-halfFovDeg, halfFovDeg) * 0.8,
+    distance,
+    height,
+    width,
+    snowLine,
+    plume: active ? (rng.chance(0.65) ? 'steam' : 'ash') : null,
+    lava: active && dark && kind === 'strato' && rng.chance(0.7),
+    seed: rng.int(0, 1_000_000)
+  }
+}
+
 function pickColony(seed: string, ocean: OceanName, biome: Biome): ColonyKind | null {
   const rng = Random.derive(seed, 'colony')
   if (!rng.chance(0.15)) return null
@@ -609,6 +668,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     night: 'Moonlit night'
   }
   const colony = pickColony(seed, basin.name, biome)
+  const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect))
   let rainbow: RainbowParams | null = null
   if (rainbowDay && storm == null) {
     const antisolarAz = headingDeg + relSunAz + 180
@@ -628,6 +688,17 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(oceanState.windSpeed),
     basin.label
   ]
+  if (landform != null) {
+    titleParts.push(
+      landform.kind === 'range'
+        ? 'mountains'
+        : landform.lava
+          ? 'erupting volcano'
+          : landform.plume != null
+            ? 'smoking volcano'
+            : 'volcano'
+    )
+  }
   if (rainbow != null) titleParts.push('rainbow')
   if (colony != null) titleParts.push(colony === 'penguin' ? 'penguin colony' : 'seabird island')
   if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
@@ -665,6 +736,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     storm,
     colony,
     rainbow,
+    landform,
     camera: {
       heightM: eyeHeight ?? heightM,
       headingDeg,

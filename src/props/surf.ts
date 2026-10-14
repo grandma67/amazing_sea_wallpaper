@@ -48,6 +48,8 @@ const sprayShader = {
     uniform vec3 sunDirection;
     uniform vec3 sunIrradiance;
     uniform vec3 skyIrradiance;
+    uniform vec3 albedo;
+    uniform float bowStrength;
     uniform float frame;
     varying float vOpacity;
     varying vec3 vWorld;
@@ -71,16 +73,17 @@ const sprayShader = {
       // Water droplets: bright white in sky and sun light, glowing when
       // the sun shines through them.
       float forward = pow(max(dot(V, sunDirection), 0.0), 6.0);
-      vec3 color = 0.85 * (skyIrradiance + sunIrradiance * max(sunDirection.y, 0.0) * 0.8) / 3.14159;
+      vec3 color = albedo * (skyIrradiance + sunIrradiance * max(sunDirection.y, 0.0) * 0.8) / 3.14159;
       color += sunIrradiance * forward * 0.25 * sunUp;
       // Spray bow.
       float theta = degrees(acos(clamp(dot(V, -sunDirection), -1.0, 1.0)));
-      color += bow((theta - 40.4) / 2.3) * sunIrradiance * 0.06 * sunUp;
+      color += bow((theta - 40.4) / 2.3) * sunIrradiance * 0.06 * sunUp * bowStrength;
       gl_FragColor = vec4(color, 1.0);
     }`
 }
 
-class SprayBuilder {
+/** Point-sprite droplets or puffs; also used for volcanic plumes. */
+export class SprayBuilder {
   readonly positions: number[] = []
   readonly sizes: number[] = []
   readonly opacities: number[] = []
@@ -91,7 +94,9 @@ class SprayBuilder {
     this.opacities.push(opacity)
   }
 
-  build(): Points | null {
+  /** `albedo`: how white the droplets are; `bow`: whether they're water
+   * drops that make a spray bow. */
+  build(albedo = new Color(0.85, 0.85, 0.85), bow = true): Points | null {
     if (this.sizes.length === 0) return null
     const geometry = new BufferGeometry()
     geometry.setAttribute('position', new BufferAttribute(new Float32Array(this.positions), 3))
@@ -106,6 +111,8 @@ class SprayBuilder {
           sunDirection: { value: new Vector3(0, 1, 0) },
           sunIrradiance: { value: new Color() },
           skyIrradiance: { value: new Color() },
+          albedo: { value: albedo },
+          bowStrength: { value: bow ? 1 : 0 },
           frame: { value: 0 }
         }
       })
@@ -179,7 +186,8 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
       mesh.getMatrixAt(i, m)
       m.decompose(position, rotation, scale)
       const size = Math.max(scale.x, scale.z)
-      if (size < 0.9) continue
+      // Boulders take the waves; sea stacks offshore are too far to splash.
+      if (size < 0.9 || size > 8) continue
       const ground = ctx.ground(position.x, position.z)
       // Rocks standing in the shallows take the waves.
       if (ground > 0 || ground < -2.5) continue
@@ -190,7 +198,7 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
       const face = new Vector3(fx, 0, fz)
       const [lx, lz] = shoreToWorld(coast, s - 1, a)
       const landward = new Vector3(lx - position.x, 0, lz - position.z).normalize()
-      const plume = (scale.y * 1.2 + amplitude * 1.8) * rng.range(0.7, 1.4) * windy
+      const plume = Math.min(10, (scale.y * 1.2 + amplitude * 1.8) * rng.range(0.7, 1.4) * windy)
       const count = Math.round(250 + plume * 160)
       for (let k = 0; k < count; k++) {
         // A fan of droplets thrown up and landward, densest low and central.

@@ -51,7 +51,7 @@ import { createOcean } from './ocean'
 import type { SceneParams } from './params'
 import { PropContext } from './props/context'
 import { createProps } from './props'
-import { setStormBrightness } from './props/storm'
+import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
 import { stormEffects } from './stormEffects'
@@ -355,7 +355,7 @@ export async function renderScene(
   } else {
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }
-  setStormBrightness(props, sceneLuminance)
+  setGlowBrightness(props, sceneLuminance)
   composer.addPass(new EffectPass(camera, new GradeEffect(exposure, scotopic, whiteBalance)))
   const rain = stormEffects(params, camera)
   if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))
@@ -416,7 +416,14 @@ export async function renderScene(
 
     // Mirror image of land and props for the water (sky comes from the cube).
     if (params.coast.type === 'beach' || scene.getObjectByName('props')!.children.length > 0) {
-      const hide = [ocean, ...scene.children.filter(o => o.userData.sky === true)]
+      const hide = [
+        ocean,
+        ...scene.children.filter(o => o.userData.sky === true),
+        // Distant mountains are hazed by aerial perspective, which the
+        // reflection pass doesn't apply: their mirror image would be far too
+        // dark and sharp.
+        ...props.children.filter(o => o.userData.distant === true)
+      ]
       const reflection = renderPlanarReflection(renderer, scene, camera, width, height, hide)
       ocean.material.uniforms.planarMap.value = reflection.target.texture
       ocean.material.uniforms.planarMatrix.value.copy(reflection.textureMatrix)
