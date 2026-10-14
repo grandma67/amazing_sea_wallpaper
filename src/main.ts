@@ -2,7 +2,10 @@ import { generateSceneParams } from './composition'
 import { renderScene } from './scene'
 
 // URL options:
-//   ?date=YYYY-MM-DD   render a specific day (default: today, local time)
+//   /random/           a random day before today (public/random/index.html)
+//   ?date=YYYY-MM-DD   render a specific day (default: today, local time);
+//                      future days fall back to today
+//   ?future=1          allow future days (scripts/snapshot.mjs previews)
 //   ?w=1920&h=1080     output resolution (default: 3840×2160, less on small or
 //                      limited devices; taller than wide = portrait)
 //   ?portrait=1|0      force a portrait (phone) or landscape composition
@@ -25,10 +28,23 @@ function linkFor(date: string): string {
   return url.toString()
 }
 
+// GitHub Pages redirects /random to /random/ itself; dev servers fall back to
+// this page instead.
+if (window.location.pathname.endsWith('/random')) {
+  window.location.replace(`${window.location.pathname}/${window.location.search}`)
+}
+
 const query = new URLSearchParams(window.location.search)
 const today = localDateString(new Date())
 const requested = query.get('date')
-const date = requested != null && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today
+const allowFuture = query.get('future') === '1'
+let date = requested != null && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today
+// Tomorrow's sea isn't out yet: show today and fix the address bar to match.
+// (ISO dates compare correctly as strings.)
+if (date > today && !allowFuture) {
+  date = today
+  history.replaceState(null, '', linkFor(today))
+}
 
 // Phones held upright get a portrait wallpaper: the same day's scene,
 // composed for a tall frame.
@@ -83,7 +99,9 @@ const ready = (async () => {
     { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
   )
   ;(document.getElementById('prev') as HTMLAnchorElement).href = linkFor(shiftDate(date, -1))
-  ;(document.getElementById('next') as HTMLAnchorElement).href = linkFor(shiftDate(date, 1))
+  const next = document.getElementById('next') as HTMLAnchorElement
+  if (date < today || allowFuture) next.href = linkFor(shiftDate(date, 1))
+  else next.setAttribute('aria-disabled', 'true')
   ;(document.getElementById('today') as HTMLAnchorElement).href = linkFor(today)
   document.getElementById('download')!.addEventListener('click', () => {
     canvas.toBlob(

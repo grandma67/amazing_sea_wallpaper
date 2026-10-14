@@ -65,6 +65,7 @@ for (const date of dates) {
   const started = Date.now()
   const url = new URL(baseUrl)
   url.searchParams.set('date', date)
+  url.searchParams.set('future', '1')
   url.searchParams.set('w', String(width))
   url.searchParams.set('h', String(height))
   if (frames != null) url.searchParams.set('frames', frames)
