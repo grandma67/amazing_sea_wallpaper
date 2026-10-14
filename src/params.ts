@@ -57,6 +57,11 @@ export interface CoastParams {
 
 export type WeatherKind = 'clear' | 'cirrus' | 'few' | 'scattered' | 'broken' | 'overcast' | 'storm'
 
+/** Seabird colonies: gannets on white, guano-streaked rock; puffins and
+ * guillemots on grassy-topped islands; boobies and frigatebirds on tropical
+ * islets; penguin rookeries in the Southern Ocean. */
+export type ColonyKind = 'gannet' | 'puffin' | 'tropical' | 'penguin'
+
 /** A thunderstorm or squall over the sea: a rare event (see generateStorm). */
 export interface StormParams {
   /** Rain shafts hanging from the cloud base: azimuth (deg, world), distance
@@ -113,6 +118,8 @@ export interface SceneParams {
   coast: CoastParams
   weather: WeatherParams
   storm: StormParams | null
+  /** An offshore island with a seabird colony (props/colony.ts). */
+  colony: ColonyKind | null
 
   camera: {
     /** Above sea level for open sea; above the ground on a beach. */
@@ -415,6 +422,15 @@ function generateStorm(seed: string, timeOfDay: TimeOfDay, headingDeg: number, f
   return { curtains, bolts, rain: rng.chance(0.4) ? rng.range(0.3, 1) : 0 }
 }
 
+function pickColony(seed: string, ocean: OceanName, biome: Biome): ColonyKind | null {
+  const rng = Random.derive(seed, 'colony')
+  if (!rng.chance(0.15)) return null
+  if (ocean === 'southern') return 'penguin'
+  if (biome.name === 'tropical' || biome.name === 'desert') return 'tropical'
+  const northern = ocean === 'arctic' || biome.name === 'nordic' || biome.name === 'volcanic'
+  return northern && rng.chance(0.5) ? 'puffin' : 'gannet'
+}
+
 export function generateParams(date: string, attempt = 0): SceneParams {
   const seed = `amazing-sea:${date}`
   const rng = new Random(seed)
@@ -552,11 +568,14 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     midday: 'Midday',
     night: 'Moonlit night'
   }
+  const colony = pickColony(seed, basin.name, biome)
+
   const titleParts = [
     timeLabel[timeOfDay],
     coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(oceanState.windSpeed),
     basin.label
   ]
+  if (colony != null) titleParts.push(colony === 'penguin' ? 'penguin colony' : 'seabird island')
   if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
   if (storm != null) {
     titleParts.push(storm.bolts.length > 0 ? 'thunderstorm' : 'squall')
@@ -590,6 +609,7 @@ export function generateParams(date: string, attempt = 0): SceneParams {
     coast,
     weather,
     storm,
+    colony,
     camera: {
       heightM: eyeHeight ?? heightM,
       headingDeg,

@@ -31,7 +31,7 @@ function ridged(x: number, y: number, z: number, seed: number): number {
   return 1 - Math.abs(fbm3(x, y, z, seed) * 2 - 1)
 }
 
-function rockGeometry(rng: Random, stack: boolean): BufferGeometry {
+export function rockGeometry(rng: Random, stack: boolean): BufferGeometry {
   // PolyhedronGeometry subdivides each face (detail + 1)² times: ~19k faces.
   const geometry = mergeVertices(new IcosahedronGeometry(1, 30))
   const position = geometry.attributes.position as BufferAttribute
@@ -111,7 +111,7 @@ const GROWTH: Record<Biome['name'], { chance: number; growth: RockGrowth }> = {
   }
 }
 
-function rockMaterial(color: RGB, runup: number, growth: RockGrowth | null): MeshStandardMaterial {
+export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | null): MeshStandardMaterial {
   const material = new MeshStandardMaterial({
     color: new Color(...color),
     vertexColors: true,

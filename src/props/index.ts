@@ -2,6 +2,7 @@ import { Group } from 'three'
 
 import type { PropContext } from './context'
 import { createBirds } from './birds'
+import { createColony } from './colony'
 import { createIce } from './ice'
 import { createMarineLife } from './marine'
 import { createMigratoryBirds } from './migratory'
@@ -16,6 +17,7 @@ export function createProps(ctx: PropContext): Group {
   group.name = 'props'
   for (const mesh of createRocks(ctx)) group.add(mesh)
   for (const mesh of createIce(ctx)) group.add(mesh)
+  for (const object of createColony(ctx)) group.add(object)
   for (const mesh of createVegetation(ctx)) group.add(mesh)
   for (const mesh of createShips(ctx)) group.add(mesh)
   for (const animal of createMarineLife(ctx)) group.add(animal)

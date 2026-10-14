@@ -23,7 +23,7 @@ const BLACK: RGB = [0.04, 0.04, 0.045]
 const BILL: RGB = [0.6, 0.45, 0.1]
 
 /** `lift` raises the inner wing, `droop` lowers the outer wing (radians). */
-function gull(lift: number, droop: number, dark: boolean): BufferGeometry {
+export function gull(lift: number, droop: number, dark: boolean): BufferGeometry {
   const b = new MeshBuilder()
   const body = dark ? BLACK : WHITE
   const wing = dark ? BLACK : GREY
