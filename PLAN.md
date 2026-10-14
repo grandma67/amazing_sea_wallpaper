@@ -40,6 +40,11 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.13 | Wave break on shore, splashes on rocks | ✅ |
 | 7.14 | Reasearch and add shore seen mountains, volcano alive and dormant | ✅ |
 | 7.15 | Reasearch online how rain drops affects sea and add it to your simulation | ✅ |
+| 7.16 | Add view from clif/top of the mountain | ⬜ |
+| 7.17 | Accessing newer date than today - redirect us to today. Also the button to next day should not work on such dates. | ⬜ |
+| 7.18 | Add new api - /random, accessing it loads a random date before today | ⬜ |
+| 7.19 | Clouds looks unreal with grains and spots and less like fog, research online for fix | ⬜ |
+| 7.20 | Wave break is unreal and too spotty, reasearch online how to do waves, and wave-splashes | ⬜ |
 
 7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
 antifouling below the waterline, rust patches + streaks scaled by vessel age; sails as
