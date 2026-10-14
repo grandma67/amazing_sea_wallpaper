@@ -73,44 +73,57 @@ float fbm(vec2 p) {
   return sum / 0.9375;
 }
 
-// Foam holes: distance to the nearest random point (Voronoi F1), with a
-// per-cell size jitter. Returns 1 for foam, 0 inside a hole.
-float foamHoles(vec2 p, float radius) {
+// Distance to the nearest Voronoi cell border (F2 − F1): 0 on the borders,
+// growing toward the middle of each cell.
+float cellBorder(vec2 p) {
   ivec2 c = ivec2(floor(p));
   vec2 f = fract(p);
-  float best = 8.0;
-  float jitter = 0.0;
+  float d1 = 8.0;
+  float d2 = 8.0;
   for (int j = -1; j <= 1; j++) {
     for (int i = -1; i <= 1; i++) {
       uint h = hashCell(c + ivec2(i, j));
       vec2 point = vec2(float(h & 0xffffu), float((h >> 16) & 0xffffu)) / 65535.0;
       vec2 o = vec2(float(i), float(j)) + point - f;
       float d = dot(o, o);
-      if (d < best) {
-        best = d;
-        jitter = float((h >> 8) & 0xffu) / 255.0;
+      if (d < d1) {
+        d2 = d1;
+        d1 = d;
+      } else if (d < d2) {
+        d2 = d;
       }
     }
   }
-  float r = radius * (0.7 + 0.6 * jitter);
-  return smoothstep(r - 0.06, r + 0.03, sqrt(best));
+  return sqrt(d2) - sqrt(d1);
 }
 
-// Sea foam: a white mass riddled with round holes. Coverage (0..1) sets how
-// much foam there is; as it thins, the holes grow until only a lacy network of
-// strands is left. Density varies locally so foam breaks into patches. When a
-// pixel is too large to show the lace it fades to the average density.
+// Sea foam. Spent whitewater isn't a sheet with round holes: the bubbles
+// gather into a matted weave of strands ("soup") that the water stretches and
+// tears into patches. Two warped scales of cell borders make the strands;
+// coverage (0..1) thickens them until the gaps close into solid whitewater,
+// and a thin bubbly film fills the gaps so they read as foam thinning out,
+// not punched holes. Pass coordinates stretched along the flow. When a pixel
+// is too large to show the weave it fades to the average density.
 float foamLace(vec2 p, float coverage, float footprint) {
   if (coverage <= 0.001) return 0.0;
-  vec2 w = p + 0.9 * vec2(vnoise(p * 0.5), vnoise(p * 0.5 + 31.7)) - 0.45;
-  float density = clamp(coverage * (0.4 + 1.2 * fbm(p * 0.3 + 13.0)), 0.0, 1.0);
-  float radius = mix(0.6, 0.1, density);
-  float net = foamHoles(w * 2.1, radius) *
-    mix(1.0, foamHoles(w * 3.9 + 7.0, radius * 0.9), 0.75) *
-    mix(1.0, foamHoles(w * 10.3 + 3.0, radius * 0.8), 0.5);
-  net *= smoothstep(0.02, 0.2, density);
-  float average = density * density * 0.85;
-  float detail = 1.0 - smoothstep(0.02, 0.12, footprint * 3.9);
+  // Warp at the cell scale too, so borders curve instead of meeting in
+  // straight polygon edges.
+  vec2 w = p + 1.6 * vec2(vnoise(p * 0.3), vnoise(p * 0.3 + 31.7)) - 0.8;
+  w += 0.7 * vec2(vnoise(p * 1.9 + 5.0), vnoise(p * 1.9 + 11.0)) - 0.35;
+  float density = clamp(coverage * (0.45 + 1.1 * fbm(p * 0.22 + 13.0)), 0.0, 1.0);
+  // Strand half-width in cell units: hairlines when thin, closing up when
+  // dense, and swelling and pinching along each strand.
+  float t = mix(0.03, 0.45, density * density) * (0.45 + 1.1 * vnoise(p * 1.3 + 2.0));
+  float coarse = 1.0 - smoothstep(t * 0.4, t, cellBorder(w * 1.7));
+  float fine = 1.0 - smoothstep(t * 0.3, t * 0.8, cellBorder(w * 4.3 + 7.0));
+  float strands = max(coarse, 0.8 * fine);
+  // Single bubbles along the strands.
+  strands *= 0.75 + 0.25 * vnoise(p * 11.0);
+  // A thin, uneven film of bubbles between the strands.
+  float film = density * (0.25 + 0.35 * vnoise(p * 2.3 + 9.0));
+  float net = max(strands, film) * smoothstep(0.02, 0.15, density);
+  float average = density * (0.35 + 0.5 * density);
+  float detail = 1.0 - smoothstep(0.02, 0.12, footprint * 4.3);
   return mix(average, net, detail);
 }
 
@@ -431,7 +444,8 @@ void main() {
     // Lacy foam left by the last wave at the edge of the swash.
     float edge = 1.0 - smoothstep(0.0, 0.08, abs(h - wetLine * 0.55 - 0.03 * (vnoise(q * 0.4) - 0.5)));
     edge *= 0.35 + 0.65 * fbm(vec2(sa.y / 9.0, 3.3) + noiseOffset);
-    float foam = foamLace(q, edge * 0.8, footprint) * (1.0 - smoothstep(0.3, 1.5, footprint));
+    float foam = foamLace(vec2(sa.y, sa.x * 1.8) + noiseOffset, edge * 0.8, footprint) *
+      (1.0 - smoothstep(0.3, 1.5, footprint));
     color = mix(color, vec3(0.85) / PI * (sunIrradiance * NoL + skyIrradiance), foam);
   }
 

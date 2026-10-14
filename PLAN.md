@@ -14,7 +14,7 @@ time of day, sun/moon position, weather, vegetation, rocks, birds and ships.
 | 4. Variation: time of day, weather, night/moon, composition validator | ✅ Done (2026-10-14) |
 | 5. 4K export + GitHub Pages deploy (+ optional CI snapshot) | 🟨 Ready — needs push + Pages enabled |
 | 6. Polish: contact sheet of ~50 dates, tune weights | ✅ Done (2026-10-14) |
-| 7. Wishlist from `TODO.md` (see below) | 🟨 7.16, 7.20 open |
+| 7. Wishlist from `TODO.md` (see below) | 🟨 7.16 open |
 | 8. Performance: faster renders, same image (see "Performance pass") | ✅ Done (2026-10-14) |
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done
@@ -44,8 +44,9 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.17 | Accessing newer date than today - redirect us to today. Also the button to next day should not work on such dates. | ✅ |
 | 7.18 | Add new api - /random, accessing it loads a random date before today | ✅ |
 | 7.19 | Clouds looks unreal with grains and spots and less like fog, research online for fix | ✅ |
-| 7.20 | Wave break is unreal and too spotty, reasearch online how to do waves, and wave-splashes | ⬜ |
+| 7.20 | Wave break is unreal and too spotty, reasearch online how to do waves, and wave-splashes | ✅ |
 | 7.21 | Research fog, which climate and temperatures create it and add it to the simulation | ⬜ |
+| 7.22 | Add light house, reasearch where lighthouse make sense to be located, and how the light is ommited from it | ⬜ |
 
 7.17/7.18 notes: a future `?date=` renders today and rewrites the URL (`history.replaceState`,
 no reload); → is disabled on today. `?future=1` lifts the limit — `scripts/snapshot.mjs` sets
@@ -76,6 +77,24 @@ changed at a time and measuring high-frequency energy in the sky:
 - References: blue-noise jitter + temporal accumulation (handmade.network "Fast High-Quality
   Cloudscape through Noise and Reprojection"); distance LOD and a cheap box-blur denoise
   for cloud noise (80.lv, "Creating volumetric clouds for mobile in UE5").
+
+7.20 notes (wave break). Research: spilling breakers (gentle beaches) carry a roller of
+whitewater down the front face and leave a wide foam zone behind; spent whitewater leaves
+"soup", a stringy matted weave of bubbles that the flow stretches and tears into patches
+(Wikipedia "Breaking wave"; surfertoday "four types of breaking waves"; Planetside forum on
+shore foam; 80.lv "Real-time shoreline simulation" — foam as stretched, torn patches).
+- Bug: the surf profile's steep face pointed *seaward*. Mirrored (`surfCycle`, crests at
+  cycle 0.25); `props/surf.ts` places spray at the new crest.
+- Whitewater = roller on the front face + trail fading seaward, ragged along the crest
+  (was a thin line at the crest).
+- `foamLace` no longer punches round holes (the "leopard spots"): warped Voronoi-border
+  strands at two scales, varying width, a thin uneven bubble film between, in shore-space
+  coordinates stretched along the crests. Same function for swash foam on the sand.
+- Crest spray: a low veil of soft, faint puffs on the crest/front face that fades with
+  distance (was tall "fur" of droplets that grew into dots far away).
+- Rock splashes: only ~35% of rocks are being hit; bursts of cm-size droplets plus a faint
+  mist veil (was hundreds of 0.4–1 m discs → bokeh balls); softer foam ring at the foot.
+  Sprite alpha falls off as (1 − r²)², clamped (unclamped it drew squares).
 
 7.1 notes: `ships.ts` rewritten — lofted hull (36×14) with flare, waterline paint stripe,
 antifouling below the waterline, rust patches + streaks scaled by vessel age; sails as
@@ -549,6 +568,8 @@ M2 findings:
 - 2026-10-14: 7.17 done — future dates show today; → disabled on today.
 - 2026-10-14: 7.18 done — `/random` jumps to a random past day.
 - 2026-10-14: 7.19 done — cloud grain: no temporal upscaling, sub-pixel jitter, sky denoise.
+- 2026-10-14: 7.20 done — breakers face the beach; roller + trail whitewater; foam weave
+  instead of round holes; soft crest spray and rock splashes. Paused before 7.16 (user).
 
 ## References
 

@@ -62,7 +62,9 @@ const sprayShader = {
     }
     void main() {
       vec2 p = gl_PointCoord * 2.0 - 1.0;
-      float alpha = vOpacity * (1.0 - dot(p, p));
+      // Soft-edged, so overlapping droplets merge into one mass.
+      float edge = max(1.0 - dot(p, p), 0.0);
+      float alpha = vOpacity * edge * edge;
       // Screen-door transparency, re-seeded every frame: averaging the
       // frames (accumulate.ts) turns it into soft, translucent spray.
       vec2 q = gl_FragCoord.xy + vec2(frame * 7.13, frame * 3.71);
@@ -139,9 +141,9 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
   const [, camA] = worldToShore(coast, ctx.camera.position.x, ctx.camera.position.z)
   const step = 1.2
   for (let a = camA - 700; a < camA + 700; a += step) {
-    // Crests sit where the surf cycle reaches 0.75: solve along s.
+    // Crests sit where the surf cycle reaches 0.25: solve along s.
     for (let k = 0; k < 12; k++) {
-      const s0 = (k + 0.75 - surfCycle(coast, 0, a)) * coast.surfWavelength
+      const s0 = (k + 0.25 - surfCycle(coast, 0, a)) * coast.surfWavelength
       // The cycle's along-shore noise doesn't depend on s, so this is exact.
       const s = s0 + rng.range(-0.6, 0.6)
       if (s < 0 || s > 260) continue
@@ -156,21 +158,26 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
       if (distance > 900 || !ctx.visible(x, 1, z, 5)) continue
       const shoal = 1 + 1.3 * (1 - Math.min(1, Math.max(0, (depth - 1) / 5)))
       const height = amplitude * shoal * sets * 1.1
-      // A crown of whitewater along the crest; fewer, bigger clumps far away.
-      const n = Math.round((3 + height * 6 * windy) * Math.min(1, 120 / distance + 0.3))
+      // The roller: a soft, low veil of whitewater hugging the crest and its
+      // front face, made of overlapping translucent puffs so it reads as one
+      // mass rather than separate drops. Puffs keep their size at a
+      // distance and fade instead, so far crests don't turn into dots.
+      const fade = Math.min(1, 140 / distance)
+      const n = Math.round(4 + height * 5 * windy)
       for (let i = 0; i < n; i++) {
         const along = a + rng.range(-step / 2, step / 2)
-        const behind = s + rng.range(-0.4, 2.2) * height
-        const [px, pz] = shoreToWorld(coast, behind, along)
-        const y = height * (0.5 + 0.8 * rng.float() ** 1.5)
-        const size = rng.range(0.3, 0.8) * (0.6 + height * 0.4) * Math.max(1, distance / 120)
-        spray.add(new Vector3(px, y, pz), size, rng.range(0.6, 1))
+        // Front face (shoreward, negative) to just behind the crest.
+        const across = s + rng.range(-1.2, 0.5) * height
+        const [px, pz] = shoreToWorld(coast, across, along)
+        const y = height * (0.25 + 0.75 * rng.float() ** 2)
+        const size = rng.range(0.5, 1.1) * (0.5 + height * 0.5)
+        spray.add(new Vector3(px, y, pz), size, rng.range(0.25, 0.5) * fade)
       }
-      // Wind-blown mist off the top.
+      // Wind-blown mist streaming back off the top.
       for (let i = 0; i < Math.round(2 * windy); i++) {
-        const [px, pz] = shoreToWorld(coast, s + rng.range(0, 4) * height, a + rng.range(-step, step))
-        const size = rng.range(0.6, 1.6) * Math.max(1, distance / 150)
-        spray.add(new Vector3(px, height * rng.range(0.8, 1.8), pz), size, rng.range(0.15, 0.35))
+        const [px, pz] = shoreToWorld(coast, s + rng.range(0, 3) * height, a + rng.range(-step, step))
+        const size = rng.range(1, 2.2) * (0.5 + height * 0.5)
+        spray.add(new Vector3(px, height * rng.range(0.7, 1.4), pz), size, rng.range(0.08, 0.18) * fade)
       }
     }
   }
@@ -191,30 +198,44 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
       const ground = ctx.ground(position.x, position.z)
       // Rocks standing in the shallows take the waves.
       if (ground > 0 || ground < -2.5) continue
-      if (!rng.chance(0.55) || !ctx.visible(position.x, position.y + scale.y, position.z, size * 3)) continue
+      // Only the rocks a wave is hitting right now burst; the rest just
+      // have foam boiling round them.
+      const hit = rng.chance(0.35)
+      if (!ctx.visible(position.x, position.y + scale.y, position.z, size * 3)) continue
       const [s, a] = worldToShore(coast, position.x, position.z)
       // Seaward face, and "up and over" toward land.
       const [fx, fz] = shoreToWorld(coast, s + size * 0.8, a)
       const face = new Vector3(fx, 0, fz)
       const [lx, lz] = shoreToWorld(coast, s - 1, a)
       const landward = new Vector3(lx - position.x, 0, lz - position.z).normalize()
-      const plume = Math.min(10, (scale.y * 1.2 + amplitude * 1.8) * rng.range(0.7, 1.4) * windy)
-      const count = Math.round(250 + plume * 160)
+      const plume = hit ? Math.min(8, (scale.y * 1.2 + amplitude * 1.8) * rng.range(0.5, 1.2) * windy) : 0
+      // A burst of white water thrown up and landward: a dense core of
+      // small droplets low and central, thinning out with height, inside a
+      // faint veil of mist. Droplets are a few centimetres; anything bigger
+      // reads as floating discs.
+      const count = Math.round(plume * 220)
       for (let k = 0; k < count; k++) {
-        // A fan of droplets thrown up and landward, densest low and central.
         const t = rng.float()
-        const spread = size * (0.6 + 1.4 * t)
+        const spread = size * (0.4 + 1.1 * t)
         q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
         const y = plume * Math.sqrt(t) * rng.range(0.4, 1.1)
         const p = face.clone().add(q).addScaledVector(landward, t * size * 1.2).setY(y + Math.max(0, ground))
-        const big = rng.chance(0.12)
-        spray.add(p, big ? rng.range(0.4, 1.0) : rng.range(0.04, 0.2), big ? rng.range(0.2, 0.45) : rng.range(0.6, 1))
+        spray.add(p, rng.range(0.03, 0.12), rng.range(0.5, 1) * (1 - 0.6 * t))
+      }
+      for (let k = 0; k < Math.round(plume * 25); k++) {
+        const t = rng.float()
+        const spread = size * (0.6 + 1.6 * t)
+        q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
+        const p = face.clone().add(q).addScaledVector(landward, t * size * 1.5)
+        p.setY(plume * t * rng.range(0.3, 0.9) + Math.max(0, ground))
+        spray.add(p, rng.range(0.8, 2) * (0.5 + plume * 0.15), rng.range(0.04, 0.1))
       }
       // Foam boiling around its foot.
-      for (let k = 0; k < 120; k++) {
-        const r = size * rng.range(0.9, 2.2)
+      for (let k = 0; k < 220; k++) {
+        const r = size * (0.9 + 1.1 * rng.float() ** 2)
         const ang = rng.range(0, Math.PI * 2)
-        spray.add(position.clone().add(new Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r)).setY(rng.range(0, 0.35)), rng.range(0.15, 0.45), 0.9)
+        const p = position.clone().add(new Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r))
+        spray.add(p.setY(rng.range(0, 0.15)), rng.range(0.08, 0.25), rng.range(0.3, 0.6))
       }
     }
   }
