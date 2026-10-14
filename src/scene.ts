@@ -31,6 +31,7 @@ import {
   Matrix4,
   Mesh,
   NoToneMapping,
+  type Object3D,
   PCFShadowMap,
   PlaneGeometry,
   Points,
@@ -54,6 +55,7 @@ import { createProps } from './props'
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
+import { StillScenePass } from './stillScene'
 import { stormEffects } from './stormEffects'
 import { bindCloudShadow, bindShadow } from './shadow'
 import { createTerrain } from './terrain'
@@ -336,11 +338,16 @@ export async function renderScene(
     multisampling: 4
   })
   composer.setSize(width, height, false)
-  composer.addPass(new RenderPass(scene, camera))
   const clouds =
     cloudAssets != null
       ? createClouds(camera, params.weather, textures, cloudAssets, worldToECEF, lightECEF)
       : null
+  // Accumulated frames only redraw what changes: the spray sprites.
+  const spray: Object3D[] = []
+  props.traverse(o => {
+    if (o.userData.spray === true) spray.push(o)
+  })
+  composer.addPass(clouds != null ? new StillScenePass(scene, camera, spray) : new RenderPass(scene, camera))
   if (clouds != null) {
     // Clouds are soft: ray march them at no more than ~1080p.
     clouds.resolution.scale = Math.min(1, 1920 / width)
@@ -361,23 +368,23 @@ export async function renderScene(
   if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
   if (clouds != null) composer.addPass(new AccumulatePass())
-  composer.addPass(
-    new EffectPass(
-      camera,
-      new BloomEffect({
-        mipmapBlur: true,
-        luminanceThreshold: 1.0,
-        luminanceSmoothing: 0.3,
-        intensity: 0.45,
-        radius: 0.75
-      }),
-      new VignetteEffect({ offset: 0.35, darkness: 0.35 }),
-      new ToneMappingEffect({ mode: ToneMappingMode.AGX }),
-      // AgX is neutral but flat; add a little punch.
-      new HueSaturationEffect({ saturation: 0.15 - 0.3 * gloom }),
-      new BrightnessContrastEffect({ contrast: 0.08 })
-    )
+  // Bloom and tone mapping only matter for the final frame.
+  const finish = new EffectPass(
+    camera,
+    new BloomEffect({
+      mipmapBlur: true,
+      luminanceThreshold: 1.0,
+      luminanceSmoothing: 0.3,
+      intensity: 0.45,
+      radius: 0.75
+    }),
+    new VignetteEffect({ offset: 0.35, darkness: 0.35 }),
+    new ToneMappingEffect({ mode: ToneMappingMode.AGX }),
+    // AgX is neutral but flat; add a little punch.
+    new HueSaturationEffect({ saturation: 0.15 - 0.3 * gloom }),
+    new BrightnessContrastEffect({ contrast: 0.08 })
   )
+  composer.addPass(finish)
 
   // --- Render once ------------------------------------------------------------
   cubeCamera.update(renderer, envScene)
@@ -434,7 +441,10 @@ export async function renderScene(
   // Volumetric clouds converge over frames (temporal upscaling and
   // stochastic sampling), so render the still repeatedly before capturing.
   const frames = clouds != null ? Math.max(1, cloudFrames) : 1
-  for (let i = 0; i < frames; i++) composer.render(1 / 60)
+  for (let i = 0; i < frames; i++) {
+    finish.enabled = i === frames - 1
+    composer.render(1 / 60)
+  }
 
   generator.dispose({ textures: false })
   const gl = renderer.getContext()
