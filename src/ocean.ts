@@ -136,6 +136,43 @@ uniform vec3 deepColor;
 uniform vec3 scatterColor;
 uniform float whitecaps;
 uniform float waveHeight;
+uniform float rain;
+
+// Rain on the sea (research notes: PLAN.md 7.15): each drop throws up
+// a crown and a Worthington jet, then sends out a capillary ring wave. Drops
+// fall on a jittered grid with random ages; returns the ring slope (xy) and
+// a splash mark (z) where a drop has just landed. Only resolved close up.
+vec3 rainRings(vec2 p, float footprint) {
+  vec3 result = vec3(0.0);
+  float near = 1.0 - smoothstep(0.02, 0.3, footprint);
+  if (rain <= 0.0 || near <= 0.0) return result;
+  for (int layer = 0; layer < 2; layer++) {
+    float cell = layer == 0 ? 0.5 : 0.31;
+    vec2 q = p / cell + float(layer) * 17.3;
+    ivec2 id = ivec2(floor(q));
+    for (int j = -1; j <= 1; j++) {
+      for (int i = -1; i <= 1; i++) {
+        ivec2 c = id + ivec2(i, j);
+        float h1 = cellValue(c * 3 + 11);
+        float h2 = cellValue(c * 7 + 5);
+        float age = cellValue(c * 13 + 2);
+        // Fewer drops in lighter rain.
+        if (cellValue(c * 5 + 9) > rain) continue;
+        vec2 center = (vec2(c) + vec2(h1, h2) - float(layer) * 17.3) * cell;
+        vec2 d = p - center;
+        float dist = length(d);
+        float radius = age * cell * 1.1;
+        float x = (dist - radius) / (cell * 0.07);
+        // Derivative of a Gaussian ring, fading as it spreads.
+        float wave = -2.0 * x * exp(-x * x) * (1.0 - age) * (1.0 - age);
+        result.xy += d / max(dist, 1e-4) * wave * 0.22;
+        result.z = max(result.z, (1.0 - smoothstep(cell * 0.015, cell * 0.04, dist)) * (1.0 - smoothstep(0.05, 0.15, age)));
+      }
+    }
+  }
+  return result * near;
+}
+
 
 varying vec2 vGrid;
 varying vec3 vWorld;
@@ -204,7 +241,8 @@ void main() {
   // calmer. Breaks up visible tiling and looks like real open water.
   float gust = mix(0.45, 1.5, fbm(vGrid / 700.0 + noiseOffset * 0.01));
   cascade(a1, b1, c1, cascadeSize.y, damping * mix(1.0, gust, 0.5), derivatives, dxz, variance);
-  cascade(a2, b2, c2, cascadeSize.z, shortDamp * gust, derivatives, dxz, variance);
+  // Rain stirs a thin turbulent layer that damps the shortest gravity waves.
+  cascade(a2, b2, c2, cascadeSize.z, shortDamp * gust * (1.0 - 0.6 * rain), derivatives, dxz, variance);
 
   // Surf slope by finite differences.
   float e = 0.15;
@@ -219,6 +257,8 @@ void main() {
   // Surface compression; < 0 means the wave has folded over (breaking crest).
   float jacobian = (1.0 + derivatives.z) * (1.0 + derivatives.w) - dxz * dxz;
   vec2 slope = derivatives.xy / vec2(jxx, jzz);
+  vec3 rainDrops = rainRings(vGrid, clamp(max(length(dFdx(vGrid)), length(dFdy(vGrid))), 0.0, 200.0));
+  slope += rainDrops.xy;
   vec3 N = normalize(vec3(-slope.x, 1.0, -slope.y));
 
   vec3 V = normalize(cameraPosition - vWorld);
@@ -228,7 +268,8 @@ void main() {
 
   // Unresolved slope variance (plus capillary ripples finer than the last
   // cascade) → GGX roughness; floor for the sun's angular size.
-  float alpha = clamp(sqrt(variance.x + variance.y + 0.0006), 0.02, 0.7);
+  // Ring waves finer than a pixel roughen the surface: rain makes it matte.
+  float alpha = clamp(sqrt(variance.x + variance.y + 0.0006 + rain * 0.006), 0.02, 0.7);
 
   // Sky reflection.
   vec3 R = reflect(-V, N);
@@ -309,6 +350,7 @@ void main() {
     coverage = max(coverage, shore * near * 0.8);
   }
   float foam = foamLace(q, clamp(coverage, 0.0, 1.0), footprint);
+  foam = max(foam, rainDrops.z * 0.9);
   // Foam is matte but wet: diffuse light plus a little sky sheen.
   vec3 foamColor = vec3(0.85) * (sunIrradiance * max(NoL, 0.0) + skyIrradiance) / PI +
     0.25 * textureLod(envMap, vec3(R.x, max(R.y, 0.05), R.z), envMaxLod - 2.0).rgb;
@@ -362,7 +404,8 @@ export function createOcean(
       deepColor: { value: new Color(...ocean.water.deep) },
       scatterColor: { value: new Color(...ocean.water.scatter) },
       whitecaps: { value: Math.min(1, Math.max(0, (ocean.windSpeed - 5) / 6)) },
-      waveHeight: { value: Math.max(0.05, surface.significantHeight) }
+      waveHeight: { value: Math.max(0.05, surface.significantHeight) },
+      rain: { value: params.storm?.rain ?? 0 }
     }
   })
 
