@@ -28,7 +28,7 @@ Order chosen for value vs. effort; each item is committed separately.
 | 7.2 | Algae and moss on stones (random, in suitable biomes) | ✅ |
 | 7.3 | Trees: more variety, less repetition; bark and leaf meshes | ✅ |
 | 7.4 | Wind: plants bend with the day's wind; sea state follows | ✅ |
-| 7.5 | Cloud formations: research cloud types; per-type layer configs | ⬜ |
+| 7.5 | Cloud formations: research cloud types; per-type layer configs | ✅ |
 | 7.6 | Storms: research; dark clouds, strong waves, rain, lightning as a random event | ⬜ |
 | 7.7 | Five oceans: research their differences; per-ocean water, waves, ice | ⬜ |
 | 7.8 | Marine animals: dolphins, swordfish, whales | ⬜ |
@@ -54,6 +54,13 @@ mapped into each instance's frame, quadratic with height, per-species `bend.flex
 gust patches) and the same patch on `customDepthMaterial` so shadows bend too. Wind speed is
 scaled by the weather (clear 0.85× … overcast 1.3×); "windy" in beach titles from 10 m/s. The
 ocean spectrum, whitecaps and surf already followed `windSpeed`.
+
+7.5 notes: `src/cloudTypes.ts` — the ten WMO genera (+ towering cumulus) in three étages,
+each a takram layer (altitude, thickness, density profile, erosion, coverage exponent). The
+weather kind picks one genus per étage; cool coasts lean stratiform (marine stratocumulus,
+stratus), tropical ones cumulus. Cirrocumulus skies use 3× smaller cells. Overcast was navy
+because the exposure meter only sees the clear sky: heavy cloud now adds up to +1.1 EV (faded
+out at low sun), a warmer white balance and less saturation.
 
 ## Decision: web-only rendering (three.js)
 
@@ -339,6 +346,7 @@ M2 findings:
 - 2026-10-14: Added milestone 7 from the user's TODO.md wishlist.
 - 2026-10-14: 7.3 done — branching trees with bark and leaf meshes, five new species.
 - 2026-10-14: 7.4 done — plants bend with the wind; wind follows the weather.
+- 2026-10-14: 7.5 done — skies built from cloud genera; overcast reads grey.
 - 2026-10-14: **M6 done.** NaN skyline fix, blue-hour grade, planar reflections, cloud shadows,
   framing rules for plants, moonlit nights. All milestones complete; M5 goes live once pushed
   and Pages is enabled.
