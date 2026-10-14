@@ -1,4 +1,4 @@
-import { DataTexture, DataUtils, HalfFloatType, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, RGBAFormat } from 'three'
+import { DataUtils } from 'three'
 
 import { ifft2d } from './fft'
 import type { SceneParams } from './params'
@@ -7,8 +7,8 @@ import { Random } from './random'
 // Ocean surface synthesis (Tessendorf, "Simulating Ocean Water"): a JONSWAP
 // wind-sea spectrum with Mitsuyasu directional spreading plus a narrow swell
 // peak, sampled on three nested FFT cascades so no single tile repeats
-// visibly. Everything is computed once on the CPU for a frozen instant and
-// uploaded as textures:
+// visibly. Everything is computed once on the CPU for a frozen instant (in a
+// worker, see spectrumWorker.ts) and uploaded as half-float RGBA textures:
 //
 //   A = (Dx, h, Dz, ∂Dx/∂z)      displacement
 //   B = (∂h/∂x, ∂h/∂z, ∂Dx/∂x, ∂Dz/∂z)  derivatives (normals, Jacobian)
@@ -21,9 +21,10 @@ export const CASCADE_SIZE = 256
 export interface Cascade {
   /** Patch size in metres. */
   size: number
-  a: DataTexture
-  b: DataTexture
-  c: DataTexture
+  /** CASCADE_SIZE² half-float RGBA texels each. */
+  a: Uint16Array
+  b: Uint16Array
+  c: Uint16Array
 }
 
 export interface OceanSurface {
@@ -71,17 +72,10 @@ function angleDiff(a: number, b: number): number {
   return d
 }
 
-function makeTexture(data: Float32Array, n: number): DataTexture {
+function toHalf(data: Float32Array): Uint16Array {
   const half = new Uint16Array(data.length)
   for (let i = 0; i < data.length; i++) half[i] = DataUtils.toHalfFloat(data[i])
-  const texture = new DataTexture(half, n, n, RGBAFormat, HalfFloatType)
-  texture.wrapS = RepeatWrapping
-  texture.wrapT = RepeatWrapping
-  texture.magFilter = LinearFilter
-  texture.minFilter = LinearMipmapLinearFilter
-  texture.generateMipmaps = true
-  texture.needsUpdate = true
-  return texture
+  return half
 }
 
 export function synthesizeOcean(ocean: SceneParams['ocean']): OceanSurface {
@@ -252,11 +246,35 @@ export function synthesizeOcean(ocean: SceneParams['ocean']): OceanSurface {
       cm[o + 1] = hz * hz
       cm[o + 2] = hx * hz
     }
-    return { size, a: makeTexture(a, n), b: makeTexture(b, n), c: makeTexture(cm, n) }
+    return { size, a: toHalf(a), b: toHalf(b), c: toHalf(cm) }
   })
 
   return {
     cascades,
     significantHeight: 4 * Math.sqrt((windHeight / 4) ** 2 + (ocean.swellHeight / 4) ** 2)
   }
+}
+
+/** synthesizeOcean() on a worker thread, so it overlaps the GPU's work on the
+ * main thread. Falls back to the main thread if workers aren't available. */
+export function synthesizeOceanAsync(ocean: SceneParams['ocean']): Promise<OceanSurface> {
+  return new Promise(resolve => {
+    let worker: Worker
+    try {
+      worker = new Worker(new URL('./spectrumWorker.ts', import.meta.url), { type: 'module' })
+    } catch {
+      resolve(synthesizeOcean(ocean))
+      return
+    }
+    worker.onmessage = (event: MessageEvent<OceanSurface>) => {
+      resolve(event.data)
+      worker.terminate()
+    }
+    worker.onerror = event => {
+      event.preventDefault()
+      resolve(synthesizeOcean(ocean))
+      worker.terminate()
+    }
+    worker.postMessage(ocean)
+  })
 }

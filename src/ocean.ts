@@ -1,7 +1,13 @@
 import {
   Color,
+  DataTexture,
+  HalfFloatType,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   Matrix4,
   Mesh,
+  RepeatWrapping,
+  RGBAFormat,
   ShaderMaterial,
   Vector3,
   type BufferGeometry,
@@ -12,7 +18,7 @@ import { createPolarGrid } from './grid'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { TERRAIN_GLSL, terrainUniforms } from './terrain'
 import { EARTH_RADIUS, type SceneParams } from './params'
-import { CASCADE_SIZE, synthesizeOcean } from './spectrum'
+import { CASCADE_SIZE, type OceanSurface } from './spectrum'
 
 // Ocean surface: a camera-centred polar grid displaced by three FFT cascades
 // (see spectrum.ts). Normals come from the derivative textures per pixel, and
@@ -360,16 +366,31 @@ void main() {
 }
 `
 
+function cascadeTexture(data: Uint16Array, maxAnisotropy: number): DataTexture {
+  const texture = new DataTexture(data, CASCADE_SIZE, CASCADE_SIZE, RGBAFormat, HalfFloatType)
+  texture.wrapS = RepeatWrapping
+  texture.wrapT = RepeatWrapping
+  texture.magFilter = LinearFilter
+  texture.minFilter = LinearMipmapLinearFilter
+  texture.generateMipmaps = true
+  texture.anisotropy = maxAnisotropy
+  texture.needsUpdate = true
+  return texture
+}
+
+/** `surface` comes from synthesizeOcean(params.ocean). */
 export function createOcean(
   params: SceneParams,
+  surface: OceanSurface,
   maxAnisotropy: number
 ): Mesh<BufferGeometry, ShaderMaterial> {
   const { ocean } = params
-  const surface = synthesizeOcean(ocean)
-  const [s0, s1, s2] = surface.cascades
-  for (const c of surface.cascades) {
-    for (const t of [c.a, c.b, c.c]) t.anisotropy = maxAnisotropy
-  }
+  const [s0, s1, s2] = surface.cascades.map(c => ({
+    size: c.size,
+    a: cascadeTexture(c.a, maxAnisotropy),
+    b: cascadeTexture(c.b, maxAnisotropy),
+    c: cascadeTexture(c.c, maxAnisotropy)
+  }))
 
   const material = new ShaderMaterial({
     vertexShader,

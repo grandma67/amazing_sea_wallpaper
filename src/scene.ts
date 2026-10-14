@@ -55,6 +55,7 @@ import { createProps } from './props'
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
+import { synthesizeOceanAsync } from './spectrum'
 import { StillScenePass } from './stillScene'
 import { stormEffects } from './stormEffects'
 import { bindCloudShadow, bindShadow } from './shadow'
@@ -134,6 +135,9 @@ export async function renderScene(
   const lightECEF = toECEF(lightDirection)
   const moonECEF = toECEF(params.moonDirection)
 
+  // The ocean spectrum is synthesized on a worker while the GPU precomputes
+  // the atmosphere.
+  const oceanSurface = synthesizeOceanAsync(params.ocean)
   const generator = new PrecomputedTexturesGenerator(renderer, { combinedScattering: false })
   const [textures, cloudAssets] = await Promise.all([
     generator.update(),
@@ -253,7 +257,7 @@ export async function renderScene(
   }
 
   // --- Ocean ----------------------------------------------------------------
-  const ocean = createOcean(params, renderer.capabilities.getMaxAnisotropy())
+  const ocean = createOcean(params, await oceanSurface, renderer.capabilities.getMaxAnisotropy())
   const u = ocean.material.uniforms
   u.envMap.value = envTarget.texture
   u.sunDirection.value.copy(lightDirectionWorld)
