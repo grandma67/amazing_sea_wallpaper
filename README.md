@@ -33,7 +33,7 @@ node scripts/contact-sheet.mjs --dir out --cols 4
 ```
 
 A scene spec (`src/sceneSpec.ts`, also `?scene=<JSON>` on the page) forces any part of
-a scene — time of day, biome, weather, lighthouse, crabs… — on top of a date; DEV.md
+a scene — time of day, biome, weather, lighthouse, crabs… — on top of a date; CLAUDE.md
 has the fields.
 
 `PLAN.md` has the status, versions, design decisions and lessons learned.

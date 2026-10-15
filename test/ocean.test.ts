@@ -1,13 +1,14 @@
 import { PerspectiveCamera } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { generateParams } from '../src/params'
 import { PropContext } from '../src/props/context'
 import { windDirection, windStrength } from '../src/props/wind'
 import { CASCADE_SIZE, synthesizeOcean } from '../src/spectrum'
+import { scene } from './days'
 
-const base = generateParams('2026-10-15')
-const withWind = (windSpeed: number): typeof base.ocean => ({ ...base.ocean, windSpeed, swellHeight: 0.05 })
+const base = scene({ date: '2026-10-15' })
+/** A wind sea with next to no swell. */
+const withWind = (wind: number) => scene({ date: '2026-10-15', wind, params: { ocean: { swellHeight: 0.05 } } }).ocean
 
 describe('synthesizeOcean', () => {
   const calm = synthesizeOcean(withWind(3))
@@ -59,13 +60,13 @@ describe('synthesizeOcean', () => {
 
 describe('wind', () => {
   it('blows horizontally toward the wind heading', () => {
-    const d = windDirection({ ...base, ocean: { ...base.ocean, windHeadingDeg: 90 } })
+    const d = windDirection(scene({ params: { ocean: { windHeadingDeg: 90 } } }))
     expect(d.x).toBeCloseTo(1)
     expect(d.y).toBe(0)
   })
 
   it('grows from calm to a strong breeze', () => {
-    const at = (windSpeed: number): number => windStrength({ ...base, ocean: { ...base.ocean, windSpeed } })
+    const at = (wind: number): number => windStrength(scene({ wind }))
     expect(at(1)).toBe(0)
     expect(at(14)).toBeCloseTo(1)
     expect(at(6)).toBeLessThan(at(10))

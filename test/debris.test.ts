@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { branchGeometry, debrisFor, logGeometry } from '../src/props/debris'
 import { Random } from '../src/random'
-import { allParams, share } from './days'
+import { allParams, scenes, share } from './days'
 
 describe('shore debris', () => {
   const days = allParams()
@@ -10,16 +10,18 @@ describe('shore debris', () => {
   const spec = (p: (typeof days)[number]) => debrisFor(p, Random.derive(p.seed, 'props/debris'))
 
   it('only washes up on a beach', () => {
-    for (const p of days) if (p.coast.type !== 'beach') expect(spec(p)).toBeNull()
+    for (const p of scenes({ coast: 'open-sea' })) expect(spec(p)).toBeNull()
   })
 
   it('brings driftwood to forested and Arctic coasts, none to the Southern Ocean', () => {
-    const wood = (test: (p: (typeof days)[number]) => boolean): number =>
-      share(beaches.filter(test), p => spec(p)!.driftwood > 0)
-    expect(wood(p => p.sea.ocean === 'arctic')).toBeGreaterThan(0.7)
-    expect(wood(p => p.biome.name === 'nordic')).toBeGreaterThan(wood(p => p.biome.name === 'mediterranean'))
-    expect(wood(p => p.biome.name === 'desert')).toBeLessThan(0.2)
-    for (const p of beaches) if (p.sea.ocean === 'southern') expect(spec(p)!.driftwood).toBe(0)
+    const wood = (biome: 'nordic' | 'mediterranean' | 'desert', ocean?: 'arctic'): number =>
+      share(scenes({ coast: 'beach', biome, ocean }, 60), p => spec(p)!.driftwood > 0)
+    expect(wood('nordic', 'arctic')).toBeGreaterThan(0.7)
+    expect(wood('nordic')).toBeGreaterThan(wood('mediterranean'))
+    expect(wood('desert')).toBeLessThan(0.2)
+    for (const biome of ['nordic', 'volcanic'] as const) {
+      for (const p of scenes({ coast: 'beach', biome, ocean: 'southern' })) expect(spec(p)!.driftwood).toBe(0)
+    }
   })
 
   it('matches the wrack to the coast', () => {
@@ -29,7 +31,7 @@ describe('shore debris', () => {
       if (wrack === 'kelp') expect(['nordic', 'volcanic', 'desert']).toContain(p.biome.name)
       if (coconuts > 0) expect(p.biome.name).toBe('tropical')
     }
-    expect(share(beaches.filter(p => p.biome.name === 'mediterranean'), p => spec(p)!.wrack === 'seagrass')).toBeGreaterThan(0.5)
+    expect(share(scenes({ coast: 'beach', biome: 'mediterranean' }, 60), p => spec(p)!.wrack === 'seagrass')).toBeGreaterThan(0.5)
   })
 
   it('builds finite logs and branches lying on the ground', () => {

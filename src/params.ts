@@ -1090,7 +1090,7 @@ function buildParams(
   const oceanSwell = swell(seed, windHeadingDeg)
   oceanSwell.swellHeight *= basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm
   oceanSwell.swellWavelength = Math.min(320, oceanSwell.swellWavelength * basin.swellWavelength)
-  const oceanState = { windSpeed: windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
+  const oceanState = { windSpeed: spec.wind ?? windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
   const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, biome, oceanState, spec)
 
   const timeLabel: Record<TimeOfDay, string> = {

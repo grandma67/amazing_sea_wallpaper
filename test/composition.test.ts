@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { createCamera } from '../src/camera'
 import { generateSceneParams, measureFrame } from '../src/composition'
 import { EARTH_RADIUS, generateParams } from '../src/params'
-import { allParams } from './days'
+import { allParams, DAYS, scene } from './days'
 
 describe('createCamera', () => {
   it('puts the dipped horizon at the chosen height in the frame', () => {
@@ -42,10 +42,10 @@ describe('measureFrame', () => {
 
 describe('generateSceneParams', () => {
   it('re-rolls beach framings that hide the sea or the sky', { timeout: 20_000 }, () => {
-    const days = allParams().filter(p => p.coast.type === 'beach').slice(0, 20)
+    const days = DAYS.slice(0, 20).map(date => scene({ coast: 'beach' }, date))
     let accepted = 0
     for (const p of days) {
-      const chosen = generateSceneParams(p.date)
+      const chosen = generateSceneParams(p.date, 16 / 9, { coast: 'beach' })
       expect(chosen.date).toBe(p.date)
       // Retries keep the day: only the coast and composition change.
       expect(chosen.biome.name).toBe(p.biome.name)
@@ -58,7 +58,6 @@ describe('generateSceneParams', () => {
   })
 
   it('takes the open sea as it comes', () => {
-    const p = allParams().find(p => p.coast.type === 'open-sea')!
-    expect(generateSceneParams(p.date)).toEqual(generateParams(p.date))
+    expect(generateSceneParams(DAYS[0], 16 / 9, { coast: 'open-sea' })).toEqual(generateParams(DAYS[0], 0, 16 / 9, { coast: 'open-sea' }))
   })
 })

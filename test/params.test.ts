@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { dirFromAzEl, generateParams, horizontalHalfFovDeg, type TimeOfDay } from '../src/params'
-import { allParams, share } from './days'
+import { allParams, scenes, share } from './days'
 
 const SUN_ELEVATION: Record<TimeOfDay, [number, number]> = {
   'golden-hour': [1.5, 9],
@@ -82,7 +82,11 @@ describe('generateParams', () => {
 
   it('lights nights by the moon when it is up, and by the stars when it is not', () => {
     const nights = days.filter(p => p.timeOfDay === 'night')
-    for (const p of nights) {
+    const forced = [
+      ...scenes({ timeOfDay: 'night', nightSky: 'starlit' }),
+      ...scenes({ timeOfDay: 'night', nightSky: 'moonlit', moonPhaseDeg: 120 })
+    ]
+    for (const p of [...nights, ...forced]) {
       expect(p.nightSky).not.toBeNull()
       if (p.nightSky === 'starlit') {
         expect(p.moonlight).toBe(0)
@@ -130,18 +134,35 @@ describe('generateParams', () => {
     }
   })
 
-  it('has storms only by day, with a gale and cumulonimbus', () => {
-    for (const p of days.filter(p => p.storm != null)) {
-      expect(p.timeOfDay).not.toBe('night')
-      expect(p.weather.kind).toBe('storm')
-      expect(p.weather.formations).toContain('cumulonimbus')
-      expect(p.title).toMatch(/thunderstorm|squall/)
-    }
+  it('has storms only by day', () => {
+    for (const p of days.filter(p => p.storm != null)) expect(p.timeOfDay).not.toBe('night')
     expect(share(days, p => p.storm != null)).toBeLessThan(0.12)
   })
 
+  it('brings a gale and cumulonimbus with a storm, lightning with a thunderstorm', () => {
+    const storms = [
+      ...days.filter(p => p.storm != null),
+      ...scenes({ storm: 'thunderstorm', timeOfDay: 'daylight', eclipse: null }),
+      ...scenes({ storm: 'squall', timeOfDay: 'golden-hour', eclipse: null })
+    ]
+    for (const p of storms) {
+      expect(p.weather.kind).toBe('storm')
+      expect(p.weather.formations).toContain('cumulonimbus')
+      // A gale, calmed only by the Arctic's light airs and pack ice.
+      const ice = p.sea.ice != null && p.sea.ice.packIce > 0 ? 0.4 : 1
+      expect(p.ocean.windSpeed).toBeGreaterThanOrEqual(14 * 0.85 * ice)
+      expect(p.title).toMatch(p.storm!.bolts.length > 0 ? /thunderstorm/ : /squall/)
+      expect(p.storm!.curtains.length).toBeGreaterThan(0)
+    }
+  })
+
   it('has rainbows only with a low sun, showers and the sun behind the camera', () => {
-    for (const p of days.filter(p => p.rainbow != null)) {
+    const rainbows = [
+      ...days.filter(p => p.rainbow != null),
+      ...scenes({ rainbow: true, timeOfDay: 'golden-hour', storm: null, eclipse: null }),
+      ...scenes({ rainbow: true, timeOfDay: 'daylight', weather: 'scattered', storm: null, eclipse: null })
+    ]
+    for (const p of rainbows) {
       expect(['golden-hour', 'daylight']).toContain(p.timeOfDay)
       expect(p.sunElevationDeg).toBeLessThan(42)
       expect(p.fog).toBeNull()
@@ -162,11 +183,20 @@ describe('generateParams', () => {
 
 describe('fog', () => {
   const days = allParams()
-  const foggy = days.filter(p => p.fog != null)
+  const real = days.filter(p => p.fog != null)
+  // Each kind of fog, forced on days across the years.
+  const forced = (['advection', 'bank', 'sea-smoke'] as const).flatMap(fog => scenes({ fog, storm: null, rainbow: false }, 20))
+  const foggy = [...real, ...forced]
 
   it('comes on about one day in twenty', () => {
-    expect(foggy.length / days.length).toBeGreaterThan(0.02)
-    expect(foggy.length / days.length).toBeLessThan(0.1)
+    expect(real.length / days.length).toBeGreaterThan(0.02)
+    expect(real.length / days.length).toBeLessThan(0.1)
+  })
+
+  it('takes the kind it is given', () => {
+    for (const p of forced) expect(p.fog).not.toBeNull()
+    expect(forced.filter(p => p.fog!.kind === 'sea-smoke').length).toBe(20)
+    expect(forced.filter(p => p.fog!.kind === 'advection' && p.fog!.start > 0).length).toBe(20)
   })
 
   it('needs light winds and no storm, and calms the sea', () => {
@@ -177,11 +207,11 @@ describe('fog', () => {
     }
   })
 
-  it('makes sea smoke only in cold winters', () => {
-    for (const p of foggy.filter(p => p.fog!.kind === 'sea-smoke')) {
+  it('makes sea smoke only in cold winters, and never as a bank', () => {
+    for (const p of real.filter(p => p.fog!.kind === 'sea-smoke')) {
       expect(p.sea.ocean === 'arctic' || p.sea.ocean === 'southern' || p.biome.name === 'nordic').toBe(true)
-      expect(p.fog!.start).toBe(0)
     }
+    for (const p of foggy.filter(p => p.fog!.kind === 'sea-smoke')) expect(p.fog!.start).toBe(0)
   })
 
   it('lies offshore as a bank, or envelops us', () => {
@@ -205,11 +235,19 @@ describe('fog', () => {
 
 describe('lighthouse', () => {
   const days = allParams()
-  const lit = days.filter(p => p.lighthouse != null)
+  const real = days.filter(p => p.lighthouse != null)
+  // Every time of day, with and without fog, on a beach and the open sea.
+  const times = ['golden-hour', 'sun-on-horizon', 'blue-hour', 'daylight', 'midday', 'night'] as const
+  const forced = times.flatMap(timeOfDay =>
+    [null, 'advection' as const].flatMap(fog =>
+      (['beach', 'open-sea'] as const).flatMap(coast => scenes({ lighthouse: true, timeOfDay, fog, coast, storm: null, rainbow: false }, 4))
+    )
+  )
+  const lit = [...real, ...forced]
 
   it('stands on about one day in eleven, rarely in polar seas', () => {
-    expect(lit.length / days.length).toBeGreaterThan(0.05)
-    expect(lit.length / days.length).toBeLessThan(0.15)
+    expect(real.length / days.length).toBeGreaterThan(0.05)
+    expect(real.length / days.length).toBeLessThan(0.15)
     const polar = (p: (typeof days)[number]): boolean => p.sea.ocean === 'arctic' || p.sea.ocean === 'southern'
     const polarDays = days.filter(polar)
     if (polarDays.length > 50) expect(share(polarDays, p => p.lighthouse != null)).toBeLessThan(0.08)
@@ -257,6 +295,7 @@ describe('pinnipeds', () => {
 
   it('are named in the title', () => {
     const names = { seal: 'seals', 'sea-lion': 'sea lions', 'fur-seal': 'fur seals', 'elephant-seal': 'elephant seals' }
-    for (const p of hauled) expect(p.title).toContain(names[p.pinnipeds!])
+    const forced = (Object.keys(names) as (keyof typeof names)[]).flatMap(pinnipeds => scenes({ pinnipeds }, 5))
+    for (const p of [...hauled, ...forced]) expect(p.title).toContain(names[p.pinnipeds!])
   })
 })

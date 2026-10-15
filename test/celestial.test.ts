@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { eclipseOn, moonlight, offsetFor, overlap, UMBRA_RATIO } from '../src/celestial'
 import { generateParams, SUN_ANGULAR_RADIUS } from '../src/params'
-import { allParams } from './days'
+import { allParams, scenes } from './days'
 
 describe('moonlight', () => {
   it('follows the phase law: a half moon gives about a tenth of a full one', () => {
@@ -14,10 +14,13 @@ describe('moonlight', () => {
   })
 
   it('makes a half-moon night darker than a full-moon one', () => {
-    const nights = allParams().filter(p => p.nightSky === 'moonlit' && p.eclipse == null)
-    const full = nights.filter(p => p.moonIllumination > 0.95)
-    const half = nights.filter(p => p.moonIllumination > 0.4 && p.moonIllumination < 0.6)
-    for (const f of full) for (const h of half) expect(h.moonlight).toBeLessThan(f.moonlight / 4)
+    const night = { timeOfDay: 'night', nightSky: 'moonlit', eclipse: null } as const
+    const full = scenes({ ...night, moonPhaseDeg: 180 })
+    const half = scenes({ ...night, moonPhaseDeg: 90 })
+    full.forEach((f, i) => {
+      expect(f.moonlight).toBeCloseTo(1)
+      expect(half[i].moonlight).toBeLessThan(f.moonlight / 4)
+    })
   })
 })
 
@@ -47,8 +50,9 @@ describe('eclipses', () => {
   })
 
   it('shows a solar eclipse by day with the moon over the sun, in a clear sky', () => {
-    for (const date of ['2024-04-08', '2024-10-02', '2025-03-29', '2026-08-12']) {
-      const p = generateParams(date)
+    const real = ['2024-04-08', '2024-10-02', '2025-03-29', '2026-08-12'].map(date => generateParams(date))
+    const forced = (['solar-total', 'solar-annular', 'solar-partial'] as const).flatMap(eclipse => scenes({ eclipse }, 15))
+    for (const p of [...real, ...forced]) {
       expect(p.timeOfDay === 'daylight' || p.timeOfDay === 'golden-hour').toBe(true)
       expect(p.title).toContain('solar eclipse')
       const dot = p.sunDirection.reduce((s, v, i) => s + v * p.moonDirection[i], 0)
@@ -65,13 +69,18 @@ describe('eclipses', () => {
   })
 
   it('shows a lunar eclipse at night, the moon low ahead and dimmed', () => {
-    for (const date of ['2025-03-14', '2026-03-03', '2026-08-28']) {
-      const p = generateParams(date)
+    const real = ['2025-03-14', '2026-03-03', '2026-08-28'].map(date => generateParams(date))
+    const forced = (['lunar-total', 'lunar-partial'] as const).flatMap(eclipse => scenes({ eclipse }, 15))
+    for (const p of [...real, ...forced]) {
       expect(p.timeOfDay).toBe('night')
       expect(p.nightSky).toBe('moonlit')
       expect(p.title).toContain('lunar eclipse')
       expect(p.moonElevationDeg).toBeGreaterThan(4)
-      expect(p.moonlight).toBeLessThan(0.1)
+      // Dimmed by the part of the disc in the umbra; nearly dark in totality.
+      // The night's moonlight without the eclipse, from the phase.
+      const full = moonlight(p.moonPhaseDeg <= 180 ? p.moonPhaseDeg : 360 - p.moonPhaseDeg)
+      if (p.eclipse!.type === 'lunar-total') expect(p.moonlight).toBeLessThan(0.002 * full)
+      else expect(p.moonlight).toBeCloseTo(full * (1 - 0.95 * p.eclipse!.obscuration), 6)
     }
   })
 

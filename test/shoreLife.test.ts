@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { burrowGeometry, crabGeometry, FLOWERS, flowerGeometry, shellGeometry, shoreLifeFor, starfishGeometry, type FlowerKind } from '../src/props/shoreLife'
 import { Random } from '../src/random'
-import { allParams } from './days'
+import { allParams, DAYS, scene, scenes } from './days'
 
 describe('shore life', () => {
   const days = allParams()
@@ -10,22 +10,24 @@ describe('shore life', () => {
   const life = (p: (typeof days)[number]) => shoreLifeFor(p, Random.derive(p.seed, 'props/shore-life'))!
 
   it('only lives on a beach', () => {
-    for (const p of days) if (p.coast.type !== 'beach') expect(shoreLifeFor(p, new Random(p.seed))).toBeNull()
+    for (const p of scenes({ coast: 'open-sea' })) expect(shoreLifeFor(p, new Random(p.seed))).toBeNull()
   })
 
   it('puts ghost crabs on warm sand, out mostly at dusk and night', () => {
     const ghost = beaches.filter(p => life(p).crab === 'ghost')
     expect(ghost.length).toBeGreaterThan(50)
     for (const p of ghost) expect(['tropical', 'desert', 'mediterranean']).toContain(p.biome.name)
-    const out = (test: (p: (typeof days)[number]) => boolean): number => {
-      const some = ghost.filter(test)
+    // The same tropical beaches by night and at midday.
+    const out = (timeOfDay: 'night' | 'midday'): number => {
+      const some = scenes({ coast: 'beach', biome: 'tropical', timeOfDay, eclipse: null }, 80).filter(p => life(p).crab === 'ghost')
       return some.reduce((sum, p) => sum + life(p).crabs, 0) / some.length
     }
-    expect(out(p => p.timeOfDay === 'night')).toBeGreaterThan(out(p => p.timeOfDay === 'midday') * 2)
-    for (const p of beaches) {
-      const { crab } = life(p)
-      if (crab === 'hermit') expect(p.biome.name).toBe('tropical')
-      if (p.sea.ocean === 'southern' || p.sea.ocean === 'arctic') expect(crab).toBeNull()
+    expect(out('night')).toBeGreaterThan(out('midday') * 2)
+    for (const p of beaches) if (life(p).crab === 'hermit') expect(p.biome.name).toBe('tropical')
+    for (const ocean of ['southern', 'arctic'] as const) {
+      for (const biome of ['nordic', 'volcanic', 'tropical'] as const) {
+        for (const p of scenes({ coast: 'beach', biome, ocean }, 10)) expect(life(p).crab).toBeNull()
+      }
     }
   })
 
@@ -45,8 +47,12 @@ describe('shore life', () => {
       }
     }
     expect(seen).toBeGreaterThan(100)
-    // Nothing in bloom on a northern beach in January.
-    for (const p of beaches) if (p.biome.name === 'nordic' && p.date.slice(5, 7) === '01') expect(life(p).flowers).toEqual([])
+    // Nothing in bloom on a northern beach in January; thrift in June.
+    const january = DAYS.filter(d => d.slice(5, 7) === '01')
+    for (const date of january) expect(life(scene({ coast: 'beach', biome: 'nordic', ocean: 'atlantic' }, date)).flowers).toEqual([])
+    const june = DAYS.filter(d => d.slice(5, 7) === '06')
+    const thrift = june.filter(date => life(scene({ coast: 'beach', biome: 'nordic', ocean: 'atlantic' }, date)).flowers.includes('thrift'))
+    expect(thrift.length / june.length).toBeGreaterThan(0.5)
   })
 
   it('washes up the shells of that coast', () => {
@@ -54,8 +60,8 @@ describe('shore life', () => {
       const { shells } = life(p)
       expect(shells.length).toBeGreaterThan(0)
       if (shells.includes('sand-dollar')) expect(p.sea.ocean).toBe('pacific')
-      if (p.sea.ocean === 'southern') expect(shells).toEqual(['mussel'])
     }
+    for (const p of scenes({ coast: 'beach', biome: 'volcanic', ocean: 'southern' })) expect(life(p).shells).toEqual(['mussel'])
   })
 
   it('builds small, finite meshes standing on the ground', () => {

@@ -6,10 +6,10 @@ import { debrisFor } from '../src/props/debris'
 import { shoreLifeFor } from '../src/props/shoreLife'
 import { Random } from '../src/random'
 import { deepPatch, parseSceneSpec, type SceneSpec } from '../src/sceneSpec'
-import { allParams, DAYS } from './days'
+import { allParams, DAYS, scene as sceneOn } from './days'
 
 const DAY = '2024-07-12'
-const scene = (spec: SceneSpec, date = DAY): SceneParams => generateParams(date, 0, 16 / 9, spec)
+const scene = (spec: SceneSpec, date = DAY): SceneParams => sceneOn(spec, date)
 const sample = DAYS.slice(0, 40)
 
 describe('scene specs', () => {

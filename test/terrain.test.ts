@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { shoreToWorld, surfCycle, surfSets, terrainHeight, terrainNormal, worldToShore } from '../src/terrain'
-import { allParams } from './days'
+import { scene, scenes } from './days'
 
-const beaches = allParams()
-  .filter(p => p.coast.type === 'beach')
-  .slice(0, 40)
-  .map(p => p.coast)
+// Every camera position on the shore, on days across the years.
+const beaches = (['shoreline', 'along-beach', 'framed', 'overlook'] as const).flatMap(composition =>
+  scenes({ composition }, 10).map(p => p.coast)
+)
 
 describe('shore frame', () => {
   it('worldToShore and shoreToWorld are inverses', () => {
@@ -23,7 +23,7 @@ describe('shore frame', () => {
 
 describe('terrainHeight', () => {
   it('is deep water everywhere on the open sea', () => {
-    const open = allParams().find(p => p.coast.type === 'open-sea')!.coast
+    const open = scene({ coast: 'open-sea' }).coast
     expect(terrainHeight(open, 0, 0)).toBe(-200)
   })
 
