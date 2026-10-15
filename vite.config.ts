@@ -11,5 +11,8 @@ export default defineConfig({
     }
   },
   // Rendered snapshots land in out/; don't reload the page when they change.
-  server: { watch: { ignored: ['**/out/**'] } }
+  // Port 5174, not Vite's default 5173 (often taken by other projects), and
+  // fail rather than drift to another port, so the snapshot script's
+  // default URL always reaches this app.
+  server: { port: 5174, strictPort: true, watch: { ignored: ['**/out/**'] } }
 })

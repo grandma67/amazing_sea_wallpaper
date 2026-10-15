@@ -1,6 +1,6 @@
 // Render wallpapers for one or more dates in headless Chrome and save them.
 //
-//   node scripts/snapshot.mjs [--url http://localhost:5173/] [--out out]
+//   node scripts/snapshot.mjs [--url http://localhost:5174/] [--out out]
 //        [--w 3840 --h 2160] [--quality 0.92] [--frames 64]
 //        [--angle metal|swiftshader] [--channel chrome|chromium] DATE [DATE...]
 //
@@ -18,7 +18,7 @@ const option = (name, fallback) => {
   const [, value] = args.splice(i, 2)
   return value
 }
-const baseUrl = option('url', 'http://localhost:5173/')
+const baseUrl = option('url', 'http://localhost:5174/')
 const outDir = option('out', 'out')
 const width = Number(option('w', 3840))
 const height = Number(option('h', 2160))
