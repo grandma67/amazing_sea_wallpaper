@@ -340,6 +340,16 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     metalness: 0,
     side: DoubleSide
   })
+  // No sun glints: a low sun behind the trees catches the many edge-on
+  // leaves at grazing angles, where the specular lobe spikes, and the crowns
+  // glitter. Real leaves scatter that light through their blades instead.
+  // Skylight reflections (indirect specular) stay.
+  material.onBeforeCompile = shader => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <lights_fragment_end>',
+      '#include <lights_fragment_end>\nreflectedLight.directSpecular = vec3(0.0);'
+    )
+  }
 
   const order: VegetationKind[] = [
     'palm',

@@ -165,6 +165,12 @@ export function createClouds(
   const cellScale = weather.formations.length > 0 ? (CLOUD_GENERA[weather.formations[0]].cellScale ?? 1) : 1
   clouds.localWeatherRepeat.multiplyScalar(cellScale)
   clouds.shapeRepeat.multiplyScalar(cellScale)
+  // No temporal history: our frames are averaged afterwards (accumulate.ts).
+  // takram's TAA reprojects the light-shaft buffer through scene depth and
+  // clips it to each pixel's neighbourhood, so near a silhouette the short,
+  // unshadowed rays of the geometry leak into the sky; over the jittered
+  // frames that spread into a bright halo around trees against a low sun.
+  clouds.cloudsPass.resolveMaterial.uniforms.temporalAlpha.value = 1
   return clouds
 }
 

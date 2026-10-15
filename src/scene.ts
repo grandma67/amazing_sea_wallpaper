@@ -60,7 +60,7 @@ import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
 import { synthesizeOceanAsync } from './spectrum'
-import { StillScenePass } from './stillScene'
+import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormEffects } from './stormEffects'
 import { bindCloudShadow, bindShadow } from './shadow'
 import { SkyDenoiseEffect } from './skyDenoise'
@@ -385,10 +385,21 @@ export async function renderScene(
   props.traverse(o => {
     if (o.userData.spray === true) spray.push(o)
   })
-  composer.addPass(clouds != null ? new StillScenePass(scene, camera, spray) : new RenderPass(scene, camera))
+  const skyObjects: Object3D[] = []
+  scene.traverse(o => {
+    if (o.userData.sky === true) skyObjects.push(o)
+  })
+  const still = clouds != null ? new StillScenePass(scene, camera, spray, skyObjects) : null
+  composer.addPass(still ?? new RenderPass(scene, camera))
   if (clouds != null) {
-    // Clouds are soft: ray march them at no more than ~1080p.
-    clouds.resolution.scale = Math.min(1, 1920 / width)
+    // Clouds are soft: ray march them at no more than ~1080p. Except on a
+    // beach, where trees and ridges stand against the sky: each cloud ray
+    // stops at the scene depth under its texel, and upsampled across a
+    // silhouette, the rays that stopped at a tree (no cloud, no cloud
+    // shadow in the air) let the bright clear sky behind the clouds show
+    // through as a glowing rim, and a twig thinner than a texel takes the
+    // sky's shadowed air. Only full resolution gets those right.
+    clouds.resolution.scale = params.coast.type === 'beach' ? 1 : Math.min(1, 1920 / width)
     // A still doesn't need temporal upscaling (one ray per 4×4 block per
     // frame): march every pixel every frame, and the accumulated frames
     // below supersample them.
@@ -401,6 +412,7 @@ export async function renderScene(
         aerialPerspective.shadowLength = clouds.atmosphereShadowLength
     })
     composer.addPass(new EffectPass(camera, clouds, aerialPerspective))
+    composer.addPass(new EffectPass(camera, new SkyFillEffect(still!)))
   } else {
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }

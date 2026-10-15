@@ -19,7 +19,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.7 (M7) | 10-14 | Wishlist 7.1–7.15: better ships, moss on rocks, branching trees, wind, cloud genera, storms + lightning, five oceans + polar ice, dolphins/whales, migratory birds, seabird islands, portrait mode, rainbows, surf spray, mountains + volcanoes, rain on the sea |
 | 0.8 | 10-14 | Performance: still-scene accumulation, env-cube shader reuse, FFT on a worker — cloudy 4K 4.4 → 2.9 s, same image |
 | 0.9 | 10-14 | Future dates show today; `/random`; cloud grain fix (no temporal upscaling, sub-pixel jitter, sky denoise); wave-break redesign (beach-facing breakers, roller whitewater, foam weave, soft spray) |
-| 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day; lighthouses on points and rocks, lit at dusk, night and in fog, with beams scattered by haze and fog; splash boat rides the middle wave, gentler waves, higher sun; unit tests; leaf meshes per species (oval, ovate, lance, needle, pinnate leaflets) and bark relief with buttress roots |
+| 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day; lighthouses on points and rocks, lit at dusk, night and in fog, with beams scattered by haze and fog; splash boat rides the middle wave, gentler waves, higher sun; unit tests; leaf meshes per species (oval, ovate, lance, needle, pinnate leaflets) and bark relief with buttress roots; no glow or bright rims around trees and ridges against a low sun (clouds at full resolution on beaches, no cloud TAA history, silhouette sky fill, no sun glints on leaves) |
 
 ## Decisions
 
@@ -32,6 +32,10 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 - **Rejected for speed:** shipping precomputed atmosphere LUTs (10–48 MB, slightly different
   sky); one shared clouds effect for all env-cube faces (fragile); fewer frames / lower cloud
   resolution (changes the image).
+- **Clouds at full resolution on beaches** (2026-10-15), not capped at ~1080p: half-res
+  clouds and light shafts upsampled across tree and ridge silhouettes gave glowing rims, and
+  joint (depth-aware) upsampling can't recover twigs thinner than a texel. Cloudy 4K beach
+  ~5 → ~9 s. Fewer frames was rejected: the cloud shadow map hasn't converged by 32.
 
 ## Stack
 
@@ -66,7 +70,9 @@ Playwright (headless snapshots).
   axis, haze + fog scattering, depth-occluded) and the flash glare, before exposure.
 - **Frame:** `camera.ts`, `composition.ts` (ray-grid coverage, re-roll bad framings),
   `reflection.ts` (planar reflection), `accumulate.ts` + `stillScene.ts` (render the scene
-  once, redraw only clouds/spray per frame), `skyDenoise.ts` (smooths light-shaft grain once).
+  once, redraw only clouds/spray per frame; a second sky-less render gives each pixel's
+  geometry coverage, and `SkyFillEffect` blends the finished sky into silhouette pixels),
+  `skyDenoise.ts` (smooths light-shaft grain once).
 - **Page:** `main.ts` — portrait/landscape, device-aware size, prev/next/today/random,
   download; `random/index.html` redirects to a random past day.
 - **Tests:** `test/` (Vitest, `npm test`, also in CI before the build) covers the logic,
@@ -107,8 +113,16 @@ Playwright (headless snapshots).
   Extra randomness inside `growTree`/`leaves` comes from `hash()`, not `rng`, so adding
   detail doesn't reshape every tree.
 - Pre-existing: a sailboat drawn as a bare, steeply tilted mast (2026-05-01).
-- Pre-existing: thin pink/white outlines on distant ridges and tree silhouettes at blue hour
-  (seen on 2026-09-11, also without the lighthouse).
+- Glow around trees at sunset had three causes, found by switching passes off one at a time:
+  takram's cloud TAA smearing light shafts past silhouettes over the jittered frames (wide
+  halo; its history is now off, our accumulation averages instead); half-res clouds
+  upsampled across silhouettes (bright rims, also the pink ridge outlines at blue hour);
+  MSAA edge pixels keeping part of the bare, cloudless sky mesh. Plus GGX glints on edge-on
+  leaves against a low sun (direct specular is off for plants). A pass that reads the
+  depth buffer composites per pixel; anything blended into a pixel (MSAA, bilinear) needs
+  coverage handled explicitly.
+- postprocessing's `readDepth()` isn't the raw depth inside takram's aerial perspective
+  shader; use `readDepthValue(depthBuffer, uv)` there.
 
 ## Ideas (not planned)
 

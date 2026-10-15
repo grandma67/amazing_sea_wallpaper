@@ -70,7 +70,11 @@ export function windMaterials(
   const direction = windDirection(params)
   const strength = windStrength(params)
   const bent = material.clone()
-  bent.onBeforeCompile = shader => patch(shader, direction, bend, strength)
+  // Keep any patch the original material already has.
+  bent.onBeforeCompile = (shader, renderer) => {
+    material.onBeforeCompile(shader, renderer)
+    patch(shader, direction, bend, strength)
+  }
   // Same settings as three's own shadow depth material, plus the bend.
   const depth = new MeshDepthMaterial()
   depth.onBeforeCompile = shader => patch(shader, direction, bend, strength)
