@@ -46,13 +46,15 @@ import {
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
 import { createCamera } from './camera'
+import { moonlight as phaseLight } from './celestial'
 import { createClouds, loadCloudAssets, renderCloudyEnvironment } from './clouds'
+import { eclipseSky } from './eclipse'
 import { meterScene } from './exposure'
 import { FogEffect } from './fog'
 import { LighthouseBeamEffect } from './lighthouse'
 import { createMoon, placeMoon } from './moon'
 import { createOcean } from './ocean'
-import type { SceneParams } from './params'
+import { SUN_ANGULAR_RADIUS, type SceneParams } from './params'
 import { PropContext } from './props/context'
 import type { LanternInfo } from './props/lighthouse'
 import { createProps } from './props'
@@ -160,10 +162,21 @@ export async function renderScene(
     new Vector3(...v).transformDirection(worldToECEF)
 
   const night = params.timeOfDay === 'night'
+  const moonlit = params.nightSky === 'moonlit'
   // At night the moon is the light source: moonlight is sunlight reflected by
   // the moon, so the sky is physically a very dim "day" sky lit from the moon's
   // direction. We render it at full strength and grade it down afterwards.
-  const lightDirection = night ? params.moonDirection : params.sunDirection
+  // With the moon down, starlight and airglow light the night evenly: a dim
+  // light from overhead stands in for them.
+  const starlight: [number, number, number] = [0.2, 0.96, 0.2]
+  const lightDirection = night ? (moonlit ? params.moonDirection : starlight) : params.sunDirection
+  const eclipse = params.eclipse
+  const solarEclipse = eclipse != null && eclipse.type.startsWith('solar')
+  const totality = eclipse?.type === 'solar-total'
+  // How far the camera opens up for a darker night: partly, as the eye
+  // adapts, so a half moon is dimmer than a full one and starlight dimmer
+  // still (a long exposure under the stars alone).
+  const nightScale = !night ? 1 : moonlit ? Math.max(params.moonlight, 0.06) ** 0.5 : 0.5
   const lightDirectionWorld = new Vector3(...lightDirection)
   const lightECEF = toECEF(lightDirection)
   const moonECEF = toECEF(params.moonDirection)
@@ -188,9 +201,14 @@ export async function renderScene(
     material.sunDirection.copy(lightECEF)
     material.moonDirection.copy(moonECEF)
     material.moonAngularRadius = REAL_MOON_ANGULAR_RADIUS * params.moonScale
+    material.sunAngularRadius = SUN_ANGULAR_RADIUS * params.sunScale
+    if (solarEclipse) eclipseSky(material, eclipse, moonECEF, REAL_MOON_ANGULAR_RADIUS * params.moonScale)
     // Under a closed overcast deck the sun disc can't be seen.
     material.sun = withSun && !night && params.weather.sunVisibility > 0.1
     material.moon = !night
+    // takram keeps the moon's light fixed, so a disc drawn bigger is dimmer;
+    // keep its surface brightness (a real moon is clearly seen by day).
+    material.lunarRadianceScale = params.moonScale ** 2
     // Below the sky model's horizon, show something sea-like rather than black
     // in case it peeks out under the ocean's polygonal silhouette.
     material.groundAlbedo.setRGB(0.2, 0.24, 0.28)
@@ -215,7 +233,7 @@ export async function renderScene(
 
   // Stars at night and late twilight: the real bright-star catalogue, turned
   // to the sky of this date and drawn behind the clouds.
-  const starryTwilight = params.timeOfDay === 'blue-hour' && params.sunElevationDeg < -4
+  const starryTwilight = (params.timeOfDay === 'blue-hour' && params.sunElevationDeg < -4) || totality
   if (night || starryTwilight) {
     const data = await new ArrayBufferLoader().loadAsync(assetUrl('stars.bin'))
     const geometry = new StarsGeometry(data)
@@ -229,7 +247,11 @@ export async function renderScene(
       material.sunDirection.copy(lightECEF)
       // At night the sky is rendered at "daylight" scale and graded down
       // afterwards (see above), so the stars need the same boost.
-      material.intensity = night ? 4000 : 6
+      // Darker nights show more of them (not in the sea's reflection: one
+      // star fills a texel of the small reflection cube).
+      const boost = target === scene ? nightScale ** -1.2 : 1
+      // In totality only the brightest stars and planets come out.
+      material.intensity = night ? 4000 * boost : totality ? 2.5 : 6
       material.pointSize = Math.max(1, height / 1080)
       const stars = new Points(geometry, material)
       stars.setRotationFromMatrix(eciToWorld)
@@ -241,11 +263,17 @@ export async function renderScene(
   }
 
   const moonAngularRadius = REAL_MOON_ANGULAR_RADIUS * params.moonScale
-  if (night) {
+  if (moonlit) {
     const moonDir = new Vector3(...params.moonDirection)
     for (const target of [scene, envScene]) {
       const moon = createMoon()
       placeMoon(moon, camera.position, moonDir, moonAngularRadius, new Vector3(...params.sunDirection))
+      if (eclipse != null && !solarEclipse) {
+        const mu = moon.material.uniforms
+        mu.umbra.value = 1
+        mu.umbraCenter.value.set(Math.cos(eclipse.angle), Math.sin(eclipse.angle)).multiplyScalar(eclipse.offset)
+        mu.umbraRadius.value = eclipse.ratio
+      }
       moon.userData.sky = true
       target.add(moon)
     }
@@ -265,6 +293,8 @@ export async function renderScene(
   // per-pixel cloud shadows in the custom shaders).
   const sunIrradiance = getSunLightColor(textures.transmittanceTexture, cameraECEF, lightECEF, new Color())
     .multiplyScalar(params.weather.sunVisibility)
+    // In totality no sunlight reaches us at all.
+    .multiplyScalar(totality ? 0 : 1)
   const skyProbe = new SkyLightProbe({ irradianceTexture: textures.irradianceTexture })
   skyProbe.worldToECEFMatrix.copy(worldToECEF)
   skyProbe.position.copy(camera.position)
@@ -274,19 +304,37 @@ export async function renderScene(
   // Recover horizontal-surface irradiance from the probe's constant SH term.
   const sh0 = skyProbe.sh.coefficients[0]
   const skyIrradiance = new Color(sh0.x, sh0.y, sh0.z).multiplyScalar(Math.sqrt(Math.PI))
+  // ...only the dark sky and the glow round the horizon (eclipse.ts).
+  if (totality) skyIrradiance.multiply(new Color(0.012, 0.009, 0.007))
 
-  if (night) {
+  const elongation =
+    Math.acos(Math.max(-1, Math.min(1, new Vector3(...params.moonDirection).dot(new Vector3(...params.sunDirection))))) / DEG
+  if (moonlit) {
     // Moon radiance consistent with the moonlight illuminating the scene:
-    // E = L · π r²  →  L = E / (π r²), using the real angular radius.
+    // E = L · π r²  →  L = E / (π r²), using the real angular radius. That
+    // holds for a full moon; a partly lit moon has the same surface
+    // brightness but sheds far less light (the phase law), and the scene is
+    // lit at a full moon's strength, so its disc is that much brighter
+    // against it.
     const moonRadiance = sunIrradiance
       .clone()
-      .multiplyScalar(1 / (Math.PI * REAL_MOON_ANGULAR_RADIUS ** 2))
+      .multiplyScalar(1 / (Math.PI * REAL_MOON_ANGULAR_RADIUS ** 2 * phaseLight(elongation)))
     for (const target of [scene, envScene]) {
       target.traverse(o => {
         const mat = (o as Mesh).material as { uniforms?: Record<string, Uniform> }
         if (mat?.uniforms?.radiance) mat.uniforms.radiance.value.copy(moonRadiance)
+        // Earthshine: the dark side lit by the earth, a few hundred-thousandths
+        // of a full moon's surface whatever the phase.
+        if (mat?.uniforms?.earthshine) mat.uniforms.earthshine.value = 2e-5 * phaseLight(elongation)
       })
     }
+  }
+
+  // A lunar eclipse takes the moonlight away (the sky only through the
+  // night's exposure): what's left is the umbra's dim copper glow.
+  if (eclipse != null && !solarEclipse) {
+    sunIrradiance.multiplyScalar(params.moonlight / phaseLight(elongation))
+    if (eclipse.type === 'lunar-total') sunIrradiance.multiply(new Color(1, 0.35, 0.15))
   }
 
   // --- Ocean ----------------------------------------------------------------
@@ -314,6 +362,9 @@ export async function renderScene(
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = PCFShadowMap
   scene.environment = envTarget.texture
+  // In totality the props would catch the corona and the horizon glow at
+  // daylight strength from the environment map; they're silhouettes.
+  if (totality) scene.environmentIntensity = 0.1
   const sun = new DirectionalLight(sunIrradiance.clone(), 1)
   const forward = camera.getWorldDirection(new Vector3()).setY(0).normalize()
   const focus = camera.position.clone().addScaledVector(forward, 150).setY(0)
@@ -347,6 +398,8 @@ export async function renderScene(
     midday: 0,
     night: -2.7
   }
+  // A dark sky in totality, metered off its bright horizon.
+  const eclipseBias = totality ? -1.6 : 0
   // Twilight under the Bruneton sky skews magenta; cool it toward the blue a
   // camera set to daylight white balance would record.
   const whiteBalance =
@@ -360,8 +413,9 @@ export async function renderScene(
   whiteBalance.lerp(new Color(1.12, 1.0, 0.84).multiply(whiteBalance), gloom)
   // Night vision blends in from dusk: partly desaturated and blue at blue hour.
   const scotopic = night ? 1 : params.timeOfDay === 'blue-hour' ? 0.5 : 0
-  const exposure = (0.16 / Math.max(sceneLuminance, 1e-9)) * 2 **
+  const exposure = (0.16 / Math.max(sceneLuminance, 1e-9)) * nightScale * 2 **
       (evBias[params.timeOfDay] +
+        eclipseBias +
         // Low suns light the clouds from below and the horizon stays bright.
         1.1 * gloom * Math.min(Math.max(params.sunElevationDeg / 15, 0), 1))
 
@@ -370,6 +424,8 @@ export async function renderScene(
   Object.assign(aerialPerspective, textures)
   aerialPerspective.worldToECEFMatrix.copy(worldToECEF)
   aerialPerspective.sunDirection.copy(lightECEF)
+  // In totality the air isn't sunlit: no haze glow over the distance.
+  aerialPerspective.inscatter = !totality
 
   const composer = new EffectComposer(renderer, {
     frameBufferType: HalfFloatType,
@@ -559,6 +615,7 @@ export async function renderScene(
       gpu: debugInfo != null ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown',
       exposure,
       sceneLuminance,
+      nightScale,
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),
       pitchDeg: camera.rotation.x / DEG,

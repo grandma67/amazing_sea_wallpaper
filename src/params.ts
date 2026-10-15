@@ -1,5 +1,7 @@
 import { MoonPhase } from 'astronomy-engine'
 
+import { eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
+
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
 import { CLOUD_GENERA, pickFormations, type CloudGenus } from './cloudTypes'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
@@ -205,6 +207,16 @@ export interface SceneParams {
   moonPhaseDeg: number
   moonIllumination: number
   moonScale: number
+  /** Sun disc size relative to the real one (bigger on eclipse days, to
+   * match the moon's). */
+  sunScale: number
+  /** Night only: lit by the moon, or by the stars alone (moon down or new). */
+  nightSky: 'moonlit' | 'starlit' | null
+  /** Moonlight on the scene relative to a full moon (phase law, eclipse);
+   * 0 for a starlit night. */
+  moonlight: number
+  /** A real eclipse on this date (celestial.ts). */
+  eclipse: EclipseParams | null
 
   /** Geodetic latitude used to anchor the atmosphere model (degrees). */
   latitudeDeg: number
@@ -286,6 +298,13 @@ const SUN_ELEVATION: Record<TimeOfDay, [number, number]> = {
   midday: [35, 70],
   night: [-30, -16]
 }
+
+/** The real sun's and moon's angular radii (radians; takram's defaults). */
+export const SUN_ANGULAR_RADIUS = 0.004675
+export const MOON_ANGULAR_RADIUS = 0.0045
+/** On eclipse days the sun is drawn this much bigger, and the moon to
+ * match, so the eclipse reads at wallpaper size. */
+const ECLIPSE_SCALE = 3
 
 function moonPhaseName(phase: number): string {
   const names = [
@@ -750,6 +769,14 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   const elongation = moonPhaseDeg <= 180 ? moonPhaseDeg : 360 - moonPhaseDeg
   const moonIllumination = (1 - Math.cos(elongation * DEG)) / 2
 
+  // Real eclipses on their dates, and the sky's own choices (daytime moon,
+  // moon up or down at night), on their own streams.
+  const erng = Random.derive(seed, 'eclipse')
+  const eclipse = eclipseOn(date, () => erng.float())
+  const solarEclipse = eclipse != null && eclipse.type.startsWith('solar')
+  const lunarEclipse = eclipse != null && eclipse.type.startsWith('lunar')
+  const skyRng = Random.derive(seed, 'moon-sky')
+
   let timeOfDay = rng.weighted<TimeOfDay>([
     ['golden-hour', 30],
     ['sun-on-horizon', 12],
@@ -758,12 +785,28 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     ['midday', 15],
     ['night', 10]
   ])
-  // Night needs a reasonably bright moon to be worth looking at.
-  if (timeOfDay === 'night' && moonIllumination < 0.35) timeOfDay = 'blue-hour'
+  // An eclipse day shows the eclipse: by day with the sun in the frame, or
+  // at night with the moon in it.
+  if (solarEclipse) timeOfDay = timeOfDay === 'golden-hour' ? 'golden-hour' : 'daylight'
+  if (lunarEclipse) timeOfDay = 'night'
   const isEvening = rng.chance(0.5)
   // The weather has its own random stream, so drawing it here doesn't shift
   // any other parameter of the day.
   const weather = generateWeather(seed, timeOfDay)
+  // Eclipse days get a sky to see them in; totality under a clear one.
+  if (eclipse != null) {
+    if (eclipse.type === 'solar-total') {
+      weather.kind = 'clear'
+      weather.coverage = 0
+    } else if (solarEclipse && weather.kind !== 'clear' && weather.kind !== 'cirrus') {
+      // Only thin cirrus: a cumulus in front of the sun would hide it.
+      weather.kind = 'cirrus'
+      weather.coverage = 0.5
+    } else if (weather.kind === 'overcast' || weather.kind === 'broken') {
+      weather.kind = 'few'
+      weather.coverage = 0.3
+    }
+  }
 
   // Rainbows: a shower passing on a sunny, showery day while the sun is low
   // (the bow is a 42° circle around the point opposite the sun, so it's only
@@ -771,6 +814,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   // turns its back to the sun.
   const rainbowRng = Random.derive(seed, 'rainbow')
   const rainbowDay =
+    eclipse == null &&
     (timeOfDay === 'golden-hour' || timeOfDay === 'daylight') &&
     (weather.kind === 'scattered' || weather.kind === 'broken') &&
     rainbowRng.chance(0.15)
@@ -779,11 +823,16 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   // in or near the view for glitter paths; high suns can be anywhere.
   let headingDeg = rng.range(0, 360)
   const [elMin, elMax] = SUN_ELEVATION[timeOfDay]
-  const sunElevationDeg = rng.range(elMin, elMax)
+  let sunElevationDeg = rng.range(elMin, elMax)
   const lowSun = timeOfDay !== 'midday' && timeOfDay !== 'daylight'
   const drawnSunAz = lowSun && rng.chance(0.7) ? rng.normal(0, 18 * framing) : rng.range(-180, 180)
-  const relSunAz = rainbowDay ? 180 + rainbowRng.normal(0, 10 * framing) : drawnSunAz
-  const sunDirection = dirFromAzEl(headingDeg + relSunAz, sunElevationDeg)
+  let relSunAz = rainbowDay ? 180 + rainbowRng.normal(0, 10 * framing) : drawnSunAz
+  if (solarEclipse) {
+    // In the frame, and not so high the lens can't reach it.
+    relSunAz = erng.normal(0, 10 * framing)
+    sunElevationDeg = timeOfDay === 'golden-hour' ? erng.range(3, 8) : erng.range(6, 12)
+  }
+  let sunDirection = dirFromAzEl(headingDeg + relSunAz, sunElevationDeg)
 
   // Place the moon at the physically correct angular distance from the sun
   // (its elongation), so the lit side and phase are consistent with the sky.
@@ -814,7 +863,50 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
       headingDeg = moonAzDeg + Random.derive(seed, 'moon-framing').normal(0, 14 * framing)
     }
   }
+  // The sun and the moon by day: a moon well clear of the sun, in the frame
+  // with the sea.
+  const dayMoon =
+    eclipse == null &&
+    (timeOfDay === 'golden-hour' || timeOfDay === 'daylight' || timeOfDay === 'midday' || timeOfDay === 'sun-on-horizon') &&
+    moonIllumination > 0.15 &&
+    skyRng.chance(0.35)
+  if (dayMoon) {
+    const view = dirFromAzEl(headingDeg, 0)
+    let bestScore = -Infinity
+    for (let i = 0; i < 48; i++) {
+      const candidate = offsetDirection(sunDirection, elongation * DEG, skyRng.range(0, 2 * Math.PI))
+      const el = elevationOf(candidate)
+      const facing = candidate[0] * view[0] + candidate[2] * view[2]
+      // Low enough for most lenses to take it in above the horizon.
+      const score = (el > 4 && el < 14 ? 1 : -1) + 2 * facing + skyRng.range(0, 0.3)
+      if (score > bestScore) {
+        bestScore = score
+        moonDirection = candidate
+      }
+    }
+  }
+  if (solarEclipse) {
+    // The new moon over the sun, offset by the eclipse's geometry.
+    const sunRadius = SUN_ANGULAR_RADIUS * ECLIPSE_SCALE
+    moonDirection = offsetDirection(sunDirection, eclipse!.offset * sunRadius, eclipse!.angle)
+  }
+  if (lunarEclipse) {
+    // The full moon in the earth's shadow, low over the sea ahead.
+    moonDirection = dirFromAzEl(headingDeg + erng.normal(0, 8 * framing), erng.range(5, 12))
+    sunDirection = [-moonDirection[0], -moonDirection[1], -moonDirection[2]]
+    sunElevationDeg = elevationOf(sunDirection)
+  }
+  // Some nights the moon hasn't risen yet, or has set.
+  if (timeOfDay === 'night' && !lunarEclipse && skyRng.chance(0.2)) {
+    moonDirection = [moonDirection[0], -Math.abs(moonDirection[1]) - 0.1, moonDirection[2]]
+    moonDirection = normalize(moonDirection)
+  }
   const moonElevationDeg = elevationOf(moonDirection)
+  // At night the moon lights the scene if it's up; otherwise only the stars.
+  const nightSky =
+    timeOfDay !== 'night' ? null : lunarEclipse || (moonElevationDeg > 2 && moonIllumination > 0.03) ? 'moonlit' : 'starlit'
+  let moonlight = nightSky === 'moonlit' ? phaseLight(elongation) : 0
+  if (lunarEclipse) moonlight *= eclipse!.type === 'lunar-total' ? 0.0015 : 1 - 0.95 * eclipse!.obscuration
 
   const heightM = rng.weighted<() => number>([
     [() => rng.range(1.2, 4), 4],
@@ -827,7 +919,10 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     [() => rng.range(50, 90), 2]
   ])()
   // A rainbow spans 84°: go wide to get most of the arc in.
-  const focalLengthMm = rainbowDay ? Math.min(drawnFocalLength, rainbowRng.range(14, 22)) : drawnFocalLength
+  // An eclipse needs a lens long enough to show it and wide enough to keep
+  // it in the frame with the sea.
+  const focalLengthMm =
+    eclipse != null ? erng.range(24, 35) : rainbowDay ? Math.min(drawnFocalLength, rainbowRng.range(14, 22)) : drawnFocalLength
 
   // Wind: mostly calm-to-moderate seas, fresher under heavy cloud (fronts)
   // and lighter on clear days.
@@ -848,7 +943,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     ])() * windByWeather[weather.kind]
   const windHeadingDeg = rng.range(0, 360)
 
-  const storm = generateStorm(seed, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect))
+  const storm = eclipse != null ? null : generateStorm(seed, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect))
   if (storm != null) {
     const srng = Random.derive(seed, 'storm-weather')
     weather.kind = 'storm'
@@ -877,7 +972,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   // seas; pack ice smothers waves, leaving calm leads between the floes.
   const iceCalm = ice != null && ice.packIce > 0 ? 0.4 : 1
   windSpeed = Math.min(24, windSpeed * basin.wind * (monsoon ? 1.35 : 1))
-  const fog = rainbowDay ? null : pickFog(seed, biome, basin.name, Number(date.slice(5, 7)), timeOfDay, weather, windSpeed)
+  const fog = rainbowDay || eclipse != null ? null : pickFog(seed, biome, basin.name, Number(date.slice(5, 7)), timeOfDay, weather, windSpeed)
   if (fog != null) {
     // Fog comes with light airs: the sea calms under it.
     windSpeed = Math.min(windSpeed, fog.kind === 'sea-smoke' ? 3 : 6)
@@ -899,7 +994,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     'blue-hour': isEvening ? 'Dusk' : 'Dawn',
     daylight: isEvening ? 'Afternoon' : 'Morning',
     midday: 'Midday',
-    night: 'Moonlit night'
+    night: nightSky === 'starlit' ? 'Starry night' : 'Moonlit night'
   }
   const colony = pickColony(seed, basin.name, biome)
   const pinnipeds = pickPinnipeds(seed, basin.name, biome)
@@ -956,9 +1051,22 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     const skyTitle = weather.formations.map(g => CLOUD_GENERA[g].title).find(t => t != null)
     if (skyTitle != null && timeOfDay !== 'night') titleParts.push(skyTitle)
   }
-  if (moonElevationDeg > 1 && moonIllumination > 0.05) titleParts.push(moonPhaseName(moonPhaseDeg))
+  if (eclipse != null) {
+    const names: Record<EclipseParams['type'], string> = {
+      'solar-partial': 'partial solar eclipse',
+      'solar-annular': 'annular solar eclipse',
+      'solar-total': 'total solar eclipse',
+      'lunar-partial': 'partial lunar eclipse',
+      'lunar-total': 'total lunar eclipse'
+    }
+    titleParts.push(names[eclipse.type])
+  } else if (moonElevationDeg > 1 && moonIllumination > 0.05) {
+    titleParts.push(moonPhaseName(moonPhaseDeg))
+  }
 
-  const moonScale = rng.range(1.2, 2.4)
+  let moonScale = rng.range(1.2, 2.4)
+  const sunScale = solarEclipse ? ECLIPSE_SCALE : 1
+  if (solarEclipse) moonScale = (SUN_ANGULAR_RADIUS * ECLIPSE_SCALE * eclipse!.ratio) / MOON_ANGULAR_RADIUS
   rng.float() // was the latitude draw; keeps the rest of the main stream in place
   const [latMin, latMax] = biome.name === 'tropical' ? [5, 23] : basin.latitude
   const latitudeDeg = orng.range(latMin, latMax)
@@ -975,6 +1083,10 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     moonPhaseDeg,
     moonIllumination,
     moonScale,
+    sunScale,
+    nightSky,
+    moonlight,
+    eclipse,
     latitudeDeg,
     biome,
     sea: { ocean: basin.name, label: basin.label, monsoon, ice },
@@ -990,11 +1102,13 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     camera: {
       heightM: eyeHeight ?? heightM,
       headingDeg,
-      horizonFraction: rng.weighted<() => number>([
-        [() => rng.range(0.55, 0.68), 3], // more sky
-        [() => rng.range(0.32, 0.45), 2], // more sea
-        [() => rng.range(0.45, 0.55), 1]
-      ])(),
+      horizonFraction: ((drawn: number) => (eclipse != null ? erng.range(0.56, 0.66) : drawn))(
+        rng.weighted<() => number>([
+          [() => rng.range(0.55, 0.68), 3], // more sky
+          [() => rng.range(0.32, 0.45), 2], // more sea
+          [() => rng.range(0.45, 0.55), 1]
+        ])()
+      ),
       rollDeg: rng.normal(0, 0.3),
       focalLengthMm,
       aspect

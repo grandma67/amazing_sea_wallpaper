@@ -21,6 +21,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.9 | 10-14 | Future dates show today; `/random`; cloud grain fix (no temporal upscaling, sub-pixel jitter, sky denoise); wave-break redesign (beach-facing breakers, roller whitewater, foam weave, soft spray) |
 | 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day; lighthouses on points and rocks, lit at dusk, night and in fog, with beams scattered by haze and fog; splash boat rides the middle wave, gentler waves, higher sun; unit tests; leaf meshes per species (oval, ovate, lance, needle, pinnate leaflets) and bark relief with buttress roots; no glow or bright rims around trees and ridges against a low sun (clouds at full resolution on beaches, no cloud TAA history, silhouette sky fill, no sun glints on leaves) |
 | 0.11 | 10-15 | Shore debris: driftwood logs (bleached or barked, checked along the grain, root wads) heaped on the storm line and sticks on the wrack line, by coast (Arctic and Pacific most, none on Southern Ocean shores); a wrack line of kelp, Posidonia seagrass banquettes and fibre balls, or sargassum; coconuts on palm coasts. Shore life: ghost crabs (most at dusk and night) with burrows and sand fans, shore and hermit crabs; shells by coast (cockle, clam, scallop, mussel, razor, sand dollar) and starfish; strandline and foredune flowers by biome and month (beach morning glory, sea bindweed, sea holly, sea daffodil, ice plant, thrift, sea rocket, oysterplant) |
+| 0.12 | 10-15 | Moon and eclipses: nights lit by the real phase law (half moon ~1/10 of full), starlit nights with the moon down or new, earthshine on crescents; the moon by day in the frame with the sun; real eclipses on their dates (astronomy-engine): partial, annular and total solar (black moon, corona, dark sky with a 360° horizon glow, stars), partial and total lunar (copper umbra, dimmed moonlight) |
 
 ## Decisions
 
@@ -67,6 +68,17 @@ Playwright (headless snapshots).
   picks crabs by biome and time of day, shells by coast, flowers in bloom by month;
   everything at real size, so crabs and shells only show near the camera); built with `builder.ts` (`MeshBuilder`). `PropContext.seaLevel()` samples the FFT
   wave height on the CPU so things float on the actual waves.
+- **Moon and eclipses:** `celestial.ts` has the phase law (Allen's magnitude fit),
+  disc-overlap geometry and `eclipseOn(date)` (real eclipse peaks; penumbral lunar left
+  out). `params.ts` sets `nightSky` (moonlit/starlit), `moonlight`, `eclipse`, `sunScale`
+  (sun and moon drawn 3× on solar eclipse days) and frames eclipses (24–35 mm, more sky,
+  sun or moon low ahead; clear or cirrus skies, total under clear). `scene.ts`: night
+  exposure × max(moonlight, 0.06)^0.5 (starlit 0.5), stars boosted as the night darkens
+  (not in the reflection cube); moon disc at constant surface brightness (÷ phase law),
+  earthshine, umbra with a copper glow (`moon.ts`); lunar eclipses dim the scene's
+  moonlight. `eclipse.ts` patches takram's sky shader so the moon covers the sun, and in
+  totality darkens the sky to a horizon glow and adds the corona; no direct sun, sky
+  light ×~0.01, no aerial-perspective inscatter, dim environment on props.
 - **Fog:** `fog.ts` screen-space exponential-height fog from depth (closed-form optical
   depth, forward-scattering glow), before exposure; `params.ts` picks it by climate.
 - **Lighthouse:** `params.ts` picks site, paint, height and light character by coast;
@@ -85,7 +97,8 @@ Playwright (headless snapshots).
   (sun/moon geometry, fog, lighthouse, seals, storms, rainbows, ice by region and
   frequency), shore frame and terrain, beam directions, cloud genera, camera horizon,
   composition re-rolls, ocean spectrum and `seaLevel()`, wind, shore debris by coast and
-  driftwood meshes, shore life (crabs, shells, flowers in season) and its meshes.
+  driftwood meshes, moonlight phase law, eclipse dates and framing, night skies, the moon
+  by day, shore life (crabs, shells, flowers in season) and its meshes.
 - **CI:** `.github/workflows/pages.yml` deploys on push and daily at 00:05 UTC renders
   `/latest.jpg` and `/latest-portrait.jpg` with SwiftShader.
 
@@ -127,6 +140,12 @@ Playwright (headless snapshots).
   leaves against a low sun (direct specular is off for plants). A pass that reads the
   depth buffer composites per pixel; anything blended into a pixel (MSAA, bilinear) needs
   coverage handled explicitly.
+- takram's sky draws the sun and moon independently (no occlusion) and keeps the moon's
+  total light fixed, so a bigger disc is dimmer: scale `lunarRadianceScale` by
+  `moonScale²`. Its shader string can be patched after construction (`eclipse.ts` throws
+  if the patch stops matching).
+- A night moon disc is thousands of times over white: earthshine and the eclipse umbra
+  must be tiny fractions (2e-5 and 8e-4) or the dark side saturates too.
 - postprocessing's `readDepth()` isn't the raw depth inside takram's aerial perspective
   shader; use `readDepthValue(depthBuffer, uv)` there.
 
@@ -146,6 +165,8 @@ under trees, a low-power mode for phones.
 - Driftwood: Hakai Magazine "Iceland's Sinking Driftwood Supply"; Eggertsson, Jökull 1993
   (Siberian origin, larch with roots); Wikipedia "Beach wrack"; Deidun et al. (Posidonia
   banquettes, Malta)
+- Moon: Allen, *Astrophysical Quantities* (lunar phase magnitude); astronomy-engine
+  `SearchLunarEclipse` / `SearchGlobalSolarEclipse`
 - Shore life: Wikipedia "Ghost crab" / "Ocypode"; Strachan et al. 1999, Scientia Marina
   (Ocypode cursor, Cyprus, nocturnal); Cabo Verde burrow zonation (Afr. J. Mar. Sci. 2016);
   Rhins of Galloway beach flower guide and Wildlife Trusts (sea holly Jul–Sep, sea bindweed

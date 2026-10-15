@@ -59,7 +59,9 @@ describe('generateParams', () => {
   })
 
   it('places the sun within its time of day and the moon by its real phase', () => {
-    for (const p of days) {
+    // Eclipse days place both by the eclipse; on starlit nights the moon is
+    // just put out of sight.
+    for (const p of days.filter(p => p.eclipse == null && p.nightSky !== 'starlit')) {
       const [lo, hi] = SUN_ELEVATION[p.timeOfDay]
       expect(p.sunElevationDeg).toBeGreaterThanOrEqual(lo)
       expect(p.sunElevationDeg).toBeLessThanOrEqual(hi)
@@ -78,8 +80,36 @@ describe('generateParams', () => {
     expect(generateParams('2026-10-10').moonIllumination).toBeLessThan(0.15)
   })
 
-  it('only shows moonlit nights with a bright moon', () => {
-    for (const p of days.filter(p => p.timeOfDay === 'night')) expect(p.moonIllumination).toBeGreaterThanOrEqual(0.35)
+  it('lights nights by the moon when it is up, and by the stars when it is not', () => {
+    const nights = days.filter(p => p.timeOfDay === 'night')
+    for (const p of nights) {
+      expect(p.nightSky).not.toBeNull()
+      if (p.nightSky === 'starlit') {
+        expect(p.moonlight).toBe(0)
+        expect(p.moonElevationDeg <= 2 || p.moonIllumination <= 0.03).toBe(true)
+      } else {
+        expect(p.moonElevationDeg).toBeGreaterThan(2)
+        expect(p.moonlight).toBeGreaterThan(0)
+        expect(p.moonlight).toBeLessThanOrEqual(1)
+      }
+    }
+    for (const p of days.filter(p => p.timeOfDay !== 'night')) expect(p.nightSky).toBeNull()
+    // All kinds of nights: full, half, crescent moons, and none.
+    expect(nights.filter(p => p.nightSky === 'starlit').length).toBeGreaterThan(10)
+    expect(nights.some(p => p.moonIllumination > 0.95)).toBe(true)
+    expect(nights.some(p => p.nightSky === 'moonlit' && p.moonIllumination < 0.6 && p.moonIllumination > 0.4)).toBe(true)
+    expect(nights.some(p => p.nightSky === 'moonlit' && p.moonIllumination < 0.3)).toBe(true)
+  })
+
+  it('shows the moon by day on some days', () => {
+    const inFrame = days.filter(p => {
+      if (p.timeOfDay === 'night' || p.timeOfDay === 'blue-hour' || p.eclipse != null) return false
+      const [x, y, z] = p.moonDirection
+      const rel = ((((Math.atan2(x, -z) * 180) / Math.PI - p.camera.headingDeg) % 360) + 540) % 360 - 180
+      const halfFov = (Math.atan(18 / p.camera.focalLengthMm) * 180) / Math.PI
+      return Math.abs(rel) < halfFov && y > 0.03
+    })
+    expect(inFrame.length).toBeGreaterThan(40)
   })
 
   it('keeps every camera and sea value in a sane range', () => {
