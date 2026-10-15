@@ -139,9 +139,11 @@ export interface OceanChoice {
   ice: IceParams | null
 }
 
-/** Pick the day's ocean for this coast; `month` is 1–12. */
-export function pickOcean(rng: Random, biome: Biome, month: number): OceanChoice {
-  const basin = OCEANS[rng.weighted(OCEANS_BY_BIOME[biome.name])]
+/** Pick the day's ocean for this coast; `month` is 1–12. `force` sets the
+ * ocean (scene specs) without shifting the stream. */
+export function pickOcean(rng: Random, biome: Biome, month: number, force?: OceanName): OceanChoice {
+  const drawn = rng.weighted(OCEANS_BY_BIOME[biome.name])
+  const basin = OCEANS[force ?? drawn]
   const monsoon = basin.name === 'indian' && month >= 6 && month <= 9
   let ice: IceParams | null = null
   if (basin.name === 'arctic') {

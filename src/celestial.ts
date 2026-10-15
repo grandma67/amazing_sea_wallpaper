@@ -75,26 +75,43 @@ export function eclipseOn(date: string, pick: () => number): EclipseParams | nul
   const start = new Date(`${date}T00:00:00Z`)
   const lunar = SearchLunarEclipse(start)
   if (lunar.peak.date.toISOString().slice(0, 10) === date && lunar.kind !== EclipseKind.Penumbral) {
-    const total = lunar.kind === EclipseKind.Total
-    // In totality the moon sits somewhere inside the umbra; a short
-    // totality grazes its edge.
-    const obscuration = total ? 1 : Math.max(0.05, lunar.obscuration)
-    const offset = total
-      ? (UMBRA_RATIO - 1) * Math.max(0.1, 1 - lunar.sd_total / 55) * (0.8 + 0.2 * pick())
-      : offsetFor(obscuration, UMBRA_RATIO)
-    return { type: total ? 'lunar-total' : 'lunar-partial', obscuration, offset, angle: pick() * 2 * Math.PI, ratio: UMBRA_RATIO }
+    if (lunar.kind === EclipseKind.Total) return lunarEclipse(true, 1, lunar.sd_total, pick)
+    return lunarEclipse(false, lunar.obscuration, 0, pick)
   }
   const solar = SearchGlobalSolarEclipse(start)
   if (solar.peak.date.toISOString().slice(0, 10) === date) {
-    const angle = pick() * 2 * Math.PI
-    // From the path of totality or annularity; or somewhere off it.
-    if (solar.kind === EclipseKind.Total) return { type: 'solar-total', obscuration: 1, offset: 0.02 * pick(), angle, ratio: 1.04 }
-    if (solar.kind === EclipseKind.Annular) {
-      const ratio = 0.92 + 0.05 * pick()
-      return { type: 'solar-annular', obscuration: ratio * ratio, offset: (1 - ratio) * 0.5 * pick(), angle, ratio }
-    }
-    const obscuration = 0.3 + 0.55 * pick()
-    return { type: 'solar-partial', obscuration, offset: offsetFor(obscuration, 1.02), angle, ratio: 1.02 }
+    return solarEclipse(solar.kind === EclipseKind.Total ? 'solar-total' : solar.kind === EclipseKind.Annular ? 'solar-annular' : 'solar-partial', pick)
   }
   return null
+}
+
+/** A lunar eclipse; `totalityMinutes` is half the length of totality. */
+function lunarEclipse(total: boolean, obscuration: number, totalityMinutes: number, pick: () => number): EclipseParams {
+  // In totality the moon sits somewhere inside the umbra; a short
+  // totality grazes its edge.
+  const covered = total ? 1 : Math.max(0.05, obscuration)
+  const offset = total
+    ? (UMBRA_RATIO - 1) * Math.max(0.1, 1 - totalityMinutes / 55) * (0.8 + 0.2 * pick())
+    : offsetFor(covered, UMBRA_RATIO)
+  return { type: total ? 'lunar-total' : 'lunar-partial', obscuration: covered, offset, angle: pick() * 2 * Math.PI, ratio: UMBRA_RATIO }
+}
+
+function solarEclipse(type: 'solar-total' | 'solar-annular' | 'solar-partial', pick: () => number): EclipseParams {
+  const angle = pick() * 2 * Math.PI
+  // From the path of totality or annularity; or somewhere off it.
+  if (type === 'solar-total') return { type, obscuration: 1, offset: 0.02 * pick(), angle, ratio: 1.04 }
+  if (type === 'solar-annular') {
+    const ratio = 0.92 + 0.05 * pick()
+    return { type, obscuration: ratio * ratio, offset: (1 - ratio) * 0.5 * pick(), angle, ratio }
+  }
+  const obscuration = 0.3 + 0.55 * pick()
+  return { type, obscuration, offset: offsetFor(obscuration, 1.02), angle, ratio: 1.02 }
+}
+
+/** An eclipse of this type on any day (scene specs): like a real one, with
+ * a 50-minute half-totality or a 30–90% partial lunar eclipse. */
+export function eclipseOfType(type: EclipseType, pick: () => number): EclipseParams {
+  if (type === 'lunar-total') return lunarEclipse(true, 1, 50, pick)
+  if (type === 'lunar-partial') return lunarEclipse(false, 0.3 + 0.6 * pick(), 0, pick)
+  return solarEclipse(type, pick)
 }

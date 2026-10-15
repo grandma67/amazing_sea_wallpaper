@@ -2,6 +2,7 @@ import { Vector3 } from 'three'
 
 import { createCamera } from './camera'
 import { generateParams, type SceneParams } from './params'
+import type { SceneSpec } from './sceneSpec'
 import { terrainHeight } from './terrain'
 
 // Composition check: before rendering, cast a coarse grid of rays from the
@@ -53,11 +54,12 @@ function acceptable(c: FrameCoverage): boolean {
 }
 
 /** Scene parameters for a date and image shape (width / height), re-rolling
- * the composition if needed. */
-export function generateSceneParams(date: string, aspect = 16 / 9): SceneParams {
+ * the composition if needed; `spec` forces parts of the scene (a forced
+ * composition stays, only the coast around it is re-rolled). */
+export function generateSceneParams(date: string, aspect = 16 / 9, spec: SceneSpec = {}): SceneParams {
   let best: { params: SceneParams; score: number } | null = null
   for (let attempt = 0; attempt < 8; attempt++) {
-    const params = generateParams(date, attempt, aspect)
+    const params = generateParams(date, attempt, aspect, spec)
     if (params.coast.type !== 'beach') return params
     const coverage = measureFrame(params)
     if (acceptable(coverage)) return params

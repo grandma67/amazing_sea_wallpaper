@@ -37,7 +37,48 @@ than it should have. PLAN.md has the architecture and lessons; this is the workf
   `frustumCulled = false` on instanced meshes. Plants: switch off direct specular (see
   `vegetation.ts`) or edge-on leaves glitter.
 
-## 3. Pick test dates with a script, not by guessing
+## 3. Describe the scene in JSON instead of hunting for dates
+
+A **scene spec** (`src/sceneSpec.ts`) forces whatever the feature needs and leaves the rest
+to the date. Put one spec or a list in a file and render them:
+
+```sh
+node scripts/snapshot.mjs --out $SP/feat --w 1920 --h 1080 --frames 16 --scene scenes/examples.json
+node scripts/snapshot.mjs --out $SP/feat --frames 16 --scene '{"timeOfDay":"night","lighthouse":"rock"}'
+```
+
+```json
+{ "name": "arctic-driftwood", "date": "2024-02-12", "timeOfDay": "golden-hour",
+  "biome": "nordic", "ocean": "arctic", "composition": "along-beach", "storm": null, "fog": null,
+  "camera": { "heightM": 1.6 },
+  "props": { "debris": { "driftwood": 1, "rootWads": true }, "shoreLife": null } }
+```
+
+- Each image is saved as `<name>.jpg` (or `<date>.jpg`) with its params and spec in `<name>.json`;
+  the contact sheet takes any of them. In the browser: `?scene=<JSON>`.
+- Left-out fields come from the date (`date` also sets the moon phase and the month), and
+  forcing one thing keeps the others: `{"date": D, "timeOfDay": "night"}` is day D's biome,
+  coast and lens at night. `seed` gives another random scene on the same date.
+- Fields: `timeOfDay`, `evening`, `sunElevationDeg`, `sunAzimuthDeg` (0 = ahead),
+  `moonPhaseDeg`, `dayMoon`, `nightSky`, `eclipse`, `biome`, `ocean`, `monsoon`, `ice`, `coast`,
+  `composition`, `sand`, `weather`, `clouds`, `storm`, `rainbow`, `fog`, `lighthouse`,
+  `landform`, `colony`, `pinnipeds`, `wind`, `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`
+  and `props.{marine,birds,migratory,ships,rocks,seaStacks,vegetation,debris,shoreLife}`.
+  For features that can be absent, `null`/`false` removes them, `true` makes sure they are there,
+  and a kind (`"rock"`, `"bank"`, `"orca"`) forces the kind.
+- Anything else goes in `params`, a deep patch over the finished `SceneParams`
+  (`{"params": {"coast": {"distanceToWater": 6}, "lighthouse": {"paint": "red"}}}`). It
+  comes last, so the title and anything derived from the patched field don't follow it.
+- Unknown fields and bad values throw, naming the field: a typo never quietly renders a
+  random day.
+- A new random feature should get a field here: draw as usual, then apply the forced value
+  with `or(drawn, force)`, `forced()` or `forcedKind()`, always making the draw, so an
+  unforced spec stays byte-identical to the date (`test/sceneSpec.test.ts`). Props read
+  `ctx.params.overrides`.
+- Forced features are placed like any other: a life-size crab still needs sand near the
+  camera in frame, and a boat is skipped if no sea spot is found.
+
+## 3b. Pick test dates with a script, when the feature must be checked as it occurs
 
 Computing params is cheap (three years of days in ~1 s); rendering is not. Write a
 throwaway Vitest file that lists candidate days, then render only those:
@@ -54,7 +95,8 @@ it('list', () => {
 })
 ```
 
-`npx vitest run test/tmp`. Console output is swallowed, hence the file. Pick 4–8 dates
+`npx vitest run test/tmp`. Console output is swallowed, hence the file. Use this to check frequencies and real dates (eclipses); for
+looks, prefer specs. Pick 4–8 dates
 covering the cases (each biome, a near view and a far one, day and night). For a feature
 that must be in frame (the moon, an eclipse), compute whether it is in frame from
 `camera.headingDeg`, `focalLengthMm` (36×24 mm sensor) and `horizonFraction`. Don't render

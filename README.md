@@ -28,8 +28,13 @@ npm run dev            # http://localhost:5174/
 npm run build          # type-check + production build into dist/
 npm test               # unit tests of the scene logic (Vitest)
 node scripts/snapshot.mjs --url http://localhost:5174/ 2026-12-01..2026-12-07
+node scripts/snapshot.mjs --scene scenes/examples.json   # scenes described in JSON
 node scripts/contact-sheet.mjs --dir out --cols 4
 ```
+
+A scene spec (`src/sceneSpec.ts`, also `?scene=<JSON>` on the page) forces any part of
+a scene — time of day, biome, weather, lighthouse, crabs… — on top of a date; DEV.md
+has the fields.
 
 `PLAN.md` has the status, versions, design decisions and lessons learned.
 

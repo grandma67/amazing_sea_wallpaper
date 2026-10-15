@@ -330,9 +330,16 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
   // The biome's signature plant always grows; the others most of the time.
   // Framed and overlook shots are about the land, so they get everything.
   const allKinds = coast.composition === 'framed' || coast.composition === 'overlook'
-  const kinds = biome.vegetation.filter(
+  const drawnKinds = biome.vegetation.filter(
     ([, weight], i) => rng.chance(Math.min(0.95, 0.35 + weight * 0.12)) || i === 0 || allKinds
   )
+  // Forced by a scene spec: those plants, at the biome's abundance (or a
+  // middling one for a plant from another biome).
+  const forcedKinds = params.overrides?.vegetation
+  const kinds =
+    forcedKinds == null
+      ? drawnKinds
+      : forcedKinds.map(kind => [kind, biome.vegetation.find(([k]) => k === kind)?.[1] ?? 3] as const)
   const lushness = rng.range(0.4, 1.2)
   const material = new MeshStandardMaterial({
     vertexColors: true,

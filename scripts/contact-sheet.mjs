@@ -2,7 +2,8 @@
 //
 //   node scripts/contact-sheet.mjs [--dir out] [--cols 4] [--width 2400]
 //
-// Reads DATE.jpg + DATE.json pairs from --dir and writes contact-sheet.jpg there.
+// Reads NAME.jpg + NAME.json pairs (dates, or scene spec names) from --dir and
+// writes contact-sheet.jpg there.
 
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -18,15 +19,20 @@ const dir = resolve(option('dir', 'out'))
 const cols = Number(option('cols', 4))
 const width = Number(option('width', 2400))
 
-const files = (await readdir(dir)).filter(f => /^\d{4}-\d{2}-\d{2}\.jpg$/.test(f)).sort()
+const all = await readdir(dir)
+const files = all.filter(f => f.endsWith('.jpg') && all.includes(f.replace(/\.jpg$/, '.json'))).sort()
 const cells = await Promise.all(
   files.map(async f => {
-    const date = f.slice(0, 10)
+    const name = f.replace(/\.jpg$/, '')
     let title = ''
+    let date = ''
     try {
-      title = JSON.parse(await readFile(join(dir, `${date}.json`), 'utf8')).title
+      const params = JSON.parse(await readFile(join(dir, `${name}.json`), 'utf8'))
+      title = params.title
+      date = params.date
     } catch {}
-    return `<figure><img src="${pathToFileURL(join(dir, f))}"><figcaption>${date} — ${title}</figcaption></figure>`
+    const label = name === date ? date : `${name} (${date})`
+    return `<figure><img src="${pathToFileURL(join(dir, f))}"><figcaption>${label} — ${title}</figcaption></figure>`
   })
 )
 

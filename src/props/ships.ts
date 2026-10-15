@@ -2,6 +2,7 @@ import { DoubleSide, Euler, Mesh, MeshStandardMaterial, Vector3, type BufferGeom
 
 import type { RGB } from '../biome'
 import type { Random } from '../random'
+import { forced, type ShipKind } from '../sceneSpec'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { fbm3, noise3 } from './noise'
@@ -451,8 +452,26 @@ export function createShips(ctx: PropContext): Mesh[] {
     }
   }
 
+  // A scene spec's list of boats: one of each.
+  const force = params.overrides?.ships
+  if (Array.isArray(force)) {
+    const builders: Record<ShipKind, () => void> = {
+      sloop: () => launch(sloop(rng), 150, 3000, true),
+      catamaran: () => launch(catamaran(rng), 150, 3000, true),
+      dhow: () => launch(dhow(rng), 150, 3000, true),
+      'motor-yacht': () => launch(motorYacht(rng), 150, 3000, false),
+      trawler: () => launch(trawler(rng), 120, 2500, false),
+      'container-ship': () => launch(containerShip(rng), 4000, 16000, false),
+      tanker: () => launch(tanker(rng), 4000, 16000, false)
+    }
+    for (const kind of force) builders[kind]()
+    return meshes
+  }
+  // false: none; true: some of every class.
+  const any = (chance: number): boolean => forced(force, rng.chance(chance))
+
   // Leisure craft near the coast.
-  if (rng.chance(0.5)) {
+  if (any(0.5)) {
     for (let i = rng.int(1, 3); i > 0; i--) {
       const kind = rng.weighted<'sloop' | 'catamaran' | 'dhow'>([
         ['sloop', 6],
@@ -463,12 +482,12 @@ export function createShips(ctx: PropContext): Mesh[] {
       launch(geometry, 150, 3000, true)
     }
   }
-  if (rng.chance(0.2)) launch(motorYacht(rng), 150, 3000, false)
-  if (rng.chance(0.25)) {
+  if (any(0.2)) launch(motorYacht(rng), 150, 3000, false)
+  if (any(0.25)) {
     for (let i = rng.int(1, 2); i > 0; i--) launch(trawler(rng), 120, 2500, false)
   }
   // Shipping on the horizon.
-  if (rng.chance(0.3)) launch(rng.chance(0.6) ? containerShip(rng) : tanker(rng), 4000, 16000, false)
+  if (any(0.3)) launch(rng.chance(0.6) ? containerShip(rng) : tanker(rng), 4000, 16000, false)
 
   return meshes
 }

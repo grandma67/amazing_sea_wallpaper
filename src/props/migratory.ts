@@ -11,6 +11,7 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
+import { forced, forcedKind, type MigratorySpecies } from '../sceneSpec'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 
@@ -27,7 +28,7 @@ import type { PropContext } from './context'
 //
 // Birds are built in a local frame facing +x, then instanced in formation.
 
-type Species = 'goose' | 'duck' | 'flamingo'
+type Species = MigratorySpecies
 
 interface Plumage {
   body: RGB
@@ -164,20 +165,23 @@ function migrating(month: number): boolean {
 export function createMigratoryBirds(ctx: PropContext): InstancedMesh[] {
   const { params } = ctx
   const rng = ctx.rng('migratory')
-  if (params.storm != null || params.timeOfDay === 'night') return []
+  const force = params.overrides?.migratory
+  if (force === undefined && (params.storm != null || params.timeOfDay === 'night')) return []
   const month = Number(params.date.slice(5, 7))
   const biome = params.biome.name
   const warm = biome === 'tropical' || biome === 'desert' || biome === 'mediterranean'
   const cool = biome === 'nordic' || biome === 'volcanic' || biome === 'mediterranean'
   const polar = params.sea.ocean === 'arctic' || params.sea.ocean === 'southern'
   const season = migrating(month) ? 1 : 0.25
-  const species = rng.weighted<Species | null>([
+  let species = rng.weighted<Species | null>([
     [null, 6],
     ['goose', cool ? 2 * season : 0],
     ['duck', cool ? 2 * season : 0],
     ['flamingo', warm && !polar ? 1.5 : 0]
   ])
-  if (species == null) return []
+  if (!forced(force, species != null)) return []
+  // Forced on where none were drawn: whichever fits the coast.
+  species = forcedKind(force, species ?? (warm && !polar ? 'flamingo' : 'goose'))
 
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: DoubleSide })
   const camera = ctx.camera

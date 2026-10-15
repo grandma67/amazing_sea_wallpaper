@@ -1,0 +1,12 @@
+[
+  { "name": "night-lighthouse-fog", "date": "2024-02-12", "timeOfDay": "night", "nightSky": "moonlit", "moonPhaseDeg": 180,
+    "lighthouse": "rock", "fog": "advection", "storm": null },
+  { "name": "tropical-crabs-ships", "date": "2024-03-08", "timeOfDay": "golden-hour", "biome": "tropical", "composition": "shoreline",
+    "camera": { "heightM": 1.6 }, "storm": null,
+    "props": { "ships": ["dhow", "container-ship"], "marine": "dolphin", "birds": true,
+               "shoreLife": { "crab": "ghost", "crabs": 18 }, "debris": { "coconuts": 1 } } },
+  { "name": "eclipse-volcano", "date": "2025-06-01", "eclipse": "solar-total", "biome": "volcanic", "landform": "strato",
+    "params": { "landform": { "plume": "steam" } } },
+  { "name": "nordic-rainbow-seals", "date": "2024-06-26", "biome": "nordic", "ocean": "atlantic", "rainbow": true, "storm": null,
+    "pinnipeds": "seal", "colony": "gannet", "props": { "seaStacks": true, "migratory": "goose" } }
+]

@@ -1,6 +1,7 @@
 import { generateSceneParams } from './composition'
 import { localDateString, resolveDate, shiftDate } from './dates'
 import type { SceneParams } from './params'
+import { parseSceneSpec, type SceneSpec } from './sceneSpec'
 import type { RenderReply, RenderRequest } from './renderWorker'
 
 // URL options:
@@ -13,6 +14,8 @@ import type { RenderReply, RenderRequest } from './renderWorker'
 //   ?portrait=1|0      force a portrait (phone) or landscape composition
 //   ?frames=24         cloud accumulation frames (default 64; fewer = faster)
 //   ?worker=0          render on the main thread instead of a worker
+//   ?scene={...}       a scene spec (JSON, sceneSpec.ts) forcing parts of the
+//                      scene; its "date" replaces ?date= (future days allowed)
 
 function linkFor(date: string): string {
   const url = new URL(window.location.href)
@@ -28,8 +31,17 @@ if (window.location.pathname.endsWith('/random')) {
 
 const query = new URLSearchParams(window.location.search)
 const today = localDateString(new Date())
-const requested = query.get('date')
-const allowFuture = query.get('future') === '1'
+// A malformed spec renders nothing: say why instead.
+let spec: SceneSpec = {}
+let specError: Error | null = null
+try {
+  const scene = query.get('scene')
+  if (scene != null) spec = parseSceneSpec(scene)
+} catch (error) {
+  specError = error instanceof Error ? error : new Error(String(error))
+}
+const requested = spec.date ?? query.get('date')
+const allowFuture = query.get('future') === '1' || spec.date != null
 const date = resolveDate(requested, today, allowFuture)
 // Tomorrow's sea isn't out yet: fix the address bar to match today.
 if (requested != null && date !== requested) history.replaceState(null, '', linkFor(today))
@@ -130,7 +142,7 @@ async function startRender(params: SceneParams, canvas: HTMLCanvasElement): Prom
   }
 }
 
-const params = generateSceneParams(date, width / height)
+const params = generateSceneParams(date, width / height, spec)
 const canvas = document.getElementById('wallpaper') as HTMLCanvasElement
 const splash = document.getElementById('splash') as HTMLElement
 const status = document.getElementById('status') as HTMLElement
@@ -139,6 +151,7 @@ const splashShownAt = performance.now()
 const ready = (async () => {
   // Let the "Rendering…" text paint before the GPU work blocks the thread.
   await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)))
+  if (specError != null) throw specError
   if (resolution == null) throw new Error('this browser does not support WebGL 2')
   const rendered = await startRender(params, canvas)
   void hideSplash()

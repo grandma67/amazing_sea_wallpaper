@@ -90,8 +90,22 @@ function inMonths(month: number, [from, to]: [number, number]): boolean {
   return from <= to ? month >= from && month <= to : month >= from || month <= to
 }
 
-/** What lives on this beach today, or null for no beach. */
+/** What lives on this beach today, or null for no beach; a scene spec's
+ * `props.shoreLife` replaces the drawn fields (null: nothing). */
 export function shoreLifeFor(params: SceneParams, rng: Random): ShoreLife | null {
+  const drawn = drawShoreLife(params, rng)
+  const force = params.overrides?.shoreLife
+  if (force === undefined || drawn == null) return drawn
+  if (force === null) return null
+  const life = { ...drawn, ...force }
+  // A crab or flowers named without a number: a typical showing.
+  if (force.crab != null && force.crabs === undefined && life.crabs === 0) life.crabs = force.crab === 'ghost' ? 10 : 6
+  if (force.crab === 'ghost' && force.burrows === undefined && life.burrows === 0) life.burrows = 24
+  if (force.flowers != null && force.flowerAmount === undefined && life.flowerAmount === 0) life.flowerAmount = 0.7
+  return life
+}
+
+function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
   if (params.coast.type !== 'beach') return null
   const biome = params.biome.name
   const ocean = params.sea.ocean

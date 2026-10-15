@@ -1,11 +1,12 @@
 import { MoonPhase } from 'astronomy-engine'
 
-import { eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
+import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
 
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
 import { CLOUD_GENERA, pickFormations, type CloudGenus } from './cloudTypes'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { Random } from './random'
+import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
 // Everything random about a scene is decided here, from the date alone.
 // Directions use the world frame: +Y up, azimuth 0 = -Z, increasing clockwise
@@ -245,6 +246,9 @@ export interface SceneParams {
   fog: FogParams | null
   /** A lighthouse on a point or a rock (props/lighthouse.ts, lighthouse.ts). */
   lighthouse: LighthouseParams | null
+  /** What a scene spec forces the props to show (sceneSpec.ts); absent on
+   * ordinary days. */
+  overrides?: PropOverrides
 
   camera: {
     /** Above sea level for open sea; above the ground on a beach. */
@@ -284,6 +288,12 @@ export function dirFromAzEl(azDeg: number, elDeg: number): [number, number, numb
   const az = azDeg * DEG
   const el = elDeg * DEG
   return [Math.cos(el) * Math.sin(az), Math.sin(el), -Math.cos(el) * Math.cos(az)]
+}
+
+/** The drawn value unless a spec forces one. The draw is always made (it's
+ * an argument), so forcing one choice doesn't shift the stream for others. */
+function or<T>(drawn: T, force: T | undefined): T {
+  return force === undefined ? drawn : force
 }
 
 function elevationOf(d: [number, number, number]): number {
@@ -390,13 +400,15 @@ function generateCoast(
   attempt: number,
   headingDeg: number,
   biome: Biome,
-  ocean: Pick<SceneParams['ocean'], 'swellHeight' | 'swellWavelength' | 'windSpeed'>
+  ocean: Pick<SceneParams['ocean'], 'swellHeight' | 'swellWavelength' | 'windSpeed'>,
+  spec: SceneSpec
 ): { coast: CoastParams; eyeHeight: number | null } {
   // Retries (see composition.ts) re-roll only the coast and composition.
   const suffix = attempt > 0 ? `#${attempt}` : ''
   const rng = Random.derive(seed, `coast${suffix}`)
   // Beach or open sea is decided once per date; retries keep it.
-  const type = Random.derive(seed, 'coast').chance(0.65) ? 'beach' : 'open-sea'
+  const drawnType = Random.derive(seed, 'coast').chance(0.65) ? 'beach' : 'open-sea'
+  const type = or(drawnType, spec.coast ?? (spec.composition != null ? 'beach' : undefined))
   rng.float() // keep attempt 0's stream identical to the original draw order
 
   // Look out to sea at an angle so the shoreline runs diagonally across the
@@ -427,7 +439,7 @@ function generateCoast(
     surfAmplitude,
     surfWavelength: rng.range(18, 40),
     surfPhase: rng.range(0, Math.PI * 2),
-    sand: SAND_STYLES[rng.pick(biome.sands)],
+    sand: SAND_STYLES[or(rng.pick(biome.sands), spec.sand)],
     noiseOffset: [rng.range(-5000, 5000), rng.range(-5000, 5000)]
   }
 
@@ -453,12 +465,15 @@ function generateCoast(
   // Composition: where the camera stands relative to the shore.
   const crng = Random.derive(seed, `composition${suffix}`)
   if (type === 'beach') {
-    coast.composition = crng.weighted<Composition>([
-      ['shoreline', 3],
-      ['along-beach', 3],
-      ['framed', 2],
-      ['overlook', 2]
-    ])
+    coast.composition = or(
+      crng.weighted<Composition>([
+        ['shoreline', 3],
+        ['along-beach', 3],
+        ['framed', 2],
+        ['overlook', 2]
+      ]),
+      spec.composition
+    )
     const side = crng.chance(0.5) ? 1 : -1
     switch (coast.composition) {
       case 'along-beach':
@@ -483,9 +498,9 @@ function generateCoast(
   return { coast, eyeHeight }
 }
 
-function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
+function generateWeather(seed: string, timeOfDay: TimeOfDay, force?: WeatherKind): WeatherParams {
   const rng = Random.derive(seed, 'weather')
-  const kind = rng.weighted<WeatherKind>([
+  const drawn = rng.weighted<WeatherKind>([
     ['clear', 12],
     ['cirrus', 13],
     ['few', 20],
@@ -493,6 +508,7 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
     ['broken', 18],
     ['overcast', timeOfDay === 'night' || timeOfDay === 'blue-hour' ? 2 : 7]
   ])
+  const kind = or(drawn, force)
   const coverage: Record<WeatherKind, [number, number]> = {
     clear: [0, 0],
     cirrus: [0.45, 0.6],
@@ -513,15 +529,20 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay): WeatherParams {
 }
 
 /** Which clouds make up the sky; its own stream, and it depends on the coast. */
-function addFormations(seed: string, weather: WeatherParams, biome: Biome): void {
+function addFormations(seed: string, weather: WeatherParams, biome: Biome, clouds?: CloudGenus[]): void {
   const frng = Random.derive(seed, 'formations')
   const { kind } = weather
   // Storms bring their own cumulonimbus (generateStorm).
-  if (kind === 'storm') return
-  weather.formations = pickFormations(frng, kind, {
-    cool: biome.name === 'nordic' || biome.name === 'volcanic',
-    tropical: biome.name === 'tropical'
-  })
+  if (kind === 'storm') {
+    if (clouds != null) weather.formations = clouds
+    return
+  }
+  weather.formations =
+    clouds ??
+    pickFormations(frng, kind, {
+      cool: biome.name === 'nordic' || biome.name === 'volcanic',
+      tropical: biome.name === 'tropical'
+    })
   // Patchy cloud shade on sea and sand is per pixel (shadow.ts); this is only
   // the overall dimming on top. A mirror-sharp sun glint is ~1000× the sky,
   // so even a sliver of sun under overcast would show a glitter path.
@@ -542,9 +563,15 @@ export function horizontalHalfFovDeg(focalLengthMm: number, aspect: number): num
   return (aspect >= 1 ? longHalf : Math.atan(Math.tan(longHalf) * aspect)) / DEG
 }
 
-function generateStorm(seed: string, timeOfDay: TimeOfDay, headingDeg: number, halfFovDeg: number): StormParams | null {
+function generateStorm(
+  seed: string,
+  timeOfDay: TimeOfDay,
+  headingDeg: number,
+  halfFovDeg: number,
+  force?: Force<'thunderstorm' | 'squall'>
+): StormParams | null {
   const rng = Random.derive(seed, 'storm')
-  if (timeOfDay === 'night' || !rng.chance(0.07)) return null
+  if (!forced(force, timeOfDay !== 'night' && rng.chance(0.07))) return null
   // Keep strikes and shafts inside the frame (a little narrower than the lens).
   const halfFov = Math.min(30, halfFovDeg * 0.8)
   const curtains = Array.from({ length: rng.int(1, 4) }, () => ({
@@ -552,7 +579,7 @@ function generateStorm(seed: string, timeOfDay: TimeOfDay, headingDeg: number, h
     distance: rng.range(3000, 16000),
     width: rng.range(800, 4000)
   }))
-  const lightning = rng.chance(0.75)
+  const lightning = or(rng.chance(0.75), force === 'squall' ? false : force === 'thunderstorm' ? true : undefined)
   const bolts = lightning
     ? Array.from({ length: rng.weighted([[1, 4], [2, 2], [3, 1]] as const) }, () => ({
         azimuthDeg: headingDeg + rng.range(-halfFov, halfFov),
@@ -577,11 +604,12 @@ function pickFog(
   month: number,
   timeOfDay: TimeOfDay,
   weather: WeatherParams,
-  windSpeed: number
+  windSpeed: number,
+  force?: Force<'advection' | 'bank' | 'sea-smoke'>
 ): FogParams | null {
   const rng = Random.derive(seed, 'fog')
   // Gales and showers clear it away.
-  if (weather.kind === 'storm' || windSpeed > 11) return null
+  if (force === undefined && (weather.kind === 'storm' || windSpeed > 11)) return null
   const southern = ocean === 'southern'
   // Advection fog where warm air meets cold water.
   const advection: Partial<Record<Biome['name'], Partial<Record<OceanName, number>>>> = {
@@ -601,12 +629,14 @@ function pickFog(
   // Sea smoke needs a calm sea and a clear, cold sky.
   const smokeChance = smoke * (windSpeed < 5 ? 1 : 0) * (weather.kind === 'clear' || weather.kind === 'few' || weather.kind === 'cirrus' ? 1 : 0.3)
   const draw = rng.float()
-  if (draw < smokeChance) {
+  const drawn = draw < smokeChance ? 'sea-smoke' : draw < smokeChance + advectionChance ? 'advection' : null
+  const kind = !forced(force, drawn != null) ? null : force === 'sea-smoke' ? 'sea-smoke' : typeof force === 'string' ? 'advection' : (drawn ?? 'advection')
+  if (kind === 'sea-smoke') {
     return { kind: 'sea-smoke', visibility: rng.range(400, 2500), height: rng.range(6, 25), start: 0, seed: rng.int(0, 100_000) }
   }
-  if (draw < smokeChance + advectionChance) {
+  if (kind === 'advection') {
     // Half the time it's a bank offshore, rolling in.
-    const bank = rng.chance(0.5)
+    const bank = or(rng.chance(0.5), force === 'bank' ? true : force === 'advection' ? false : undefined)
     return {
       kind: 'advection',
       visibility: bank ? rng.range(80, 300) : rng.range(250, 1500),
@@ -626,14 +656,16 @@ function pickLandform(
   ocean: OceanName,
   timeOfDay: TimeOfDay,
   headingDeg: number,
-  halfFovDeg: number
+  halfFovDeg: number,
+  force?: Force<LandformParams['kind']>
 ): LandformParams | null {
   const rng = Random.derive(seed, 'landform')
   const chance: Record<Biome['name'], number> = { volcanic: 0.55, nordic: 0.4, mediterranean: 0.25, tropical: 0.2, desert: 0.2 }
-  if (!rng.chance(chance[biome.name])) return null
+  if (!forced(force, rng.chance(chance[biome.name]))) return null
   const volcanoChance: Record<Biome['name'], number> = { volcanic: 0.85, nordic: 0.15, mediterranean: 0.3, tropical: 0.45, desert: 0.1 }
-  const volcano = rng.chance(volcanoChance[biome.name])
-  const kind = volcano ? (rng.chance(0.75) ? 'strato' : 'shield') : 'range'
+  const drawnVolcano = rng.chance(volcanoChance[biome.name])
+  const kind = forcedKind(force, drawnVolcano ? (rng.chance(0.75) ? 'strato' : 'shield') : 'range')
+  const volcano = kind !== 'range'
   const height = kind === 'range' ? rng.range(900, 2600) : kind === 'strato' ? rng.range(1500, 3800) : rng.range(1200, 4000)
   const distance = rng.range(12_000, kind === 'shield' ? 70_000 : 45_000)
   const width = kind === 'range' ? rng.range(25_000, 70_000) : kind === 'strato' ? height * rng.range(6, 9) : height * rng.range(18, 28)
@@ -655,9 +687,10 @@ function pickLandform(
   }
 }
 
-function pickColony(seed: string, ocean: OceanName, biome: Biome): ColonyKind | null {
+function pickColony(seed: string, ocean: OceanName, biome: Biome, force?: Force<ColonyKind>): ColonyKind | null {
   const rng = Random.derive(seed, 'colony')
-  if (!rng.chance(0.15)) return null
+  if (!forced(force, rng.chance(0.15))) return null
+  if (typeof force === 'string') return force
   if (ocean === 'southern') return 'penguin'
   if (biome.name === 'tropical' || biome.name === 'desert') return 'tropical'
   const northern = ocean === 'arctic' || biome.name === 'nordic' || biome.name === 'volcanic'
@@ -698,12 +731,15 @@ const PINNIPEDS: Record<Biome['name'], Partial<Record<OceanName, readonly (reado
   tropical: { pacific: [['sea-lion', 1]] }
 }
 
-function pickPinnipeds(seed: string, ocean: OceanName, biome: Biome): PinnipedKind | null {
+function pickPinnipeds(seed: string, ocean: OceanName, biome: Biome, force?: Force<PinnipedKind>): PinnipedKind | null {
   const rng = Random.derive(seed, 'pinnipeds')
+  if (typeof force === 'string') return force
   const table = PINNIPEDS[biome.name][ocean]
   // Tropical sea lions are confined to one archipelago: rarer.
   const chance = biome.name === 'tropical' ? 0.06 : 0.2
-  if (table == null || !rng.chance(chance)) return null
+  // Forced onto a coast that has none: harbour seals.
+  if (table == null) return force === true ? 'seal' : null
+  if (!forced(force, rng.chance(chance))) return null
   return rng.weighted(table)
 }
 
@@ -716,13 +752,14 @@ function pickLighthouse(
   ocean: OceanName,
   coastType: CoastParams['type'],
   timeOfDay: TimeOfDay,
-  fog: FogParams | null
+  fog: FogParams | null,
+  force?: Force<LighthouseParams['site']>
 ): LighthouseParams | null {
   const rng = Random.derive(seed, 'lighthouse')
   // Polar seas: a handful of lights for thousands of kilometres of coast.
   const polar = ocean === 'arctic' || ocean === 'southern' ? 0.2 : 1
-  if (!rng.chance(LIGHTHOUSE_CHANCE[biome.name] * polar)) return null
-  const site = coastType === 'beach' && rng.chance(0.6) ? 'point' : 'rock'
+  if (!forced(force, rng.chance(LIGHTHOUSE_CHANCE[biome.name] * polar))) return null
+  const site = forcedKind(force, coastType === 'beach' && rng.chance(0.6) ? 'point' : 'rock')
   // Rock towers are squat granite or painted; Scandinavian lights are often
   // red cast iron; banded towers everywhere.
   const paints: [LighthouseParams['paint'], number][] =
@@ -756,45 +793,85 @@ function pickLighthouse(
 /**
  * Scene parameters for a date. `aspect` (width / height) only recomposes the
  * shot — portrait phones get the same day's scene, framed for a tall image —
- * and never changes what's in it.
+ * and never changes what's in it. A `spec` (sceneSpec.ts) forces parts of
+ * the scene; the rest is the date's (`spec.date`, when given, replaces it).
  */
-export function generateParams(date: string, attempt = 0, aspect = 16 / 9): SceneParams {
+export function generateParams(date: string, attempt = 0, aspect = 16 / 9, spec: SceneSpec = {}): SceneParams {
+  const day = spec.date ?? date
+  const plain = Object.keys(spec).every(k => k === 'date' || k === 'name' || k === 'note')
+  if (plain) return buildParams(day, attempt, aspect, {}, null).params
+  // Forcing the time of day changes how many draws the sky makes from the
+  // main stream, which would shift everything drawn after it (biome, lens,
+  // wind…): pin those to the unforced day's.
+  const pins = buildParams(day, attempt, aspect, { seed: spec.seed }, null).draws
+  const { params } = buildParams(day, attempt, aspect, spec, pins)
+  return spec.params == null ? params : deepPatch(params, spec.params)
+}
+
+type Draws = Record<string, unknown>
+
+function buildParams(
+  date: string,
+  attempt: number,
+  aspect: number,
+  spec: SceneSpec,
+  pins: Draws | null
+): { params: SceneParams; draws: Draws } {
   // A tall frame is narrow: keep low suns and the moon well inside it.
   const framing = Math.min(1, aspect)
-  const seed = `amazing-sea:${date}`
+  const seed = spec.seed ?? `amazing-sea:${date}`
   const rng = new Random(seed)
-
-  // Real moon phase for the date (noon UTC).
-  const moonPhaseDeg = MoonPhase(new Date(`${date}T12:00:00Z`))
-  const elongation = moonPhaseDeg <= 180 ? moonPhaseDeg : 360 - moonPhaseDeg
-  const moonIllumination = (1 - Math.cos(elongation * DEG)) / 2
+  const draws: Draws = {}
+  /** A main-stream draw that comes after the sky's variable number of
+   * draws, recorded, or replaced by the pinned value. */
+  const keep = <T>(name: string, drawn: T): T => {
+    const value = pins != null && name in pins ? (pins[name] as T) : drawn
+    draws[name] = value
+    return value
+  }
 
   // Real eclipses on their dates, and the sky's own choices (daytime moon,
   // moon up or down at night), on their own streams.
   const erng = Random.derive(seed, 'eclipse')
-  const eclipse = eclipseOn(date, () => erng.float())
+  const eclipse =
+    spec.eclipse === undefined
+      ? eclipseOn(date, () => erng.float())
+      : spec.eclipse === null
+        ? null
+        : eclipseOfType(spec.eclipse, () => erng.float())
   const solarEclipse = eclipse != null && eclipse.type.startsWith('solar')
   const lunarEclipse = eclipse != null && eclipse.type.startsWith('lunar')
   const skyRng = Random.derive(seed, 'moon-sky')
 
-  let timeOfDay = rng.weighted<TimeOfDay>([
-    ['golden-hour', 30],
-    ['sun-on-horizon', 12],
-    ['blue-hour', 10],
-    ['daylight', 23],
-    ['midday', 15],
-    ['night', 10]
-  ])
+  // Real moon phase for the date (noon UTC); new for a forced solar eclipse,
+  // full for a lunar one.
+  const moonPhaseDeg =
+    spec.moonPhaseDeg ??
+    (spec.eclipse != null ? (solarEclipse ? 0 : 180) : MoonPhase(new Date(`${date}T12:00:00Z`)))
+  const elongation = moonPhaseDeg <= 180 ? moonPhaseDeg : 360 - moonPhaseDeg
+  const moonIllumination = (1 - Math.cos(elongation * DEG)) / 2
+
+  let timeOfDay = or(
+    rng.weighted<TimeOfDay>([
+      ['golden-hour', 30],
+      ['sun-on-horizon', 12],
+      ['blue-hour', 10],
+      ['daylight', 23],
+      ['midday', 15],
+      ['night', 10]
+    ]),
+    spec.timeOfDay
+  )
   // An eclipse day shows the eclipse: by day with the sun in the frame, or
   // at night with the moon in it.
   if (solarEclipse) timeOfDay = timeOfDay === 'golden-hour' ? 'golden-hour' : 'daylight'
   if (lunarEclipse) timeOfDay = 'night'
-  const isEvening = rng.chance(0.5)
+  const isEvening = or(rng.chance(0.5), spec.evening)
   // The weather has its own random stream, so drawing it here doesn't shift
   // any other parameter of the day.
-  const weather = generateWeather(seed, timeOfDay)
+  const weather = generateWeather(seed, timeOfDay, spec.weather)
   // Eclipse days get a sky to see them in; totality under a clear one.
-  if (eclipse != null) {
+  if (eclipse != null && spec.weather == null) {
     if (eclipse.type === 'solar-total') {
       weather.kind = 'clear'
       weather.coverage = 0
@@ -814,10 +891,11 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   // turns its back to the sun.
   const rainbowRng = Random.derive(seed, 'rainbow')
   const rainbowDay =
-    eclipse == null &&
-    (timeOfDay === 'golden-hour' || timeOfDay === 'daylight') &&
-    (weather.kind === 'scattered' || weather.kind === 'broken') &&
-    rainbowRng.chance(0.15)
+    spec.rainbow ??
+    (eclipse == null &&
+      (timeOfDay === 'golden-hour' || timeOfDay === 'daylight') &&
+      (weather.kind === 'scattered' || weather.kind === 'broken') &&
+      rainbowRng.chance(0.15))
 
   // Camera heading, then the sun relative to it. Low suns are usually framed
   // in or near the view for glitter paths; high suns can be anywhere.
@@ -832,6 +910,8 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     relSunAz = erng.normal(0, 10 * framing)
     sunElevationDeg = timeOfDay === 'golden-hour' ? erng.range(3, 8) : erng.range(6, 12)
   }
+  relSunAz = or(relSunAz, spec.sunAzimuthDeg)
+  sunElevationDeg = or(sunElevationDeg, spec.sunElevationDeg)
   let sunDirection = dirFromAzEl(headingDeg + relSunAz, sunElevationDeg)
 
   // Place the moon at the physically correct angular distance from the sun
@@ -869,7 +949,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     eclipse == null &&
     (timeOfDay === 'golden-hour' || timeOfDay === 'daylight' || timeOfDay === 'midday' || timeOfDay === 'sun-on-horizon') &&
     moonIllumination > 0.15 &&
-    skyRng.chance(0.35)
+    (spec.dayMoon ?? skyRng.chance(0.35))
   if (dayMoon) {
     const view = dirFromAzEl(headingDeg, 0)
     let bestScore = -Infinity
@@ -897,9 +977,13 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     sunElevationDeg = elevationOf(sunDirection)
   }
   // Some nights the moon hasn't risen yet, or has set.
-  if (timeOfDay === 'night' && !lunarEclipse && skyRng.chance(0.2)) {
+  if (timeOfDay === 'night' && !lunarEclipse && (spec.nightSky === undefined ? skyRng.chance(0.2) : spec.nightSky === 'starlit')) {
     moonDirection = [moonDirection[0], -Math.abs(moonDirection[1]) - 0.1, moonDirection[2]]
     moonDirection = normalize(moonDirection)
+  }
+  // A moonlit night forced: make sure the moon is up.
+  if (spec.nightSky === 'moonlit' && elevationOf(moonDirection) <= 2) {
+    moonDirection = dirFromAzEl(Math.atan2(moonDirection[0], -moonDirection[2]) / DEG, 8)
   }
   const moonElevationDeg = elevationOf(moonDirection)
   // At night the moon lights the scene if it's up; otherwise only the stars.
@@ -908,21 +992,29 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   let moonlight = nightSky === 'moonlit' ? phaseLight(elongation) : 0
   if (lunarEclipse) moonlight *= eclipse!.type === 'lunar-total' ? 0.0015 : 1 - 0.95 * eclipse!.obscuration
 
-  const heightM = rng.weighted<() => number>([
-    [() => rng.range(1.2, 4), 4],
-    [() => rng.range(6, 25), 4],
-    [() => rng.range(40, 160), 2]
-  ])()
-  const drawnFocalLength = rng.weighted<() => number>([
-    [() => rng.range(18, 28), 3],
-    [() => rng.range(28, 50), 4],
-    [() => rng.range(50, 90), 2]
-  ])()
+  const heightM = keep(
+    'heightM',
+    rng.weighted<() => number>([
+      [() => rng.range(1.2, 4), 4],
+      [() => rng.range(6, 25), 4],
+      [() => rng.range(40, 160), 2]
+    ])()
+  )
+  const drawnFocalLength = keep(
+    'focalLength',
+    rng.weighted<() => number>([
+      [() => rng.range(18, 28), 3],
+      [() => rng.range(28, 50), 4],
+      [() => rng.range(50, 90), 2]
+    ])()
+  )
   // A rainbow spans 84°: go wide to get most of the arc in.
   // An eclipse needs a lens long enough to show it and wide enough to keep
   // it in the frame with the sea.
-  const focalLengthMm =
-    eclipse != null ? erng.range(24, 35) : rainbowDay ? Math.min(drawnFocalLength, rainbowRng.range(14, 22)) : drawnFocalLength
+  const focalLengthMm = or(
+    eclipse != null ? erng.range(24, 35) : rainbowDay ? Math.min(drawnFocalLength, rainbowRng.range(14, 22)) : drawnFocalLength,
+    spec.camera?.focalLengthMm
+  )
 
   // Wind: mostly calm-to-moderate seas, fresher under heavy cloud (fronts)
   // and lighter on clear days.
@@ -936,14 +1028,20 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     storm: 1
   }
   let windSpeed =
-    rng.weighted<() => number>([
-      [() => rng.range(1.5, 4), 3],
-      [() => rng.range(4, 8), 4],
-      [() => rng.range(8, 14), 2]
-    ])() * windByWeather[weather.kind]
-  const windHeadingDeg = rng.range(0, 360)
+    keep(
+      'wind',
+      rng.weighted<() => number>([
+        [() => rng.range(1.5, 4), 3],
+        [() => rng.range(4, 8), 4],
+        [() => rng.range(8, 14), 2]
+      ])()
+    ) * windByWeather[weather.kind]
+  const windHeadingDeg = keep('windHeading', rng.range(0, 360))
 
-  const storm = eclipse != null ? null : generateStorm(seed, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect))
+  const storm =
+    eclipse != null && spec.storm === undefined
+      ? null
+      : generateStorm(seed, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.storm)
   if (storm != null) {
     const srng = Random.derive(seed, 'storm-weather')
     weather.kind = 'storm'
@@ -955,11 +1053,15 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     weather.sunVisibility = srng.chance(0.4) ? srng.range(0.15, 0.4) : srng.range(0, 0.05)
   }
 
-  let biome = rng.weighted(BIOMES)
-  addFormations(seed, weather, biome)
+  let biome = keep('biome', rng.weighted(BIOMES))
+  if (spec.biome != null) biome = BIOMES.find(([b]) => b.name === spec.biome)![0]
+  addFormations(seed, weather, biome, spec.clouds)
   const waterRng = Random.derive(seed, 'water')
   const orng = Random.derive(seed, 'ocean')
-  const { basin, monsoon, ice } = pickOcean(orng, biome, Number(date.slice(5, 7)))
+  const choice = pickOcean(orng, biome, Number(date.slice(5, 7)), spec.ocean)
+  const { basin } = choice
+  const monsoon = or(choice.monsoon, spec.monsoon)
+  const ice = spec.ice === undefined ? choice.ice : forceIce(seed, spec.ice, basin.name, choice.ice)
   const water = basin.water ?? waterRng.pick(biome.water)
   // Polar coasts: tundra grass and shrubs (and birch in the Arctic), no trees
   // from warmer climates.
@@ -971,11 +1073,14 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   // The ocean shapes its sea: Southern gales, Pacific groundswell, monsoon
   // seas; pack ice smothers waves, leaving calm leads between the floes.
   const iceCalm = ice != null && ice.packIce > 0 ? 0.4 : 1
-  windSpeed = Math.min(24, windSpeed * basin.wind * (monsoon ? 1.35 : 1))
-  const fog = rainbowDay || eclipse != null ? null : pickFog(seed, biome, basin.name, Number(date.slice(5, 7)), timeOfDay, weather, windSpeed)
+  windSpeed = or(Math.min(24, windSpeed * basin.wind * (monsoon ? 1.35 : 1)), spec.wind)
+  const fog =
+    (rainbowDay || eclipse != null) && spec.fog === undefined
+      ? null
+      : pickFog(seed, biome, basin.name, Number(date.slice(5, 7)), timeOfDay, weather, windSpeed, spec.fog)
   if (fog != null) {
     // Fog comes with light airs: the sea calms under it.
-    windSpeed = Math.min(windSpeed, fog.kind === 'sea-smoke' ? 3 : 6)
+    if (spec.wind == null) windSpeed = Math.min(windSpeed, fog.kind === 'sea-smoke' ? 3 : 6)
     // Inside the fog the sun is dimmed by the layer between it and us.
     if (fog.start === 0) {
       const sinEl = Math.max(0.05, Math.sin(sunElevationDeg * DEG))
@@ -986,7 +1091,7 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
   oceanSwell.swellHeight *= basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm
   oceanSwell.swellWavelength = Math.min(320, oceanSwell.swellWavelength * basin.swellWavelength)
   const oceanState = { windSpeed: windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
-  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, biome, oceanState)
+  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, biome, oceanState, spec)
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',
@@ -996,10 +1101,10 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     midday: 'Midday',
     night: nightSky === 'starlit' ? 'Starry night' : 'Moonlit night'
   }
-  const colony = pickColony(seed, basin.name, biome)
-  const pinnipeds = pickPinnipeds(seed, basin.name, biome)
-  const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog)
-  const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect))
+  const colony = pickColony(seed, basin.name, biome, spec.colony)
+  const pinnipeds = pickPinnipeds(seed, basin.name, biome, spec.pinnipeds)
+  const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog, spec.lighthouse)
+  const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
   let rainbow: RainbowParams | null = null
   if (rainbowDay && storm == null) {
     const antisolarAz = headingDeg + relSunAz + 180
@@ -1064,14 +1169,14 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     titleParts.push(moonPhaseName(moonPhaseDeg))
   }
 
-  let moonScale = rng.range(1.2, 2.4)
+  let moonScale = keep('moonScale', rng.range(1.2, 2.4))
   const sunScale = solarEclipse ? ECLIPSE_SCALE : 1
   if (solarEclipse) moonScale = (SUN_ANGULAR_RADIUS * ECLIPSE_SCALE * eclipse!.ratio) / MOON_ANGULAR_RADIUS
   rng.float() // was the latitude draw; keeps the rest of the main stream in place
   const [latMin, latMax] = biome.name === 'tropical' ? [5, 23] : basin.latitude
   const latitudeDeg = orng.range(latMin, latMax)
 
-  return {
+  const params: SceneParams = {
     date,
     seed,
     title: titleParts.join(' · '),
@@ -1099,26 +1204,45 @@ export function generateParams(date: string, attempt = 0, aspect = 16 / 9): Scen
     landform,
     fog,
     lighthouse,
+    ...(spec.props != null ? { overrides: spec.props } : {}),
     camera: {
-      heightM: eyeHeight ?? heightM,
+      heightM: spec.camera?.heightM ?? eyeHeight ?? heightM,
       headingDeg,
-      horizonFraction: ((drawn: number) => (eclipse != null ? erng.range(0.56, 0.66) : drawn))(
-        rng.weighted<() => number>([
-          [() => rng.range(0.55, 0.68), 3], // more sky
-          [() => rng.range(0.32, 0.45), 2], // more sea
-          [() => rng.range(0.45, 0.55), 1]
-        ])()
+      horizonFraction: or(
+        ((drawn: number) => (eclipse != null ? erng.range(0.56, 0.66) : drawn))(
+          keep(
+            'horizon',
+            rng.weighted<() => number>([
+              [() => rng.range(0.55, 0.68), 3], // more sky
+              [() => rng.range(0.32, 0.45), 2], // more sea
+              [() => rng.range(0.45, 0.55), 1]
+            ])()
+          )
+        ),
+        spec.camera?.horizonFraction
       ),
-      rollDeg: rng.normal(0, 0.3),
+      rollDeg: or(keep('roll', rng.normal(0, 0.3)), spec.camera?.rollDeg),
       focalLengthMm,
       aspect
     },
     ocean: {
       ...oceanState,
-      time: rng.range(0, 10_000),
-      choppiness: rng.range(0.6, 1.0),
+      time: keep('time', rng.range(0, 10_000)),
+      choppiness: keep('choppiness', rng.range(0.6, 1.0)),
       water,
       waveSeed: `${seed}/waves`
     }
   }
+  return { params, draws }
+}
+
+/** Ice forced by a scene spec: pack ice (with or without bergs) or bergs
+ * alone, tabular in the south and glacier bergs in the north. */
+function forceIce(seed: string, force: Force<'pack' | 'bergs'>, ocean: OceanName, drawn: IceParams | null): IceParams | null {
+  if (force === null || force === false) return null
+  const rng = Random.derive(seed, 'spec/ice')
+  const bergKind = ocean === 'southern' ? 'tabular' : 'glacier'
+  if (force === 'bergs') return { packIce: 0, bergs: rng.int(1, 3), bergKind }
+  if (drawn != null && (force === true || drawn.packIce > 0)) return drawn
+  return { packIce: rng.range(0.25, 0.75), bergs: rng.chance(0.6) ? rng.int(1, 3) : 0, bergKind }
 }

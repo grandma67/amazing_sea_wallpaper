@@ -43,8 +43,20 @@ export interface DebrisSpec {
   coconuts: number
 }
 
-/** What washes up on this coast, or null for no beach. */
+/** What washes up on this coast, or null for no beach; a scene spec's
+ * `props.debris` replaces the drawn fields (null: nothing). */
 export function debrisFor(params: SceneParams, rng: Random): DebrisSpec | null {
+  const drawn = drawDebris(params, rng)
+  const force = params.overrides?.debris
+  if (force === undefined || drawn == null) return drawn
+  if (force === null) return null
+  const spec = { ...drawn, ...force }
+  // A wrack named without an amount: a typical line of it.
+  if (force.wrack != null && force.wrackAmount === undefined && spec.wrackAmount === 0) spec.wrackAmount = 0.7
+  return spec
+}
+
+function drawDebris(params: SceneParams, rng: Random): DebrisSpec | null {
   if (params.coast.type !== 'beach') return null
   const ocean = params.sea.ocean
   const spec: DebrisSpec = { driftwood: 0, rootWads: false, wrack: null, wrackAmount: 0, coconuts: 0 }

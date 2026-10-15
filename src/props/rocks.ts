@@ -14,6 +14,7 @@ import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 
 import type { Biome, RGB } from '../biome'
 import type { Random } from '../random'
+import { forced } from '../sceneSpec'
 import { shoreToWorld } from '../terrain'
 import type { PropContext } from './context'
 import { fbm3 } from './noise'
@@ -210,8 +211,8 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
   const { coast, biome } = params
   if (coast.type !== 'beach') return []
   const rng = ctx.rng('rocks')
-  const hasRocks = rng.chance(biome.rockChance)
-  const hasStacks = rng.chance(biome.seaStackChance)
+  const hasRocks = forced(params.overrides?.rocks, rng.chance(biome.rockChance))
+  const hasStacks = forced(params.overrides?.seaStacks, rng.chance(biome.seaStackChance))
   if (!hasRocks && !hasStacks) return []
 
   const instances: RockInstance[] = []

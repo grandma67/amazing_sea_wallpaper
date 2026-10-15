@@ -11,6 +11,7 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
+import { forced } from '../sceneSpec'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 
@@ -60,7 +61,7 @@ export function gull(lift: number, droop: number, dark: boolean): BufferGeometry
 export function createBirds(ctx: PropContext): InstancedMesh[] {
   const { params } = ctx
   const rng = ctx.rng('birds')
-  if (!rng.chance(0.6)) return []
+  if (!forced(params.overrides?.birds, rng.chance(0.6))) return []
 
   // Seen against a bright low sky, birds read as dark silhouettes.
   const dark = params.sunElevationDeg < 4 || params.timeOfDay === 'night' || rng.chance(0.2)

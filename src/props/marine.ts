@@ -5,6 +5,7 @@ import type { OceanName } from '../oceans'
 import type { Random } from '../random'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
+import { forced, forcedKind, type MarineSpecies } from '../sceneSpec'
 import { SprayBuilder } from './surf'
 
 // Marine animals caught at the surface — the moments people photograph:
@@ -31,7 +32,7 @@ import { SprayBuilder } from './surf'
 // sea, and a whale's breath hangs over it. Splashes are spray sprites
 // (surf.ts), so they're soft and lit like the surf.
 
-type Species = 'dolphin' | 'orca' | 'humpback' | 'swordfish'
+type Species = MarineSpecies
 
 interface Look {
   back: RGB
@@ -364,11 +365,12 @@ const SPECIES_BY_OCEAN: Record<OceanName, readonly (readonly [Species, number])[
 export function createMarineLife(ctx: PropContext): Object3D[] {
   const { params } = ctx
   const rng = ctx.rng('marine')
-  if (!rng.chance(0.35) || params.storm != null) return []
+  const force = params.overrides?.marine
+  if (!forced(force, rng.chance(0.35) && params.storm == null)) return []
   let table = SPECIES_BY_OCEAN[params.sea.ocean]
   // Orcas on warm-water coasts are rare; keep them to cooler ones.
   if (params.biome.name === 'tropical' || params.biome.name === 'desert') table = table.filter(([s]) => s !== 'orca')
-  const species = rng.weighted(table)
+  const species = forcedKind(force, rng.weighted(table))
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.3, side: DoubleSide })
   const spray = new SprayBuilder()
   // Mostly side-on to the camera, the view that shows an animal's shape.
