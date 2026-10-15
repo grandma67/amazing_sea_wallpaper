@@ -5,6 +5,7 @@ import { createBirds } from './birds'
 import { createColony } from './colony'
 import { createDebris } from './debris'
 import { createIce } from './ice'
+import { createIslands } from './islands'
 import { createLandforms } from './landforms'
 import { createLighthouse } from './lighthouse'
 import { createMarineLife } from './marine'
@@ -31,6 +32,7 @@ export function createProps(ctx: PropContext): Group {
   const colony = createColony(ctx)
   for (const object of colony) group.add(object)
   const island = (colony.find(o => o.userData.island === true) as Mesh | undefined) ?? null
+  for (const object of createIslands(ctx, island)) group.add(object)
   for (const object of createPinnipeds(ctx, island)) group.add(object)
   for (const object of createLighthouse(ctx, island)) group.add(object)
   for (const mesh of createVegetation(ctx)) group.add(mesh)

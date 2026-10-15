@@ -2,7 +2,7 @@ import type { EclipseType } from './celestial'
 import type { Biome, SandStyle, VegetationKind } from './biome'
 import type { CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
-import type { ColonyKind, ColonySite, Composition, HaulOut, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
+import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
 import type { DebrisSpec } from './props/debris'
 import type { ShoreLife } from './props/shoreLife'
 
@@ -87,6 +87,7 @@ export interface SceneSpec {
   fog?: Force<'advection' | 'bank' | 'sea-smoke'>
   lighthouse?: Force<'point' | 'rock'>
   landform?: Force<'range' | 'strato' | 'shield'>
+  islands?: Force<IslandKind>
   colony?: Force<ColonyKind>
   pinnipeds?: Force<PinnipedKind>
   /** Where the colony is (on a beach coast; the open sea only has islands). */
@@ -203,6 +204,7 @@ const SPEC = object({
   fog: force('advection', 'bank', 'sea-smoke'),
   lighthouse: force('point', 'rock'),
   landform: force('range', 'strato', 'shield'),
+  islands: force('skerries', 'rocky', 'cay', 'karst', 'high'),
   colony: force('gannet', 'puffin', 'tropical', 'penguin'),
   pinnipeds: force('seal', 'sea-lion', 'fur-seal', 'elephant-seal'),
   colonySite: oneOf('island', 'mainland'),

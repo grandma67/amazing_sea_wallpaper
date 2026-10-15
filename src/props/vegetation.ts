@@ -34,7 +34,7 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
 const PALM_BARK: RGB = [0.3, 0.26, 0.21]
 const DRY: RGB = [0.28, 0.22, 0.12]
 
-function palm(rng: Random, foliage: RGB): BufferGeometry {
+export function palm(rng: Random, foliage: RGB): BufferGeometry {
   const b = new MeshBuilder()
   const height = rng.range(8, 12)
   const bend = height * rng.range(0.05, 0.16)

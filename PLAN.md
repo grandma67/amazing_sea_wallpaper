@@ -23,6 +23,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.11 | 10-15 | Shore debris: driftwood logs (bleached or barked, checked along the grain, root wads) heaped on the storm line and sticks on the wrack line, by coast (Arctic and Pacific most, none on Southern Ocean shores); a wrack line of kelp, Posidonia seagrass banquettes and fibre balls, or sargassum; coconuts on palm coasts. Shore life: ghost crabs (most at dusk and night) with burrows and sand fans, shore and hermit crabs; shells by coast (cockle, clam, scallop, mussel, razor, sand dollar) and starfish; strandline and foredune flowers by biome and month (beach morning glory, sea bindweed, sea holly, sea daffodil, ice plant, thrift, sea rocket, oysterplant) |
 | 0.12 | 10-15 | Moon and eclipses: nights lit by the real phase law (half moon ~1/10 of full), starlit nights with the moon down or new, earthshine on crescents; the moon by day in the frame with the sun; real eclipses on their dates (astronomy-engine): partial, annular and total solar (black moon, corona, dark sky with a 360° horizon glow, stars), partial and total lunar (copper umbra, dimmed moonlight) |
 | 0.14 | 10-15 | Colonies on the mainland: seabird cliffs on a headland ridge running into the sea (gannets, puffins, boobies), penguin rookeries crowding the beach; seals and sea lions hauled out on the beach (elephant seals most often); `colonySite` and `haulOut` in scene specs |
+| 0.15 | 10-15 | Islands at sea on ~30% of days, by coast: nordic skerries with pines, steep Mediterranean and desert islands, tropical palm cays, karst towers and high volcanic islands; heightfields with curvature drop, palms and pines instanced; `islands` in scene specs |
 | 0.13 | 10-15 | Scene specs: a JSON description (`src/sceneSpec.ts`) forces any part of a scene (time of day, sun, moon, eclipse, biome, ocean, coast, weather, clouds, storm, fog, lighthouse, landform, colonies, seals, wind, camera, and the props' own choices) on top of a date; `?scene=` on the page, `--scene` in the snapshot script; unforced output unchanged |
 
 ## Decisions
@@ -70,6 +71,13 @@ Playwright (headless snapshots).
   picks crabs by biome and time of day, shells by coast, flowers in bloom by month;
   everything at real size, so crabs and shells only show near the camera); built with `builder.ts` (`MeshBuilder`). `PropContext.seaLevel()` samples the FFT
   wave height on the CPU so things float on the actual waves.
+- **Islands:** `params.ts` `pickIslands()` (own stream) picks kind by biome (`ISLANDS`) and
+  per island an offset across the frame, distance, width and height (low ones 1–4 km, high
+  ones 8–30 km). `props/islands.ts` moves each to open water in frame (12-point footprint
+  over seabed, clear of others and the colony rock), builds a polar-grid heightfield with a
+  noisy outline and a profile per kind (`islandHeight`), colours it by height, slope and
+  noise, and instances palms (cays) or distant pines (skerries). Islands past 5 km are
+  `distant` (left out of the planar reflection, like mountains).
 - **Moon and eclipses:** `celestial.ts` has the phase law (Allen's magnitude fit),
   disc-overlap geometry and `eclipseOn(date)` (real eclipse peaks; penumbral lunar left
   out). `params.ts` sets `nightSky` (moonlit/starlit), `moonlight`, `eclipse`, `sunScale`
@@ -160,6 +168,12 @@ Playwright (headless snapshots).
   mainland headland must run inland (long along the seaward axis).
 - postprocessing's `readDepth()` isn't the raw depth inside takram's aerial perspective
   shader; use `readDepthValue(depthBuffer, uv)` there.
+
+- From a 1.6 m eye the horizon is ~4.5 km away: a cay 2 m high is only a line of palms
+  over a white strip, and a group of low skerries can read as one long shore. That's real;
+  make them nearer rather than bigger.
+- Sheer walls built on a polar grid read as drums (karst towers looked like canisters):
+  make the wall's foot wander with angle and let vegetation and dark streaks cover it.
 
 ## Ideas (not planned)
 

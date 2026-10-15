@@ -67,7 +67,7 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --scene '{"timeOfDay":"nigh
 - Fields: `timeOfDay`, `evening`, `sunElevationDeg`, `sunAzimuthDeg` (0 = ahead),
   `moonPhaseDeg`, `dayMoon`, `nightSky`, `eclipse`, `biome`, `ocean`, `monsoon`, `ice`, `coast`,
   `composition`, `sand`, `weather`, `clouds`, `storm`, `rainbow`, `fog`, `lighthouse`,
-  `landform`, `colony`, `colonySite`, `pinnipeds`, `haulOut`, `wind`, `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`
+  `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`, `haulOut`, `wind`, `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`
   and `props.{marine,birds,migratory,ships,rocks,seaStacks,vegetation,debris,shoreLife}`.
   For features that can be absent, `null`/`false` removes them, `true` makes sure they are there,
   and a kind (`"rock"`, `"bank"`, `"orca"`) forces the kind.

@@ -119,6 +119,37 @@ export interface LandformParams {
   seed: number
 }
 
+/**
+ * Islands offshore, a few kilometres out (props/islands.ts):
+ * - skerries: low, ice-smoothed granite humps in groups, with dark pines on
+ *   the bigger ones (the Stockholm and Finnish archipelagos, Norway); bare
+ *   in the polar seas;
+ * - rocky: steep islands with cliffs and a cap of scrub, hazy blue far out
+ *   (the Aegean, Dalmatia), bare rock on desert coasts (the Red Sea, Baja);
+ * - cay: low sand islets crowned with palms, a white beach round them
+ *   (the Maldives, the Caribbean, Pacific atoll motu);
+ * - karst: sheer limestone towers with jungle on top (Ha Long Bay, Phang
+ *   Nga, Palawan);
+ * - high: big volcanic islands, ridged and forested (Moorea, the Azores,
+ *   the Canaries' greener ones), with snow in cold seas.
+ */
+export type IslandKind = 'skerries' | 'rocky' | 'cay' | 'karst' | 'high'
+
+export interface IslandParams {
+  kind: IslandKind
+  islands: {
+    /** Across the frame, −1…1 of the half field of view (a first guess:
+     * the prop moves islands that land on the shore or out of frame). */
+    offset: number
+    /** Distance from the camera (m). */
+    distance: number
+    /** Width across and peak height above the sea (m). */
+    width: number
+    height: number
+    seed: number
+  }[]
+}
+
 export interface RainbowParams {
   /** 0..1: how much of the bow's light the rain gives back. */
   strength: number
@@ -262,6 +293,8 @@ export interface SceneParams {
   rainbow: RainbowParams | null
   /** Mountains or a volcano on the horizon (props/landforms.ts). */
   landform: LandformParams | null
+  /** Islands offshore (props/islands.ts). */
+  islands: IslandParams | null
   /** Sea fog or sea smoke (fog.ts). */
   fog: FogParams | null
   /** A lighthouse on a point or a rock (props/lighthouse.ts, lighthouse.ts). */
@@ -705,6 +738,65 @@ function pickLandform(
     lava: active && dark && kind === 'strato' && rng.chance(0.7),
     seed: rng.int(0, 1_000_000)
   }
+}
+
+/** How often each coast has islands in view, and which kinds (weights). */
+const ISLANDS: Record<Biome['name'], { chance: number; kinds: readonly (readonly [IslandKind, number])[] }> = {
+  nordic: { chance: 0.35, kinds: [['skerries', 4], ['rocky', 1], ['high', 1]] },
+  mediterranean: { chance: 0.35, kinds: [['rocky', 1]] },
+  tropical: { chance: 0.35, kinds: [['cay', 5], ['high', 2], ['karst', 2]] },
+  volcanic: { chance: 0.3, kinds: [['high', 3], ['rocky', 1]] },
+  desert: { chance: 0.15, kinds: [['rocky', 1]] }
+}
+
+/** Size and distance of one island of a kind (m). Low islands sink behind
+ * the horizon a few kilometres out, so they're near; high ones far. */
+function islandSize(rng: Random, kind: IslandKind): { distance: number; width: number; height: number } {
+  switch (kind) {
+    case 'skerries': {
+      const width = rng.range(60, 500)
+      return { distance: rng.range(700, 3500), width, height: Math.min(30, width * rng.range(0.04, 0.09)) }
+    }
+    case 'cay':
+      return { distance: rng.range(900, 4000), width: rng.range(120, 600), height: rng.range(1.5, 3) }
+    case 'karst': {
+      // Towers taller than they're wide, or blocks a little wider.
+      const width = rng.range(100, 450)
+      return { distance: rng.range(1200, 7000), width, height: Math.min(260, width * rng.range(0.6, 1.4)) }
+    }
+    case 'rocky': {
+      const width = rng.range(400, 4000)
+      return { distance: rng.range(2500, 16_000), width, height: width * rng.range(0.07, 0.15) }
+    }
+    case 'high': {
+      const width = rng.range(3000, 14_000)
+      return { distance: rng.range(8000, 30_000), width, height: Math.min(1400, width * rng.range(0.08, 0.14)) }
+    }
+  }
+}
+
+function pickIslands(seed: string, biome: Biome, force?: Force<IslandKind>): IslandParams | null {
+  const rng = Random.derive(seed, 'islands')
+  const table = ISLANDS[biome.name]
+  if (!forced(force, rng.chance(table.chance))) return null
+  const kind = forcedKind(force, rng.weighted(table.kinds))
+  // Skerries come in groups round a centre; karst towers in a scatter;
+  // the big ones alone or in pairs.
+  const count = kind === 'skerries' ? rng.int(3, 8) : kind === 'karst' ? rng.int(2, 6) : kind === 'cay' ? rng.int(1, 3) : rng.int(1, 2)
+  const centre = rng.range(-0.7, 0.7)
+  const spread = kind === 'skerries' || kind === 'karst' ? 0.35 : 0.8
+  const near = rng.range(0.8, 1.2)
+  const islands = Array.from({ length: count }, () => {
+    const size = islandSize(rng, kind)
+    return {
+      offset: Math.max(-0.95, Math.min(0.95, centre + rng.normal(0, spread))),
+      distance: kind === 'skerries' || kind === 'karst' ? size.distance * near : size.distance,
+      width: size.width,
+      height: size.height,
+      seed: rng.int(0, 1_000_000)
+    }
+  })
+  return { kind, islands }
 }
 
 /** How often each colony is on the mainland rather than an island. Most
@@ -1161,6 +1253,7 @@ function buildParams(
   const pinnipeds = pickPinnipeds(seed, basin.name, biome, coast.type, spec.pinnipeds, spec.haulOut)
   const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog, spec.lighthouse)
   const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
+  const islands = pickIslands(seed, biome, spec.islands)
   let rainbow: RainbowParams | null = null
   if (rainbowDay && storm == null) {
     const antisolarAz = headingDeg + relSunAz + 180
@@ -1190,6 +1283,10 @@ function buildParams(
             ? 'smoking volcano'
             : 'volcano'
     )
+  }
+  if (islands != null) {
+    const names: Record<IslandKind, string> = { skerries: 'skerries', rocky: 'islands', cay: 'palm islets', karst: 'karst islands', high: 'islands' }
+    titleParts.push(islands.islands.length === 1 && islands.kind !== 'skerries' ? names[islands.kind].replace(/s$/, '') : names[islands.kind])
   }
   if (rainbow != null) titleParts.push('rainbow')
   if (colony != null) titleParts.push(colony.kind === 'penguin' ? 'penguin colony' : colony.site === 'island' ? 'seabird island' : 'seabird cliffs')
@@ -1258,6 +1355,7 @@ function buildParams(
     pinnipeds,
     rainbow,
     landform,
+    islands,
     fog,
     lighthouse,
     ...(spec.props != null ? { overrides: spec.props } : {}),

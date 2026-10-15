@@ -26,7 +26,7 @@ import { windDirection } from './wind'
 const ridged = (x: number, y: number, seed: number): number => 1 - Math.abs(fbm3(x, y, 0.5, seed) * 2 - 1)
 
 /** Same curvature as the ocean grid (ocean.ts), so land and sea meet. */
-const curvatureDrop = (x: number, z: number): number => (0.9 * (x * x + z * z)) / (2 * EARTH_RADIUS)
+export const curvatureDrop = (x: number, z: number): number => (0.9 * (x * x + z * z)) / (2 * EARTH_RADIUS)
 
 interface Palette {
   rock: RGB
