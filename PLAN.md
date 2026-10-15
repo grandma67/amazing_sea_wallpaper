@@ -27,6 +27,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.16 | 10-15 | Surf physics: waves shoal from half a wavelength deep (Green's law), break at H = γ·d (McCowan 0.78, Weggel slope term) and stay depth-limited as bores; a zero-mean profile with peaked crests, flat troughs, a front face steepening toward breaking and a drawdown trough at its foot; white water and spray only where the model says the wave is breaking |
 | 0.15 | 10-15 | Islands at sea on ~30% of days, by coast: nordic skerries with pines, steep Mediterranean and desert islands, tropical palm cays, karst towers and high volcanic islands; heightfields with curvature drop, palms and pines instanced; `islands` in scene specs |
 | 0.13 | 10-15 | Scene specs: a JSON description (`src/sceneSpec.ts`) forces any part of a scene (time of day, sun, moon, eclipse, biome, ocean, coast, weather, clouds, storm, fog, lighthouse, landform, colonies, seals, wind, camera, and the props' own choices) on top of a date; `?scene=` on the page, `--scene` in the snapshot script; unforced output unchanged |
+| 0.21 | 10-15 | Beach wildlife at real size, near the camera (`props/wildlife.ts`): sea turtles by region and month (nesting females at night in a body pit, crawl tracks the next morning, symmetric for greens and leatherbacks, hatchlings ~2 months later, greens basking on Hawaii by day); long-tailed macaques (SE Asia), white-faced capuchins (Central America), vervets (East Africa) by day; marine iguanas heaped facing the sun (Galápagos), green iguanas, water monitors, spiny-tailed lizards (Arabia); `evening` in `SceneParams`; `wildlife` in scene specs |
 | 0.20 | 10-15 | Mangroves on sheltered shores (surf amplitude < 0.35 m): red mangroves (Rhizophora, 5–9 m on arching prop roots) on tropical coasts, dwarf grey mangroves (Avicennia, 2–4.5 m over a bed of pneumatophores) landward in the tropics and alone on Red Sea, Gulf and Baja desert coasts; a stand along 80–300 m of shore from the high-tide mud into knee-deep water; `mangroves` in scene specs |
 | 0.19 | 10-15 | Polar boats: Arctic and Southern Ocean seas get no sailing yachts but open dinghies with outboards (most in summer), trawlers, expedition cruise ships in season (Arctic Jun–Sep, Antarctic Nov–Mar) and red research icebreakers (`polarFleet()`); boats placed by distance and bearing when the frame's lower half has little sea (they were often missing on along-beach views) |
 | 0.18 | 10-15 | Faster loading, same image: the atmosphere precompute (~1.1 s of GPU work) is issued in one go and the props are built on the CPU meanwhile; cloud frames wait on the frame before last, so the GPU never idles between them; the render worker starts loading with the page — clear 4K days 2.3 → 1.3 s, cloudy ~7.6 → ~6 s |
@@ -102,6 +103,13 @@ Playwright (headless snapshots).
   places trees where the ground is within ±0.9 m of sea level, thinning seaward.
   `rhizophora()` / `avicennia()` in `trees.ts`. Shoreline views look straight out to sea and
   show no shore, so they never show a stand.
+- **Wildlife:** `props/wildlife.ts` `wildlifeFor()` picks a region from biome, ocean and
+  latitude (tropical Pacific: SE Asia or Central America; tropical Indian: SE Asia or East
+  Africa; tropical Atlantic: Caribbean; warm volcanic Pacific: Galápagos or Hawaii;
+  Mediterranean Sea; Arabia), then turtles by `nestingSpecies(region, month)` and the time
+  of day, monkeys and lizards by day. `spot()` casts rays through the lower frame and
+  marches them to the ground, so each group lands in view, near first; individuals scatter
+  round it. Tracks are a world-space strip of churned sand following the ground.
 - **Ships:** `props/ships.ts` builds hulls lofted per kind; `polarFleet()` replaces the
   leisure craft and shipping in Arctic and Southern Ocean waters. `seaSpot()` first aims at
   the lower half of the frame, then samples distance (log-uniform) and bearing within the
@@ -225,6 +233,12 @@ Playwright (headless snapshots).
   Check speed work with a pixel diff against a baseline, not by eye: two runs of the same
   code on the same GPU are pixel-identical here.
 
+- Placing near-camera things by sampling shore coordinates round the camera fails in
+  along-beach views (the beach in view is ahead, not beside us). Cast rays through the
+  frame and march them to the ground instead (`spot()` in `props/wildlife.ts`).
+- A plain vertex-coloured sand mesh lights brighter than the terrain's sand shader: tint
+  sand-coloured overlays (tracks) ~0.8× or they show as pale bands.
+
 ## Ideas (not planned)
 
 Breaking-wave lips, boat wakes, per-pixel cloud shadows matching the clouds, ambient occlusion
@@ -241,6 +255,9 @@ under trees, a low-power mode for phones.
   J. Coastal Res. "Breaking Waves on a Macrotidal Barred Beach: A Test of McCowan's Criteria"
 - Cloud noise: handmade.network "Fast High-Quality Cloudscape through Noise and Reprojection"
 - Rain on the sea: Melsheimer et al.; Nystuen 1990
+- Sea turtles: seaturtlesofindia.org (Andaman greens and hawksbills Apr–Sep, olive ridleys
+  Nov–Mar); Volunteer World "Turtle seasons around the world" (Costa Rica, Galápagos,
+  Greece); NC Wildlife (loggerheads May–Aug, ~60 days' incubation)
 - Mangroves: FAO "Mangroves of Asia" (Red Sea and Gulf: patchy, pure Avicennia at wadi
   mouths and sheltered lagoons); Frontiers in Marine Science 2025 review (Middle East
   Avicennia 2–4 m; freshwater, salinity, heat and shelter control it)

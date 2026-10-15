@@ -249,6 +249,8 @@ export interface SceneParams {
   title: string
 
   timeOfDay: TimeOfDay
+  /** The light is the evening's (sunset side), not the morning's. */
+  evening: boolean
   /** Unit vector toward the sun, world frame. */
   sunDirection: [number, number, number]
   sunElevationDeg: number
@@ -1334,6 +1336,7 @@ function buildParams(
     seed,
     title: titleParts.join(' · '),
     timeOfDay,
+    evening: isEvening,
     sunDirection,
     sunElevationDeg,
     moonDirection,

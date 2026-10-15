@@ -18,6 +18,7 @@ import { createShoreLife } from './shoreLife'
 import { createStorm } from './storm'
 import { createSurf, waterRocks, waveOnRock } from './surf'
 import { createVegetation } from './vegetation'
+import { createWildlife } from './wildlife'
 
 /** Everything placed in the scene on top of sea, sky and terrain. */
 export function createProps(ctx: PropContext): Group {
@@ -39,6 +40,7 @@ export function createProps(ctx: PropContext): Group {
   add('ice', createIce(ctx))
   add('debris', createDebris(ctx))
   add('shore-life', createShoreLife(ctx))
+  add('wildlife', createWildlife(ctx))
   const colony = add('colony', createColony(ctx))
   const island = (colony.find(o => o.userData.island === true) as Mesh | undefined) ?? null
   add('islands', createIslands(ctx, island))

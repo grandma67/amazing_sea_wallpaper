@@ -5,6 +5,7 @@ import type { OceanName } from './oceans'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
 import type { DebrisSpec } from './props/debris'
 import type { ShoreLife } from './props/shoreLife'
+import type { Wildlife } from './props/wildlife'
 
 // A scene described as JSON, for building and checking features without
 // hunting for a date that happens to have them. Every field is optional:
@@ -58,6 +59,8 @@ export interface PropOverrides {
   shoreLife?: Partial<ShoreLife> | null
   /** A stand of mangroves on a sheltered shore (props/mangroves.ts). */
   mangroves?: Force<MangroveKind>
+  /** null: no turtles, monkeys or lizards; fields replace the drawn ones. */
+  wildlife?: Partial<Omit<Wildlife, 'region'>> | null
 }
 
 export interface SceneSpec {
@@ -250,6 +253,20 @@ const SPEC = object({
         starfish: number,
         flowers: listOf(oneOf(...FLOWERS)),
         flowerAmount: number
+      },
+      true
+    ),
+    wildlife: object(
+      {
+        turtle: oneOf(null, 'green', 'loggerhead', 'leatherback', 'hawksbill', 'olive-ridley'),
+        nesting: boolean,
+        tracks: number,
+        hatchlings: number,
+        basking: number,
+        monkey: oneOf(null, 'macaque', 'capuchin', 'vervet'),
+        monkeys: number,
+        lizard: oneOf(null, 'marine-iguana', 'green-iguana', 'monitor', 'spiny-tailed'),
+        lizards: number
       },
       true
     )
