@@ -83,3 +83,29 @@ describe('surf: wave profile', () => {
     expect(max).toBeLessThan(6)
   })
 })
+
+describe('waves on rocks', () => {
+  it('break on a rock that stands higher than the crests, wash over one that doesn’t', async () => {
+    const { waveOnRock } = await import('../src/props/surf')
+    const depth = 1.5
+    const { crest } = waveOnRock(coast, { top: 10, depth }, 0)
+    expect(crest).toBeGreaterThan(0.3)
+    expect(waveOnRock(coast, { top: crest * 2, depth }, 0).breaks).toBe(1)
+    expect(waveOnRock(coast, { top: crest * 0.5, depth }, 0).breaks).toBe(0)
+    // Offshore, past the surf, the open sea's waves count: a stack in a
+    // 3 m sea takes 1.5 m crests.
+    const offshore = waveOnRock(coast, { top: 1, depth: 30 }, 3)
+    expect(offshore.crest).toBeCloseTo(1.5, 5)
+    expect(offshore.breaks).toBe(0)
+    expect(waveOnRock(coast, { top: 20, depth: 30 }, 3).breaks).toBe(1)
+  })
+
+  it('crest in the surf is the depth-limited wave’s', async () => {
+    const { waveOnRock } = await import('../src/props/surf')
+    // Shallower water, smaller broken waves: the same rock breaks them sooner.
+    const shallow = waveOnRock(coast, { top: 0.6, depth: 0.5 }, 0)
+    const deeper = waveOnRock(coast, { top: 0.6, depth: 2 }, 0)
+    expect(shallow.crest).toBeLessThan(deeper.crest)
+    expect(shallow.breaks).toBeGreaterThan(deeper.breaks)
+  })
+})

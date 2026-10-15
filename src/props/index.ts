@@ -15,7 +15,7 @@ import { createRocks } from './rocks'
 import { createShips } from './ships'
 import { createShoreLife } from './shoreLife'
 import { createStorm } from './storm'
-import { createSurf } from './surf'
+import { createSurf, waterRocks, waveOnRock } from './surf'
 import { createVegetation } from './vegetation'
 
 /** Everything placed in the scene on top of sea, sky and terrain. */
@@ -26,6 +26,8 @@ export function createProps(ctx: PropContext): Group {
   const rocks = createRocks(ctx)
   for (const mesh of rocks) group.add(mesh)
   for (const points of createSurf(ctx, rocks)) group.add(points)
+  // For the ocean's foam round them (ocean.ts setOceanRocks).
+  group.userData.waterRocks = waterRocks(ctx, rocks).map(r => ({ ...r, breaks: waveOnRock(ctx.params.coast, r, ctx.waveHeight).breaks }))
   for (const mesh of createIce(ctx)) group.add(mesh)
   for (const mesh of createDebris(ctx)) group.add(mesh)
   for (const mesh of createShoreLife(ctx)) group.add(mesh)

@@ -55,6 +55,11 @@ export class PropContext {
     return h
   }
 
+  /** Significant wave height of the open sea (m), 0 without waves. */
+  get waveHeight(): number {
+    return this.surface?.significantHeight ?? 0
+  }
+
   distance(x: number, z: number): number {
     return Math.hypot(x - this.camera.position.x, z - this.camera.position.z)
   }

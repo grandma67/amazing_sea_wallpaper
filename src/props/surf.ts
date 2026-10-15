@@ -12,6 +12,7 @@ import {
   type PerspectiveCamera
 } from 'three'
 
+import type { CoastParams } from '../params'
 import { shoreToWorld, surfCycle, surfSets, surfWave, worldToShore } from '../terrain'
 import type { PropContext } from './context'
 
@@ -82,6 +83,66 @@ const sprayShader = {
       color += bow((theta - 40.4) / 2.3) * sunIrradiance * 0.06 * sunUp * bowStrength;
       gl_FragColor = vec4(color, 1.0);
     }`
+}
+
+/** A rock standing out of the sea: where it cuts the water and how high
+ * it stands above it. */
+export interface WaterRock {
+  x: number
+  z: number
+  /** Radius at the waterline (m). */
+  radius: number
+  /** Height of its top above still water (m). */
+  top: number
+  /** Water depth at its foot (m). */
+  depth: number
+}
+
+/** Rocks cutting the sea surface, from the rock meshes (boulders in the
+ * shallows, sea stacks offshore). Rock geometry is roughly a unit sphere. */
+export function waterRocks(ctx: PropContext, rocks: InstancedMesh[]): WaterRock[] {
+  const out: WaterRock[] = []
+  const m = new Matrix4()
+  const p = new Vector3()
+  const q = new Quaternion()
+  const s = new Vector3()
+  for (const mesh of rocks) {
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, m)
+      m.decompose(p, q, s)
+      const depth = -ctx.ground(p.x, p.z)
+      const top = p.y + s.y * 0.85
+      if (depth <= 0.05 || top <= 0.05 || p.y - s.y > 0) continue
+      const level = Math.min(0.95, Math.abs(p.y / s.y))
+      const radius = Math.max(s.x, s.z) * 0.9 * Math.sqrt(1 - level * level)
+      if (radius < 0.15) continue
+      out.push({ x: p.x, z: p.z, radius, top, depth })
+    }
+  }
+  return out
+}
+
+/**
+ * What the waves do at a rock: `crest`, the height (m) the passing wave
+ * crests reach above still water there (surf where the waves feel the
+ * bottom, plus the open sea's waves), and `breaks`, 0..1, whether they break
+ * on it. A rock standing higher than the crests stops the wave, which bursts
+ * against its face; one the crests top washes over and is merely awash.
+ * Either way the rock cuts the surface, so there's always some foam round
+ * it and in its lee.
+ */
+export function waveOnRock(coast: CoastParams, rock: Pick<WaterRock, 'top' | 'depth'>, seaHeight: number, sets = 1): { crest: number; breaks: number } {
+  // A crest stands about 0.7 of a shallow-water wave's height above still
+  // water; open-sea crests about half the significant height.
+  const surf = coast.surfAmplitude > 0 && rock.depth < 0.6 * coast.surfWavelength ? 0.7 * surfWave(coast, rock.depth, sets).height : 0
+  const crest = Math.max(surf, 0.5 * seaHeight)
+  const breaks = crest < 0.05 ? 0 : smoothstep(0.8, 1.2, rock.top / crest)
+  return { crest, breaks }
+}
+
+function smoothstep(a: number, b: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
+  return t * t * (3 - 2 * t)
 }
 
 /** Point-sprite droplets or puffs; also used for volcanic plumes. */
@@ -183,64 +244,51 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
     }
   }
 
-  // --- Splashes on rocks at the waterline ------------------------------------
-  const m = new Matrix4()
-  const position = new Vector3()
-  const scale = new Vector3()
-  const rotation = new Quaternion()
+  // --- Waves breaking on rocks ----------------------------------------------
+  // A wave lower than the rock bursts against its seaward face when a crest
+  // is there now; one higher washes over it. Sea stacks offshore take the
+  // open sea's waves.
   const q = new Vector3()
-  for (const mesh of rocks) {
-    for (let i = 0; i < mesh.count; i++) {
-      mesh.getMatrixAt(i, m)
-      m.decompose(position, rotation, scale)
-      const size = Math.max(scale.x, scale.z)
-      // Boulders take the waves; sea stacks offshore are too far to splash.
-      if (size < 0.9 || size > 8) continue
-      const ground = ctx.ground(position.x, position.z)
-      // Rocks standing in the shallows take the waves.
-      if (ground > 0 || ground < -2.5) continue
-      // Only the rocks a wave is hitting right now burst; the rest just
-      // have foam boiling round them.
-      const hit = rng.chance(0.35)
-      if (!ctx.visible(position.x, position.y + scale.y, position.z, size * 3)) continue
-      const [s, a] = worldToShore(coast, position.x, position.z)
-      // Seaward face, and "up and over" toward land.
-      const [fx, fz] = shoreToWorld(coast, s + size * 0.8, a)
-      const face = new Vector3(fx, 0, fz)
-      const [lx, lz] = shoreToWorld(coast, s - 1, a)
-      const landward = new Vector3(lx - position.x, 0, lz - position.z).normalize()
-      const plume = hit ? Math.min(8, (scale.y * 1.2 + amplitude * 1.8) * rng.range(0.5, 1.2) * windy) : 0
-      // A burst of white water thrown up and landward: a dense core of
-      // small droplets low and central, thinning out with height, inside a
-      // faint veil of mist. Droplets are a few centimetres; anything bigger
-      // reads as floating discs.
-      const count = Math.round(plume * 220)
-      for (let k = 0; k < count; k++) {
-        const t = rng.float()
-        const spread = size * (0.4 + 1.1 * t)
-        q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
-        const y = plume * Math.sqrt(t) * rng.range(0.4, 1.1)
-        const p = face.clone().add(q).addScaledVector(landward, t * size * 1.2).setY(y + Math.max(0, ground))
-        spray.add(p, rng.range(0.03, 0.12), rng.range(0.5, 1) * (1 - 0.6 * t))
-      }
-      for (let k = 0; k < Math.round(plume * 25); k++) {
-        const t = rng.float()
-        const spread = size * (0.6 + 1.6 * t)
-        q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
-        const p = face.clone().add(q).addScaledVector(landward, t * size * 1.5)
-        p.setY(plume * t * rng.range(0.3, 0.9) + Math.max(0, ground))
-        spray.add(p, rng.range(0.8, 2) * (0.5 + plume * 0.15), rng.range(0.04, 0.1))
-      }
-      // Foam boiling around its foot.
-      for (let k = 0; k < 220; k++) {
-        const r = size * (0.9 + 1.1 * rng.float() ** 2)
-        const ang = rng.range(0, Math.PI * 2)
-        const p = position.clone().add(new Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r))
-        spray.add(p.setY(rng.range(0, 0.15)), rng.range(0.08, 0.25), rng.range(0.3, 0.6))
-      }
+  for (const rock of waterRocks(ctx, rocks)) {
+    const size = rock.radius
+    if (!ctx.visible(rock.x, rock.top, rock.z, size * 3)) continue
+    const [s, a] = worldToShore(coast, rock.x, rock.z)
+    const sets = surfSets(coast, s, a)
+    const wave = waveOnRock(coast, rock, ctx.waveHeight, sets)
+    // In the surf a crest is at the rock when the cycle is near its crest
+    // (0.25); offshore the waves are irregular: a fair chance.
+    const cycle = surfCycle(coast, s, a)
+    const inSurf = rock.depth < 0.6 * coast.surfWavelength && amplitude > 0.05
+    const hitting = inSurf ? Math.abs(cycle - 0.29) < 0.09 : rng.chance(0.35)
+    const ground = -rock.depth
+    // Seaward face, and "up and over" toward land.
+    const [fx, fz] = shoreToWorld(coast, s + size * 0.8, a)
+    const face = new Vector3(fx, 0, fz)
+    const [lx, lz] = shoreToWorld(coast, s - 1, a)
+    const landward = new Vector3(lx - rock.x, 0, lz - rock.z).normalize()
+    const plume = hitting && wave.breaks > 0.3 ? Math.min(8 + size * 0.3, (wave.crest * 2.2 + size * 0.15) * wave.breaks * rng.range(0.6, 1.2) * windy) : 0
+    // A burst of white water thrown up and landward: a dense core of
+    // small droplets low and central, thinning out with height, inside a
+    // faint veil of mist. Droplets are a few centimetres; anything bigger
+    // reads as floating discs.
+    const count = Math.round(Math.min(2500, plume * 220 * Math.max(1, size / 3)))
+    for (let k = 0; k < count; k++) {
+      const t = rng.float()
+      const spread = size * (0.4 + 1.1 * t)
+      q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
+      const y = plume * Math.sqrt(t) * rng.range(0.4, 1.1)
+      const p = face.clone().add(q).addScaledVector(landward, t * size * 1.2).setY(y + Math.max(0, ground))
+      spray.add(p, rng.range(0.03, 0.12) * Math.max(1, size / 4), rng.range(0.5, 1) * (1 - 0.6 * t))
+    }
+    for (let k = 0; k < Math.round(plume * 25); k++) {
+      const t = rng.float()
+      const spread = size * (0.6 + 1.6 * t)
+      q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
+      const p = face.clone().add(q).addScaledVector(landward, t * size * 1.5)
+      p.setY(plume * t * rng.range(0.3, 0.9) + Math.max(0, ground))
+      spray.add(p, rng.range(0.8, 2) * (0.5 + plume * 0.15), rng.range(0.04, 0.1))
     }
   }
-
   const points = spray.build()
   return points == null ? [] : [points]
 }

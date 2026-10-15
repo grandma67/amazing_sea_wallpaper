@@ -23,6 +23,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.11 | 10-15 | Shore debris: driftwood logs (bleached or barked, checked along the grain, root wads) heaped on the storm line and sticks on the wrack line, by coast (Arctic and Pacific most, none on Southern Ocean shores); a wrack line of kelp, Posidonia seagrass banquettes and fibre balls, or sargassum; coconuts on palm coasts. Shore life: ghost crabs (most at dusk and night) with burrows and sand fans, shore and hermit crabs; shells by coast (cockle, clam, scallop, mussel, razor, sand dollar) and starfish; strandline and foredune flowers by biome and month (beach morning glory, sea bindweed, sea holly, sea daffodil, ice plant, thrift, sea rocket, oysterplant) |
 | 0.12 | 10-15 | Moon and eclipses: nights lit by the real phase law (half moon ~1/10 of full), starlit nights with the moon down or new, earthshine on crescents; the moon by day in the frame with the sun; real eclipses on their dates (astronomy-engine): partial, annular and total solar (black moon, corona, dark sky with a 360° horizon glow, stars), partial and total lunar (copper umbra, dimmed moonlight) |
 | 0.14 | 10-15 | Colonies on the mainland: seabird cliffs on a headland ridge running into the sea (gannets, puffins, boobies), penguin rookeries crowding the beach; seals and sea lions hauled out on the beach (elephant seals most often); `colonySite` and `haulOut` in scene specs |
+| 0.17 | 10-15 | Waves and rocks: every rock cutting the surface gets a foam collar and a lee trail (ocean shader, nearest 48); waves lower than the rock break on it (white water surging round its seaward face as a crest arrives, spray when it's there now), waves higher wash over it |
 | 0.16 | 10-15 | Surf physics: waves shoal from half a wavelength deep (Green's law), break at H = γ·d (McCowan 0.78, Weggel slope term) and stay depth-limited as bores; a zero-mean profile with peaked crests, flat troughs, a front face steepening toward breaking and a drawdown trough at its foot; white water and spray only where the model says the wave is breaking |
 | 0.15 | 10-15 | Islands at sea on ~30% of days, by coast: nordic skerries with pines, steep Mediterranean and desert islands, tropical palm cays, karst towers and high volcanic islands; heightfields with curvature drop, palms and pines instanced; `islands` in scene specs |
 | 0.13 | 10-15 | Scene specs: a JSON description (`src/sceneSpec.ts`) forces any part of a scene (time of day, sun, moon, eclipse, biome, ocean, coast, weather, clouds, storm, fog, lighthouse, landform, colonies, seals, wind, camera, and the props' own choices) on top of a date; `?scene=` on the page, `--scene` in the snapshot script; unforced output unchanged |
@@ -66,6 +67,13 @@ Playwright (headless snapshots).
   but never below 2.5 grid cells (vertex) or pixels (fragment). Waves re-form over the
   trough behind a sandbar. The roller foam and the crest spray (`props/surf.ts`) follow
   the steepness.
+- **Rocks in the sea:** `props/surf.ts` `waterRocks()` lists rocks cutting the surface
+  (waterline radius, top, depth); `waveOnRock()` compares the crest there (0.7 × surf
+  height, or half the open sea's significant height) with the rock's top: higher rock →
+  `breaks`. `props/index.ts` hands them to `ocean.ts` `setOceanRocks()` (nearest 48 as
+  `rockData`): collar foam, a lee trail shoreward, and for breaking rocks an apron of white
+  water that surges after each crest (surf cycle 0.2–0.85). Spray bursts in `createSurf`
+  only when a crest is at the rock (cycle 0.2–0.38) and it breaks.
 - **Land:** `terrain.ts` shared GLSL/TS height function (coast, dunes, hills, sandbar), sand
   shading and surf profile (`surfCycle`, mirrored in `props/surf.ts`). `biome.ts` /
   `oceans.ts` pick palettes, plants, sea state and ice.
@@ -188,6 +196,10 @@ Playwright (headless snapshots).
   along the crest, worst from overlooks: clamp the face width to the grid and pixel size.
 - Waves breaking at H = 0.78 d put the break line much farther out on gentle beaches than
   the old fixed 1.4 A + 0.4 depth: the surf zone is wider and its waves smaller.
+
+- Foam against the low sun is no brighter than the glare on the water, so collars round
+  backlit rocks vanish: that's real. Check foam features in front-lit specs
+  (`sunAzimuthDeg` ≈ 160), not into the sun.
 
 ## Ideas (not planned)
 

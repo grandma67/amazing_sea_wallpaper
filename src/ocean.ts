@@ -10,6 +10,7 @@ import {
   RGBAFormat,
   ShaderMaterial,
   Vector3,
+  Vector4,
   type BufferGeometry,
   type Texture
 } from 'three'
@@ -19,6 +20,9 @@ import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { TERRAIN_GLSL, terrainUniforms } from './terrain'
 import { EARTH_RADIUS, type SceneParams } from './params'
 import { CASCADE_SIZE, type OceanSurface } from './spectrum'
+
+/** How many rocks the ocean shader foams round (the nearest). */
+export const MAX_ROCKS = 48
 
 // Ocean surface: a camera-centred polar grid displaced by three FFT cascades
 // (see spectrum.ts). Normals come from the derivative textures per pixel, and
@@ -187,6 +191,10 @@ uniform float envMaxLod;
 uniform sampler2D planarMap;
 uniform mat4 planarMatrix;
 uniform float planarOn;
+// Rocks cutting the surface (props/surf.ts waterRocks): x, z, waterline
+// radius, and whether the waves break on them (waveOnRock), 0..1.
+uniform vec4 rockData[${MAX_ROCKS}];
+uniform int rockCount;
 uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
 uniform vec3 skyIrradiance;
@@ -414,6 +422,39 @@ void main() {
     float shore = (1.0 - smoothstep(0.0, 0.2, depth)) * (1.0 - smoothstep(10.0, 25.0, sa.x)) *
       smoothstep(0.2, 0.6, fbm(q * 0.3 + 5.0));
     coverage = max(coverage, shore * near * 0.8);
+
+    // Rocks tear the sea: a collar of foam where the water wraps round them
+    // and a trail in their lee. A wave lower than the rock breaks on its
+    // face: a surge of white water round its seaward side as each crest
+    // arrives (the cycle at the rock just past its crest), fading until the
+    // next. A wave that tops the rock pours over it: a longer lee trail.
+    for (int i = 0; i < ${MAX_ROCKS}; i++) {
+      if (i >= rockCount) break;
+      vec4 rock = rockData[i];
+      float r = rock.z;
+      float d = length(vGrid - rock.xy);
+      if (d > r * 6.0 + 10.0) continue;
+      vec2 rsa = shoreCoords(rock.xy);
+      float lee = rsa.x - sa.x;
+      float across = abs(sa.y - rsa.y);
+      // The waterline radius is an estimate: reach in under the rock a little.
+      float collar = exp(-pow(max(d - 0.9 * r, 0.0) / (0.35 * r + 0.6), 2.0));
+      float trail = smoothstep(-0.3 * r, 0.6 * r, lee) * exp(-max(lee, 0.0) / (2.5 * r + 2.0)) *
+        (1.0 - smoothstep(r * 0.5, r * 1.2 + max(lee, 0.0) * 0.3, across));
+      float cycle = surfCycle(rsa);
+      bool inSurf = surfAmplitude > 0.05 && -terrainHeightAt(rock.xy, rsa) < 0.6 * surfWavelength;
+      float surge = inSurf
+        ? smoothstep(0.2, 0.28, cycle) * (1.0 - smoothstep(0.35, 0.85, cycle))
+        : 0.5;
+      float seaward = smoothstep(-r, 0.5 * r, sa.x - rsa.x);
+      float apron = exp(-max(d - r, 0.0) / (1.2 * r + 1.5)) * mix(0.4, 1.0, seaward);
+      float breaksOn = rock.w;
+      float foamHere = max(collar * (0.8 + 0.2 * breaksOn * surge),
+        max(trail * (0.45 + 0.35 * (1.0 - breaksOn)) * fbm(vec2(sa.y / 3.0, sa.x / 6.0) + noiseOffset) * 1.6,
+          apron * breaksOn * surge));
+      // Thin collars round far pebbles alias into sparkles.
+      coverage = max(coverage, foamHere * clamp(r / max(footprint, 1e-3), 0.0, 1.0));
+    }
   }
   // The weave is stretched along the crests near the coast.
   vec2 laceCoords = hasCoast > 0.5 ? vec2(sa.y, sa.x * 1.8) + noiseOffset : q;
@@ -438,6 +479,14 @@ function cascadeTexture(data: Uint16Array, maxAnisotropy: number): DataTexture {
   texture.anisotropy = maxAnisotropy
   texture.needsUpdate = true
   return texture
+}
+
+/** Tell the ocean where rocks cut the surface (props/surf.ts waterRocks). */
+export function setOceanRocks(ocean: Mesh<BufferGeometry, ShaderMaterial>, rocks: { x: number; z: number; radius: number; breaks: number }[], camera: Vector3): void {
+  const nearest = [...rocks].sort((p, q) => Math.hypot(p.x - camera.x, p.z - camera.z) - Math.hypot(q.x - camera.x, q.z - camera.z)).slice(0, MAX_ROCKS)
+  const u = ocean.material.uniforms
+  nearest.forEach((r, i) => (u.rockData.value as Vector4[])[i].set(r.x, r.z, r.radius, r.breaks))
+  u.rockCount.value = nearest.length
 }
 
 /** `surface` comes from synthesizeOcean(params.ocean). */
@@ -488,7 +537,9 @@ export function createOcean(
       scatterColor: { value: new Color(...ocean.water.scatter) },
       whitecaps: { value: Math.min(1, Math.max(0, (ocean.windSpeed - 5) / 6)) },
       waveHeight: { value: Math.max(0.05, surface.significantHeight) },
-      rain: { value: params.storm?.rain ?? 0 }
+      rain: { value: params.storm?.rain ?? 0 },
+      rockData: { value: Array.from({ length: MAX_ROCKS }, () => new Vector4()) },
+      rockCount: { value: 0 }
     }
   })
 

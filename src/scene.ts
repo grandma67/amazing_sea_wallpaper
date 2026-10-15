@@ -53,7 +53,7 @@ import { meterScene } from './exposure'
 import { FogEffect } from './fog'
 import { LighthouseBeamEffect } from './lighthouse'
 import { createMoon, placeMoon } from './moon'
-import { createOcean } from './ocean'
+import { createOcean, setOceanRocks } from './ocean'
 import { SUN_ANGULAR_RADIUS, type SceneParams } from './params'
 import { PropContext } from './props/context'
 import type { LanternInfo } from './props/lighthouse'
@@ -381,6 +381,7 @@ export async function renderScene(
   sun.shadow.normalBias = 0.03
   scene.add(sun, sun.target)
   const props = createProps(new PropContext(params, camera, surface))
+  setOceanRocks(ocean, props.userData.waterRocks ?? [], camera.position)
   setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, skyIrradiance)
   scene.add(props)
 
