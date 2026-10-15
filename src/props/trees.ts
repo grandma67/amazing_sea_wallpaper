@@ -18,42 +18,97 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
 ]
 const UP = new Vector3(0, 1, 0)
 
+/** A repeatable pseudo-random number in [0, 1) from two values. */
+function hash(x: number, y: number): number {
+  const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
+  return v - Math.floor(v)
+}
+
 /** Ridged noise in [0, 1]: thin dark lines where fbm crosses its midpoint. */
 function ridged(x: number, y: number, z: number, seed: number): number {
   return 1 - Math.abs(fbm3(x, y, z, seed) * 2 - 1)
 }
 
-/** Bark colour at a point on a limb: `around` is the angle around the limb. */
-type Bark = (height: number, around: number, radius: number) => RGB
+/**
+ * Bark at a point on a limb (`around` is the angle around the limb): its
+ * colour, and its relief, 0 on the outer surface down to −1 at the bottom of
+ * a fissure or crack. The relief is real geometry on trunks and big limbs.
+ */
+interface Bark {
+  color: (height: number, around: number, radius: number) => RGB
+  relief: (height: number, around: number) => number
+}
 
 /** Furrowed bark: dark vertical fissures between lighter ridges. */
 export function furrowed(base: RGB, seed: number, depth = 0.6): Bark {
-  return (h, a) => {
-    const fissure = ridged(Math.cos(a) * 1.6, h * 0.35, Math.sin(a) * 1.6, seed)
-    const patch = fbm3(Math.cos(a), h * 0.8, Math.sin(a), seed + 1)
-    return scale(base, (1 - depth + depth * fissure ** 3 * 1.6) * (0.8 + 0.4 * patch))
+  // About a dozen fissures round a trunk, long and vertical.
+  const fissure = (h: number, a: number): number => ridged(Math.cos(a) * 3.5, h * 0.45, Math.sin(a) * 3.5, seed) ** 3
+  return {
+    color: (h, a) => {
+      const patch = fbm3(Math.cos(a), h * 0.8, Math.sin(a), seed + 1)
+      return scale(base, (1 - depth + depth * fissure(h, a) * 1.6) * (0.8 + 0.4 * patch))
+    },
+    relief: (h, a) => -depth * Math.max(0, 1 - fissure(h, a) * 2)
   }
 }
 
-/** Birch: chalky white with dark horizontal marks, blacker toward the base. */
+/** Birch: chalky white with dark horizontal marks, blacker toward the base,
+ * smooth but for those marks, and rugged where it's black. */
 function birchBark(seed: number): Bark {
   const white: RGB = [0.62, 0.6, 0.55]
   const dark: RGB = [0.06, 0.05, 0.05]
-  return (h, a, r) => {
-    if (r < 0.04) return [0.18, 0.12, 0.09]
+  const darkness = (h: number, a: number): number => {
     const marks = fbm3(Math.cos(a) * 0.8, h * 4, Math.sin(a) * 0.8, seed)
     const base = Math.max(0, 1 - h / 1.6) * fbm3(Math.cos(a) * 2, h * 2, Math.sin(a) * 2, seed + 5)
-    return mix(white, dark, Math.min(1, Math.max(0, (marks - 0.62) * 5) + base * 1.4))
+    return Math.min(1, Math.max(0, (marks - 0.62) * 5) + base * 1.4)
+  }
+  return {
+    color: (h, a, r) => (r < 0.04 ? [0.18, 0.12, 0.09] : mix(white, dark, darkness(h, a))),
+    relief: (h, a) => -0.5 * darkness(h, a)
   }
 }
 
 /** Pine: rusty orange plates separated by dark cracks. */
 export function platedBark(seed: number): Bark {
-  return (h, a, r) => {
-    const plates = ridged(Math.cos(a) * 2.5, h * 1.2, Math.sin(a) * 2.5, seed)
-    const base: RGB = r > 0.12 ? [0.24, 0.12, 0.07] : [0.17, 0.11, 0.08]
-    return scale(base, 0.45 + 0.75 * (1 - plates ** 4))
+  const crack = (h: number, a: number): number => ridged(Math.cos(a) * 3.5, h * 1.2, Math.sin(a) * 3.5, seed) ** 4
+  return {
+    color: (h, a, r) => {
+      const base: RGB = r > 0.12 ? [0.24, 0.12, 0.07] : [0.17, 0.11, 0.08]
+      return scale(base, 0.45 + 0.75 * (1 - crack(h, a)))
+    },
+    relief: (h, a) => -crack(h, a)
   }
+}
+
+/** How deep bark relief cuts into a limb of this radius (m): a few cm on a
+ * trunk, nothing on twigs. */
+function barkDepth(radius: number): number {
+  return radius < 0.05 ? 0 : Math.min(radius * 0.2, 0.05)
+}
+
+/** Catmull–Rom points between a path's points, so bark relief has rings to
+ * live on without changing the path. */
+function subdivide(path: Vector3[], k: number): Vector3[] {
+  if (k <= 1) return path
+  const out: Vector3[] = []
+  const at = (i: number): Vector3 => path[Math.max(0, Math.min(path.length - 1, i))]
+  for (let i = 0; i < path.length - 1; i++) {
+    const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)]
+    for (let j = 0; j < k; j++) {
+      const t = j / k
+      const t2 = t * t
+      const t3 = t2 * t
+      out.push(
+        new Vector3()
+          .addScaledVector(p0, -0.5 * t3 + t2 - 0.5 * t)
+          .addScaledVector(p1, 1.5 * t3 - 2.5 * t2 + 1)
+          .addScaledVector(p2, -1.5 * t3 + 2 * t2 + 0.5 * t)
+          .addScaledVector(p3, 0.5 * t3 - 0.5 * t2)
+      )
+    }
+  }
+  out.push(path[path.length - 1].clone())
+  return out
 }
 
 interface Tip {
@@ -100,15 +155,33 @@ function growTree(b: MeshBuilder, rng: Random, g: Growth, start: Vector3, dir: V
     }
     const last = level === g.levels
     const end = last ? radius * 0.3 : radius * 0.55
-    const sides = level === 0 ? 10 : level === 1 ? 7 : last ? 3 : 5
-    // A flare at the base of the trunk where the roots spread.
-    const flare = level === 0 ? (t: number) => 1 + 0.6 * Math.exp(-t * 25) : () => 1
+    // Trunks and limbs get enough sides and rings to carry the bark's relief.
+    const sides = level === 0 ? 28 : level === 1 ? 12 : last ? 3 : 5
+    const ringSpacing = level === 0 ? 0.15 : level === 1 ? 0.3 : Infinity
+    const rings = subdivide(path, Math.min(8, Math.ceil(length / segments / ringSpacing)))
+    // Buttress roots flare out at the base of the trunk. (Hashed, not drawn,
+    // so the tree's shape stays the same.)
+    const roots = 4 + Math.floor(hash(length, radius) * 3)
+    const rootPhase = hash(radius, length) * Math.PI * 2
+    const flare =
+      level === 0
+        ? (t: number, a: number) => 1 + (0.35 + 0.5 * Math.max(0, Math.cos(roots * a + rootPhase)) ** 2) * Math.exp(-t * 25)
+        : () => 1
+    // The limb narrows into its leader (the child that carries on), so the
+    // fork has no step.
+    const leaderRadius = end * g.radiusRatio * 1.15
+    const narrow = (t: number): number => (last ? 1 : 1 + (leaderRadius / end - 1) * Math.max(0, (t - 0.75) / 0.25) ** 2)
+    const depth = barkDepth(radius)
     b.tube(
-      path,
-      t => (radius + (end - radius) * t) * flare(t),
+      rings,
       (t, a) => {
-        const p = path[Math.round(t * segments)]
-        return g.bark(p.y + p.x * 0.3, a, radius + (end - radius) * t)
+        const r = (radius + (end - radius) * t) * flare(t, a) * narrow(t)
+        const p = rings[Math.round(t * (rings.length - 1))]
+        return r + depth * (1 - t * 0.6) * g.bark.relief(p.y + p.x * 0.3, a)
+      },
+      (t, a) => {
+        const p = rings[Math.round(t * (rings.length - 1))]
+        return g.bark.color(p.y + p.x * 0.3, a, radius + (end - radius) * t)
       },
       sides
     )
@@ -133,7 +206,7 @@ function growTree(b: MeshBuilder, rng: Random, g: Growth, start: Vector3, dir: V
       const angle = g.spread(level) * (leader ? 0.35 : rng.range(0.75, 1.2))
       const childDir = parentDir.clone().applyAxisAngle(side, angle)
       const childLength = length * g.lengthRatio * (leader ? 0.9 : 1 - 0.35 * t) * rng.range(0.8, 1.15)
-      const childRadius = (radius + (end - radius) * t) * g.radiusRatio * (leader ? 1.15 : 1)
+      const childRadius = leader ? leaderRadius : (radius + (end - radius) * t) * g.radiusRatio
       grow(at, childDir, childLength, childRadius, level + 1)
     }
   }
@@ -141,7 +214,39 @@ function growTree(b: MeshBuilder, rng: Random, g: Growth, start: Vector3, dir: V
   return tips
 }
 
+/**
+ * A leaf's shape. Simple leaves are a blade: an outline from the stalk to the
+ * tip, folded a little along the midrib and arching down toward the tip.
+ * Acacias have feathery compound leaves: pairs of tiny leaflets along a rib.
+ */
+interface LeafShape {
+  /** Stations from base to tip: [along (0..1), half-width (0..1)]. */
+  outline: readonly (readonly [number, number])[]
+  /** Edges sit this far below the midrib (fraction of the half-width). */
+  fold: number
+  /** The tip droops this far (fraction of the length). */
+  curl: number
+  /** Pairs of leaflets along a rib instead of a blade. */
+  leaflets?: number
+}
+
+const LEAF: Record<'oval' | 'ovate' | 'lance' | 'needle' | 'small' | 'pinnate', LeafShape> = {
+  // Oak, holm oak, almond: widest at the middle, round-tipped.
+  oval: { outline: [[0.3, 0.9], [0.7, 0.85]], fold: 0.3, curl: 0.15 },
+  // Birch: broad near the stalk, tapering to a point.
+  ovate: { outline: [[0.25, 1], [0.6, 0.6]], fold: 0.2, curl: 0.1 },
+  // Olive: long and narrow, pointed at both ends.
+  lance: { outline: [[0.45, 1]], fold: 0.35, curl: 0.2 },
+  // Pine needles: thin, nearly straight blades.
+  needle: { outline: [[0.5, 1]], fold: 0, curl: 0.08 },
+  // Shrubs: small, rounded leaves.
+  small: { outline: [[0.4, 1]], fold: 0.3, curl: 0.12 },
+  // Acacia: bipinnate fronds, read as one rib of leaflets.
+  pinnate: { outline: [], fold: 0, curl: 0.15, leaflets: 4 }
+}
+
 interface Foliage {
+  shape: LeafShape
   perTip: number
   /** Spread of the leaves around a tip. */
   cluster: number
@@ -196,17 +301,101 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
       const color = scale(f.colors[rng.int(0, f.colors.length - 1)], shade)
       const tipColor = scale(color, 1.12)
 
-      const mid = base.clone().addScaledVector(dir, length * 0.45)
-      // A slight fold along the midrib so leaves catch light unevenly.
-      const fold = normal.clone().multiplyScalar(width * 0.35)
-      const i0 = b.vertex(base, color)
-      const i1 = b.vertex(mid.clone().addScaledVector(side, width).sub(fold), color)
-      const i2 = b.vertex(base.clone().addScaledVector(dir, length), tipColor)
-      const i3 = b.vertex(mid.clone().addScaledVector(side, -width).sub(fold), color)
-      b.triangle(i0, i1, i2)
-      b.triangle(i0, i2, i3)
+      blade(b, f.shape, base, dir, normal, side, length, width, color, tipColor)
     }
   }
+}
+
+/** One leaf from `base` along `dir`, its face toward `normal`. */
+function blade(
+  b: MeshBuilder,
+  shape: LeafShape,
+  base: Vector3,
+  dir: Vector3,
+  normal: Vector3,
+  side: Vector3,
+  length: number,
+  width: number,
+  color: RGB,
+  tipColor: RGB
+): void {
+  // Each leaf arches a little differently.
+  const curl = shape.curl * (0.5 + hash(length, width))
+  const along = (u: number): Vector3 =>
+    base
+      .clone()
+      .addScaledVector(dir, length * u)
+      .addScaledVector(normal, -length * curl * u * u)
+
+  if (shape.leaflets != null) {
+    // A rib of separate, narrow leaflets angled forward on both sides.
+    const n = shape.leaflets
+    const step = 1 / (n + 1)
+    for (let k = 1; k <= n; k++) {
+      const u = k * step
+      const reach = width * (1 - 0.5 * u)
+      const c = scale(color, 0.9 + 0.2 * u)
+      for (const sign of [-1, 1]) {
+        // A narrow lozenge from the rib out to a rounded tip.
+        const out = side.clone().multiplyScalar(sign * reach).addScaledVector(dir, length * step * 0.5)
+        const at = along(u)
+        const stem = b.vertex(at, c)
+        const tip = b.vertex(at.clone().add(out).addScaledVector(normal, -reach * 0.2), c)
+        const mid = at.clone().addScaledVector(out, 0.5).addScaledVector(normal, -reach * 0.1)
+        const back = b.vertex(mid.clone().addScaledVector(dir, -length * step * 0.22), c)
+        const front = b.vertex(mid.clone().addScaledVector(dir, length * step * 0.22), c)
+        if (sign > 0) {
+          b.triangle(stem, back, tip)
+          b.triangle(stem, tip, front)
+        } else {
+          b.triangle(stem, tip, back)
+          b.triangle(stem, front, tip)
+        }
+      }
+    }
+    return
+  }
+
+  if (shape.fold === 0 && shape.outline.length === 1) {
+    // A flat, thin blade (needles): no midrib.
+    const [u, hw] = shape.outline[0]
+    const at = along(u)
+    const i0 = b.vertex(base, color)
+    const i1 = b.vertex(at.clone().addScaledVector(side, width * hw), color)
+    const i2 = b.vertex(along(1), tipColor)
+    const i3 = b.vertex(at.clone().addScaledVector(side, -width * hw), color)
+    b.triangle(i0, i1, i2)
+    b.triangle(i0, i2, i3)
+    return
+  }
+
+  // Stalk end, then midrib and edges at each station, then the tip.
+  const rib = scale(color, 1.06)
+  const stalk = b.vertex(base, scale(color, 0.9))
+  let prev: [number, number, number] | null = null
+  for (const [u, hw] of shape.outline) {
+    const at = along(u)
+    const w = width * hw
+    const drop = normal.clone().multiplyScalar(w * shape.fold)
+    const m = b.vertex(at, rib)
+    const l = b.vertex(at.clone().addScaledVector(side, w).sub(drop), color)
+    const r = b.vertex(at.clone().addScaledVector(side, -w).sub(drop), color)
+    if (prev == null) {
+      b.triangle(stalk, l, m)
+      b.triangle(stalk, m, r)
+    } else {
+      const [pm, pl, pr] = prev
+      b.triangle(pm, pl, l)
+      b.triangle(pm, l, m)
+      b.triangle(pm, m, r)
+      b.triangle(pm, r, pr)
+    }
+    prev = [m, l, r]
+  }
+  const tip = b.vertex(along(1), tipColor)
+  const [pm, pl, pr] = prev!
+  b.triangle(pl, tip, pm)
+  b.triangle(pm, tip, pr)
 }
 
 /** Foliage colours for a species: the biome's tint shifted per tree. */
@@ -240,6 +429,7 @@ export function broadleaf(rng: Random, foliage: RGB): BufferGeometry {
     new Vector3(rng.normal(0, 0.08), 1, rng.normal(0, 0.08))
   )
   leaves(b, rng, tips, {
+    shape: LEAF.oval,
     perTip: rng.int(26, 34),
     cluster: 0.7,
     length: [0.22, 0.36],
@@ -279,6 +469,7 @@ export function olive(rng: Random, foliage: RGB): BufferGeometry {
       new Vector3(Math.cos(az) * 0.35 * stems, 1, Math.sin(az) * 0.35 * stems)
     )
     leaves(b, rng, tips, {
+    shape: LEAF.lance,
       perTip: rng.int(24, 30),
       cluster: 0.6,
       length: [0.14, 0.24],
@@ -315,6 +506,7 @@ export function birch(rng: Random, foliage: RGB): BufferGeometry {
     new Vector3(rng.normal(0, 0.05), 1, rng.normal(0, 0.05))
   )
   leaves(b, rng, tips, {
+    shape: LEAF.ovate,
     perTip: rng.int(24, 30),
     cluster: 0.5,
     length: [0.14, 0.22],
@@ -351,6 +543,7 @@ export function acacia(rng: Random, foliage: RGB): BufferGeometry {
     new Vector3(rng.normal(0, 0.15), 1, rng.normal(0, 0.15))
   )
   leaves(b, rng, tips, {
+    shape: LEAF.pinnate,
     perTip: rng.int(20, 26),
     cluster: 1.0,
     length: [0.18, 0.28],
@@ -387,6 +580,7 @@ export function stonePine(rng: Random, foliage: RGB): BufferGeometry {
   )
   // Needles: brushes of thin blades radiating from each twig end.
   leaves(b, rng, tips, {
+    shape: LEAF.needle,
     perTip: rng.int(60, 75),
     cluster: 0.9,
     length: [0.35, 0.55],
@@ -431,6 +625,7 @@ export function bush(rng: Random, foliage: RGB): BufferGeometry {
     )
   }
   leaves(b, rng, tips, {
+    shape: LEAF.small,
     perTip: rng.int(30, 38),
     cluster: 0.3,
     length: [0.08, 0.13],
@@ -477,7 +672,7 @@ export function cypress(rng: Random, foliage: RGB): BufferGeometry {
   const seed = rng.int(0, 1e6)
   const needles = scale(foliage, 0.75)
   const bark = furrowed([0.16, 0.12, 0.09], seed)
-  b.tube([new Vector3(), new Vector3(0, height * 0.95, 0)], t => 0.2 * (1 - t) + 0.03, (t, a) => bark(t * height, a, 0.2), 6)
+  b.tube([new Vector3(), new Vector3(0, height * 0.95, 0)], t => 0.2 * (1 - t) + 0.03, (t, a) => bark.color(t * height, a, 0.2), 6)
   const sprays = Math.round(height * 70)
   for (let i = 0; i < sprays; i++) {
     const t = Math.sqrt(rng.float()) * 0.97
@@ -508,10 +703,14 @@ export function conifer(rng: Random, foliage: RGB): BufferGeometry {
   const bark = platedBark(rng.int(0, 1e6))
   const needles = scale(foliage, 0.8)
   b.tube(
-    Array.from({ length: 8 }, (_, i) => new Vector3(rng.normal(0, 0.03), (height * 0.94 * i) / 7, rng.normal(0, 0.03))),
-    t => (0.25 * (1 - t) + 0.03) * (1 + 0.5 * Math.exp(-t * 30)),
-    (t, a) => bark(t * height, a, 0.25 * (1 - t)),
-    8
+    subdivide(
+      Array.from({ length: 8 }, (_, i) => new Vector3(rng.normal(0, 0.03), (height * 0.94 * i) / 7, rng.normal(0, 0.03))),
+      8
+    ),
+    (t, a) =>
+      (0.25 * (1 - t) + 0.03) * (1 + 0.5 * Math.exp(-t * 30)) + barkDepth(0.25 * (1 - t)) * bark.relief(t * height, a),
+    (t, a) => bark.color(t * height, a, 0.25 * (1 - t)),
+    14
   )
   const whorls = rng.int(18, 24)
   for (let w = 0; w < whorls; w++) {
@@ -531,7 +730,7 @@ export function conifer(rng: Random, foliage: RGB): BufferGeometry {
           .addScaledVector(out, len * s)
           .addScaledVector(UP, len * (-droop * s + 0.3 * droop * s ** 3))
       const path = [0, 0.33, 0.66, 1].map(at)
-      b.tube(path, s => 0.05 * (1 - s) + 0.01, (_, a) => bark(y, a, 0.02), 3)
+      b.tube(path, s => 0.05 * (1 - s) + 0.01, (_, a) => bark.color(y, a, 0.02), 3)
       // Light catches the outer sprays and the top of the tree.
       const color = scale(needles, (0.75 + 0.4 * t) * rng.range(0.85, 1.15))
       const count = Math.max(3, Math.round(len / 0.2))
@@ -585,7 +784,11 @@ export function pandanus(rng: Random, foliage: RGB): BufferGeometry {
       upward: () => 0.3,
       gnarl: 0.08,
       tipsAlong: 0,
-      bark: (h, a, r) => scale(bark(h, a, r), 0.8 + 0.3 * Math.sin(h * 25))
+      // Ringed with old leaf scars.
+      bark: {
+        color: (h, a, r) => scale(bark.color(h, a, r), 0.8 + 0.3 * Math.sin(h * 25)),
+        relief: h => -0.6 * Math.max(0, -Math.sin(h * 25))
+      }
     },
     new Vector3(0, 0.9, 0),
     lean
@@ -600,9 +803,9 @@ export function pandanus(rng: Random, foliage: RGB): BufferGeometry {
       const t = k / 5
       return top.clone().lerp(foot, t).add(new Vector3(Math.cos(az), 0, Math.sin(az)).multiplyScalar(0.25 * Math.sin(t * Math.PI)))
     })
-    b.tube(path, () => 0.045, (t, a) => bark(t * 2, a, 0.05), 4)
+    b.tube(path, () => 0.045, (t, a) => bark.color(t * 2, a, 0.05), 4)
   }
-  b.tube([new Vector3(0, -0.1, 0), new Vector3(0, 0.95, 0)], () => 0.13, (t, a) => bark(t, a, 0.15), 6)
+  b.tube([new Vector3(0, -0.1, 0), new Vector3(0, 0.95, 0)], () => 0.13, (t, a) => bark.color(t, a, 0.15), 6)
   // Tufts of long, arching, keeled strap leaves.
   const colors = palette(rng, scale(foliage, 1.1), [0.12, 0.14, 0.05], 0.4)
   for (const tip of tips) {

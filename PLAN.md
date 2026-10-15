@@ -19,7 +19,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.7 (M7) | 10-14 | Wishlist 7.1–7.15: better ships, moss on rocks, branching trees, wind, cloud genera, storms + lightning, five oceans + polar ice, dolphins/whales, migratory birds, seabird islands, portrait mode, rainbows, surf spray, mountains + volcanoes, rain on the sea |
 | 0.8 | 10-14 | Performance: still-scene accumulation, env-cube shader reuse, FFT on a worker — cloudy 4K 4.4 → 2.9 s, same image |
 | 0.9 | 10-14 | Future dates show today; `/random`; cloud grain fix (no temporal upscaling, sub-pixel jitter, sky denoise); wave-break redesign (beach-facing breakers, roller whitewater, foam weave, soft spray) |
-| 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day; lighthouses on points and rocks, lit at dusk, night and in fog, with beams scattered by haze and fog; splash boat rides the middle wave, gentler waves, higher sun; unit tests |
+| 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day; lighthouses on points and rocks, lit at dusk, night and in fog, with beams scattered by haze and fog; splash boat rides the middle wave, gentler waves, higher sun; unit tests; leaf meshes per species (oval, ovate, lance, needle, pinnate leaflets) and bark relief with buttress roots |
 
 ## Decisions
 
@@ -102,6 +102,11 @@ Playwright (headless snapshots).
 - Splash boat: CSS waves built from quadratic Béziers are parabolas, so a boat can ride one
   exactly with quad-ease heave keyframes and linear pitch, if its period matches the wave
   slide (middle wave: 7 s per 2 periods → 3.5 s).
+- Tree geometry is built once into the still scene, so extra triangles cost little; still,
+  every species is instanced hundreds of times — keep each under ~100k triangles (tested).
+  Extra randomness inside `growTree`/`leaves` comes from `hash()`, not `rng`, so adding
+  detail doesn't reshape every tree.
+- Pre-existing: a sailboat drawn as a bare, steeply tilted mast (2026-05-01).
 - Pre-existing: thin pink/white outlines on distant ridges and tree silhouettes at blue hour
   (seen on 2026-09-11, also without the lighthouse).
 

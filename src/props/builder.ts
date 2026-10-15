@@ -22,10 +22,11 @@ export class MeshBuilder {
     this.indices.push(a, b, c, a, c, d)
   }
 
-  /** A tube following `path`, with per-point radius and colour. */
+  /** A tube following `path`, with radius and colour per point and angle
+   * round it (so bark can have relief). */
   tube(
     path: Vector3[],
-    radius: (t: number) => number,
+    radius: (t: number, angle: number) => number,
     color: (t: number, angle: number) => [number, number, number],
     sides = 10
   ): void {
@@ -43,10 +44,10 @@ export class MeshBuilder {
       normal.normalize()
       binormal.crossVectors(tangent, normal).normalize()
       const t = i / (path.length - 1)
-      const r = radius(t)
       const ring: number[] = []
       for (let s = 0; s < sides; s++) {
         const angle = (s / sides) * Math.PI * 2
+        const r = radius(t, angle)
         const offset = normal
           .clone()
           .multiplyScalar(Math.cos(angle) * r)
