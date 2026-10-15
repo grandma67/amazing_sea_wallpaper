@@ -27,6 +27,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.16 | 10-15 | Surf physics: waves shoal from half a wavelength deep (Green's law), break at H = γ·d (McCowan 0.78, Weggel slope term) and stay depth-limited as bores; a zero-mean profile with peaked crests, flat troughs, a front face steepening toward breaking and a drawdown trough at its foot; white water and spray only where the model says the wave is breaking |
 | 0.15 | 10-15 | Islands at sea on ~30% of days, by coast: nordic skerries with pines, steep Mediterranean and desert islands, tropical palm cays, karst towers and high volcanic islands; heightfields with curvature drop, palms and pines instanced; `islands` in scene specs |
 | 0.13 | 10-15 | Scene specs: a JSON description (`src/sceneSpec.ts`) forces any part of a scene (time of day, sun, moon, eclipse, biome, ocean, coast, weather, clouds, storm, fog, lighthouse, landform, colonies, seals, wind, camera, and the props' own choices) on top of a date; `?scene=` on the page, `--scene` in the snapshot script; unforced output unchanged |
+| 0.19 | 10-15 | Polar boats: Arctic and Southern Ocean seas get no sailing yachts but open dinghies with outboards (most in summer), trawlers, expedition cruise ships in season (Arctic Jun–Sep, Antarctic Nov–Mar) and red research icebreakers (`polarFleet()`); boats placed by distance and bearing when the frame's lower half has little sea (they were often missing on along-beach views) |
 | 0.18 | 10-15 | Faster loading, same image: the atmosphere precompute (~1.1 s of GPU work) is issued in one go and the props are built on the CPU meanwhile; cloud frames wait on the frame before last, so the GPU never idles between them; the render worker starts loading with the page — clear 4K days 2.3 → 1.3 s, cloudy ~7.6 → ~6 s |
 
 ## Decisions
@@ -94,6 +95,10 @@ Playwright (headless snapshots).
   picks crabs by biome and time of day, shells by coast, flowers in bloom by month;
   everything at real size, so crabs and shells only show near the camera); built with `builder.ts` (`MeshBuilder`). `PropContext.seaLevel()` samples the FFT
   wave height on the CPU so things float on the actual waves.
+- **Ships:** `props/ships.ts` builds hulls lofted per kind; `polarFleet()` replaces the
+  leisure craft and shipping in Arctic and Southern Ocean waters. `seaSpot()` first aims at
+  the lower half of the frame, then samples distance (log-uniform) and bearing within the
+  view: far boats lie in a sliver of pixels under the horizon that screen sampling misses.
 - **Islands:** `params.ts` `pickIslands()` (own stream) picks kind by biome (`ISLANDS`) and
   per island an offset across the frame, distance, width and height (low ones 1–4 km, high
   ones 8–30 km). `props/islands.ts` moves each to open water in frame (12-point footprint
@@ -229,6 +234,8 @@ under trees, a low-power mode for phones.
   J. Coastal Res. "Breaking Waves on a Macrotidal Barred Beach: A Test of McCowan's Criteria"
 - Cloud noise: handmade.network "Fast High-Quality Cloudscape through Noise and Reprojection"
 - Rain on the sea: Melsheimer et al.; Nystuen 1990
+- Arctic boats: Statistics Greenland, fishing fleet (3,000–5,000 dinghies); Royal Greenland
+  vessels (65–83 m prawn trawlers)
 - Driftwood: Hakai Magazine "Iceland's Sinking Driftwood Supply"; Eggertsson, Jökull 1993
   (Siberian origin, larch with roots); Wikipedia "Beach wrack"; Deidun et al. (Posidonia
   banquettes, Malta)

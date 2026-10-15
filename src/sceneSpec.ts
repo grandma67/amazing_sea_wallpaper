@@ -25,7 +25,17 @@ export type Force<K extends string> = K | boolean | null
 
 export type MarineSpecies = 'dolphin' | 'orca' | 'humpback' | 'swordfish'
 export type MigratorySpecies = 'goose' | 'duck' | 'flamingo'
-export type ShipKind = 'sloop' | 'catamaran' | 'dhow' | 'motor-yacht' | 'trawler' | 'container-ship' | 'tanker'
+export type ShipKind =
+  | 'sloop'
+  | 'catamaran'
+  | 'dhow'
+  | 'motor-yacht'
+  | 'trawler'
+  | 'container-ship'
+  | 'tanker'
+  | 'dinghy'
+  | 'expedition-ship'
+  | 'icebreaker'
 
 /** What the props decide for themselves (src/props/), forced. */
 export interface PropOverrides {
@@ -216,7 +226,7 @@ const SPEC = object({
     birds: boolean,
     migratory: force('goose', 'duck', 'flamingo'),
     ships: (value, path) =>
-      typeof value === 'boolean' ? undefined : listOf(oneOf('sloop', 'catamaran', 'dhow', 'motor-yacht', 'trawler', 'container-ship', 'tanker'))(value, path),
+      typeof value === 'boolean' ? undefined : listOf(oneOf('sloop', 'catamaran', 'dhow', 'motor-yacht', 'trawler', 'container-ship', 'tanker', 'dinghy', 'expedition-ship', 'icebreaker'))(value, path),
     rocks: boolean,
     seaStacks: boolean,
     vegetation: listOf(oneOf(...PLANTS)),

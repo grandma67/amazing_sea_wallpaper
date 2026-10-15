@@ -1,6 +1,7 @@
 import { DoubleSide, Euler, Mesh, MeshStandardMaterial, Vector3, type BufferGeometry } from 'three'
 
 import type { RGB } from '../biome'
+import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { forced, type ShipKind } from '../sceneSpec'
 import { MeshBuilder } from './builder'
@@ -8,7 +9,8 @@ import type { PropContext } from './context'
 import { fbm3, noise3 } from './noise'
 
 // Vessels on the water: sloops, catamarans, motor yachts, trawlers, dhows,
-// container ships and tankers. Everything is built per date with randomised
+// container ships and tankers; in polar seas dinghies, trawlers, expedition
+// cruise ships and research icebreakers instead (polarFleet). Everything is built per date with randomised
 // colours, paint stripes and weathering. Waterline at y = 0, bow toward +X.
 
 const mix = (a: RGB, b: RGB, t: number): RGB => [
@@ -420,6 +422,161 @@ function tanker(rng: Random): BufferGeometry {
   return b.build()
 }
 
+/** An open boat with an outboard: the Arctic's workhorse (Greenland alone has
+ * thousands, for fishing and hunting). Aluminium or painted fibreglass, a
+ * steering console, often someone aboard in dark clothes. */
+export function dinghy(rng: Random): BufferGeometry {
+  const b = new MeshBuilder()
+  const length = rng.range(4.5, 7)
+  const deckY = length * 0.11
+  const color = rng.weighted<RGB>([
+    [[0.55, 0.56, 0.56], 4],
+    [WHITE, 3],
+    [[0.5, 0.07, 0.05], 2],
+    [[0.08, 0.2, 0.14], 1],
+    [[0.06, 0.12, 0.3], 1]
+  ])
+  hull(b, {
+    length,
+    beam: length * 0.38,
+    freeboard: deckY,
+    draft: length * 0.05,
+    color,
+    stripe: color,
+    bottom: shade(color, 0.6),
+    // The deck stands for the open hull's floor, seen from above.
+    deck: shade(color, 0.45),
+    rust: 0,
+    sheerRise: 0.5,
+    seed: rng.int(0, 1e6)
+  })
+  // Outboard on the transom, and a console.
+  const stern = -length / 2
+  box(b, new Vector3(stern - 0.35, deckY - 0.05, -0.18), new Vector3(stern + 0.05, deckY + 0.55, 0.18), rng.pick<RGB>([[0.04, 0.04, 0.045], [0.55, 0.56, 0.57], WHITE]))
+  box(b, new Vector3(stern - 0.2, -0.45, -0.06), new Vector3(stern - 0.08, deckY, 0.06), [0.05, 0.05, 0.05])
+  box(b, new Vector3(-length * 0.05, deckY * 0.5, -0.3), new Vector3(length * 0.07, deckY + 0.55, 0.3), shade(color, 0.9))
+  if (rng.chance(0.7)) {
+    // A seated figure at the tiller or the console.
+    const jacket = rng.pick<RGB>([[0.05, 0.05, 0.06], [0.5, 0.08, 0.04], [0.12, 0.14, 0.12], [0.55, 0.35, 0.05]])
+    const x = rng.chance(0.5) ? stern + 0.55 : -length * 0.15
+    box(b, new Vector3(x - 0.2, deckY * 0.6, -0.22), new Vector3(x + 0.2, deckY + 0.55, 0.22), jacket)
+    box(b, new Vector3(x - 0.11, deckY + 0.55, -0.11), new Vector3(x + 0.11, deckY + 0.78, 0.11), [0.06, 0.06, 0.07])
+  }
+  return b.build()
+}
+
+/** A small ice-class expedition cruise ship (~100–130 m, a few hundred
+ * passengers): dark or red hull, white decks of cabins, orange lifeboats. */
+export function expeditionShip(rng: Random): BufferGeometry {
+  const b = new MeshBuilder()
+  const length = rng.range(90, 130)
+  const beam = length * 0.17
+  const deckY = length * 0.07
+  const color = rng.weighted<RGB>([
+    [[0.03, 0.04, 0.08], 4],
+    [[0.04, 0.08, 0.2], 3],
+    [[0.42, 0.05, 0.04], 2],
+    [WHITE, 2]
+  ])
+  hull(b, {
+    length,
+    beam,
+    freeboard: deckY,
+    draft: length * 0.045,
+    color,
+    stripe: rng.pick<RGB>([WHITE, [0.6, 0.1, 0.05], color]),
+    bottom: [0.35, 0.04, 0.03],
+    deck: [0.4, 0.4, 0.4],
+    rust: rng.range(0, 0.15),
+    sheerRise: 0.4,
+    seed: rng.int(0, 1e6)
+  })
+  // Stacked white decks of cabins, the bridge forward.
+  let y = deckY
+  const decks = rng.int(3, 5)
+  for (let d = 0; d < decks; d++) {
+    const h = 2.8
+    cabin(b, new Vector3(-length * (0.38 - d * 0.03), y, -beam * 0.42), new Vector3(length * (0.22 - d * 0.02), y + h, beam * 0.42), WHITE)
+    y += h
+  }
+  cabin(b, new Vector3(length * 0.1, y, -beam * 0.45), new Vector3(length * 0.2, y + 2.6, beam * 0.45), WHITE)
+  // Funnel aft, in the line's colours.
+  box(b, new Vector3(-length * 0.22, y, -beam * 0.1), new Vector3(-length * 0.13, y + length * 0.06, beam * 0.1), rng.pick<RGB>([[0.6, 0.1, 0.05], [0.04, 0.06, 0.15], [0.7, 0.55, 0.1]]))
+  // Lifeboats along both sides.
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const x = -length * 0.25 + i * length * 0.1
+      box(b, new Vector3(x, deckY + 3, side * beam * 0.43 - 1.3), new Vector3(x + length * 0.07, deckY + 5.2, side * beam * 0.43 + 1.3), [0.85, 0.35, 0.05])
+    }
+  }
+  return b.build()
+}
+
+/** A polar research or supply icebreaker: a red hull with a white
+ * superstructure forward, a mast, cranes and a helideck aft. */
+export function icebreaker(rng: Random): BufferGeometry {
+  const b = new MeshBuilder()
+  const length = rng.range(80, 125)
+  const beam = length * 0.22
+  const deckY = length * 0.08
+  const color = rng.weighted<RGB>([
+    [[0.5, 0.06, 0.04], 6],
+    [[0.7, 0.25, 0.04], 2],
+    [[0.04, 0.05, 0.08], 1]
+  ])
+  hull(b, {
+    length,
+    beam,
+    freeboard: deckY,
+    draft: length * 0.08,
+    color,
+    stripe: WHITE,
+    bottom: shade(color, 0.6),
+    deck: [0.35, 0.36, 0.36],
+    rust: rng.range(0.2, 0.6),
+    sheerRise: 0.5,
+    seed: rng.int(0, 1e6)
+  })
+  const white = rng.chance(0.8) ? WHITE : ([0.75, 0.68, 0.52] as RGB)
+  let y = deckY
+  for (let d = 0; d < 4; d++) {
+    const h = 2.8
+    cabin(b, new Vector3(-length * 0.02 + d * length * 0.015, y, -beam * (0.42 - d * 0.04)), new Vector3(length * 0.28 - d * length * 0.01, y + h, beam * (0.42 - d * 0.04)), white, d >= 2)
+    y += h
+  }
+  // Mast and funnel.
+  b.tube([new Vector3(length * 0.15, y, 0), new Vector3(length * 0.15, y + length * 0.12, 0)], () => 0.5, () => white, 5)
+  box(b, new Vector3(-length * 0.08, y - 2.8, -beam * 0.12), new Vector3(length * 0.0, y + length * 0.05, beam * 0.12), rng.pick<RGB>([[0.5, 0.06, 0.04], [0.04, 0.05, 0.08], [0.7, 0.55, 0.1]]))
+  // Cranes over the working deck aft, and a helideck at the stern.
+  for (const side of [-1, 1]) {
+    b.tube([new Vector3(-length * 0.2, deckY, side * beam * 0.3), new Vector3(-length * 0.28, deckY + length * 0.15, side * beam * 0.15)], () => 0.45, () => [0.75, 0.55, 0.08], 5)
+  }
+  box(b, new Vector3(-length * 0.5, deckY + 2.5, -beam * 0.4), new Vector3(-length * 0.36, deckY + 2.9, beam * 0.4), [0.2, 0.32, 0.22])
+  return b.build()
+}
+
+export type PolarShip = 'dinghy' | 'trawler' | 'expedition-ship' | 'icebreaker'
+
+/** Arctic and Southern Ocean waters: no leisure sailing. */
+export function polarWaters(params: SceneParams): boolean {
+  return params.sea.ocean === 'arctic' || params.sea.ocean === 'southern'
+}
+
+/** The boats out on a polar sea: dinghies (most in the open-water summer),
+ * trawlers all year, expedition cruise ships in their season (Arctic
+ * June–September, Antarctic November–March) and the odd research
+ * icebreaker. */
+export function polarFleet(params: SceneParams, rng: Random, any: (chance: number) => boolean = c => rng.chance(c)): PolarShip[] {
+  const month = Number(params.date.slice(5, 7))
+  const summer = params.sea.ocean === 'southern' ? month >= 11 || month <= 3 : month >= 6 && month <= 9
+  const fleet: PolarShip[] = []
+  if (any(summer ? 0.45 : 0.15)) for (let i = rng.int(1, 3); i > 0; i--) fleet.push('dinghy')
+  if (any(0.3)) fleet.push('trawler')
+  if (any(summer ? 0.25 : 0)) fleet.push('expedition-ship')
+  if (any(0.12)) fleet.push('icebreaker')
+  return fleet
+}
+
 export function createShips(ctx: PropContext): Mesh[] {
   const { params } = ctx
   const rng = ctx.rng('ships')
@@ -429,9 +586,12 @@ export function createShips(ctx: PropContext): Mesh[] {
   const windAz = (params.ocean.windHeadingDeg * Math.PI) / 180
   const warm = params.biome.name === 'tropical' || params.biome.name === 'desert'
 
-  const launch = (geometry: BufferGeometry, minDistance: number, maxDistance: number, sailing: boolean): void => {
+  /** Somewhere on deep enough water in frame: first the lower half of the
+   * frame's sea area, then by distance and bearing within the view (a low
+   * horizon leaves little sea below NDC 0, and far boats lie in a sliver of
+   * pixels just under the horizon). */
+  const seaSpot = (minDistance: number, maxDistance: number): Vector3 | null => {
     for (let tries = 0; tries < 40; tries++) {
-      // Aim somewhere in the lower half of the frame's sea area.
       const ndc = new Vector3(rng.range(-0.85, 0.85), rng.range(-0.6, 0.0), 0.5)
       const dir = ndc.unproject(camera).sub(camera.position).normalize()
       if (dir.y >= -0.0005) continue
@@ -440,16 +600,36 @@ export function createShips(ctx: PropContext): Mesh[] {
       if (distance < minDistance || distance > maxDistance) continue
       const position = camera.position.clone().addScaledVector(dir, distance).setY(0)
       if (ctx.ground(position.x, position.z) > -3) continue
-      const heading = sailing ? windAz + rng.range(0.6, 1.4) * (rng.chance(0.5) ? 1 : -1) : rng.range(0, Math.PI * 2)
-      const heel = sailing ? rng.range(0.06, 0.25) : rng.normal(0, 0.02)
-      const mesh = new Mesh(geometry, material)
-      mesh.position.copy(position)
-      mesh.quaternion.setFromEuler(new Euler(heel, -heading + Math.PI / 2, rng.normal(0, 0.02), 'YXZ'))
-      mesh.castShadow = true
-      mesh.receiveShadow = true
-      meshes.push(mesh)
-      return
+      return position
     }
+    const forward = camera.getWorldDirection(new Vector3()).setY(0).normalize()
+    const halfFov = Math.atan(Math.tan((camera.fov * Math.PI) / 360) * camera.aspect)
+    for (let tries = 0; tries < 60; tries++) {
+      const bearing = rng.range(-0.9, 0.9) * halfFov
+      const distance = minDistance * (maxDistance / minDistance) ** rng.float()
+      const position = forward
+        .clone()
+        .applyAxisAngle(new Vector3(0, 1, 0), bearing)
+        .multiplyScalar(distance)
+        .add(camera.position)
+        .setY(0)
+      if (ctx.ground(position.x, position.z) > -3) continue
+      if (ctx.inFrame(position.x, 0, position.z, 0.9)) return position
+    }
+    return null
+  }
+
+  const launch = (geometry: BufferGeometry, minDistance: number, maxDistance: number, sailing: boolean): void => {
+    const position = seaSpot(minDistance, maxDistance)
+    if (position == null) return
+    const heading = sailing ? windAz + rng.range(0.6, 1.4) * (rng.chance(0.5) ? 1 : -1) : rng.range(0, Math.PI * 2)
+    const heel = sailing ? rng.range(0.06, 0.25) : rng.normal(0, 0.02)
+    const mesh = new Mesh(geometry, material)
+    mesh.position.copy(position)
+    mesh.quaternion.setFromEuler(new Euler(heel, -heading + Math.PI / 2, rng.normal(0, 0.02), 'YXZ'))
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    meshes.push(mesh)
   }
 
   // A scene spec's list of boats: one of each.
@@ -462,13 +642,26 @@ export function createShips(ctx: PropContext): Mesh[] {
       'motor-yacht': () => launch(motorYacht(rng), 150, 3000, false),
       trawler: () => launch(trawler(rng), 120, 2500, false),
       'container-ship': () => launch(containerShip(rng), 4000, 16000, false),
-      tanker: () => launch(tanker(rng), 4000, 16000, false)
+      tanker: () => launch(tanker(rng), 4000, 16000, false),
+      dinghy: () => launch(dinghy(rng), 60, 700, false),
+      'expedition-ship': () => launch(expeditionShip(rng), 1200, 6000, false),
+      icebreaker: () => launch(icebreaker(rng), 2000, 12000, false)
     }
     for (const kind of force) builders[kind]()
     return meshes
   }
   // false: none; true: some of every class.
   const any = (chance: number): boolean => forced(force, rng.chance(chance))
+
+  if (polarWaters(params)) {
+    for (const kind of polarFleet(params, rng, any)) {
+      if (kind === 'dinghy') launch(dinghy(rng), 60, 700, false)
+      else if (kind === 'trawler') launch(trawler(rng), 120, 2500, false)
+      else if (kind === 'expedition-ship') launch(expeditionShip(rng), 1200, 6000, false)
+      else launch(icebreaker(rng), 2000, 12000, false)
+    }
+    return meshes
+  }
 
   // Leisure craft near the coast.
   if (any(0.5)) {
