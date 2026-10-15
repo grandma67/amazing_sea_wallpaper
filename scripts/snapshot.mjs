@@ -10,6 +10,14 @@
 // of them (src/sceneSpec.ts): each is rendered and saved as <name>.jpg, or
 // <date>.jpg when it has no name.
 // Expects a server (vite dev or preview) to be running at --url.
+//
+// Checking a feature without reading whole images:
+//   --props islands,rocks   print where those props landed (count, in frame,
+//                           nearest distance, pixel box; "all" for every kind)
+//   --crop islands,rocks    also save <name>.<kind>.jpg: the frame cropped to
+//                           that prop's box, padded
+//   --budget 600            give up after this many seconds in all (default
+//                           900), so a hung render can't stall a session
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -34,6 +42,14 @@ const channel = option('channel', process.env.CI ? undefined : 'chrome')
 const angle = option('angle', process.env.CI ? 'swiftshader' : 'metal')
 const timeoutMs = Number(option('timeout', 30 * 60_000))
 const sceneArg = option('scene', null)
+const list = value => (value == null ? [] : value.split(',').filter(Boolean))
+const cropKinds = list(option('crop', null))
+const propKinds = [...new Set([...list(option('props', null)), ...cropKinds])]
+const budget = Number(option('budget', 900))
+setTimeout(() => {
+  console.log(`[snapshot] budget of ${budget}s used up; stopping`)
+  process.exit(2)
+}, budget * 1000).unref()
 
 function expandDates(specs) {
   const dates = []
@@ -110,6 +126,40 @@ for (const { date, spec, name } of todo) {
   await writeFile(join(outDir, `${name}.json`), JSON.stringify({ ...params, spec }, null, 2))
   console.log(`${file}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${params.title}`)
   if (process.env.DEBUG) console.log(JSON.stringify(params.debug))
+  const props = params.debug?.props ?? {}
+  for (const kind of propKinds.includes('all') ? Object.keys(props) : propKinds) {
+    const r = props[kind]
+    if (r == null) {
+      console.log(`  ${kind}: none placed`)
+      continue
+    }
+    console.log(`  ${kind}: ${r.inFrame}/${r.placed} in frame, nearest ${r.nearest} m, box ${JSON.stringify(r.box)}`)
+  }
+  for (const kind of cropKinds.includes('all') ? Object.keys(props) : cropKinds) {
+    const box = props[kind]?.box
+    if (box == null) continue
+    const crop = await page.evaluate(
+      async ({ dataUrl, box, quality }) => {
+        const image = await createImageBitmap(await (await fetch(dataUrl)).blob())
+        // Pad by a quarter each side and at least 256 px across.
+        const [x0, y0, x1, y1] = box
+        const w = Math.max(256, (x1 - x0) * 1.5)
+        const h = Math.max(256 * (image.height / image.width), (y1 - y0) * 1.5, w * 0.4)
+        const cx = (x0 + x1) / 2
+        const cy = (y0 + y1) / 2
+        const left = Math.max(0, Math.min(image.width - w, cx - w / 2))
+        const top = Math.max(0, Math.min(image.height - h, cy - h / 2))
+        const canvas = new OffscreenCanvas(Math.min(w, image.width), Math.min(h, image.height))
+        canvas.getContext('2d').drawImage(image, left, top, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height)
+        const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality })
+        return new Uint8Array(await blob.arrayBuffer()).reduce((s, b) => s + String.fromCharCode(b), '')
+      },
+      { dataUrl, box, quality }
+    )
+    const cropFile = join(outDir, `${name}.${kind}.jpg`)
+    await writeFile(cropFile, Buffer.from(crop, 'latin1'))
+    console.log(`  ${cropFile}`)
+  }
 }
 
 await browser.close()

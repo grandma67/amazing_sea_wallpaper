@@ -3,6 +3,20 @@
 - The dev server runs on port **5174** (`npm run dev`); 5173 belongs to other projects.
 - PLAN.md has the architecture, versions, decisions and lessons.
 
+# Goal: realistic, and cheap to render
+
+Every feature should look like a photograph of a real coast, and cost as little as it can.
+- **Realistic first:** real sizes, real places (research which coast, season and time of
+  day), physically grounded rules (wave breaking, light, scattering) over "looks cool".
+  Subtle is fine; fake is not. When the task's own rule conflicts with the research, follow
+  the research and say so (or ask, if it changes the look a lot).
+- **Optimized:** spend detail where the camera sees it. Simplify with distance (a far
+  forest is colour and relief, not trees; distant pines are cones), instance repeated
+  meshes, bake colour into vertices instead of adding shader work, keep each mesh under
+  ~100k triangles, and cap per-pixel loops (the ocean foams round the nearest 48 rocks
+  only). Watch the render time the snapshot script prints (1080p/16 frames: ~2–3 s); a
+  feature that adds more than ~10% needs a reason.
+
 # Developing features
 
 How to add a scene feature (a prop, a sky effect, a lighting change) and check it
@@ -18,6 +32,9 @@ than it should have.
   framed, overlook, open sea), at what distance, how often, and whether it should be
   readable at wallpaper size or realistic and subtle. If the task doesn't say and it
   matters, ask the user. Life-size crabs and shells, for example, only show within ~20 m.
+- **Working through a TODO list:** read every open item first and ask all the questions
+  that change what gets built in one batch (how visible, which places, which kinds),
+  rather than discovering them a render round in.
 - **Research briefly, then commit to a table.** One or two searches are enough. Encode the
   result as data: which biome/ocean/month/time of day gets what (see `FLOWERS` in
   `props/shoreLife.ts` and `debrisFor()` in `props/debris.ts`). The table is what gets
@@ -122,24 +139,49 @@ curl -s localhost:5174 | grep -o '<title>[^<]*'      # expect "Amazing Sea Wallp
 npx vite                                              # run_in_background
 SP=<scratchpad>
 node scripts/snapshot.mjs --out $SP/feat --w 1920 --h 1080 --frames 16 2024-02-12 2024-07-12 …
+node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands --scene $SP/specs.json
 ```
+
+- **`--props KINDS` (or `all`) prints where each prop landed**: pieces placed, how many in
+  frame, the nearest one's distance, its pixel box. Kinds are the creators in
+  `props/index.ts` (`rocks`, `islands`, `shore-life`, `colony`, `ships`, …). It's also
+  under `debug.props` in each `<name>.json`. This answers "did it show up, and where?"
+  without reading an image, and replaces temporary `console.warn` placement logs. For a
+  placement check alone, render small: `--w 640 --h 360 --frames 1`.
+- **`--crop KINDS` also saves `<name>.<kind>.jpg`**, the frame cut to that prop's box.
+  Read the crop, not the frame.
+- **`--budget SECONDS`** (default 900) stops the script if a render hangs. macOS has no
+  `timeout` command; don't wrap the script in one.
 
 - 16 frames at 1080p is ~2–3 s a day and enough to judge geometry and lighting. Clouds stay
   grainy; that's expected. Use 2560×1440 when the feature is small.
 - The very first render after starting Vite can take minutes (dependency optimisation).
 - `DEBUG=1` prints each day's `debug` (exposure, scene luminance, irradiance, nightScale).
   It's also in the `DATE.json` next to each image.
-- To see what a prop placed, add a temporary `console.warn('DBG …')` in it. The snapshot
-  script echoes browser warnings. Remove it before committing.
+- For anything `--props` doesn't cover, add a temporary `console.warn('DBG …')`. The
+  snapshot script echoes browser warnings. Remove it before committing.
 - Stop the server when you're done (`lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`).
 
 ## 5. Look at the results cheaply
 
 - **Contact sheet first:** `node scripts/contact-sheet.mjs --dir $SP/feat` makes one image of
   all the days. Read that instead of each frame: one image read instead of eight.
-- **Crop for small things**, from the full-size render:
-  `sips -c <height> <width> --cropOffset <y> <x> in.jpg --out crop.jpg` (note: height
-  before width, y before x). Resize whole frames with `sips -Z 1200`.
+- **Crop for small things**: `--crop KIND` at render time. By hand, from the full-size
+  render: `sips -c <height> <width> --cropOffset <y> <x> in.jpg --out crop.jpg` (note:
+  height before width, y before x). Resize whole frames with `sips -Z 1200`. Python has no
+  PIL here.
+- **Before/after:** render the same specs into `$SP/before` (e.g. with the change stashed:
+  `git stash push <files>`, render, `git stash pop`) and `$SP/after`, then
+  `node scripts/contact-sheet.mjs --dir $SP/after --compare $SP/before` puts each pair
+  side by side in one image. `--match REGEX` keeps some names only (`'\.rocks$'` for the
+  crops).
+- **Light it so you can see it.** Foam, spray, mist and anything pale vanish against the
+  glare of a low sun ahead: the water there is as bright as the foam. Check them in a
+  front-lit spec first (`"sunAzimuthDeg": 160`, `"timeOfDay": "daylight"`), then backlit
+  for looks.
+- **Budget about three render rounds per feature**: one to see it, one to fix everything
+  seen, one to confirm. If a fourth seems needed, stop and reason from numbers or the
+  `--props` report instead.
 - Keep the **same dates across rounds** so you compare like with like, and budget the
   rounds: decide what to check, render once, fix everything you saw, render again.
 - When something looks wrong, **reason from the numbers before re-rendering.** Render units
@@ -165,6 +207,17 @@ node scripts/snapshot.mjs --out $SP/feat --w 1920 --h 1080 --frames 16 2024-02-1
 - **Uniform tubes read as pipes.** Wood needs bulges, an oval section, checks along the grain
   and splintered ends (`logGeometry`).
 - `MeshBuilder.tube` returns its rings; close the ends with `MeshBuilder.cap`.
+- **"Not showing" is usually placement, lighting or size, not code.** Check `--props`
+  (placed? in frame? how far?), then the light (backlit?), then pixel size, before
+  debugging a shader. If a shader really needs debugging, force one visible output
+  (`coverage = 1.0` over a region) and move it step by step.
+- **Low things at sea hide behind the horizon** (~4.5 km from 1.6 m eye height): a 2 m cay
+  is only a line of palms. Place low features near; a group of low islands can read as
+  one long shore.
+- **Steep features narrower than the ocean grid zig-zag** (vertex spacing is r × 0.012):
+  clamp widths to the grid and pixel size (see `surfProfile`'s `minFace`).
+- **Sheer walls on a polar grid read as drums**: vary the wall's foot with angle.
+- `half` is a reserved word in GLSL ES 3.
 
 ## 7. Tests and finishing
 

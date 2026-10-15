@@ -58,6 +58,7 @@ import { SUN_ANGULAR_RADIUS, type SceneParams } from './params'
 import { PropContext } from './props/context'
 import type { LanternInfo } from './props/lighthouse'
 import { createProps } from './props'
+import { reportProps } from './props/report'
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
@@ -620,6 +621,7 @@ export async function renderScene(
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),
       pitchDeg: camera.rotation.x / DEG,
+      props: reportProps(props, camera, width, height),
       vfovDeg: vfov / DEG
     }
   }
