@@ -12,6 +12,7 @@ import { createMigratoryBirds } from './migratory'
 import { createPinnipeds } from './pinnipeds'
 import { createRocks } from './rocks'
 import { createShips } from './ships'
+import { createShoreLife } from './shoreLife'
 import { createStorm } from './storm'
 import { createSurf } from './surf'
 import { createVegetation } from './vegetation'
@@ -26,6 +27,7 @@ export function createProps(ctx: PropContext): Group {
   for (const points of createSurf(ctx, rocks)) group.add(points)
   for (const mesh of createIce(ctx)) group.add(mesh)
   for (const mesh of createDebris(ctx)) group.add(mesh)
+  for (const mesh of createShoreLife(ctx)) group.add(mesh)
   const colony = createColony(ctx)
   for (const object of colony) group.add(object)
   const island = (colony.find(o => o.userData.island === true) as Mesh | undefined) ?? null

@@ -10,7 +10,7 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
-import type { SceneParams } from '../params'
+import type { CoastParams, SceneParams } from '../params'
 import type { Random } from '../random'
 import { shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
@@ -87,6 +87,15 @@ export function debrisFor(params: SceneParams, rng: Random): DebrisSpec | null {
   return spec
 }
 
+/** How far inland (m from the waterline) the high-tide wrack line and the
+ * storm line lie, from the beach profile in terrain.ts without its bumps. */
+export function beachLines(coast: CoastParams): { highTide: number; stormLine: number } {
+  const maxHeight = coast.beachSlope * coast.beachWidth
+  const inland = (h: number): number => -coast.beachWidth * Math.log(1 - Math.min(h / maxHeight, 0.9))
+  const highTide = inland(coast.runup * 1.1)
+  return { highTide, stormLine: Math.max(inland(coast.runup * 2.2), highTide + 3) }
+}
+
 const BLEACHED: RGB = [0.27, 0.25, 0.22]
 const BARK: RGB = [0.11, 0.085, 0.06]
 const END_GRAIN: RGB = [0.32, 0.28, 0.22]
@@ -98,6 +107,11 @@ const WRACK_COLORS: Record<WrackKind, RGB> = {
 const COCONUT: RGB = [0.2, 0.13, 0.065]
 
 const shade = (c: RGB, k: number): RGB => [c[0] * k, c[1] * k, c[2] * k]
+const mixRGB = (a: RGB, b: RGB, t: number): RGB => [
+  a[0] + (b[0] - a[0]) * t,
+  a[1] + (b[1] - a[1]) * t,
+  a[2] + (b[2] - a[2]) * t
+]
 
 /** A small hash in [0, 1) for detail that mustn't consume the stream. */
 function hash(...n: number[]): number {
@@ -219,24 +233,6 @@ export function branchGeometry(rng: Random): BufferGeometry {
   return b.build()
 }
 
-/** A flat ribbon lying on the ground along `path` (seagrass leaves, kelp
- * blades), facing up. */
-function ribbon(b: MeshBuilder, path: Vector3[], width: (t: number) => number, color: RGB): void {
-  let prev: [number, number] | null = null
-  path.forEach((p, i) => {
-    const next = path[Math.min(i + 1, path.length - 1)]
-    const back = path[Math.max(i - 1, 0)]
-    const side = new Vector3(-(next.z - back.z), 0, next.x - back.x).normalize()
-    const w = width(i / (path.length - 1)) / 2
-    const pair: [number, number] = [
-      b.vertex(p.clone().addScaledVector(side, w), color),
-      b.vertex(p.clone().addScaledVector(side, -w), color)
-    ]
-    if (prev != null) b.quad(prev[0], prev[1], pair[1], pair[0])
-    prev = pair
-  })
-}
-
 /** A heap of seaweed or seagrass: a low tangled mound with loose leaves,
  * blades or stipes strewn round it. */
 function clumpGeometry(rng: Random, kind: WrackKind, big: boolean): BufferGeometry {
@@ -244,7 +240,7 @@ function clumpGeometry(rng: Random, kind: WrackKind, big: boolean): BufferGeomet
   const seed = rng.int(0, 1e6)
   // Posidonia banquettes are thick mats; kelp and sargassum lie in thin heaps.
   const size = big ? rng.range(1, 2.6) : kind === 'seagrass' ? rng.range(0.4, 1) : rng.range(0.25, 0.7)
-  const height = Math.max(0.05, size * (kind === 'seagrass' ? rng.range(0.12, 0.22) : rng.range(0.08, 0.15)))
+  const height = Math.max(0.04, size * (kind === 'seagrass' ? rng.range(0.07, 0.13) : rng.range(0.08, 0.15)))
   const radii = new Vector3(size, height, size * rng.range(0.35, 0.7))
   const base = WRACK_COLORS[kind]
   // Fine, sharp lumps: a tangle, not a stone. Sargassum is all little floats.
@@ -258,23 +254,29 @@ function clumpGeometry(rng: Random, kind: WrackKind, big: boolean): BufferGeomet
   )
   if (kind === 'sargassum') return b.build()
 
-  // Loose leaves (seagrass: narrow, many) or blades (kelp: broad, few).
-  const leaves = kind === 'seagrass' ? Math.round(14 + size * 20) : rng.int(3, 6)
+  // Loose leaves (seagrass: narrow, many, matted over the heap) or blades
+  // (kelp: broad, few), draped over the mound and strewn round it.
+  const surface = (x: number, z: number): number => {
+    const q = 1 - (x / radii.x) ** 2 - (z / radii.z) ** 2
+    return q > 0 ? height * (0.3 * Math.min(1, q * 5) + 0.85 * Math.sqrt(q)) : 0
+  }
+  const dried: RGB = kind === 'seagrass' ? [0.2, 0.16, 0.11] : shade(base, 1.6)
+  const leaves = kind === 'seagrass' ? Math.round(30 + size * 140) : rng.int(3, 6)
   for (let i = 0; i < leaves; i++) {
     const az = rng.range(0, Math.PI * 2)
-    const from = new Vector3(Math.cos(az) * radii.x, 0, Math.sin(az) * radii.z).multiplyScalar(rng.range(0.3, 1.1))
-    const heading = az + rng.normal(0, 0.8)
+    const from = new Vector3(Math.cos(az) * radii.x, 0, Math.sin(az) * radii.z).multiplyScalar(Math.sqrt(rng.float()) * 1.15)
+    const heading = rng.range(0, Math.PI * 2)
     const len = kind === 'seagrass' ? rng.range(0.15, 0.6) : rng.range(0.4, 1.3)
     const curl = rng.normal(0, 1.2)
-    const path: Vector3[] = []
-    for (let k = 0; k <= 6; k++) {
-      const t = k / 6
-      const h = heading + curl * t
-      const prev = path[k - 1] ?? from
-      path.push(k === 0 ? from.clone().setY(0.015) : prev.clone().add(new Vector3(Math.cos(h), 0, Math.sin(h)).multiplyScalar(len / 6)).setY(0.012 + 0.01 * k))
+    const path: Vector3[] = [from]
+    for (let k = 1; k <= 6; k++) {
+      const h = heading + (curl * k) / 6
+      path.push(path[k - 1].clone().add(new Vector3(Math.cos(h), 0, Math.sin(h)).multiplyScalar(len / 6)))
     }
+    for (const p of path) p.y = surface(p.x, p.z) + 0.012
     const width = kind === 'seagrass' ? 0.012 : rng.range(0.05, 0.12)
-    ribbon(b, path, t => width * (1 - 0.6 * t * t), shade(base, rng.range(0.7, 1.4)))
+    const color = mixRGB(shade(base, rng.range(0.7, 1.3)), dried, rng.float() ** 2)
+    b.ribbon(path, t => width * (1 - 0.6 * t * t), color)
   }
   // Kelp: a stipe or two trailing out of the heap.
   if (kind === 'kelp') {
@@ -290,7 +292,7 @@ function clumpGeometry(rng: Random, kind: WrackKind, big: boolean): BufferGeomet
           .addScaledVector(side, 0.25 * Math.sin(k * 0.9 + az))
           .setY(0.025)
       )
-      b.tube(stipe, t => 0.03 * (1 + 0.5 * t), () => shade(base, 1.3), 6)
+      b.tube(stipe, t => 0.009 + 0.008 * t, () => shade(base, 0.9), 5)
     }
   }
   return b.build()
@@ -325,12 +327,7 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
   const camera = ctx.camera.position
   const seed = rng.int(0, 1e6)
 
-  // Shore coordinate up the beach for a height on it (the beach profile in
-  // terrain.ts, without its bumps).
-  const maxHeight = coast.beachSlope * coast.beachWidth
-  const inland = (h: number): number => -coast.beachWidth * Math.log(1 - Math.min(h / maxHeight, 0.9))
-  const highTide = inland(coast.runup * 1.1)
-  const stormLine = Math.max(inland(coast.runup * 2.2), highTide + 3)
+  const { highTide, stormLine } = beachLines(coast)
   // Turning +X (a log's length) by -azimuth about Y lays it along the shore.
   const alongShore = -(coast.seawardAzimuthDeg * Math.PI) / 180
 

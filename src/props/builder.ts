@@ -84,6 +84,31 @@ export class MeshBuilder {
     }
   }
 
+  /** A flat ribbon along `path`: its width level (horizontal) for leaves and
+   * blades lying on the ground, or along `across` for upright ones. */
+  ribbon(
+    path: Vector3[],
+    width: (t: number) => number,
+    color: [number, number, number] | ((t: number) => [number, number, number]),
+    across?: Vector3
+  ): void {
+    let prev: [number, number] | null = null
+    path.forEach((p, i) => {
+      const next = path[Math.min(i + 1, path.length - 1)]
+      const back = path[Math.max(i - 1, 0)]
+      const side = across ?? new Vector3(-(next.z - back.z), 0, next.x - back.x).normalize()
+      const t = i / (path.length - 1)
+      const c = typeof color === 'function' ? color(t) : color
+      const w = width(t) / 2
+      const pair: [number, number] = [
+        this.vertex(p.clone().addScaledVector(side, w), c),
+        this.vertex(p.clone().addScaledVector(side, -w), c)
+      ]
+      if (prev != null) this.quad(prev[0], prev[1], pair[1], pair[0])
+      prev = pair
+    })
+  }
+
   /** A lumpy ellipsoid: canopies, bushes, coconuts. */
   blob(
     center: Vector3,
