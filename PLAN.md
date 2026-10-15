@@ -20,6 +20,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.8 | 10-14 | Performance: still-scene accumulation, env-cube shader reuse, FFT on a worker — cloudy 4K 4.4 → 2.9 s, same image |
 | 0.9 | 10-14 | Future dates show today; `/random`; cloud grain fix (no temporal upscaling, sub-pixel jitter, sky denoise); wave-break redesign (beach-facing breakers, roller whitewater, foam weave, soft spray) |
 | 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day; lighthouses on points and rocks, lit at dusk, night and in fog, with beams scattered by haze and fog; splash boat rides the middle wave, gentler waves, higher sun; unit tests; leaf meshes per species (oval, ovate, lance, needle, pinnate leaflets) and bark relief with buttress roots; no glow or bright rims around trees and ridges against a low sun (clouds at full resolution on beaches, no cloud TAA history, silhouette sky fill, no sun glints on leaves) |
+| 0.11 | 10-15 | Shore debris: driftwood logs (bleached or barked, checked along the grain, root wads) heaped on the storm line and sticks on the wrack line, by coast (Arctic and Pacific most, none on Southern Ocean shores); a wrack line of kelp, Posidonia seagrass banquettes and fibre balls, or sargassum; coconuts on palm coasts |
 
 ## Decisions
 
@@ -60,7 +61,9 @@ Playwright (headless snapshots).
   lightning flash, lens rain, rainbows.
 - **Props** (`src/props/`): rocks, trees/vegetation (+ `wind.ts` bending), birds, migratory
   flocks, ships, marine life, ice, colonies, pinnipeds, landforms, storm bolts, surf/rock
-  spray; built with `builder.ts` (`MeshBuilder`). `PropContext.seaLevel()` samples the FFT
+  spray, shore debris (`debris.ts`: `debrisFor()` picks driftwood/wrack/coconuts by biome
+  and ocean; wrack on the high-tide line at ~1.1× run-up height, logs on the storm line
+  above ~2.2× and up to the back of the beach); built with `builder.ts` (`MeshBuilder`). `PropContext.seaLevel()` samples the FFT
   wave height on the CPU so things float on the actual waves.
 - **Fog:** `fog.ts` screen-space exponential-height fog from depth (closed-form optical
   depth, forward-scattering glow), before exposure; `params.ts` picks it by climate.
@@ -79,7 +82,8 @@ Playwright (headless snapshots).
   not the rendering: PRNG, dates, FFT, `generateParams` invariants over three years of days
   (sun/moon geometry, fog, lighthouse, seals, storms, rainbows, ice by region and
   frequency), shore frame and terrain, beam directions, cloud genera, camera horizon,
-  composition re-rolls, ocean spectrum and `seaLevel()`, wind.
+  composition re-rolls, ocean spectrum and `seaLevel()`, wind, shore debris by coast and
+  driftwood meshes.
 - **CI:** `.github/workflows/pages.yml` deploys on push and daily at 00:05 UTC renders
   `/latest.jpg` and `/latest-portrait.jpg` with SwiftShader.
 
@@ -137,3 +141,6 @@ under trees, a low-power mode for phones.
 - Breaking waves / shore foam: Wikipedia "Breaking wave"; 80.lv "Real-time shoreline simulation"
 - Cloud noise: handmade.network "Fast High-Quality Cloudscape through Noise and Reprojection"
 - Rain on the sea: Melsheimer et al.; Nystuen 1990
+- Driftwood: Hakai Magazine "Iceland's Sinking Driftwood Supply"; Eggertsson, Jökull 1993
+  (Siberian origin, larch with roots); Wikipedia "Beach wrack"; Deidun et al. (Posidonia
+  banquettes, Malta)

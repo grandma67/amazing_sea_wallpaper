@@ -23,13 +23,14 @@ export class MeshBuilder {
   }
 
   /** A tube following `path`, with radius and colour per point and angle
-   * round it (so bark can have relief). */
+   * round it (so bark can have relief). Returns the vertex rings, so the
+   * ends can be capped. */
   tube(
     path: Vector3[],
     radius: (t: number, angle: number) => number,
     color: (t: number, angle: number) => [number, number, number],
     sides = 10
-  ): void {
+  ): number[][] {
     const rings: number[][] = []
     const tangent = new Vector3()
     const normal = new Vector3()
@@ -61,6 +62,25 @@ export class MeshBuilder {
         const s2 = (s + 1) % sides
         this.quad(rings[i][s], rings[i][s2], rings[i + 1][s2], rings[i + 1][s])
       }
+    }
+    return rings
+  }
+
+  /** Close a tube's end ring with a fan of its own vertices (a crisp edge),
+   * facing `outward`. */
+  cap(ring: number[], outward: Vector3, color: [number, number, number]): void {
+    const at = (i: number): Vector3 => new Vector3(this.positions[i * 3], this.positions[i * 3 + 1], this.positions[i * 3 + 2])
+    const points = ring.map(at)
+    const center = points.reduce((sum, p) => sum.add(p), new Vector3()).divideScalar(points.length)
+    const c = this.vertex(center, color)
+    const rim = points.map(p => this.vertex(p, color))
+    const turn = new Vector3().subVectors(points[0], center).cross(new Vector3().subVectors(points[1], center))
+    const flip = turn.dot(outward) < 0
+    for (let i = 0; i < rim.length; i++) {
+      const a = rim[i]
+      const b = rim[(i + 1) % rim.length]
+      if (flip) this.triangle(c, b, a)
+      else this.triangle(c, a, b)
     }
   }
 

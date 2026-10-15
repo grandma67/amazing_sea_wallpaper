@@ -3,6 +3,7 @@ import { Group, type Mesh } from 'three'
 import type { PropContext } from './context'
 import { createBirds } from './birds'
 import { createColony } from './colony'
+import { createDebris } from './debris'
 import { createIce } from './ice'
 import { createLandforms } from './landforms'
 import { createLighthouse } from './lighthouse'
@@ -24,6 +25,7 @@ export function createProps(ctx: PropContext): Group {
   for (const mesh of rocks) group.add(mesh)
   for (const points of createSurf(ctx, rocks)) group.add(points)
   for (const mesh of createIce(ctx)) group.add(mesh)
+  for (const mesh of createDebris(ctx)) group.add(mesh)
   const colony = createColony(ctx)
   for (const object of colony) group.add(object)
   const island = (colony.find(o => o.userData.island === true) as Mesh | undefined) ?? null
