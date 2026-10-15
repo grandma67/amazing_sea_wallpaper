@@ -23,6 +23,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
+import { snapshotWarnings } from './checks.mjs'
+
 const args = process.argv.slice(2)
 const option = (name, fallback) => {
   const i = args.indexOf(`--${name}`)
@@ -126,6 +128,7 @@ for (const { date, spec, name } of todo) {
   await writeFile(join(outDir, `${name}.json`), JSON.stringify({ ...params, spec }, null, 2))
   console.log(`${file}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${params.title}`)
   if (process.env.DEBUG) console.log(JSON.stringify(params.debug))
+  for (const warning of snapshotWarnings(params, propKinds.filter(k => k !== 'all'))) console.log(`  ⚠ ${warning}`)
   const props = params.debug?.props ?? {}
   for (const kind of propKinds.includes('all') ? Object.keys(props) : propKinds) {
     const r = props[kind]

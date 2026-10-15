@@ -150,6 +150,11 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   placement check alone, render small: `--w 640 --h 360 --frames 1`.
 - **`--crop KINDS` also saves `<name>.<kind>.jpg`**, the frame cut to that prop's box.
   Read the crop, not the frame.
+- **Warnings (⚠) after each render:** a backlit view (low sun within 60° of the view,
+  where pale features vanish), and a `--props` kind that wasn't placed or landed out of
+  frame. Act on them before reading any image (`scripts/checks.mjs`).
+- **One render command per step**, and check what's already in the output folder before
+  re-running; don't chain two runs of the same specs.
 - **`--budget SECONDS`** (default 900) stops the script if a render hangs. macOS has no
   `timeout` command; don't wrap the script in one.
 
