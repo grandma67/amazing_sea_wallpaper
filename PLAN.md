@@ -23,6 +23,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.11 | 10-15 | Shore debris: driftwood logs (bleached or barked, checked along the grain, root wads) heaped on the storm line and sticks on the wrack line, by coast (Arctic and Pacific most, none on Southern Ocean shores); a wrack line of kelp, Posidonia seagrass banquettes and fibre balls, or sargassum; coconuts on palm coasts. Shore life: ghost crabs (most at dusk and night) with burrows and sand fans, shore and hermit crabs; shells by coast (cockle, clam, scallop, mussel, razor, sand dollar) and starfish; strandline and foredune flowers by biome and month (beach morning glory, sea bindweed, sea holly, sea daffodil, ice plant, thrift, sea rocket, oysterplant) |
 | 0.12 | 10-15 | Moon and eclipses: nights lit by the real phase law (half moon ~1/10 of full), starlit nights with the moon down or new, earthshine on crescents; the moon by day in the frame with the sun; real eclipses on their dates (astronomy-engine): partial, annular and total solar (black moon, corona, dark sky with a 360° horizon glow, stars), partial and total lunar (copper umbra, dimmed moonlight) |
 | 0.14 | 10-15 | Colonies on the mainland: seabird cliffs on a headland ridge running into the sea (gannets, puffins, boobies), penguin rookeries crowding the beach; seals and sea lions hauled out on the beach (elephant seals most often); `colonySite` and `haulOut` in scene specs |
+| 0.16 | 10-15 | Surf physics: waves shoal from half a wavelength deep (Green's law), break at H = γ·d (McCowan 0.78, Weggel slope term) and stay depth-limited as bores; a zero-mean profile with peaked crests, flat troughs, a front face steepening toward breaking and a drawdown trough at its foot; white water and spray only where the model says the wave is breaking |
 | 0.15 | 10-15 | Islands at sea on ~30% of days, by coast: nordic skerries with pines, steep Mediterranean and desert islands, tropical palm cays, karst towers and high volcanic islands; heightfields with curvature drop, palms and pines instanced; `islands` in scene specs |
 | 0.13 | 10-15 | Scene specs: a JSON description (`src/sceneSpec.ts`) forces any part of a scene (time of day, sun, moon, eclipse, biome, ocean, coast, weather, clouds, storm, fog, lighthouse, landform, colonies, seals, wind, camera, and the props' own choices) on top of a date; `?scene=` on the page, `--scene` in the snapshot script; unforced output unchanged |
 
@@ -57,6 +58,14 @@ Playwright (headless snapshots).
 - **Ocean:** `spectrum.ts` (on `spectrumWorker.ts`) synthesises JONSWAP + swell on 3 cascades
   with `fft.ts`; `ocean.ts` shades it: whitecaps, glitter, refracted surf in sets, shallows,
   caustics, foam, rain rings; `grid.ts` polar grid to 120 km.
+- **Surf:** `ocean.ts` SURF_GLSL, mirrored in `terrain.ts` (`surfWave`, `surfBreakDepth`,
+  `surfProfile`, tested). Offshore height 1.3 × `surfAmplitude` × sets, shoaling ×(L/2d)^¼
+  below depth L/2, breaking where it reaches γ·d with γ = 0.72 + 5.6 × nearshore slope,
+  H = γ·d inside. The profile over a cycle averages zero (crest ≈ 0.7 H, trough ≈ −0.3 H);
+  its face narrows from 0.3 to 0.12 of the wavelength toward breaking and to 0.06 broken,
+  but never below 2.5 grid cells (vertex) or pixels (fragment). Waves re-form over the
+  trough behind a sandbar. The roller foam and the crest spray (`props/surf.ts`) follow
+  the steepness.
 - **Land:** `terrain.ts` shared GLSL/TS height function (coast, dunes, hills, sandbar), sand
   shading and surf profile (`surfCycle`, mirrored in `props/surf.ts`). `biome.ts` /
   `oceans.ts` pick palettes, plants, sea state and ice.
@@ -175,6 +184,11 @@ Playwright (headless snapshots).
 - Sheer walls built on a polar grid read as drums (karst towers looked like canisters):
   make the wall's foot wander with angle and let vegetation and dark streaks cover it.
 
+- A steep surf face narrower than the ocean grid's vertex spacing (r × 0.012) zig-zags
+  along the crest, worst from overlooks: clamp the face width to the grid and pixel size.
+- Waves breaking at H = 0.78 d put the break line much farther out on gentle beaches than
+  the old fixed 1.4 A + 0.4 depth: the surf zone is wider and its waves smaller.
+
 ## Ideas (not planned)
 
 Breaking-wave lips, boat wakes, per-pixel cloud shadows matching the clouds, ambient occlusion
@@ -186,6 +200,9 @@ under trees, a low-power mode for phones.
 - jbouny/fft-ocean — https://github.com/jbouny/fft-ocean
 - Ocean Rendering with FFT for Real-Time Applications — https://dspace.zcu.cz/items/a04534b1-2a3b-4457-96ca-0bc326a2b72b/full
 - Breaking waves / shore foam: Wikipedia "Breaking wave"; 80.lv "Real-time shoreline simulation"
+- Breaker index: McCowan (1894) H/d = 0.78; Weggel (1972) slope term; Goda (2010), "Reanalysis
+  of regular and random breaking wave statistics" (the index varies with conditions);
+  J. Coastal Res. "Breaking Waves on a Macrotidal Barred Beach: A Test of McCowan's Criteria"
 - Cloud noise: handmade.network "Fast High-Quality Cloudscape through Noise and Reprojection"
 - Rain on the sea: Melsheimer et al.; Nystuen 1990
 - Driftwood: Hakai Magazine "Iceland's Sinking Driftwood Supply"; Eggertsson, Jökull 1993

@@ -12,7 +12,7 @@ import {
   type PerspectiveCamera
 } from 'three'
 
-import { shoreToWorld, surfCycle, surfSets, worldToShore } from '../terrain'
+import { shoreToWorld, surfCycle, surfSets, surfWave, worldToShore } from '../terrain'
 import type { PropContext } from './context'
 
 // White water where waves break: spray thrown up along the breaking crests of
@@ -135,7 +135,6 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
   const amplitude = coast.surfAmplitude
   // Wind tears more spray off the crests.
   const windy = Math.min(1.5, 0.6 + params.ocean.windSpeed / 12)
-  const breakDepth = 1.4 * amplitude + 0.4
 
   // --- Breaking crests ---------------------------------------------------
   const [, camA] = worldToShore(coast, ctx.camera.position.x, ctx.camera.position.z)
@@ -149,15 +148,17 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
       if (s < 0 || s > 260) continue
       const [x, z] = shoreToWorld(coast, s, a)
       const depth = -ctx.ground(x, z)
-      // Breaking happens over a band of depths: too deep and the wave is
-      // still a swell, too shallow and it's spent foam.
-      if (depth < 0.15 || depth > breakDepth * 1.5) continue
+      // Only where the wave is breaking (surfWave): deeper it's still a
+      // swell, and right at the edge it's spent foam.
+      if (depth < 0.15) continue
       const sets = surfSets(coast, s, a)
       if (sets < 0.3) continue
+      const wave = surfWave(coast, depth, sets)
+      if (wave.steepness < 0.9) continue
       const distance = ctx.distance(x, z)
       if (distance > 900 || !ctx.visible(x, 1, z, 5)) continue
-      const shoal = 1 + 1.3 * (1 - Math.min(1, Math.max(0, (depth - 1) / 5)))
-      const height = amplitude * shoal * sets * 1.1
+      // The crest stands about 0.7 of the wave height above still water.
+      const height = wave.height * 0.75
       // The roller: a soft, low veil of whitewater hugging the crest and its
       // front face, made of overlapping translucent puffs so it reads as one
       // mass rather than separate drops. Puffs keep their size at a

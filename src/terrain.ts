@@ -216,7 +216,7 @@ function smoothstep(e0: number, e1: number, x: number): number {
 // Mirrors of the surf functions in ocean.ts (SURF_GLSL), for placing spray
 // on the breaking crests.
 
-/** Where a point sits in the surf cycle, 0..1; crests peak at 0.75. */
+/** Where a point sits in the surf cycle, 0..1, growing seaward; crests at 0.25. */
 export function surfCycle(coast: CoastParams, s: number, a: number): number {
   const [ox, oz] = coast.noiseOffset
   const phase =
@@ -229,6 +229,47 @@ export function surfCycle(coast: CoastParams, s: number, a: number): number {
 export function surfSets(coast: CoastParams, s: number, a: number): number {
   const [ox, oz] = coast.noiseOffset
   return smoothstep(0.15, 0.7, vnoise(a / 60 + s / 90 + ox, 5.5 + oz))
+}
+
+/** Breaker index: wave height over depth at breaking (McCowan 0.78;
+ * steeper beaches hold higher waves, Weggel: 0.72 + 5.6 × slope). */
+export function breakerIndex(coast: CoastParams): number {
+  return Math.min(1, 0.72 + 5.6 * coast.nearshoreSlope)
+}
+
+/** A surf wave at this depth: its height (m, trough to crest), how close it
+ * is to breaking (0..1) and how broken it is (0 = swell, 1 = a bore). It
+ * shoals from half a wavelength deep (Green's law, H ~ d^-1/4), breaks at
+ * H = index × d and stays depth-limited after. `sets` scales the incoming
+ * wave (surfSets). */
+export function surfWave(coast: CoastParams, depth: number, sets = 1): { height: number; steepness: number; broken: number } {
+  const h0 = 1.3 * coast.surfAmplitude * sets
+  const half = 0.5 * coast.surfWavelength
+  const shoaled = h0 * (half / Math.min(half, Math.max(0.05, depth))) ** 0.25
+  const cap = breakerIndex(coast) * depth
+  const ratio = shoaled / Math.max(cap, 1e-3)
+  return { height: Math.min(shoaled, cap), steepness: Math.min(1, ratio), broken: smoothstep(0.85, 1.05, ratio) }
+}
+
+/** Depth (m) where a wave of this set size breaks. */
+export function surfBreakDepth(coast: CoastParams, sets = 1): number {
+  const h0 = 1.3 * coast.surfAmplitude * sets
+  return (h0 * (0.5 * coast.surfWavelength) ** 0.25 / breakerIndex(coast)) ** 0.8
+}
+
+/** Water level over one wave, in wave heights, averaging about zero
+ * (ocean.ts surfProfile). x = 0 at the crest, growing seaward down its back
+ * to the trough, then up the front face of the next wave to 1. */
+export function surfProfile(x: number, steep: number, broken: number, minFace = 0): number {
+  const mixf = (a: number, b: number, t: number): number => a + (b - a) * t
+  const f = Math.min(0.4, Math.max(minFace, mixf(mixf(0.3, 0.12, steep), 0.06, broken)))
+  const p = mixf(2.6, 1.3, broken)
+  const dip = 0.3 * steep * (1 - 0.5 * broken)
+  let shape = x < 1 - f ? (1 - x / (1 - f)) ** p : smoothstep(1 - f, 1, x) ** 1.5
+  const t = (x - (1 - f)) / 0.07
+  shape -= dip * Math.exp(-t * t)
+  const mean = (1 - f) / (p + 1) + f * 0.43 - dip * 0.07 * 1.7725
+  return shape - mean
 }
 
 export interface CoastFrame {

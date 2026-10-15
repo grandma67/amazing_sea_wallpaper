@@ -39,26 +39,72 @@ float surfCycle(vec2 sa) {
   return fract(phase / 6.2831853);
 }
 
-// Crest shape (0..1). Asymmetric: a steep face toward the beach (just
-// shoreward of the crest, cycle < 0.25) and a long gentle back seaward.
-float surfCrest(vec2 sa) {
-  float w = 1.0 - surfCycle(sa);
-  return pow(smoothstep(0.0, 0.75, w) * (1.0 - smoothstep(0.75, 1.0, w)), 3.0);
-}
-
 // Waves arrive in sets: some stretches of a crest are big, others fade out.
 float surfSets(vec2 sa) {
   return smoothstep(0.15, 0.7, vnoise(vec2(sa.y / 60.0 + sa.x / 90.0, 5.5) + noiseOffset));
 }
 
-float surfHeight(vec2 sa, float depth) {
+// Shoaling and breaking (terrain.ts mirrors all of this as surfWave and
+// surfProfile). A wave feels the bottom once the water is shallower than
+// half its wavelength and grows as it slows (Green's law, H ~ d^-1/4). It
+// breaks when its height reaches the breaker index times the depth (McCowan
+// 0.78; steeper beaches hold higher waves, Weggel: 0.72 + 5.6 slope), and
+// from there on the broken wave, a bore, stays depth-limited: H = index * d.
+float breakerIndex() {
+  return min(1.0, 0.72 + 5.6 * nearshoreSlope);
+}
+
+// x: height (m, trough to crest) at this depth; y: how broken, 0..1.
+vec2 surfWave(float depth, float sets) {
+  float h0 = 1.3 * surfAmplitude * sets;
+  float halfL = 0.5 * surfWavelength;
+  float shoaled = h0 * pow(halfL / clamp(depth, 0.05, halfL), 0.25);
+  float cap = breakerIndex() * depth;
+  float ratio = shoaled / max(cap, 1e-3);
+  return vec2(min(shoaled, cap), smoothstep(0.85, 1.05, ratio));
+}
+
+// How close an unbroken wave is to breaking, 0..1.
+float surfSteepness(float depth, float sets) {
+  float h0 = 1.3 * surfAmplitude * sets;
+  float halfL = 0.5 * surfWavelength;
+  float shoaled = h0 * pow(halfL / clamp(depth, 0.05, halfL), 0.25);
+  return clamp(shoaled / max(breakerIndex() * depth, 1e-3), 0.0, 1.0);
+}
+
+// Water level over one wave, in wave heights, averaging zero (the water a
+// crest piles up comes from the trough). x = 0 at the crest, growing seaward
+// down its long back to the trough, then up the steep front face of the
+// wave behind it to 1. Shallow-water waves have peaked crests and long, flat
+// troughs (cnoidal); the face steepens toward breaking, and the wave draws
+// water down off the bottom in front of it. Broken, it's a bore: a near
+// vertical front and a fuller back sloping down behind it.
+// minFace: the narrowest face the grid or the pixels can show, as a
+// fraction of the wavelength; a face narrower than that zig-zags.
+float surfProfile(float x, float steep, float broken, float minFace) {
+  float f = clamp(mix(mix(0.3, 0.12, steep), 0.06, broken), minFace, 0.4);
+  float p = mix(2.6, 1.3, broken);
+  float dip = 0.3 * steep * (1.0 - 0.5 * broken);
+  float shape = x < 1.0 - f
+    ? pow(1.0 - x / (1.0 - f), p)
+    : pow(smoothstep(1.0 - f, 1.0, x), 1.5);
+  // Drawdown at the foot of the face.
+  float t = (x - (1.0 - f)) / 0.07;
+  shape -= dip * exp(-t * t);
+  float mean = (1.0 - f) / (p + 1.0) + f * 0.43 - dip * 0.07 * 1.7725;
+  return shape - mean;
+}
+
+float surfHeight(vec2 sa, float depth, float resolution) {
   if (surfAmplitude <= 0.0 || hasCoast < 0.5) return 0.0;
-  // Surf lives in the nearshore band; it fades out over deeper water and
-  // comes and goes along the beach in sets.
-  float zone = (1.0 - smoothstep(2.5, 9.0, depth)) * (1.0 - smoothstep(150.0, 350.0, sa.x));
-  float shoal = 1.0 + 1.3 * (1.0 - smoothstep(1.0, 6.0, depth));
-  float spent = smoothstep(0.05, 1.0, depth);
-  return surfAmplitude * surfCrest(sa) * zone * shoal * spent * surfSets(sa);
+  // Surf lives where the waves feel the bottom, near the shore; out deeper
+  // the open-sea spectrum takes over.
+  float zone = (1.0 - smoothstep(0.35 * surfWavelength, 0.6 * surfWavelength, depth)) *
+    (1.0 - smoothstep(150.0, 350.0, sa.x));
+  float sets = surfSets(sa);
+  vec2 wave = surfWave(depth, sets);
+  float x = fract(surfCycle(sa) - 0.25);
+  return wave.x * zone * surfProfile(x, surfSteepness(depth, sets), wave.y, 2.5 * resolution / surfWavelength);
 }
 `
 
@@ -103,7 +149,7 @@ void main() {
     (displacement(a0, grid, cascadeSize.x, spacing) +
     displacement(a1, grid, cascadeSize.y, spacing)) * shallowDamping(depth) +
     displacement(a2, grid, cascadeSize.z, spacing) * shortDamping(depth);
-  d.y += surfHeight(sa, depth);
+  d.y += surfHeight(sa, depth, spacing);
 
   // Earth curvature, so the sea meets the sky at the (dipped) horizon. Slightly
   // under-curved so the polygonal far edge stays above the sky's own horizon.
@@ -258,11 +304,12 @@ void main() {
 
   // Surf slope by finite differences.
   float e = 0.15;
-  float s0 = surfHeight(sa, depth);
+  float surfRes = clamp(max(length(dFdx(vGrid)), length(dFdy(vGrid))), 0.0, 200.0);
+  float s0 = surfHeight(sa, depth, surfRes);
   vec2 sx = shoreCoords(vGrid + vec2(e, 0.0));
   vec2 sz = shoreCoords(vGrid + vec2(0.0, e));
-  derivatives.x += (surfHeight(sx, depth) - s0) / e;
-  derivatives.y += (surfHeight(sz, depth) - s0) / e;
+  derivatives.x += (surfHeight(sx, depth, surfRes) - s0) / e;
+  derivatives.y += (surfHeight(sz, depth, surfRes) - s0) / e;
 
   float jxx = max(1.0 + derivatives.z, 0.2);
   float jzz = max(1.0 + derivatives.w, 0.2);
@@ -343,8 +390,10 @@ void main() {
   float coverage = whitecaps * (1.0 - smoothstep(-0.1, 0.45, jacobian)) *
     smoothstep(0.3, 0.7, fbm(q * 0.2));
   if (hasCoast > 0.5) {
-    float breakDepth = 1.4 * surfAmplitude + 0.4;
-    float surfZone = 1.0 - smoothstep(breakDepth * 0.7, breakDepth * 1.8, depth);
+    // White water where the waves have broken (surfWave), from the break
+    // point to the shore; it starts as the crest begins to spill.
+    float sets = surfSets(sa);
+    float surfZone = smoothstep(0.85, 1.0, surfSteepness(depth, sets));
     // A spilling breaker: a turbulent roller of whitewater tumbling down the
     // steep front face, and a trail of foam left behind the crest that thins
     // out seaward. The roller is ragged along the crest where the wave
@@ -353,7 +402,7 @@ void main() {
     float roller = smoothstep(0.03, 0.15, w) * (1.0 - smoothstep(0.24, 0.3, w));
     float trail = smoothstep(0.2, 0.26, w) * (1.0 - smoothstep(0.26, 0.6, w));
     float ragged = 0.55 + 0.6 * fbm(vec2(sa.y / 14.0, sa.x / 5.0) + noiseOffset);
-    float breaking = surfZone * surfSets(sa);
+    float breaking = surfZone * sets;
     coverage = max(coverage, breaking * clamp(max(roller, 0.75 * trail) * ragged, 0.0, 1.0));
     // Residual foam is drawn out into streaks parallel to the shore.
     vec2 streak = vec2(sa.y * 0.035, sa.x * 0.22) + noiseOffset;
