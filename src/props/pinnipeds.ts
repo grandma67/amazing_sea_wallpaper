@@ -18,8 +18,10 @@ import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 import type { RGB } from '../biome'
 import type { PinnipedKind } from '../params'
 import type { Random } from '../random'
+import { shoreToWorld } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
+import { beachLines } from './debris'
 import { fbm3 } from './noise'
 import { rockMaterial, type RockGrowth } from './rocks'
 
@@ -32,8 +34,9 @@ import { rockMaterial, type RockGrowth } from './rocks'
 //   propped up on their long fore flippers, chest high and head up.
 //
 // They crowd the low, flat tops of skerries and the lower slopes of seabird
-// islands, a few heads bob in the water nearby, and wet ones are darker and
-// glossier than dry ones.
+// islands, or lie in a herd on the beach between the waterline and the
+// storm line; a few heads bob in the water nearby, and wet ones are darker
+// and glossier than dry ones.
 
 interface Look {
   /** Back and belly colours (linear albedo), dry. */
@@ -237,14 +240,49 @@ function skerry(ctx: PropContext, rng: Random): Mesh | null {
   return mesh
 }
 
+/** A herd hauled out on the beach: packed close in a patch along the shore,
+ * from just above the waterline up to the storm line; null if no beach in
+ * view has room. */
+function onBeach(ctx: PropContext, rng: Random, count: number, room: number): { spots: Vector3[]; centre: Vector3; radius: number } | null {
+  const { coast } = ctx.params
+  const { stormLine } = beachLines(coast)
+  const low = coast.runup * 0.5
+  for (let i = 0; i < 300; i++) {
+    const a0 = rng.normal(0, 120 * (1 + i / 100))
+    const u0 = rng.range(1, stormLine)
+    const [x0, z0] = shoreToWorld(coast, -u0, a0)
+    const y0 = ctx.ground(x0, z0)
+    const d = ctx.distance(x0, z0)
+    if (y0 < low || d < 30 || d > 300 || !ctx.inFrame(x0, y0, z0)) continue
+    const length = Math.sqrt(count) * room * rng.range(2.5, 4)
+    const spots: Vector3[] = []
+    for (let k = 0; k < count * 20 && spots.length < count; k++) {
+      const a = a0 + rng.normal(0, length / 3)
+      const u = u0 + rng.normal(0, stormLine / 3)
+      if (u < 0 || u > stormLine * 1.3) continue
+      const [x, z] = shoreToWorld(coast, -u, a)
+      const y = ctx.ground(x, z)
+      if (y < low || ctx.distance(x, z) < 5) continue
+      const p = new Vector3(x, y, z)
+      if (spots.some(s => s.distanceToSquared(p) < room * room)) continue
+      spots.push(p)
+    }
+    if (spots.length < Math.min(4, count)) continue
+    return { spots, centre: new Vector3(x0, 0, z0), radius: length / 2 }
+  }
+  return null
+}
+
 /**
- * The day's seals or sea lions. `island` is the seabird colony's island if
- * there is one: they share its lower slopes; otherwise they get a skerry
- * of their own.
+ * The day's seals or sea lions. On the beach if the day says so and there is
+ * room in view; otherwise on a rock: `island` is the seabird colony's island
+ * or headland if there is one, and they share its lower slopes, else they
+ * get a skerry of their own.
  */
 export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D[] {
-  const kind = ctx.params.pinnipeds
-  if (kind == null) return []
+  const pinnipeds = ctx.params.pinnipeds
+  if (pinnipeds == null) return []
+  const { kind } = pinnipeds
   const rng = ctx.rng('pinnipeds')
   const look = LOOKS[kind]
   const objects: Object3D[] = []
@@ -271,15 +309,25 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
     return spots
   }
 
-  // The seabird island if it has room low down (sheer gannet cliffs may
-  // not), else a skerry of their own.
-  let rock = island
-  let spots = rock != null ? haulOut(rock, 12) : []
-  if (rock == null || spots.length < 4) {
-    rock = skerry(ctx, rng)
-    if (rock == null) return []
-    objects.push(rock)
-    spots = haulOut(rock, Infinity)
+  // The beach; or the seabird island if it has room low down (sheer gannet
+  // cliffs may not), else a skerry of their own.
+  const beach = pinnipeds.site === 'beach' ? onBeach(ctx, ctx.rng('pinnipeds/beach'), count, room) : null
+  let spots: Vector3[]
+  let centre: Vector3
+  let radius: number
+  if (beach != null) {
+    ;({ spots, centre, radius } = beach)
+  } else {
+    let rock = island
+    spots = rock != null ? haulOut(rock, Math.max(12, rock.position.y + 12)) : []
+    if (rock == null || spots.length < 4) {
+      rock = skerry(ctx, rng)
+      if (rock == null) return []
+      objects.push(rock)
+      spots = haulOut(rock, Infinity)
+    }
+    centre = rock.position
+    radius = Math.max(rock.scale.x, rock.scale.z)
   }
 
   // A few pose variants per species, instanced. Most rest; eared seals
@@ -304,9 +352,7 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
     objects.push(herd)
   })
 
-  // Heads bobbing in the water round the rock.
-  const centre = rock.position
-  const radius = Math.max(rock.scale.x, rock.scale.z)
+  // Heads bobbing in the water round the rock or off the beach.
   const head = swimmingHead(rng, kind)
   const heads: Matrix4[] = []
   for (let i = 0, n = rng.int(2, 8); i < 40 && heads.length < n; i++) {

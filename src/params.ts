@@ -65,6 +65,16 @@ export type WeatherKind = 'clear' | 'cirrus' | 'few' | 'scattered' | 'broken' | 
  * islets; penguin rookeries in the Southern Ocean. */
 export type ColonyKind = 'gannet' | 'puffin' | 'tropical' | 'penguin'
 
+/** Where the colony is: an island offshore, or on the mainland — seabird
+ * cliffs on a headland (Bempton, Muriwai, Látrabjarg), or for penguins a
+ * rookery spread over the beach (South Georgia, Boulders Beach). */
+export type ColonySite = 'island' | 'mainland'
+
+export interface ColonyParams {
+  kind: ColonyKind
+  site: ColonySite
+}
+
 /** Seals and sea lions hauled out on the rocks (props/pinnipeds.ts):
  * - seal: harbour and grey seals (true seals: no ear flaps, they lie on
  *   their bellies, often in a "banana" with head and tail up), on the
@@ -76,6 +86,16 @@ export type ColonyKind = 'gannet' | 'puffin' | 'tropical' | 'penguin'
  * - elephant-seal: huge, blubbery true seals of the Southern Ocean and
  *   California, bulls with a trunk-like nose. */
 export type PinnipedKind = 'seal' | 'sea-lion' | 'fur-seal' | 'elephant-seal'
+
+/** Where they haul out: a rock (a skerry, the colony's ledges) or the
+ * mainland beach (elephant seals at Piedras Blancas, Cape fur seals at Cape
+ * Cross, harbour seals on sandbanks). */
+export type HaulOut = 'rock' | 'beach'
+
+export interface PinnipedParams {
+  kind: PinnipedKind
+  site: HaulOut
+}
 
 /**
  * Big landforms seen from the shore: a coastal range (fjord walls, Andes,
@@ -234,10 +254,10 @@ export interface SceneParams {
   coast: CoastParams
   weather: WeatherParams
   storm: StormParams | null
-  /** An offshore island with a seabird colony (props/colony.ts). */
-  colony: ColonyKind | null
-  /** Seals or sea lions hauled out on an islet or the colony's rocks. */
-  pinnipeds: PinnipedKind | null
+  /** A seabird or penguin colony, offshore or on the mainland (props/colony.ts). */
+  colony: ColonyParams | null
+  /** Seals or sea lions hauled out on a rock, the colony's ledges or the beach. */
+  pinnipeds: PinnipedParams | null
   /** A passing shower opposite a low sun, and the rainbow in it. */
   rainbow: RainbowParams | null
   /** Mountains or a volcano on the horizon (props/landforms.ts). */
@@ -687,14 +707,35 @@ function pickLandform(
   }
 }
 
-function pickColony(seed: string, ocean: OceanName, biome: Biome, force?: Force<ColonyKind>): ColonyKind | null {
+/** How often each colony is on the mainland rather than an island. Most
+ * seabirds nest on islands, out of reach of foxes and rats; a few big
+ * gannetries and auk cliffs are on mainland headlands; penguin rookeries
+ * fill the beaches of the sub-Antarctic islands' coasts. */
+const MAINLAND_COLONY: Record<ColonyKind, number> = { gannet: 0.3, puffin: 0.35, tropical: 0.15, penguin: 0.6 }
+
+function pickColony(
+  seed: string,
+  ocean: OceanName,
+  biome: Biome,
+  coastType: CoastParams['type'],
+  force?: Force<ColonyKind>,
+  forceSite?: ColonySite
+): ColonyParams | null {
   const rng = Random.derive(seed, 'colony')
+  // Its own stream, so the kinds drawn before this existed don't change.
+  const mainland = Random.derive(seed, 'colony/site').float()
   if (!forced(force, rng.chance(0.15))) return null
-  if (typeof force === 'string') return force
-  if (ocean === 'southern') return 'penguin'
-  if (biome.name === 'tropical' || biome.name === 'desert') return 'tropical'
-  const northern = ocean === 'arctic' || biome.name === 'nordic' || biome.name === 'volcanic'
-  return northern && rng.chance(0.5) ? 'puffin' : 'gannet'
+  let kind: ColonyKind
+  if (typeof force === 'string') kind = force
+  else if (ocean === 'southern') kind = 'penguin'
+  else if (biome.name === 'tropical' || biome.name === 'desert') kind = 'tropical'
+  else {
+    const northern = ocean === 'arctic' || biome.name === 'nordic' || biome.name === 'volcanic'
+    kind = northern && rng.chance(0.5) ? 'puffin' : 'gannet'
+  }
+  // The open sea has no mainland in view.
+  const site = coastType !== 'beach' ? 'island' : or<ColonySite>(mainland < MAINLAND_COLONY[kind] ? 'mainland' : 'island', forceSite)
+  return { kind, site }
 }
 
 /** Where each kind of seal lives, by coast and ocean (relative weights). */
@@ -731,16 +772,31 @@ const PINNIPEDS: Record<Biome['name'], Partial<Record<OceanName, readonly (reado
   tropical: { pacific: [['sea-lion', 1]] }
 }
 
-function pickPinnipeds(seed: string, ocean: OceanName, biome: Biome, force?: Force<PinnipedKind>): PinnipedKind | null {
+/** How often each kind hauls out on the beach rather than on rocks. */
+const BEACH_HAUL_OUT: Record<PinnipedKind, number> = { seal: 0.35, 'sea-lion': 0.5, 'fur-seal': 0.4, 'elephant-seal': 0.85 }
+
+function pickPinnipeds(
+  seed: string,
+  ocean: OceanName,
+  biome: Biome,
+  coastType: CoastParams['type'],
+  force?: Force<PinnipedKind>,
+  forceSite?: HaulOut
+): PinnipedParams | null {
   const rng = Random.derive(seed, 'pinnipeds')
-  if (typeof force === 'string') return force
+  const beach = Random.derive(seed, 'pinnipeds/site').float()
+  const site = (kind: PinnipedKind): PinnipedParams => ({
+    kind,
+    site: coastType !== 'beach' ? 'rock' : or<HaulOut>(beach < BEACH_HAUL_OUT[kind] ? 'beach' : 'rock', forceSite)
+  })
+  if (typeof force === 'string') return site(force)
   const table = PINNIPEDS[biome.name][ocean]
   // Tropical sea lions are confined to one archipelago: rarer.
   const chance = biome.name === 'tropical' ? 0.06 : 0.2
   // Forced onto a coast that has none: harbour seals.
-  if (table == null) return force === true ? 'seal' : null
+  if (table == null) return force === true ? site('seal') : null
   if (!forced(force, rng.chance(chance))) return null
-  return rng.weighted(table)
+  return site(rng.weighted(table))
 }
 
 /** How likely a lighthouse is on each coast. */
@@ -1101,8 +1157,8 @@ function buildParams(
     midday: 'Midday',
     night: nightSky === 'starlit' ? 'Starry night' : 'Moonlit night'
   }
-  const colony = pickColony(seed, basin.name, biome, spec.colony)
-  const pinnipeds = pickPinnipeds(seed, basin.name, biome, spec.pinnipeds)
+  const colony = pickColony(seed, basin.name, biome, coast.type, spec.colony, spec.colonySite)
+  const pinnipeds = pickPinnipeds(seed, basin.name, biome, coast.type, spec.pinnipeds, spec.haulOut)
   const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog, spec.lighthouse)
   const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
   let rainbow: RainbowParams | null = null
@@ -1136,7 +1192,7 @@ function buildParams(
     )
   }
   if (rainbow != null) titleParts.push('rainbow')
-  if (colony != null) titleParts.push(colony === 'penguin' ? 'penguin colony' : 'seabird island')
+  if (colony != null) titleParts.push(colony.kind === 'penguin' ? 'penguin colony' : colony.site === 'island' ? 'seabird island' : 'seabird cliffs')
   if (pinnipeds != null) {
     const names: Record<PinnipedKind, string> = {
       seal: 'seals',
@@ -1144,7 +1200,7 @@ function buildParams(
       'fur-seal': 'fur seals',
       'elephant-seal': 'elephant seals'
     }
-    titleParts.push(names[pinnipeds])
+    titleParts.push(names[pinnipeds.kind])
   }
   if (lighthouse != null) titleParts.push('lighthouse')
   if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')

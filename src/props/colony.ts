@@ -15,9 +15,12 @@ import {
 
 import type { RGB } from '../biome'
 import type { ColonyKind } from '../params'
+import type { Random } from '../random'
+import { shoreToWorld } from '../terrain'
 import { gull } from './birds'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
+import { beachLines } from './debris'
 import { fbm3 } from './noise'
 import { rockGeometry, rockMaterial, type RockGrowth } from './rocks'
 
@@ -33,6 +36,10 @@ import { rockGeometry, rockMaterial, type RockGrowth } from './rocks'
 //   rock, frigatebirds hanging dark and high above.
 // - Penguin rookeries (South Georgia, the sub-Antarctic islands): the gentle
 //   lower slopes crowded with penguins; petrels and skuas overhead.
+//
+// On the mainland (params.colony.site), the birds nest on the cliffs of a
+// headland along the coast (Bempton Cliffs, Muriwai, Látrabjarg), and
+// penguins crowd the beach itself (St Andrews Bay, Salisbury Plain).
 
 interface ColonyStyle {
   guano: number
@@ -70,9 +77,8 @@ const GUANO: RGB = [0.78, 0.77, 0.7]
 
 /** Rock island geometry with the rock colour and guano baked into the
  * vertex colours (the material colour stays white). */
-function island(ctx: PropContext, style: ColonyStyle, rock: RGB): BufferGeometry {
-  const rng = ctx.rng('colony/island')
-  const geometry = rockGeometry(rng, true)
+function islandGeometry(rng: Random, style: ColonyStyle, rock: RGB, stack: boolean): BufferGeometry {
+  const geometry = rockGeometry(rng, stack)
   const position = geometry.attributes.position as BufferAttribute
   const normal = geometry.attributes.normal as BufferAttribute
   const color = geometry.attributes.color as BufferAttribute
@@ -102,13 +108,54 @@ function penguin(): BufferGeometry {
   return b.build()
 }
 
-export function createColony(ctx: PropContext): Object3D[] {
-  const kind = ctx.params.colony
-  if (kind == null) return []
-  const rng = ctx.rng('colony')
-  const style = STYLES[kind]
+/** Where the colony is: the rock it nests on (null for a beach rookery),
+ * the centre and size of the cloud of birds over it. */
+interface Site {
+  objects: Object3D[]
+  at: Vector3
+  width: number
+  height: number
+}
 
-  // Offshore, in view, near the horizon line; all of it over deep water.
+/** Penguins crowding the gentle slopes of a rock, below `maxHeight`. */
+function penguinsOn(rng: Random, mesh: Mesh, maxHeight: number): InstancedMesh | null {
+  const geometry = mesh.geometry
+  const position = geometry.attributes.position as BufferAttribute
+  const normal = geometry.attributes.normal as BufferAttribute
+  const spots: Matrix4[] = []
+  const p = new Vector3()
+  const n = new Vector3()
+  for (let i = 0; i < 6000 && spots.length < 2500; i++) {
+    const v = rng.int(0, position.count - 1)
+    n.fromBufferAttribute(normal, v).transformDirection(mesh.matrixWorld)
+    p.fromBufferAttribute(position, v).applyMatrix4(mesh.matrixWorld)
+    if (n.y < 0.75 || p.y < 1 || p.y > maxHeight) continue
+    const jitter = new Vector3(rng.normal(0, 1.5), 0, rng.normal(0, 1.5))
+    spots.push(new Matrix4().compose(p.clone().add(jitter), new Quaternion().setFromEuler(new Euler(0, rng.range(0, 6.3), 0)), new Vector3().setScalar(rng.range(0.9, 1.1))))
+  }
+  return flock(spots)
+}
+
+function flock(spots: Matrix4[]): InstancedMesh | null {
+  if (spots.length === 0) return null
+  const mesh = new InstancedMesh(penguin(), new MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }), spots.length)
+  spots.forEach((m, i) => mesh.setMatrixAt(i, m))
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  mesh.frustumCulled = false
+  return mesh
+}
+
+function rockMesh(ctx: PropContext, geometry: BufferGeometry, style: ColonyStyle): Mesh {
+  const mesh = new Mesh(geometry, rockMaterial([1, 1, 1], ctx.params.coast.runup * 3, style.growth))
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  mesh.userData.island = true
+  return mesh
+}
+
+/** Offshore, in view, near the horizon line; all of it over deep water. */
+function island(ctx: PropContext, rng: Random, kind: ColonyKind, style: ColonyStyle): Site | null {
   const width = rng.range(70, 180)
   let at: Vector3 | null = null
   for (let i = 0; i < 300 && at == null; i++) {
@@ -120,48 +167,109 @@ export function createColony(ctx: PropContext): Object3D[] {
     })
     if (clear) at = p
   }
-  if (at == null) return []
+  if (at == null) return null
 
-  const objects: Object3D[] = []
   const rock = rng.pick(ctx.params.biome.rockColors)
   // Sheer cliff islands for gannets and puffins (Bass Rock: 107 m high).
   const height = (width / 2) * (kind === 'penguin' || kind === 'tropical' ? rng.range(0.5, 0.8) : rng.range(0.8, 1.3))
-  const mesh = new Mesh(island(ctx, style, rock), rockMaterial([1, 1, 1], ctx.params.coast.runup * 3, style.growth))
-  const scale = new Vector3(width / 2, height, (width / 2) * rng.range(0.6, 1.1))
+  const mesh = rockMesh(ctx, islandGeometry(ctx.rng('colony/island'), style, rock, true), style)
   // The stack geometry spans y ≈ −0.45…0.75 (flat underside below); sink it
   // a little so the cliffs rise straight out of the water.
   mesh.position.copy(at).setY(-height * 0.1)
-  mesh.scale.copy(scale)
+  mesh.scale.set(width / 2, height, (width / 2) * rng.range(0.6, 1.1))
   mesh.rotation.y = rng.range(0, Math.PI * 2)
-  mesh.castShadow = true
-  mesh.receiveShadow = true
   mesh.updateMatrixWorld()
-  mesh.userData.island = true
-  objects.push(mesh)
-
+  const objects: Object3D[] = [mesh]
   // Penguins crowd the gentle lower slopes.
   if (kind === 'penguin') {
-    const geometry = mesh.geometry
-    const position = geometry.attributes.position as BufferAttribute
-    const normal = geometry.attributes.normal as BufferAttribute
-    const spots: Matrix4[] = []
-    const p = new Vector3()
-    const n = new Vector3()
-    for (let i = 0; i < 6000 && spots.length < 2500; i++) {
-      const v = rng.int(0, position.count - 1)
-      n.fromBufferAttribute(normal, v).transformDirection(mesh.matrixWorld)
-      p.fromBufferAttribute(position, v).applyMatrix4(mesh.matrixWorld)
-      if (n.y < 0.75 || p.y < 1 || p.y > height * 0.5) continue
-      const jitter = new Vector3(rng.normal(0, 1.5), 0, rng.normal(0, 1.5))
-      spots.push(new Matrix4().compose(p.clone().add(jitter), new Quaternion().setFromEuler(new Euler(0, rng.range(0, 6.3), 0)), new Vector3().setScalar(rng.range(0.9, 1.1))))
-    }
-    if (spots.length > 0) {
-      const flock = new InstancedMesh(penguin(), new MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }), spots.length)
-      spots.forEach((m, i) => flock.setMatrixAt(i, m))
-      flock.frustumCulled = false
-      objects.push(flock)
-    }
+    const penguins = penguinsOn(rng, mesh, height * 0.5)
+    if (penguins != null) objects.push(penguins)
   }
+  return { objects, at, width, height }
+}
+
+/** Seabird cliffs on a headland along the coast: a ridge running from the
+ * land out into the sea, its seaward end a sheer cliff, far enough along the
+ * shore to be seen side on. */
+function headland(ctx: PropContext, rng: Random, kind: ColonyKind, style: ColonyStyle): Site | null {
+  const { coast } = ctx.params
+  const seaward = (coast.seawardAzimuthDeg * Math.PI) / 180
+  for (let i = 0; i < 400; i++) {
+    const reach = 1 + i / 100
+    const length = rng.range(220, 420)
+    const width = rng.range(70, 140)
+    // Bempton's chalk cliffs are 100 m, Látrabjarg's over 400 m.
+    const height = kind === 'tropical' ? rng.range(25, 45) : rng.range(40, 90)
+    const a = (rng.chance(0.5) ? 1 : -1) * rng.range(150, 400 * reach)
+    // Mostly on land; the seaward tip juts 15–40% of its length into the sea.
+    const s = -rng.range(0.1, 0.35) * length
+    const [x, z] = shoreToWorld(coast, s, a)
+    const [tx, tz] = shoreToWorld(coast, s + length * 0.4, a)
+    const d = ctx.distance(tx, tz)
+    if (d < width || d > 1200) continue
+    const base = Math.max(0, ctx.ground(x, z))
+    // Its cliff end well inside the frame.
+    if (!ctx.inFrame(tx, height * 0.4, tz, 0.8)) continue
+    // Mainland cliffs are less whitewashed than a gannet rock.
+    const mesh = rockMesh(ctx, islandGeometry(rng, { ...style, guano: style.guano * 0.6 }, rng.pick(ctx.params.biome.rockColors), true), style)
+    mesh.position.set(x, base - height * 0.15, z)
+    mesh.scale.set(length / 2, height, width / 2)
+    // Its length (local x) along the seaward direction, give or take.
+    mesh.rotation.y = Math.PI / 2 - seaward + rng.normal(0, 0.15)
+    mesh.updateMatrixWorld()
+    return { objects: [mesh], at: new Vector3(tx, base, tz), width, height }
+  }
+  return null
+}
+
+/** A rookery on the beach: thousands of penguins packed on the sand above
+ * the tide line, in a patch drawn out along the shore. */
+function rookery(ctx: PropContext, rng: Random): Site | null {
+  const { coast } = ctx.params
+  const { highTide } = beachLines(coast)
+  const top = Math.max(highTide + 6, coast.beachWidth * 0.9)
+  for (let i = 0; i < 300; i++) {
+    const a0 = rng.normal(0, 150 * (1 + i / 100))
+    const u0 = rng.range(highTide, top)
+    const [x0, z0] = shoreToWorld(coast, -u0, a0)
+    const d = ctx.distance(x0, z0)
+    if (d < 25 || d > 500 || !ctx.inFrame(x0, ctx.ground(x0, z0), z0, 0.85)) continue
+    const length = rng.range(40, 140)
+    const depth = top - highTide * 0.6
+    const spots: Matrix4[] = []
+    const count = rng.int(800, 2500)
+    for (let k = 0; k < count * 3 && spots.length < count; k++) {
+      const a = a0 + rng.normal(0, length / 3)
+      const u = u0 + rng.normal(0, depth / 3)
+      if (u < highTide * 0.6 || u > top) continue
+      const [x, z] = shoreToWorld(coast, -u, a)
+      const y = ctx.ground(x, z)
+      if (y < 0.15 || ctx.distance(x, z) < 6) continue
+      // Mostly facing the sea or each other.
+      const yaw = rng.range(0, Math.PI * 2)
+      spots.push(new Matrix4().compose(new Vector3(x, y, z), new Quaternion().setFromEuler(new Euler(0, yaw, 0)), new Vector3().setScalar(rng.range(0.9, 1.15))))
+    }
+    const penguins = flock(spots)
+    if (penguins == null) continue
+    return { objects: [penguins], at: new Vector3(x0, ctx.ground(x0, z0), z0), width: length, height: 12 }
+  }
+  return null
+}
+
+export function createColony(ctx: PropContext): Object3D[] {
+  const colony = ctx.params.colony
+  if (colony == null) return []
+  const { kind } = colony
+  const rng = ctx.rng('colony')
+  const style = STYLES[kind]
+
+  // On the mainland if it fits the frame, else on an island.
+  const local = ctx.rng('colony/mainland')
+  const site =
+    (colony.site === 'mainland' ? (kind === 'penguin' ? rookery(ctx, local) : headland(ctx, local, kind, style)) : null) ??
+    island(ctx, rng, kind, style)
+  if (site == null) return []
+  const { objects, at, width, height } = site
 
   // The colony in the air: a loose cloud of birds circling over the island,
   // densest close to it.

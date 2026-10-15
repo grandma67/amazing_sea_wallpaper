@@ -22,6 +22,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.10 | 10-15 | Marine animals ride the real wave height and break the surface with white water (exit and contact splashes, blows); seals, sea lions, fur seals and elephant seals hauled out on skerries by region; sea fog, offshore fog banks and Arctic sea smoke by climate, season and time of day; lighthouses on points and rocks, lit at dusk, night and in fog, with beams scattered by haze and fog; splash boat rides the middle wave, gentler waves, higher sun; unit tests; leaf meshes per species (oval, ovate, lance, needle, pinnate leaflets) and bark relief with buttress roots; no glow or bright rims around trees and ridges against a low sun (clouds at full resolution on beaches, no cloud TAA history, silhouette sky fill, no sun glints on leaves) |
 | 0.11 | 10-15 | Shore debris: driftwood logs (bleached or barked, checked along the grain, root wads) heaped on the storm line and sticks on the wrack line, by coast (Arctic and Pacific most, none on Southern Ocean shores); a wrack line of kelp, Posidonia seagrass banquettes and fibre balls, or sargassum; coconuts on palm coasts. Shore life: ghost crabs (most at dusk and night) with burrows and sand fans, shore and hermit crabs; shells by coast (cockle, clam, scallop, mussel, razor, sand dollar) and starfish; strandline and foredune flowers by biome and month (beach morning glory, sea bindweed, sea holly, sea daffodil, ice plant, thrift, sea rocket, oysterplant) |
 | 0.12 | 10-15 | Moon and eclipses: nights lit by the real phase law (half moon ~1/10 of full), starlit nights with the moon down or new, earthshine on crescents; the moon by day in the frame with the sun; real eclipses on their dates (astronomy-engine): partial, annular and total solar (black moon, corona, dark sky with a 360° horizon glow, stars), partial and total lunar (copper umbra, dimmed moonlight) |
+| 0.14 | 10-15 | Colonies on the mainland: seabird cliffs on a headland ridge running into the sea (gannets, puffins, boobies), penguin rookeries crowding the beach; seals and sea lions hauled out on the beach (elephant seals most often); `colonySite` and `haulOut` in scene specs |
 | 0.13 | 10-15 | Scene specs: a JSON description (`src/sceneSpec.ts`) forces any part of a scene (time of day, sun, moon, eclipse, biome, ocean, coast, weather, clouds, storm, fog, lighthouse, landform, colonies, seals, wind, camera, and the props' own choices) on top of a date; `?scene=` on the page, `--scene` in the snapshot script; unforced output unchanged |
 
 ## Decisions
@@ -153,6 +154,10 @@ Playwright (headless snapshots).
   if the patch stops matching).
 - A night moon disc is thousands of times over white: earthshine and the eclipse umbra
   must be tiny fractions (2e-5 and 8e-4) or the dark side saturates too.
+- `ctx.visible()` only says a sphere touches the frustum: a feature placed with it often
+  ends up cut by the frame edge. Use `ctx.inFrame()` (NDC inside the central 75–85%) for
+  something that should be seen whole. A rock dropped on a beach reads as a block; a
+  mainland headland must run inland (long along the seaward axis).
 - postprocessing's `readDepth()` isn't the raw depth inside takram's aerial perspective
   shader; use `readDepthValue(depthBuffer, uv)` there.
 

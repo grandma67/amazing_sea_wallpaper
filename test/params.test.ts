@@ -52,8 +52,8 @@ describe('generateParams', () => {
       expect(tall.timeOfDay).toBe(p.timeOfDay)
       expect(tall.weather.kind).toBe(p.weather.kind)
       expect(tall.fog).toEqual(p.fog)
-      expect(tall.colony).toBe(p.colony)
-      expect(tall.pinnipeds).toBe(p.pinnipeds)
+      expect(tall.colony).toEqual(p.colony)
+      expect(tall.pinnipeds).toEqual(p.pinnipeds)
       expect(tall.camera.aspect).toBeCloseTo(9 / 19.5)
     }
   })
@@ -175,8 +175,8 @@ describe('generateParams', () => {
   it('puts ice only on polar seas, and penguins only in the Southern Ocean', () => {
     for (const p of days) {
       if (p.sea.ice != null) expect(['arctic', 'southern']).toContain(p.sea.ocean)
-      if (p.colony === 'penguin') expect(p.sea.ocean).toBe('southern')
-      if (p.sea.ocean === 'southern' && p.colony != null) expect(p.colony).toBe('penguin')
+      if (p.colony?.kind === 'penguin') expect(p.sea.ocean).toBe('southern')
+      if (p.sea.ocean === 'southern' && p.colony != null) expect(p.colony.kind).toBe('penguin')
     }
   })
 })
@@ -290,12 +290,12 @@ describe('pinnipeds', () => {
       'elephant-seal': ['nordic/southern', 'mediterranean/pacific', 'volcanic/southern']
     }
     expect(hauled.length).toBeGreaterThan(0)
-    for (const p of hauled) expect(where[p.pinnipeds!]).toContain(`${p.biome.name}/${p.sea.ocean}`)
+    for (const p of hauled) expect(where[p.pinnipeds!.kind]).toContain(`${p.biome.name}/${p.sea.ocean}`)
   })
 
   it('are named in the title', () => {
     const names = { seal: 'seals', 'sea-lion': 'sea lions', 'fur-seal': 'fur seals', 'elephant-seal': 'elephant seals' }
     const forced = (Object.keys(names) as (keyof typeof names)[]).flatMap(pinnipeds => scenes({ pinnipeds }, 5))
-    for (const p of [...hauled, ...forced]) expect(p.title).toContain(names[p.pinnipeds!])
+    for (const p of [...hauled, ...forced]) expect(p.title).toContain(names[p.pinnipeds!.kind])
   })
 })

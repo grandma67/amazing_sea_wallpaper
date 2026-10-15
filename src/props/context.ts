@@ -74,6 +74,12 @@ export class PropContext {
     return this.ground(p.x, p.z) < -minDepth ? p : null
   }
 
+  /** Does (x, y, z) project inside the central `fraction` of the frame? */
+  inFrame(x: number, y: number, z: number, fraction = 0.75): boolean {
+    this.point.set(x, y, z).project(this.camera)
+    return this.point.z < 1 && Math.abs(this.point.x) < fraction && Math.abs(this.point.y) < fraction
+  }
+
   /** Is a sphere at (x, y, z) with this radius at least partly in view? */
   visible(x: number, y: number, z: number, radius: number): boolean {
     this.point.set(x, y, z)
