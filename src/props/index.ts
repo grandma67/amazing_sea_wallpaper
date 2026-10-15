@@ -8,6 +8,7 @@ import { createIce } from './ice'
 import { createIslands } from './islands'
 import { createLandforms } from './landforms'
 import { createLighthouse } from './lighthouse'
+import { createMangroves } from './mangroves'
 import { createMarineLife } from './marine'
 import { createMigratoryBirds } from './migratory'
 import { createPinnipeds } from './pinnipeds'
@@ -44,6 +45,7 @@ export function createProps(ctx: PropContext): Group {
   add('pinnipeds', createPinnipeds(ctx, island))
   add('lighthouse', createLighthouse(ctx, island))
   add('vegetation', createVegetation(ctx))
+  add('mangroves', createMangroves(ctx))
   add('ships', createShips(ctx))
   add('marine-life', createMarineLife(ctx))
   add('birds', createBirds(ctx))

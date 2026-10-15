@@ -25,6 +25,9 @@ export type Force<K extends string> = K | boolean | null
 
 export type MarineSpecies = 'dolphin' | 'orca' | 'humpback' | 'swordfish'
 export type MigratorySpecies = 'goose' | 'duck' | 'flamingo'
+/** Red (prop roots) or grey (dwarf, breathing roots) mangrove. */
+export type MangroveKind = 'rhizophora' | 'avicennia'
+
 export type ShipKind =
   | 'sloop'
   | 'catamaran'
@@ -53,6 +56,8 @@ export interface PropOverrides {
   debris?: Partial<DebrisSpec> | null
   /** null: no crabs, shells or flowers; fields replace the drawn ones. */
   shoreLife?: Partial<ShoreLife> | null
+  /** A stand of mangroves on a sheltered shore (props/mangroves.ts). */
+  mangroves?: Force<MangroveKind>
 }
 
 export interface SceneSpec {
@@ -223,6 +228,7 @@ const SPEC = object({
   camera: object({ heightM: number, focalLengthMm: number, horizonFraction: number, rollDeg: number }),
   props: object({
     marine: force('dolphin', 'orca', 'humpback', 'swordfish'),
+    mangroves: force('rhizophora', 'avicennia'),
     birds: boolean,
     migratory: force('goose', 'duck', 'flamingo'),
     ships: (value, path) =>

@@ -845,3 +845,126 @@ export function pandanus(rng: Random, foliage: RGB): BufferGeometry {
   }
   return b.build()
 }
+
+/** Red mangrove (Rhizophora): a trunk held up on arching prop roots that
+ * leave it 1–2.5 m above the mud and dive back into it all round, under a
+ * dense, rounded crown of dark, glossy, leathery leaves. Base (the mud) at
+ * y = 0; the roots end a little below it. */
+export function rhizophora(rng: Random, foliage: RGB): BufferGeometry {
+  const b = new MeshBuilder()
+  const height = rng.range(5, 9)
+  const rootTop = rng.range(1.2, 2.4)
+  const barkBase: RGB = [0.22, 0.19, 0.15]
+  const bark = furrowed(barkBase, rng.int(0, 1e6), 0.3)
+  const trunkFoot = rootTop * 0.55
+  const tips = growTree(
+    b,
+    rng,
+    {
+      levels: 4,
+      trunkLength: height - trunkFoot,
+      trunkRadius: rng.range(0.14, 0.22),
+      children: level => (level === 0 ? rng.int(3, 5) : rng.int(2, 3)),
+      childStart: 0.4,
+      spread: level => (level === 0 ? 0.9 : 0.7),
+      lengthRatio: 0.6,
+      radiusRatio: 0.66,
+      upward: level => 0.2 - 0.12 * level,
+      gnarl: 0.12,
+      tipsAlong: 0.6,
+      bark
+    },
+    new Vector3(0, trunkFoot, 0),
+    new Vector3(rng.normal(0, 0.1), 1, rng.normal(0, 0.1))
+  )
+  // Prop roots: out and slightly up from the trunk, then curving down into
+  // the mud. Muddy and barnacled where the tide covers them.
+  const roots = rng.int(10, 16)
+  for (let i = 0; i < roots; i++) {
+    const az = (i / roots) * Math.PI * 2 + rng.normal(0, 0.25)
+    const out = new Vector3(Math.cos(az), 0, Math.sin(az))
+    const start = rng.range(0.6, 1) * rootTop
+    const reach = rng.range(1, 2.6) * (start / rootTop + 0.3)
+    const path: Vector3[] = []
+    for (let k = 0; k <= 8; k++) {
+      const t = k / 8
+      const y = start + 0.3 * start * Math.sin(Math.PI * t) - (start + 0.3) * t * t
+      path.push(out.clone().multiplyScalar(0.12 + reach * (1 - (1 - t) ** 1.6)).setY(y))
+    }
+    b.tube(
+      path,
+      t => 0.035 + 0.025 * (1 - t),
+      t => (path[Math.round(t * 8)].y < 0.6 ? mix(barkBase, [0.17, 0.15, 0.12], 0.6) : scale(barkBase, 1.1)),
+      5
+    )
+  }
+  leaves(b, rng, tips, {
+    shape: LEAF.oval,
+    perTip: rng.int(34, 42),
+    cluster: 0.75,
+    length: [0.18, 0.26],
+    width: 0.5,
+    facing: 0.7,
+    flatten: 0.25,
+    colors: palette(rng, scale(foliage, 0.8), [0.02, 0.1, 0.04], 0.3)
+  })
+  return b.build()
+}
+
+/** Grey mangrove (Avicennia): a low, many-stemmed tree with pale grey bark
+ * and grey-green leaves, the only mangrove of the Red Sea and the Gulf,
+ * where it stays 2–4 m. Its roots run under the mud and send up a bed of
+ * pencil-like breathing roots (pneumatophores) all round. Base at y = 0. */
+export function avicennia(rng: Random, foliage: RGB): BufferGeometry {
+  const b = new MeshBuilder()
+  const height = rng.range(2, 4.5)
+  const bark = furrowed([0.42, 0.4, 0.36], rng.int(0, 1e6), 0.2)
+  const colors = palette(rng, mix(foliage, [0.36, 0.42, 0.34], 0.45), [0.1, 0.1, 0.08], 0.3)
+  const stems = rng.int(2, 4)
+  const tips: Tip[] = []
+  for (let i = 0; i < stems; i++) {
+    const az = rng.range(0, Math.PI * 2)
+    tips.push(
+      ...growTree(
+        b,
+        rng,
+        {
+          levels: 3,
+          trunkLength: height * rng.range(0.7, 1),
+          trunkRadius: rng.range(0.06, 0.12),
+          children: () => rng.int(2, 4),
+          childStart: 0.35,
+          spread: () => 0.75,
+          lengthRatio: 0.62,
+          radiusRatio: 0.68,
+          upward: level => 0.15 - 0.1 * level,
+          gnarl: 0.16,
+          tipsAlong: 0.7,
+          bark
+        },
+        new Vector3(Math.cos(az) * 0.15, 0, Math.sin(az) * 0.15),
+        new Vector3(Math.cos(az) * 0.5, 1, Math.sin(az) * 0.5)
+      )
+    )
+  }
+  leaves(b, rng, tips, {
+    shape: LEAF.ovate,
+    perTip: rng.int(24, 30),
+    cluster: 0.5,
+    length: [0.12, 0.18],
+    width: 0.45,
+    facing: 0.6,
+    flatten: 0.3,
+    colors
+  })
+  // Pneumatophores: 10–30 cm spikes out to a few metres from the stems.
+  const spikes = rng.int(70, 110)
+  for (let i = 0; i < spikes; i++) {
+    const az = rng.range(0, Math.PI * 2)
+    const r = 0.5 + 2.8 * Math.sqrt(rng.float())
+    const base = new Vector3(Math.cos(az) * r, -0.05, Math.sin(az) * r)
+    const top = base.clone().add(new Vector3(rng.normal(0, 0.02), rng.range(0.1, 0.3), rng.normal(0, 0.02)))
+    b.tube([base, top], t => 0.012 * (1 - 0.6 * t), () => [0.3, 0.28, 0.24], 3)
+  }
+  return b.build()
+}
