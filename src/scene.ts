@@ -3,6 +3,7 @@ import {
   getECIToECEFRotationMatrix,
   getSunLightColor,
   PrecomputedTexturesGenerator,
+  type PrecomputedTextures,
   SkyLightProbe,
   SkyMaterial,
   StarsGeometry,
@@ -128,6 +129,28 @@ function gpuIdle(gl: WebGL2RenderingContext): Promise<void> {
   })
 }
 
+/** Starts takram's atmosphere precompute (~1 s of GPU work, the same every
+ * day). The generator yields to the event loop between its passes, so a
+ * thread busy building the scene would leave the GPU idle; issue every pass
+ * at once instead, so the GPU computes the sky while the CPU builds props.
+ * `issued` resolves once the passes are queued: then the thread is free. */
+function precomputeAtmosphere(
+  renderer: WebGLRenderer,
+  generator: PrecomputedTexturesGenerator
+): { issued: Promise<void>; textures: Promise<PrecomputedTextures> } {
+  const target = generator as unknown as { precompute?: (...args: unknown[]) => Iterable<void> }
+  const passes = target.precompute?.bind(generator)
+  if (passes == null) throw new Error('precomputeAtmosphere: takram generator has no precompute() any more')
+  let markIssued!: () => void
+  const issued = new Promise<void>(resolve => (markIssued = resolve))
+  target.precompute = function* (...args: unknown[]) {
+    for (const _ of passes(...args));
+    renderer.getContext().flush()
+    markIssued()
+  }
+  return { issued, textures: generator.update() }
+}
+
 /** Low-discrepancy sequence in [0, 1): well-spread sub-pixel offsets. */
 function halton(index: number, base: number): number {
   let result = 0
@@ -182,18 +205,26 @@ export async function renderScene(
   const lightECEF = toECEF(lightDirection)
   const moonECEF = toECEF(params.moonDirection)
 
-  // The ocean spectrum is synthesized on a worker while the GPU precomputes
-  // the atmosphere.
+  // The ocean spectrum is synthesized on a worker and the props are built
+  // here while the GPU precomputes the atmosphere.
   const oceanSurface = synthesizeOceanAsync(params.ocean)
   const generator = new PrecomputedTexturesGenerator(renderer, { combinedScattering: false })
-  const [textures, cloudAssets] = await Promise.all([
-    generator.update(),
-    params.weather.kind === 'clear' ? Promise.resolve(null) : loadCloudAssets()
-  ])
+  const atmosphere = precomputeAtmosphere(renderer, generator)
+  const cloudAssetsLoaded = params.weather.kind === 'clear' ? Promise.resolve(null) : loadCloudAssets()
 
   // --- Camera ---------------------------------------------------------------
   const { camera, dip } = createCamera(params, width, height)
   const vfov = camera.fov * DEG
+
+  // --- Props (CPU only) -------------------------------------------------------
+  await atmosphere.issued
+  const surface = await oceanSurface
+  // Ocean and terrain first: three draws opaque meshes in material-creation
+  // order, and equal-depth pixels (sand under props) depend on it.
+  const ocean = createOcean(params, surface, renderer.capabilities.getMaxAnisotropy())
+  const terrain = createTerrain(params)
+  const props = createProps(new PropContext(params, camera, surface))
+  const [textures, cloudAssets] = await Promise.all([atmosphere.textures, cloudAssetsLoaded])
 
   // --- Sky ------------------------------------------------------------------
   const makeSky = (withSun: boolean): SkyMaterial => {
@@ -339,8 +370,6 @@ export async function renderScene(
   }
 
   // --- Ocean ----------------------------------------------------------------
-  const surface = await oceanSurface
-  const ocean = createOcean(params, surface, renderer.capabilities.getMaxAnisotropy())
   const u = ocean.material.uniforms
   u.envMap.value = envTarget.texture
   u.sunDirection.value.copy(lightDirectionWorld)
@@ -348,7 +377,6 @@ export async function renderScene(
   u.skyIrradiance.value.copy(skyIrradiance)
   scene.add(ocean)
 
-  const terrain = createTerrain(params)
   const tu = terrain.material.uniforms
   tu.envMap.value = envTarget.texture
   tu.sunDirection.value.copy(lightDirectionWorld)
@@ -381,7 +409,6 @@ export async function renderScene(
   sun.shadow.bias = -0.0002
   sun.shadow.normalBias = 0.03
   scene.add(sun, sun.target)
-  const props = createProps(new PropContext(params, camera, surface))
   setOceanRocks(ocean, props.userData.waterRocks ?? [], camera.position)
   setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, skyIrradiance)
   scene.add(props)
@@ -594,6 +621,9 @@ export async function renderScene(
   // averages out (worst at the grazing angles of beach views). Frame 0 is
   // unjittered: it is the one the still scene is cached from.
   const cloudPixel = clouds != null ? 1 / clouds.resolution.scale : 1
+  // Wait for the frame before the last one: the GPU always has a frame
+  // queued while the next is issued, and never more than two.
+  let previousFrame: Promise<void> | null = null
   for (let i = 0; i < frames; i++) {
     if (i > 0) {
       const dx = (halton(i, 2) - 0.5) * cloudPixel
@@ -604,7 +634,11 @@ export async function renderScene(
     finish.enabled = last
     if (skyDenoise != null) skyDenoise.enabled = last
     composer.render(1 / 60)
-    if (!last) await gpuIdle(renderer.getContext() as WebGL2RenderingContext)
+    if (!last) {
+      const done = gpuIdle(renderer.getContext() as WebGL2RenderingContext)
+      if (previousFrame != null) await previousFrame
+      previousFrame = done
+    }
   }
   camera.clearViewOffset()
 

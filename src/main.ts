@@ -95,11 +95,27 @@ function offscreenWebGL2(): boolean {
   return gl != null
 }
 
+// Start the render worker now, so its code (most of the app) loads while
+// the day's scene is planned.
+const worker = offscreenWebGL2()
+  ? new Worker(new URL('./renderWorker.ts', import.meta.url), { type: 'module' })
+  : null
+// Its load errors can arrive before the render starts listening.
+const workerFailed =
+  worker == null
+    ? null
+    : new Promise<never>((_, reject) =>
+        worker.addEventListener('error', event => reject(new Error(event.message || 'render worker failed to start')), {
+          once: true
+        })
+      )
+workerFailed?.catch(() => {})
+
 /** Renders the wallpaper into the canvas: on a worker where the browser can,
  * so the GPU work never blocks the page (and the splash animation); otherwise
  * on the main thread. */
 async function startRender(params: SceneParams, canvas: HTMLCanvasElement): Promise<Rendered> {
-  if (!offscreenWebGL2()) {
+  if (worker == null) {
     const { renderScene } = await import('./scene')
     const { debug } = await renderScene(params, width, height, canvas, frames)
     return {
@@ -110,12 +126,10 @@ async function startRender(params: SceneParams, canvas: HTMLCanvasElement): Prom
         )
     }
   }
-  const worker = new Worker(new URL('./renderWorker.ts', import.meta.url), { type: 'module' })
   const send = (request: RenderRequest, transfer: Transferable[] = []): void => worker.postMessage(request, transfer)
   const blobs = new Map<number, (blob: Blob) => void>()
   const offscreen = canvas.transferControlToOffscreen()
-  const debug = await new Promise<Record<string, unknown>>((resolve, reject) => {
-    worker.onerror = event => reject(new Error(event.message || 'render worker failed to start'))
+  const rendered = new Promise<Record<string, unknown>>((resolve, reject) => {
     worker.onmessage = (event: MessageEvent<RenderReply>) => {
       const message = event.data
       if (message.type === 'done') resolve(message.debug)
@@ -130,6 +144,7 @@ async function startRender(params: SceneParams, canvas: HTMLCanvasElement): Prom
       [offscreen]
     )
   })
+  const debug = await Promise.race([rendered, workerFailed!])
   let nextId = 0
   return {
     debug,

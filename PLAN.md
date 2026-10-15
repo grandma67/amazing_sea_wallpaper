@@ -27,6 +27,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.16 | 10-15 | Surf physics: waves shoal from half a wavelength deep (Green's law), break at H = γ·d (McCowan 0.78, Weggel slope term) and stay depth-limited as bores; a zero-mean profile with peaked crests, flat troughs, a front face steepening toward breaking and a drawdown trough at its foot; white water and spray only where the model says the wave is breaking |
 | 0.15 | 10-15 | Islands at sea on ~30% of days, by coast: nordic skerries with pines, steep Mediterranean and desert islands, tropical palm cays, karst towers and high volcanic islands; heightfields with curvature drop, palms and pines instanced; `islands` in scene specs |
 | 0.13 | 10-15 | Scene specs: a JSON description (`src/sceneSpec.ts`) forces any part of a scene (time of day, sun, moon, eclipse, biome, ocean, coast, weather, clouds, storm, fog, lighthouse, landform, colonies, seals, wind, camera, and the props' own choices) on top of a date; `?scene=` on the page, `--scene` in the snapshot script; unforced output unchanged |
+| 0.18 | 10-15 | Faster loading, same image: the atmosphere precompute (~1.1 s of GPU work) is issued in one go and the props are built on the CPU meanwhile; cloud frames wait on the frame before last, so the GPU never idles between them; the render worker starts loading with the page — clear 4K days 2.3 → 1.3 s, cloudy ~7.6 → ~6 s |
 
 ## Decisions
 
@@ -36,6 +37,11 @@ Informal (no git tags); each is a milestone. Dates are 2026.
   headless (needs an out-of-browser render step), AI image generation (paid, less control).
 - **Procedural props, no downloaded models** — zero asset weight, per-date variety.
 - **Stills are averaged over many frames** (64 by default) so stochastic clouds converge.
+- **Overlap CPU and GPU at startup** (2026-10-15). takram's generator yields to the event
+  loop between passes (for interactive apps); `precomputeAtmosphere()` in `scene.ts` issues
+  them all at once, so the props are built while the GPU computes the sky. Not done: caching
+  the sky textures between visits (~48 MB of float 3D textures to read back and store),
+  dropping the higher-order scattering texture (the sky and aerial perspective use it).
 - **Rejected for speed:** shipping precomputed atmosphere LUTs (10–48 MB, slightly different
   sky); one shared clouds effect for all env-cube faces (fragile); fewer frames / lower cloud
   resolution (changes the image).
@@ -200,6 +206,12 @@ Playwright (headless snapshots).
 - Foam against the low sun is no brighter than the glare on the water, so collars round
   backlit rocks vanish: that's real. Check foam features in front-lit specs
   (`sunAzimuthDeg` ≈ 160), not into the sun.
+
+- three sorts opaque meshes by **material id** (creation order) before depth, so creating
+  meshes in a different order changes equal-depth pixels. Moving the props ahead of the
+  ocean and terrain changed a few hundred pixels until those were created first again.
+  Check speed work with a pixel diff against a baseline, not by eye: two runs of the same
+  code on the same GPU are pixel-identical here.
 
 ## Ideas (not planned)
 
