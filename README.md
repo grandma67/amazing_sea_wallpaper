@@ -26,6 +26,7 @@ rocks, plants, boats, mountains and volcanoes, birds, dolphins and whales.
 npm install
 npm run dev            # http://localhost:5173/
 npm run build          # type-check + production build into dist/
+npm test               # unit tests of the scene logic (Vitest)
 node scripts/snapshot.mjs --url http://localhost:5173/ 2026-12-01..2026-12-07
 node scripts/contact-sheet.mjs --dir out --cols 4
 ```

@@ -1,4 +1,5 @@
 import { generateSceneParams } from './composition'
+import { localDateString, resolveDate, shiftDate } from './dates'
 import type { SceneParams } from './params'
 import type { RenderReply, RenderRequest } from './renderWorker'
 
@@ -12,17 +13,6 @@ import type { RenderReply, RenderRequest } from './renderWorker'
 //   ?portrait=1|0      force a portrait (phone) or landscape composition
 //   ?frames=24         cloud accumulation frames (default 64; fewer = faster)
 //   ?worker=0          render on the main thread instead of a worker
-
-function localDateString(d: Date): string {
-  const pad = (n: number): string => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
-function shiftDate(date: string, days: number): string {
-  const d = new Date(`${date}T12:00:00`)
-  d.setDate(d.getDate() + days)
-  return localDateString(d)
-}
 
 function linkFor(date: string): string {
   const url = new URL(window.location.href)
@@ -40,13 +30,9 @@ const query = new URLSearchParams(window.location.search)
 const today = localDateString(new Date())
 const requested = query.get('date')
 const allowFuture = query.get('future') === '1'
-let date = requested != null && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today
-// Tomorrow's sea isn't out yet: show today and fix the address bar to match.
-// (ISO dates compare correctly as strings.)
-if (date > today && !allowFuture) {
-  date = today
-  history.replaceState(null, '', linkFor(today))
-}
+const date = resolveDate(requested, today, allowFuture)
+// Tomorrow's sea isn't out yet: fix the address bar to match today.
+if (requested != null && date !== requested) history.replaceState(null, '', linkFor(today))
 
 // Phones held upright get a portrait wallpaper: the same day's scene,
 // composed for a tall frame.
