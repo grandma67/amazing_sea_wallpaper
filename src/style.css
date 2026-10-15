@@ -37,7 +37,7 @@ body {
 .splash-sun {
   position: absolute;
   left: 50%;
-  bottom: 30vh;
+  bottom: 46vh;
   width: 14vmin;
   height: 14vmin;
   margin-left: -7vmin;
@@ -62,14 +62,18 @@ body {
 }
 
 .splash-sea {
+  /* Sea height and the wave amplitude in viewBox units (path: Q180 32 → 14 of 120). */
+  --sea: 40vh;
+  --swell: calc(var(--sea) * 0.8 * 14 / 120);
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 34vh;
+  height: var(--sea);
 }
 
-/* Each SVG holds two identical wave periods; sliding it by half loops seamlessly. */
+/* Each SVG holds four identical wave periods (two per viewport width); sliding
+   it by half loops seamlessly. */
 .wave {
   position: absolute;
   bottom: 0;
@@ -89,6 +93,7 @@ body {
   height: 80%;
   fill: #1f5a8a;
   opacity: 0.85;
+  /* The boat rides this wave: keep its duration in step with boat-heave. */
   animation: wave-slide 7s linear infinite reverse;
 }
 
@@ -99,13 +104,17 @@ body {
 }
 
 .boat {
+  /* The boat floats on the middle wave. Its mean level is half that wave's
+     height; the hull's waterline is 10 of the 56 viewBox units up. */
   position: absolute;
   left: 50%;
-  bottom: 39%;
+  bottom: calc(var(--sea) * 0.4 - 9vmin * 10 / 64);
   width: 9vmin;
   margin-left: -4.5vmin;
-  transform-origin: 50% 90%;
-  animation: bob 2.6s ease-in-out infinite;
+  transform-origin: 50% 82%;
+  animation:
+    boat-heave 3.5s infinite,
+    boat-pitch 3.5s linear infinite;
   will-change: transform;
 }
 
@@ -130,13 +139,40 @@ body {
   }
 }
 
-@keyframes bob {
+/* The middle wave moves one period (half a viewport) past the boat every 3.5 s.
+   Its path is made of parabolas, so the surface under the boat rises and falls
+   as quadratic eases: mean → trough → mean → crest → mean. The slope of a
+   parabola changes linearly, so the pitch is linear between its extremes. */
+@keyframes boat-heave {
+  0%,
+  50% {
+    translate: 0 0;
+    animation-timing-function: cubic-bezier(0.333, 0.667, 0.667, 1);
+  }
+  25% {
+    translate: 0 var(--swell);
+    animation-timing-function: cubic-bezier(0.333, 0, 0.667, 0.333);
+  }
+  75% {
+    translate: 0 calc(-1 * var(--swell));
+    animation-timing-function: cubic-bezier(0.333, 0, 0.667, 0.333);
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes boat-pitch {
   0%,
   100% {
-    transform: translateY(0) rotate(-6deg);
+    rotate: -8deg;
+  }
+  25%,
+  75% {
+    rotate: 0deg;
   }
   50% {
-    transform: translateY(-1.2vmin) rotate(6deg);
+    rotate: 8deg;
   }
 }
 
