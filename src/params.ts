@@ -5,6 +5,7 @@ import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams }
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
 import { contrailsFor, type Contrail } from './contrails'
+import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParams } from './noctilucent'
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
@@ -310,6 +311,10 @@ export interface SceneParams {
   fog: FogParams | null
   /** A waterspout under the cumulus line (props/waterspout.ts). */
   waterspout: WaterspoutParams | null
+  /** Noctilucent clouds at twilight (noctilucent.ts). */
+  noctilucent: NoctilucentParams | null
+  /** Nacreous (mother-of-pearl) clouds in polar winter twilight. */
+  nacreous: NacreousParams | null
   /** Aircraft trails high in the sky (contrails.ts). */
   contrails: Contrail[]
   /** A lighthouse on a point or a rock (props/lighthouse.ts, lighthouse.ts). */
@@ -1472,6 +1477,8 @@ function buildParams(
     fog,
     waterspout,
     contrails: [],
+    noctilucent: null,
+    nacreous: null,
     lighthouse,
     ...(spec.props != null ? { overrides: spec.props } : {}),
     camera: {
@@ -1502,6 +1509,8 @@ function buildParams(
       waveSeed: `${seed}/waves`
     }
   }
+  params.noctilucent = noctilucentFor(params, Random.derive(seed, 'noctilucent'), spec.noctilucent)
+  params.nacreous = nacreousFor(params, Random.derive(seed, 'nacreous'), spec.nacreous)
   params.contrails = contrailsFor(params, Random.derive(seed, 'contrails'), spec.contrails)
   return { params, draws }
 }

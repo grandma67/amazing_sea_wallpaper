@@ -105,6 +105,10 @@ export interface SceneSpec {
   cloudArrangement?: Force<'streets' | 'bands'>
   /** A waterspout (tornadic ones belong with storms). */
   waterspout?: Force<'fair-weather' | 'tornadic'>
+  /** Noctilucent clouds (they only show at twilight with the sun 6–16° down). */
+  noctilucent?: boolean | null
+  /** Nacreous clouds (lit with the sun 1–6° down). */
+  nacreous?: boolean | null
   /** Aircraft trails: null/false none, true at least one, a number that many (≤ 5). */
   contrails?: boolean | number | null
   storm?: Force<'thunderstorm' | 'squall'>
@@ -226,6 +230,8 @@ const SPEC = object({
   },
   cloudArrangement: force('streets', 'bands'),
   waterspout: force('fair-weather', 'tornadic'),
+  noctilucent: oneOf(true, false, null),
+  nacreous: oneOf(true, false, null),
   contrails: (value, path) => (typeof value === 'number' ? number(value, path) : oneOf(true, false, null)(value, path)),
   storm: force('thunderstorm', 'squall'),
   rainbow: boolean,

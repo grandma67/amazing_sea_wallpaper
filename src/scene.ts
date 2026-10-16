@@ -52,6 +52,7 @@ import { createCamera } from './camera'
 import { moonlight as phaseLight } from './celestial'
 import { createClouds, loadCloudAssets, renderCloudyEnvironment } from './clouds'
 import { patchSkyContrails } from './contrails'
+import { patchSkyNoctilucent } from './noctilucent'
 import { eclipseSky } from './eclipse'
 import { meterScene } from './exposure'
 import { FogEffect } from './fog'
@@ -258,6 +259,7 @@ export async function renderScene(
 
   const scene = new Scene()
   const skyMaterial = makeSky(true)
+  patchSkyNoctilucent(skyMaterial, params.noctilucent, params.nacreous)
   patchSkyContrails(skyMaterial, params.contrails, worldToECEF, AtmosphereParameters.DEFAULT.bottomRadius, METER_TO_LENGTH_UNIT)
   const sky = skyMesh(skyMaterial)
   sky.userData.sky = true
