@@ -83,9 +83,16 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --scene '{"timeOfDay":"nigh
   coast and lens at night. `seed` gives another random scene on the same date.
 - Fields: `timeOfDay`, `evening`, `sunElevationDeg`, `sunAzimuthDeg` (0 = ahead),
   `moonPhaseDeg`, `dayMoon`, `nightSky`, `eclipse`, `biome`, `ocean`, `monsoon`, `ice`, `coast`,
-  `composition`, `sand`, `weather`, `clouds`, `storm`, `rainbow`, `fog`, `lighthouse`,
-  `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`, `haulOut`, `wind`, `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`
-  and `props.{marine,birds,migratory,ships,rocks,seaStacks,vegetation,debris,shoreLife}`.
+  `composition`, `sand`, `weather`, `clouds` (genera and species, ≤ 4 layers, e.g.
+  `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
+  `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
+  `nacreous`, `rainbow`, `fog`, `lighthouse`, `landform`, `islands`, `colony`, `colonySite`,
+  `pinnipeds`, `haulOut`, `wind`, `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`
+  and `props.{marine,birds,migratory,ships,rocks,seaStacks,vegetation,debris,shoreLife,mangroves,wildlife}`.
+- `camera.horizonFraction` is how far **down** the frame the horizon sits: 0.3 is mostly sea,
+  0.7 mostly sky (for sky features).
+- A spec file can share fields: `{"base": {date, camera, props…}, "scenes": [{"name": "a", …}]}`;
+  each scene is merged deeply over the base (snapshot.mjs and diff.mjs).
   For features that can be absent, `null`/`false` removes them, `true` makes sure they are there,
   and a kind (`"rock"`, `"bank"`, `"orca"`) forces the kind.
 - Anything else goes in `params`, a deep patch over the finished `SceneParams`
@@ -100,34 +107,33 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --scene '{"timeOfDay":"nigh
 - Forced features are placed like any other: a life-size crab still needs sand near the
   camera in frame, and a boat is skipped if no sea spot is found.
 
-## 3b. Pick test dates with a script, when the feature must be checked as it occurs
+## 3b. Ask the generator, don't render: `scripts/params.mjs`
 
-Computing params is cheap (three years of days in ~1 s); rendering is not. Write a
-throwaway Vitest file that lists candidate days, then render only those:
+Computing params is cheap (three years of days in ~1.5 s); rendering is not. Ask
+`params.mjs` how often something happens, which days have it, and what a spec gives,
+before rendering anything:
 
-```ts
-// test/tmp/list.test.ts  (delete afterwards: rm -rf test/tmp)
-import { it } from 'vitest'
-import { allParams } from '../days'
-it('list', () => {
-  const lines = allParams()
-    .filter(p => p.coast.type === 'beach' && ['shoreline', 'along-beach'].includes(p.coast.composition))
-    .map(p => `${p.date} ${p.biome.name}/${p.sea.ocean}/${p.timeOfDay} ${p.title}`)
-  require('node:fs').writeFileSync('/private/tmp/claude-501/list.txt', lines.join('\n'))
-})
+```sh
+node scripts/params.mjs --stats 'p => p.weather.formations'                 # counts over 3 years
+node scripts/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
+node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
+node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-12
+node scripts/params.mjs --scene '{"storm":"squall"}' --stats 'p => p.weather.formations'   # a spec on every day
 ```
 
-`npx vitest run test/tmp`. Console output is swallowed, hence the file. Use this to check frequencies and real dates (eclipses); for
-looks, prefer specs. Pick 4–8 dates
-covering the cases (each biome, a near view and a far one, day and night). For a feature
-that must be in frame (the moon, an eclipse), compute whether it is in frame from
-`camera.headingDeg`, `focalLengthMm` (36×24 mm sensor) and `horizonFraction`. Don't render
-to find out.
+- `--where`/`--stats` take a JS function of the `SceneParams`; `--stats` counts each element
+  of an array. Dates: `YYYY-MM-DD` or `FROM..TO`; none = the test days (`test/days.ts`).
+- Use it for frequencies, real dates (eclipses) and "is it there at all?"; use specs for looks.
+  Pick 4–8 dates covering the cases (each biome, a near view and a far one, day and night).
+- For a feature that must be in frame (the moon, an eclipse), compute whether it is in frame
+  from `camera.headingDeg`, `focalLengthMm` (36×24 mm sensor) and `horizonFraction`. Don't
+  render to find out.
 
 Useful fixed dates: 2024-04-08 and 2026-08-12 (total solar eclipse), 2024-10-02 (annular),
 2025-03-29 (partial solar), 2025-03-14 (blood moon), 2026-08-28 (partial lunar),
 2024-02-12 (Arctic beach, driftwood), 2024-06-26 (nordic beach, kelp, daytime moon),
-2024-07-12 (Mediterranean beach, seagrass, shells), 2024-03-08 (tropical shore at golden hour).
+2024-07-12 (Mediterranean beach, seagrass, shells), 2024-03-08 (tropical shore at golden hour),
+2024-09-12 (Mediterranean in waterspout season), 2024-04-24 (storm with a shelf cloud).
 
 ## 4. Render
 
@@ -165,18 +171,39 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   It's also in the `DATE.json` next to each image.
 - For anything `--props` doesn't cover, add a temporary `console.warn('DBG …')`. The
   snapshot script echoes browser warnings. Remove it before committing.
+- **A shader that fails to compile** prints `[browser error] THREE.WebGLProgram: Shader Error`
+  followed by the `ERROR: 0:LINE: …` lines and the numbered source round them. Read those
+  lines (don't grep them away); GLSL errors only show up at render time, so check a patched
+  shader with one tiny render (`--w 320 --h 180 --frames 1`) before a full round.
 - Stop the server when you're done (`lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`).
 
 ## 5. Look at the results cheaply
 
+- **"Did it show up?" is a number, not an image: `scripts/diff.mjs`.** It renders each spec
+  as written and with `--off` merged in, and prints how much of the frame changed, where
+  (pixel box), how strongly and whether brighter or darker, plus `NAME.diff.jpg` (off | on
+  cropped to the change, difference ×8 below). `⚠ invisible` (< 0.01% changed) means not
+  placed, out of frame, hidden (inside a cloud layer, behind geometry) or too faint: fix that
+  before looking at pictures. ~6 s per spec at 960×540.
+
+  ```sh
+  node scripts/diff.mjs --scene $SP/specs.json --off '{"contrails":null}' --out $SP/contrails --w 960 --h 540 --frames 16
+  node scripts/diff.mjs --a $SP/before --b $SP/after          # two folders of renders, same names
+  ```
 - **Contact sheet first:** `node scripts/contact-sheet.mjs --dir $SP/feat` makes one image of
   all the days. Read that instead of each frame: one image read instead of eight.
+- **Sky features:** `contact-sheet.mjs --region top` (or `bottom`, `centre`, `X0,Y0,X1,Y1`
+  fractions) shows only that part of each image, at a bigger size.
 - **Crop for small things**: `--crop KIND` at render time. By hand, from the full-size
   render: `sips -c <height> <width> --cropOffset <y> <x> in.jpg --out crop.jpg` (note:
   height before width, y before x). Resize whole frames with `sips -Z 1200`. Python has no
   PIL here.
-- **Before/after:** render the same specs into `$SP/before` (e.g. with the change stashed:
-  `git stash push <files>`, render, `git stash pop`) and `$SP/after`, then
+- **Before/after a commit, time and pixels: `scripts/bench.mjs`.** It checks out a ref in a
+  temporary worktree, serves it on 5175, renders the same dates (or `--scene`) with both
+  (best of `--runs 2`), and prints each render time side by side (`⚠ >10% slower`) and a
+  pixel diff. `node scripts/bench.mjs --ref HEAD~3` (~35 s for the 4 default dates). Use it
+  for the ~10% rule and for speed work, which must leave the image identical.
+- **Side-by-side pictures:** render the same specs into `$SP/before` and `$SP/after`, then
   `node scripts/contact-sheet.mjs --dir $SP/after --compare $SP/before` puts each pair
   side by side in one image. `--match REGEX` keeps some names only (`'\.rocks$'` for the
   crops).
@@ -185,8 +212,15 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   front-lit spec first (`"sunAzimuthDeg": 160`, `"timeOfDay": "daylight"`), then backlit
   for looks.
 - **Budget about three render rounds per feature**: one to see it, one to fix everything
-  seen, one to confirm. If a fourth seems needed, stop and reason from numbers or the
-  `--props` report instead.
+  seen, one to confirm. If a fourth seems needed, stop and reason from numbers, the
+  `--props` report or `diff.mjs` instead.
+- **Before the first render of anything in the sky, write down its height and distance**
+  and compare them with the cloud layers that day (`params.mjs --fields weather.formations`,
+  altitudes in `cloudTypes.ts`): a mesh inside the storm deck (Cb base 600 m) or the scud
+  (300–550 m) is hidden, whatever its colour.
+- **When you change a shared layer** (a cloud type, the exposure, fog), re-check conclusions
+  drawn while it was broken. Scud made every storm flat grey; "calvus and capillatus look
+  the same from below" was blamed on physics and was wrong.
 - Keep the **same dates across rounds** so you compare like with like, and budget the
   rounds: decide what to check, render once, fix everything you saw, render again.
 - When something looks wrong, **reason from the numbers before re-rendering.** Render units
@@ -223,6 +257,28 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   clamp widths to the grid and pixel size (see `surfProfile`'s `minFace`).
 - **Sheer walls on a polar grid read as drums**: vary the wall's foot with angle.
 - `half` is a reserved word in GLSL ES 3.
+- **Patching takram's sky shader** (`eclipse.ts`, `contrails.ts`, `noctilucent.ts`): insert
+  functions before `vec3 getSkyRadiance(` and calls after the `vec3 radiance =
+  GetSkyRadiance(…);` line; patch only the main sky, never `envScene`'s. Lengths there are in
+  km (`ATMOSPHERE.bottom_radius`), positions are ECEF from the earth's centre. Things drawn
+  there sit under the volumetric clouds and behind geometry for free. The weather-map
+  lookup in the clouds' shaders is patched the same way (`cloudArrangement.ts`).
+- **Light for something floating in the air** (a contrail, a high cloud): takram's
+  `GetSunAndSkyIrradiance` is for a surface (cosine factor, zero once the sun is below its
+  plane). Use `GetSunAndSkyScalarIrradiance` and a phase function.
+- `Vector3.transformDirection` normalises: scale a direction after transforming it.
+- **takram cloud layers:** `coverageFilterWidth` near 1 turns any layer into a sheet over the
+  whole sky; ragged scraps need a narrow width and a high `weatherExponent`. A second layer
+  in an étage reads the weather map's alpha (fine Perlin; `layerChannels`). From under a
+  closed deck you never see a cloud's top.
+- **A mesh hanging from the volumetric clouds** (a waterspout) can't know where the deck has
+  gaps: give it its own soft cloud base (spray puffs), or it ends in clear sky.
+- **Physically faint is fine, but know it:** noctilucent clouds need the sun 6–16° down and our
+  blue hour stops at −7°, so they're faint on real days; contrails at blue hour are in the
+  earth's shadow (dark lines). Say so rather than boost them.
+- **Editing by script:** Python's `str.replace` replaces every match (a key like `"  cirrus: {"`
+  also hit the choice table) and a loose regex hit a function's parameters. Prefer the Edit
+  tool, or assert the old text occurs exactly once.
 
 ## 7. Tests and finishing
 
@@ -237,6 +293,8 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
     budget;
   - for anything in `params.ts`, determinism and the title.
 - `npm test` (typecheck + Vitest, ~6 s) and `npx tsc --noEmit` before committing.
+- Say "done" only for what a render or `diff.mjs` showed: a feature never seen clearly (behind
+  a cloud, too small) is "placed, not checked".
 - Update PLAN.md: versions table, "How it works", lessons, references. Update TODO.md
   status if it's in use; never commit TODO.md. Commit each feature separately with a
   descriptive message.

@@ -8,7 +8,9 @@
 // DATE can be YYYY-MM-DD, "today", or a range "2026-10-01..2026-10-07".
 // --scene takes a JSON file (or inline JSON) holding a scene spec or a list
 // of them (src/sceneSpec.ts): each is rendered and saved as <name>.jpg, or
-// <date>.jpg when it has no name.
+// <date>.jpg when it has no name. A file can also share fields among its
+// scenes: { "base": { "date": …, "camera": {…} }, "scenes": [{ "name": "a", … }] }
+// (each scene merged deeply over the base).
 // Expects a server (vite dev or preview) to be running at --url.
 //
 // Checking a feature without reading whole images:
@@ -75,7 +77,20 @@ async function jobs() {
   if (sceneArg == null) return expandDates(args.length > 0 ? args : ['today']).map(date => ({ date, name: date }))
   const text = /^\s*[[{]/.test(sceneArg) ? sceneArg : await readFile(sceneArg, 'utf8')
   const parsed = JSON.parse(text)
-  const specs = Array.isArray(parsed) ? parsed : [parsed]
+  // { "base": {…}, "scenes": [{…}, …] }: each scene is the base with its own
+  // fields merged in (objects merge, the rest replaces).
+  const merge = (a, b) => {
+    if (b === null || typeof b !== 'object' || Array.isArray(b) || a == null || typeof a !== 'object' || Array.isArray(a)) return b
+    const out = { ...a }
+    for (const [k, v] of Object.entries(b)) out[k] = merge(a[k], v)
+    return out
+  }
+  const specs =
+    !Array.isArray(parsed) && Array.isArray(parsed.scenes)
+      ? parsed.scenes.map(scene => merge(parsed.base ?? {}, scene))
+      : Array.isArray(parsed)
+        ? parsed
+        : [parsed]
   const used = new Set()
   return specs.map((spec, i) => {
     let name = spec.name ?? spec.date ?? `scene-${i + 1}`
@@ -94,7 +109,17 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
 page.setDefaultTimeout(timeoutMs)
 page.on('console', msg => {
-  if (msg.type() === 'error' || msg.type() === 'warning') console.log(`[browser ${msg.type()}]`, msg.text())
+  if (msg.type() !== 'error' && msg.type() !== 'warning') return
+  const text = msg.text()
+  // three.js logs a failed shader with its whole source: keep the errors and
+  // the numbered lines it quotes round them.
+  if (/Shader Error|VALIDATE_STATUS false/.test(text) && text.length > 2000) {
+    const lines = text.split('\n')
+    const keep = lines.filter(l => /ERROR:|^\s*>?\s*\d+:/.test(l)).slice(0, 40)
+    console.log(`[browser ${msg.type()}] ${lines[0]}\n${keep.join('\n')}`)
+    return
+  }
+  console.log(`[browser ${msg.type()}]`, text)
 })
 page.on('pageerror', error => console.log('[page error]', error.message))
 
