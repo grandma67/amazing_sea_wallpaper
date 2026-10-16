@@ -34,7 +34,7 @@ import {
 
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
-import { CLOUD_GENERA } from './cloudTypes'
+import { CLOUD_GENERA, layerChannels } from './cloudTypes'
 import type { WeatherParams } from './params'
 
 // Volumetric clouds (takram three-clouds). Assets are self-hosted in
@@ -138,16 +138,18 @@ export function createClouds(
   clouds.localWeatherOffset.set(...weather.weatherOffset)
   clouds.shapeOffset.set(...weather.shapeOffset)
 
-  // One layer per cloud genus in today's sky; each étage reads its own
-  // channel of the weather map so the layers don't line up.
-  const channels = { low: 'r', middle: 'g', high: 'b' } as const
+  // One layer per cloud genus in today's sky; each reads its own channel of
+  // the weather map so the layers don't line up (layerChannels). A genus
+  // listed twice is a second deck above the first (duplicatus).
+  const channels = layerChannels(weather.formations)
   const layers = new CloudLayers(
-    weather.formations.map(genus => {
+    weather.formations.map((genus, i) => {
       const spec = CLOUD_GENERA[genus]
       const [expTerm, exponent, linearTerm, constantTerm] = spec.densityProfile
+      const repeat = weather.formations.indexOf(genus) < i
       return {
-        channel: channels[spec.etage],
-        altitude: spec.altitude,
+        channel: channels[i],
+        altitude: spec.altitude + (repeat ? (weather.duplicatusLiftM ?? 500) : 0),
         height: spec.height,
         densityScale: spec.densityScale,
         shapeAmount: spec.shapeAmount,

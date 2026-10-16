@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { CLOUD_GENERA } from '../src/cloudTypes'
 import { dirFromAzEl, generateParams, horizontalHalfFovDeg, type TimeOfDay } from '../src/params'
 import { allParams, scenes, share } from './days'
 
@@ -147,7 +148,7 @@ describe('generateParams', () => {
     ]
     for (const p of storms) {
       expect(p.weather.kind).toBe('storm')
-      expect(p.weather.formations).toContain('cumulonimbus')
+      expect(p.weather.formations.map(g => CLOUD_GENERA[g].genus)).toContain('cumulonimbus')
       // A gale, calmed only by the Arctic's light airs and pack ice.
       const ice = p.sea.ice != null && p.sea.ice.packIce > 0 ? 0.4 : 1
       expect(p.ocean.windSpeed).toBeGreaterThanOrEqual(14 * 0.85 * ice)

@@ -1,6 +1,6 @@
 import type { EclipseType } from './celestial'
 import type { Biome, SandStyle, VegetationKind } from './biome'
-import type { CloudGenus } from './cloudTypes'
+import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
 import type { DebrisSpec } from './props/debris'
@@ -98,7 +98,8 @@ export interface SceneSpec {
   sand?: SandStyle['name']
 
   weather?: Exclude<WeatherKind, 'storm'>
-  /** Cloud genera, at most one per étage. */
+  /** Cloud genera and species, one layer each (at most 4); usually one per
+   * étage. A genus listed twice is a second, higher deck (duplicatus). */
   clouds?: CloudGenus[]
   storm?: Force<'thunderstorm' | 'squall'>
   rainbow?: boolean
@@ -186,10 +187,7 @@ const object = (fields: Record<string, Check>, nullable = false): Check => (valu
 const TIMES = ['golden-hour', 'sun-on-horizon', 'blue-hour', 'daylight', 'midday', 'night']
 const BIOMES = ['tropical', 'mediterranean', 'nordic', 'volcanic', 'desert']
 const OCEANS = ['pacific', 'atlantic', 'indian', 'southern', 'arctic']
-const GENERA = [
-  'cumulus', 'cumulus-congestus', 'cumulonimbus', 'stratocumulus', 'stratus', 'nimbostratus',
-  'altocumulus', 'altostratus', 'cirrus', 'cirrocumulus', 'cirrostratus'
-]
+const GENERA = Object.keys(CLOUD_GENERA)
 const PLANTS = ['palm', 'pandanus', 'stone-pine', 'olive', 'cypress', 'broadleaf', 'conifer', 'birch', 'acacia', 'bush', 'grass']
 const FLOWERS = ['morning-glory', 'bindweed', 'sea-holly', 'sea-daffodil', 'ice-plant', 'thrift', 'sea-rocket', 'oysterplant']
 
@@ -216,7 +214,10 @@ const SPEC = object({
   composition: oneOf('shoreline', 'along-beach', 'framed', 'overlook'),
   sand: oneOf('white', 'golden', 'grey', 'black'),
   weather: oneOf('clear', 'cirrus', 'few', 'scattered', 'broken', 'overcast'),
-  clouds: listOf(oneOf(...GENERA)),
+  clouds: (value, path) => {
+    listOf(oneOf(...GENERA))(value, path)
+    if ((value as unknown[]).length > MAX_LAYERS) fail(path, `has at most ${MAX_LAYERS} layers`)
+  },
   storm: force('thunderstorm', 'squall'),
   rainbow: boolean,
   fog: force('advection', 'bank', 'sea-smoke'),

@@ -3,7 +3,7 @@ import { MoonPhase } from 'astronomy-engine'
 import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
 
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
-import { CLOUD_GENERA, pickFormations, type CloudGenus } from './cloudTypes'
+import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { Random } from './random'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
@@ -234,8 +234,11 @@ export interface WeatherParams {
   kind: WeatherKind
   /** Cloud coverage, 0..1 (takram clouds' global coverage). */
   coverage: number
-  /** Cloud genera in the sky, at most one per étage (low, middle, high). */
+  /** Cloud genera and species in the sky, one takram layer each (at most
+   * four); usually one per étage (low, middle, high). */
   formations: CloudGenus[]
+  /** Duplicatus: a genus listed twice is a second deck this much higher (m). */
+  duplicatusLiftM: number | null
   /** Fraction of direct sunlight reaching the scene through the clouds. */
   sunVisibility: number
   /** Seeded offsets so each day gets its own cloud pattern. */
@@ -577,32 +580,64 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay, force?: WeatherKind
     kind,
     coverage: rng.range(...coverage[kind]),
     formations: [],
+    duplicatusLiftM: null,
     sunVisibility: 1,
     weatherOffset: [rng.range(0, 1), rng.range(0, 1)],
     shapeOffset: [rng.range(0, 1), rng.range(0, 1), rng.range(0, 1)]
   }
 }
 
-/** Which clouds make up the sky; its own stream, and it depends on the coast. */
-function addFormations(seed: string, weather: WeatherParams, biome: Biome, clouds?: CloudGenus[]): void {
+/** Which clouds make up the sky; its own streams, and it depends on the
+ * coast, the season, the wind and the time of day. */
+function addFormations(
+  seed: string,
+  weather: WeatherParams,
+  biome: Biome,
+  context: { month: number; southern: boolean; windSpeed: number; morning: boolean },
+  clouds?: CloudGenus[]
+): void {
   const frng = Random.derive(seed, 'formations')
   const { kind } = weather
-  // Storms bring their own cumulonimbus (generateStorm).
+  // Storms bring their own cumulonimbus (stormFormations).
   if (kind === 'storm') {
     if (clouds != null) weather.formations = clouds
     return
   }
-  weather.formations =
-    clouds ??
-    pickFormations(frng, kind, {
-      cool: biome.name === 'nordic' || biome.name === 'volcanic',
-      tropical: biome.name === 'tropical'
+  if (clouds != null) weather.formations = clouds
+  else {
+    const climate = { cool: biome.name === 'nordic' || biome.name === 'volcanic', tropical: biome.name === 'tropical' }
+    const genera = pickFormations(frng, kind, climate)
+    const summer = context.southern ? context.month <= 3 || context.month === 12 : context.month >= 6 && context.month <= 9
+    const species = pickSpecies(Random.derive(seed, 'cloud-species'), genera, kind, {
+      ...climate,
+      warmSummer: summer && (biome.name === 'mediterranean' || biome.name === 'tropical'),
+      windSpeed: context.windSpeed,
+      morning: context.morning
     })
+    weather.formations = species.formations
+    weather.duplicatusLiftM = species.duplicatusLiftM
+  }
   // Patchy cloud shade on sea and sand is per pixel (shadow.ts); this is only
   // the overall dimming on top. A mirror-sharp sun glint is ~1000× the sky,
   // so even a sliver of sun under overcast would show a glitter path.
   for (const genus of weather.formations) weather.sunVisibility *= frng.range(...CLOUD_GENERA[genus].sunVisibility)
   if (kind === 'overcast') weather.sunVisibility = Math.min(weather.sunVisibility, 0.002)
+}
+
+/**
+ * A storm's sky: the cumulonimbus, smooth-topped (calvus) or with a fibrous
+ * top spreading into an anvil (capillatus: a cirrus-spissatus deck at the
+ * tropopause), often an altostratus sheet (thick, opacus, when the storm is
+ * dark), and scud drifting under the base. Own streams, so the storm's other
+ * draws stay put.
+ */
+function stormFormations(seed: string, altostratus: boolean, dark: boolean): CloudGenus[] {
+  const capillatus = Random.derive(seed, 'storm-anvil').chance(0.5)
+  const scud = Random.derive(seed, 'storm-scud').chance(0.6)
+  const formations: CloudGenus[] = capillatus ? ['cumulonimbus-capillatus', 'cirrus-spissatus'] : ['cumulonimbus']
+  if (altostratus) formations.push(dark ? 'altostratus-opacus' : 'altostratus')
+  if (scud) formations.push('stratus-fractus')
+  return formations
 }
 
 /**
@@ -1196,16 +1231,17 @@ function buildParams(
     const srng = Random.derive(seed, 'storm-weather')
     weather.kind = 'storm'
     weather.coverage = srng.range(0.55, 0.68)
-    weather.formations = srng.chance(0.6) ? ['cumulonimbus', 'altostratus'] : ['cumulonimbus']
+    const altostratus = srng.chance(0.6)
     // Gale-force gusts under the cells; the spectrum turns them into a high,
     // breaking sea.
     windSpeed = srng.range(14, 22)
-    weather.sunVisibility = srng.chance(0.4) ? srng.range(0.15, 0.4) : srng.range(0, 0.05)
+    const bright = srng.chance(0.4)
+    weather.sunVisibility = bright ? srng.range(0.15, 0.4) : srng.range(0, 0.05)
+    weather.formations = stormFormations(seed, altostratus, !bright)
   }
 
   let biome = keep('biome', rng.weighted(BIOMES))
   if (spec.biome != null) biome = BIOMES.find(([b]) => b.name === spec.biome)![0]
-  addFormations(seed, weather, biome, spec.clouds)
   const waterRng = Random.derive(seed, 'water')
   const orng = Random.derive(seed, 'ocean')
   const choice = pickOcean(orng, biome, Number(date.slice(5, 7)), spec.ocean)
@@ -1224,6 +1260,18 @@ function buildParams(
   // seas; pack ice smothers waves, leaving calm leads between the floes.
   const iceCalm = ice != null && ice.packIce > 0 ? 0.4 : 1
   windSpeed = or(Math.min(24, windSpeed * basin.wind * (monsoon ? 1.35 : 1)), spec.wind)
+  addFormations(
+    seed,
+    weather,
+    biome,
+    {
+      month: Number(date.slice(5, 7)),
+      southern: basin.name === 'southern',
+      windSpeed,
+      morning: !isEvening && (timeOfDay === 'golden-hour' || timeOfDay === 'daylight' || timeOfDay === 'sun-on-horizon')
+    },
+    spec.clouds
+  )
   const fog =
     (rainbowDay || eclipse != null) && spec.fog === undefined
       ? null
