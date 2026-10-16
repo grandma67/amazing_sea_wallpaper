@@ -5,6 +5,12 @@ import { Random } from '../src/random'
 
 const amounts = ['clear', 'cirrus', 'few', 'scattered', 'broken', 'overcast'] as const
 
+describe('CLOUD_GENERA', () => {
+  it('names each entry after its WMO genus', () => {
+    for (const [key, spec] of Object.entries(CLOUD_GENERA)) expect(key.startsWith(spec.genus)).toBe(true)
+  })
+})
+
 describe('pickFormations', () => {
   it('leaves a clear sky empty and gives any other sky some cloud', () => {
     const rng = new Random('clouds')

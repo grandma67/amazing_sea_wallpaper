@@ -33,7 +33,24 @@ export type CloudGenus =
 
 export type Etage = 'low' | 'middle' | 'high'
 
+/** The ten WMO genera. Each entry of CLOUD_GENERA is one of them, or a
+ * species of one ('cumulus-congestus'), and its key starts with the genus. */
+export type WmoGenus =
+  | 'cumulus'
+  | 'cumulonimbus'
+  | 'stratocumulus'
+  | 'stratus'
+  | 'nimbostratus'
+  | 'altocumulus'
+  | 'altostratus'
+  | 'cirrus'
+  | 'cirrocumulus'
+  | 'cirrostratus'
+
 export interface CloudGenusSpec {
+  /** The WMO genus this entry belongs to: code asking "is this a
+   * thunderstorm cloud?" matches on it, not on the key. */
+  genus: WmoGenus
   etage: Etage
   /** Base altitude and thickness (m). */
   altitude: number
@@ -61,6 +78,7 @@ export interface CloudGenusSpec {
 
 export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
   cumulus: {
+    genus: 'cumulus',
     etage: 'low',
     altitude: 700,
     height: 900,
@@ -74,6 +92,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     sunVisibility: [0.9, 1]
   },
   'cumulus-congestus': {
+    genus: 'cumulus',
     etage: 'low',
     altitude: 800,
     height: 3200,
@@ -88,6 +107,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     title: 'towering cumulus'
   },
   cumulonimbus: {
+    genus: 'cumulonimbus',
     etage: 'low',
     altitude: 600,
     height: 9500,
@@ -102,6 +122,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     title: 'thunderstorm'
   },
   stratocumulus: {
+    genus: 'stratocumulus',
     etage: 'low',
     altitude: 650,
     height: 500,
@@ -115,6 +136,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     sunVisibility: [0.6, 1]
   },
   stratus: {
+    genus: 'stratus',
     etage: 'low',
     altitude: 350,
     height: 450,
@@ -128,6 +150,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     sunVisibility: [0, 0.05]
   },
   nimbostratus: {
+    genus: 'nimbostratus',
     etage: 'low',
     altitude: 600,
     height: 2600,
@@ -141,6 +164,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     sunVisibility: [0, 0.002]
   },
   altocumulus: {
+    genus: 'altocumulus',
     etage: 'middle',
     altitude: 3200,
     height: 350,
@@ -155,6 +179,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     title: 'mackerel sky'
   },
   altostratus: {
+    genus: 'altostratus',
     etage: 'middle',
     altitude: 3800,
     height: 900,
@@ -168,6 +193,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     sunVisibility: [0.3, 0.6]
   },
   cirrus: {
+    genus: 'cirrus',
     etage: 'high',
     altitude: 7500,
     height: 500,
@@ -181,6 +207,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     sunVisibility: [0.95, 1]
   },
   cirrocumulus: {
+    genus: 'cirrocumulus',
     etage: 'high',
     altitude: 7000,
     height: 300,
@@ -196,6 +223,7 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     title: 'cirrocumulus ripples'
   },
   cirrostratus: {
+    genus: 'cirrostratus',
     etage: 'high',
     altitude: 8500,
     height: 700,
@@ -208,6 +236,13 @@ export const CLOUD_GENERA: Record<CloudGenus, CloudGenusSpec> = {
     densityProfile: [0, 0, 0, 1],
     sunVisibility: [0.85, 0.95]
   }
+}
+
+/** Base altitude (m) of the sky's first cloud of a genus, or of the genus
+ * itself if the sky has none (storm effects hang from the Cb base). */
+export function cloudBase(formations: readonly CloudGenus[], genus: WmoGenus): number {
+  const key = formations.find(f => CLOUD_GENERA[f].genus === genus) ?? (genus as CloudGenus)
+  return CLOUD_GENERA[key].altitude
 }
 
 type Weights = readonly (readonly [CloudGenus | null, number])[]

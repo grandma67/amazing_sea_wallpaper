@@ -1,6 +1,6 @@
 import { DoubleSide, Mesh, MeshBasicMaterial, Vector3, type Object3D } from 'three'
 
-import { CLOUD_GENERA } from '../cloudTypes'
+import { cloudBase } from '../cloudTypes'
 import { dirFromAzEl, type SceneParams } from '../params'
 import { Random } from '../random'
 import { MeshBuilder } from './builder'
@@ -11,11 +11,9 @@ import type { PropContext } from './context'
 // setGlowBrightness). Rain shafts, the flash on the clouds and falling rain
 // are screen-space effects (stormEffects.ts).
 
-const CLOUD_BASE = CLOUD_GENERA.cumulonimbus.altitude
-
 /** A forked lightning channel from the cloud base down to the sea, as a
  * ribbon facing the camera. */
-function bolt(rng: Random, base: Vector3, toCamera: Vector3, width: number): MeshBuilder {
+function bolt(rng: Random, base: Vector3, toCamera: Vector3, width: number, cloudBaseM: number): MeshBuilder {
   const b = new MeshBuilder()
   const side = new Vector3(0, 1, 0).cross(toCamera).normalize()
   const ribbon = (points: Vector3[], w: number, brightness: number): void => {
@@ -49,7 +47,7 @@ function bolt(rng: Random, base: Vector3, toCamera: Vector3, width: number): Mes
     return points
   }
 
-  const top = base.clone().setY(CLOUD_BASE + rng.range(0, 200))
+  const top = base.clone().setY(cloudBaseM + rng.range(0, 200))
   const ground = base.clone().addScaledVector(side, rng.normal(0, 150)).setY(0)
   const main = jagged(top, ground, 0.22, 7)
   ribbon(main, width, 1)
@@ -69,9 +67,10 @@ function bolt(rng: Random, base: Vector3, toCamera: Vector3, width: number): Mes
 
 /** Where each bolt leaves the cloud base (world), for the flash glow. */
 export function boltTops(params: SceneParams, camera: Vector3): Vector3[] {
+  const base = cloudBase(params.weather.formations, 'cumulonimbus')
   return (params.storm?.bolts ?? []).map(strike => {
     const [dx, , dz] = dirFromAzEl(strike.azimuthDeg, 0)
-    return new Vector3(camera.x + dx * strike.distance, CLOUD_BASE, camera.z + dz * strike.distance)
+    return new Vector3(camera.x + dx * strike.distance, base, camera.z + dz * strike.distance)
   })
 }
 
@@ -89,7 +88,7 @@ export function createStorm(ctx: PropContext): Object3D[] {
     // A few pixels wide at 4K, whatever the distance; bloom does the glow.
     const width = Math.max(3, strike.distance * 0.0012)
     const mesh = new Mesh(
-      bolt(brng, base, toCamera, width).build(),
+      bolt(brng, base, toCamera, width, cloudBase(ctx.params.weather.formations, 'cumulonimbus')).build(),
       new MeshBasicMaterial({ vertexColors: true, side: DoubleSide })
     )
     // Far brighter than anything else in the frame.

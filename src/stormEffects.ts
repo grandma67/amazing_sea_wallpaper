@@ -1,7 +1,7 @@
 import { BlendFunction, Effect, EffectAttribute } from 'postprocessing'
 import { Uniform, Vector3, Vector4, type PerspectiveCamera } from 'three'
 
-import { CLOUD_GENERA } from './cloudTypes'
+import { cloudBase } from './cloudTypes'
 import { dirFromAzEl, type RainbowParams, type SceneParams, type StormParams } from './params'
 import { boltTops } from './props/storm'
 import { Random } from './random'
@@ -19,7 +19,7 @@ const MAX = 4
  * nearer than the shaft. */
 class RainShaftEffect extends Effect {
   constructor(params: SceneParams, curtains: StormParams['curtains'], camera: PerspectiveCamera) {
-    const base = CLOUD_GENERA.cumulonimbus.altitude
+    const base = cloudBase(params.weather.formations, 'cumulonimbus')
     const tanHalfH = Math.tan((camera.fov * DEG) / 2) * camera.aspect
     const shafts: Vector4[] = []
     const shapes: Vector4[] = []
