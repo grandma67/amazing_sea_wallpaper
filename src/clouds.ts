@@ -27,15 +27,16 @@ import {
   type Camera,
   type Matrix4,
   type PerspectiveCamera,
-  type Vector3,
+  Vector3,
   type WebGLCubeRenderTarget,
   type WebGLRenderer
 } from 'three'
 
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
+import { arrangeClouds } from './cloudArrangement'
 import { CLOUD_GENERA, layerChannels } from './cloudTypes'
-import type { WeatherParams } from './params'
+import { dirFromAzEl, type WeatherParams } from './params'
 
 // Volumetric clouds (takram three-clouds). Assets are self-hosted in
 // public/assets so the site has no runtime dependency on other servers.
@@ -167,6 +168,10 @@ export function createClouds(
   const cellScale = weather.formations.length > 0 ? (CLOUD_GENERA[weather.formations[0]].cellScale ?? 1) : 1
   clouds.localWeatherRepeat.multiplyScalar(cellScale)
   clouds.shapeRepeat.multiplyScalar(cellScale)
+  if (weather.arrangement != null) {
+    const wind = new Vector3(...dirFromAzEl(weather.arrangement.headingDeg, 0))
+    arrangeClouds(clouds, worldToECEF, wind, weather.arrangement.kind)
+  }
   // No temporal history: our frames are averaged afterwards (accumulate.ts).
   // takram's TAA reprojects the light-shaft buffer through scene depth and
   // clips it to each pixel's neighbourhood, so near a silhouette the short,

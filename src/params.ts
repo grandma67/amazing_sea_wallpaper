@@ -3,6 +3,7 @@ import { MoonPhase } from 'astronomy-engine'
 import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
 
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
+import type { CloudArrangement } from './cloudArrangement'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { Random } from './random'
@@ -239,6 +240,9 @@ export interface WeatherParams {
   formations: CloudGenus[]
   /** Duplicatus: a genus listed twice is a second deck this much higher (m). */
   duplicatusLiftM: number | null
+  /** Cloud streets along the wind or wave bands across it
+   * (cloudArrangement.ts); the wind's azimuth (deg). */
+  arrangement: { kind: CloudArrangement; headingDeg: number } | null
   /** Fraction of direct sunlight reaching the scene through the clouds. */
   sunVisibility: number
   /** Seeded offsets so each day gets its own cloud pattern. */
@@ -581,6 +585,7 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay, force?: WeatherKind
     coverage: rng.range(...coverage[kind]),
     formations: [],
     duplicatusLiftM: null,
+    arrangement: null,
     sunVisibility: 1,
     weatherOffset: [rng.range(0, 1), rng.range(0, 1)],
     shapeOffset: [rng.range(0, 1), rng.range(0, 1), rng.range(0, 1)]
@@ -622,6 +627,35 @@ function addFormations(
   // so even a sliver of sun under overcast would show a glitter path.
   for (const genus of weather.formations) weather.sunVisibility *= frng.range(...CLOUD_GENERA[genus].sunVisibility)
   if (kind === 'overcast') weather.sunVisibility = Math.min(weather.sunVisibility, 0.002)
+}
+
+/**
+ * Cloud streets (radiatus) and wave bands (undulatus), own stream. Streets
+ * form in cumulus and stratocumulus on fair, breezy days (≥ 5 m/s), most in
+ * the trade winds; bands in a sky whose main cloud is altocumulus,
+ * cirrocumulus or stratocumulus. Not in storms.
+ */
+function pickArrangement(
+  seed: string,
+  weather: WeatherParams,
+  tropical: boolean,
+  windSpeed: number,
+  windHeadingDeg: number,
+  force?: Force<CloudArrangement>
+): WeatherParams['arrangement'] {
+  const rng = Random.derive(seed, 'cloud-arrangement')
+  const [r1, r2] = [rng.float(), rng.float()]
+  const main = weather.formations.length > 0 ? CLOUD_GENERA[weather.formations[0]] : null
+  let drawn: CloudArrangement | null = null
+  if (main != null && weather.kind !== 'storm') {
+    const cellular = (main.genus === 'cumulus' && weather.formations[0] !== 'cumulus-congestus') || main.genus === 'stratocumulus'
+    if (cellular && (weather.kind === 'few' || weather.kind === 'scattered') && windSpeed >= 5 && r1 < (tropical ? 0.4 : 0.25))
+      drawn = 'streets'
+    else if ((main.genus === 'altocumulus' || main.genus === 'cirrocumulus' || main.genus === 'stratocumulus') && r2 < 0.3) drawn = 'bands'
+  }
+  const present = forced(force, drawn != null)
+  if (!present || weather.formations.length === 0) return null
+  return { kind: forcedKind(force, drawn ?? 'streets'), headingDeg: windHeadingDeg }
 }
 
 /**
@@ -1272,6 +1306,7 @@ function buildParams(
     },
     spec.clouds
   )
+  weather.arrangement = pickArrangement(seed, weather, biome.name === 'tropical', windSpeed, windHeadingDeg, spec.cloudArrangement)
   const fog =
     (rainbowDay || eclipse != null) && spec.fog === undefined
       ? null

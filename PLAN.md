@@ -31,6 +31,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.20 | 10-15 | Mangroves on sheltered shores (surf amplitude < 0.35 m): red mangroves (Rhizophora, 5–9 m on arching prop roots) on tropical coasts, dwarf grey mangroves (Avicennia, 2–4.5 m over a bed of pneumatophores) landward in the tropics and alone on Red Sea, Gulf and Baja desert coasts; a stand along 80–300 m of shore from the high-tide mud into knee-deep water; `mangroves` in scene specs |
 | 0.19 | 10-15 | Polar boats: Arctic and Southern Ocean seas get no sailing yachts but open dinghies with outboards (most in summer), trawlers, expedition cruise ships in season (Arctic Jun–Sep, Antarctic Nov–Mar) and red research icebreakers (`polarFleet()`); boats placed by distance and bearing when the frame's lower half has little sea (they were often missing on along-beach views) |
 | 0.22 | 10-16 | Cloud species (CLOUDS_TASKS C1): cumulus humilis (trade-wind and morning fair days) and fractus (windy), scud under nimbostratus and storms, Sc/Ac castellanus and Ac floccus (turrets on warm summer mornings, unsettled cool days), altostratus opacus (overcast, dark storms), cirrus spissatus, Cb calvus vs capillatus with an anvil deck, duplicatus decks; a second layer in an étage reads its own weather-map channel |
+| 0.23 | 10-16 | Cloud streets (radiatus) along the wind on breezy fair cumulus/Sc days (40% in the trades, 25% elsewhere) and wave bands (undulatus) across it in Ac/Cc/Sc skies (30%): the weather map is squeezed along or across the wind round the scene (shader patch); `cloudArrangement` in scene specs |
 | 0.18 | 10-15 | Faster loading, same image: the atmosphere precompute (~1.1 s of GPU work) is issued in one go and the props are built on the CPU meanwhile; cloud frames wait on the frame before last, so the GPU never idles between them; the render worker starts loading with the page — clear 4K days 2.3 → 1.3 s, cloudy ~7.6 → ~6 s |
 
 ## Decisions
@@ -91,7 +92,9 @@ Playwright (headless snapshots).
   and species, each with its `genus`; `pickFormations` draws one per étage, `pickSpecies` on
   its own stream refines them and adds fractus, scud and duplicatus layers, ≤ 4 in all;
   `layerChannels` gives a second layer of an étage the weather map's spare channel, `a`,
-  a fine Perlin noise, so it doesn't mirror the first; storms: `stormFormations`); `exposure.ts` meters a 32² sky cube; `moon.ts`; `stormEffects.ts` rain shafts,
+  a fine Perlin noise, so it doesn't mirror the first; storms: `stormFormations`;
+  `cloudArrangement.ts` patches the weather-map lookup with a 2×2 transform solved in the
+  cube-sphere uv round the scene, so streets and bands follow `weather.arrangement.headingDeg`); `exposure.ts` meters a 32² sky cube; `moon.ts`; `stormEffects.ts` rain shafts,
   lightning flash, lens rain, rainbows.
 - **Props** (`src/props/`): rocks, trees/vegetation (+ `wind.ts` bending), birds, migratory
   flocks, ships, marine life, ice, colonies, pinnipeds, landforms, storm bolts, surf/rock

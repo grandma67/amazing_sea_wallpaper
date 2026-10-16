@@ -101,6 +101,8 @@ export interface SceneSpec {
   /** Cloud genera and species, one layer each (at most 4); usually one per
    * étage. A genus listed twice is a second, higher deck (duplicatus). */
   clouds?: CloudGenus[]
+  /** Cloud streets along the wind or wave bands across it. */
+  cloudArrangement?: Force<'streets' | 'bands'>
   storm?: Force<'thunderstorm' | 'squall'>
   rainbow?: boolean
   fog?: Force<'advection' | 'bank' | 'sea-smoke'>
@@ -218,6 +220,7 @@ const SPEC = object({
     listOf(oneOf(...GENERA))(value, path)
     if ((value as unknown[]).length > MAX_LAYERS) fail(path, `has at most ${MAX_LAYERS} layers`)
   },
+  cloudArrangement: force('streets', 'bands'),
   storm: force('thunderstorm', 'squall'),
   rainbow: boolean,
   fog: force('advection', 'bank', 'sea-smoke'),
