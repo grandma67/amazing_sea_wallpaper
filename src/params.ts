@@ -4,6 +4,7 @@ import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams }
 
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
+import { contrailsFor, type Contrail } from './contrails'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { Random } from './random'
@@ -306,6 +307,8 @@ export interface SceneParams {
   islands: IslandParams | null
   /** Sea fog or sea smoke (fog.ts). */
   fog: FogParams | null
+  /** Aircraft trails high in the sky (contrails.ts). */
+  contrails: Contrail[]
   /** A lighthouse on a point or a rock (props/lighthouse.ts, lighthouse.ts). */
   lighthouse: LighthouseParams | null
   /** What a scene spec forces the props to show (sceneSpec.ts); absent on
@@ -1443,6 +1446,7 @@ function buildParams(
     landform,
     islands,
     fog,
+    contrails: [],
     lighthouse,
     ...(spec.props != null ? { overrides: spec.props } : {}),
     camera: {
@@ -1473,6 +1477,7 @@ function buildParams(
       waveSeed: `${seed}/waves`
     }
   }
+  params.contrails = contrailsFor(params, Random.derive(seed, 'contrails'), spec.contrails)
   return { params, draws }
 }
 

@@ -32,6 +32,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.19 | 10-15 | Polar boats: Arctic and Southern Ocean seas get no sailing yachts but open dinghies with outboards (most in summer), trawlers, expedition cruise ships in season (Arctic Jun–Sep, Antarctic Nov–Mar) and red research icebreakers (`polarFleet()`); boats placed by distance and bearing when the frame's lower half has little sea (they were often missing on along-beach views) |
 | 0.22 | 10-16 | Cloud species (CLOUDS_TASKS C1): cumulus humilis (trade-wind and morning fair days) and fractus (windy), scud under nimbostratus and storms, Sc/Ac castellanus and Ac floccus (turrets on warm summer mornings, unsettled cool days), altostratus opacus (overcast, dark storms), cirrus spissatus, Cb calvus vs capillatus with an anvil deck, duplicatus decks; a second layer in an étage reads its own weather-map channel |
 | 0.23 | 10-16 | Cloud streets (radiatus) along the wind on breezy fair cumulus/Sc days (40% in the trades, 25% elsewhere) and wave bands (undulatus) across it in Ac/Cc/Sc skies (30%): the weather map is squeezed along or across the wind round the scene (shader patch); `cloudArrangement` in scene specs |
+| 0.24 | 10-16 | Contrails (`contrails.ts`): 0–5 trails by air traffic (North Atlantic and Mediterranean busy, Southern Ocean almost none, fewer in the tropics) and upper-air humidity (persistent and spreading on cirrus days, short on dry ones), none at night, overcast or storms; drawn in the sky shader at 9.5–12 km, lit by the sun at their height (pink at sunset, in the earth's shadow at blue hour), under the clouds; `contrails` in scene specs |
 | 0.18 | 10-15 | Faster loading, same image: the atmosphere precompute (~1.1 s of GPU work) is issued in one go and the props are built on the CPU meanwhile; cloud frames wait on the frame before last, so the GPU never idles between them; the render worker starts loading with the page — clear 4K days 2.3 → 1.3 s, cloudy ~7.6 → ~6 s |
 
 ## Decisions
@@ -246,6 +247,11 @@ Playwright (headless snapshots).
 - A plain vertex-coloured sand mesh lights brighter than the terrain's sand shader: tint
   sand-coloured overlays (tracks) ~0.8× or they show as pale bands.
 
+- `Vector3.transformDirection` normalises: scale a direction after transforming it, not
+  before (contrails all landed 1 km from the camera).
+- takram's `GetSunAndSkyIrradiance` is for a surface (cosine factor, zero with the sun
+  below its plane); for something floating in the air (a contrail) use
+  `GetSunAndSkyScalarIrradiance` and a phase function.
 - takram's `coverageFilterWidth` near 1 turns any layer into a sheet over the whole sky
   (density = remap(mix(weather, 1, width), …)): ragged scraps need a narrow width.
 - From under a storm's deck calvus and capillatus look the same: the top only shows from
@@ -257,6 +263,9 @@ Breaking-wave lips, boat wakes, per-pixel cloud shadows matching the clouds, amb
 under trees, a low-power mode for phones.
 
 ## References
+
+- Contrails: Irvine et al., EGU 2016 (most North Atlantic contrails last < 6 h, ~5% ≥ 24 h);
+  Irvine, Hoskins & Shine, GRL 2012 (ice supersaturation by weather pattern)
 
 - takram three-geospatial — https://github.com/takram-design-engineering/three-geospatial
 - jbouny/fft-ocean — https://github.com/jbouny/fft-ocean
