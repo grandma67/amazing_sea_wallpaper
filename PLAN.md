@@ -35,6 +35,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.24 | 10-16 | Contrails (`contrails.ts`): 0–5 trails by air traffic (North Atlantic and Mediterranean busy, Southern Ocean almost none, fewer in the tropics) and upper-air humidity (persistent and spreading on cirrus days, short on dry ones), none at night, overcast or storms; drawn in the sky shader at 9.5–12 km, lit by the sun at their height (pink at sunset, in the earth's shadow at blue hour), under the clouds; `contrails` in scene specs |
 | 0.25 | 10-16 | Waterspouts (`props/waterspout.ts`): rare (~0.5% of days), by day under building cumulus in light wind; Florida Keys/Caribbean May–Oct (peak Aug), Mediterranean Aug–Nov (peak Sep), other tropical seas in the wet season; tornadic under storms. An opaque, curved, striated funnel 10–50 m wide from the sea into a lowered, shaded cloud base of soft puffs, a spray cascade at its foot; the sky gets towering cumulus; `waterspout` in scene specs |
 | 0.26 | 10-16 | Twilight clouds in the sky shader: noctilucent clouds at 82 km (nordic and Southern Ocean coasts at 50–67°, late May–mid Aug / late Nov–mid Feb, peaking at the solstice; blue hour, clear sky), lit only where the sun's ray clears the earth, at their real optical depth (~1e-4), so they show as the twilight deepens; nacreous clouds at 22 km in Arctic and Southern Ocean winter twilight (~3%), pastel iridescent lenses; `noctilucent`, `nacreous` in scene specs |
+| 0.27 | 10-16 | Cloud events (`skyEvents.ts`, `props/cloudEvents.ts`): a shelf cloud on ~40% of storms, a tiered wedge hanging under the storm's base toward the rain with lighter sky under its lip; the Morning Glory roll cloud on tropical Indo-Pacific dawns in Sep–Nov (one to three lumpy, banded tubes across the view, titled); a white pyrocumulus cap on half of the eruption plumes; stacked lenticular lenses over the mountains or volcano in winds ≥ 10 m/s; scud made sparse (it was a sheet that flattened every storm sky); `shelfCloud`, `rollCloud`, `lenticular` in scene specs |
 | 0.18 | 10-15 | Faster loading, same image: the atmosphere precompute (~1.1 s of GPU work) is issued in one go and the props are built on the CPU meanwhile; cloud frames wait on the frame before last, so the GPU never idles between them; the render worker starts loading with the page — clear 4K days 2.3 → 1.3 s, cloudy ~7.6 → ~6 s |
 
 ## Decisions
@@ -249,6 +250,8 @@ Playwright (headless snapshots).
 - A plain vertex-coloured sand mesh lights brighter than the terrain's sand shader: tint
   sand-coloured overlays (tracks) ~0.8× or they show as pale bands.
 
+- Anything meant to show under a storm must sit below the volumetric base (Cb 600 m) and
+  clear of the scud layer: the deck and the scud hide whatever is inside them.
 - A mesh hanging from the volumetric clouds (a waterspout) can't know where the deck has
   gaps: give it its own soft cloud base (spray puffs), or it ends in clear sky.
 - `Vector3.transformDirection` normalises: scale a direction after transforming it, not
@@ -273,6 +276,8 @@ under trees, a low-power mode for phones.
   Adriatic 2001–2011 (DHMZ)
 - Noctilucent clouds: NASA, NERC MST radar facility, WMO Cloud Atlas (50–65°, late May–Aug,
   peak round the solstice)
+- Morning Glory: Smith, LMU "The Morning Glory and related phenomena" (Burketown, late
+  Sep–early Nov, from converging Cape York sea breezes)
 - Contrails: Irvine et al., EGU 2016 (most North Atlantic contrails last < 6 h, ~5% ≥ 24 h);
   Irvine, Hoskins & Shine, GRL 2012 (ice supersaturation by weather pattern)
 

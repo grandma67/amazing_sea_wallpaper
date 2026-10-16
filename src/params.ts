@@ -5,6 +5,7 @@ import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams }
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
 import { contrailsFor, type Contrail } from './contrails'
+import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type RollCloudParams, type ShelfCloudParams } from './skyEvents'
 import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParams } from './noctilucent'
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
@@ -120,6 +121,10 @@ export interface LandformParams {
   plume: 'steam' | 'ash' | null
   /** Lava glowing at the crater and down the flank (dusk and dark only). */
   lava: boolean
+  /** A white cumulus cap on the eruption plume (flammagenitus). */
+  pyrocumulus: boolean
+  /** Lens clouds standing over it in a strong wind (skyEvents.ts). */
+  lenticular: LenticularParams | null
   seed: number
 }
 
@@ -172,6 +177,8 @@ export interface StormParams {
   bolts: { azimuthDeg: number; distance: number; seed: number }[]
   /** Rain falling at the camera, 0..1 (streaks over the image). */
   rain: number
+  /** The shelf cloud at the storm's leading edge (skyEvents.ts). */
+  shelf: ShelfCloudParams | null
 }
 
 /**
@@ -317,6 +324,8 @@ export interface SceneParams {
   nacreous: NacreousParams | null
   /** Aircraft trails high in the sky (contrails.ts). */
   contrails: Contrail[]
+  /** The Morning Glory roll cloud (skyEvents.ts). */
+  rollCloud: RollCloudParams | null
   /** A lighthouse on a point or a rock (props/lighthouse.ts, lighthouse.ts). */
   lighthouse: LighthouseParams | null
   /** What a scene spec forces the props to show (sceneSpec.ts); absent on
@@ -722,7 +731,7 @@ function generateStorm(
         seed: rng.int(0, 1_000_000)
       }))
     : []
-  return { curtains, bolts, rain: rng.chance(0.4) ? rng.range(0.3, 1) : 0 }
+  return { curtains, bolts, rain: rng.chance(0.4) ? rng.range(0.3, 1) : 0, shelf: null }
 }
 
 /** Monthly fog season for a coast, as a chance multiplier (northern
@@ -818,6 +827,9 @@ function pickLandform(
     snowLine,
     plume: active ? (rng.chance(0.65) ? 'steam' : 'ash') : null,
     lava: active && dark && kind === 'strato' && rng.chance(0.7),
+    // Own stream: about half of the active plumes grow a cap.
+    pyrocumulus: active && Random.derive(seed, 'pyrocumulus').chance(0.5),
+    lenticular: null,
     seed: rng.int(0, 1_000_000)
   }
 }
@@ -1370,6 +1382,11 @@ function buildParams(
   const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog, spec.lighthouse)
   const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
   const islands = pickIslands(seed, biome, spec.islands)
+  if (storm != null) storm.shelf = shelfCloudFor(storm, Random.derive(seed, 'shelf-cloud'), spec.shelfCloud)
+  // The shelf is the storm's low cloud there: scud at the same height would
+  // hide it.
+  if (storm?.shelf != null && spec.clouds == null) weather.formations = weather.formations.filter(g => g !== 'stratus-fractus')
+  if (landform != null) landform.lenticular = lenticularFor(landform, windSpeed, weather.kind, Random.derive(seed, 'lenticular'), spec.lenticular)
   let rainbow: RainbowParams | null = null
   if (rainbowDay && storm == null) {
     const antisolarAz = headingDeg + relSunAz + 180
@@ -1479,6 +1496,7 @@ function buildParams(
     contrails: [],
     noctilucent: null,
     nacreous: null,
+    rollCloud: null,
     lighthouse,
     ...(spec.props != null ? { overrides: spec.props } : {}),
     camera: {
@@ -1511,6 +1529,21 @@ function buildParams(
   }
   params.noctilucent = noctilucentFor(params, Random.derive(seed, 'noctilucent'), spec.noctilucent)
   params.nacreous = nacreousFor(params, Random.derive(seed, 'nacreous'), spec.nacreous)
+  params.rollCloud = rollCloudFor(
+    {
+      biome: biome.name,
+      ocean: basin.name,
+      month: Number(date.slice(5, 7)),
+      latitudeDeg,
+      timeOfDay,
+      evening: isEvening,
+      weather: weather.kind,
+      headingDeg
+    },
+    Random.derive(seed, 'roll-cloud'),
+    spec.rollCloud
+  )
+  if (params.rollCloud != null) params.title += ' · Morning Glory'
   params.contrails = contrailsFor(params, Random.derive(seed, 'contrails'), spec.contrails)
   return { params, draws }
 }

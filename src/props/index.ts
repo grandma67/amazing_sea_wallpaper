@@ -2,6 +2,7 @@ import { Group, type Mesh, type Object3D } from 'three'
 
 import type { PropContext } from './context'
 import { createBirds } from './birds'
+import { createRollCloud, createShelfCloud } from './cloudEvents'
 import { createColony } from './colony'
 import { createDebris } from './debris'
 import { createIce } from './ice'
@@ -55,5 +56,7 @@ export function createProps(ctx: PropContext): Group {
   add('migratory-birds', createMigratoryBirds(ctx))
   add('storm', createStorm(ctx))
   add('waterspout', createWaterspout(ctx))
+  add('shelf-cloud', createShelfCloud(ctx))
+  add('roll-cloud', createRollCloud(ctx))
   return group
 }

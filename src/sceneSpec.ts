@@ -105,6 +105,12 @@ export interface SceneSpec {
   cloudArrangement?: Force<'streets' | 'bands'>
   /** A waterspout (tornadic ones belong with storms). */
   waterspout?: Force<'fair-weather' | 'tornadic'>
+  /** A shelf cloud at the storm's leading edge (storm days only). */
+  shelfCloud?: boolean | null
+  /** The Morning Glory roll cloud. */
+  rollCloud?: boolean | null
+  /** Lens clouds over the mountains or volcano (needs a landform). */
+  lenticular?: boolean | null
   /** Noctilucent clouds (they only show at twilight with the sun 6–16° down). */
   noctilucent?: boolean | null
   /** Nacreous clouds (lit with the sun 1–6° down). */
@@ -230,6 +236,9 @@ const SPEC = object({
   },
   cloudArrangement: force('streets', 'bands'),
   waterspout: force('fair-weather', 'tornadic'),
+  shelfCloud: oneOf(true, false, null),
+  rollCloud: oneOf(true, false, null),
+  lenticular: oneOf(true, false, null),
   noctilucent: oneOf(true, false, null),
   nacreous: oneOf(true, false, null),
   contrails: (value, path) => (typeof value === 'number' ? number(value, path) : oneOf(true, false, null)(value, path)),

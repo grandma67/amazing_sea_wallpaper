@@ -1,6 +1,7 @@
 import {
   type BufferGeometry,
   Color,
+  DoubleSide,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -196,6 +197,10 @@ export function createLandforms(ctx: PropContext): Object3D[] {
   const mountain = new Mesh(isRange ? range(land, frame, colors) : volcano(land, frame, colors), material)
   mountain.frustumCulled = false
   const objects: Object3D[] = [mountain]
+  if (land.lenticular != null) {
+    const peak = frame.toWorld(0, isRange ? land.width * 0.175 : land.width / 2, land.height)
+    objects.push(...lenticulars(ctx, land.lenticular, peak))
+  }
   if (isRange) return markDistant(objects)
 
   const R = land.width / 2
@@ -219,6 +224,26 @@ export function createLandforms(ctx: PropContext): Object3D[] {
     }
     const points = plume.build(ash ? new Color(0.22, 0.2, 0.19) : new Color(0.8, 0.8, 0.8), false)
     if (points != null) objects.push(points)
+    // Pyrocumulus: the hot plume's moisture condenses into a white,
+    // cauliflower cap at its top: a few round lobes of puffs.
+    if (land.pyrocumulus) {
+      const rng = new Random(`${ctx.params.seed}/pyrocumulus/${land.seed}`)
+      const cap = new SprayBuilder()
+      const top = summit.clone().add(wind).setY(summit.y + rise * 1.05)
+      const size = rise * rng.range(0.35, 0.5)
+      for (let lobe = 0; lobe < 6; lobe++) {
+        const c = top.clone().add(new Vector3(rng.normal(0, size * 0.6), rng.range(0, size * 0.8), rng.normal(0, size * 0.6)))
+        const r = size * rng.range(0.35, 0.6)
+        for (let i = 0; i < 160; i++) {
+          // Puffs on the lobe's surface, flattened underneath.
+          const n = new Vector3(rng.normal(0, 1), rng.normal(0, 1), rng.normal(0, 1)).normalize()
+          if (n.y < -0.3) n.y = -0.3
+          cap.add(c.clone().addScaledVector(n, r * rng.range(0.75, 1)), r * rng.range(0.45, 0.75), rng.range(0.7, 0.95))
+        }
+      }
+      const capPoints = cap.build(new Color(0.95, 0.95, 0.95), false)
+      if (capPoints != null) objects.push(capPoints)
+    }
   }
 
   // Glowing lava: the crater and one to three flows down the flank.
@@ -242,6 +267,52 @@ export function createLandforms(ctx: PropContext): Object3D[] {
     objects.push(lava)
   }
   return markDistant(objects)
+}
+
+/** Lenticular clouds: smooth lenses, stacked, a little downwind of the
+ * peak, elongated along the wind; flat-bottomed and domed on top. */
+function lenticulars(ctx: PropContext, lens: NonNullable<LandformParams['lenticular']>, peak: Vector3): Object3D[] {
+  const rng = new Random(`${ctx.params.seed}/lenticular/${lens.seed}`)
+  const wind = windDirection(ctx.params).setY(0).normalize()
+  const side = new Vector3(-wind.z, 0, wind.x)
+  const b = new MeshBuilder()
+  let y = peak.y + lens.liftM
+  for (let k = 0; k < lens.count; k++) {
+    const shrink = 1 - k * rng.range(0.15, 0.3)
+    const a = lens.radiusM * 1.5 * shrink
+    const c = lens.radiusM * shrink
+    const t = lens.thicknessM * shrink
+    const centre = peak.clone().addScaledVector(wind, lens.downwindM + rng.normal(0, 400)).setY(y)
+    const rings = 14
+    const segments = 56
+    const vertex = (i: number, j: number, top: boolean): number => {
+      const r = i / rings
+      const angle = (j / segments) * Math.PI * 2
+      const edge = 1 + 0.04 * Math.sin(angle * 5 + lens.seed) + 0.03 * Math.sin(angle * 11 + k)
+      const h = (t / 2) * (1 - r * r) ** 1.3 * (top ? 1 : 0.45)
+      const p = centre
+        .clone()
+        .addScaledVector(wind, Math.cos(angle) * a * r * edge)
+        .addScaledVector(side, Math.sin(angle) * c * r * edge)
+      p.y += top ? h : -h
+      const shade = top ? 0.95 : 0.88
+      return b.vertex(p, [shade, shade, shade * 1.02])
+    }
+    for (const top of [true, false]) {
+      const grid: number[][] = []
+      for (let i = 0; i <= rings; i++) grid.push(Array.from({ length: segments }, (_, j) => vertex(i, j, top)))
+      for (let i = 0; i < rings; i++)
+        for (let j = 0; j < segments; j++) {
+          const j2 = (j + 1) % segments
+          if (top) b.quad(grid[i][j], grid[i + 1][j], grid[i + 1][j2], grid[i][j2])
+          else b.quad(grid[i][j], grid[i][j2], grid[i + 1][j2], grid[i + 1][j])
+        }
+    }
+    y += t * shrink * rng.range(0.9, 1.6)
+  }
+  const mesh = new Mesh(b.build(), new MeshStandardMaterial({ vertexColors: true, roughness: 1, side: DoubleSide }))
+  mesh.frustumCulled = false
+  return [mesh]
 }
 
 function markDistant(objects: Object3D[]): Object3D[] {
