@@ -5,6 +5,7 @@ import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams }
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
 import { contrailsFor, type Contrail } from './contrails'
+import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { Random } from './random'
@@ -307,6 +308,8 @@ export interface SceneParams {
   islands: IslandParams | null
   /** Sea fog or sea smoke (fog.ts). */
   fog: FogParams | null
+  /** A waterspout under the cumulus line (props/waterspout.ts). */
+  waterspout: WaterspoutParams | null
   /** Aircraft trails high in the sky (contrails.ts). */
   contrails: Contrail[]
   /** A lighthouse on a point or a rock (props/lighthouse.ts, lighthouse.ts). */
@@ -1309,6 +1312,26 @@ function buildParams(
     },
     spec.clouds
   )
+  const waterspout = waterspoutFor(
+    {
+      biome: biome.name,
+      ocean: basin.name,
+      month: Number(date.slice(5, 7)),
+      timeOfDay,
+      weather: weather.kind,
+      windSpeed,
+      headingDeg,
+      halfFovDeg: horizontalHalfFovDeg(focalLengthMm, aspect),
+      fog: false
+    },
+    Random.derive(seed, 'waterspout'),
+    spec.waterspout
+  )
+  // A spout hangs from the flat base of building cumulus: make sure the sky
+  // has it (unless the spec set the clouds).
+  if (waterspout != null && weather.kind !== 'storm' && spec.clouds == null && !weather.formations.includes('cumulus-congestus')) {
+    weather.formations = ['cumulus-congestus', ...weather.formations.filter(g => CLOUD_GENERA[g].etage !== 'low')]
+  }
   weather.arrangement = pickArrangement(seed, weather, biome.name === 'tropical', windSpeed, windHeadingDeg, spec.cloudArrangement)
   const fog =
     (rainbowDay || eclipse != null) && spec.fog === undefined
@@ -1377,6 +1400,7 @@ function buildParams(
     titleParts.push(islands.islands.length === 1 && islands.kind !== 'skerries' ? names[islands.kind].replace(/s$/, '') : names[islands.kind])
   }
   if (rainbow != null) titleParts.push('rainbow')
+  if (waterspout != null) titleParts.push('waterspout')
   if (colony != null) titleParts.push(colony.kind === 'penguin' ? 'penguin colony' : colony.site === 'island' ? 'seabird island' : 'seabird cliffs')
   if (pinnipeds != null) {
     const names: Record<PinnipedKind, string> = {
@@ -1446,6 +1470,7 @@ function buildParams(
     landform,
     islands,
     fog,
+    waterspout,
     contrails: [],
     lighthouse,
     ...(spec.props != null ? { overrides: spec.props } : {}),

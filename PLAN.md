@@ -33,6 +33,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.22 | 10-16 | Cloud species (CLOUDS_TASKS C1): cumulus humilis (trade-wind and morning fair days) and fractus (windy), scud under nimbostratus and storms, Sc/Ac castellanus and Ac floccus (turrets on warm summer mornings, unsettled cool days), altostratus opacus (overcast, dark storms), cirrus spissatus, Cb calvus vs capillatus with an anvil deck, duplicatus decks; a second layer in an étage reads its own weather-map channel |
 | 0.23 | 10-16 | Cloud streets (radiatus) along the wind on breezy fair cumulus/Sc days (40% in the trades, 25% elsewhere) and wave bands (undulatus) across it in Ac/Cc/Sc skies (30%): the weather map is squeezed along or across the wind round the scene (shader patch); `cloudArrangement` in scene specs |
 | 0.24 | 10-16 | Contrails (`contrails.ts`): 0–5 trails by air traffic (North Atlantic and Mediterranean busy, Southern Ocean almost none, fewer in the tropics) and upper-air humidity (persistent and spreading on cirrus days, short on dry ones), none at night, overcast or storms; drawn in the sky shader at 9.5–12 km, lit by the sun at their height (pink at sunset, in the earth's shadow at blue hour), under the clouds; `contrails` in scene specs |
+| 0.25 | 10-16 | Waterspouts (`props/waterspout.ts`): rare (~0.5% of days), by day under building cumulus in light wind; Florida Keys/Caribbean May–Oct (peak Aug), Mediterranean Aug–Nov (peak Sep), other tropical seas in the wet season; tornadic under storms. An opaque, curved, striated funnel 10–50 m wide from the sea into a lowered, shaded cloud base of soft puffs, a spray cascade at its foot; the sky gets towering cumulus; `waterspout` in scene specs |
 | 0.18 | 10-15 | Faster loading, same image: the atmosphere precompute (~1.1 s of GPU work) is issued in one go and the props are built on the CPU meanwhile; cloud frames wait on the frame before last, so the GPU never idles between them; the render worker starts loading with the page — clear 4K days 2.3 → 1.3 s, cloudy ~7.6 → ~6 s |
 
 ## Decisions
@@ -247,6 +248,8 @@ Playwright (headless snapshots).
 - A plain vertex-coloured sand mesh lights brighter than the terrain's sand shader: tint
   sand-coloured overlays (tracks) ~0.8× or they show as pale bands.
 
+- A mesh hanging from the volumetric clouds (a waterspout) can't know where the deck has
+  gaps: give it its own soft cloud base (spray puffs), or it ends in clear sky.
 - `Vector3.transformDirection` normalises: scale a direction after transforming it, not
   before (contrails all landed 1 km from the camera).
 - takram's `GetSunAndSkyIrradiance` is for a surface (cosine factor, zero with the sun
@@ -264,6 +267,9 @@ under trees, a low-power mode for phones.
 
 ## References
 
+- Waterspouts: NWS Key West (1,400+ events 2006–2024, peak Aug); Balearic climatology
+  1989–2020 (65% in autumn, Sep peak); Sioutas, Aegean 1957–2012 (Sep–Oct); Croatian
+  Adriatic 2001–2011 (DHMZ)
 - Contrails: Irvine et al., EGU 2016 (most North Atlantic contrails last < 6 h, ~5% ≥ 24 h);
   Irvine, Hoskins & Shine, GRL 2012 (ice supersaturation by weather pattern)
 

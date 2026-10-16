@@ -103,6 +103,8 @@ export interface SceneSpec {
   clouds?: CloudGenus[]
   /** Cloud streets along the wind or wave bands across it. */
   cloudArrangement?: Force<'streets' | 'bands'>
+  /** A waterspout (tornadic ones belong with storms). */
+  waterspout?: Force<'fair-weather' | 'tornadic'>
   /** Aircraft trails: null/false none, true at least one, a number that many (≤ 5). */
   contrails?: boolean | number | null
   storm?: Force<'thunderstorm' | 'squall'>
@@ -223,6 +225,7 @@ const SPEC = object({
     if ((value as unknown[]).length > MAX_LAYERS) fail(path, `has at most ${MAX_LAYERS} layers`)
   },
   cloudArrangement: force('streets', 'bands'),
+  waterspout: force('fair-weather', 'tornadic'),
   contrails: (value, path) => (typeof value === 'number' ? number(value, path) : oneOf(true, false, null)(value, path)),
   storm: force('thunderstorm', 'squall'),
   rainbow: boolean,
