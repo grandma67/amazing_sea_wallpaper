@@ -70,7 +70,8 @@ Playwright (headless snapshots).
   `layerChannels` gives a second layer of an étage the weather map's spare channel, `a`,
   a fine Perlin noise, so it doesn't mirror the first; storms: `stormFormations`;
   `cloudArrangement.ts` patches the weather-map lookup with a 2×2 transform solved in the
-  cube-sphere uv round the scene, so streets and bands follow `weather.arrangement.headingDeg`); `exposure.ts` meters a 32² sky cube; `moon.ts`; `stormEffects.ts` rain shafts,
+  cube-sphere uv round the scene, so streets and bands follow `weather.arrangement.headingDeg`;
+  `stabiliseCubeSphereUv` rewrites takram's u in a cancellation-free form); `exposure.ts` meters a 32² sky cube; `moon.ts`; `stormEffects.ts` rain shafts,
   lightning flash, lens rain, rainbows.
 - **Props** (`src/props/`): rocks, trees/vegetation (+ `wind.ts` bending), birds, migratory
   flocks, ships, marine life, ice, colonies, pinnipeds, landforms, storm bolts, surf/rock
@@ -273,6 +274,11 @@ Playwright (headless snapshots).
   sample every ~2 m.
 - Regular Kelvin waves read as a printed grating from above: cap their steepness (0.05),
   weaken them inside the wedge (strongest on the cusp lines) and break them up with noise.
+- Streaky clouds running to the vanishing point were float32 cancellation in takram's
+  cube-sphere uv (`sqrt(a - sqrt(a² - 6mx²))` = 0 within ~1 km of mx = 0, our anchor's
+  meridian), not wind or texture: the weather map was read along one line. Suspect precision
+  when a pattern depends only on one direction; isolate by changing one offset at a time
+  (shape offset kept the streaks, so not the 3D noise).
 - Haze lit by the clear-sky horizon glows under a storm deck: scale it by the light the
   clouds let through, with a floor for the grey sky (storm 0.06, overcast 0.3).
 

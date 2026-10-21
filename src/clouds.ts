@@ -35,7 +35,7 @@ import {
 
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
-import { arrangeClouds } from './cloudArrangement'
+import { arrangeClouds, stabiliseCubeSphereUv } from './cloudArrangement'
 import { applySeaHaze } from './seaHaze'
 import { CLOUD_GENERA, layerChannels } from './cloudTypes'
 import { dirFromAzEl, type WeatherParams } from './params'
@@ -171,6 +171,7 @@ export function createClouds(
   const cellScale = weather.formations.length > 0 ? (CLOUD_GENERA[weather.formations[0]].cellScale ?? 1) : 1
   clouds.localWeatherRepeat.multiplyScalar(cellScale)
   clouds.shapeRepeat.multiplyScalar(cellScale)
+  stabiliseCubeSphereUv(clouds)
   if (weather.arrangement != null) {
     const wind = new Vector3(...dirFromAzEl(weather.arrangement.headingDeg, 0))
     arrangeClouds(clouds, worldToECEF, wind, weather.arrangement.kind)

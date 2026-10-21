@@ -7,6 +7,45 @@ import { CLOUD_GENERA } from '../src/cloudTypes'
 import { dirFromAzEl } from '../src/params'
 import { allParams, scene, share } from './days'
 
+describe('cube-sphere uv', () => {
+  // takram's original u, which cancels to noise near mx = 0.
+  const naiveU = (mx: number, my: number): number => {
+    const q = -2 * mx * mx + 2 * my * my - 3
+    return Math.sqrt(1.5 + mx * mx - my * my - 0.5 * Math.sqrt(-24 * mx * mx + q * q)) * Math.sign(mx)
+  }
+
+  it('matches the original mapping away from the face centre line', () => {
+    for (const [lon, lat] of [[20, 10], [-30, 35], [40, -20], [10, 60]]) {
+      const p = new Geodetic(radians(lon), radians(lat), 0).toECEF()
+      const n = p.clone().normalize()
+      const uv = cubeSphereUv(p)
+      if (Math.abs(n.x) > Math.abs(n.y) && Math.abs(n.x) > Math.abs(n.z)) {
+        expect(uv.x).toBeCloseTo(naiveU(n.y, n.z) * 0.5 + 0.5, 10)
+      }
+    }
+  })
+
+  it('is smooth along the scene meridian (longitude 0), metre by metre', () => {
+    const anchor = new Geodetic(0, radians(32), 0).toECEF()
+    const east = new Vector3(0, 1, 0)
+    // Under float32 the original formula jumps by ~1e-4 here; the stable one
+    // is linear in the east offset.
+    const f32 = (x: number): number => Math.fround(x)
+    const stableU = (mx: number, my: number): number => {
+      const [mx2, my2] = [f32(mx * mx), f32(my * my)]
+      const a = f32(1.5 + mx2 - my2)
+      return f32(Math.sqrt(f32((6 * mx2) / f32(a + Math.sqrt(f32(a * a - 6 * mx2)))))) * Math.sign(mx)
+    }
+    const us = [1, 2, 3, 4].map(m => {
+      const n = anchor.clone().addScaledVector(east, m).normalize()
+      return { stable: stableU(f32(n.y), f32(n.z)), cpu: cubeSphereUv(anchor.clone().addScaledVector(east, m)).x - 0.5 }
+    })
+    const steps = us.slice(1).map((u, i) => u.stable - us[i].stable)
+    for (const step of steps) expect(step).toBeCloseTo(steps[0], 8)
+    for (const u of us) expect(u.stable * 0.5).toBeCloseTo(u.cpu, 7)
+  })
+})
+
 describe('cloud arrangement', () => {
   const days = allParams()
 

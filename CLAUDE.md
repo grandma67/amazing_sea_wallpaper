@@ -116,6 +116,7 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
 - Low things at sea hide behind the horizon (~4.5 km at 1.6 m eye): a 2 m cay is just palms. Place low features near; low island groups can read as one shore.
 - Steep features narrower than the ocean grid (spacing r × 0.012) zig-zag: clamp widths to grid and pixel size (`surfProfile`'s `minFace`).
 - Sheer walls on a polar grid read as drums: vary the wall's foot with angle.
+- Clouds streaked toward the vanishing point = float32 cancellation in takram's cube-sphere uv along our anchor's meridian (fixed by `stabiliseCubeSphereUv`). Odd cloud artifacts: bisect with `params` patches (`weather.shapeOffset`, `weatherOffset`, `latitudeDeg`) and `"clouds": [one genus]` before touching shaders.
 - `half` is reserved in GLSL ES 3.
 - `Vector3.transformDirection` normalises: scale after transforming.
 - Scripted edits: Python `str.replace` hits every match (`"  cirrus: {"` also hit the choice table), loose regexes hit params. Prefer Edit, or assert exactly one match.

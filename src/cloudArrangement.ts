@@ -15,7 +15,8 @@ import type { CloudsEffect } from '@takram/three-clouds'
 
 export type CloudArrangement = 'streets' | 'bands'
 
-/** takram's getCubeSphereUv, on the CPU. */
+/** takram's getCubeSphereUv, on the CPU, in the stable form (see
+ * stabiliseCubeSphereUv). */
 export function cubeSphereUv(position: Vector3): Vector2 {
   const n = position.clone().normalize()
   const f = new Vector3(Math.abs(n.x), Math.abs(n.y), Math.abs(n.z))
@@ -26,8 +27,8 @@ export function cubeSphereUv(position: Vector3): Vector2 {
   else if (f.x > f.y && f.x > f.z) m = c.x > 0 ? [n.y, n.z] : [-n.y, n.z]
   else m = c.z > 0 ? [n.x, n.y] : [n.x, -n.y]
   const [mx2, my2] = [m[0] * m[0], m[1] * m[1]]
-  const q = -2 * mx2 + 2 * my2 - 3
-  const ux = Math.sqrt(Math.max(0, 1.5 + mx2 - my2 - 0.5 * Math.sqrt(Math.max(0, -24 * mx2 + q * q)))) * (m[0] > 0 ? 1 : -1)
+  const a = 1.5 + mx2 - my2
+  const ux = Math.sqrt((6 * mx2) / (a + Math.sqrt(Math.max(0, a * a - 6 * mx2)))) * (m[0] > 0 ? 1 : -1)
   const uy = Math.sqrt(6 / (3 - ux * ux)) * m[1]
   return new Vector2(ux * 0.5 + 0.5, uy * 0.5 + 0.5)
 }
@@ -72,6 +73,30 @@ export function arrangementMatrix(
   ]
   const m = mul(t, inv)
   return { matrix: new Vector4(m[0], m[1], m[2], m[3]), origin: cubeSphereUv(origin).multiply(repeat) }
+}
+
+// takram's cube-sphere uv takes u = sqrt(a - sqrt(D)/2) with a = 1.5 + mx² -
+// my² and D/4 = a² - 6mx²: two numbers near 1.5 that cancel when mx -> 0. In
+// float32 u is then only good to ~sqrt(eps) = 3e-4, ×100 repeat = ~16 weather
+// texels of noise. Our scenes sit at longitude 0, where mx = 0 runs north-south
+// right over the camera, so clouds on that line came out as streaks toward the
+// vanishing point. a - sqrt(a² - 6mx²) = 6mx² / (a + sqrt(a² - 6mx²)) is the
+// same value, without the cancellation.
+const CUBE_SPHERE_U = 'uv.x = sqrt(1.5 + m2.x - m2.y - 0.5 * sqrt(-24.0 * m2.x + q2)) * (m.x > 0.0 ? 1.0 : -1.0);'
+const STABLE_CUBE_SPHERE_U = `float a = 1.5 + m2.x - m2.y;
+  uv.x = sqrt(6.0 * m2.x / (a + 0.5 * sqrt(-24.0 * m2.x + q2))) * (m.x > 0.0 ? 1.0 : -1.0);`
+
+/** Patch the clouds' and their shadows' shaders to compute the weather map's
+ * uv without float cancellation along the scene's meridian. */
+export function stabiliseCubeSphereUv(clouds: CloudsEffect): void {
+  for (const material of [clouds.cloudsPass.currentMaterial, clouds.shadowPass.currentMaterial]) {
+    const source = material.fragmentShader
+    if (source.split(CUBE_SPHERE_U).length !== 2) {
+      throw new Error('stabiliseCubeSphereUv: the clouds shader has changed; update the patch')
+    }
+    material.fragmentShader = source.replace(CUBE_SPHERE_U, STABLE_CUBE_SPHERE_U)
+    material.needsUpdate = true
+  }
 }
 
 const SAMPLE = 'uv * localWeatherRepeat + localWeatherOffset,'
