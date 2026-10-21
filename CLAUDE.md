@@ -1,6 +1,6 @@
 # Amazing Sea Wallpaper
 
-PLAN.md has architecture, versions, decisions, lessons. Dev server: port **5174** (`strictPort`; 5173 is other projects).
+PLAN.md has architecture, decisions, lessons; changelog.md has versions. Dev server: port **5174** (`strictPort`; 5173 is other projects).
 
 # Goal: realistic, and cheap to render
 
@@ -125,4 +125,4 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   - `params.ts` changes: determinism and title.
 - `npm test` (typecheck + Vitest, ~6 s) and `npx tsc --noEmit` before committing.
 - Say "done" only for what a render or `diff.mjs` showed; otherwise "placed, not checked".
-- Update PLAN.md (versions table, "How it works", lessons, references) and TODO.md status if used; never commit TODO.md. One commit per feature, descriptive message.
+- Update changelog.md (versions table), PLAN.md ("How it works", lessons, references) and TODO.md status if used; never commit TODO.md. One commit per feature, descriptive message.
