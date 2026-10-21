@@ -477,7 +477,7 @@ export async function renderScene(
   composer.setSize(width, height, false)
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, params.weather, textures, cloudAssets, worldToECEF, lightECEF)
+      ? createClouds(camera, params.weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm)
       : null
   // Accumulated frames only redraw what changes: the spray sprites.
   const spray: Object3D[] = []
@@ -589,6 +589,7 @@ export async function renderScene(
       cloudAssets,
       worldToECEF,
       lightECEF,
+      params.visibilityKm,
       envFrames
     )
   }

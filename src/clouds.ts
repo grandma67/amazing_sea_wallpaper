@@ -36,6 +36,7 @@ import {
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
 import { arrangeClouds } from './cloudArrangement'
+import { applySeaHaze } from './seaHaze'
 import { CLOUD_GENERA, layerChannels } from './cloudTypes'
 import { dirFromAzEl, type WeatherParams } from './params'
 
@@ -124,7 +125,8 @@ export function createClouds(
   textures: PrecomputedTextures,
   cloudAssets: CloudAssets,
   worldToECEF: Matrix4,
-  lightECEF: Vector3
+  lightECEF: Vector3,
+  visibilityKm: number
 ): CloudsEffect {
   const clouds = new CloudsEffect(camera)
   Object.assign(clouds, textures)
@@ -173,6 +175,7 @@ export function createClouds(
     const wind = new Vector3(...dirFromAzEl(weather.arrangement.headingDeg, 0))
     arrangeClouds(clouds, worldToECEF, wind, weather.arrangement.kind)
   }
+  applySeaHaze(clouds, visibilityKm * 1000, weather)
   // No temporal history: our frames are averaged afterwards (accumulate.ts).
   // takram's TAA reprojects the light-shaft buffer through scene depth and
   // clips it to each pixel's neighbourhood, so near a silhouette the short,
@@ -213,6 +216,7 @@ export function renderCloudyEnvironment(
   cloudAssets: CloudAssets,
   worldToECEF: Matrix4,
   lightECEF: Vector3,
+  visibilityKm: number,
   frames = 12
 ): void {
   const size = target.width
@@ -257,7 +261,7 @@ export function renderCloudyEnvironment(
     Object.assign(aerialPerspective, textures)
     aerialPerspective.worldToECEFMatrix.copy(worldToECEF)
     aerialPerspective.sunDirection.copy(lightECEF)
-    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF)
+    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm)
     clouds.qualityPreset = 'medium'
     clouds.temporalUpscale = false
     clouds.events.addEventListener('change', event => {

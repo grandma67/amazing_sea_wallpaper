@@ -115,6 +115,14 @@ Playwright (headless snapshots).
   moonlight. `eclipse.ts` patches takram's sky shader so the moon covers the sun, and in
   totality darkens the sky to a horizon glow and adds the corona; no direct sun, sky
   light ×~0.01, no aerial-perspective inscatter, dim environment on props.
+- **Sea haze:** `seaHaze.ts` `visibilityFor()` (own stream) draws how far one sees, log-uniform
+  by biome (polar oceans 40–90 km, nordic 40–80, tropical 35–65, Mediterranean 35–70 and 25–50
+  in summer, desert 12–35, dust episodes 8–20), less in strong wind (sea salt), under overcast
+  and storms, more after showers. `applySeaHaze()` patches takram's clouds-pass haze: density
+  3.912/V less the Bruneton air's own, no coverage switch-off, colour = the sky behind the ray
+  (the sky just above the horizon for rays at or below it) × `hazeLight(weather)`. It covers
+  sky, clouds and scene up to their depth, so far clouds, islands and the sea line fade into
+  the horizon. Only on days with clouds (clear days have no clouds pass).
 - **Fog:** `fog.ts` screen-space exponential-height fog from depth (closed-form optical
   depth, forward-scattering glow), before exposure; `params.ts` picks it by climate.
 - **Lighthouse:** `params.ts` picks site, paint, height and light character by coast;
@@ -242,6 +250,13 @@ Playwright (headless snapshots).
   (density = remap(mix(weather, 1, width), …)): ragged scraps need a narrow width.
 - From under a storm's deck calvus and capillatus look the same: the top only shows from
   afar.
+- Clouds on a round earth were right all along: a 700 m base sinks below a 2 m eye's
+  horizon at ~95 km and tops show to ~140 km. With the Bruneton air alone (~220 km
+  visibility) the 40–130 km of cloud undersides stacked into one dark band sitting on the
+  sea. Real sea air (20–60 km) fades them into the horizon. takram's own haze didn't help:
+  coverage-gated and coloured by ground irradiance (grey at sunrise).
+- Haze lit by the clear-sky horizon glows under a storm deck: scale it by the light the
+  clouds let through, with a floor for the grey sky (storm 0.06, overcast 0.3).
 
 ## Ideas (not planned)
 
@@ -269,6 +284,7 @@ under trees, a low-power mode for phones.
   J. Coastal Res. "Breaking Waves on a Macrotidal Barred Beach: A Test of McCowan's Criteria"
 - Cloud noise: handmade.network "Fast High-Quality Cloudscape through Noise and Reprojection"
 - Rain on the sea: Melsheimer et al.; Nystuen 1990
+- Visibility: Koschmieder (V = 3.912/σ); WMO visibility scale (very good 20–50 km, excellent > 50 km); sea salt rises with wind (Korean coast extinction vs wind, R² 0.57); Mace Head sea salt peaks in winter maritime polar air; Saharan dust over the Mediterranean in spring and autumn (NASA Earth Observatory)
 - Sea turtles: seaturtlesofindia.org (Andaman greens and hawksbills Apr–Sep, olive ridleys
   Nov–Mar); Volunteer World "Turtle seasons around the world" (Costa Rica, Galápagos,
   Greece); NC Wildlife (loggerheads May–Aug, ~60 days' incubation)

@@ -131,6 +131,8 @@ export interface SceneSpec {
   haulOut?: HaulOut
   /** Wind speed (m/s). */
   wind?: number
+  /** How far one sees through the sea haze (km). */
+  visibilityKm?: number
 
   camera?: {
     heightM?: number
@@ -253,6 +255,7 @@ const SPEC = object({
   colonySite: oneOf('island', 'mainland'),
   haulOut: oneOf('rock', 'beach'),
   wind: number,
+  visibilityKm: number,
   camera: object({ heightM: number, focalLengthMm: number, horizonFraction: number, rollDeg: number }),
   props: object({
     marine: force('dolphin', 'orca', 'humpback', 'swordfish'),

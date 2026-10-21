@@ -5,6 +5,7 @@ import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams }
 import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
 import { contrailsFor, type Contrail } from './contrails'
+import { visibilityFor } from './seaHaze'
 import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type RollCloudParams, type ShelfCloudParams } from './skyEvents'
 import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParams } from './noctilucent'
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
@@ -322,6 +323,8 @@ export interface SceneParams {
   noctilucent: NoctilucentParams | null
   /** Nacreous (mother-of-pearl) clouds in polar winter twilight. */
   nacreous: NacreousParams | null
+  /** How far one sees through the sea haze (km; seaHaze.ts). Fog is separate. */
+  visibilityKm: number
   /** Aircraft trails high in the sky (contrails.ts). */
   contrails: Contrail[]
   /** The Morning Glory roll cloud (skyEvents.ts). */
@@ -1494,6 +1497,7 @@ function buildParams(
     fog,
     waterspout,
     contrails: [],
+    visibilityKm: 0,
     noctilucent: null,
     nacreous: null,
     rollCloud: null,
@@ -1545,6 +1549,7 @@ function buildParams(
   )
   if (params.rollCloud != null) params.title += ' · Morning Glory'
   params.contrails = contrailsFor(params, Random.derive(seed, 'contrails'), spec.contrails)
+  params.visibilityKm = visibilityFor(params, Random.derive(seed, 'visibility'), spec.visibilityKm)
   return { params, draws }
 }
 
