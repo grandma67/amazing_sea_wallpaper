@@ -17,7 +17,7 @@ rocks, plants, boats, mountains and volcanoes, birds, dolphins and whales.
 - `?date=2026-06-21` a specific day (future dates show today) · `/random` a
   random past day · `?w=2560&h=1440` size · `?portrait=1|0` orientation ·
   `?frames=24` faster, slightly grainier clouds.
-- `/latest.jpg` (4K) and `/latest-portrait.jpg` (1290×2796): today's (UTC)
+- `/latest.jpg` (1920×1080) and `/latest-portrait.jpg` (1290×2796, with `/latest*.json` params): today's (UTC)
   wallpapers from the daily GitHub Action, for tools that can't run JavaScript.
 
 ## Develop

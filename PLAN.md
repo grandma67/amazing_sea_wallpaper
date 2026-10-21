@@ -162,7 +162,7 @@ Playwright (headless snapshots).
   driftwood meshes, moonlight phase law, eclipse dates and framing, night skies, the moon
   by day, shore life (crabs, shells, flowers in season) and its meshes.
 - **CI:** `.github/workflows/pages.yml` deploys on push and daily at 00:05 UTC renders
-  `/latest.jpg` and `/latest-portrait.jpg` with SwiftShader.
+  `/latest.jpg` (PC, 1920×1080) and `/latest-portrait.jpg` (phone, 1290×2796) with SwiftShader.
 
 ## Lessons and gotchas
 

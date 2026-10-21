@@ -132,7 +132,7 @@ doesn't branch everywhere:
 
 ### 5. Server images (small change to `.github/workflows/pages.yml`)
 
-The daily job already renders `latest.jpg` (3840×2160) and `latest-portrait.jpg`
+The daily job already renders `latest.jpg` (1920×1080) and `latest-portrait.jpg`
 (1290×2796) for **UTC** today. For the app:
 - Publish `daily/<date>/portrait.jpg` and keep the last ~7 days, so a phone ahead of UTC
   (e.g. Asia, where local "today" starts before the job runs) can use yesterday's/tomorrow's
