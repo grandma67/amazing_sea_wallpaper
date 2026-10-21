@@ -20,9 +20,12 @@ import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { TERRAIN_GLSL, terrainUniforms } from './terrain'
 import { EARTH_RADIUS, type SceneParams } from './params'
 import { CASCADE_SIZE, type OceanSurface } from './spectrum'
+import type { ShipWake } from './props/ships'
 
 /** How many rocks the ocean shader foams round (the nearest). */
 export const MAX_ROCKS = 48
+/** How many boats the ocean shader cuts out and draws wakes for (the nearest). */
+export const MAX_SHIPS = 8
 
 // Ocean surface: a camera-centred polar grid displaced by three FFT cascades
 // (see spectrum.ts). Normals come from the derivative textures per pixel, and
@@ -195,6 +198,13 @@ uniform float planarOn;
 // radius, and whether the waves break on them (waveOnRock), 0..1.
 uniform vec4 rockData[${MAX_ROCKS}];
 uniform int rockCount;
+// Boats (props/ships.ts ShipWake): x, z, bow direction; length, beam, speed,
+// catamaran hull offset; Kelvin wave height, wake foam, foam lifetime (s),
+// white water round the hull.
+uniform vec4 shipPose[${MAX_SHIPS}];
+uniform vec4 shipHull[${MAX_SHIPS}];
+uniform vec4 shipWake[${MAX_SHIPS}];
+uniform int shipCount;
 uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
 // Lightning flashes lighting the cloud base (stormEffects.ts flashGlows):
@@ -265,6 +275,13 @@ float caustics(vec2 p) {
   return pow(c1 * c2, 6.0) * 5.0 + 0.45;
 }
 
+// Half-width of a hull at t (0 stern, 1 bow) over half its beam; mirrors
+// props/ships.ts hullShape. Negative off the ends.
+float hullHalfWidth(float t) {
+  if (t <= 0.0 || t >= 1.0) return -1.0;
+  return t < 0.45 ? 0.8 + 0.2 * sin(t / 0.45 * 1.5707963) : max(0.015, 1.0 - pow((t - 0.45) / 0.55, 1.7));
+}
+
 float ggx(float NoH, float alpha) {
   float a2 = alpha * alpha;
   float d = NoH * NoH * (a2 - 1.0) + 1.0;
@@ -331,6 +348,92 @@ void main() {
   vec2 slope = derivatives.xy / vec2(jxx, jzz);
   vec3 rainDrops = rainRings(vGrid, clamp(max(length(dFdx(vGrid)), length(dFdy(vGrid))), 0.0, 200.0));
   slope += rainDrops.xy;
+
+  // Boats. No sea inside a hull (crests would poke through the deck); a
+  // Kelvin wake (both wave systems, from stationary phase: a point at angle
+  // a off the track sees waves at angle th with tan a = tan th / (1 + 2 tan² th),
+  // k = g / (U cos th)², so the wedge is 19.47°); a hull only makes waves
+  // about its own size well, which narrows a fast boat's wake (Rabaud &
+  // Moisy 2013); foam from the bow wave and the propeller wash, which fades
+  // with the time since the stern passed, and a long smooth slick where the
+  // turbulence has damped the ripples.
+  float slick = 0.0;
+  float wakeFoam = 0.0;
+  for (int i = 0; i < ${MAX_SHIPS}; i++) {
+    if (i >= shipCount) break;
+    vec4 pose = shipPose[i];
+    float L = shipHull[i].x;
+    float B = shipHull[i].y;
+    float U = shipHull[i].z;
+    float spacing = shipHull[i].w;
+    vec4 wake = shipWake[i];
+    vec2 fwd = pose.zw;
+    vec2 side = vec2(-fwd.y, fwd.x);
+    // The displaced surface is what meets the hull.
+    vec2 d = vWorld.xz - pose.xy;
+    float along = dot(d, fwd);
+    float across = dot(d, side);
+    float x = 0.5 * L - along;
+    float reach = max(30.0 * L + 500.0, U * wake.z * 12.0);
+    if (x < -2.0 * B - 5.0 || x > reach || abs(across) > 0.36 * max(x, 0.0) + spacing + 3.0 * B + 10.0) continue;
+    float t = along / L + 0.5;
+    float hw = hullHalfWidth(t) * 0.5 * B;
+    float ac = spacing > 0.0 ? abs(abs(across) - spacing) : abs(across);
+    // Inside the waterline (a little in from the hull's widest).
+    if (ac < hw * 0.88) discard;
+    float outside = t >= 1.0 ? length(vec2(along - 0.5 * L, ac))
+      : t <= 0.0 ? length(vec2(-0.5 * L - along, max(ac - 0.4 * B, 0.0)))
+      : ac - hw * 0.92;
+    float resolved = clamp(B / max(surfRes, 1e-3), 0.0, 1.0);
+    float collar = exp(-pow(max(outside, 0.0) / (0.15 * B + 0.5), 2.0)) * mix(0.55, 1.0, smoothstep(0.5, 1.0, t));
+    wakeFoam = max(wakeFoam, wake.w * collar * (0.5 + 0.8 * fbm(vec2(along, across) / (0.4 + 0.1 * B) + noiseOffset)) * resolved);
+    if (U < 0.2) continue;
+    // Turbulent wake behind the stern, spreading slowly.
+    float behind = x - L;
+    float s = max(behind, 0.0);
+    float w = 0.4 * B + spacing + 0.06 * sqrt(s * B) + 0.002 * s;
+    float core = exp(-pow(across / w, 2.0)) * smoothstep(-0.3 * B, 0.2 * B, behind);
+    float age = s / U;
+    float n = fbm(vec2(along / (2.0 + 0.15 * B), across / (0.7 + 0.08 * B)) + noiseOffset);
+    float churn = 0.55 + 0.9 * n;
+    // Ageing foam breaks up into patches, then streaks.
+    float life = exp(-age / wake.z);
+    wakeFoam = max(wakeFoam, wake.y * core * life * smoothstep(0.15, 0.6, n - 0.45 * (1.0 - life)) * 1.3 * resolved);
+    slick = max(slick, exp(-pow(across / (1.6 * w), 2.0)) * smoothstep(0.0, B, behind) * exp(-age / (wake.z * 12.0)));
+    if (x <= 0.0) continue;
+    float Fr = U / sqrt(9.81 * L);
+    float ta = abs(across) / x;
+    // A fast boat's divergent waves break along the arms near it.
+    float armAngle = min(0.3398, 0.17 / max(Fr, 0.01));
+    float arm = exp(-pow((abs(across) - x * tan(armAngle)) / (0.15 * B + 0.03 * x), 2.0));
+    wakeFoam = max(wakeFoam, wake.y * smoothstep(0.35, 0.7, Fr) * arm * exp(-x / (2.5 * L)) * churn * resolved);
+    float disc = 1.0 - 8.0 * ta * ta;
+    if (disc <= -0.05 || wake.x <= 0.0) continue;
+    float sq = sqrt(max(disc, 0.0));
+    float k0 = 9.81 / (U * U);
+    // Amplitude: spreading from the hull, highest along the cusp lines and
+    // lower inside the wedge, and a slow decay. Ragged, as the hull's
+    // pitching and the sea make it.
+    float amp = 0.5 * wake.x * sqrt(L / max(x, L)) * exp(-x / (30.0 * L + 500.0)) *
+      min(2.2, pow(max(disc, 0.0) + 0.04, -0.25)) * (0.3 + 0.7 * exp(-6.0 * disc)) * smoothstep(-0.05, 0.0, disc) *
+      (0.5 + 0.9 * fbm(vec2(along, across) / (2.0 + 0.5 * B) + noiseOffset + 3.0));
+    float sgn = across < 0.0 ? -1.0 : 1.0;
+    for (int b = 0; b < 2; b++) {
+      // tan th: transverse waves (b = 0) and divergent ones.
+      float T = b == 0 ? 2.0 * ta / (1.0 + sq) : (1.0 + sq) / (4.0 * max(ta, 1e-4));
+      float sec = sqrt(1.0 + T * T);
+      float k = k0 * sec * sec;
+      float lambda = 6.2831853 / k;
+      float excite = (1.0 - exp(-pow(1.2 * L / lambda, 2.0))) * exp(-pow(0.25 * B / lambda, 2.0));
+      float visible = 1.0 - smoothstep(lambda / 6.0, lambda / 3.0, surfRes);
+      float phase = k0 * (x + abs(across) * T) * sec;
+      // Wake waves no steeper than a gentle swell.
+      float g = -min(amp * k, 0.05) * excite * visible * damping * sin(phase);
+      // Gradient along (cos th, sin th) in (behind the bow, out from the track).
+      slope += g * (-fwd + side * sgn * T) / sec;
+    }
+  }
+  variance *= 1.0 - 0.6 * slick;
   vec3 N = normalize(vec3(-slope.x, 1.0, -slope.y));
 
   vec3 V = normalize(cameraPosition - vWorld);
@@ -414,7 +517,7 @@ void main() {
   // Foam: open-water whitecaps, broken surf, streaks drifting inside the surf
   // zone, and a band where the water meets the sand. Each term gives a
   // coverage; the lace texture turns coverage into bubbles.
-  float coverage = whitecaps * (1.0 - smoothstep(-0.1, 0.45, jacobian)) *
+  float coverage = whitecaps * (1.0 - slick) * (1.0 - smoothstep(-0.1, 0.45, jacobian)) *
     smoothstep(0.3, 0.7, fbm(q * 0.2));
   if (hasCoast > 0.5) {
     // White water where the waves have broken (surfWave), from the break
@@ -475,6 +578,7 @@ void main() {
       coverage = max(coverage, foamHere * clamp(r / max(footprint, 1e-3), 0.0, 1.0));
     }
   }
+  coverage = max(coverage, wakeFoam);
   // The weave is stretched along the crests near the coast.
   vec2 laceCoords = hasCoast > 0.5 ? vec2(sa.y, sa.x * 1.8) + noiseOffset : q;
   float foam = foamLace(laceCoords, clamp(coverage, 0.0, 1.0), footprint);
@@ -506,6 +610,18 @@ export function setOceanRocks(ocean: Mesh<BufferGeometry, ShaderMaterial>, rocks
   const u = ocean.material.uniforms
   nearest.forEach((r, i) => (u.rockData.value as Vector4[])[i].set(r.x, r.z, r.radius, r.breaks))
   u.rockCount.value = nearest.length
+}
+
+/** Tell the ocean where boats are and what wakes they make (props/ships.ts ShipWake). */
+export function setOceanShips(ocean: Mesh<BufferGeometry, ShaderMaterial>, ships: ShipWake[], camera: Vector3): void {
+  const nearest = [...ships].sort((p, q) => Math.hypot(p.x - camera.x, p.z - camera.z) - Math.hypot(q.x - camera.x, q.z - camera.z)).slice(0, MAX_SHIPS)
+  const u = ocean.material.uniforms
+  nearest.forEach((s, i) => {
+    ;(u.shipPose.value as Vector4[])[i].set(s.x, s.z, s.dirX, s.dirZ)
+    ;(u.shipHull.value as Vector4[])[i].set(s.length, s.beam, s.speed, s.spacing)
+    ;(u.shipWake.value as Vector4[])[i].set(s.height, s.foam, s.foamTime, s.collar)
+  })
+  u.shipCount.value = nearest.length
 }
 
 /** `surface` comes from synthesizeOcean(params.ocean). */
@@ -561,7 +677,11 @@ export function createOcean(
       waveHeight: { value: Math.max(0.05, surface.significantHeight) },
       rain: { value: params.storm?.rain ?? 0 },
       rockData: { value: Array.from({ length: MAX_ROCKS }, () => new Vector4()) },
-      rockCount: { value: 0 }
+      rockCount: { value: 0 },
+      shipPose: { value: Array.from({ length: MAX_SHIPS }, () => new Vector4()) },
+      shipHull: { value: Array.from({ length: MAX_SHIPS }, () => new Vector4()) },
+      shipWake: { value: Array.from({ length: MAX_SHIPS }, () => new Vector4()) },
+      shipCount: { value: 0 }
     }
   })
 

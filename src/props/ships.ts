@@ -1,4 +1,4 @@
-import { DoubleSide, Euler, Mesh, MeshStandardMaterial, Vector3, type BufferGeometry } from 'three'
+import { DoubleSide, Euler, Mesh, MeshStandardMaterial, Vector3, type BufferGeometry, type Object3D } from 'three'
 
 import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
@@ -7,6 +7,7 @@ import { forced, type ShipKind } from '../sceneSpec'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { fbm3, noise3 } from './noise'
+import { SprayBuilder } from './surf'
 
 // Vessels on the water: sloops, catamarans, motor yachts, trawlers, dhows,
 // container ships and tankers; in polar seas dinghies, trawlers, expedition
@@ -47,9 +48,35 @@ interface HullSpec {
   seed: number
 }
 
+/** A boat's waterline size, for floating it and for its wake: length and
+ * beam of one hull (m), freeboard, and for a catamaran the distance of each
+ * hull's centreline from the middle. Stored on `geometry.userData.hull`. */
+export interface HullSize {
+  length: number
+  beam: number
+  freeboard: number
+  spacing: number
+}
+
+const hullSizes = new WeakMap<MeshBuilder, HullSize>()
+
+function withHull(b: MeshBuilder): BufferGeometry {
+  const geometry = b.build()
+  geometry.userData.hull = hullSizes.get(b)
+  return geometry
+}
+
+/** Half-width of the hull at `t` (0 stern, 1 bow) as a fraction of half the
+ * beam: full transom, widest just aft of midships, fine bow. Mirrored in
+ * ocean.ts hullHalfWidth. */
+export function hullShape(t: number): number {
+  return t < 0.45 ? 0.8 + 0.2 * Math.sin((t / 0.45) * Math.PI * 0.5) : Math.max(0.015, 1 - ((t - 0.45) / 0.55) ** 1.7)
+}
+
 /** Lofted hull with a paint stripe at the waterline, antifouling below it,
  * and rust that blooms in patches and runs down from the deck in streaks. */
 function hull(b: MeshBuilder, s: HullSpec): void {
+  hullSizes.set(b, { length: s.length, beam: s.beam, freeboard: s.freeboard, spacing: 0 })
   const stations = 36
   const around = 14
   const rings: number[][] = []
@@ -59,10 +86,7 @@ function hull(b: MeshBuilder, s: HullSpec): void {
   for (let i = 0; i <= stations; i++) {
     const t = i / stations
     const x = (t - 0.5) * s.length
-    // Full transom at the stern, widest just aft of midships, fine bow.
-    const shape =
-      t < 0.45 ? 0.8 + 0.2 * Math.sin((t / 0.45) * Math.PI * 0.5) : Math.max(0.015, 1 - ((t - 0.45) / 0.55) ** 1.7)
-    const half = (s.beam / 2) * shape
+    const half = (s.beam / 2) * hullShape(t)
     const depth = s.draft * (0.45 + 0.55 * Math.sin(Math.min(t, 0.96) * Math.PI))
     const sheer = s.freeboard * (1 + sheerRise * t * t)
     const ring: number[] = []
@@ -210,7 +234,7 @@ function sloop(rng: Random): BufferGeometry {
   })
   cabin(b, new Vector3(-length * 0.2, deckY, -length * 0.1), new Vector3(length * 0.08, deckY + length * 0.06, length * 0.1), WHITE)
   rig(b, rng, length * 0.08, deckY, length, length * rng.range(1.2, 1.45))
-  return b.build()
+  return withHull(b)
 }
 
 function catamaran(rng: Random): BufferGeometry {
@@ -224,10 +248,11 @@ function catamaran(rng: Random): BufferGeometry {
   const single = new MeshBuilder()
   hull(single, { length, beam: length * 0.11, freeboard: deckY, draft: length * 0.06, color, stripe: color, bottom, deck: WHITE, rust: 0, sheerRise: 0.1, seed })
   for (const side of [-1, 1]) b.merge(single, new Vector3(0, 0, side * length * 0.24))
+  hullSizes.set(b, { ...hullSizes.get(single)!, spacing: length * 0.24 })
   box(b, new Vector3(-length * 0.4, deckY, -length * 0.26), new Vector3(length * 0.2, deckY + 0.3, length * 0.26), WHITE)
   cabin(b, new Vector3(-length * 0.3, deckY + 0.3, -length * 0.18), new Vector3(length * 0.05, deckY + 0.3 + length * 0.09, length * 0.18), WHITE)
   rig(b, rng, length * 0.08, deckY + 0.3, length, length * 1.3)
-  return b.build()
+  return withHull(b)
 }
 
 function motorYacht(rng: Random): BufferGeometry {
@@ -263,7 +288,7 @@ function motorYacht(rng: Random): BufferGeometry {
     y += h
   }
   b.tube([new Vector3(-length * 0.05, y, -length * 0.06), new Vector3(-length * 0.02, y + length * 0.06, 0), new Vector3(-length * 0.05, y, length * 0.06)], () => 0.08, () => WHITE, 5)
-  return b.build()
+  return withHull(b)
 }
 
 function trawler(rng: Random): BufferGeometry {
@@ -299,7 +324,7 @@ function trawler(rng: Random): BufferGeometry {
     b.tube([new Vector3(length * 0.12, deckY + length * 0.3, 0), new Vector3(length * 0.05, deckY + length * 0.22, side * length * 0.45)], () => 0.05, () => STEEL, 4)
     b.tube([new Vector3(-length * 0.42, deckY, side * length * 0.13), new Vector3(-length * 0.45, deckY + length * 0.25, 0)], () => 0.06, () => STEEL, 4)
   }
-  return b.build()
+  return withHull(b)
 }
 
 function dhow(rng: Random): BufferGeometry {
@@ -329,7 +354,7 @@ function dhow(rng: Random): BufferGeometry {
   b.tube([yardFore, yardAft], () => 0.07, () => shade(wood, 0.8), 4)
   const cloth = mix([0.82, 0.77, 0.66], [0.7, 0.6, 0.45], rng.float())
   sail(b, yardAft, yardFore, new Vector3(-length * 0.3, deckY + 0.6, 0), rng.range(0.5, 1.1), cloth, new Vector3(0, 0, 1))
-  return b.build()
+  return withHull(b)
 }
 
 function containerShip(rng: Random): BufferGeometry {
@@ -386,7 +411,7 @@ function containerShip(rng: Random): BufferGeometry {
       }
     }
   }
-  return b.build()
+  return withHull(b)
 }
 
 function tanker(rng: Random): BufferGeometry {
@@ -419,7 +444,7 @@ function tanker(rng: Random): BufferGeometry {
   for (const z of [-beam * 0.08, 0, beam * 0.08]) {
     b.tube([new Vector3(-length * 0.36, deckY + 1.2, z), new Vector3(length * 0.42, deckY + 1.2, z)], () => 0.6, () => STEEL, 5)
   }
-  return b.build()
+  return withHull(b)
 }
 
 /** An open boat with an outboard: the Arctic's workhorse (Greenland alone has
@@ -462,7 +487,7 @@ export function dinghy(rng: Random): BufferGeometry {
     box(b, new Vector3(x - 0.2, deckY * 0.6, -0.22), new Vector3(x + 0.2, deckY + 0.55, 0.22), jacket)
     box(b, new Vector3(x - 0.11, deckY + 0.55, -0.11), new Vector3(x + 0.11, deckY + 0.78, 0.11), [0.06, 0.06, 0.07])
   }
-  return b.build()
+  return withHull(b)
 }
 
 /** A small ice-class expedition cruise ship (~100–130 m, a few hundred
@@ -509,7 +534,7 @@ export function expeditionShip(rng: Random): BufferGeometry {
       box(b, new Vector3(x, deckY + 3, side * beam * 0.43 - 1.3), new Vector3(x + length * 0.07, deckY + 5.2, side * beam * 0.43 + 1.3), [0.85, 0.35, 0.05])
     }
   }
-  return b.build()
+  return withHull(b)
 }
 
 /** A polar research or supply icebreaker: a red hull with a white
@@ -552,7 +577,7 @@ export function icebreaker(rng: Random): BufferGeometry {
     b.tube([new Vector3(-length * 0.2, deckY, side * beam * 0.3), new Vector3(-length * 0.28, deckY + length * 0.15, side * beam * 0.15)], () => 0.45, () => [0.75, 0.55, 0.08], 5)
   }
   box(b, new Vector3(-length * 0.5, deckY + 2.5, -beam * 0.4), new Vector3(-length * 0.36, deckY + 2.9, beam * 0.4), [0.2, 0.32, 0.22])
-  return b.build()
+  return withHull(b)
 }
 
 export type PolarShip = 'dinghy' | 'trawler' | 'expedition-ship' | 'icebreaker'
@@ -577,7 +602,232 @@ export function polarFleet(params: SceneParams, rng: Random, any: (chance: numbe
   return fleet
 }
 
-export function createShips(ctx: PropContext): Mesh[] {
+const G = 9.81
+const KNOT = 0.5144
+
+const smooth = (a: number, b: number, x: number): number => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
+  return t * t * (3 - 2 * t)
+}
+
+/** How each kind goes (knots through the water, by mode and weight), how
+ * often it's lying still (anchored, fishing, drifting), and whether it
+ * sails. Trawlers tow at 2.5–4 kn and steam at 8–11; motor yachts and
+ * dinghies cruise displacement-slow or plane; ships keep service speeds
+ * (container ships 13–21 kn, slow steaming included; tankers 11–15). */
+export const UNDERWAY: Record<ShipKind, { modes: [number, number, number][]; stopped: number; sail: boolean }> = {
+  sloop: { modes: [[4, 7, 1]], stopped: 0.15, sail: true },
+  catamaran: { modes: [[5, 9, 1]], stopped: 0.15, sail: true },
+  dhow: { modes: [[3, 6, 1]], stopped: 0.1, sail: true },
+  'motor-yacht': { modes: [[8, 12, 1], [15, 25, 1]], stopped: 0.35, sail: false },
+  trawler: { modes: [[2.5, 4, 1], [8, 11, 1]], stopped: 0.1, sail: false },
+  'container-ship': { modes: [[13, 21, 1]], stopped: 0.05, sail: false },
+  tanker: { modes: [[11, 15, 1]], stopped: 0.05, sail: false },
+  dinghy: { modes: [[3, 6, 1], [12, 25, 2]], stopped: 0.4, sail: false },
+  'expedition-ship': { modes: [[9, 13, 1]], stopped: 0.3, sail: false },
+  icebreaker: { modes: [[8, 14, 1]], stopped: 0.15, sail: false }
+}
+
+/** Speed through the water (m/s), 0 when lying still. Sailing boats are
+ * becalmed under 2 m/s of wind and slower in light air. Always makes the
+ * same draws. */
+export function shipSpeed(kind: ShipKind, windSpeed: number, rng: Random): number {
+  const u = UNDERWAY[kind]
+  const stopped = rng.chance(u.stopped)
+  const [lo, hi] = rng.weighted(u.modes.map(([a, b, w]) => [[a, b], w] as const))
+  const speed = rng.range(lo, hi) * KNOT
+  if (stopped) return 0
+  if (!u.sail) return speed
+  return windSpeed < 2 ? 0 : speed * Math.min(1, 0.4 + windSpeed / 10)
+}
+
+/** What a boat does to the sea round it (ocean.ts setOceanShips). */
+export interface ShipWake {
+  x: number
+  z: number
+  /** Bow direction on the water (unit). */
+  dirX: number
+  dirZ: number
+  length: number
+  beam: number
+  spacing: number
+  speed: number
+  /** Kelvin wave height next to the hull (m). */
+  height: number
+  /** Whiteness of the turbulent wake (propeller wash) behind the stern. */
+  foam: number
+  /** Seconds its foam lasts. */
+  foamTime: number
+  /** White water tearing round the hull: bow wave and waves breaking on it. */
+  collar: number
+}
+
+/** The wake of a hull at a speed in a sea. Kelvin waves grow with beam and
+ * Froude number Fr = U/√(gL); past Fr ≈ 0.5 a hull planes and its long
+ * transverse waves fade (the shader weights waves by how well a hull of
+ * this length makes them). Propellers churn a white wake whatever the
+ * speed; a sailing hull only once it's quick. Foam lasts longer behind a
+ * bigger hull (deeper, wider turbulence). Waves break white on a hull the
+ * more, the higher they stand against its freeboard. */
+export function wakeFor(kind: ShipKind, size: HullSize, speed: number, waveHeight: number): Omit<ShipWake, 'x' | 'z' | 'dirX' | 'dirZ'> {
+  const fr = speed / Math.sqrt(G * size.length)
+  const moving = speed > 0.2
+  const foam = !moving ? 0 : UNDERWAY[kind].sail ? 0.35 * smooth(0.2, 0.45, fr) : Math.min(1, 0.55 + 0.6 * smooth(0.3, 0.8, fr)) * smooth(0.2, 2, speed)
+  const seaOnHull = 0.8 * smooth(0.3, 2.5, waveHeight) * Math.min(1, (2 * waveHeight) / size.freeboard)
+  return {
+    length: size.length,
+    beam: size.beam,
+    spacing: size.spacing,
+    speed: moving ? speed : 0,
+    height: moving ? 0.1 * size.beam * Math.min(fr, 0.8) : 0,
+    foam,
+    foamTime: 8 + 0.8 * size.beam,
+    collar: Math.min(1, Math.max(moving ? Math.min(0.9, fr * 1.6) : 0, seaOnHull))
+  }
+}
+
+/** A hull floating on the waves: it settles on the plane that best fits the
+ * sea over its waterplane (least squares over its waterplane), so it follows
+ * waves longer than itself and averages shorter ones out, as ships do
+ * (heave and pitch response is small below λ ≈ L and near 1 above ~2 L).
+ * `rel` is how far the water stands above the floating waterline at a point
+ * of the hull (along from midships, across from the centreline), which is
+ * where waves climb the hull and burst. */
+export interface FloatPose {
+  heave: number
+  /** Bow up (rad). */
+  pitch: number
+  /** Starboard (+Z local) down (rad). */
+  roll: number
+  rel: (along: number, across: number) => number
+}
+
+export function floatOnWaves(seaLevel: (x: number, z: number) => number, x: number, z: number, heading: number, size: HullSize): FloatPose {
+  const fx = Math.sin(heading)
+  const fz = -Math.cos(heading)
+  // Local +Z (starboard in the mesh) on the water.
+  const sx = Math.cos(heading)
+  const sz = Math.sin(heading)
+  const at = (a: number, c: number): number => seaLevel(x + fx * a + sx * c, z + fz * a + sz * c)
+  const halfSpan = size.spacing + 0.35 * size.beam
+  let sum = 0
+  let sumA = 0
+  let sumAA = 0
+  let sumC = 0
+  let sumCC = 0
+  let n = 0
+  // Every ~2 m, or short chop aliases into a sway of the whole ship.
+  const stations = Math.min(160, Math.max(6, Math.ceil((0.9 * size.length) / 2)))
+  for (let i = 0; i <= stations; i++) {
+    const a = (i / stations - 0.5) * 0.9 * size.length
+    for (let j = -2; j <= 2; j++) {
+      const c = (j / 2) * halfSpan
+      const h = at(a, c)
+      sum += h
+      sumA += h * a
+      sumAA += a * a
+      sumC += h * c
+      sumCC += c * c
+      n++
+    }
+  }
+  const heave = sum / n
+  const gA = sumA / sumAA
+  const gC = sumC / sumCC
+  return {
+    heave,
+    pitch: Math.atan(gA),
+    roll: -Math.atan(gC),
+    rel: (a, c) => at(a, c) - (heave + gA * a + gC * c)
+  }
+}
+
+/** How high a sheet of water bursts up a hull (m): the water hits at
+ * v² ≈ 2g·rise (a crest standing above the floating waterline) plus
+ * (U·slope)² where the bow drives into a wave's face, and about half that
+ * energy goes up (v²/2g × 0.5). Nothing until the crest is a fifth of the
+ * freeboard up the side. */
+export function splashHeight(rise: number, closing: number, size: HullSize): number {
+  if (rise < 0.2 * size.freeboard && closing < 1.5) return 0
+  const v2 = 2 * G * Math.max(rise, 0) + closing * closing
+  return Math.min(0.5 * size.length, 14, (0.5 * v2) / (2 * G))
+}
+
+/** Share of the sea surface white with breaking crests at a 10 m wind
+ * speed (m/s): Monahan & O'Muircheartaigh 1980, W = 3.84e-6 U^3.41
+ * (~4% at 15 m/s). */
+export function whitecapFraction(windSpeed: number): number {
+  return Math.min(0.3, 3.84e-6 * Math.max(0, windSpeed) ** 3.41)
+}
+
+/** Waves tearing on a hull: bursts of spray where crests climb it (bow and
+ * both sides), low sheets off a planing hull's chines, blown downwind.
+ * A hull rides waves longer than itself, so in a big swell the water hardly
+ * climbs it; the spray comes from the short wind-sea crests it can't
+ * follow. The bow slams into one about every other wave, throwing a sheet
+ * up at a good part of its speed; and a breaking crest is on a hull's
+ * side about as often as whitecaps cover the length beside it. */
+function hullSpray(spray: SprayBuilder, rng: Random, mesh: Mesh, pose: FloatPose, size: HullSize, speed: number, windy: number, windAz: number, waveHeight: number, windSpeed: number): void {
+  mesh.updateMatrixWorld()
+  const { length: L, beam: B } = size
+  const downwind = new Vector3(Math.sin(windAz), 0, -Math.cos(windAz))
+  const up = new Vector3(0, 1, 0)
+  const burst = (along: number, across: number, rise: number, height: number, outward: Vector3): void => {
+    const base = mesh.localToWorld(new Vector3(along, 0, across))
+    base.y += Math.max(rise, 0)
+    const spread = Math.min(B, 0.4 + height * 0.5)
+    const count = Math.round(Math.min(1500, height * 200 * Math.max(1, spread)))
+    for (let k = 0; k < count; k++) {
+      const t = rng.float()
+      const p = base
+        .clone()
+        .addScaledVector(outward, (0.15 + t) * height * 0.45 * rng.float())
+        .addScaledVector(up, height * Math.sqrt(t) * rng.range(0.4, 1.1))
+        .addScaledVector(downwind, t * height * 0.5 * windy)
+      p.x += rng.normal(0, spread * 0.5)
+      p.z += rng.normal(0, spread * 0.5)
+      spray.add(p, rng.range(0.03, 0.1), rng.range(0.5, 1) * (1 - 0.6 * t))
+    }
+    for (let k = 0; k < Math.round(height * 20); k++) {
+      const t = rng.float()
+      const p = base.clone().addScaledVector(up, height * t * rng.range(0.3, 0.9)).addScaledVector(downwind, t * height * windy)
+      spray.add(p, rng.range(0.5, 1.5) * (0.4 + height * 0.15), rng.range(0.04, 0.1))
+    }
+  }
+  const sideways = (sign: number): Vector3 => mesh.localToWorld(new Vector3(0, 0, sign)).sub(mesh.position).setY(0).normalize()
+
+  // The bow, driving into the waves at speed.
+  const bowA = 0.46 * L
+  const rise = Math.max(pose.rel(bowA, 0), pose.rel(0.38 * L, 0.3 * B), pose.rel(0.38 * L, -0.3 * B))
+  const slam = rng.chance(0.5) ? 0.6 * speed * smooth(0.4, 2, waveHeight) : 0
+  const closing = Math.max(slam, (speed * Math.max(0, pose.rel(bowA + 2, 0) - pose.rel(bowA, 0))) / 2)
+  const bow = splashHeight(rise, closing, size)
+  if (bow > 0) for (const sign of [-1, 1]) burst(bowA - 0.05 * L, sign * 0.2 * B, rise, bow, sideways(sign))
+  // A breaking crest against the weather side.
+  const breaking = 1 - Math.exp((-whitecapFraction(windSpeed) * 2 * L) / 1.5)
+  const hitAt = rng.range(-0.4, 0.4) * L
+  if (rng.chance(Math.min(0.7, breaking))) {
+    const weather = Math.sign(mesh.localToWorld(new Vector3(0, 0, 1)).sub(mesh.position).dot(downwind)) || 1
+    const across = -weather * (size.spacing + 0.45 * B)
+    burst(hitAt, across, 0, Math.min(3, 0.5 * waveHeight) * rng.range(0.5, 1) * windy, sideways(-weather))
+  }
+  // Crests climbing either side.
+  for (let i = 0; i < 5; i++) {
+    const along = (i / 4 - 0.5) * 0.8 * L + rng.range(-0.05, 0.05) * L
+    for (const sign of [-1, 1]) {
+      const across = sign * (size.spacing + 0.45 * B)
+      const r = pose.rel(along, across)
+      const h = splashHeight(r, 0, size) * windy
+      if (h > 0) burst(along, across, r, h, sideways(sign))
+    }
+  }
+  // A planing hull throws a sheet off each chine, aft of the bow.
+  const fr = speed / Math.sqrt(G * L)
+  const chine = 0.15 * B * smooth(0.6, 1.1, fr)
+  if (chine > 0.05) for (const sign of [-1, 1]) burst(0.15 * L, sign * 0.5 * B, 0, chine, sideways(sign))
+}
+
+export function createShips(ctx: PropContext): Object3D[] {
   const { params } = ctx
   const rng = ctx.rng('ships')
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, side: DoubleSide })
@@ -619,48 +869,80 @@ export function createShips(ctx: PropContext): Mesh[] {
     return null
   }
 
-  const launch = (geometry: BufferGeometry, minDistance: number, maxDistance: number, sailing: boolean): void => {
+  // Speeds and spray on their own stream, so the fleet stays the same.
+  const motion = ctx.rng('ships/motion')
+  const spray = new SprayBuilder()
+  const windy = Math.min(1.5, 0.6 + params.ocean.windSpeed / 12)
+  const waveHeight = ctx.waveHeight
+  // The open-sea waves, damped over shallows like the ocean shader does.
+  const sea = (x: number, z: number): number =>
+    ctx.seaLevel(x, z) * (0.1 + 0.9 * smooth(0, 2 * Math.max(0.05, waveHeight) + 1.5, -ctx.ground(x, z)))
+
+  const launch = (kind: ShipKind, geometry: BufferGeometry, minDistance: number, maxDistance: number): void => {
+    const sailing = UNDERWAY[kind].sail
     const position = seaSpot(minDistance, maxDistance)
     if (position == null) return
-    const heading = sailing ? windAz + rng.range(0.6, 1.4) * (rng.chance(0.5) ? 1 : -1) : rng.range(0, Math.PI * 2)
-    const heel = sailing ? rng.range(0.06, 0.25) : rng.normal(0, 0.02)
+    let heading = sailing ? windAz + rng.range(0.6, 1.4) * (rng.chance(0.5) ? 1 : -1) : rng.range(0, Math.PI * 2)
+    let heel = sailing ? rng.range(0.06, 0.25) : rng.normal(0, 0.02)
+    // Was a stand-in for the waves; the hull now floats on the real ones.
+    rng.normal(0, 0.02)
+    const speed = shipSpeed(kind, params.ocean.windSpeed, motion)
+    const size = geometry.userData.hull as HullSize
+    // Under sail without way on: lying head to wind, sails barely drawing.
+    if (sailing && speed === 0) {
+      heading = windAz + Math.PI + motion.normal(0, 0.3)
+      heel *= 0.15
+    }
+    const pose = floatOnWaves(sea, position.x, position.z, heading, size)
+    // A planing hull rides bow-up on its own wave (Fr past ~0.5).
+    const fr = speed / Math.sqrt(G * size.length)
+    const trim = UNDERWAY[kind].sail ? 0 : 0.07 * smooth(0.4, 1, fr)
     const mesh = new Mesh(geometry, material)
-    mesh.position.copy(position)
-    mesh.quaternion.setFromEuler(new Euler(heel, -heading + Math.PI / 2, rng.normal(0, 0.02), 'YXZ'))
+    mesh.position.copy(position).setY(pose.heave)
+    mesh.quaternion.setFromEuler(new Euler(heel + pose.roll, -heading + Math.PI / 2, pose.pitch + trim, 'YXZ'))
     mesh.castShadow = true
     mesh.receiveShadow = true
+    const wake: ShipWake = { x: position.x, z: position.z, dirX: Math.sin(heading), dirZ: -Math.cos(heading), ...wakeFor(kind, size, speed, waveHeight) }
+    mesh.userData.wake = wake
     meshes.push(mesh)
+    if (ctx.distance(position.x, position.z) < 3000 && ctx.visible(position.x, 0, position.z, size.length)) {
+      hullSpray(spray, motion, mesh, pose, size, speed, windy, windAz, waveHeight, params.ocean.windSpeed)
+    }
+  }
+  const done = (): Object3D[] => {
+    const points = spray.build()
+    return points == null ? meshes : [...meshes, points]
   }
 
   // A scene spec's list of boats: one of each.
   const force = params.overrides?.ships
   if (Array.isArray(force)) {
     const builders: Record<ShipKind, () => void> = {
-      sloop: () => launch(sloop(rng), 150, 3000, true),
-      catamaran: () => launch(catamaran(rng), 150, 3000, true),
-      dhow: () => launch(dhow(rng), 150, 3000, true),
-      'motor-yacht': () => launch(motorYacht(rng), 150, 3000, false),
-      trawler: () => launch(trawler(rng), 120, 2500, false),
-      'container-ship': () => launch(containerShip(rng), 4000, 16000, false),
-      tanker: () => launch(tanker(rng), 4000, 16000, false),
-      dinghy: () => launch(dinghy(rng), 60, 700, false),
-      'expedition-ship': () => launch(expeditionShip(rng), 1200, 6000, false),
-      icebreaker: () => launch(icebreaker(rng), 2000, 12000, false)
+      sloop: () => launch('sloop', sloop(rng), 150, 3000),
+      catamaran: () => launch('catamaran', catamaran(rng), 150, 3000),
+      dhow: () => launch('dhow', dhow(rng), 150, 3000),
+      'motor-yacht': () => launch('motor-yacht', motorYacht(rng), 150, 3000),
+      trawler: () => launch('trawler', trawler(rng), 120, 2500),
+      'container-ship': () => launch('container-ship', containerShip(rng), 4000, 16000),
+      tanker: () => launch('tanker', tanker(rng), 4000, 16000),
+      dinghy: () => launch('dinghy', dinghy(rng), 60, 700),
+      'expedition-ship': () => launch('expedition-ship', expeditionShip(rng), 1200, 6000),
+      icebreaker: () => launch('icebreaker', icebreaker(rng), 2000, 12000)
     }
     for (const kind of force) builders[kind]()
-    return meshes
+    return done()
   }
   // false: none; true: some of every class.
   const any = (chance: number): boolean => forced(force, rng.chance(chance))
 
   if (polarWaters(params)) {
     for (const kind of polarFleet(params, rng, any)) {
-      if (kind === 'dinghy') launch(dinghy(rng), 60, 700, false)
-      else if (kind === 'trawler') launch(trawler(rng), 120, 2500, false)
-      else if (kind === 'expedition-ship') launch(expeditionShip(rng), 1200, 6000, false)
-      else launch(icebreaker(rng), 2000, 12000, false)
+      if (kind === 'dinghy') launch('dinghy', dinghy(rng), 60, 700)
+      else if (kind === 'trawler') launch('trawler', trawler(rng), 120, 2500)
+      else if (kind === 'expedition-ship') launch('expedition-ship', expeditionShip(rng), 1200, 6000)
+      else launch('icebreaker', icebreaker(rng), 2000, 12000)
     }
-    return meshes
+    return done()
   }
 
   // Leisure craft near the coast.
@@ -672,15 +954,18 @@ export function createShips(ctx: PropContext): Mesh[] {
         ['dhow', warm ? 3 : 0]
       ])
       const geometry = kind === 'sloop' ? sloop(rng) : kind === 'catamaran' ? catamaran(rng) : dhow(rng)
-      launch(geometry, 150, 3000, true)
+      launch(kind, geometry, 150, 3000)
     }
   }
-  if (any(0.2)) launch(motorYacht(rng), 150, 3000, false)
+  if (any(0.2)) launch('motor-yacht', motorYacht(rng), 150, 3000)
   if (any(0.25)) {
-    for (let i = rng.int(1, 2); i > 0; i--) launch(trawler(rng), 120, 2500, false)
+    for (let i = rng.int(1, 2); i > 0; i--) launch('trawler', trawler(rng), 120, 2500)
   }
   // Shipping on the horizon.
-  if (any(0.3)) launch(rng.chance(0.6) ? containerShip(rng) : tanker(rng), 4000, 16000, false)
+  if (any(0.3)) {
+    if (rng.chance(0.6)) launch('container-ship', containerShip(rng), 4000, 16000)
+    else launch('tanker', tanker(rng), 4000, 16000)
+  }
 
-  return meshes
+  return done()
 }

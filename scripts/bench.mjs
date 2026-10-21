@@ -71,6 +71,8 @@ function render(url, dir) {
 
 try {
   if (!(await fetch('http://localhost:5174/').catch(() => null))?.ok) throw new Error('start this tree first: npx vite (port 5174)')
+  // Old renders left in before/ and after/ would be diffed (and reported) again.
+  await rm(out, { recursive: true, force: true })
   await mkdir(out, { recursive: true })
   const server = await serve()
   let before

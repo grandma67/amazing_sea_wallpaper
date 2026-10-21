@@ -50,7 +50,8 @@ export function createProps(ctx: PropContext): Group {
   add('lighthouse', createLighthouse(ctx, island))
   add('vegetation', createVegetation(ctx))
   add('mangroves', createMangroves(ctx))
-  add('ships', createShips(ctx))
+  // For their wakes and the hull cut out of the sea (ocean.ts setOceanShips).
+  group.userData.ships = add('ships', createShips(ctx)).flatMap(o => o.userData.wake ?? [])
   add('marine-life', createMarineLife(ctx))
   add('birds', createBirds(ctx))
   add('migratory-birds', createMigratoryBirds(ctx))

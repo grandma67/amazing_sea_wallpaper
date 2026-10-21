@@ -97,6 +97,17 @@ Playwright (headless snapshots).
   leisure craft and shipping in Arctic and Southern Ocean waters. `seaSpot()` first aims at
   the lower half of the frame, then samples distance (log-uniform) and bearing within the
   view: far boats lie in a sliver of pixels under the horizon that screen sampling misses.
+  `shipSpeed()` draws a speed by kind (`UNDERWAY`, own stream `ships/motion`);
+  `floatOnWaves()` fits a plane to `seaLevel()` over the waterplane every ~2 m (heave,
+  pitch, roll; it follows waves longer than the hull, averages shorter ones, as RAOs do).
+  `wakeFor()` gives Kelvin height (0.1 × beam × Fr), wake foam (propellers; sail only when
+  quick), foam lifetime (8 + 0.8 × beam s) and the hull collar (bow wave, sea against the
+  freeboard). `ocean.ts setOceanShips` (8 nearest): discards the sea inside the hull
+  (`hullHalfWidth` mirrors `hullShape`), adds the Kelvin field's slope (stationary phase:
+  tan a = T/(1 + 2T²), k = g/(U cos th)², two branches; weighted by how well a hull of length
+  L makes that wavelength, so fast boats' wakes narrow, Rabaud & Moisy), foam and a slick
+  (less roughness and whitecaps). `hullSpray()`: bow slam (0.6 U in a sea), breaking crests on
+  the weather side (`whitecapFraction`), crests climbing the hull (`pose.rel`), chine sheets.
 - **Islands:** `params.ts` `pickIslands()` (own stream) picks kind by biome (`ISLANDS`) and
   per island an offset across the frame, distance, width and height (low ones 1–4 km, high
   ones 8–30 km). `props/islands.ts` moves each to open water in frame (12-point footprint
@@ -255,12 +266,19 @@ Playwright (headless snapshots).
   visibility) the 40–130 km of cloud undersides stacked into one dark band sitting on the
   sea. Real sea air (20–60 km) fades them into the horizon. takram's own haze didn't help:
   coverage-gated and coloured by ground irradiance (grey at sunrise).
+- A hull rides waves longer than itself, so in a big swell the water barely climbs a small
+  boat (rel ±0.1 m in Hs 3.5 m); spray from the swell alone never shows. It comes from the
+  wind-sea crests the hull can't follow (slamming, breaking crests): model those statistically.
+- Sampling the sea under a 250 m ship at 7 points aliased 12 m chop into a fake 0.5° pitch;
+  sample every ~2 m.
+- Regular Kelvin waves read as a printed grating from above: cap their steepness (0.05),
+  weaken them inside the wedge (strongest on the cusp lines) and break them up with noise.
 - Haze lit by the clear-sky horizon glows under a storm deck: scale it by the light the
   clouds let through, with a floor for the grey sky (storm 0.06, overcast 0.3).
 
 ## Ideas (not planned)
 
-Breaking-wave lips, boat wakes, ship navigation lights (and their reflections), ambient occlusion
+Breaking-wave lips, ship navigation lights (and their reflections), ambient occlusion
 under trees, a low-power mode for phones.
 
 ## References
@@ -291,6 +309,11 @@ under trees, a low-power mode for phones.
 - Mangroves: FAO "Mangroves of Asia" (Red Sea and Gulf: patchy, pure Avicennia at wadi
   mouths and sheltered lagoons); Frontiers in Marine Science 2025 review (Middle East
   Avicennia 2–4 m; freshwater, salinity, heat and shelter control it)
+- Ship wakes: Kelvin (1887) wedge 19.47°; Rabaud & Moisy, PRL 2013 "Ship wakes: Kelvin or
+  Mach angle?" (angle ~ 1/Fr past Fr ≈ 0.5); Darmon, Benzaquen & Raphaël 2014 (the wedge stays
+  Kelvin, the angle of largest waves narrows as 1/Fr)
+- Ship motions: heave/pitch RAOs small below λ/L ≈ 1, near 1 above ~1.75 (monohull
+  sea-keeping studies, IJAME); whitecap cover W = 3.84e-6 U^3.41 (Monahan & O'Muircheartaigh 1980)
 - Arctic boats: Statistics Greenland, fishing fleet (3,000–5,000 dinghies); Royal Greenland
   vessels (65–83 m prawn trawlers)
 - Driftwood: Hakai Magazine "Iceland's Sinking Driftwood Supply"; Eggertsson, Jökull 1993
