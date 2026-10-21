@@ -166,6 +166,26 @@ class RainbowEffect extends Effect {
   }
 }
 
+/** Colour and strength of the flash glow, in exposed (graded) units. */
+export const FLASH_GLOW: [number, number, number] = [0.09, 0.096, 0.12]
+
+/**
+ * The flash glows as world directions from the camera (xyz) and angular
+ * radius (w, rad): the sea mirrors them (ocean.ts). Same size as on screen
+ * in FlashEffect (~800 m of cloud base round each bolt).
+ */
+export function flashGlows(params: SceneParams, camera: PerspectiveCamera): Vector4[] {
+  if (params.storm == null) return []
+  const cap = 0.4 * Math.tan((camera.fov * DEG) / 2)
+  return boltTops(params, camera.position)
+    .slice(0, 3)
+    .map(top => {
+      const distance = top.distanceTo(camera.position)
+      const dir = top.clone().sub(camera.position).normalize()
+      return new Vector4(dir.x, dir.y, dir.z, Math.min(cap, 800 / distance))
+    })
+}
+
 /** Lightning lights up the cloud around the channel: a soft glow centred
  * where each bolt leaves the cloud base. */
 class FlashEffect extends Effect {
@@ -181,6 +201,7 @@ class FlashEffect extends Effect {
       'FlashEffect',
       /* glsl */ `
       uniform vec3 flashes[3];
+      uniform vec3 flashGlow;
       uniform float aspect;
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
         float glow = 0.0;
@@ -190,12 +211,13 @@ class FlashEffect extends Effect {
           d *= vec2(0.6, 1.2);
           glow += exp(-dot(d, d));
         }
-        outputColor = vec4(inputColor.rgb + vec3(0.75, 0.8, 1.0) * glow * 0.12, inputColor.a);
+        outputColor = vec4(inputColor.rgb + flashGlow * glow, inputColor.a);
       }`,
       {
         blendFunction: BlendFunction.SET,
         uniforms: new Map<string, Uniform>([
           ['flashes', new Uniform(points)],
+          ['flashGlow', new Uniform(new Vector3(...FLASH_GLOW))],
           ['aspect', new Uniform(camera.aspect)]
         ])
       }

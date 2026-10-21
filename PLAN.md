@@ -36,6 +36,7 @@ Informal (no git tags); each is a milestone. Dates are 2026.
 | 0.25 | 10-16 | Waterspouts (`props/waterspout.ts`): rare (~0.5% of days), by day under building cumulus in light wind; Florida Keys/Caribbean May–Oct (peak Aug), Mediterranean Aug–Nov (peak Sep), other tropical seas in the wet season; tornadic under storms. An opaque, curved, striated funnel 10–50 m wide from the sea into a lowered, shaded cloud base of soft puffs, a spray cascade at its foot; the sky gets towering cumulus; `waterspout` in scene specs |
 | 0.26 | 10-16 | Twilight clouds in the sky shader: noctilucent clouds at 82 km (nordic and Southern Ocean coasts at 50–67°, late May–mid Aug / late Nov–mid Feb, peaking at the solstice; blue hour, clear sky), lit only where the sun's ray clears the earth, at their real optical depth (~1e-4), so they show as the twilight deepens; nacreous clouds at 22 km in Arctic and Southern Ocean winter twilight (~3%), pastel iridescent lenses; `noctilucent`, `nacreous` in scene specs |
 | 0.27 | 10-16 | Cloud events (`skyEvents.ts`, `props/cloudEvents.ts`): a shelf cloud on ~40% of storms, a tiered wedge hanging under the storm's base toward the rain with lighter sky under its lip; the Morning Glory roll cloud on tropical Indo-Pacific dawns in Sep–Nov (one to three lumpy, banded tubes across the view, titled); a white pyrocumulus cap on half of the eruption plumes; stacked lenticular lenses over the mountains or volcano in winds ≥ 10 m/s; scud made sparse (it was a sheet that flattened every storm sky); `shelfCloud`, `rollCloud`, `lenticular` in scene specs |
+| 0.28 | 10-21 | Light reaching the sea and sand is shaded by what really blocks it: the volumetric clouds' own shadow map (takram BSM, primed before frame 0) replaces the fbm patches, so a sun or moon hidden by cloud leaves no glitter path; mountains, volcanoes, islands and rocks shade the sea out to the horizon (`renderLandShadow`, a depth map along the light); the lightning flash on the cloud base is mirrored in the sea. Cloud bases under a low sun come out greyer: the shadow map used to be still converging during the 16 frames |
 | 0.18 | 10-15 | Faster loading, same image: the atmosphere precompute (~1.1 s of GPU work) is issued in one go and the props are built on the CPU meanwhile; cloud frames wait on the frame before last, so the GPU never idles between them; the render worker starts loading with the page — clear 4K days 2.3 → 1.3 s, cloudy ~7.6 → ~6 s |
 
 ## Decisions
@@ -73,7 +74,11 @@ Playwright (headless snapshots).
   weather, storm, rainbow, ocean, biome, landform, colony, camera, wind, title).
 - **Ocean:** `spectrum.ts` (on `spectrumWorker.ts`) synthesises JONSWAP + swell on 3 cascades
   with `fft.ts`; `ocean.ts` shades it: whitecaps, glitter, refracted surf in sets, shallows,
-  caustics, foam, rain rings; `grid.ts` polar grid to 120 km.
+  caustics, foam, rain rings; `grid.ts` polar grid to 120 km. Direct sun/moon on sea and sand
+  (glitter, body, floor; `shadow.ts lightReaching`) = min(props' shadow map ±320 m, land
+  shadow map to the horizon) × cloud transmittance from takram's cascaded cloud shadow map
+  (exp(−(maxOpticalDepth + tail)), primed by `primeCloudShadow` since the sea is drawn once
+  at frame 0). `weather.sunVisibility` stays as the overall dimming of the light.
 - **Surf:** `ocean.ts` SURF_GLSL, mirrored in `terrain.ts` (`surfWave`, `surfBreakDepth`,
   `surfProfile`, tested). Offshore height 1.3 × `surfAmplitude` × sets, shoaling ×(L/2d)^¼
   below depth L/2, breaking where it reaches γ·d with γ = 0.72 + 5.6 × nearshore slope,
@@ -184,6 +189,13 @@ Playwright (headless snapshots).
 - Takram's temporal upscaling + along-ray-only jitter left spots and grain in averaged stills;
   Halton sub-pixel jitter + a final sky denoise fixed it (7.19).
 - A mirror-sharp sun is ~1000× sky radiance: any sun under overcast shows a glitter path.
+  So the glint must be shaded by the clouds actually drawn (their shadow map), not a stand-in
+  noise: a congestus over a 2° sun still left a full glitter path (2026-09-27).
+- takram's cloud shadow map is temporal: it needs ~8 updates to converge. Unprimed, the
+  first of 16 accumulated frames saw clouds unshadowed, so low-sun cloud bases were lit too
+  pink. `primeCloudShadow` runs the effect's update with the main march stubbed out.
+- Screen-space effects (lightning flash) aren't in the env cube: the sea mirrors them only if
+  the ocean shader adds them along `R` itself (radiance = graded value / exposure).
 - Place flocks by a view ray reaching the target altitude, not fixed NDC heights.
 - Benchmarks: run under `caffeinate -i`; GPU noise floor is ≤5/255 on a few pixels.
 - Anything sitting at mean sea level (splashes, foam) is hidden by wave crests at grazing
@@ -266,7 +278,7 @@ Playwright (headless snapshots).
 
 ## Ideas (not planned)
 
-Breaking-wave lips, boat wakes, per-pixel cloud shadows matching the clouds, ambient occlusion
+Breaking-wave lips, boat wakes, ship navigation lights (and their reflections), ambient occlusion
 under trees, a low-power mode for phones.
 
 ## References

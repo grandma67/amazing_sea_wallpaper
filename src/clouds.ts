@@ -29,7 +29,8 @@ import {
   type PerspectiveCamera,
   Vector3,
   type WebGLCubeRenderTarget,
-  type WebGLRenderer
+  type WebGLRenderer,
+  type WebGLRenderTarget
 } from 'three'
 
 import { AccumulatePass } from './accumulate'
@@ -179,6 +180,22 @@ export function createClouds(
   // frames that spread into a bright halo around trees against a low sun.
   clouds.cloudsPass.resolveMaterial.uniforms.temporalAlpha.value = 1
   return clouds
+}
+
+/**
+ * Ray-march the clouds' shadow map toward the light before the first frame:
+ * the sea and sand are drawn once, at frame 0, before the clouds effect first
+ * updates. Runs the effect's own update with the main cloud march skipped;
+ * a few frames let the shadow's temporal resolve settle its jitter.
+ */
+export function primeCloudShadow(clouds: CloudsEffect, renderer: WebGLRenderer, input: WebGLRenderTarget, frames = 8): void {
+  const pass = clouds.cloudsPass as { update: CloudsEffect['cloudsPass']['update'] }
+  pass.update = () => {}
+  try {
+    for (let i = 0; i < frames; i++) clouds.update(renderer, input, 0)
+  } finally {
+    delete (pass as Partial<typeof pass>).update
+  }
 }
 
 /**

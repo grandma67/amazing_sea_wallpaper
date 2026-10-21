@@ -197,6 +197,11 @@ uniform vec4 rockData[${MAX_ROCKS}];
 uniform int rockCount;
 uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
+// Lightning flashes lighting the cloud base (stormEffects.ts flashGlows):
+// direction and angular radius, and their radiance.
+uniform vec4 flashGlows[3];
+uniform int flashCount;
+uniform vec3 flashRadiance;
 uniform vec3 skyIrradiance;
 uniform vec3 deepColor;
 uniform vec3 scatterColor;
@@ -343,6 +348,20 @@ void main() {
   R.y = abs(R.y);
   float lod = clamp(log2(alpha * 164.0), 0.0, envMaxLod);
   vec3 reflected = textureLod(envMap, R, lod).rgb;
+  // The flash on the cloud base is added after the clouds (a screen effect),
+  // so it isn't in the environment map: mirror its glow here, the same soft
+  // patch, wider than tall, round each bolt's top.
+  for (int i = 0; i < 3; i++) {
+    if (i >= flashCount) break;
+    vec3 glowDir = flashGlows[i].xyz;
+    float c = dot(R, glowDir);
+    if (c <= 0.0) continue;
+    vec3 right = normalize(cross(glowDir, vec3(0.0, 1.0, 0.0)));
+    vec3 up = cross(right, glowDir);
+    vec3 t = R / c;
+    vec2 d = vec2(dot(t, right) * 0.6, dot(t, up) * 1.2) / flashGlows[i].w;
+    reflected += flashRadiance * exp(-dot(d, d));
+  }
   // Land, rocks, trees and boats mirrored in the water (reflection.ts), over
   // the sky reflection, shifted by the waves and blurred by roughness.
   if (planarOn > 0.5) {
@@ -354,7 +373,7 @@ void main() {
   float F = fresnel(NoV);
 
   // Sun glitter.
-  float shadow = sunShadow(vWorld) * cloudShadow(vWorld);
+  float shadow = lightReaching(vWorld);
   vec3 L = sunDirection;
   float NoL = dot(N, L);
   vec3 specular = vec3(0.0);
@@ -532,6 +551,9 @@ export function createOcean(
       envMaxLod: { value: 8 },
       sunDirection: { value: new Vector3(...params.sunDirection) },
       sunIrradiance: { value: new Color(0, 0, 0) },
+      flashGlows: { value: [0, 1, 2].map(() => new Vector4()) },
+      flashCount: { value: 0 },
+      flashRadiance: { value: new Color(0, 0, 0) },
       skyIrradiance: { value: new Color(0, 0, 0) },
       deepColor: { value: new Color(...ocean.water.deep) },
       scatterColor: { value: new Color(...ocean.water.scatter) },

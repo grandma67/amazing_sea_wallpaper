@@ -41,6 +41,7 @@ import {
   Scene,
   Uniform,
   Vector3,
+  Vector4,
   WebGLCubeRenderTarget,
   WebGLRenderer,
   WebGLRenderTarget
@@ -50,7 +51,7 @@ import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
 import { createCamera } from './camera'
 import { moonlight as phaseLight } from './celestial'
-import { createClouds, loadCloudAssets, renderCloudyEnvironment } from './clouds'
+import { createClouds, loadCloudAssets, primeCloudShadow, renderCloudyEnvironment } from './clouds'
 import { patchSkyContrails } from './contrails'
 import { patchSkyNoctilucent } from './noctilucent'
 import { eclipseSky } from './eclipse'
@@ -69,8 +70,8 @@ import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
-import { stormEffects } from './stormEffects'
-import { bindCloudShadow, bindShadow } from './shadow'
+import { FLASH_GLOW, flashGlows, stormEffects } from './stormEffects'
+import { bindCloudShadow, bindLandShadow, bindShadow, renderLandShadow } from './shadow'
 import { SkyDenoiseEffect } from './skyDenoise'
 import { createTerrain } from './terrain'
 
@@ -454,6 +455,12 @@ export async function renderScene(
         eclipseBias +
         // Low suns light the clouds from below and the horizon stays bright.
         1.1 * gloom * Math.min(Math.max(params.sunElevationDeg / 15, 0), 1))
+  // Lightning's glow on the cloud base, mirrored by the sea: the flash is
+  // added after exposure, so take it back to scene radiance.
+  const glows = flashGlows(params, camera)
+  glows.forEach((g, i) => (u.flashGlows.value as Vector4[])[i].copy(g))
+  u.flashCount.value = glows.length
+  ;(u.flashRadiance.value as Color).setRGB(...FLASH_GLOW).multiplyScalar(1 / exposure)
 
   // --- Post-processing ------------------------------------------------------
   const aerialPerspective = new AerialPerspectiveEffect(camera)
@@ -599,8 +606,11 @@ export async function renderScene(
     terrain.visible = params.coast.type === 'beach'
     bindShadow(ocean.material.uniforms, sun)
     bindShadow(terrain.material.uniforms, sun)
-    bindCloudShadow(ocean.material.uniforms, params.weather, lightDirectionWorld)
-    bindCloudShadow(terrain.material.uniforms, params.weather, lightDirectionWorld)
+    if (clouds != null) {
+      primeCloudShadow(clouds, renderer, composer.inputBuffer)
+      bindCloudShadow(ocean.material.uniforms, clouds, camera)
+      bindCloudShadow(terrain.material.uniforms, clouds, camera)
+    }
 
     // Mirror image of land and props for the water (sky comes from the cube).
     if (params.coast.type === 'beach' || scene.getObjectByName('props')!.children.length > 0) {
@@ -618,6 +628,9 @@ export async function renderScene(
       ocean.material.uniforms.planarOn.value = 1
     }
     renderer.shadowMap.autoUpdate = false
+    const land = renderLandShadow(renderer, scene, props, camera, lightDirectionWorld)
+    bindLandShadow(ocean.material.uniforms, land)
+    bindLandShadow(terrain.material.uniforms, land)
   }
   // Volumetric clouds converge over frames (temporal upscaling and
   // stochastic sampling), so render the still repeatedly before capturing.
