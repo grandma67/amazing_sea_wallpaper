@@ -7,6 +7,7 @@ import { forced, type ShipKind } from '../sceneSpec'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { fbm3, noise3 } from './noise'
+import { lampSprite, lightsOn, shipLightsFor, shows } from './shipLights'
 import { SprayBuilder } from './surf'
 
 // Vessels on the water: sloops, catamarans, motor yachts, trawlers, dhows,
@@ -827,6 +828,15 @@ function hullSpray(spray: SprayBuilder, rng: Random, mesh: Mesh, pose: FloatPose
   if (chine > 0.05) for (const sign of [-1, 1]) burst(0.15 * L, sign * 0.5 * B, 0, chine, sideways(sign))
 }
 
+/** The top of the mast (ship frame): where masthead lights go. */
+function highestPoint(geometry: BufferGeometry): Vector3 {
+  const position = geometry.getAttribute('position')
+  const top = new Vector3(0, -Infinity, 0)
+  for (let i = 0; i < position.count; i++)
+    if (position.getY(i) > top.y) top.set(position.getX(i), position.getY(i), position.getZ(i))
+  return top
+}
+
 export function createShips(ctx: PropContext): Object3D[] {
   const { params } = ctx
   const rng = ctx.rng('ships')
@@ -835,6 +845,7 @@ export function createShips(ctx: PropContext): Object3D[] {
   const camera = ctx.camera
   const windAz = (params.ocean.windHeadingDeg * Math.PI) / 180
   const warm = params.biome.name === 'tropical' || params.biome.name === 'desert'
+  const lit = lightsOn(params)
 
   /** Somewhere on deep enough water in frame: first the lower half of the
    * frame's sea area, then by distance and bearing within the view (a low
@@ -905,6 +916,15 @@ export function createShips(ctx: PropContext): Object3D[] {
     const wake: ShipWake = { x: position.x, z: position.z, dirX: Math.sin(heading), dirZ: -Math.cos(heading), ...wakeFor(kind, size, speed, waveHeight) }
     mesh.userData.wake = wake
     meshes.push(mesh)
+    if (lit) {
+      // Navigation lights facing us: the camera's bearing from the bow.
+      mesh.updateMatrixWorld()
+      const local = mesh.worldToLocal(camera.position.clone())
+      const bearing = (Math.atan2(local.z, local.x) * 180) / Math.PI
+      const distance = camera.position.distanceTo(mesh.position)
+      for (const light of shipLightsFor(kind, size, highestPoint(geometry), speed, sailing))
+        if (shows(light, bearing)) mesh.add(lampSprite(light, distance, camera))
+    }
     if (ctx.distance(position.x, position.z) < 3000 && ctx.visible(position.x, 0, position.z, size.length)) {
       hullSpray(spray, motion, mesh, pose, size, speed, windy, windAz, waveHeight, params.ocean.windSpeed)
     }

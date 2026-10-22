@@ -26,6 +26,8 @@ import type { ShipWake } from './props/ships'
 export const MAX_ROCKS = 48
 /** How many boats the ocean shader cuts out and draws wakes for (the nearest). */
 export const MAX_SHIPS = 8
+/** Ship lamps the sea mirrors (props/shipLights.ts lampsForOcean). */
+export const MAX_LAMPS = 12
 
 // Ocean surface: a camera-centred polar grid displaced by three FFT cascades
 // (see spectrum.ts). Normals come from the derivative textures per pixel, and
@@ -212,6 +214,11 @@ uniform vec3 sunIrradiance;
 uniform vec4 flashGlows[3];
 uniform int flashCount;
 uniform vec3 flashRadiance;
+// Ships' lamps as point lights: world position, and intensity × colour in
+// scene units (irradiance at 1 m).
+uniform vec3 lampPositions[${MAX_LAMPS}];
+uniform vec3 lampIntensities[${MAX_LAMPS}];
+uniform int lampCount;
 uniform vec3 skyIrradiance;
 uniform vec3 deepColor;
 uniform vec3 scatterColor;
@@ -487,6 +494,19 @@ void main() {
     float G = smithG1(NoV, alpha) * smithG1(NoL, alpha);
     specular = fresnel(VoH) * ggx(NoH, alpha) * G / (4.0 * NoV) * sunIrradiance * shadow;
   }
+  // Each lamp's glitter: the same microfacet reflection with its irradiance
+  // I / r², a column of glints down toward us on a wavy sea.
+  for (int i = 0; i < ${MAX_LAMPS}; i++) {
+    if (i >= lampCount) break;
+    vec3 toLamp = lampPositions[i] - vWorld;
+    float r2 = dot(toLamp, toLamp);
+    vec3 Ll = toLamp * inversesqrt(r2);
+    float NoLl = dot(N, Ll);
+    if (NoLl <= 0.0) continue;
+    vec3 H = normalize(Ll + V);
+    float G = smithG1(NoV, alpha) * smithG1(NoLl, alpha);
+    specular += fresnel(max(dot(V, H), 0.0)) * ggx(max(dot(N, H), 0.0), alpha) * G / (4.0 * NoV) * lampIntensities[i] / r2;
+  }
 
   // Light scattered out of the water body, plus extra transmission through
   // crests when looking toward the sun.
@@ -669,6 +689,9 @@ export function createOcean(
       sunIrradiance: { value: new Color(0, 0, 0) },
       flashGlows: { value: [0, 1, 2].map(() => new Vector4()) },
       flashCount: { value: 0 },
+      lampPositions: { value: Array.from({ length: MAX_LAMPS }, () => new Vector3()) },
+      lampIntensities: { value: Array.from({ length: MAX_LAMPS }, () => new Vector3()) },
+      lampCount: { value: 0 },
       flashRadiance: { value: new Color(0, 0, 0) },
       skyIrradiance: { value: new Color(0, 0, 0) },
       deepColor: { value: new Color(...ocean.water.deep) },

@@ -78,6 +78,14 @@ Playwright (headless snapshots).
   lightning flash (fixed scene radiance `FLASH_RADIANCE`: invisible against daylight, a glow
   by blue hour), lens rain, rainbows. Bolts strike 3–9 km out; ribbons are widened across
   each segment as seen from the camera; forks head down.
+- **Ship lights** (`props/shipLights.ts`, sunset to sunrise): `shipLightsFor()` encodes COLREGs
+  (masthead 225°, sidelights 112.5°, stern 135°, two mastheads from 50 m, sailing tricolour
+  under 20 m, anchor all-round, trawling green over white, deck/work lamps) at Annex I minimum
+  intensities (0.9–94 cd). Only lights whose sector faces the camera are added, as additive
+  sprites ≥ 2.5 px whose radiance × area = intensity, in scene units via metered luminance /
+  `skyLuminance()` (real cd/m² for the time of day). The ocean mirrors the 12 brightest as
+  GGX point lights (glitter columns); they're hidden from the planar mirror. The night grade is
+  mesopic: pixels far above sky level keep their colour.
 - **Props** (`src/props/`): rocks, trees/vegetation (+ `wind.ts` bending), birds, migratory
   flocks, ships, marine life, ice, colonies, pinnipeds, landforms, storm bolts, surf/rock
   spray, shore debris (`debris.ts`: `debrisFor()` picks driftwood/wrack/coconuts by biome

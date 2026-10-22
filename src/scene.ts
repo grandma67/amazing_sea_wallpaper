@@ -59,12 +59,13 @@ import { meterScene } from './exposure'
 import { FogEffect } from './fog'
 import { LighthouseBeamEffect } from './lighthouse'
 import { createMoon, placeMoon } from './moon'
-import { createOcean, setOceanRocks, setOceanShips } from './ocean'
+import { createOcean, MAX_LAMPS, setOceanRocks, setOceanShips } from './ocean'
 import { SUN_ANGULAR_RADIUS, type SceneParams } from './params'
 import { PropContext } from './props/context'
 import type { LanternInfo } from './props/lighthouse'
 import { createProps } from './props'
 import { reportProps } from './props/report'
+import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './props/shipLights'
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
@@ -94,7 +95,10 @@ class GradeEffect extends Effect {
         // Scotopic vision: desaturate and shift toward blue in moonlight.
         float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
         vec3 nightColor = lum * vec3(0.33, 0.62, 1.4);
-        c = mix(c, mix(c, nightColor, 0.85), night);
+        // Mesopic: what is far brighter than the night sky (lamps on boats,
+        // ~1000× it) is seen by the cones, in colour.
+        float rods = night * (1.0 - smoothstep(4.0, 40.0, lum));
+        c = mix(c, mix(c, nightColor, 0.85), rods);
         outputColor = vec4(c, inputColor.a);
       }`,
       {
@@ -519,6 +523,15 @@ export async function renderScene(
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }
   setGlowBrightness(props, sceneLuminance)
+  // Ships' lamps: candela into scene units by what the metered sky really is.
+  const perCdM2 = sceneLuminance / skyLuminance(params)
+  setLampBrightness(props, perCdM2)
+  const lamps = lampsForOcean(props, camera.position, MAX_LAMPS)
+  lamps.forEach((lamp, i) => {
+    ;(u.lampPositions.value as Vector3[])[i].copy(lamp.position)
+    ;(u.lampIntensities.value as Vector3[])[i].copy(lamp.intensity).multiplyScalar(perCdM2)
+  })
+  u.lampCount.value = lamps.length
   const grade = new GradeEffect(exposure, scotopic, whiteBalance)
   // A lit lighthouse's beams in the haze, in the scene's radiance units: a
   // fixed lamp, so they stand out more the darker the sky.
@@ -625,7 +638,9 @@ export async function renderScene(
         // Distant mountains are hazed by aerial perspective, which the
         // reflection pass doesn't apply: their mirror image would be far too
         // dark and sharp.
-        ...props.children.filter(o => o.userData.distant === true)
+        ...props.children.filter(o => o.userData.distant === true),
+        // Lamps: the sea mirrors them as point lights (ocean.ts).
+        ...lampSprites(props)
       ]
       const reflection = renderPlanarReflection(renderer, scene, camera, width, height, hide)
       ocean.material.uniforms.planarMap.value = reflection.target.texture
