@@ -314,6 +314,10 @@ Playwright (headless snapshots).
 - Shelf cloud backlit at sunset is a flat pink band: takram's aerial perspective on the mesh
   (forward-scattered sun in 4–5 km of haze), not direct or env light (both checked by turning
   off). Not fixed; direct sun on the shelf is now cut when the sun is behind the storm.
+- Animal heads in the water read as balls or posts if built from stacked ellipsoids, and as
+  bent pipes ("Nessie") if the neck shows and the skull is no wider than the neck. Seals
+  (`swimmingHead`): one lofted tube, skull a bulb wider than the neck, short tapered muzzle,
+  waterline at the throat; bottling tips the head about the skull, not the nape.
 
 ## Ideas (not planned)
 

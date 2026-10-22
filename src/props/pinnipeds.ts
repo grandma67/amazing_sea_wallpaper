@@ -172,15 +172,51 @@ function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: number): Buf
   return b.build()
 }
 
-/** A head and neck above the water: a seal "bottling" or watching. */
-function swimmingHead(rng: Random, kind: PinnipedKind): BufferGeometry {
+/**
+ * A head and neck above the water, nose toward +x, waterline at y = 0: a
+ * seal watching (snout level) or "bottling" (snout tipped up), `pitch`
+ * radians. One lofted tube, nose first: a tapered muzzle, a sloping
+ * forehead into a round crown, and a thick neck as wide as the head going
+ * down into the water; seals have no visible neck "waist". Sizes from the
+ * body length (head ~ 0.12 L long, neck ~ 0.1 L across).
+ */
+function swimmingHead(rng: Random, kind: PinnipedKind, pitch: number): BufferGeometry {
   const look = LOOKS[kind]
   const b = new MeshBuilder()
   const L = rng.range(...look.length)
-  const r = look.girth * L * 0.6
-  const wet: RGB = [look.back[0] * 0.4, look.back[1] * 0.4, look.back[2] * 0.4]
-  b.blob(new Vector3(0, r * 0.4, 0), new Vector3(r, r * 1.6, r), () => wet, () => 1, 4)
-  b.blob(new Vector3(r * 0.4, r * 1.9, 0), new Vector3(r * 1.3, r * 0.85, r * 0.85), () => wet, () => 1, 4)
+  const bull = kind === 'elephant-seal' && L > 3.8
+  // Spine nose → under water (units of L). Little neck shows: the waterline
+  // is at the throat, the skull a bulb wider than the neck behind it. The
+  // head tips up about the skull's centre.
+  const skull = new Vector3(0.0, 0.06 * L, 0)
+  const head = [[0.1, 0.055], [0.075, 0.058], [0.045, 0.065], [0.01, 0.065], [-0.02, 0.05]].map(([x, y]) =>
+    new Vector3(x * L, y * L, 0).sub(skull).applyAxisAngle(new Vector3(0, 0, 1), pitch).add(skull)
+  )
+  const neck = [new Vector3(-0.035 * L, 0.01 * L, 0), new Vector3(-0.04 * L, -0.07 * L, 0)]
+  const spine = new CatmullRomCurve3([...head, ...neck]).getSpacedPoints(20)
+  const radius = profile([[0, 0.006], [0.04, 0.017], [0.14, 0.024], [0.3, 0.036], [0.48, 0.05], [0.62, 0.05], [0.78, 0.044], [1, 0.05]])
+  const wet = (c: RGB, k: number): RGB => [c[0] * k, c[1] * k, c[2] * k]
+  const back = wet(look.back, 0.45)
+  const belly = wet(look.belly, 0.6)
+  const rings = b.tube(
+    spine,
+    // A little wider than tall: a broad skull and muzzle.
+    (t, angle) => radius(t) * L * (1 + 0.12 * Math.sin(angle) ** 2),
+    // angle 0 is the top of the head and back of the neck.
+    (_t, angle) => mix(belly, back, Math.min(1, Math.max(0, (Math.cos(angle) + 0.3) * 0.9))),
+    12
+  )
+  b.cap(rings[0], new Vector3(1, 0, 0).applyAxisAngle(new Vector3(0, 0, 1), pitch), back)
+  // Big dark eyes, high on the sides of the head behind the muzzle.
+  const at = (t: number): Vector3 => spine[Math.round(t * (spine.length - 1))]
+  const eye = at(0.27)
+  const r = radius(0.27) * L
+  for (const side of [-1, 1]) {
+    const p = eye.clone().add(new Vector3(0, r * 0.45, side * r * 0.85).applyAxisAngle(new Vector3(0, 0, 1), pitch))
+    b.blob(p, new Vector3().setScalar(r * 0.22), () => [0.005, 0.005, 0.005], () => 1, 3)
+  }
+  // An elephant seal bull's trunk hanging over the mouth.
+  if (bull) b.blob(at(0.04).clone().add(new Vector3(0, -0.02 * L, 0)), new Vector3(0.045 * L, 0.03 * L, 0.028 * L), () => back, () => 1, 4)
   return b.build()
 }
 
@@ -353,22 +389,28 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
   })
 
   // Heads bobbing in the water round the rock or off the beach.
-  const head = swimmingHead(rng, kind)
-  const heads: Matrix4[] = []
-  for (let i = 0, n = rng.int(2, 8); i < 40 && heads.length < n; i++) {
+  // Watching (snout level) and bottling (snout up); wet fur is glossy.
+  const headPoses = [swimmingHead(rng, kind, rng.range(-0.05, 0.15)), swimmingHead(rng, kind, rng.range(0.55, 0.8))]
+  const heads: Matrix4[][] = [[], []]
+  for (let i = 0, n = rng.int(2, 8), count = 0; i < 40 && count < n; i++) {
     const a = rng.range(0, Math.PI * 2)
     const r = radius * rng.range(1.2, 2.5)
     const x = centre.x + Math.cos(a) * r
     const z = centre.z + Math.sin(a) * r
     if (ctx.ground(x, z) > -1.5) continue
-    const q = new Quaternion().setFromEuler(new Euler(0, rng.range(0, Math.PI * 2), 0))
-    heads.push(new Matrix4().compose(new Vector3(x, ctx.seaLevel(x, z) - 0.1, z), q, new Vector3(1, 1, 1)))
+    // Facing any way, head cocked a little.
+    const q = new Quaternion().setFromEuler(new Euler(rng.range(-0.12, 0.12), rng.range(0, Math.PI * 2), 0, 'YXZ'))
+    heads[rng.int(0, 1)].push(new Matrix4().compose(new Vector3(x, ctx.seaLevel(x, z) - rng.range(0, 0.1), z), q, new Vector3().setScalar(rng.range(0.9, 1.1))))
+    count++
   }
-  if (heads.length > 0) {
-    const bobbing = new InstancedMesh(head, material, heads.length)
-    heads.forEach((m, i) => bobbing.setMatrixAt(i, m))
+  const glossy = new MeshStandardMaterial({ vertexColors: true, roughness: 0.35 })
+  headPoses.forEach((geometry, k) => {
+    if (heads[k].length === 0) return
+    const bobbing = new InstancedMesh(geometry, glossy, heads[k].length)
+    heads[k].forEach((m, i) => bobbing.setMatrixAt(i, m))
+    bobbing.castShadow = true
     bobbing.frustumCulled = false
     objects.push(bobbing)
-  }
+  })
   return objects
 }
