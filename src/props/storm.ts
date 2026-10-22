@@ -16,15 +16,21 @@ import type { PropContext } from './context'
 function bolt(rng: Random, base: Vector3, toCamera: Vector3, width: number, cloudBaseM: number): MeshBuilder {
   const b = new MeshBuilder()
   const side = new Vector3(0, 1, 0).cross(toCamera).normalize()
+  // Each segment is widened across itself as seen from the camera: widening
+  // all of them along one side vector left the sideways zig-zags (most of a
+  // real channel) edge-on, and the bolt broke into dashes.
   const ribbon = (points: Vector3[], w: number, brightness: number): void => {
+    const c: [number, number, number] = [brightness, brightness, brightness]
     for (let i = 0; i < points.length - 1; i++) {
       const p = points[i]
       const q = points[i + 1]
-      const c: [number, number, number] = [brightness, brightness, brightness]
-      const a = b.vertex(p.clone().addScaledVector(side, -w / 2), c)
-      const d = b.vertex(p.clone().addScaledVector(side, w / 2), c)
-      const e = b.vertex(q.clone().addScaledVector(side, w / 2), c)
-      const f = b.vertex(q.clone().addScaledVector(side, -w / 2), c)
+      const across = q.clone().sub(p).cross(toCamera).normalize().multiplyScalar(w / 2)
+      // Overlap the next segment a little so the joints have no gaps.
+      const end = q.clone().addScaledVector(q.clone().sub(p).normalize(), w / 2)
+      const a = b.vertex(p.clone().sub(across), c)
+      const d = b.vertex(p.clone().add(across), c)
+      const e = b.vertex(end.clone().add(across), c)
+      const f = b.vertex(end.clone().sub(across), c)
       b.quad(a, d, e, f)
     }
   }
@@ -51,15 +57,16 @@ function bolt(rng: Random, base: Vector3, toCamera: Vector3, width: number, clou
   const ground = base.clone().addScaledVector(side, rng.normal(0, 150)).setY(0)
   const main = jagged(top, ground, 0.22, 7)
   ribbon(main, width, 1)
-  // Forks branch off the upper part and die out in the air.
+  // Forks branch off the upper part and die out in the air, heading down
+  // like the stepped leaders they are (not sideways into a web).
   const forks = rng.int(2, 6)
   for (let f = 0; f < forks; f++) {
     const start = main[rng.int(4, Math.floor(main.length * 0.6))]
     const length = rng.range(80, 350)
     const end = start
       .clone()
-      .addScaledVector(side, rng.range(-1, 1) * length)
-      .add(new Vector3(0, -length * rng.range(0.5, 1), 0))
+      .addScaledVector(side, rng.range(-0.6, 0.6) * length)
+      .add(new Vector3(0, -length * rng.range(0.8, 1.2), 0))
     ribbon(jagged(start, end, 0.25, 4), width * 0.5, rng.range(0.25, 0.6))
   }
   return b

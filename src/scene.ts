@@ -70,7 +70,8 @@ import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
-import { FLASH_GLOW, flashGlows, stormEffects } from './stormEffects'
+import { stormCells } from './stormCells'
+import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
 import { bindCloudShadow, bindLandShadow, bindShadow, renderLandShadow } from './shadow'
 import { SkyDenoiseEffect } from './skyDenoise'
 import { createTerrain } from './terrain'
@@ -456,12 +457,11 @@ export async function renderScene(
         eclipseBias +
         // Low suns light the clouds from below and the horizon stays bright.
         1.1 * gloom * Math.min(Math.max(params.sunElevationDeg / 15, 0), 1))
-  // Lightning's glow on the cloud base, mirrored by the sea: the flash is
-  // added after exposure, so take it back to scene radiance.
+  // Lightning's glow on the cloud base, mirrored by the sea.
   const glows = flashGlows(params, camera)
   glows.forEach((g, i) => (u.flashGlows.value as Vector4[])[i].copy(g))
   u.flashCount.value = glows.length
-  ;(u.flashRadiance.value as Color).setRGB(...FLASH_GLOW).multiplyScalar(1 / exposure)
+  ;(u.flashRadiance.value as Color).setRGB(...FLASH_RADIANCE)
 
   // --- Post-processing ------------------------------------------------------
   const aerialPerspective = new AerialPerspectiveEffect(camera)
@@ -476,9 +476,11 @@ export async function renderScene(
     multisampling: 4
   })
   composer.setSize(width, height, false)
+  // Lightning and rain shafts hang from storm cells in the Cb layer.
+  const cells = stormCells(params.storm, camera.position)
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, params.weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm)
+      ? createClouds(camera, params.weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells)
       : null
   // Accumulated frames only redraw what changes: the spray sprites.
   const spray: Object3D[] = []
@@ -548,7 +550,7 @@ export async function renderScene(
   } else {
     composer.addPass(new EffectPass(camera, ...beams, grade))
   }
-  const rain = stormEffects(params, camera)
+  const rain = stormEffects(params, camera, exposure)
   if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
   if (clouds != null) composer.addPass(new AccumulatePass())
@@ -591,6 +593,7 @@ export async function renderScene(
       worldToECEF,
       lightECEF,
       params.visibilityKm,
+      cells,
       envFrames
     )
   }

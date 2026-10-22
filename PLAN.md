@@ -71,8 +71,13 @@ Playwright (headless snapshots).
   a fine Perlin noise, so it doesn't mirror the first; storms: `stormFormations`;
   `cloudArrangement.ts` patches the weather-map lookup with a 2×2 transform solved in the
   cube-sphere uv round the scene, so streets and bands follow `weather.arrangement.headingDeg`;
-  `stabiliseCubeSphereUv` rewrites takram's u in a cancellation-free form); `exposure.ts` meters a 32² sky cube; `moon.ts`; `stormEffects.ts` rain shafts,
-  lightning flash, lens rain, rainbows.
+  `stabiliseCubeSphereUv` rewrites takram's u in a cancellation-free form); `stormCells.ts`
+  raises the Cb layer's weather to full (and density ×3 in the core) in a cell over each bolt
+  (r ≈ 3.5 km + 10% of distance) and rain curtain, in the clouds, shadow and env-cube passes,
+  so strikes and rain hang from a dark storm base; `exposure.ts` meters a 32² sky cube; `moon.ts`; `stormEffects.ts` rain shafts,
+  lightning flash (fixed scene radiance `FLASH_RADIANCE`: invisible against daylight, a glow
+  by blue hour), lens rain, rainbows. Bolts strike 3–9 km out; ribbons are widened across
+  each segment as seen from the camera; forks head down.
 - **Props** (`src/props/`): rocks, trees/vegetation (+ `wind.ts` bending), birds, migratory
   flocks, ships, marine life, ice, colonies, pinnipeds, landforms, storm bolts, surf/rock
   spray, shore debris (`debris.ts`: `debrisFor()` picks driftwood/wrack/coconuts by biome
@@ -289,6 +294,18 @@ Playwright (headless snapshots).
   (shape offset kept the streaks, so not the 3D noise).
 - Haze lit by the clear-sky horizon glows under a storm deck: scale it by the light the
   clouds let through, with a floor for the grey sky (storm 0.06, overcast 0.3).
+- Lightning hung from clear sky: bolts and rain curtains were placed by azimuth/distance,
+  independent of the weather map. Anything that must come out of a cloud needs the cloud put
+  there (`stormCells.ts`). And distance matters: a 600 m base 10+ km away sits < 3.5° up behind
+  ~70% haze (Koschmieder at 30 km visibility), so the "dark base" washes pale whatever its
+  density; keep strikes ≤ 9 km.
+- Effects added after exposure (flash glow) in fixed post-exposure units look equally strong
+  by day and dusk; physical light sources need a fixed scene radiance × exposure.
+- Camera-facing ribbons widened along one fixed side vector vanish where a segment runs along
+  that vector (lightning came out as dashes): widen across each segment (`dir × toCamera`).
+- Shelf cloud backlit at sunset is a flat pink band: takram's aerial perspective on the mesh
+  (forward-scattered sun in 4–5 km of haze), not direct or env light (both checked by turning
+  off). Not fixed; direct sun on the shelf is now cut when the sun is behind the storm.
 
 ## Ideas (not planned)
 

@@ -1,4 +1,4 @@
-import { DoubleSide, Mesh, MeshStandardMaterial, Vector3, type Object3D } from 'three'
+import { DoubleSide, MathUtils, Mesh, MeshStandardMaterial, Vector3, type Object3D } from 'three'
 
 import { cloudBase } from '../cloudTypes'
 import { dirFromAzEl } from '../params'
@@ -81,7 +81,20 @@ export function createShelfCloud(ctx: PropContext): Object3D[] {
   const [dx, , dz] = dirFromAzEl(shelf.azimuthDeg, 0)
   const toStorm = new Vector3(dx, 0, dz)
   const origin = ctx.camera.position.clone().setY(0).addScaledVector(toStorm, shelf.distanceM)
-  const mesh = new Mesh(shelfGeometry(shelf, toStorm, origin, cloudBase(ctx.params.weather.formations, 'cumulonimbus')).build(), new MeshStandardMaterial({ vertexColors: true, roughness: 1, side: DoubleSide }))
+  const material = new MeshStandardMaterial({ vertexColors: true, roughness: 1, side: DoubleSide })
+  // The shelf sits under the storm: sunlight from beyond the storm would have
+  // to cross it, so only a sun on the viewer's side lights the shelf (the
+  // classic bright face). With the sun behind the storm its flat upper tiers
+  // caught grazing light and glowed pink over a dark storm.
+  const sun = new Vector3(...ctx.params.sunDirection).setY(0).normalize()
+  const sunReach = 1 - MathUtils.smoothstep(sun.dot(toStorm), -0.3, 0.2)
+  material.onBeforeCompile = shader => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <lights_fragment_end>',
+      `#include <lights_fragment_end>\nreflectedLight.directDiffuse *= ${sunReach.toFixed(3)};\nreflectedLight.directSpecular *= ${sunReach.toFixed(3)};`
+    )
+  }
+  const mesh = new Mesh(shelfGeometry(shelf, toStorm, origin, cloudBase(ctx.params.weather.formations, 'cumulonimbus')).build(), material)
   mesh.frustumCulled = false
   mesh.userData.distant = true
   return [mesh]

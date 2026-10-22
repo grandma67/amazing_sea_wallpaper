@@ -103,10 +103,12 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
 - Props are lit by `scene.environment` too; in odd light (totality) dim `environmentIntensity` or they glow.
 - Floating things (contrail, high cloud): `GetSunAndSkyIrradiance` is for surfaces (cosine, zero below plane); use `GetSunAndSkyScalarIrradiance` + phase function.
 - takram cloud layers: `coverageFilterWidth` near 1 → sheet over the sky; ragged scraps need narrow width + high `weatherExponent`. 2nd layer in an étage reads weather-map alpha (fine Perlin; `layerChannels`). Under a closed deck you never see cloud tops.
+- Props that come out of a cloud (bolts, rain) are placed independently of the weather map: put the cloud there (`stormCells.ts` patches the Cb weather round each), and keep them near enough (≤ ~9 km) that haze doesn't wash the base pale.
 - Mesh hanging from volumetric clouds (waterspout) can't see deck gaps: give it its own soft base (spray puffs).
 - Physically faint is fine, but say so rather than boost: noctilucents need sun 6–16° down, our blue hour stops at −7°; blue-hour contrails are in earth's shadow (dark lines).
 - Near-camera boats need open water: on beach days no spot ≥ 3 m deep lies within ~150 m in frame; use `"coast": "open-sea"` to check wakes/spray up close.
 - Something placed but invisible: print the physics with a temporary `console.warn('DBG …')` at 640×360/1 frame before tuning looks (ship spray: water rise on the hull was ±0.1 m, so no splash could trigger).
+- Changing `vite.config.ts` restarts the dev server and can leave pages at `504 Outdated Optimize Dep` (render hangs to `--budget`): start `npx vite --port 5176 --force` and pass `--url http://localhost:5176/` (snapshot, bench).
 - `bench.mjs` clears `out/bench` first; its first HEAD render can come out wrong (no haze): re-run before blaming the change.
 - Small objects at real scale vanish: check pixel size before tuning colour (10 cm crab: ~70 px at 5 m at 4K, a speck at 20 m).
 - "Not showing" is usually placement, light or size: check `--props`, backlight, pixel size before debugging shaders. To debug a shader, force a visible output (`coverage = 1.0` over a region) and move it step by step.

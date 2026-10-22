@@ -730,7 +730,9 @@ function generateStorm(
   const bolts = lightning
     ? Array.from({ length: rng.weighted([[1, 4], [2, 2], [3, 1]] as const) }, () => ({
         azimuthDeg: headingDeg + rng.range(-halfFov, halfFov),
-        distance: rng.range(2500, 14000),
+        // Near enough that the dark storm base over the strike shows: past
+        // ~10 km it sits 3° up and the haze has washed it pale.
+        distance: rng.range(3000, 9000),
         seed: rng.int(0, 1_000_000)
       }))
     : []

@@ -4,6 +4,7 @@
 //
 //   node scripts/bench.mjs [--ref HEAD~1] [--w 1920 --h 1080 --frames 16]
 //        [--scene specs.json | DATE...] [--out out/bench] [--runs 2]
+//        [--url http://localhost:5174/]   (this tree's server, if not 5174)
 //
 // Checks out --ref (default HEAD, i.e. the last commit, against your working
 // tree) into a temporary git worktree, serves it with vite on port 5175,
@@ -28,6 +29,7 @@ const option = (name, fallback) => {
 const ref = option('ref', 'HEAD')
 const out = resolve(option('out', 'out/bench'))
 const runs = Number(option('runs', 2))
+const url = option('url', 'http://localhost:5174/')
 const scene = option('scene', null)
 const size = ['w', 'h', 'frames'].flatMap(k => [`--${k}`, option(k, { w: '1920', h: '1080', frames: '16' }[k])])
 const dates = args.length > 0 ? args : ['2024-07-12', '2024-06-26', '2024-04-24', '2024-02-12']
@@ -70,7 +72,7 @@ function render(url, dir) {
 }
 
 try {
-  if (!(await fetch('http://localhost:5174/').catch(() => null))?.ok) throw new Error('start this tree first: npx vite (port 5174)')
+  if (!(await fetch(url).catch(() => null))?.ok) throw new Error(`start this tree first: npx vite (${url})`)
   // Old renders left in before/ and after/ would be diffed (and reported) again.
   await rm(out, { recursive: true, force: true })
   await mkdir(out, { recursive: true })
@@ -81,7 +83,7 @@ try {
   } finally {
     server.kill()
   }
-  const after = render('http://localhost:5174/', join(out, 'after'))
+  const after = render(url, join(out, 'after'))
   console.log(`\n${'name'.padEnd(24)} ${sha.padStart(8)}   now   change`)
   let sumA = 0
   let sumB = 0
