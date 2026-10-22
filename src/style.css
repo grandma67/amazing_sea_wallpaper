@@ -210,7 +210,8 @@ body {
 }
 
 #info:hover,
-#info:focus-within {
+#info:focus-within,
+[data-ui='shown'] #info {
   opacity: 1;
 }
 
@@ -255,11 +256,13 @@ nav a[aria-disabled='true'] {
   pointer-events: none;
 }
 
-/* Phones: no hover, so the bar stays visible; title above the buttons, clear
-   of the home indicator. */
+/* Phones: no hover, so a tap shows or hides the bar (main.ts); while hidden its
+   invisible buttons let taps through to the page. Title above the buttons,
+   clear of the home indicator. */
 @media (hover: none) {
-  #info {
-    opacity: 1;
+  [data-ui='hidden'] #info {
+    opacity: 0;
+    pointer-events: none;
   }
 }
 

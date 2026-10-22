@@ -153,7 +153,9 @@ Playwright (headless snapshots).
   geometry coverage, and `SkyFillEffect` blends the finished sky into silhouette pixels),
   `skyDenoise.ts` (smooths light-shaft grain once).
 - **Page:** `main.ts` — portrait/landscape, device-aware size, prev/next/today/random,
-  download; `random/index.html` redirects to a random past day.
+  download (Today greyed out on today); `random/index.html` redirects to a random past day.
+  A click/tap outside the bar toggles it (`data-ui` on `<html>`): phones start shown, PCs
+  hidden with hover still revealing it; hidden on phones = no pointer events.
 - **Tests:** `test/` (Vitest, `npm test`, also in CI before the build) covers the logic,
   not the rendering: PRNG, dates, FFT, `generateParams` invariants over three years of days
   (sun/moon geometry, fog, lighthouse, seals, storms, rainbows, ice by region and

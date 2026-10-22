@@ -180,7 +180,9 @@ const ready = (async () => {
   const next = document.getElementById('next') as HTMLAnchorElement
   if (date < today || allowFuture) next.href = linkFor(shiftDate(date, 1))
   else next.setAttribute('aria-disabled', 'true')
-  ;(document.getElementById('today') as HTMLAnchorElement).href = linkFor(today)
+  const todayLink = document.getElementById('today') as HTMLAnchorElement
+  if (date !== today) todayLink.href = linkFor(today)
+  else todayLink.setAttribute('aria-disabled', 'true')
   document.getElementById('download')!.addEventListener('click', () => {
     void rendered.toBlob('image/jpeg', 0.95).then(blob => {
       const a = document.createElement('a')
@@ -191,11 +193,29 @@ const ready = (async () => {
     })
   })
   document.getElementById('info')!.hidden = false
+  toggleInfoOnTap()
   return { params, ...rendered }
 })().catch((error: unknown) => {
   status.textContent = `Rendering failed: ${String(error)}`
   throw error
 })
+
+/**
+ * A click (PC) or tap (phone) anywhere outside the bar shows or hides the title
+ * and buttons. Phones start with them shown (no hover to reveal them), PCs
+ * hidden; while hidden on a PC, hovering the bar still reveals it.
+ */
+function toggleInfoOnTap(): void {
+  const root = document.documentElement
+  root.dataset.ui = matchMedia('(hover: none)').matches ? 'shown' : 'hidden'
+  document.addEventListener('click', event => {
+    if ((event.target as Element).closest('#info') != null) return
+    const show = root.dataset.ui !== 'shown'
+    root.dataset.ui = show ? 'shown' : 'hidden'
+    // A focused button would keep the bar up through :focus-within.
+    if (!show && document.activeElement instanceof HTMLElement) document.activeElement.blur()
+  })
+}
 
 /** Fade the splash out, keeping it up long enough to not just flash by. */
 async function hideSplash(): Promise<void> {
