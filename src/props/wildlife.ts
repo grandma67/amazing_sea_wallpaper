@@ -567,7 +567,9 @@ export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number
     const height = radius(t, 0)
     spine.push(new Vector3(neck - t * bodyLength, height + 0.01, bend * length * 0.25 * tailT * tailT))
   }
-  b.tube(spine, radius, (t, angle) => hide(t, Math.cos(angle), t * bodyLength), 14)
+  const rings = b.tube(spine, radius, (t, angle) => hide(t, Math.cos(angle), t * bodyLength), 14)
+  // Close the neck: a gaping mouth would show into the tube.
+  b.cap(rings[0], new Vector3(1, 0, 0), mouth)
   // Legs: short, splayed out from shoulders and hips, elbows up.
   for (const [at, thick] of [[0.1, 0.24], [0.4, 0.32]] as const) {
     const p = spine[Math.round(at * steps)]
@@ -612,12 +614,14 @@ export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number
   const jaw = (angle: number, drop: number, inside: number, flat: number, width: number): void => {
     const dir = new Vector3(Math.cos(angle), Math.sin(angle), 0)
     const path = Array.from({ length: 13 }, (_, k) => hinge.clone().setY(hinge.y - drop).addScaledVector(dir, ((k / 12) * 1.1 - 0.1) * (head + girth * 0.25)))
-    b.tube(
+    const jawRings = b.tube(
       path,
       (t, a) => girth * width * (1 - 0.62 * Math.min(1, t * 1.1)) * (1 - flat * Math.cos(a) ** 2),
       (t, a) => (Math.cos(a) * inside > 0.3 && gape > 0.08 && t > 0.05 ? mouth : hide(0.05, -Math.cos(a), t * 3)),
       12
     )
+    // The blunt snout tip.
+    b.cap(jawRings[jawRings.length - 1], dir, hide(0.05, 1, 0))
   }
   jaw(gape, 0, 1, 0.55, 0.78)
   jaw(-0.02, girth * 0.18, -1, 0.62, 0.68)
@@ -822,9 +826,9 @@ export function createWildlife(ctx: PropContext): Mesh[] {
   /** A group of `count` animals in the water `depth` m deep, in view within
    * `maxDistance`, at height `y` over the sea bed (`ground`) or the waves. */
   const inSea = (pieces: Piece[], variants: number, count: number, depth: [number, number], maxDistance: number, spread: number, y: (x: number, z: number, ground: number) => number): void => {
-    for (let tries = 0; tries < 80 && pieces.length === 0; tries++) {
-      const centre = ctx.seaPoint(rng, [-0.95, 0.15], 6, maxDistance, depth[0])
-      if (centre == null || ctx.ground(centre.x, centre.z) < -depth[1]) continue
+    for (let tries = 0; tries < 5 && pieces.length === 0; tries++) {
+      const centre = ctx.waterSpot(rng, depth, maxDistance)
+      if (centre == null) return
       for (let i = 0; i < count * 8 && pieces.length < count; i++) {
         const x = centre.x + rng.normal(0, spread)
         const z = centre.z + rng.normal(0, spread)

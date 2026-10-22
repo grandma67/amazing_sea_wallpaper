@@ -15,11 +15,15 @@
 // --stats 'p => …' counts the values it returns (each element of an array,
 //   so 'p => p.weather.formations' counts layers), with the share of days.
 // --list prints one line per day: date, then the fields.
+// Each day also has p.props: what the props choose (src/props/choices.ts:
+//   gulls, marine, migratory, wildlife, shoreLife, debris, mangroves), on the
+//   render's own random streams. Placement can still miss the frame.
 //
 // Examples:
 //   node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-12
 //   node scripts/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
 //   node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
+//   node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile' --where 'p => p.props.wildlife != null'
 
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'vite'
@@ -68,9 +72,11 @@ const server = await createServer({ server: { middlewareMode: true, hmr: false }
 try {
   const { generateParams } = await server.ssrLoadModule('/src/params.ts')
   const { parseSceneSpec } = await server.ssrLoadModule('/src/sceneSpec.ts')
+  const { propChoices } = await server.ssrLoadModule('/src/props/choices.ts')
   parseSceneSpec(spec)
   const days = dates()
     .map(date => generateParams(date, 0, 16 / 9, spec))
+    .map(p => ({ ...p, props: propChoices(p) }))
     .filter(p => keep(p))
 
   if (stats != null) {

@@ -11,6 +11,8 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
+import type { SceneParams } from '../params'
+import type { Random } from '../random'
 import { forced } from '../sceneSpec'
 import { MeshBuilder } from './builder'
 import { windDirection } from './wind'
@@ -80,7 +82,7 @@ export function restingGull(dark: boolean): BufferGeometry {
 
 /** Storm: no gulls up. They sit it out in rafts on the water (heads into
  * the wind) or huddled on the beach. */
-function restingGulls(ctx: PropContext, rng: ReturnType<PropContext['rng']>, dark: boolean): InstancedMesh[] {
+function restingGulls(ctx: PropContext, rng: Random, dark: boolean): InstancedMesh[] {
   const { camera } = ctx
   const facing = windDirection(ctx.params).negate()
   const yaw = Math.atan2(-facing.z, facing.x)
@@ -124,11 +126,18 @@ function restingGulls(ctx: PropContext, rng: ReturnType<PropContext['rng']>, dar
   return [mesh]
 }
 
+/** Gulls today: flying, resting (in a storm) or none. */
+export function gullsFor(params: SceneParams, rng: Random): 'flying' | 'resting' | null {
+  if (!forced(params.overrides?.birds, rng.chance(0.6))) return null
+  return stormy(params) ? 'resting' : 'flying'
+}
+
 export function createBirds(ctx: PropContext): InstancedMesh[] {
   const { params } = ctx
   const rng = ctx.rng('birds')
-  if (!forced(params.overrides?.birds, rng.chance(0.6))) return []
-  if (stormy(params)) return restingGulls(ctx, rng, rng.chance(0.2))
+  const gulls = gullsFor(params, rng)
+  if (gulls == null) return []
+  if (gulls === 'resting') return restingGulls(ctx, rng, rng.chance(0.2))
 
   // Seen against a bright low sky, birds read as dark silhouettes.
   const dark = params.sunElevationDeg < 4 || params.timeOfDay === 'night' || rng.chance(0.2)

@@ -2,6 +2,7 @@ import { DoubleSide, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3, typ
 
 import type { RGB } from '../biome'
 import type { OceanName } from '../oceans'
+import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
@@ -362,15 +363,21 @@ const SPECIES_BY_OCEAN: Record<OceanName, readonly (readonly [Species, number])[
   arctic: [['orca', 2], ['humpback', 3]]
 }
 
-export function createMarineLife(ctx: PropContext): Object3D[] {
-  const { params } = ctx
-  const rng = ctx.rng('marine')
+/** Which animal shows at the surface today, or null. */
+export function marineFor(params: SceneParams, rng: Random): Species | null {
   const force = params.overrides?.marine
-  if (!forced(force, rng.chance(0.35) && params.storm == null)) return []
+  if (!forced(force, rng.chance(0.35) && params.storm == null)) return null
   let table = SPECIES_BY_OCEAN[params.sea.ocean]
   // Orcas on warm-water coasts are rare; keep them to cooler ones.
   if (params.biome.name === 'tropical' || params.biome.name === 'desert') table = table.filter(([s]) => s !== 'orca')
-  const species = forcedKind(force, rng.weighted(table))
+  return forcedKind(force, rng.weighted(table))
+}
+
+export function createMarineLife(ctx: PropContext): Object3D[] {
+  const { params } = ctx
+  const rng = ctx.rng('marine')
+  const species = marineFor(params, rng)
+  if (species == null) return []
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.3, side: DoubleSide })
   const spray = new SprayBuilder()
   // Mostly side-on to the camera, the view that shows an animal's shape.

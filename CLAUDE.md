@@ -1,6 +1,6 @@
 # Amazing Sea Wallpaper
 
-PLAN.md has architecture, decisions, lessons; changelog.md has versions. Dev server: port **5174** (`strictPort`; 5173 is other projects).
+PLAN.md has architecture, decisions, lessons; changelog.md has versions; ANIMALS.md lists every animal (where, when, weather, how often). Dev server: port **5174** (`strictPort`; 5173 is other projects).
 
 # Goal: realistic, and cheap to render
 
@@ -54,6 +54,7 @@ node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields ti
 node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-12
 node scripts/params.mjs --scene '{"storm":"squall"}' --stats 'p => p.weather.formations'   # spec on every day
 ```
+- `p.props` = what the props choose (`src/props/choices.ts`: gulls, marine, migratory, wildlife, shoreLife, debris, mangroves), same streams as the render: `--stats 'p => p.props.wildlife?.crocodile ?? null'`. New `xxxFor` choice → add it there.
 - `--where`/`--stats` take a JS fn of `SceneParams`; `--stats` counts array elements. Dates `YYYY-MM-DD` or `FROM..TO`; none = test days (`test/days.ts`).
 - Pick 4–8 dates covering cases (each biome, near/far, day/night).
 - Must-be-in-frame features (moon, eclipse): compute from `camera.headingDeg`, `focalLengthMm` (36×24 mm sensor), `horizonFraction`; don't render to find out.
@@ -81,6 +82,11 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
 - Stop the server when done: `lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`.
 
 ## 5. Look at results cheaply
+- **Building a mesh? Preview it alone first: `scripts/mesh.mjs`** (~0.4 s/mesh): side, front, 3/4 above, and at eye height `--eye` m off, on sand-albedo ground with a 1 m ruler; prints size and triangles. Iterate shape/colour here, render the beach only for placement and light.
+  ```sh
+  node scripts/mesh.mjs --out $SP/mesh 'props/wildlife#hippoGeometry($rng, 0)' 'props/wildlife#crocodileGeometry($rng, "nile", 0.4)'
+  ```
+  Builder = any export under `src/` returning a BufferGeometry or Object3D; args JSON, `$rng` = seeded Random (`--seed`). Front view caught open tube ends (jaws) that beach renders hid.
 - **"Did it show up?" is a number: `scripts/diff.mjs`.** Renders each spec as-is and with `--off` merged; prints % changed, pixel box, strength, brighter/darker, plus `NAME.diff.jpg` (off | on cropped, diff ×8 below). `⚠ invisible` (< 0.01%) = not placed, out of frame, hidden (cloud layer, geometry) or too faint; fix before looking. ~6 s/spec at 960×540.
   ```sh
   node scripts/diff.mjs --scene $SP/specs.json --off '{"contrails":null}' --out $SP/contrails --w 960 --h 540 --frames 16
@@ -116,7 +122,9 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
 - Uniform tubes read as pipes: wood needs bulges, oval section, grain checks, splintered ends (`logGeometry`).
 - `MeshBuilder.tube` returns rings; close ends with `MeshBuilder.cap`. Its frame flips with path direction (toward −X: cos(angle) up; +X: down): check back/belly colours.
 - Beach animals near the waterline vanish under the swash (keep ≥ 0.25 m up); "in the water" needs a shallow fallback (tropical shelves: 1.2 m deep only > 150 m out).
-- Storm-aware props: `stormy(params)` in `props/context.ts`.
+- Storm-aware props: `stormy(params)` in `props/context.ts`. Animals in water: `ctx.waterSpot(rng, depth, maxDistance)`.
+- After new animals or changed chances: `node scripts/animals.mjs` and paste its table into ANIMALS.md (update the rules there too).
+- First `mesh.mjs` run on a fresh dev server can re-optimise deps; renders then throw `reading 'hasFeature'` (two three.js copies). Restart `npx vite --force`.
 - Low things at sea hide behind the horizon (~4.5 km at 1.6 m eye): a 2 m cay is just palms. Place low features near; low island groups can read as one shore.
 - Steep features narrower than the ocean grid (spacing r × 0.012) zig-zag: clamp widths to grid and pixel size (`surfProfile`'s `minFace`).
 - Sheer walls on a polar grid read as drums: vary the wall's foot with angle.

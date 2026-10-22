@@ -108,6 +108,12 @@ Playwright (headless snapshots).
   crocodiles (`CROCODILES`, by day) and hippos (`HIPPOS`). `inWater()` says where the big
   ones are: crocodiles awash at night and in storms, hippos in the water by day and on the
   beach from dusk to dawn; `inSea()` places them in water by depth via `ctx.seaPoint`.
+- **Prop choices without rendering:** `props/choices.ts` `propChoices(params)` runs each
+  creator's pure `xxxFor(params, rng)` (gulls, marine, migratory, wildlife, shore life,
+  debris, mangroves) on its own stream, for `scripts/params.mjs` (`p.props`),
+  `scripts/animals.mjs` (ANIMALS.md tables) and tests.
+- **Mesh preview:** `tools/mesh.html` + `src/meshPreview.ts` (dev server only) draws any
+  builder alone from four views; `scripts/mesh.mjs` screenshots it.
 - **Storms and animals:** `stormy(params)` (`props/context.ts`: a storm or storm sky). Gulls
   rest on the water or sand facing the wind (`restingGull`), colonies have no birds up,
   pinnipeds leave the haul-out (heads only, spread up to 100 m off), crabs, monkeys, lizards

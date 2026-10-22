@@ -86,6 +86,19 @@ export class PropContext {
     return this.ground(p.x, p.z) < -minDepth ? p : null
   }
 
+  /** A spot on the sea in view where the water is `depth` [min, max] m deep,
+   * `minDistance` to `maxDistance` away (lower frame first); null if none in
+   * `tries`. Gentle (tropical) shelves are only ~1 m deep for the first
+   * 150 m: callers wanting deep water near the beach should allow a shallow
+   * minimum and adapt (lie down, sink less) rather than find nothing. */
+  waterSpot(rng: Random, depth: [number, number], maxDistance: number, minDistance = 6, tries = 80): Vector3 | null {
+    for (let i = 0; i < tries; i++) {
+      const p = this.seaPoint(rng, [-0.95, 0.15], minDistance, maxDistance, depth[0])
+      if (p != null && this.ground(p.x, p.z) >= -depth[1]) return p
+    }
+    return null
+  }
+
   /** Does (x, y, z) project inside the central `fraction` of the frame? */
   inFrame(x: number, y: number, z: number, fraction = 0.75): boolean {
     this.point.set(x, y, z).project(this.camera)

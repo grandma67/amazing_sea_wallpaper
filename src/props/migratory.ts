@@ -11,6 +11,8 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
+import type { SceneParams } from '../params'
+import type { Random } from '../random'
 import { forced, forcedKind, type MigratorySpecies } from '../sceneSpec'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
@@ -162,26 +164,32 @@ function migrating(month: number): boolean {
   return (month >= 3 && month <= 5) || (month >= 9 && month <= 11)
 }
 
-export function createMigratoryBirds(ctx: PropContext): InstancedMesh[] {
-  const { params } = ctx
-  const rng = ctx.rng('migratory')
+/** Which migratory flock passes today, or null. */
+export function migratoryFor(params: SceneParams, rng: Random): Species | null {
   const force = params.overrides?.migratory
-  if (force === undefined && (params.storm != null || params.timeOfDay === 'night')) return []
+  if (force === undefined && (params.storm != null || params.timeOfDay === 'night')) return null
   const month = Number(params.date.slice(5, 7))
   const biome = params.biome.name
   const warm = biome === 'tropical' || biome === 'desert' || biome === 'mediterranean'
   const cool = biome === 'nordic' || biome === 'volcanic' || biome === 'mediterranean'
   const polar = params.sea.ocean === 'arctic' || params.sea.ocean === 'southern'
   const season = migrating(month) ? 1 : 0.25
-  let species = rng.weighted<Species | null>([
+  const species = rng.weighted<Species | null>([
     [null, 6],
     ['goose', cool ? 2 * season : 0],
     ['duck', cool ? 2 * season : 0],
     ['flamingo', warm && !polar ? 1.5 : 0]
   ])
-  if (!forced(force, species != null)) return []
+  if (!forced(force, species != null)) return null
   // Forced on where none were drawn: whichever fits the coast.
-  species = forcedKind(force, species ?? (warm && !polar ? 'flamingo' : 'goose'))
+  return forcedKind(force, species ?? (warm && !polar ? 'flamingo' : 'goose'))
+}
+
+export function createMigratoryBirds(ctx: PropContext): InstancedMesh[] {
+  const { params } = ctx
+  const rng = ctx.rng('migratory')
+  const species = migratoryFor(params, rng)
+  if (species == null) return []
 
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: DoubleSide })
   const camera = ctx.camera
