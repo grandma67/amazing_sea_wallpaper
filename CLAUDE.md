@@ -121,6 +121,8 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
 - `Vector3.transformDirection` normalises: scale after transforming.
 - Scripted edits: Python `str.replace` hits every match (`"  cirrus: {"` also hit the choice table), loose regexes hit params. Prefer Edit, or assert exactly one match.
 
+- Page UI (`main.ts`, `style.css`, no rendering change): no snapshot needed; a throwaway Playwright script (`chromium.launch({channel:'chrome'})`, `isMobile`/`hasTouch` context for phones, `await window.__sea.ready`, `?scene={"clouds":[]}` for speed) reading computed styles after clicks/taps.
+
 ## 7. Tests and finishing
 - `test/<feature>.test.ts` covering:
   - choice table over `allParams()` (real days): only where intended, roughly as often, season respected;
