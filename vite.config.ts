@@ -1,9 +1,21 @@
+import { execSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 
 // Relative base so the build works under https://<user>.github.io/<repo>/
+/** The commit being built: cached renders (renderCache.ts) from other builds
+ * are never shown. */
+function buildId(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
+  } catch {
+    return String(Date.now())
+  }
+}
+
 export default defineConfig({
   base: './',
+  define: { __BUILD_ID__: JSON.stringify(buildId()) },
   // Pages: the wallpaper, and /random/ which redirects to a random past day.
   build: {
     rollupOptions: {

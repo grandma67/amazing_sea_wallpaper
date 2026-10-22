@@ -156,6 +156,12 @@ Playwright (headless snapshots).
   download (Today greyed out on today); `random/index.html` redirects to a random past day.
   A click/tap outside the bar toggles it (`data-ui` on `<html>`): phones start shown, PCs
   hidden with hover still revealing it; hidden on phones = no pointer events.
+- **Render cache:** `public/sw.js` + `renderCache.ts` keep the 10 most recently viewed
+  renders (JPEG 0.95, Cache Storage) keyed by build commit (`__BUILD_ID__`), date, size,
+  frames, portrait and spec; a hit is drawn straight into the canvas (~60 ms vs seconds)
+  and the render worker is stopped. The page reads/stores via `rendered/*.jpg` GET/PUT that
+  only the worker answers. Off in dev and under `navigator.webdriver` (snapshots must render);
+  `?cache=1|0` forces it. A first visit renders before the worker controls the page, then stores.
 - **Tests:** `test/` (Vitest, `npm test`, also in CI before the build) covers the logic,
   not the rendering: PRNG, dates, FFT, `generateParams` invariants over three years of days
   (sun/moon geometry, fog, lighthouse, seals, storms, rainbows, ice by region and

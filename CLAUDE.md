@@ -122,6 +122,7 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
 - Scripted edits: Python `str.replace` hits every match (`"  cirrus: {"` also hit the choice table), loose regexes hit params. Prefer Edit, or assert exactly one match.
 
 - Page UI (`main.ts`, `style.css`, no rendering change): no snapshot needed; a throwaway Playwright script (`chromium.launch({channel:'chrome'})`, `isMobile`/`hasTouch` context for phones, `await window.__sea.ready`, `?scene={"clouds":[]}` for speed) reading computed styles after clicks/taps.
+  Script in `$SP` can't resolve `playwright`: import `<repo>/node_modules/playwright/index.mjs`. Service worker/cache: `npx vite build` + `npx vite preview --port 4173` (dev skips it), `?w=320&h=180&frames=1&cache=1` (cache is off under webdriver).
 
 ## 7. Tests and finishing
 - `test/<feature>.test.ts` covering:

@@ -1,6 +1,7 @@
 import { generateSceneParams } from './composition'
 import { localDateString, resolveDate, shiftDate } from './dates'
 import type { SceneParams } from './params'
+import { cachedRender, renderCacheEnabled, renderCachePath, startRenderCache, storeRender } from './renderCache'
 import { parseSceneSpec, type SceneSpec } from './sceneSpec'
 import type { RenderReply, RenderRequest } from './renderWorker'
 
@@ -14,6 +15,8 @@ import type { RenderReply, RenderRequest } from './renderWorker'
 //   ?portrait=1|0      force a portrait (phone) or landscape composition
 //   ?frames=24         cloud accumulation frames (default 64; fewer = faster)
 //   ?worker=0          render on the main thread instead of a worker
+//   ?cache=0|1         skip or force the last-10-renders cache (renderCache.ts;
+//                      default on, off in dev and under automation)
 //   ?scene={...}       a scene spec (JSON, sceneSpec.ts) forcing parts of the
 //                      scene; its "date" replaces ?date= (future days allowed)
 
@@ -79,6 +82,9 @@ const resolution = defaultResolution()
 const width = Number(query.get('w') ?? resolution?.[0] ?? 3840)
 const height = Number(query.get('h') ?? resolution?.[1] ?? 2160)
 const frames = Number(query.get('frames') ?? 64)
+const cacheOn = renderCacheEnabled(query)
+const cacheReady = cacheOn ? startRenderCache() : Promise.resolve(false)
+const cachePath = renderCachePath({ date, width, height, frames, portrait, spec: query.get('scene') })
 
 interface Rendered {
   debug: Record<string, unknown>
@@ -168,8 +174,12 @@ const ready = (async () => {
   await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)))
   if (specError != null) throw specError
   if (resolution == null) throw new Error('this browser does not support WebGL 2')
-  const rendered = await startRender(params, canvas)
+  const cached = cacheOn ? await cachedRender(cachePath) : null
+  if (cached != null) worker?.terminate()
+  const rendered = cached != null ? await showCached(cached, canvas) : await startRender(params, canvas)
   void hideSplash()
+  if (cached == null)
+    void cacheReady.then(async ok => ok && storeRender(cachePath, await rendered.toBlob('image/jpeg', 0.95)))
 
   document.getElementById('title')!.textContent = params.title
   document.getElementById('date')!.textContent = new Date(`${date}T12:00:00`).toLocaleDateString(
@@ -199,6 +209,17 @@ const ready = (async () => {
   status.textContent = `Rendering failed: ${String(error)}`
   throw error
 })
+
+/** A render from the cache, drawn into the canvas. Its download is the cached
+ * JPEG itself (what a fresh render would give at quality 0.95). */
+async function showCached(blob: Blob, canvas: HTMLCanvasElement): Promise<Rendered> {
+  const image = await createImageBitmap(blob)
+  canvas.width = image.width
+  canvas.height = image.height
+  canvas.getContext('2d')!.drawImage(image, 0, 0)
+  image.close()
+  return { debug: { cached: true }, toBlob: async () => blob }
+}
 
 /**
  * A click (PC) or tap (phone) anywhere outside the bar shows or hides the title
