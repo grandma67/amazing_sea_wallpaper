@@ -89,7 +89,7 @@ type Pose = 'lying' | 'banana' | 'sitting'
  * runs nose → tail; the body is lofted round it with a head, a thicker
  * neck (bulls), a fat middle and a tapering tail.
  */
-function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: number): BufferGeometry {
+export function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: number): BufferGeometry {
   const look = LOOKS[kind]
   const b = new MeshBuilder()
   const L = rng.range(...look.length)
@@ -180,7 +180,7 @@ function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: number): Buf
  * down into the water; seals have no visible neck "waist". Sizes from the
  * body length (head ~ 0.12 L long, neck ~ 0.1 L across).
  */
-function swimmingHead(rng: Random, kind: PinnipedKind, pitch: number): BufferGeometry {
+export function swimmingHead(rng: Random, kind: PinnipedKind, pitch: number): BufferGeometry {
   const look = LOOKS[kind]
   const b = new MeshBuilder()
   const L = rng.range(...look.length)
@@ -189,12 +189,13 @@ function swimmingHead(rng: Random, kind: PinnipedKind, pitch: number): BufferGeo
   // is at the throat, the skull a bulb wider than the neck behind it. The
   // head tips up about the skull's centre.
   const skull = new Vector3(0.0, 0.06 * L, 0)
-  const head = [[0.1, 0.055], [0.075, 0.058], [0.045, 0.065], [0.01, 0.065], [-0.02, 0.05]].map(([x, y]) =>
+  const head = [[0.085, 0.056], [0.065, 0.058], [0.04, 0.064], [0.01, 0.066], [-0.02, 0.052]].map(([x, y]) =>
     new Vector3(x * L, y * L, 0).sub(skull).applyAxisAngle(new Vector3(0, 0, 1), pitch).add(skull)
   )
   const neck = [new Vector3(-0.035 * L, 0.01 * L, 0), new Vector3(-0.04 * L, -0.07 * L, 0)]
   const spine = new CatmullRomCurve3([...head, ...neck]).getSpacedPoints(20)
-  const radius = profile([[0, 0.006], [0.04, 0.017], [0.14, 0.024], [0.3, 0.036], [0.48, 0.05], [0.62, 0.05], [0.78, 0.044], [1, 0.05]])
+  // A broad, blunt muzzle (a thin one reads as a beak or hook).
+  const radius = profile([[0, 0.016], [0.03, 0.025], [0.12, 0.031], [0.3, 0.041], [0.48, 0.052], [0.62, 0.052], [0.78, 0.046], [1, 0.05]])
   const wet = (c: RGB, k: number): RGB => [c[0] * k, c[1] * k, c[2] * k]
   const back = wet(look.back, 0.45)
   const belly = wet(look.belly, 0.6)
@@ -403,7 +404,7 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
     heads[rng.int(0, 1)].push(new Matrix4().compose(new Vector3(x, ctx.seaLevel(x, z) - rng.range(0, 0.1), z), q, new Vector3().setScalar(rng.range(0.9, 1.1))))
     count++
   }
-  const glossy = new MeshStandardMaterial({ vertexColors: true, roughness: 0.35 })
+  const glossy = new MeshStandardMaterial({ vertexColors: true, roughness: 0.5 })
   headPoses.forEach((geometry, k) => {
     if (heads[k].length === 0) return
     const bobbing = new InstancedMesh(geometry, glossy, heads[k].length)
