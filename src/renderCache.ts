@@ -6,6 +6,8 @@
 // it on, ?cache=0 off.
 
 declare const __BUILD_ID__: string
+// Set by vite.config.ts `define`; the dev server may not replace it.
+const BUILD_ID = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev'
 
 export interface RenderKey {
   date: string
@@ -17,7 +19,7 @@ export interface RenderKey {
 }
 
 /** Cache path for a render, relative to the service worker's scope. */
-export function renderCachePath(key: RenderKey, build: string = __BUILD_ID__): string {
+export function renderCachePath(key: RenderKey, build: string = BUILD_ID): string {
   const id = [build, key.date, key.width, key.height, key.frames, key.portrait ? 'p' : 'l', key.spec ?? ''].join('|')
   return `rendered/${key.date}-${key.width}x${key.height}-${fnv1a(id)}.jpg`
 }
