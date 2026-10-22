@@ -14,7 +14,7 @@ import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { shoreToWorld, terrainNormal, worldToShore } from '../terrain'
 import { MeshBuilder } from './builder'
-import type { PropContext } from './context'
+import { stormy, type PropContext } from './context'
 import { beachLines } from './debris'
 import { noise3 } from './noise'
 
@@ -39,14 +39,30 @@ import { noise3 } from './noise'
 // the sun; green iguanas on Central American and Caribbean beaches, water
 // monitors on South-East Asian ones, spiny-tailed lizards (Uromastyx) on the
 // Arabian coast.
+//
+// Crocodiles bask on beaches by day, at the water's edge near river mouths
+// and mangroves, often with jaws agape to cool, and swim out to sea:
+// saltwater crocodiles in South-East Asia (to northern Australia), American
+// crocodiles on Caribbean and Central American coasts, Nile crocodiles in
+// East Africa, West African crocodiles (C. suchus) on the Gulf of Guinea.
+// At night and in storms they're in the water, eyes and snout showing.
+//
+// Hippos come down to the sea only in a few places: Loango (Gabon) and the
+// Bijagós (Guinea-Bissau), where they live in coastal lagoons, and rarely
+// iSimangaliso (South Africa) and Mozambique. By day they lie in the water,
+// backs and heads showing; from dusk to dawn they walk the beach and swim in
+// the surf. Gabon's beaches are also the world's largest leatherback rookery
+// (October–March), with olive ridleys.
 
 export type TurtleSpecies = 'green' | 'loggerhead' | 'leatherback' | 'hawksbill' | 'olive-ridley'
 export type MonkeyKind = 'macaque' | 'capuchin' | 'vervet'
 export type LizardKind = 'marine-iguana' | 'green-iguana' | 'monitor' | 'spiny-tailed'
+export type CrocodileKind = 'saltwater' | 'american' | 'nile' | 'west-african'
 export type WildRegion =
   | 'se-asia'
   | 'central-america'
   | 'east-africa'
+  | 'west-africa'
   | 'caribbean'
   | 'galapagos'
   | 'hawaii'
@@ -67,6 +83,9 @@ export interface Wildlife {
   monkeys: number
   lizard: LizardKind | null
   lizards: number
+  crocodile: CrocodileKind | null
+  crocodiles: number
+  hippos: number
 }
 
 /** Which part of the world a warm beach is on, from its biome and ocean. */
@@ -77,7 +96,7 @@ function regionFor(params: SceneParams, rng: Random): WildRegion | null {
   if (biome.name === 'tropical') {
     if (ocean === 'pacific') return draw < 0.6 ? 'se-asia' : 'central-america'
     if (ocean === 'indian') return draw < 0.65 ? 'se-asia' : 'east-africa'
-    if (ocean === 'atlantic') return 'caribbean'
+    if (ocean === 'atlantic') return draw < 0.35 ? 'west-africa' : 'caribbean'
   }
   if (biome.name === 'volcanic' && ocean === 'pacific' && Math.abs(params.latitudeDeg) < 25) {
     return draw < 0.5 ? 'galapagos' : 'hawaii'
@@ -100,6 +119,8 @@ export function nestingSpecies(region: WildRegion | null, month: number, pick: n
       return inMonths(month, 7, 12) ? 'olive-ridley' : 'green'
     case 'se-asia':
       return inMonths(month, 4, 9) ? (pick < 0.7 ? 'green' : 'hawksbill') : inMonths(month, 11, 3) ? 'olive-ridley' : null
+    case 'west-africa':
+      return inMonths(month, 10, 3) ? (pick < 0.75 ? 'leatherback' : 'olive-ridley') : null
     case 'east-africa':
     case 'galapagos':
     case 'arabia':
@@ -125,6 +146,17 @@ const LIZARDS: Partial<Record<WildRegion, [LizardKind, number]>> = {
   arabia: ['spiny-tailed', 0.25]
 }
 
+const CROCODILES: Partial<Record<WildRegion, [CrocodileKind, number]>> = {
+  'se-asia': ['saltwater', 0.12],
+  'central-america': ['american', 0.12],
+  caribbean: ['american', 0.08],
+  'east-africa': ['nile', 0.1],
+  'west-africa': ['west-african', 0.12]
+}
+
+/** Chance of hippos on a beach. */
+const HIPPOS: Partial<Record<WildRegion, number>> = { 'west-africa': 0.15, 'east-africa': 0.04 }
+
 /** What's on this beach today, or null for no beach; a scene spec's
  * `props.wildlife` replaces the drawn fields (null: nothing). */
 export function wildlifeFor(params: SceneParams, rng: Random): Wildlife | null {
@@ -140,6 +172,7 @@ export function wildlifeFor(params: SceneParams, rng: Random): Wildlife | null {
   }
   if (force.monkey != null && force.monkeys === undefined && life.monkeys === 0) life.monkeys = 7
   if (force.lizard != null && force.lizards === undefined && life.lizards === 0) life.lizards = force.lizard === 'marine-iguana' ? 15 : 2
+  if (force.crocodile != null && force.crocodiles === undefined && life.crocodiles === 0) life.crocodiles = 2
   return life
 }
 
@@ -165,6 +198,12 @@ function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
   const lizardDraw = rng.float()
   const lizardCount = rng.int(1, 3)
   const colonySize = rng.int(6, 30)
+  const crocDraw = rng.float()
+  const crocCount = rng.weighted([[1, 3], [2, 2], [3, 1]] as const)
+  const hippoDraw = rng.float()
+  const hippoCount = rng.int(2, 7)
+  // In a storm monkeys and lizards take cover and nothing basks.
+  const storm = stormy(params)
 
   const life: Wildlife = {
     region,
@@ -176,7 +215,10 @@ function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
     monkey: null,
     monkeys: 0,
     lizard: null,
-    lizards: 0
+    lizards: 0,
+    crocodile: null,
+    crocodiles: 0,
+    hippos: 0
   }
   // Turtles: nesting (and its tracks) in season, hatchlings ~2 months later.
   const nester = nestingSpecies(region, month, pick)
@@ -195,22 +237,39 @@ function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
     life.turtle ??= hatcher
     life.hatchlings = hatchCount
   }
-  if (region === 'hawaii' && day && baskDraw) {
+  if (region === 'hawaii' && day && !storm && baskDraw) {
     life.turtle = 'green'
     life.basking = baskCount
   }
   // Monkeys and lizards are out by day.
   const monkey = region != null ? MONKEYS[region] : undefined
-  if (monkey != null && day && monkeyDraw < monkey[1]) {
+  if (monkey != null && day && !storm && monkeyDraw < monkey[1]) {
     life.monkey = monkey[0]
     life.monkeys = monkeyCount
   }
   const lizard = region != null ? LIZARDS[region] : undefined
-  if (lizard != null && day && lizardDraw < lizard[1]) {
+  if (lizard != null && day && !storm && lizardDraw < lizard[1]) {
     life.lizard = lizard[0]
     life.lizards = lizard[0] === 'marine-iguana' ? colonySize : lizardCount
   }
+  // Crocodiles bask by day (in storms they're in the water); hippos any time.
+  const crocodile = region != null ? CROCODILES[region] : undefined
+  if (crocodile != null && day && crocDraw < crocodile[1]) {
+    life.crocodile = crocodile[0]
+    life.crocodiles = crocCount
+  }
+  if (hippoDraw < ((region != null ? HIPPOS[region] : undefined) ?? 0)) life.hippos = hippoCount
   return life
+}
+
+/** Where the big animals are: hippos walk the beach from dusk to dawn and
+ * lie in the water by day; crocodiles bask by day. In a storm both are in
+ * the water. */
+export function inWater(params: SceneParams, animal: 'crocodile' | 'hippo'): boolean {
+  if (stormy(params)) return true
+  const time = params.timeOfDay
+  if (animal === 'crocodile') return time === 'night' || time === 'blue-hour'
+  return !(time === 'night' || time === 'blue-hour' || time === 'sun-on-horizon' || (time === 'golden-hour' && params.evening))
 }
 
 // ---------------------------------------------------------------------------
@@ -453,6 +512,183 @@ export function lizardGeometry(rng: Random, kind: LizardKind): BufferGeometry {
   return b.build()
 }
 
+const CROCODILE: Record<CrocodileKind, { length: [number, number]; back: RGB; side: RGB }> = {
+  // Dark olive-grey above, tan and pale yellow on the flanks.
+  saltwater: { length: [3.5, 5], back: [0.05, 0.05, 0.035], side: [0.17, 0.15, 0.09] },
+  // Paler, greyish olive-tan.
+  american: { length: [2.5, 4], back: [0.1, 0.1, 0.075], side: [0.2, 0.19, 0.14] },
+  // Dark olive-bronze, banded.
+  nile: { length: [3, 4.5], back: [0.065, 0.06, 0.035], side: [0.16, 0.145, 0.08] },
+  'west-african': { length: [2, 3.2], back: [0.06, 0.055, 0.035], side: [0.15, 0.135, 0.08] }
+}
+
+/** A crocodile lying on its belly: long flat snout (agape by `gape`
+ * radians, pale inside), low wide body with rows of scutes, legs splayed,
+ * a tall-sided tail with a double crest. Snout toward +X. */
+export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number): BufferGeometry {
+  const b = new MeshBuilder()
+  const spec = CROCODILE[kind]
+  const length = rng.range(...spec.length)
+  const seed = rng.int(0, 1e6)
+  const head = length * 0.15
+  const girth = length * 0.07
+  const bend = rng.normal(0, 0.3)
+  const tailFrom = 0.45
+  const belly: RGB = [0.38, 0.35, 0.26]
+  const mouth: RGB = [0.5, 0.42, 0.28]
+  // Hide: dark back, paler flanks, cream belly, dark bands on the tail.
+  const hide = (t: number, up: number, along: number): RGB => {
+    const spot = noise3(along * 6, up * 2, t * 3, seed)
+    if (up < -0.5) return belly
+    let c = mix(spec.side, spec.back, Math.min(1, Math.max(0, up * 1.4 + 0.3)))
+    c = shade(c, 0.8 + 0.4 * spot)
+    if (t > tailFrom && Math.sin(along * 7) > 0.55 && up > -0.2) c = shade(c, 0.55)
+    return c
+  }
+  // Body and tail along a spine from the neck back to the tip (a tube
+  // running toward -X: cos(angle) points up).
+  const neck = length / 2 - head
+  const bodyLength = length - head
+  const steps = 40
+  const spine: Vector3[] = []
+  const profile = (t: number): number => {
+    if (t < 0.08) return 0.72 + (t / 0.08) * 0.13
+    if (t < tailFrom) return 0.85 + 0.15 * Math.sin(((t - 0.08) / (tailFrom - 0.08)) * Math.PI)
+    return 0.82 * (1 - (t - tailFrom) / (1 - tailFrom)) + 0.04
+  }
+  // Wide and flat in the body; the tail narrow and deep.
+  const radius = (t: number, angle: number): number => {
+    const tail = Math.min(1, Math.max(0, (t - tailFrom) / 0.2))
+    return girth * profile(t) * (1 - 0.45 * (1 - tail) * Math.cos(angle) ** 2 - 0.4 * tail * Math.sin(angle) ** 2)
+  }
+  for (let k = 0; k <= steps; k++) {
+    const t = k / steps
+    const tailT = Math.max(0, (t - tailFrom) / (1 - tailFrom))
+    const height = radius(t, 0)
+    spine.push(new Vector3(neck - t * bodyLength, height + 0.01, bend * length * 0.25 * tailT * tailT))
+  }
+  b.tube(spine, radius, (t, angle) => hide(t, Math.cos(angle), t * bodyLength), 14)
+  // Legs: short, splayed out from shoulders and hips, elbows up.
+  for (const [at, thick] of [[0.1, 0.24], [0.4, 0.32]] as const) {
+    const p = spine[Math.round(at * steps)]
+    const front = at < 0.2
+    for (const side of [-1, 1]) {
+      const reach = girth * (front ? 1.7 : 1.9)
+      const elbow = new Vector3(p.x + girth * (front ? 0.2 : -0.5), p.y * 0.75, p.z + side * reach * 0.75)
+      const foot = new Vector3(p.x + girth * (front ? 0.5 : -0.1), 0.02, p.z + side * reach)
+      b.tube(
+        [new Vector3(p.x, p.y * 0.6, p.z + side * girth * 0.4), elbow, foot],
+        t => girth * thick * (1 - 0.45 * t) * (t > 0.4 ? 0.8 : 1),
+        () => mix(spec.back, spec.side, 0.4),
+        7
+      )
+      // Splayed toes, flat on the ground.
+      b.blob(foot.clone().add(new Vector3(girth * 0.15, 0, side * girth * 0.1)), new Vector3(girth * 0.3, girth * 0.05, girth * 0.22), () => mix(spec.back, spec.side, 0.4), () => 1, 2)
+    }
+  }
+  // Scutes: two rows of bony bumps down the back, a double crest on the
+  // tail joining into one near the tip.
+  for (let k = 2; k < steps * 0.92; k++) {
+    const t = k / steps
+    const p = spine[k]
+    const r = girth * profile(t)
+    const tail = t > tailFrom
+    const rows = t > 0.78 ? [0] : tail ? [-0.28, 0.28] : [-0.35, -0.12, 0.12, 0.35]
+    const h = girth * (tail ? 0.22 * (1.1 - t) + 0.05 : 0.09)
+    const top = p.y + radius(t, Math.PI) * 0.97
+    for (const row of rows) {
+      const z = p.z + row * r
+      const dx = bodyLength / steps
+      const i0 = b.vertex(new Vector3(p.x + dx * 0.35, top - h * 0.3, z), shade(spec.back, 0.8))
+      const i1 = b.vertex(new Vector3(p.x - dx * 0.35, top - h * 0.3, z), shade(spec.back, 0.8))
+      const i2 = b.vertex(new Vector3(p.x - dx * 0.1, top + h, z), shade(spec.back, 1.1))
+      b.triangle(i0, i1, i2)
+    }
+  }
+  // Jaws: the upper jaw (the skull, eyes and nostrils on top) hinged up by
+  // `gape`; the lower jaw on the ground. These run toward +X: cos(angle)
+  // points down.
+  const hinge = new Vector3(neck + girth * 0.25, girth * 0.42, 0)
+  const jaw = (angle: number, drop: number, inside: number, flat: number, width: number): void => {
+    const dir = new Vector3(Math.cos(angle), Math.sin(angle), 0)
+    const path = Array.from({ length: 13 }, (_, k) => hinge.clone().setY(hinge.y - drop).addScaledVector(dir, ((k / 12) * 1.1 - 0.1) * (head + girth * 0.25)))
+    b.tube(
+      path,
+      (t, a) => girth * width * (1 - 0.62 * Math.min(1, t * 1.1)) * (1 - flat * Math.cos(a) ** 2),
+      (t, a) => (Math.cos(a) * inside > 0.3 && gape > 0.08 && t > 0.05 ? mouth : hide(0.05, -Math.cos(a), t * 3)),
+      12
+    )
+  }
+  jaw(gape, 0, 1, 0.55, 0.78)
+  jaw(-0.02, girth * 0.18, -1, 0.62, 0.68)
+  // Eyes and the nostril knob, up on the skull.
+  const dir = new Vector3(Math.cos(gape), Math.sin(gape), 0)
+  const upDir = new Vector3(-Math.sin(gape), Math.cos(gape), 0)
+  const bump = (along: number, up: number, side: number, r: number, color: RGB): void => {
+    const c = hinge.clone().addScaledVector(dir, along).addScaledVector(upDir, up).add(new Vector3(0, 0, side))
+    b.blob(c, new Vector3(r * 1.3, r, r), () => color, () => 1, 2)
+  }
+  for (const side of [-1, 1]) bump(girth * 0.15, girth * 0.33, side * girth * 0.28, girth * 0.11, [0.25, 0.22, 0.1])
+  bump(head + girth * 0.05, girth * 0.12, 0, girth * 0.09, shade(spec.back, 0.9))
+  return b.build()
+}
+
+/** A hippo standing: barrel body on short thick legs, a huge head carried
+ * low with a broad muzzle, eyes, ears and nostrils on top (so in the water
+ * only they and the back show). Grey-brown, pinkish round eyes, ears and
+ * belly folds. Head toward +X. */
+export function hippoGeometry(rng: Random, wet: number): BufferGeometry {
+  const b = new MeshBuilder()
+  const s = rng.range(0.85, 1.1)
+  const seed = rng.int(0, 1e6)
+  const grey: RGB = shade([0.2, 0.17, 0.16], 1 - 0.35 * wet)
+  const pink: RGB = shade([0.42, 0.28, 0.25], 1 - 0.3 * wet)
+  const skin = (n: Vector3, at: number): RGB => {
+    const blotch = noise3(n.x * 3 + at, n.y * 3, n.z * 3, seed)
+    return n.y < -0.35 ? mix(grey, pink, 0.6) : shade(grey, 0.85 + 0.3 * blotch + 0.1 * n.y)
+  }
+  // Legs, then the body over them.
+  // Stubby legs, thick to the ground and flaring at the feet.
+  const legH = 0.5 * s
+  for (const x of [0.9, -0.9]) {
+    for (const side of [-1, 1]) {
+      const z = side * 0.45 * s
+      b.tube(
+        [new Vector3(x * s, legH + 0.3 * s, z), new Vector3(x * s, legH * 0.5, z * 1.05), new Vector3(x * s + 0.03, 0, z * 1.05)],
+        t => s * (0.3 - 0.06 * t + 0.08 * Math.max(0, t - 0.8) / 0.2),
+        () => shade(grey, 0.75),
+        8
+      )
+    }
+  }
+  // A barrel: straight-backed, deep and wide, the belly sagging low
+  // between the legs and bulging at the flanks.
+  b.blob(
+    new Vector3(0, 0.88 * s, 0),
+    new Vector3(1.4 * s, 0.6 * s, 0.7 * s),
+    n => skin(n, 0),
+    // Squared off along the length (deep chest over the front legs).
+    n => (1 + 0.15 * Math.max(0, -n.y) ** 2 - 0.08 * Math.max(0, n.y) ** 2) / Math.pow(Math.abs(n.x) ** 4 + (1 - n.x * n.x) ** 2, 0.25),
+    7
+  )
+  // Thick neck into a big head, pitched down.
+  b.blob(new Vector3(1.3 * s, 0.98 * s, 0), new Vector3(0.45 * s, 0.5 * s, 0.55 * s), n => skin(n, 2), () => 1, 5)
+  const pitch = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -0.35)
+  // The head: long, flat on top, boxy (squared-off blob), to a broad muzzle.
+  const boxy = (n: Vector3): number => 1 / Math.pow(Math.abs(n.x) ** 4 + Math.abs(n.y) ** 4 + Math.abs(n.z) ** 4, 0.25) ** 0.6
+  b.blob(new Vector3(1.75 * s, 0.98 * s, 0), new Vector3(0.6 * s, 0.3 * s, 0.33 * s), n => skin(n, 4), boxy, 5, pitch)
+  b.blob(new Vector3(2.15 * s, 0.74 * s, 0), new Vector3(0.28 * s, 0.27 * s, 0.4 * s), n => (n.y < 0.2 && Math.abs(n.z) > 0.6 ? pink : skin(n, 6)), boxy, 5)
+  for (const side of [-1, 1]) {
+    // Eyes high on the head, little ears behind, nostrils on top of the muzzle.
+    b.blob(new Vector3(1.65 * s, 1.27 * s, side * 0.24 * s), new Vector3(0.08 * s, 0.07 * s, 0.07 * s), () => mix(grey, pink, 0.5), () => 1, 3)
+    b.blob(new Vector3(1.42 * s, 1.4 * s, side * 0.22 * s), new Vector3(0.035 * s, 0.07 * s, 0.025 * s), () => pink, () => 1, 2)
+    b.blob(new Vector3(2.2 * s, 0.97 * s, side * 0.14 * s), new Vector3(0.08 * s, 0.05 * s, 0.07 * s), () => shade(grey, 0.9), () => 1, 2)
+  }
+  // Short, flattened tail.
+  b.tube([new Vector3(-1.45 * s, 1.0 * s, 0), new Vector3(-1.58 * s, 0.82 * s, 0), new Vector3(-1.6 * s, 0.62 * s, 0)], t => s * 0.07 * (1 - 0.5 * t), () => grey, 5)
+  return b.build()
+}
+
 /** A turtle's crawl: a furrowed band of churned sand along `path` (world
  * x, z), with the flipper ridges paired (symmetric gait) or staggered. */
 export function trackGeometry(
@@ -545,14 +781,14 @@ export function createWildlife(ctx: PropContext): Mesh[] {
     pieces.push({ variant, matrix: new Matrix4().compose(new Vector3(x, y - 0.005, z), q, new Vector3(1, 1, 1)) })
     return true
   }
-  const build = (geometries: BufferGeometry[], pieces: Piece[]): void => {
+  const build = (geometries: BufferGeometry[], pieces: Piece[], skin = material): void => {
     geometries.forEach((geometry, v) => {
       const mine = pieces.filter(p => p.variant === v)
       if (mine.length === 0) {
         geometry.dispose()
         return
       }
-      const mesh = new InstancedMesh(geometry, material, mine.length)
+      const mesh = new InstancedMesh(geometry, skin, mine.length)
       mine.forEach((p, i) => mesh.setMatrixAt(i, p.matrix))
       mesh.castShadow = true
       mesh.receiveShadow = true
@@ -583,6 +819,24 @@ export function createWildlife(ctx: PropContext): Mesh[] {
     }
     return null
   }
+  /** A group of `count` animals in the water `depth` m deep, in view within
+   * `maxDistance`, at height `y` over the sea bed (`ground`) or the waves. */
+  const inSea = (pieces: Piece[], variants: number, count: number, depth: [number, number], maxDistance: number, spread: number, y: (x: number, z: number, ground: number) => number): void => {
+    for (let tries = 0; tries < 80 && pieces.length === 0; tries++) {
+      const centre = ctx.seaPoint(rng, [-0.95, 0.15], 6, maxDistance, depth[0])
+      if (centre == null || ctx.ground(centre.x, centre.z) < -depth[1]) continue
+      for (let i = 0; i < count * 8 && pieces.length < count; i++) {
+        const x = centre.x + rng.normal(0, spread)
+        const z = centre.z + rng.normal(0, spread)
+        const ground = ctx.ground(x, z)
+        if (ground > -depth[0] || ground < -depth[1] || !ctx.visible(x, 0, z, 2)) continue
+        const matrix = new Matrix4().compose(new Vector3(x, y(x, z, ground), z), yawQ(rng.range(0, Math.PI * 2)), new Vector3(1, 1, 1))
+        pieces.push({ variant: rng.int(0, variants - 1), matrix })
+      }
+    }
+  }
+  const wetMaterial = new MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0, side: DoubleSide })
+
   /** Up-beach nest site: above the high-tide line, below the vegetation. */
   const nestBand: [number, number] = [highTide + 1.5, Math.max(highTide + 2, Math.min(stormLine + 4, coast.beachWidth))]
 
@@ -682,6 +936,47 @@ export function createWildlife(ctx: PropContext): Mesh[] {
       place(pieces, rng.int(0, 2), Math.max(0.3, u0 + rng.normal(0, spread * 0.4)), a0 + rng.normal(0, spread), yaw, 0.6)
     }
     build(geometries, pieces)
+  }
+
+  // Crocodiles: basking at the water's edge a few metres apart, facing the
+  // sea or the sun, one or two agape; or lying awash, eyes and back showing.
+  if (life.crocodile != null && life.crocodiles > 0) {
+    const kind = life.crocodile
+    const geometries = [crocodileGeometry(rng, kind, rng.range(0.3, 0.45)), crocodileGeometry(rng, kind, 0.03), crocodileGeometry(rng, kind, 0.03)]
+    const pieces: Piece[] = []
+    const water = inWater(params, 'crocodile')
+    if (water) {
+      // Sunk to the eyes: the head's top sits ~0.9 girths up.
+      const sink = 0.07 * CROCODILE[kind].length[0] * 0.8
+      inSea(pieces, 3, life.crocodiles, [0.8, 8], 60, 4, (x, z) => ctx.seaLevel(x, z) - sink)
+    } else {
+      // Just above the swash, where the waves don't wash over them.
+      const at = spot([Math.max(1.5, highTide * 0.6), highTide + 2], 40)
+      for (let i = 0; at != null && i < life.crocodiles * 10 && pieces.length < life.crocodiles; i++) {
+        const yaw = rng.chance(0.5) ? seaYaw + rng.normal(0, 0.6) : sunYaw + rng.normal(0, 0.5)
+        place(pieces, pieces.length === 0 ? 0 : rng.int(0, 2), Math.max(1.5, at[0] + rng.normal(0, 1.2)), at[1] + rng.normal(0, 5), yaw, 2.5, 0.25)
+      }
+    }
+    build(geometries, pieces, water ? wetMaterial : material)
+  }
+
+  // Hippos: a pod. From dusk to dawn they walk the beach; by day they lie
+  // in the water with backs and heads awash.
+  if (life.hippos > 0) {
+    const pieces: Piece[] = []
+    const water = inWater(params, 'hippo')
+    if (water) {
+      // Ears, eyes and nostrils at the surface, the back just awash; in
+      // shallower water lying down on the bottom.
+      inSea(pieces, 2, life.hippos, [0.6, 4], 150, 4, (x, z, ground) => Math.max(ground - 0.45, ctx.seaLevel(x, z) - 1.1))
+    } else {
+      const at = spot([0.5, highTide + 4], 60)
+      for (let i = 0; at != null && i < life.hippos * 10 && pieces.length < life.hippos; i++) {
+        const yaw = seaYaw + (rng.chance(0.5) ? Math.PI / 2 : -Math.PI / 2) + rng.normal(0, 0.8)
+        place(pieces, rng.int(0, 1), Math.max(0.5, at[0] + rng.normal(0, 2)), at[1] + rng.normal(0, 6), yaw, 2.5)
+      }
+    }
+    build([hippoGeometry(rng, water ? 1 : 0.2), hippoGeometry(rng, water ? 1 : 0)], pieces, water ? wetMaterial : material)
   }
   return meshes
 }

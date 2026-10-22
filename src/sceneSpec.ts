@@ -59,7 +59,7 @@ export interface PropOverrides {
   shoreLife?: Partial<ShoreLife> | null
   /** A stand of mangroves on a sheltered shore (props/mangroves.ts). */
   mangroves?: Force<MangroveKind>
-  /** null: no turtles, monkeys or lizards; fields replace the drawn ones. */
+  /** null: no turtles, monkeys, lizards, crocodiles or hippos; fields replace the drawn ones. */
   wildlife?: Partial<Omit<Wildlife, 'region'>> | null
 }
 
@@ -294,7 +294,10 @@ const SPEC = object({
         monkey: oneOf(null, 'macaque', 'capuchin', 'vervet'),
         monkeys: number,
         lizard: oneOf(null, 'marine-iguana', 'green-iguana', 'monitor', 'spiny-tailed'),
-        lizards: number
+        lizards: number,
+        crocodile: oneOf(null, 'saltwater', 'american', 'nile', 'west-african'),
+        crocodiles: number,
+        hippos: number
       },
       true
     )

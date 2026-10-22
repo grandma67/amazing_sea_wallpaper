@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
 import { Random } from '../src/random'
+import { restingGull } from '../src/props/birds'
+import { shoreLifeFor } from '../src/props/shoreLife'
 import {
+  crocodileGeometry,
+  hippoGeometry,
+  inWater,
   lizardGeometry,
   monkeyGeometry,
   nestingSpecies,
   trackGeometry,
   turtleGeometry,
   wildlifeFor,
+  type CrocodileKind,
   type LizardKind,
   type MonkeyKind,
   type TurtleSpecies
@@ -57,11 +63,59 @@ describe('beach wildlife', () => {
     expect(any).toBeLessThan(0.8)
   })
 
+  it('keeps crocodiles and hippos to their coasts and hours', () => {
+    let crocs = 0
+    let hippos = 0
+    for (const p of days) {
+      const l = life(p)
+      if (l == null) continue
+      if (l.region === 'west-africa') expect([p.biome.name, p.sea.ocean]).toEqual(['tropical', 'atlantic'])
+      if (l.crocodile != null) {
+        crocs++
+        expect(['se-asia', 'central-america', 'caribbean', 'east-africa', 'west-africa']).toContain(l.region)
+        expect(p.timeOfDay === 'night' || p.timeOfDay === 'blue-hour').toBe(false)
+        if (l.crocodile === 'saltwater') expect(l.region).toBe('se-asia')
+      }
+      if (l.hippos > 0) {
+        hippos++
+        expect(['west-africa', 'east-africa']).toContain(l.region)
+      }
+      if (l.region === 'west-africa' && l.turtle != null && l.turtle !== 'green') expect([10, 11, 12, 1, 2, 3]).toContain(month(p))
+    }
+    // Rare: a handful over three years.
+    expect(crocs).toBeGreaterThan(3)
+    expect(crocs).toBeLessThan(60)
+    expect(hippos).toBeGreaterThan(0)
+    expect(hippos).toBeLessThan(25)
+  })
+
+  it('puts hippos in the water by day and on the beach from dusk, both in the water in storms', () => {
+    const at = (spec: Parameters<typeof scenes>[0]) => scenes({ coast: 'beach', eclipse: null, ...spec }, 3)
+    for (const p of at({ timeOfDay: 'midday', storm: null })) {
+      expect(inWater(p, 'hippo')).toBe(true)
+      expect(inWater(p, 'crocodile')).toBe(false)
+    }
+    for (const p of at({ timeOfDay: 'night', storm: null })) expect(inWater(p, 'hippo')).toBe(false)
+    for (const p of at({ timeOfDay: 'daylight', storm: 'squall' })) {
+      expect(inWater(p, 'hippo')).toBe(true)
+      expect(inWater(p, 'crocodile')).toBe(true)
+    }
+  })
+
+  it('sends monkeys, lizards, basking turtles and crabs under cover in a storm', () => {
+    for (const p of scenes({ coast: 'beach', biome: 'tropical', timeOfDay: 'daylight', storm: 'squall', eclipse: null }, 30)) {
+      const l = life(p)!
+      expect(l.monkeys + l.lizards + l.basking).toBe(0)
+      expect(shoreLifeFor(p, Random.derive(p.seed, 'props/shore-life'))?.crabs ?? 0).toBe(0)
+    }
+  })
+
   it('can be forced and removed', () => {
     for (const p of scenes({ coast: 'beach', biome: 'tropical', props: { wildlife: { monkey: 'capuchin' } } }, 10)) {
       expect(life(p)!.monkey).toBe('capuchin')
       expect(life(p)!.monkeys).toBeGreaterThan(0)
     }
+    for (const p of scenes({ coast: 'beach', biome: 'tropical', props: { wildlife: { crocodile: 'nile' } } }, 10)) expect(life(p)!.crocodiles).toBeGreaterThan(0)
     for (const p of scenes({ coast: 'beach', biome: 'tropical', props: { wildlife: null } }, 10)) expect(life(p)).toBeNull()
   })
 
@@ -73,7 +127,11 @@ describe('beach wildlife', () => {
         turtleGeometry(new Random(s), s, sand, 'hatchling')
       ]),
       ...(['macaque', 'capuchin', 'vervet'] as MonkeyKind[]).flatMap(k => [monkeyGeometry(new Random(k), k, 'walk'), monkeyGeometry(new Random(k), k, 'sit')]),
-      ...(['marine-iguana', 'green-iguana', 'monitor', 'spiny-tailed'] as LizardKind[]).map(k => lizardGeometry(new Random(k), k))
+      ...(['marine-iguana', 'green-iguana', 'monitor', 'spiny-tailed'] as LizardKind[]).map(k => lizardGeometry(new Random(k), k)),
+      ...(['saltwater', 'american', 'nile', 'west-african'] as CrocodileKind[]).flatMap(k => [crocodileGeometry(new Random(k), k, 0.4), crocodileGeometry(new Random(k), k, 0.03)]),
+      hippoGeometry(new Random('h'), 0),
+      hippoGeometry(new Random('h'), 1),
+      restingGull(false)
     ]
     for (const g of geometries) {
       const pos = g.attributes.position.array as Float32Array

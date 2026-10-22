@@ -114,7 +114,9 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
 - "Not showing" is usually placement, light or size: check `--props`, backlight, pixel size before debugging shaders. To debug a shader, force a visible output (`coverage = 1.0` over a region) and move it step by step.
 - Smooth blobs read as rocks: seaweed/seagrass need loose leaves and ribbons over a low mound (`MeshBuilder.ribbon`, `clumpGeometry`).
 - Uniform tubes read as pipes: wood needs bulges, oval section, grain checks, splintered ends (`logGeometry`).
-- `MeshBuilder.tube` returns rings; close ends with `MeshBuilder.cap`.
+- `MeshBuilder.tube` returns rings; close ends with `MeshBuilder.cap`. Its frame flips with path direction (toward −X: cos(angle) up; +X: down): check back/belly colours.
+- Beach animals near the waterline vanish under the swash (keep ≥ 0.25 m up); "in the water" needs a shallow fallback (tropical shelves: 1.2 m deep only > 150 m out).
+- Storm-aware props: `stormy(params)` in `props/context.ts`.
 - Low things at sea hide behind the horizon (~4.5 km at 1.6 m eye): a 2 m cay is just palms. Place low features near; low island groups can read as one shore.
 - Steep features narrower than the ocean grid (spacing r × 0.012) zig-zag: clamp widths to grid and pixel size (`surfProfile`'s `minFace`).
 - Sheer walls on a polar grid read as drums: vary the wall's foot with angle.

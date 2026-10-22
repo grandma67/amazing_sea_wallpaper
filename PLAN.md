@@ -103,8 +103,15 @@ Playwright (headless snapshots).
 - **Wildlife:** `props/wildlife.ts` `wildlifeFor()` picks a region from biome, ocean and
   latitude (tropical Pacific: SE Asia or Central America; tropical Indian: SE Asia or East
   Africa; tropical Atlantic: Caribbean; warm volcanic Pacific: Galápagos or Hawaii;
-  Mediterranean Sea; Arabia), then turtles by `nestingSpecies(region, month)` and the time
-  of day, monkeys and lizards by day. `spot()` casts rays through the lower frame and
+  Mediterranean Sea; Arabia; tropical Atlantic: Caribbean or West Africa), then turtles by
+  `nestingSpecies(region, month)` and the time of day, monkeys and lizards by day,
+  crocodiles (`CROCODILES`, by day) and hippos (`HIPPOS`). `inWater()` says where the big
+  ones are: crocodiles awash at night and in storms, hippos in the water by day and on the
+  beach from dusk to dawn; `inSea()` places them in water by depth via `ctx.seaPoint`.
+- **Storms and animals:** `stormy(params)` (`props/context.ts`: a storm or storm sky). Gulls
+  rest on the water or sand facing the wind (`restingGull`), colonies have no birds up,
+  pinnipeds leave the haul-out (heads only, spread up to 100 m off), crabs, monkeys, lizards
+  and basking turtles stay hidden. Migratory flocks and whales were already off in storms. `spot()` casts rays through the lower frame and
   marches them to the ground, so each group lands in view, near first; individuals scatter
   round it. Tracks are a world-space strip of churned sand following the ground.
 - **Ships:** `props/ships.ts` builds hulls lofted per kind; `polarFleet()` replaces the
@@ -187,6 +194,14 @@ Playwright (headless snapshots).
 
 ## Lessons and gotchas
 
+- `MeshBuilder.tube`'s frame depends on the path direction: running toward −X, cos(angle)
+  points up; toward +X, down. Colouring "back vs belly" by angle came out upside down on
+  crocodiles (pale backs). Check with face-normal colour averages in a throwaway test.
+- Animals at the waterline sink under the rendered swash: keep beach animals ≥ 0.25 m above
+  sea level (`place(..., wet)`). Gentle tropical shelves put 1.2 m deep water > 150 m out, so
+  "in the water" placements need a shallow fallback (hippos lie down, storm seals 0.8 m).
+- A low sun lights vertical flanks far more than flat sand: dark animals look pale beside the
+  beach in side light. That's physics; check albedo numbers before darkening further.
 - Screen-space derivatives explode on silhouettes → clamp footprints, or NaN normals become
   white bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN
   terrain far inland.
@@ -346,6 +361,12 @@ under trees, a low-power mode for phones.
 - Cloud noise: handmade.network "Fast High-Quality Cloudscape through Noise and Reprojection"
 - Rain on the sea: Melsheimer et al.; Nystuen 1990
 - Visibility: Koschmieder (V = 3.912/σ); WMO visibility scale (very good 20–50 km, excellent > 50 km); sea salt rises with wind (Korean coast extinction vs wind, R² 0.57); Mace Head sea salt peaks in winter maritime polar air; Saharan dust over the Mediterranean in spring and autumn (NASA Earth Observatory)
+- Animals in storms: The Condor 32(4) "Behavior of sea gulls during a hail storm" (resting on
+  the water, heads tucked); Bay Nature "Where do birds go in the rain"; Solent Seal Code of
+  Conduct (harbour seals go into the water in wind and rain)
+- Crocodiles and hippos: Loango NP (Gabon) "surfing hippos" (lagoons by day, beach and surf at
+  dusk), leatherbacks and olive ridleys on Gabon's beaches; saltwater, American, Nile and West
+  African crocodile ranges (bask at river mouths, gaping to cool)
 - Sea turtles: seaturtlesofindia.org (Andaman greens and hawksbills Apr–Sep, olive ridleys
   Nov–Mar); Volunteer World "Turtle seasons around the world" (Costa Rica, Galápagos,
   Greece); NC Wildlife (loggerheads May–Aug, ~60 days' incubation)
