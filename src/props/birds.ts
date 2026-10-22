@@ -13,10 +13,13 @@ import {
 import type { RGB } from '../biome'
 import { forced } from '../sceneSpec'
 import { MeshBuilder } from './builder'
-import type { PropContext } from './context'
+import { windDirection } from './wind'
+import { stormy, type PropContext } from './context'
 
 // Seabirds: a gull body with two-segment wings in a few flight poses,
-// gathered into loose flocks somewhere in the frame.
+// gathered into loose flocks somewhere in the frame. In a storm gulls don't
+// fly: they rest on the water (heads into the wind, rafted together) or on
+// the shore until it passes.
 
 const WHITE: RGB = [0.75, 0.75, 0.73]
 const GREY: RGB = [0.42, 0.44, 0.46]
@@ -58,10 +61,74 @@ export function gull(lift: number, droop: number, dark: boolean): BufferGeometry
   return b.build()
 }
 
+/** A gull sitting on the water or the sand, wings folded over the back and
+ * the black tips crossed past the tail; base on y = 0. */
+export function restingGull(dark: boolean): BufferGeometry {
+  const b = new MeshBuilder()
+  const body = dark ? BLACK : WHITE
+  const wing = dark ? BLACK : GREY
+  b.blob(new Vector3(0, 0.07, 0), new Vector3(0.2, 0.07, 0.075), () => body, () => 1, 4)
+  b.blob(new Vector3(0.17, 0.15, 0), new Vector3(0.055, 0.05, 0.045), () => body, () => 1, 3)
+  b.blob(new Vector3(0.24, 0.14, 0), new Vector3(0.04, 0.01, 0.01), () => BILL, () => 1, 2)
+  // Folded wings over the back and flanks.
+  for (const side of [-1, 1]) {
+    b.blob(new Vector3(-0.03, 0.105, side * 0.045), new Vector3(0.19, 0.035, 0.04), () => wing, () => 1, 3)
+  }
+  b.blob(new Vector3(-0.23, 0.11, 0), new Vector3(0.09, 0.015, 0.035), () => BLACK, () => 1, 2)
+  return b.build()
+}
+
+/** Storm: no gulls up. They sit it out in rafts on the water (heads into
+ * the wind) or huddled on the beach. */
+function restingGulls(ctx: PropContext, rng: ReturnType<PropContext['rng']>, dark: boolean): InstancedMesh[] {
+  const { camera } = ctx
+  const facing = windDirection(ctx.params).negate()
+  const yaw = Math.atan2(-facing.z, facing.x)
+  const matrices: Matrix4[] = []
+  for (let raft = 0, rafts = rng.int(1, 3), tries = 0; raft < rafts && tries < 200; tries++) {
+    // A ray through the lower frame, marched to the sea or the sand.
+    const dir = new Vector3(rng.range(-0.9, 0.9), rng.range(-0.9, 0.1), 0.5).unproject(camera).sub(camera.position).normalize()
+    if (dir.y > -0.002) continue
+    let hit: Vector3 | null = null
+    for (let t = 4; t < 150; t += Math.max(0.3, t * 0.03)) {
+      const p = camera.position.clone().addScaledVector(dir, t)
+      const ground = ctx.ground(p.x, p.z)
+      if (p.y > Math.max(0, ground)) continue
+      // Water at least knee deep, or dry sand above the swash.
+      if (ground < -0.6 || ground > 0.3) hit = p.setY(0)
+      break
+    }
+    if (hit == null) continue
+    raft++
+    const onSea = ctx.ground(hit.x, hit.z) < 0
+    const count = rng.int(4, 20)
+    const spread = Math.max(1.5, Math.sqrt(count) * 0.8)
+    for (let i = 0; i < count; i++) {
+      const x = hit.x + rng.normal(0, spread)
+      const z = hit.z + rng.normal(0, spread)
+      const ground = ctx.ground(x, z)
+      if (onSea !== ground < 0 || (!onSea && ground < 0.3)) continue
+      // Floating birds ride low, half the body under water.
+      const y = onSea ? ctx.seaLevel(x, z) - 0.05 : ground
+      const q = new Quaternion().setFromEuler(new Euler(0, yaw + rng.normal(0, 0.3), 0))
+      matrices.push(new Matrix4().compose(new Vector3(x, y, z), q, new Vector3().setScalar(rng.range(0.9, 1.15))))
+    }
+  }
+  if (matrices.length === 0) return []
+  const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.8 })
+  const mesh = new InstancedMesh(restingGull(dark), material, matrices.length)
+  matrices.forEach((m, i) => mesh.setMatrixAt(i, m))
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  mesh.frustumCulled = false
+  return [mesh]
+}
+
 export function createBirds(ctx: PropContext): InstancedMesh[] {
   const { params } = ctx
   const rng = ctx.rng('birds')
   if (!forced(params.overrides?.birds, rng.chance(0.6))) return []
+  if (stormy(params)) return restingGulls(ctx, rng, rng.chance(0.2))
 
   // Seen against a bright low sky, birds read as dark silhouettes.
   const dark = params.sunElevationDeg < 4 || params.timeOfDay === 'night' || rng.chance(0.2)

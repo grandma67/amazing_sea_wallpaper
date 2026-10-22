@@ -14,7 +14,7 @@ import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
-import type { PropContext } from './context'
+import { stormy, type PropContext } from './context'
 import { beachLines } from './debris'
 import { noise3 } from './noise'
 
@@ -141,6 +141,8 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
       life.crabs = rng.int(2, 7)
     }
   }
+  // In a storm crabs stay down their burrows or under the wrack.
+  if (stormy(params)) life.crabs = 0
 
   // Shells.
   const table = SHELLS[biome]

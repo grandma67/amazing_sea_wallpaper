@@ -20,7 +20,7 @@ import type { PinnipedKind } from '../params'
 import type { Random } from '../random'
 import { shoreToWorld } from '../terrain'
 import { MeshBuilder } from './builder'
-import type { PropContext } from './context'
+import { stormy, type PropContext } from './context'
 import { beachLines } from './debris'
 import { fbm3 } from './noise'
 import { rockMaterial, type RockGrowth } from './rocks'
@@ -36,7 +36,8 @@ import { rockMaterial, type RockGrowth } from './rocks'
 // They crowd the low, flat tops of skerries and the lower slopes of seabird
 // islands, or lie in a herd on the beach between the waterline and the
 // storm line; a few heads bob in the water nearby, and wet ones are darker
-// and glossier than dry ones.
+// and glossier than dry ones. In a storm they go into the water (harbour
+// seals leave the haul-out for the calm under the surface in wind and rain).
 
 interface Look {
   /** Back and belly colours (linear albedo), dry. */
@@ -372,6 +373,10 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
   const poses: [Pose, number][] = look.eared ? [['lying', 1], ['lying', 1], ['sitting', 1.5]] : [['lying', 1], ['lying', 1], ['banana', 1]]
   const variants = poses.map(([pose], k) => pinniped(rng, kind, pose, k === 1 ? 0.8 : rng.range(0, 0.3)))
   const placed: Matrix4[][] = variants.map(() => [])
+  // In wind and rain they leave the haul-out for the calm under the
+  // surface: only heads show, more of them.
+  const storm = stormy(ctx.params)
+  if (storm) spots = []
   for (const spot of spots) {
     const k = rng.weighted(poses.map(([, w], i) => [i, w] as const))
     const q = new Quaternion().setFromEuler(new Euler(0, rng.range(0, Math.PI * 2), 0))
@@ -393,12 +398,13 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
   // Watching (snout level) and bottling (snout up); wet fur is glossy.
   const headPoses = [swimmingHead(rng, kind, rng.range(-0.05, 0.15)), swimmingHead(rng, kind, rng.range(0.55, 0.8))]
   const heads: Matrix4[][] = [[], []]
-  for (let i = 0, n = rng.int(2, 8), count = 0; i < 40 && count < n; i++) {
+  for (let i = 0, n = storm ? rng.int(8, 16) : rng.int(2, 8), count = 0; i < 80 && count < n; i++) {
     const a = rng.range(0, Math.PI * 2)
-    const r = radius * rng.range(1.2, 2.5)
+    // In a storm the whole herd is out in the water, spread further off.
+    const r = radius * rng.range(1.2, 2.5) + (storm ? rng.range(0, 100) : 0)
     const x = centre.x + Math.cos(a) * r
     const z = centre.z + Math.sin(a) * r
-    if (ctx.ground(x, z) > -1.5) continue
+    if (ctx.ground(x, z) > (storm ? -0.8 : -1.5)) continue
     // Facing any way, head cocked a little.
     const q = new Quaternion().setFromEuler(new Euler(rng.range(-0.12, 0.12), rng.range(0, Math.PI * 2), 0, 'YXZ'))
     heads[rng.int(0, 1)].push(new Matrix4().compose(new Vector3(x, ctx.seaLevel(x, z) - rng.range(0, 0.1), z), q, new Vector3().setScalar(rng.range(0.9, 1.1))))

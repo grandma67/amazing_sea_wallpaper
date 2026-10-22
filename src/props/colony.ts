@@ -19,7 +19,7 @@ import type { Random } from '../random'
 import { shoreToWorld } from '../terrain'
 import { gull } from './birds'
 import { MeshBuilder } from './builder'
-import type { PropContext } from './context'
+import { stormy, type PropContext } from './context'
 import { beachLines } from './debris'
 import { fbm3 } from './noise'
 import { rockGeometry, rockMaterial, type RockGrowth } from './rocks'
@@ -275,7 +275,8 @@ export function createColony(ctx: PropContext): Object3D[] {
   // densest close to it.
   const poses = [gull(0.25, 0.35, style.darkBirds), gull(0.6, 0.2, style.darkBirds), gull(-0.15, -0.1, style.darkBirds)]
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: DoubleSide })
-  const count = rng.int(...style.flying)
+  // In a storm they sit tight on their ledges and burrows: none up.
+  const count = stormy(ctx.params) ? 0 : rng.int(...style.flying)
   const top = height * 0.7
   const placed: Matrix4[][] = poses.map(() => [])
   for (let i = 0; i < count; i++) {

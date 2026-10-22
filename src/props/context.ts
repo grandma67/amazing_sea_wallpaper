@@ -5,6 +5,13 @@ import { Random } from '../random'
 import { CASCADE_SIZE, type OceanSurface } from '../spectrum'
 import { terrainHeight } from '../terrain'
 
+/** A storm overhead (thunderstorm, squall or storm sky): animals take
+ * cover — gulls sit it out on the water, seals go into the sea, crabs stay
+ * in their burrows. */
+export function stormy(params: SceneParams): boolean {
+  return params.storm != null || params.weather.kind === 'storm'
+}
+
 /** Shared inputs for placing props deterministically in view. */
 export class PropContext {
   readonly frustum = new Frustum()
