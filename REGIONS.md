@@ -86,8 +86,8 @@ Ocean shares: Pacific 47%, Indian 34%, Atlantic 19%.
 | Indian | `south-asia-islands` **new parent** | Maldives, Sri Lanka, Andaman, Lakshadweep, Seychelles | – | 25 | no vervets or Nile crocodiles; Maldives 644 km (WRI 2,002) |
 | Indian | `east-africa` | Kenya, Tanzania, Mozambique, Madagascar, Comoros | 35 | 30 | Madagascar 4,828, Mozambique 2,470 km |
 | Indian | `nw-australia` **new parent** | Kimberley, Broome | – | 10 | saltwater crocodiles; macro-tidal |
-| Atlantic | `caribbean` | Greater and Lesser Antilles, Yucatán, Belize | 65 | 55 | Cuba 3,735 km (WRI 14,519) |
-| Atlantic | `bahamas-bermuda` (sub-region of caribbean) | Bahamas, Turks and Caicos, Bermuda | – | 10 | pink sand; Bahamas 3,542 km |
+| Atlantic | `caribbean` | Greater and Lesser Antilles, Yucatán, Belize, Bahamas, Bermuda | 65 | 65 (incl. bahamas-bermuda) | Cuba 3,735 km (WRI 14,519) |
+| Atlantic | ↳ `bahamas-bermuda` (sub-place of caribbean, §1b) | Bahamas, Turks and Caicos, Bermuda | – | (≈ 10 of the 65) | pink sand; Bahamas 3,542 km |
 | Atlantic | `west-africa` | Gabon, Loango, Bijagós, Senegal, Gulf of Guinea | 35 | 20 | Gabon 885, Guinea-Bissau 350 km (WRI 3,176) |
 | Atlantic | `northeast-brazil` **new parent** | Bahia to Ceará | – | 15 | green turtles, no monkeys on the beach |
 
@@ -160,9 +160,9 @@ judgment (≈).
 | `east-asia-subtropical` | `south-japan` | 45 | 30–35° |
 | `east-asia-subtropical` | `taiwan-south-china` (incl. Hong Kong, Matsu) | 35 | 22–26°, blue tears Apr–Jun |
 | `east-asia-subtropical` | `yellow-sea` (Korea west, Incheon) | 20 | 34–38°, temperate, tide ~9.5 m spring, tidal flats |
-| `caribbean` | `antilles` | 70 | 12–23°, tide 0.1–0.2 m |
+| `caribbean` | `antilles` | 67 | 12–23°, tide 0.1–0.2 m |
 | `caribbean` | `yucatan-belize` (incl. Holbox) | 15 | 16–21°, bioluminescence Jun–Sep |
-| `caribbean` | `bahamas-bermuda` | 15 | 21–32°, pink sand ~25%, tide ≈ 0.8 m |
+| `caribbean` | `bahamas-bermuda` | 18 | 21–32°, pink sand ~25%, tide ≈ 0.8 m |
 | `arabia` | `red-sea` | 45 | 13–28°, tide ≈ 0.5 m, reefs |
 | `arabia` | `oman` | 30 | 17–24° |
 | `arabia` | `persian-gulf` | 25 | 24–30°, tide ≈ 1–3 m |
@@ -174,7 +174,7 @@ judgment (≈).
 | `alaska` | `gulf-aleutians` | 35 | 52–60° |
 
 The `bahamas-bermuda` row in the tropical table above is this sub-place (its weight there
-is the same share of the Atlantic tropical days).
+is the same share of the Atlantic tropical days: 18% of caribbean's 65 ≈ 12).
 
 ## 2. Sand grain and fall velocity (phase 4)
 
