@@ -229,7 +229,7 @@ stream is untouched and only the split days change:
 | Sea-breeze cumulus | Warm sunny afternoons (`few`/`scattered`, sun up, land warmer: Mediterranean, subtropical, tropical): Cu over land, clear over the sea | `cloudArrangement.ts`: mask the weather map by a land/sea line ~1–5 km inland, along `seawardAzimuthDeg` |
 | Offshore wind | Mistral, bora, Santa Ana, harmattan: wind from land | wind direction vs. `seawardAzimuthDeg`; offshore: very clear air (visibility up), smooth faces, spray blown back off the crests (`props/surf.ts`) |
 | Snow and ice foot | Polar and nordic winter (latitude and month): snow on land and upper beach, a shore-fast ice ledge at the high-water line | terrain colour by height above high tide; ice foot as a low extruded strip; frozen spray on rocks |
-| Polar night check | Arctic latitudes 66–78° have no sun in Dec–Jan | check that `timeOfDay` is limited by latitude; if not, restrict it (changes some Arctic winter days) |
+| Polar night | Arctic latitudes 66–78° have no sun for weeks to months around December (Southern Ocean around June) | limit `timeOfDay` by latitude and date: during polar night only night, blue hour or twilight glow; changes some Arctic winter days (decided: realistic) |
 | Bioluminescent surf | Night, new-moon-ish, summer/autumn blooms: California, Maldives, Puerto Rico, Japan (Toyama) | `ocean.ts`: blue emission on breaking crests and swash (foam mask × bloom), ~2% of eligible nights |
 
 - Spec: `seaBreeze`, `offshoreWind`, `snow`, `bioluminescence`.
@@ -265,19 +265,21 @@ stream is untouched and only the split days change:
 | scenes/ | `scenes/coasts.json` with one spec per new coast, climate and weather, for future regression renders |
 | README.md | feature list, if it lists coasts or biomes |
 
+## Decisions (2026-10-23)
+
+1. **Shares follow reality:** `rock-shore` ~10% of days and reefs on ~60% of tropical beach
+   days, as in the tables; tune toward measured world shares, not toward more beaches.
+2. **Climate split** (phase 9) is fine: some days now titled "nordic" become "temperate"
+   (or "polar"), "mediterranean" ones "subtropical".
+3. **Polar night is real:** Arctic winter days get no sun (night, blue hour or civil
+   twilight only, by latitude and date); restrict `timeOfDay` in phase 10.
+4. **Rare showpieces stay rare:** bioluminescence, pink and red sand at their real
+   frequencies.
+
 ## Open questions
 
-1. Shares: are `rock-shore` 10% and reef on ~60% of tropical beach days right for a
-   wallpaper, or should beaches stay dominant (realism says rocky shores are more common
-   than we draw)?
-2. Phase 3 changes every beach day's slope. OK, or gate it behind its own stream so only
-   new days differ?
-3. Climate split (phase 9) vs. new top-level biomes: the split keeps today's days, but
-   titles would read "temperate" for some days now titled "nordic". OK?
-4. Polar night: should Arctic winter days be dark (realistic) or keep daylight times by
-   pretending the coast is further south?
-5. Bioluminescence and pink sand are rare showpieces. Keep them rare (realistic) or a
-   bit more often?
+1. Phase 3 changes every beach day's slope. OK, or gate it behind its own stream so only
+   new days differ? (Unanswered; ask before phase 3.)
 
 ## Sources
 
