@@ -64,7 +64,7 @@ These shape the order and the shared steps below.
 - **Wildlife's region is its first draw** (`drawWildlife`: `regionFor` then `pick`,
   `active`, …), so the order of `ctx.rng('wildlife')` draws must be kept. The region is
   that first float against fixed thresholds (`draw < 0.6 ? 'se-asia' : …`), so a shared
-  region drawn from any other value reshuffles every warm day's animals (see 2a).
+  region drawn elsewhere reshuffles warm days' animals (accepted, see 2a).
 - **Polar coasts already filter plants** (`params.ts` ~1314): Arctic keeps grass, bush and
   birch; Southern Ocean grass and bush.
 
@@ -267,24 +267,17 @@ size: 3 cm pebbles to ~5 m (16 px at 5 m), 10 cm cobbles to ~15 m (18 px), 20 cm
 
 Four steps every later phase builds on, one commit each.
 
-#### 2a. Regions and sub-places (changes days whose latitude or warm region changes)
+#### 2a. Regions and sub-places (changes many old dates: latitude and warm-coast animals)
 
 Named places for every coast, so tables can say "Fundy" or "West Africa" instead of
 "biome × ocean".
 
 - `src/regions.ts`: `type Region`, the `REGIONS` table from **REGIONS.md §1** and the
-  sub-places from **REGIONS.md §1b**, and `regionFor(biome, ocean, u, rng)` →
-  `{ region, place }`.
-  - **The region comes from wildlife's old uniform** `u`: the first float of
-    `Random.derive(seed, 'props/wildlife')` (what `ctx.rng('wildlife')` returns), read in
-    `params.ts` without consuming anything else. Lay the cumulative weights out so each of
-    today's wildlife regions keeps its interval of `u` (`se-asia` stays `u < 0.6` on
-    tropical Pacific days), and a new parent region takes a slice only inside the region
-    it replaces (`pacific-islands` cuts into `se-asia`'s interval). A day whose `u` falls
-    outside the new slices keeps its region and its animals.
-  - Biome × ocean pairs without a wildlife region today use the same `u` (it's a free
-    uniform there).
-  - The sub-place is a second draw on `Random.derive(seed, 'region')`.
+  sub-places from **REGIONS.md §1b**, and `regionFor(biome, ocean, rng)` →
+  `{ region, place }`, both drawn on `Random.derive(seed, 'region')`.
+  - **Warm days' animals reshuffle (accepted 2026-10-23):** the region is a new draw, so a
+    day that was `se-asia` may now be `central-america` and get other animals. Shares per
+    region stay as weighted; only which day gets which changes.
 - **Each region and sub-place carries:** weight, latitude range, hemisphere, climate.
   A sub-place may override the region's latitude, climate, tidal range and sand chances
   (Fundy: macro tide, red mud; PEI: red sand; Newfoundland: boreal; Norway north: boreal,
@@ -296,21 +289,17 @@ Named places for every coast, so tables can say "Fundy" or "West Africa" instead
 - `wildlife.ts` reads `params.region` and maps it to its `WildRegion`. **Keep wildlife's
   draw order:** `drawWildlife` still makes its old first draw (`rng.float()`, now
   discarded) so `pick`, `active` and every later draw stay where they were. Today's wildlife
-  regions keep their weights and their days (same `u` interval); the **new parent regions**
-  (`pacific-islands`, `south-asia-islands`, `nw-australia`, `northeast-brazil`,
-  `horn-of-africa`, `western-australia-desert`) take days from them and change only those
-  days' animals (decision 9). The Galápagos/Hawaii split moves from the latitude test to
+  regions keep their weights; the **new parent regions** (`pacific-islands`,
+  `south-asia-islands`, `nw-australia`, `northeast-brazil`, `horn-of-africa`,
+  `western-australia-desert`) take a share from them (decision 9). The Galápagos/Hawaii split moves from the latitude test to
   the region (the new latitudes would otherwise flip it). Regenerate ANIMALS.md and list
   the changed days in the changelog.
 - `latitudeDeg` comes from the region's (or sub-place's) range; basin ranges in `oceans.ts`
   become the fallback (decision 10). **This changes many days:** latitude drives the
   atmosphere anchor, noctilucent clouds, the sea-haze summer, sky events' tropical gate
-  (see constraints). List per consumer how many days change (`params.mjs --stats`
-  before/after), check with a bench diff on a Norway, a Galápagos and a mid-latitude day,
-  and name them in the changelog.
-- Tests: every biome × ocean has regions, shares roughly as weighted, latitudes in range,
-  today's wildlife region kept for every day outside a new parent region's slice,
-  `animals.mjs` table unchanged for those days.
+  (see constraints). Old dates looking different is accepted (2026-10-23); just check
+  one Norway and one Galápagos day still look right and note it in the changelog.
+- Tests: every biome × ocean has regions, shares roughly as weighted, latitudes in range.
 - Docs: ARCHITECTURE.md (regions), COASTS.md (region table), ANIMALS.md (regions now
   shared).
 
