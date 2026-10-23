@@ -14,6 +14,7 @@ import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { forced, forcedKind, type MigratorySpecies } from '../sceneSpec'
+import { monthInSeason } from '../seasons'
 import { hasBeach } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
@@ -160,21 +161,20 @@ function wadingFlamingo(feeding: boolean, oneLeg: boolean): BufferGeometry {
   return b.build()
 }
 
-/** Is it a migration month for the northern temperate species? */
-function migrating(month: number): boolean {
-  return (month >= 3 && month <= 5) || (month >= 9 && month <= 11)
+/** Spring or autumn passage, in the day's own hemisphere. */
+function migrating(params: SceneParams): boolean {
+  return monthInSeason(params, 3, 5) || monthInSeason(params, 9, 11)
 }
 
 /** Which migratory flock passes today, or null. */
 export function migratoryFor(params: SceneParams, rng: Random): Species | null {
   const force = params.overrides?.migratory
   if (force === undefined && (params.storm != null || params.timeOfDay === 'night')) return null
-  const month = Number(params.date.slice(5, 7))
   const biome = params.biome.name
   const warm = biome === 'tropical' || biome === 'desert' || biome === 'mediterranean'
   const cool = biome === 'nordic' || biome === 'volcanic' || biome === 'mediterranean'
   const polar = params.sea.ocean === 'arctic' || params.sea.ocean === 'southern'
-  const season = migrating(month) ? 1 : 0.25
+  const season = migrating(params) ? 1 : 0.25
   const species = rng.weighted<Species | null>([
     [null, 6],
     ['goose', cool ? 2 * season : 0],

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { CLOUD_GENERA, layerChannels, MAX_LAYERS, pickFormations, type CloudGenus } from '../src/cloudTypes'
 import type { SceneParams } from '../src/params'
 import { Random } from '../src/random'
+import { monthInSeason } from '../src/seasons'
 import { allParams, scene, scenes, share } from './days'
 
 const amounts = ['clear', 'cirrus', 'few', 'scattered', 'broken', 'overcast'] as const
@@ -83,8 +84,7 @@ describe('cloud species over the real days', () => {
     expect(ac.length).toBeGreaterThan(5)
     for (const p of ac) {
       expect(['mediterranean', 'tropical']).toContain(p.biome.name)
-      const month = Number(p.date.slice(5, 7))
-      expect(p.sea.ocean === 'southern' ? month <= 3 || month === 12 : month >= 6 && month <= 9).toBe(true)
+      expect(monthInSeason(p, 6, 9)).toBe(true)
       expect(morning(p)).toBe(true)
     }
     for (const p of days.filter(q => has(q, 'stratocumulus-castellanus'))) {

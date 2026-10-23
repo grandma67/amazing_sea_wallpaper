@@ -14,6 +14,7 @@ import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cl
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, latitudeIn, pickPlace, type Climate, type Place } from './places'
 import { Random } from './random'
+import { monthInSeason, seasonMonth } from './seasons'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
 // Everything random about a scene is decided here, from the date alone.
@@ -633,7 +634,7 @@ function addFormations(
   seed: string,
   weather: WeatherParams,
   biome: Biome,
-  context: { month: number; southern: boolean; windSpeed: number; morning: boolean },
+  context: { summer: boolean; windSpeed: number; morning: boolean },
   clouds?: CloudGenus[]
 ): void {
   const frng = Random.derive(seed, 'formations')
@@ -647,10 +648,9 @@ function addFormations(
   else {
     const climate = { cool: biome.name === 'nordic' || biome.name === 'volcanic', tropical: biome.name === 'tropical' }
     const genera = pickFormations(frng, kind, climate)
-    const summer = context.southern ? context.month <= 3 || context.month === 12 : context.month >= 6 && context.month <= 9
     const species = pickSpecies(Random.derive(seed, 'cloud-species'), genera, kind, {
       ...climate,
-      warmSummer: summer && (biome.name === 'mediterranean' || biome.name === 'tropical'),
+      warmSummer: context.summer && (biome.name === 'mediterranean' || biome.name === 'tropical'),
       windSpeed: context.windSpeed,
       morning: context.morning
     })
@@ -751,8 +751,8 @@ function generateStorm(
   return { curtains, bolts, rain: rng.chance(0.4) ? rng.range(0.3, 1) : 0, shelf: null }
 }
 
-/** Monthly fog season for a coast, as a chance multiplier (northern
- * hemisphere months; the Southern Ocean's seasons are flipped). */
+/** Monthly fog season for a coast, as a chance multiplier; `month` is the
+ * northern-hemisphere month with the day's season (seasons.ts). */
 function fogSeason(month: number, summer: boolean): number {
   const warm = month >= 5 && month <= 9
   return warm === summer ? 1 : 0.35
@@ -771,7 +771,6 @@ function pickFog(
   const rng = Random.derive(seed, 'fog')
   // Gales and showers clear it away.
   if (force === undefined && (weather.kind === 'storm' || windSpeed > 11)) return null
-  const southern = ocean === 'southern'
   // Advection fog where warm air meets cold water.
   const advection: Partial<Record<Biome['name'], Partial<Record<OceanName, number>>>> = {
     mediterranean: { pacific: 0.3 * fogSeason(month, true), atlantic: 0.04 },
@@ -780,8 +779,8 @@ function pickFog(
     volcanic: { pacific: 0.08, atlantic: 0.1, southern: 0.12 }
   }
   // Sea smoke where bitter air meets open water in a polar winter.
-  const winter = southern ? month >= 5 && month <= 9 : month <= 3 || month >= 11
-  const smoke = winter && (ocean === 'arctic' || southern) ? 0.25 : winter && biome.name === 'nordic' ? 0.06 : 0
+  const winter = month <= 3 || month >= 11
+  const smoke = winter && (ocean === 'arctic' || ocean === 'southern') ? 0.25 : winter && biome.name === 'nordic' ? 0.06 : 0
   // Fog peaks around dawn and burns off by midday.
   const hour: Record<TimeOfDay, number> = { 'golden-hour': 1.2, 'sun-on-horizon': 1.3, 'blue-hour': 1.3, night: 1.1, daylight: 0.8, midday: 0.4 }
   // The breeze that brings sea fog in must be light: stronger winds lift it.
@@ -1345,8 +1344,8 @@ function buildParams(
     weather,
     biome,
     {
-      month: Number(date.slice(5, 7)),
-      southern: basin.name === 'southern',
+      // Jun–Sep north of the equator, Dec–Mar south of it.
+      summer: monthInSeason({ date, latitudeDeg }, 6, 9),
       windSpeed,
       morning: !isEvening && (timeOfDay === 'golden-hour' || timeOfDay === 'daylight' || timeOfDay === 'sun-on-horizon')
     },
@@ -1376,7 +1375,7 @@ function buildParams(
   const fog =
     (rainbowDay || eclipse != null) && spec.fog === undefined
       ? null
-      : pickFog(seed, biome, basin.name, Number(date.slice(5, 7)), timeOfDay, weather, windSpeed, spec.fog)
+      : pickFog(seed, biome, basin.name, seasonMonth({ date, latitudeDeg }), timeOfDay, weather, windSpeed, spec.fog)
   if (fog != null) {
     // Fog comes with light airs: the sea calms under it.
     if (spec.wind == null) windSpeed = Math.min(windSpeed, fog.kind === 'sea-smoke' ? 3 : 6)

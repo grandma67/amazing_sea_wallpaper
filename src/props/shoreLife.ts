@@ -12,6 +12,7 @@ import type { Biome, RGB } from '../biome'
 import type { OceanName } from '../oceans'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
+import { monthInSeason } from '../seasons'
 import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
@@ -64,8 +65,8 @@ export interface ShoreLife {
 
 type BiomeName = Biome['name']
 
-/** Where each flower grows and its months in bloom (northern hemisphere;
- * null = all year). */
+/** Where each flower grows and its months in bloom (northern-hemisphere
+ * months, shifted south of the equator by monthInSeason; null = all year). */
 export const FLOWERS: Record<FlowerKind, { biomes: BiomeName[]; months: [number, number] | null; oceans?: OceanName[] }> = {
   'morning-glory': { biomes: ['tropical'], months: null },
   bindweed: { biomes: ['mediterranean', 'nordic'], months: [6, 8], oceans: ['atlantic', 'pacific', 'indian'] },
@@ -83,11 +84,6 @@ const SHELLS: Record<BiomeName, Partial<Record<OceanName, ShellKind[]>> & { othe
   mediterranean: { other: ['clam', 'cockle', 'scallop', 'razor'] },
   tropical: { other: ['clam', 'cockle', 'scallop'] },
   desert: { other: ['mussel', 'clam', 'cockle'] }
-}
-
-/** Is `month` (1–12) within [from, to]? */
-function inMonths(month: number, [from, to]: [number, number]): boolean {
-  return from <= to ? month >= from && month <= to : month >= from || month <= to
 }
 
 /** What lives on this beach today, or null for no beach; a scene spec's
@@ -109,9 +105,7 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
   if (!hasBeach(params.coast)) return null
   const biome = params.biome.name
   const ocean = params.sea.ocean
-  const southern = ocean === 'southern'
-  // The Southern Ocean's seasons are flipped.
-  const month = ((Number(params.date.slice(5, 7)) + (southern ? 5 : 11)) % 12) + 1
+  const southernOcean = ocean === 'southern'
   const night = params.timeOfDay === 'night' || params.timeOfDay === 'blue-hour'
   const dusk = params.timeOfDay === 'golden-hour' || params.timeOfDay === 'sun-on-horizon'
 
@@ -128,7 +122,7 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
 
   // Crabs.
   const ghostChance = { tropical: 0.85, desert: 0.7, mediterranean: 0.3, nordic: 0, volcanic: 0 }[biome]
-  if (!southern && ocean !== 'arctic') {
+  if (!southernOcean && ocean !== 'arctic') {
     if (rng.chance(ghostChance)) {
       life.crab = 'ghost'
       life.burrows = rng.int(8, 40)
@@ -146,18 +140,18 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
 
   // Shells.
   const table = SHELLS[biome]
-  life.shells = southern ? ['mussel'] : (table[ocean] ?? table.other)
+  life.shells = southernOcean ? ['mussel'] : (table[ocean] ?? table.other)
   life.shellCount = rng.int(80, 420)
   if ((biome === 'nordic' || biome === 'mediterranean' || (biome === 'volcanic' && ocean === 'pacific')) && rng.chance(0.3)) {
     life.starfish = rng.int(1, 6)
   }
 
   // Flowers in bloom.
-  if (!southern) {
+  if (!southernOcean) {
     for (const [kind, where] of Object.entries(FLOWERS) as [FlowerKind, (typeof FLOWERS)[FlowerKind]][]) {
       if (!where.biomes.includes(biome)) continue
       if (where.oceans != null && !where.oceans.includes(ocean)) continue
-      if (where.months != null && !inMonths(month, where.months)) continue
+      if (where.months != null && !monthInSeason(params, ...where.months)) continue
       if (rng.chance(0.7)) life.flowers.push(kind)
     }
     if (life.flowers.length > 0) life.flowerAmount = rng.range(0.3, 1)

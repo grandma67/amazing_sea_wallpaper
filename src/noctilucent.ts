@@ -3,6 +3,7 @@ import type { SkyMaterial } from '@takram/three-atmosphere'
 
 import type { SceneParams } from './params'
 import type { Random } from './random'
+import { monthInSeason } from './seasons'
 
 // Noctilucent clouds: ice at the summer mesopause, ~82 km up, so high that
 // they're still in sunlight when the sun is 6–16° below the horizon. Seen
@@ -43,10 +44,10 @@ export function noctilucentSeason(month: number, day: number, southern: boolean)
 
 export function noctilucentFor(params: SceneParams, rng: Random, force?: boolean | null): NoctilucentParams | null {
   const [month, day] = [Number(params.date.slice(5, 7)), Number(params.date.slice(8, 10))]
-  const southern = params.sea.ocean === 'southern'
+  const southern = params.latitudeDeg < 0
   const lat = Math.abs(params.latitudeDeg)
   const band = lat < 50 || lat > 67 ? 0 : Math.min(1, (lat - 48) / 10)
-  const region = params.biome.name === 'nordic' || southern ? 1 : 0
+  const region = params.biome.name === 'nordic' || params.sea.ocean === 'southern' ? 1 : 0
   const clearSky = ['clear', 'cirrus', 'few'].includes(params.weather.kind)
   const twilight = params.timeOfDay === 'blue-hour'
   const chance = 0.5 * noctilucentSeason(month, day, southern) * band * region * (clearSky && twilight && params.fog == null ? 1 : 0)
@@ -71,9 +72,8 @@ export interface NacreousParams {
 /** Within ~2 months of the winter solstice on Arctic and Southern Ocean
  * coasts, at blue hour (sun 1–6° down) under a clear sky: ~3%. */
 export function nacreousFor(params: SceneParams, rng: Random, force?: boolean | null): NacreousParams | null {
-  const month = Number(params.date.slice(5, 7))
-  const winter =
-    params.sea.ocean === 'arctic' ? [11, 12, 1, 2].includes(month) : params.sea.ocean === 'southern' ? [5, 6, 7, 8].includes(month) : false
+  const polar = params.sea.ocean === 'arctic' || params.sea.ocean === 'southern'
+  const winter = polar && monthInSeason(params, 11, 2)
   const eligible = winter && params.timeOfDay === 'blue-hour' && ['clear', 'cirrus', 'few'].includes(params.weather.kind) && params.fog == null
   const drawn = rng.float() < (eligible ? 0.03 : 0)
   const out: NacreousParams = { opticalDepth: rng.range(0.01, 0.03), seed: rng.range(0, 100) }

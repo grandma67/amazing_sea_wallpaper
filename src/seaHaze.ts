@@ -20,6 +20,7 @@ import type { Biome } from './biome'
 import type { OceanName } from './oceans'
 import type { SceneParams, WeatherParams } from './params'
 import type { Random } from './random'
+import { monthInSeason } from './seasons'
 
 /** Extinction of the Bruneton sky's own air at sea level (1/m, ~550 nm). */
 const SKY_EXTINCTION = 1.8e-5
@@ -53,7 +54,7 @@ export function visibilityFor(params: SceneParams, rng: Random, force?: number):
   const [t, dust] = [rng.float(), rng.float()]
   let range = POLAR[params.sea.ocean] ?? VISIBILITY[biome]
   // Summer is Jun–Sep north of the equator, Dec–Mar south of it.
-  const summer = params.latitudeDeg >= 0 ? month >= 6 && month <= 9 : month <= 3 || month === 12
+  const summer = monthInSeason(params, 6, 9)
   if (biome === 'mediterranean' && summer) range = MEDITERRANEAN_SUMMER
   // Arctic haze: pollution trapped under the polar winter's inversion, worst
   // in spring.

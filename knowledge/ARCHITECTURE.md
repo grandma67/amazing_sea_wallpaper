@@ -56,6 +56,14 @@ Playwright (headless snapshots), Vitest.
   `ocean`, `climate` restrict the draw to places that have them and force the choice;
   `placesFor()` throws on a combination no place has. `latitudeDeg` is signed now (south
   negative): readers that meant "distance from the equator" use `Math.abs`.
+- **Seasons** (`seasons.ts`): seasonal tables are written in northern-hemisphere months;
+  `seasonMonth(day)` shifts the month by six south of the equator (sign of `latitudeDeg`, so
+  Chile, the Cape, SW Australia and NZ count, not only the Southern Ocean), `season(day)` gives
+  winter/spring/summer/autumn, `monthInSeason(day, from, to)` tests a range. Used by flowers
+  (`FLOWERS`), fog season and sea smoke (`pickFog`), cloud summer (`addFormations`), Arctic/
+  Antarctic nacreous winter, noctilucent season, Mediterranean summer haze and migratory passage.
+  Not by tables of real local months for one region: turtle nesting per place (already local),
+  waterspouts, the Morning Glory, polar ship seasons (by ocean), Arctic ice (north only).
 - **Scene specs** (`sceneSpec.ts`): typed, validated JSON. `generateParams(date, attempt, aspect,
   spec)` applies it at each decision but still makes every draw. Forcing the time of day changes
   how many main-stream draws the sky makes, so later main-stream draws (lens, wind,

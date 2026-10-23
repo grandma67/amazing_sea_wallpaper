@@ -132,6 +132,14 @@ tool gotchas in TOOLS.md.
 - Near-camera boats need open water: on beach days no spot ≥ 3 m deep lies within ~150 m in frame;
   use `"coast": "open-sea"` to check wakes/spray up close.
 
+## Seasons
+
+- A month table needs the hemisphere, not the ocean: `ocean === 'southern'` only flipped the
+  Southern Ocean, so Chile, SW Australia and the Cape bloomed in July. Read months through
+  `seasons.ts` (`monthInSeason`); keep calendar months only for data that is already local
+  (turtle nesting per place). Tests that pin "a northern beach" pin a northern `place`, since a
+  biome/ocean spec can now draw a southern place.
+
 ## Placement
 
 - Place by trying spots until enough is in view: sampling shore coords round the camera fails in

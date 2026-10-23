@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { burrowGeometry, crabGeometry, FLOWERS, flowerGeometry, shellGeometry, shoreLifeFor, starfishGeometry, type FlowerKind } from '../src/props/shoreLife'
 import { Random } from '../src/random'
+import { seasonMonth } from '../src/seasons'
 import { allParams, DAYS, scene, scenes } from './days'
 
 describe('shore life', () => {
@@ -32,7 +33,7 @@ describe('shore life', () => {
   it('blooms only where and when each flower does', () => {
     let seen = 0
     for (const p of beaches) {
-      const month = Number(p.date.slice(5, 7))
+      const month = seasonMonth(p)
       for (const kind of life(p).flowers) {
         seen++
         const where = FLOWERS[kind]
@@ -47,9 +48,9 @@ describe('shore life', () => {
     expect(seen).toBeGreaterThan(100)
     // Nothing in bloom on a northern beach in January; thrift in June.
     const january = DAYS.filter(d => d.slice(5, 7) === '01')
-    for (const date of january) expect(life(scene({ coast: 'beach', biome: 'nordic', ocean: 'atlantic' }, date)).flowers).toEqual([])
+    for (const date of january) expect(life(scene({ coast: 'beach', place: 'britain-ireland' }, date)).flowers).toEqual([])
     const june = DAYS.filter(d => d.slice(5, 7) === '06')
-    const thrift = june.filter(date => life(scene({ coast: 'beach', biome: 'nordic', ocean: 'atlantic' }, date)).flowers.includes('thrift'))
+    const thrift = june.filter(date => life(scene({ coast: 'beach', place: 'britain-ireland' }, date)).flowers.includes('thrift'))
     expect(thrift.length / june.length).toBeGreaterThan(0.5)
   })
 
