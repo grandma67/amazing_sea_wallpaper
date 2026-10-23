@@ -1,15 +1,15 @@
 # Places and regions
 
-Research for PLAN_BIOMES.md: the places a day is drawn from (phase 2), sand
+Research for PLAN_BIOMES.md: the places a day is drawn from (phase 1), sand
 grain sizes and fall velocities (phase 4), tidal ranges (phase 5) and bioluminescence
-seasons (phase 13). Status 2026-10-23: research only, nothing built.
+seasons (phase 13, later). Status 2026-10-23: research only, nothing built.
 
 Values marked **≈** are from general knowledge or a single non-authoritative page; check
 them against national tide tables or papers before relying on them in a test.
 
 ## 1. Places
 
-**One draw: the place.** Each day draws one place (PLAN_BIOMES 2a). Everything else
+**One draw: the place.** Each day draws one place (PLAN_BIOMES 1a). Everything else
 about where the camera stands follows from it:
 
 | Kind | Fields | How |
@@ -280,7 +280,7 @@ authors put mega at 8 m).
 Spring–neap: Incheon spring/neap ≈ 1.46, a typical ratio; ×1.2 at springs and ×0.8 at neaps
 (plan) is close.
 
-## 4. Bioluminescence seasons (phase 13)
+## 4. Bioluminescence seasons (phase 13, later)
 
 Glowing surf needs a dense dinoflagellate bloom (*Lingulodinium polyedra* in California,
 *Noctiluca scintillans* in Asia and Australia); it shows an hour or two after dark, best
@@ -303,8 +303,8 @@ Not plankton: Toyama Bay's glowing firefly squid (Mar–Jun) wash up on beaches;
 feature if wanted, not "bioluminescent surf".
 
 Lagoon-only places (Puerto Rico bays, Indian River, Luminous Lagoon) glow in calm water
-stirred by boats or fish, not in breaking waves: they need a calm-water scene (PLAN_BIOMES
-phase 6 lagoon), not the surf effect.
+stirred by boats or fish, not in breaking waves: they need a calm-water lagoon in view (PLAN_BIOMES
+phases 6 and 10), not the surf effect. Skipped for now (PLAN_BIOMES "Later and skipped").
 
 ## To check
 

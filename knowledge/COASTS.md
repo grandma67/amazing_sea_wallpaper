@@ -89,6 +89,6 @@ Sources: [Canadian Encyclopedia: Coast](https://www.thecanadianencyclopedia.ca/e
 ## Planned
 
 Beach materials (sand, mixed, shingle, cobble), rocky shores, tidal flats, reefs, tides and
-climates are planned in [plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md) (phase 1: stony beaches;
-decisions there supersede the earlier proposals, e.g. rock-shore ~25% of days and climates from
-the region instead of a new `temperate` biome).
+climates are planned in [plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md) (phase 1: places;
+phase 2: stony beaches; decisions there supersede the earlier proposals, e.g. rock-shore ~25% of
+days and climate as a choice of each place instead of a new `temperate` biome).
