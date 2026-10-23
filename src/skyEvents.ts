@@ -70,7 +70,7 @@ export function rollCloudFor(
   rng: Random,
   force?: boolean | null
 ): RollCloudParams | null {
-  const place = day.biome === 'tropical' && (day.ocean === 'indian' || day.ocean === 'pacific') && day.latitudeDeg >= 10
+  const place = day.biome === 'tropical' && (day.ocean === 'indian' || day.ocean === 'pacific') && Math.abs(day.latitudeDeg) >= 10
   const season = day.month >= 9 && day.month <= 11
   const dawn = !day.evening && (day.timeOfDay === 'golden-hour' || day.timeOfDay === 'sun-on-horizon')
   const sky = day.weather === 'clear' || day.weather === 'cirrus' || day.weather === 'few' || day.weather === 'scattered'

@@ -2,6 +2,7 @@ import type { EclipseType } from './celestial'
 import type { Biome, SandStyle, VegetationKind } from './biome'
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
+import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
 import type { DebrisSpec } from './props/debris'
 import type { ShoreLife } from './props/shoreLife'
@@ -88,8 +89,13 @@ export interface SceneSpec {
   /** null: none, even on a real eclipse day. */
   eclipse?: EclipseType | null
 
+  /** A place id or a region id (places.ts); the day draws among those. */
+  place?: string
+  /** These restrict the place draw to places that have them, and force them;
+   * a combination no place has throws. */
   biome?: Biome['name']
   ocean?: OceanName
+  climate?: Climate
   monsoon?: boolean
   ice?: Force<'pack' | 'bergs'>
   coast?: 'beach' | 'open-sea'
@@ -224,8 +230,10 @@ const SPEC = object({
   dayMoon: boolean,
   nightSky: oneOf('moonlit', 'starlit'),
   eclipse: oneOf(null, 'solar-partial', 'solar-annular', 'solar-total', 'lunar-partial', 'lunar-total'),
+  place: oneOf(...PLACES.map(p => p.id), ...REGION_IDS.filter(r => !PLACES.some(p => p.id === r))),
   biome: oneOf(...BIOMES),
   ocean: oneOf(...OCEANS),
+  climate: oneOf(...CLIMATES),
   monsoon: boolean,
   ice: force('pack', 'bergs'),
   coast: oneOf('beach', 'open-sea'),

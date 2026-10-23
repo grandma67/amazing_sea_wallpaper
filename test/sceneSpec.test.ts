@@ -42,9 +42,9 @@ describe('scene specs', () => {
 
   it('force the sky and the place', () => {
     for (const date of sample) {
-      const p = scene({ timeOfDay: 'blue-hour', biome: 'volcanic', ocean: 'arctic', composition: 'overlook', sand: 'white', weather: 'overcast' }, date)
+      const p = scene({ timeOfDay: 'blue-hour', biome: 'nordic', ocean: 'arctic', composition: 'overlook', sand: 'white', weather: 'overcast' }, date)
       expect(p.timeOfDay).toBe('blue-hour')
-      expect(p.biome.name).toBe('volcanic')
+      expect(p.biome.name).toBe('nordic')
       expect(p.sea.ocean).toBe('arctic')
       expect(p.coast.type).toBe('beach')
       expect(p.coast.composition).toBe('overlook')

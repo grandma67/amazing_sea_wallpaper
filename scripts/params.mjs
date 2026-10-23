@@ -20,7 +20,7 @@
 //   render's own random streams. Placement can still miss the frame.
 //
 // Examples:
-//   node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-12
+//   node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-06
 //   node scripts/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
 //   node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
 //   node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile' --where 'p => p.props.wildlife != null'

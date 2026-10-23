@@ -17,6 +17,7 @@ import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { beachLines } from './debris'
 import { noise3 } from './noise'
+import { inMonths, placeNamed, type Animal } from '../places'
 
 // Larger beach animals, at real size, so they show only near the camera.
 //
@@ -58,19 +59,9 @@ export type TurtleSpecies = 'green' | 'loggerhead' | 'leatherback' | 'hawksbill'
 export type MonkeyKind = 'macaque' | 'capuchin' | 'vervet'
 export type LizardKind = 'marine-iguana' | 'green-iguana' | 'monitor' | 'spiny-tailed'
 export type CrocodileKind = 'saltwater' | 'american' | 'nile' | 'west-african'
-export type WildRegion =
-  | 'se-asia'
-  | 'central-america'
-  | 'east-africa'
-  | 'west-africa'
-  | 'caribbean'
-  | 'galapagos'
-  | 'hawaii'
-  | 'mediterranean'
-  | 'arabia'
-
 export interface Wildlife {
-  region: WildRegion | null
+  /** The place's region, when it has beach animals (places.ts). */
+  region: string | null
   turtle: TurtleSpecies | null
   /** A female nesting near us now. */
   nesting: boolean
@@ -88,74 +79,22 @@ export interface Wildlife {
   hippos: number
 }
 
-/** Which part of the world a warm beach is on, from its biome and ocean. */
-function regionFor(params: SceneParams, rng: Random): WildRegion | null {
-  const { biome } = params
-  const ocean = params.sea.ocean
-  const draw = rng.float()
-  if (biome.name === 'tropical') {
-    if (ocean === 'pacific') return draw < 0.6 ? 'se-asia' : 'central-america'
-    if (ocean === 'indian') return draw < 0.65 ? 'se-asia' : 'east-africa'
-    if (ocean === 'atlantic') return draw < 0.35 ? 'west-africa' : 'caribbean'
+/** The species nesting in `month` (1–12) among a place's animals, or null
+ * out of season; `pick` (0–1) chooses among the species in season. */
+export function nestingSpecies(animals: readonly Animal[], month: number, pick: number): TurtleSpecies | null {
+  const season = animals.flatMap(a => (a.kind === 'turtle' && (a.months == null || inMonths(month, a.months)) ? [a] : []))
+  const total = season.reduce((sum, a) => sum + (a.weight ?? 1), 0)
+  let r = pick * total
+  for (const a of season) {
+    r -= a.weight ?? 1
+    if (r < 0) return a.species
   }
-  if (biome.name === 'volcanic' && ocean === 'pacific' && Math.abs(params.latitudeDeg) < 25) {
-    return draw < 0.5 ? 'galapagos' : 'hawaii'
-  }
-  // The Mediterranean Sea itself (not California or Chile).
-  if (biome.name === 'mediterranean' && ocean === 'atlantic') return 'mediterranean'
-  if (biome.name === 'desert' && ocean === 'indian') return 'arabia'
-  return null
+  return season.at(-1)?.species ?? null
 }
 
-const inMonths = (month: number, from: number, to: number): boolean =>
-  from <= to ? month >= from && month <= to : month >= from || month <= to
-
-/** The species nesting in `region` in `month` (1–12), or null out of season. */
-export function nestingSpecies(region: WildRegion | null, month: number, pick: number): TurtleSpecies | null {
-  switch (region) {
-    case 'caribbean':
-      return inMonths(month, 3, 6) ? 'leatherback' : inMonths(month, 7, 10) ? (pick < 0.7 ? 'green' : 'hawksbill') : null
-    case 'central-america':
-      return inMonths(month, 7, 12) ? 'olive-ridley' : 'green'
-    case 'se-asia':
-      return inMonths(month, 4, 9) ? (pick < 0.7 ? 'green' : 'hawksbill') : inMonths(month, 11, 3) ? 'olive-ridley' : null
-    case 'west-africa':
-      return inMonths(month, 10, 3) ? (pick < 0.75 ? 'leatherback' : 'olive-ridley') : null
-    case 'east-africa':
-    case 'galapagos':
-    case 'arabia':
-      return 'green'
-    case 'mediterranean':
-      return inMonths(month, 6, 8) ? (pick < 0.85 ? 'loggerhead' : 'green') : null
-    default:
-      return null
-  }
-}
-
-const MONKEYS: Partial<Record<WildRegion, [MonkeyKind, number]>> = {
-  'se-asia': ['macaque', 0.3],
-  'central-america': ['capuchin', 0.2],
-  'east-africa': ['vervet', 0.25]
-}
-
-const LIZARDS: Partial<Record<WildRegion, [LizardKind, number]>> = {
-  galapagos: ['marine-iguana', 0.85],
-  'central-america': ['green-iguana', 0.25],
-  caribbean: ['green-iguana', 0.2],
-  'se-asia': ['monitor', 0.2],
-  arabia: ['spiny-tailed', 0.25]
-}
-
-const CROCODILES: Partial<Record<WildRegion, [CrocodileKind, number]>> = {
-  'se-asia': ['saltwater', 0.12],
-  'central-america': ['american', 0.12],
-  caribbean: ['american', 0.08],
-  'east-africa': ['nile', 0.1],
-  'west-africa': ['west-african', 0.12]
-}
-
-/** Chance of hippos on a beach. */
-const HIPPOS: Partial<Record<WildRegion, number>> = { 'west-africa': 0.15, 'east-africa': 0.04 }
+/** The place's animal of `kind`, if it has one. */
+const animal = <K extends Animal['kind']>(animals: readonly Animal[], kind: K): Extract<Animal, { kind: K }> | undefined =>
+  animals.find((a): a is Extract<Animal, { kind: K }> => a.kind === kind)
 
 /** What's on this beach today, or null for no beach; a scene spec's
  * `props.wildlife` replaces the drawn fields (null: nothing). */
@@ -178,7 +117,8 @@ export function wildlifeFor(params: SceneParams, rng: Random): Wildlife | null {
 
 function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
   if (params.coast.type !== 'beach') return null
-  const region = regionFor(params, rng)
+  const { animals, region: placeRegion } = placeNamed(params.place.id)
+  const region = animals.length > 0 ? placeRegion : null
   const month = Number(params.date.slice(5, 7))
   const time = params.timeOfDay
   const dark = time === 'night' || time === 'blue-hour'
@@ -191,7 +131,7 @@ function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
   const tracks = rng.int(1, 4)
   const hatchDraw = rng.chance(0.3)
   const hatchCount = rng.int(15, 60)
-  const baskDraw = rng.chance(0.45)
+  const baskDraw = rng.float()
   const baskCount = rng.int(1, 3)
   const monkeyDraw = rng.float()
   const monkeyCount = rng.int(3, 10)
@@ -221,8 +161,8 @@ function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
     hippos: 0
   }
   // Turtles: nesting (and its tracks) in season, hatchlings ~2 months later.
-  const nester = nestingSpecies(region, month, pick)
-  const hatcher = nestingSpecies(region, ((month + 9) % 12) + 1, pick)
+  const nester = nestingSpecies(animals, month, pick)
+  const hatcher = nestingSpecies(animals, ((month + 9) % 12) + 1, pick)
   if (nester != null && active) {
     life.turtle = nester
     if (dark) {
@@ -237,28 +177,29 @@ function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
     life.turtle ??= hatcher
     life.hatchlings = hatchCount
   }
-  if (region === 'hawaii' && day && !storm && baskDraw) {
+  const basking = animal(animals, 'basking-turtle')
+  if (basking != null && day && !storm && baskDraw < basking.chance) {
     life.turtle = 'green'
     life.basking = baskCount
   }
   // Monkeys and lizards are out by day.
-  const monkey = region != null ? MONKEYS[region] : undefined
-  if (monkey != null && day && !storm && monkeyDraw < monkey[1]) {
-    life.monkey = monkey[0]
+  const monkey = animal(animals, 'monkey')
+  if (monkey != null && day && !storm && monkeyDraw < monkey.chance) {
+    life.monkey = monkey.species
     life.monkeys = monkeyCount
   }
-  const lizard = region != null ? LIZARDS[region] : undefined
-  if (lizard != null && day && !storm && lizardDraw < lizard[1]) {
-    life.lizard = lizard[0]
-    life.lizards = lizard[0] === 'marine-iguana' ? colonySize : lizardCount
+  const lizard = animal(animals, 'lizard')
+  if (lizard != null && day && !storm && lizardDraw < lizard.chance) {
+    life.lizard = lizard.species
+    life.lizards = lizard.species === 'marine-iguana' ? colonySize : lizardCount
   }
   // Crocodiles bask by day (in storms they're in the water); hippos any time.
-  const crocodile = region != null ? CROCODILES[region] : undefined
-  if (crocodile != null && day && crocDraw < crocodile[1]) {
-    life.crocodile = crocodile[0]
+  const crocodile = animal(animals, 'crocodile')
+  if (crocodile != null && day && crocDraw < crocodile.chance) {
+    life.crocodile = crocodile.species
     life.crocodiles = crocCount
   }
-  if (hippoDraw < ((region != null ? HIPPOS[region] : undefined) ?? 0)) life.hippos = hippoCount
+  if (hippoDraw < (animal(animals, 'hippo')?.chance ?? 0)) life.hippos = hippoCount
   return life
 }
 

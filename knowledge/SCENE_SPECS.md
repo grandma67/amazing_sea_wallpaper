@@ -19,7 +19,10 @@ scripts: `--scene <JSON or file>`.
 - Fields (allowed values in `sceneSpec.ts`):
   - time and light: `timeOfDay`, `evening`, `sunElevationDeg`, `sunAzimuthDeg` (0 = ahead),
     `moonPhaseDeg`, `dayMoon`, `nightSky`, `eclipse`;
-  - place: `biome`, `ocean`, `monsoon`, `ice`, `coast`, `composition`, `sand`;
+  - place: `place` (a place or region id from `src/places.ts`, e.g. `"scotland"`,
+    `"atlantic-canada"`), `biome`, `ocean`, `climate` (these three restrict the place draw
+    to places that have them and force the choice; a combination no place has throws),
+    `monsoon`, `ice`, `coast`, `composition`, `sand`;
   - sky: `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
     `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
     `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
@@ -55,13 +58,15 @@ Every new random feature gets one. Always make the draw, then apply the force vi
   - 2025-03-29: partial solar;
   - 2025-03-14, 2025-09-07, 2026-03-03: blood moon;
   - 2026-08-28: partial lunar.
-- Looks:
-  - 2024-02-12: Arctic beach, driftwood;
-  - 2024-06-26: nordic beach, kelp, day moon;
-  - 2024-07-12: Mediterranean beach, seagrass, shells;
-  - 2024-03-08: tropical golden hour;
-  - 2024-09-12: Mediterranean waterspout season;
-  - 2024-04-24: storm + shelf cloud.
+- Looks (re-found 2026-10-23 after places, PLAN_BIOMES 1a, reshuffled every date):
+  - 2024-01-03: Arctic beach (arctic-canada), driftwood, kelp, icebergs, midday;
+  - 2024-11-23: nordic beach (nova-scotia), kelp, moon by day;
+  - 2024-09-05: Mediterranean beach (north-africa-levant), seagrass, shells;
+  - 2024-02-26: tropical golden hour (indonesia);
+  - 2024-09-06: Mediterranean waterspout season (western-med, open sea);
+  - 2024-04-24: storm + shelf cloud (norway-west).
+- For a look, prefer a spec (`place`, `biome`, `timeOfDay`…) over a date: dates change
+  whenever the main stream does.
 
 ## Ask the generator, don't render: `scripts/params.mjs`
 
@@ -72,7 +77,7 @@ gives, real dates (eclipses) and "is it there at all?". Use specs for looks.
 node scripts/params.mjs --stats 'p => p.weather.formations'                 # counts over 3 years
 node scripts/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
 node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
-node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-12
+node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-06
 node scripts/params.mjs --scene '{"storm":"squall"}' --stats 'p => p.weather.formations'   # spec on every day
 node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'    # prop choices
 ```

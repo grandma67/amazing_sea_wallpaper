@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
 import { noctilucentSeason } from '../src/noctilucent'
-import { allParams, scene } from './days'
+import { DAYS, allParams, scene, scenes } from './days'
 
 describe('noctilucent clouds', () => {
   const days = allParams()
 
   it('show only at blue hour on clear nordic or Southern Ocean nights, 50–67°, in season', () => {
-    const nlc = days.filter(p => p.noctilucent != null)
+    // Rare on real days: add clear nordic blue hours on every date.
+    const twilights = scenes({ biome: 'nordic', timeOfDay: 'blue-hour', weather: 'clear', eclipse: null }, DAYS.length)
+    const nlc = [...days, ...twilights].filter(p => p.noctilucent != null)
     expect(nlc.length).toBeGreaterThan(0)
     for (const p of nlc) {
       expect(p.timeOfDay).toBe('blue-hour')

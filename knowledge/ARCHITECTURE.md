@@ -26,6 +26,12 @@ Playwright (headless snapshots), Vitest.
 - **Clouds at full resolution on beaches** (2026-10-15): half-res clouds and light shafts
   upsampled across trees and ridges gave glowing rims; depth-aware upsampling can't recover
   twigs thinner than a texel. Cloudy 4K beach ~5 → ~9 s.
+- **One draw: the place, before the sky** (2026-10-23, PLAN_BIOMES 1a): each day draws a real
+  stretch of coast (`places.ts`), the first main-stream draw; biome, ocean, climate and latitude
+  follow from it, so the sky can depend on the place. Weights are √ of each region's coastline
+  length, split among its places by length (raw length would make ~70% of days Arctic and
+  nordic). Replaced biome × ocean drawn apart with latitude from the ocean basin. Reshuffled
+  every date once, deliberately.
 - **Cheaper rendering must not change the image.** Rejected for speed: shipping precomputed
   atmosphere LUTs (10–48 MB, slightly different sky), caching sky textures between visits
   (~48 MB of float 3D textures), dropping the higher-order scattering texture (sky and aerial
@@ -39,16 +45,27 @@ Playwright (headless snapshots), Vitest.
 - `random.ts`: cyrb128 + sfc32; `Random.derive(seed, name)` gives independent streams, so a new
   feature doesn't shift other draws. `params.ts`: date → `SceneParams` (time of day, sun/moon,
   weather, storm, rainbow, ocean, biome, landform, colony, camera, wind, title).
+- **Places** (`places.ts`, data from REGIONS.md §1): ~90 places in regions. Constants (`biome`,
+  `region`, signed `latitude`, `km`), choose-one weights (`ocean`, `climate`) and choose-many
+  pools (`animals`, `plants`); defaults merge biome → region → place. Draw order in
+  `buildParams`: `pickPlace` (main stream, one float even when a spec restricts it), then
+  `pickOcean` from the place's weights on `'ocean'` (monsoon, ice as before), climate on
+  `'climate'`, latitude on `'ocean'`; then eclipse, time of day and the rest of the sky.
+  `params.place` = `{ id, region, climate, hemisphere }`; `params.biome` and
+  `params.sea.ocean` stay for every reader. Specs: `place` (place or region id); `biome`,
+  `ocean`, `climate` restrict the draw to places that have them and force the choice;
+  `placesFor()` throws on a combination no place has. `latitudeDeg` is signed now (south
+  negative): readers that meant "distance from the equator" use `Math.abs`.
 - **Scene specs** (`sceneSpec.ts`): typed, validated JSON. `generateParams(date, attempt, aspect,
   spec)` applies it at each decision but still makes every draw. Forcing the time of day changes
-  how many main-stream draws the sky makes, so later main-stream draws (biome, lens, wind,
+  how many main-stream draws the sky makes, so later main-stream draws (lens, wind,
   horizon…) are pinned to the unforced day's (`keep()`). Prop choices reach props as
   `params.overrides`; a final `params` deep patch covers the rest.
 - **Prop choices without rendering:** `props/choices.ts` `propChoices(params)` runs each
   creator's pure `xxxFor(params, rng)` (gulls, marine, migratory, wildlife, shore life, debris,
   mangroves) on its own stream, for `scripts/params.mjs` (`p.props`), `scripts/animals.mjs` and
   tests.
-- Coast choice (biome → ocean → beach/open-sea → shape): [COASTS.md](COASTS.md). Sky choice:
+- Coast choice (place → biome, ocean → beach/open-sea → shape): [COASTS.md](COASTS.md). Sky choice:
   [CLOUDS.md](CLOUDS.md). Animals: [ANIMALS.md](ANIMALS.md).
 
 ### Sky, clouds, light
@@ -165,9 +182,9 @@ Playwright (headless snapshots), Vitest.
 - **Shore life** (`shoreLife.ts`, `shoreLifeFor()`): crabs by biome and time of day, shells by
   coast, flowers in bloom by month (`FLOWERS`). Real size: crabs and shells show only near the
   camera.
-- **Wildlife** (`wildlife.ts`, `wildlifeFor()`): region from biome, ocean and latitude, then
-  turtles (`nestingSpecies(region, month)`), monkeys, lizards, crocodiles (`CROCODILES`), hippos
-  (`HIPPOS`). `inWater()` decides where the big ones are; `inSea()` places them by depth via
+- **Wildlife** (`wildlife.ts`, `wildlifeFor()`): the place's `animals` pool (`places.ts`), then
+  turtles (`nestingSpecies(animals, month, pick)`: in-season entries weighted), monkeys, lizards,
+  crocodiles, hippos and basking turtles by the pool's chances. `inWater()` decides where the big ones are; `inSea()` places them by depth via
   `ctx.seaPoint`. `spot()` casts rays through the lower frame and marches them to the ground, so
   each group lands in view, near first; tracks are a world-space strip of churned sand.
 - **Pinnipeds** (`pinnipeds.ts`): hauled out on rock or beach; `swimmingHead` for heads in water.

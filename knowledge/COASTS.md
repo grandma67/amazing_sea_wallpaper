@@ -6,10 +6,12 @@ shingle, cobble). Status 2026-10-23. Shares are over 2024–2026 (1096 days,
 
 ## How a coast is chosen (today)
 
-1. **Biome** (`BIOMES` in `biome.ts`, main stream): sets water, sand colours, rocks,
-   plants.
-2. **Ocean** (`pickOcean`, `oceans.ts`, own stream): weighted by biome; sets swell, wind,
-   latitude, polar water and ice.
+1. **Place** (`places.ts`, the first main-stream draw; PLAN_BIOMES 1a): a real stretch of
+   coast, weighted by √ of its region's coastline length (REGIONS.md §1). It fixes the
+   **biome** (water, sand colours, rocks, plants) and the latitude range.
+2. **Ocean** (`pickOcean`, `oceans.ts`, own stream): from the place's weights; sets swell,
+   wind, polar water and ice. Climate (own stream) and latitude (within the place's range,
+   signed) follow.
 3. **Coast type** (`generateCoast`, `params.ts`): `beach` 65% / `open-sea` 35%, once per
    date.
 4. **Shape** (same function): slope, beach width, dunes, hills, sandbar (60%), sand colour
@@ -19,21 +21,25 @@ shingle, cobble). Status 2026-10-23. Shares are over 2024–2026 (1096 days,
 
 | Biome | Share | Places it stands for | Sand (within biome) | Rocks | Sea stacks |
 |---|---|---|---|---|---|
-| `mediterranean` | 28.6% | Mediterranean, California, Chile, SW Australia | grey 37%, white 32%, golden 31% | 75% | 30% |
-| `tropical` | 28.3% | Pacific/Indian/Caribbean islands | white 68%, golden 32% | 45% | 15% |
-| `nordic` | 19.2% | Norway, Scotland, Svalbard, Greenland, Alaska, Tierra del Fuego | grey 55%, golden 45% | 85% | 20% |
-| `volcanic` | 13.6% | Hawaii, Japan, Iceland, Canaries, Réunion | black 60%, grey 40% | 95% | 45% |
-| `desert` | 10.4% | Arabia, Namibia, Sahara coast, Atacama | golden 61%, white 39% | 40% | 20% |
+| `mediterranean` | 15.2% | Mediterranean, Portugal, California, Chile, SW Australia, Cape; subtropical Florida, S Brazil, E Australia, S Japan, Natal | grey 37%, white 32%, golden 31% | 75% | 30% |
+| `tropical` | 23.5% | SE Asia, Pacific islands, India, Caribbean, East and West Africa, N Australia | white 68%, golden 32% | 45% | 15% |
+| `nordic` | 40.4% | Arctic Canada, Norway, Greenland, Britain, Atlantic Canada, BC, Alaska, Baltic, Patagonia, NZ South | grey 55%, golden 45% | 85% | 20% |
+| `volcanic` | 13.3% | Hawaii, Japan, Iceland, Canaries, Réunion | black 60%, grey 40% | 95% | 45% |
+| `desert` | 7.5% | Arabia, Namibia, Sahara coast, Atacama | golden 61%, white 39% | 40% | 20% |
 
 ### Ocean by biome
 
+From the places' ocean weights (2024–2026). Southern-hemisphere places are 27% of days;
+climates: tropical 27%, polar 19%, temperate 18%, boreal 11%, subtropical 9%,
+mediterranean 9%, arid 8%.
+
 | Biome | Pacific | Atlantic | Indian | Arctic | Southern |
 |---|---|---|---|---|---|
-| tropical | 47% | 19% | 34% | – | – |
-| mediterranean | 29% | 58% | 13% | – | – |
-| nordic | 21% | 39% | – | 30% | 10% |
-| volcanic | 47% | 31% | 11% | – | 11% |
-| desert | 28% | 27% | 45% | – | – |
+| tropical | 45% | 20% | 35% | – | – |
+| mediterranean | 32% | 60% | 8% | – | – |
+| nordic | 24% | 33% | – | 38% | 6% |
+| volcanic | 49% | 25% | 10% | – | 16% |
+| desert | 30% | 28% | 41% | – | – |
 
 ### Coast type and composition
 

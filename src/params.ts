@@ -2,7 +2,7 @@ import { MoonPhase } from 'astronomy-engine'
 
 import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
 
-import { BIOMES, SAND_STYLES, type Biome, type SandStyle, type WaterStyle } from './biome'
+import { SAND_STYLES, biomeNamed, type Biome, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
 import { contrailsFor, type Contrail } from './contrails'
 import { visibilityFor } from './seaHaze'
@@ -11,6 +11,7 @@ import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParam
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
+import { choose, latitudeIn, pickPlace, type Climate, type Place } from './places'
 import { Random } from './random'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
@@ -290,9 +291,17 @@ export interface SceneParams {
   /** A real eclipse on this date (celestial.ts). */
   eclipse: EclipseParams | null
 
-  /** Geodetic latitude used to anchor the atmosphere model (degrees). */
+  /** Geodetic latitude, signed (south negative), drawn within the place's
+   * range; anchors the atmosphere model (degrees). */
   latitudeDeg: number
 
+  /** The stretch of coast this is (places.ts), drawn first. */
+  place: {
+    id: string
+    region: string
+    climate: Climate
+    hemisphere: 'north' | 'south'
+  }
   biome: Biome
   /** Which of Earth's oceans this is (oceans.ts). */
   sea: {
@@ -1098,6 +1107,27 @@ function buildParams(
   const elongation = moonPhaseDeg <= 180 ? moonPhaseDeg : 360 - moonPhaseDeg
   const moonIllumination = (1 - Math.cos(elongation * DEG)) / 2
 
+  // The place comes first, before the sky, so the sky can depend on it
+  // (PLAN_BIOMES 1a). Biome, ocean, climate and latitude follow from it, on
+  // their own streams.
+  const place: Place = pickPlace(rng, spec)
+  const month = Number(date.slice(5, 7))
+  const orng = Random.derive(seed, 'ocean')
+  const choice = pickOcean(orng, place.ocean, month, spec.ocean)
+  const { basin } = choice
+  const climate = choose(Random.derive(seed, 'climate'), place.climate, spec.climate)
+  const latitudeDeg = latitudeIn(place, orng)
+  let biome: Biome = { ...biomeNamed(place.biome), vegetation: place.plants }
+  const monsoon = or(choice.monsoon, spec.monsoon)
+  const ice = spec.ice === undefined ? choice.ice : forceIce(seed, spec.ice, basin.name, choice.ice)
+  // Polar coasts: tundra grass and shrubs (and birch in the Arctic), no trees
+  // from warmer climates.
+  if (basin.water != null) {
+    const hardy = basin.name === 'arctic' ? ['grass', 'bush', 'birch'] : ['grass', 'bush']
+    const vegetation = biome.vegetation.filter(([kind]) => hardy.includes(kind))
+    biome = { ...biome, vegetation: vegetation.length > 0 ? vegetation : [['grass', 1]] }
+  }
+
   let timeOfDay = or(
     rng.weighted<TimeOfDay>([
       ['golden-hour', 30],
@@ -1302,22 +1332,7 @@ function buildParams(
     weather.formations = stormFormations(seed, altostratus, !bright)
   }
 
-  let biome = keep('biome', rng.weighted(BIOMES))
-  if (spec.biome != null) biome = BIOMES.find(([b]) => b.name === spec.biome)![0]
-  const waterRng = Random.derive(seed, 'water')
-  const orng = Random.derive(seed, 'ocean')
-  const choice = pickOcean(orng, biome, Number(date.slice(5, 7)), spec.ocean)
-  const { basin } = choice
-  const monsoon = or(choice.monsoon, spec.monsoon)
-  const ice = spec.ice === undefined ? choice.ice : forceIce(seed, spec.ice, basin.name, choice.ice)
-  const water = basin.water ?? waterRng.pick(biome.water)
-  // Polar coasts: tundra grass and shrubs (and birch in the Arctic), no trees
-  // from warmer climates.
-  if (basin.water != null) {
-    const hardy = basin.name === 'arctic' ? ['grass', 'bush', 'birch'] : ['grass', 'bush']
-    const vegetation = biome.vegetation.filter(([kind]) => hardy.includes(kind))
-    biome = { ...biome, vegetation: vegetation.length > 0 ? vegetation : [['grass', 1]] }
-  }
+  const water = basin.water ?? Random.derive(seed, 'water').pick(biome.water)
   // The ocean shapes its sea: Southern gales, Pacific groundswell, monsoon
   // seas; pack ice smothers waves, leaving calm leads between the floes.
   const iceCalm = ice != null && ice.packIce > 0 ? 0.4 : 1
@@ -1464,9 +1479,6 @@ function buildParams(
   let moonScale = keep('moonScale', rng.range(1.2, 2.4))
   const sunScale = solarEclipse ? ECLIPSE_SCALE : 1
   if (solarEclipse) moonScale = (SUN_ANGULAR_RADIUS * ECLIPSE_SCALE * eclipse!.ratio) / MOON_ANGULAR_RADIUS
-  rng.float() // was the latitude draw; keeps the rest of the main stream in place
-  const [latMin, latMax] = biome.name === 'tropical' ? [5, 23] : basin.latitude
-  const latitudeDeg = orng.range(latMin, latMax)
 
   const params: SceneParams = {
     date,
@@ -1486,6 +1498,7 @@ function buildParams(
     moonlight,
     eclipse,
     latitudeDeg,
+    place: { id: place.id, region: place.region, climate, hemisphere: latitudeDeg < 0 ? 'south' : 'north' },
     biome,
     sea: { ocean: basin.name, label: basin.label, monsoon, ice },
     coast,

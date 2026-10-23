@@ -1,5 +1,5 @@
 [
-  { "name": "night-lighthouse-fog", "date": "2024-02-12", "timeOfDay": "night", "nightSky": "moonlit", "moonPhaseDeg": 180,
+  { "name": "night-lighthouse-fog", "date": "2024-02-12", "biome": "nordic", "timeOfDay": "night", "nightSky": "moonlit", "moonPhaseDeg": 180,
     "lighthouse": "rock", "fog": "advection", "storm": null },
   { "name": "tropical-crabs-ships", "date": "2024-03-08", "timeOfDay": "golden-hour", "biome": "tropical", "composition": "shoreline",
     "camera": { "heightM": 1.6 }, "storm": null,

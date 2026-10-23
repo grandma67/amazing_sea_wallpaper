@@ -25,6 +25,13 @@ tool gotchas in TOOLS.md.
   are pixel-identical. Benchmark under `caffeinate -i`; GPU noise floor ≤ 5/255 on a few pixels.
 - three sorts opaque meshes by **material id** (creation order) before depth: creating meshes in a
   different order changes equal-depth pixels.
+- Tests that need a rare event on **real days** ("at least one waterspout in three years",
+  "tropical streets more often than elsewhere" on a few dozen days) break when the main stream
+  changes (places, 1a, broke four). Check the rules on real days, but get the event from a spec
+  over every date (`scenes({ place: 'caribbean', … }, DAYS.length)`), and compare rates on
+  forced, equal conditions.
+- Pack ice calms `params.ocean.windSpeed` (×0.4, for the waves) but not the wind the sky reads
+  (lenticulars, fog): compare sky features with the wind before the ice factor.
 
 ## Light and exposure
 

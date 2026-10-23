@@ -25,9 +25,7 @@ describe('shore life', () => {
     expect(out('night')).toBeGreaterThan(out('midday') * 2)
     for (const p of beaches) if (life(p).crab === 'hermit') expect(p.biome.name).toBe('tropical')
     for (const ocean of ['southern', 'arctic'] as const) {
-      for (const biome of ['nordic', 'volcanic', 'tropical'] as const) {
-        for (const p of scenes({ coast: 'beach', biome, ocean }, 10)) expect(life(p).crab).toBeNull()
-      }
+      for (const p of scenes({ coast: 'beach', ocean }, 30)) expect(life(p).crab).toBeNull()
     }
   })
 

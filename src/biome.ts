@@ -204,3 +204,8 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
     1
   ]
 ]
+
+/** The biome preset called `name`. */
+export function biomeNamed(name: Biome['name']): Biome {
+  return BIOMES.find(([b]) => b.name === name)![0]
+}

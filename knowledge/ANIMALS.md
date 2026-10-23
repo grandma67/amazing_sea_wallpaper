@@ -51,10 +51,27 @@ seals 85%.
 
 ### On the beach (`props/wildlife.ts`, `props/shoreLife.ts`)
 
-Beach days only. Warm beaches get a region first: tropical Pacific → South-East Asia (60%)
-or Central America; tropical Indian → South-East Asia (65%) or East Africa; tropical
-Atlantic → Caribbean (65%) or West Africa; warm volcanic Pacific → Galápagos or Hawaii; the
-Mediterranean Sea; the Arabian coast (desert, Indian Ocean).
+Beach days only. The animals come from the day's **place** (`src/places.ts`, PLAN_BIOMES
+1a): each region has a pool (nesting turtles with their months and weights, and a chance
+per day for monkeys, lizards, crocodiles, hippos, basking turtles), and a place may
+replace its region's pool. Places without a pool have none of these animals. The old
+warm-coast regions keep their animals (`se-asia` = Philippines, Indonesia, mainland SE
+Asia; `caribbean` = Antilles, Yucatán–Belize; `mediterranean-sea` = Aegean, Adriatic,
+western Med, North Africa–Levant; `arabia` = Red Sea, Oman–Yemen, Persian Gulf; the
+Galápagos and Hawaii are places). New pools:
+
+| Place or region | Animals |
+|---|---|
+| `pacific-islands` | green/hawksbill Nov–Mar; monitors 8%, saltwater crocodiles 4%; no monkeys |
+| `north-australia` | green/hawksbill Oct–Mar; saltwater crocodiles 15% |
+| `nw-australia` | green Nov–Mar; saltwater crocodiles 8% |
+| `india` | olive ridley Nov–Mar (Odisha); monitors 10%, saltwater crocodiles 4% |
+| `south-asia-islands` | green/hawksbill all year; Sri Lanka adds macaques 10%, monitors 15%, crocodiles 5%; Andaman monitors 10%, crocodiles 8% |
+| `northeast-brazil` | loggerhead, hawksbill, olive ridley Sep–Mar |
+| `florida-carolinas` | loggerhead (and some green) May–Aug |
+| `bahamas-bermuda` | green/hawksbill Jun–Oct only (no iguanas or crocodiles) |
+| `horn-of-africa`, `comoros` | green all year |
+| `western-australia-desert` | green/loggerhead Nov–Mar |
 
 | Animal | Where | When | Weather | Chance |
 |---|---|---|---|---|
@@ -96,50 +113,49 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 
 | Animal | All days | nordic | mediterranean | volcanic | desert | tropical | atlantic | pacific | indian | arctic | southern |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Crabs: ghost | 23% | – | 20% | – | 39% | 45% | 18% | 25% | 38% | – | – |
-| Crabs: hermit | 2% | – | – | – | – | 7% | 2% | 2% | 3% | – | – |
-| Crabs: shore | 12% | 14% | 19% | 25% | – | – | 18% | 12% | 5% | – | – |
-| Crocodile: american | 0.6% | – | – | – | – | 2% | 0.8% | 1% | – | – | – |
-| Crocodile: nile | 0.1% | – | – | – | – | 0.3% | – | – | 0.5% | – | – |
-| Crocodile: saltwater | 1% | – | – | – | – | 4% | – | 2% | 3% | – | – |
-| Crocodile: west-african | 0.2% | – | – | – | – | 0.6% | 0.5% | – | – | – | – |
-| Gulls: flying | 58% | 58% | 55% | 64% | 52% | 59% | 54% | 62% | 57% | 55% | 62% |
-| Gulls: resting | 3% | 3% | 4% | 6% | – | 3% | 4% | 3% | 3% | 2% | – |
-| Hippos: hippo | 0.5% | – | – | – | – | 2% | 1% | – | 0.5% | – | – |
-| Lizards: green-iguana | 0.9% | – | – | – | – | 3% | 0.8% | 2% | – | – | – |
-| Lizards: marine-iguana | 0.9% | – | – | 7% | – | – | – | 3% | – | – | – |
-| Lizards: monitor | 1% | – | – | – | – | 4% | – | 1% | 3% | – | – |
-| Lizards: spiny-tailed | 1% | – | – | – | 11% | – | – | – | 6% | – | – |
-| Marine: dolphin | 14% | 6% | 15% | 10% | 19% | 19% | 16% | 16% | 15% | – | – |
-| Marine: humpback | 10% | 10% | 9% | 7% | 9% | 12% | 10% | 11% | 7% | 13% | 5% |
-| Marine: orca | 3% | 8% | 2% | 4% | – | – | 2% | 1% | – | 14% | 16% |
-| Marine: swordfish | 5% | 4% | 5% | 5% | 8% | 6% | 6% | 4% | 8% | – | – |
-| Migratory birds: duck | 7% | 11% | 13% | 11% | – | – | 10% | 7% | 5% | 11% | 5% |
-| Migratory birds: flamingo | 9% | – | 11% | – | 15% | 17% | 10% | 11% | 12% | – | – |
-| Migratory birds: goose | 6% | 11% | 9% | 9% | – | – | 8% | 5% | 0.5% | 14% | 11% |
-| Monkeys: capuchin | 0.3% | – | – | – | – | 1.0% | – | 0.8% | – | – | – |
-| Monkeys: macaque | 2% | – | – | – | – | 6% | – | 3% | 3% | – | – |
-| Monkeys: vervet | 0.7% | – | – | – | – | 3% | – | – | 4% | – | – |
-| Sea turtle: green | 5% | – | 0.3% | 5% | 9% | 11% | 1% | 5% | 14% | – | – |
-| Sea turtle: hawksbill | 0.3% | – | – | – | – | 1.0% | – | 0.8% | – | – | – |
-| Sea turtle: leatherback | 0.5% | – | – | – | – | 2% | 1% | – | – | – | – |
-| Sea turtle: loggerhead | 0.6% | – | 2% | – | – | – | 2% | – | – | – | – |
-| Sea turtle: olive-ridley | 3% | – | – | – | – | 10% | 0.3% | 5% | 5% | – | – |
-| Seabird colony: gannet (island) | 5% | 4% | 12% | 9% | – | – | 7% | 5% | 4% | 8% | – |
-| Seabird colony: gannet (mainland) | 1% | 2% | 2% | 1% | – | – | 0.8% | 2% | 0.9% | 2% | – |
-| Seabird colony: penguin (island) | 0.1% | – | – | 0.7% | – | – | – | – | – | – | 3% |
-| Seabird colony: penguin (mainland) | 0.1% | – | – | 0.7% | – | – | – | – | – | – | 3% |
-| Seabird colony: puffin (island) | 1% | 3% | – | 5% | – | – | 2% | 1% | 0.5% | 5% | – |
-| Seabird colony: puffin (mainland) | 0.4% | 1.0% | – | 1% | – | – | 0.8% | 0.3% | – | – | – |
-| Seabird colony: tropical (island) | 6% | – | – | – | 10% | 16% | 3% | 8% | 9% | – | – |
-| Seabird colony: tropical (mainland) | 0.5% | – | – | – | 2% | 1.0% | – | 0.3% | 2% | – | – |
-| Seals: elephant-seal (beach) | 0.4% | 1.0% | – | 1% | – | – | – | – | – | – | 11% |
-| Seals: fur-seal (beach) | 0.1% | – | – | 0.7% | – | – | – | – | – | – | 3% |
-| Seals: fur-seal (rock) | 1% | 1.0% | – | 1% | 7% | – | 2% | – | – | – | 11% |
-| Seals: sea-lion (beach) | 0.8% | – | 2% | 0.7% | – | 0.6% | – | 2% | 1% | – | – |
-| Seals: sea-lion (rock) | 3% | 1% | 4% | 4% | 0.9% | 3% | – | 7% | 3% | – | – |
-| Seals: seal (beach) | 1% | 4% | 0.6% | 2% | – | – | 2% | 0.5% | – | 8% | – |
-| Seals: seal (rock) | 3% | 12% | 1.0% | 5% | – | – | 4% | 3% | – | 11% | – |
-| Starfish: starfish | 12% | 18% | 22% | 13% | – | – | 15% | 13% | 4% | 16% | 8% |
+| Crabs: ghost | 18% | – | 16% | – | 48% | 51% | 16% | 22% | 40% | – | – |
+| Crabs: hermit | 0.8% | – | – | – | – | 3% | – | 2% | 2% | – | – |
+| Crabs: shore | 13% | 17% | 17% | 27% | – | – | 22% | 16% | 5% | – | – |
+| Crocodile: american | 0.6% | – | – | – | – | 3% | 0.6% | 1% | – | – | – |
+| Crocodile: saltwater | 0.5% | – | – | – | – | 2% | – | 1% | – | – | – |
+| Crocodile: west-african | 0.3% | – | – | – | – | 1% | 0.8% | – | – | – | – |
+| Gulls: flying | 57% | 57% | 60% | 53% | 66% | 56% | 58% | 56% | 60% | 60% | 46% |
+| Gulls: resting | 3% | 3% | 5% | 5% | 2% | 2% | 3% | 4% | 3% | 3% | 6% |
+| Hippos: hippo | 0.2% | – | – | – | – | 0.8% | 0.6% | – | – | – | – |
+| Lizards: green-iguana | 0.5% | – | – | – | – | 2% | 0.6% | 1% | – | – | – |
+| Lizards: marine-iguana | 0.5% | – | – | 4% | – | – | – | 2% | – | – | – |
+| Lizards: monitor | 0.6% | – | – | – | – | 3% | – | 0.8% | 3% | – | – |
+| Lizards: spiny-tailed | 0.2% | – | – | – | 2% | – | – | – | 1% | – | – |
+| Marine: dolphin | 13% | 11% | 11% | 11% | 15% | 17% | 15% | 15% | 16% | – | 8% |
+| Marine: humpback | 11% | 13% | 10% | 10% | 12% | 8% | 11% | 8% | 7% | 19% | 19% |
+| Marine: orca | 3% | 6% | 3% | 4% | – | – | 1% | 2% | – | 10% | 21% |
+| Marine: swordfish | 5% | 2% | 8% | 2% | 7% | 8% | 4% | 6% | 8% | – | – |
+| Migratory birds: duck | 7% | 12% | 7% | 8% | – | – | 9% | 6% | 0.6% | 10% | 8% |
+| Migratory birds: flamingo | 7% | – | 11% | – | 15% | 16% | 7% | 7% | 15% | – | – |
+| Migratory birds: goose | 8% | 11% | 11% | 16% | – | – | 10% | 8% | 2% | 10% | 8% |
+| Monkeys: capuchin | 0.5% | – | – | – | – | 2% | – | 2% | – | – | – |
+| Monkeys: macaque | 0.9% | – | – | – | – | 4% | – | 2% | 0.6% | – | – |
+| Monkeys: vervet | 0.2% | – | – | – | – | 0.8% | – | – | 1% | – | – |
+| Sea turtle: green | 3% | – | – | 5% | 11% | 8% | – | 4% | 15% | – | – |
+| Sea turtle: hawksbill | 0.5% | – | – | – | – | 2% | – | 0.8% | 1% | – | – |
+| Sea turtle: loggerhead | 0.3% | – | 2% | – | – | – | 0.8% | – | – | – | – |
+| Sea turtle: olive-ridley | 1% | – | – | – | – | 5% | 0.6% | 2% | 1% | – | – |
+| Seabird colony: gannet (island) | 4% | 4% | 11% | 2% | – | – | 6% | 3% | 1% | 4% | – |
+| Seabird colony: gannet (mainland) | 0.8% | 2% | 1% | – | – | – | 0.3% | 0.8% | – | 3% | – |
+| Seabird colony: penguin (island) | 0.2% | 0.2% | – | 0.7% | – | – | – | – | – | – | 4% |
+| Seabird colony: penguin (mainland) | 0.2% | 0.2% | – | 0.7% | – | – | – | – | – | – | 4% |
+| Seabird colony: puffin (island) | 3% | 6% | – | 3% | – | – | 3% | 3% | 0.6% | 6% | – |
+| Seabird colony: puffin (mainland) | 0.8% | 2% | – | 1% | – | – | 0.8% | 0.8% | 0.6% | 1% | – |
+| Seabird colony: tropical (island) | 5% | – | – | – | 27% | 15% | 3% | 7% | 16% | – | – |
+| Seabird colony: tropical (mainland) | 0.5% | – | – | – | 2% | 1% | 0.8% | 0.5% | – | – | – |
+| Seals: elephant-seal (beach) | 0.6% | 0.7% | 0.6% | 2% | – | – | – | 0.3% | – | – | 13% |
+| Seals: elephant-seal (rock) | 0.3% | 0.5% | – | 0.7% | – | – | – | – | – | – | 6% |
+| Seals: fur-seal (beach) | 0.2% | 0.2% | – | – | 1% | – | 0.3% | – | – | – | 2% |
+| Seals: fur-seal (rock) | 0.6% | – | – | 0.7% | 7% | – | 1% | 0.3% | – | – | 2% |
+| Seals: sea-lion (beach) | 0.8% | 0.5% | 1% | 1% | 2% | 0.4% | – | 2% | – | – | – |
+| Seals: sea-lion (rock) | 2% | 0.9% | 7% | 4% | 4% | 0.8% | – | 6% | 1% | – | – |
+| Seals: seal (beach) | 2% | 4% | 0.6% | 2% | – | – | 2% | 2% | – | 4% | – |
+| Seals: seal (rock) | 6% | 12% | 0.6% | 6% | – | – | 6% | 4% | – | 15% | – |
+| Starfish: starfish | 10% | 15% | 16% | 10% | – | – | 10% | 14% | 0.6% | 11% | 6% |
 
-Days per biome: nordic 209, mediterranean 313, volcanic 149, desert 114, tropical 310; per ocean: atlantic 399, pacific 381, indian 214, arctic 64, southern 37.
+Days per biome: nordic 442, mediterranean 167, volcanic 146, desert 82, tropical 258; per ocean: atlantic 355, pacific 371, indian 154, arctic 167, southern 48.

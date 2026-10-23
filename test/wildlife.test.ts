@@ -18,6 +18,7 @@ import {
   type MonkeyKind,
   type TurtleSpecies
 } from '../src/props/wildlife'
+import { placeNamed } from '../src/places'
 import { allParams, scenes, share } from './days'
 
 describe('beach wildlife', () => {
@@ -26,13 +27,14 @@ describe('beach wildlife', () => {
   const month = (p: (typeof days)[number]) => Number(p.date.slice(5, 7))
 
   it('nests each species in its season', () => {
-    expect(nestingSpecies('mediterranean', 7, 0)).toBe('loggerhead')
-    expect(nestingSpecies('mediterranean', 1, 0)).toBeNull()
-    expect(nestingSpecies('caribbean', 4, 0)).toBe('leatherback')
-    expect(nestingSpecies('caribbean', 12, 0)).toBeNull()
-    expect(nestingSpecies('central-america', 9, 0)).toBe('olive-ridley')
-    expect(nestingSpecies('galapagos', 2, 0)).toBe('green')
-    expect(nestingSpecies(null, 7, 0)).toBeNull()
+    const pool = (id: string) => placeNamed(id).animals
+    expect(nestingSpecies(pool('aegean'), 7, 0)).toBe('loggerhead')
+    expect(nestingSpecies(pool('aegean'), 1, 0)).toBeNull()
+    expect(nestingSpecies(pool('antilles'), 4, 0)).toBe('leatherback')
+    expect(nestingSpecies(pool('antilles'), 12, 0)).toBeNull()
+    expect(nestingSpecies(pool('central-america'), 9, 0)).toBe('olive-ridley')
+    expect(nestingSpecies(pool('galapagos'), 2, 0)).toBe('green')
+    expect(nestingSpecies(pool('norway-west'), 7, 0)).toBeNull()
   })
 
   it('keeps animals to warm coasts and their hours', () => {
@@ -46,7 +48,13 @@ describe('beach wildlife', () => {
       if (l.monkey != null || l.lizard != null || l.basking > 0) expect(dark).toBe(false)
       if (l.nesting) expect(dark).toBe(true)
       if (l.turtle != null) expect(['tropical', 'mediterranean', 'volcanic', 'desert']).toContain(p.biome.name)
-      if (l.turtle === 'loggerhead') expect([6, 7, 8, 9, 10]).toContain(month(p))
+      // Loggerheads nest in summer: Jun–Aug in the Mediterranean, May–Aug in
+      // Florida, Sep–Mar in Brazil, Nov–Mar in Western Australia (hatchlings
+      // two months on).
+      if (l.turtle === 'loggerhead') {
+        const south = p.place.hemisphere === 'south'
+        expect(south ? [9, 10, 11, 12, 1, 2, 3, 4, 5] : [5, 6, 7, 8, 9, 10]).toContain(month(p))
+      }
       if (l.monkey != null) expect(p.biome.name).toBe('tropical')
       if (l.lizard === 'marine-iguana') expect(p.biome.name).toBe('volcanic')
       if (['nordic'].includes(p.biome.name)) expect(l.turtle ?? l.monkey ?? l.lizard).toBeNull()
@@ -72,9 +80,10 @@ describe('beach wildlife', () => {
       if (l.region === 'west-africa') expect([p.biome.name, p.sea.ocean]).toEqual(['tropical', 'atlantic'])
       if (l.crocodile != null) {
         crocs++
-        expect(['se-asia', 'central-america', 'caribbean', 'east-africa', 'west-africa']).toContain(l.region)
+        expect(p.biome.name).toBe('tropical')
         expect(p.timeOfDay === 'night' || p.timeOfDay === 'blue-hour').toBe(false)
-        if (l.crocodile === 'saltwater') expect(l.region).toBe('se-asia')
+        if (l.crocodile === 'saltwater') expect(['se-asia', 'pacific-islands', 'india', 'north-australia', 'nw-australia', 'south-asia-islands']).toContain(l.region)
+        if (l.crocodile === 'american') expect(['central-america', 'caribbean']).toContain(l.region)
       }
       if (l.hippos > 0) {
         hippos++

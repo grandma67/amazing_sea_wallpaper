@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { arrangementMatrix, cubeSphereUv } from '../src/cloudArrangement'
 import { CLOUD_GENERA } from '../src/cloudTypes'
 import { dirFromAzEl } from '../src/params'
-import { allParams, scene, share } from './days'
+import { allParams, scene, scenes, share } from './days'
 
 describe('cube-sphere uv', () => {
   // takram's original u, which cancels to noise near mx = 0.
@@ -57,14 +57,10 @@ describe('cloud arrangement', () => {
       expect(['cumulus', 'stratocumulus']).toContain(CLOUD_GENERA[p.weather.formations[0]].genus)
       expect(p.weather.arrangement!.headingDeg).toBe(p.ocean.windHeadingDeg)
     }
-    // Most often in the trades.
+    // Most often in the trades: the same breezy cumulus days, tropical or not.
     const eligible = (tropical: boolean) =>
-      days.filter(
-        p =>
-          (p.biome.name === 'tropical') === tropical &&
-          ['few', 'scattered'].includes(p.weather.kind) &&
-          ['cumulus-humilis', 'cumulus', 'stratocumulus'].includes(p.weather.formations[0]) &&
-          p.ocean.windSpeed >= 7
+      scenes({ biome: tropical ? 'tropical' : 'nordic', weather: 'scattered', wind: 9, storm: null, fog: null, eclipse: null }, 400).filter(p =>
+        ['cumulus-humilis', 'cumulus', 'stratocumulus'].includes(p.weather.formations[0])
       )
     const rate = (tropical: boolean) => share(eligible(tropical), p => p.weather.arrangement?.kind === 'streets')
     expect(rate(true)).toBeGreaterThan(rate(false))

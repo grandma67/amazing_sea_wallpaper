@@ -2,7 +2,8 @@
 
 Research for PLAN_BIOMES.md: the places a day is drawn from (phase 1), sand
 grain sizes and fall velocities (phase 4), tidal ranges (phase 5) and bioluminescence
-seasons (phase 13, later). Status 2026-10-23: research only, nothing built.
+seasons (phase 13, later). Status 2026-10-23: §1 is built (PLAN_BIOMES 1a, `src/places.ts`,
+the data there is the source of truth now); §2–4 are research.
 
 Values marked **≈** are from general knowledge or a single non-authoritative page; check
 them against national tide tables or papers before relying on them in a test. Phase 0

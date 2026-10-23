@@ -3,15 +3,17 @@ import { describe, expect, it } from 'vitest'
 
 import { funnelGeometry, waterspoutChance } from '../src/props/waterspout'
 import { Random } from '../src/random'
-import { allParams, scene } from './days'
+import { DAYS, allParams, scene, scenes } from './days'
 
 describe('waterspouts', () => {
   const days = allParams()
 
   it('are rare, by day, on warm seas in their season, with towering cumulus', () => {
-    const spouts = days.filter(p => p.waterspout != null)
+    expect(days.filter(p => p.waterspout != null).length).toBeLessThan(days.length * 0.02)
+    // Rare on real days: add Caribbean days on every date.
+    const caribbean = scenes({ place: 'caribbean', timeOfDay: 'daylight', eclipse: null }, DAYS.length)
+    const spouts = [...days, ...caribbean].filter(p => p.waterspout != null)
     expect(spouts.length).toBeGreaterThan(0)
-    expect(spouts.length).toBeLessThan(days.length * 0.02)
     for (const p of spouts) {
       expect(['daylight', 'midday', 'golden-hour']).toContain(p.timeOfDay)
       expect(['tropical', 'mediterranean']).toContain(p.biome.name)

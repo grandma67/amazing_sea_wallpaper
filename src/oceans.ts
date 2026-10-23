@@ -1,4 +1,5 @@
-import type { Biome, WaterStyle } from './biome'
+import type { WaterStyle } from './biome'
+import { choose, type Weights } from './places'
 import type { Random } from './random'
 
 // Earth's five oceans, and what sets them apart for a picture of the sea:
@@ -27,8 +28,6 @@ export type OceanName = 'pacific' | 'atlantic' | 'indian' | 'southern' | 'arctic
 export interface OceanBasin {
   name: OceanName
   label: string
-  /** Latitude range for the scene (degrees, hemisphere ignored). */
-  latitude: [number, number]
   /** Multipliers on the day's wind and swell. */
   wind: number
   swellHeight: number
@@ -48,7 +47,6 @@ export const OCEANS: Record<OceanName, OceanBasin> = {
   pacific: {
     name: 'pacific',
     label: 'Pacific',
-    latitude: [5, 50],
     wind: 1,
     swellHeight: 1.25,
     swellWavelength: 1.35
@@ -56,7 +54,6 @@ export const OCEANS: Record<OceanName, OceanBasin> = {
   atlantic: {
     name: 'atlantic',
     label: 'Atlantic',
-    latitude: [10, 60],
     wind: 1,
     swellHeight: 1,
     swellWavelength: 1
@@ -64,7 +61,6 @@ export const OCEANS: Record<OceanName, OceanBasin> = {
   indian: {
     name: 'indian',
     label: 'Indian Ocean',
-    latitude: [5, 35],
     wind: 1,
     swellHeight: 1,
     swellWavelength: 1.1
@@ -72,7 +68,6 @@ export const OCEANS: Record<OceanName, OceanBasin> = {
   southern: {
     name: 'southern',
     label: 'Southern Ocean',
-    latitude: [48, 62],
     wind: 1.35,
     swellHeight: 1.7,
     swellWavelength: 1.45,
@@ -81,47 +76,11 @@ export const OCEANS: Record<OceanName, OceanBasin> = {
   arctic: {
     name: 'arctic',
     label: 'Arctic',
-    latitude: [66, 78],
     wind: 0.85,
     swellHeight: 0.35,
     swellWavelength: 0.8,
     water: POLAR_WATER
   }
-}
-
-/** Which oceans each kind of coast is found on (relative weights). */
-const OCEANS_BY_BIOME: Record<Biome['name'], readonly (readonly [OceanName, number])[]> = {
-  tropical: [
-    ['pacific', 4],
-    ['indian', 3],
-    ['atlantic', 2]
-  ],
-  // The Mediterranean itself, California and Chile, south-west Australia.
-  mediterranean: [
-    ['atlantic', 5],
-    ['pacific', 2],
-    ['indian', 1]
-  ],
-  // Norway and Scotland, Svalbard and Greenland, Alaska, Tierra del Fuego.
-  nordic: [
-    ['atlantic', 4],
-    ['arctic', 3],
-    ['pacific', 2],
-    ['southern', 1]
-  ],
-  // Hawaii and Japan, Iceland and the Canaries, Réunion, Heard Island.
-  volcanic: [
-    ['pacific', 4],
-    ['atlantic', 3],
-    ['indian', 1],
-    ['southern', 1]
-  ],
-  // Arabia, Namibia and the Sahara coast, the Atacama.
-  desert: [
-    ['indian', 3],
-    ['atlantic', 2],
-    ['pacific', 2]
-  ]
 }
 
 export interface IceParams {
@@ -139,11 +98,10 @@ export interface OceanChoice {
   ice: IceParams | null
 }
 
-/** Pick the day's ocean for this coast; `month` is 1–12. `force` sets the
- * ocean (scene specs) without shifting the stream. */
-export function pickOcean(rng: Random, biome: Biome, month: number, force?: OceanName): OceanChoice {
-  const drawn = rng.weighted(OCEANS_BY_BIOME[biome.name])
-  const basin = OCEANS[force ?? drawn]
+/** Pick the day's ocean from the place's weights (places.ts); `month` is
+ * 1–12. `force` sets the ocean (scene specs) without shifting the stream. */
+export function pickOcean(rng: Random, weights: Weights<OceanName>, month: number, force?: OceanName): OceanChoice {
+  const basin = OCEANS[choose(rng, weights, force)]
   const monsoon = basin.name === 'indian' && month >= 6 && month <= 9
   let ice: IceParams | null = null
   if (basin.name === 'arctic') {

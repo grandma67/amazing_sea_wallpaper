@@ -29,7 +29,8 @@ describe('cloud events', () => {
   })
 
   it('stands lenticulars only over a landform in strong wind', () => {
-    for (const p of days.filter(q => q.landform?.lenticular != null)) {
+    // Pack ice calms the sea's wind (oceanState), not the wind over the peaks.
+    for (const p of days.filter(q => q.landform?.lenticular != null && !(q.sea.ice?.packIce ?? 0))) {
       expect(p.ocean.windSpeed).toBeGreaterThanOrEqual(8)
       expect(['storm', 'overcast']).not.toContain(p.weather.kind)
     }
