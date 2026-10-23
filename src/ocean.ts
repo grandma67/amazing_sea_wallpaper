@@ -17,6 +17,7 @@ import {
 
 import { createPolarGrid } from './grid'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
+import { seabedAlbedo } from './beach'
 import { TERRAIN_GLSL, terrainUniforms } from './terrain'
 import { EARTH_RADIUS, type SceneParams } from './params'
 import { CASCADE_SIZE, type OceanSurface } from './spectrum'
@@ -677,7 +678,7 @@ export function createOcean(
       surfWavelength: { value: params.coast.surfWavelength },
       surfPhase: { value: params.coast.surfPhase },
       absorption: { value: new Vector3(...ocean.water.absorption) },
-      sandAlbedo: { value: new Color(...params.coast.sand.albedo) },
+      sandAlbedo: { value: new Color(...seabedAlbedo(params.coast)) },
       ...shadowUniforms(),
       earthRadius: { value: EARTH_RADIUS },
       envMap: { value: null as Texture | null },

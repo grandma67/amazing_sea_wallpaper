@@ -73,6 +73,8 @@ export interface CoastParams {
   stoneColors: readonly RGB[]
   /** Storm ridges on stony beaches; empty on sand. */
   ridges: Ridge[]
+  /** Median stone size (m) on stony beaches (beach.ts STONE_SIZES); 0 on sand. */
+  stoneSize: number
   noiseOffset: [number, number]
 }
 
@@ -550,6 +552,7 @@ function generateCoast(
     material: 'sand',
     stoneColors: place.stones,
     ridges: [],
+    stoneSize: 0,
     noiseOffset: [rng.range(-5000, 5000), rng.range(-5000, 5000)]
   }
 

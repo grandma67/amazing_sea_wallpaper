@@ -171,6 +171,16 @@ Playwright (headless snapshots), Vitest.
   Gaussian bumps across the shore in `beachHeightAt` (GLSL `vec3 ridges[3]` + `ridgeCount`, TS
   mirror `ridgeHeight` in `terrain.ts`, 0 on sand). `beachLines` (wrack and storm lines) lives
   here now; on stony days its storm line is the storm ridge crest. Shares: COASTS.md.
+- **Stone texture** (`terrain.ts` `STONE_GLSL`, terrain fragment shader only; uniforms from
+  `stoneUniforms`): Voronoi cells over shore coords (u inland, a along), cell size =
+  `coast.stoneSize` × `STONE_LEVELS` (0.6/1/1.6). `stoneLevel` picks the size class per pixel
+  (finer below high tide, coarsest on the storm ridge, dithered patches), then one 3×3 search;
+  per cell: palette colour × brightness, presence (mixed beaches: `stoneCover`, sand below the
+  high-tide line), fill. Stones are ovals inside their cells with a dome normal and dark gaps.
+  `detail` fades cells out by pixel footprint (`footprint / (0.6 × stoneSize)`); two mottle
+  octaves (4× and 16× stone size) carry a stony texture further. The TS mirror in `beach.ts`
+  (`stoneAt`, `stoneGridCell`, `stoneCell`) uses the same hashes (`cellNoise.ts`), so mesh
+  stones (2d) can sit on the shader's cells. `seabedAlbedo` gives `ocean.ts` the stone colour.
 - **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes
   folded on the midrib (oval oak/almond, ovate birch, lance olive, needles stone pine, rounded
   shrubs, pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to

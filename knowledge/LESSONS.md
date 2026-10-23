@@ -134,6 +134,13 @@ tool gotchas in TOOLS.md.
 
 - Surf-zone width follows `nearshoreSlope`, not `beachSlope`: a steep beach face over a gentle
   nearshore still breaks waves 40–50 m out. Steepen the nearshore too (stony beaches).
+- Pebbles go below a pixel within a few metres of a 1.6 m eye (grazing footprint), so cells
+  alone leave a flat colour beyond ~5 m on shingle: keep coarser mottle octaves (patches of
+  sorted stones) that fade out later. Voronoi cells filled edge to edge read as paving: draw an
+  oval of jittered size inside each cell with thin gaps.
+- A steep stony beach face tilts away from a sun behind the land: at golden hour it sits in
+  shade while rocks on it are lit. Judge stone texture under a clear daylight spec
+  (`"weather":"clear"`); a heavy cloud deck also leaves the beach flat blue (cloud shadow).
 - Lines derived from daily run-up (`beachLines`) sit only metres apart on steep beaches; storm
   features belong at the storm run-up height, not a multiple of the daily one.
 

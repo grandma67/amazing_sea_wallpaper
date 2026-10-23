@@ -8,7 +8,9 @@ import {
   type Texture
 } from 'three'
 
-import { COAST_KINDS, hasLand } from './coastKind'
+import { BEACH_MATERIALS, beachLines, isStony, stoneMean } from './beach'
+import { fbm, smoothstep, vnoise } from './cellNoise'
+import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
 import { createPolarGrid } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
@@ -210,49 +212,92 @@ float terrainHeight(vec2 p) {
 }
 `
 
-// --- TypeScript mirror of the GLSL above (heights only) ----------------------
+// Stones on shingle, cobble and mixed beaches (PLAN_BIOMES 2c): Voronoi cells
+// over shore coordinates, one 3×3 search per pixel. Mirrored in beach.ts
+// (stoneLevel, stoneCover, stoneAt, stoneCell) so mesh stones (2d) can sit on
+// the same cells.
+export const STONE_GLSL = /* glsl */ `
+// Index in BEACH_MATERIALS: 0 sand (no stones), 1 mixed, 2 shingle, 3 cobble.
+uniform int stoneMaterial;
+uniform float stoneSize;
+uniform vec3 stoneColors[6];
+uniform int stoneColorCount;
+uniform vec3 stoneMean;
+uniform float stoneHighTide;
 
-function hashCell(x: number, y: number): number {
-  const px = (x + (1 << 20)) >>> 0
-  const py = (y + (1 << 20)) >>> 0
-  let n = (Math.imul(px, 1597334677) ^ Math.imul(py, 3812015801)) >>> 0
-  n ^= n >>> 16
-  n = Math.imul(n, 2246822519) >>> 0
-  n ^= n >>> 13
-  n = Math.imul(n, 3266489917) >>> 0
-  n ^= n >>> 16
-  return n >>> 0
+float stoneNearCrest(float u) {
+  if (ridgeCount == 0) return 0.0;
+  float k = (u - ridges[0].x) / (1.5 * ridges[0].z);
+  return exp(-k * k);
 }
 
-function vnoise(x: number, y: number): number {
-  const ix = Math.floor(x)
-  const iy = Math.floor(y)
-  const fx = x - ix
-  const fy = y - iy
-  const ux = fx * fx * (3 - 2 * fx)
-  const uy = fy * fy * (3 - 2 * fy)
-  const v = (dx: number, dy: number): number => hashCell(ix + dx, iy + dy) / 4294967295
-  const a = v(0, 0) + (v(1, 0) - v(0, 0)) * ux
-  const b = v(0, 1) + (v(1, 1) - v(0, 1)) * ux
-  return a + (b - a) * uy
+// Size class 0..2 (STONE_LEVELS): finer below the high-tide line, coarsest
+// on the storm ridge, in dithered patches.
+int stoneLevel(float u, float a) {
+  float scale = 6.0 * stoneSize;
+  float g = 1.0 + stoneNearCrest(u) - 0.8 * (1.0 - smoothstep(0.0, stoneHighTide, u));
+  g += 0.9 * (vnoise(vec2(u, a) / scale + 41.0 + noiseOffset) - 0.5);
+  return int(clamp(floor(g + 0.5), 0.0, 2.0));
 }
 
-function fbm(x: number, y: number): number {
-  let sum = 0
-  let amp = 0.5
-  for (let i = 0; i < 4; i++) {
-    sum += amp * vnoise(x, y)
-    x = x * 2.03 + 17.1
-    y = y * 2.03 + 9.3
-    amp *= 0.5
+float stoneCover(float u, float a) {
+  if (stoneMaterial != 1) return 1.0;
+  float upper = max(smoothstep(0.5, 1.3, u / max(stoneHighTide, 0.5)), stoneNearCrest(u));
+  return min(1.0, upper * (0.55 + 0.6 * vnoise(vec2(u, a) / 3.0 + 57.0 + noiseOffset)));
+}
+
+struct StoneHit {
+  vec2 offset;    // pixel − stone centre, in cell units (u, a)
+  float centre;   // distance to the centre, cell units
+  float border;   // distance to the cell border (F2 − F1)
+  vec3 albedo;
+  float presence;
+  float shape;    // 0..1: how much of its cell the stone fills
+  float size;     // cell size (m)
+};
+
+StoneHit stoneCell(float u, float a) {
+  int level = stoneLevel(u, a);
+  float size = stoneSize * (level == 0 ? 0.6 : level == 1 ? 1.0 : 1.6);
+  vec2 g = vec2(u, a) / size + noiseOffset;
+  ivec2 c = ivec2(floor(g));
+  vec2 f = g - floor(g);
+  float d1 = 8.0;
+  float d2 = 8.0;
+  vec2 o1 = vec2(0.0);
+  uint h1 = 0u;
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      uint h = hashCell(c + ivec2(i, j + level * 7919));
+      vec2 point = 0.1 + 0.8 * vec2(float(h & 0xffffu), float((h >> 16) & 0xffffu)) / 65535.0;
+      vec2 o = f - vec2(float(i), float(j)) - point;
+      float d = dot(o, o);
+      if (d < d1) {
+        d2 = d1;
+        d1 = d;
+        o1 = o;
+        h1 = h;
+      } else if (d < d2) {
+        d2 = d;
+      }
+    }
   }
-  return sum / 0.9375
+  uint h2 = h1 * 747796405u + 2891336453u;
+  vec3 base = stoneColors[int(h2 % uint(stoneColorCount))];
+  float bright = 0.7 + 0.6 * float((h2 >> 8) & 255u) / 255.0;
+  StoneHit hit;
+  hit.offset = o1;
+  hit.centre = sqrt(d1);
+  hit.border = sqrt(d2) - sqrt(d1);
+  hit.albedo = base * bright;
+  hit.presence = float((h2 >> 16) & 0xffffu) / 65535.0;
+  hit.shape = float(h2 >> 24) / 255.0;
+  hit.size = size;
+  return hit;
 }
+`
 
-function smoothstep(e0: number, e1: number, x: number): number {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)))
-  return t * t * (3 - 2 * t)
-}
+// --- TypeScript mirror of the GLSL above (heights only) ----------------------
 
 // Mirrors of the surf functions in ocean.ts (SURF_GLSL), for placing spray
 // on the breaking crests.
@@ -439,6 +484,20 @@ export function terrainUniforms(coast: CoastParams): Record<string, { value: unk
   }
 }
 
+/** Uniform values for STONE_GLSL; stoneMaterial 0 (no stones) on sand. */
+export function stoneUniforms(coast: CoastParams): Record<string, { value: unknown }> {
+  const stony = hasBeach(coast) && isStony(coast.material)
+  const palette = coast.stoneColors.slice(0, 6)
+  return {
+    stoneMaterial: { value: stony ? BEACH_MATERIALS.indexOf(coast.material) : 0 },
+    stoneSize: { value: Math.max(coast.stoneSize, 0.01) },
+    stoneColors: { value: [0, 1, 2, 3, 4, 5].map(i => new Color(...(palette[i] ?? palette[0]))) },
+    stoneColorCount: { value: palette.length },
+    stoneMean: { value: new Color(...stoneMean(palette)) },
+    stoneHighTide: { value: beachLines(coast).highTide }
+  }
+}
+
 // --- Terrain mesh ---------------------------------------------------------------
 
 const vertexShader = /* glsl */ `
@@ -459,6 +518,7 @@ void main() {
 const fragmentShader = /* glsl */ `
 #define PI 3.14159265359
 ${TERRAIN_GLSL}
+${STONE_GLSL}
 ${SHADOW_GLSL}
 uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
@@ -490,8 +550,53 @@ void main() {
   float hz = terrainHeight(p + vec2(0.0, e));
   vec3 N = normalize(vec3(h - hx, e, h - hz));
 
+  // Stones: how much of the pixel is stone (0 on sand), its albedo, and a
+  // dome normal per stone while the stones are bigger than a pixel; further
+  // off they fade to the palette mean, darkened by the gaps between them.
+  float stoneW = 0.0;
+  vec3 stoneAlbedo = stoneMean;
+  float u = -sa.x;
+  if (stoneMaterial > 0 && u > -1.5) {
+    float zone = smoothstep(-1.5, -0.5, u);
+    float cover = stoneCover(u, sa.y);
+    bool mixedBeach = stoneMaterial == 1;
+    // Cells cover pixels down to ~0.6 stone sizes, then average out.
+    float detail = 1.0 - smoothstep(0.2, 0.9, footprint / (stoneSize * 0.6));
+    // Further off, sorting into patches and bands keeps a stony mottle
+    // after single stones go below a pixel: two octaves, each fading out
+    // once it too is smaller than a pixel.
+    vec2 g = vec2(u, sa.y) / stoneSize + noiseOffset;
+    float w4 = 1.0 - smoothstep(0.3, 1.0, footprint / (stoneSize * 4.0));
+    float w16 = 1.0 - smoothstep(0.3, 1.0, footprint / (stoneSize * 16.0));
+    float mottle = 1.0 + 0.5 * w4 * (vnoise(g / 4.0) - 0.5) + 0.4 * w16 * (vnoise(g / 16.0 + 7.0) - 0.5);
+    vec3 far = stoneMean * 0.8 * mottle;
+    float nearW = 1.0;
+    vec3 near = far;
+    if (detail > 0.0) {
+      StoneHit st = stoneCell(u, sa.y);
+      float present = st.presence < cover ? 1.0 : 0.0;
+      // Rounded stones, not paving: each fills an oval inside its cell, with
+      // dark gaps along the borders and at the corners.
+      float fill = 0.85 + 0.35 * st.shape;
+      float body = present * smoothstep(0.03, 0.12, st.border) * (1.0 - smoothstep(0.42 * fill, 0.62 * fill, st.centre));
+      vec3 mottled = st.albedo * mottle * (0.85 + 0.3 * vnoise(vec2(u, sa.y) / st.size * 3.0 + 3.1));
+      near = mixedBeach ? mottled : mix(stoneMean * 0.35 * mottle, mottled, body);
+      nearW = mixedBeach ? body : 1.0;
+      // Dome: the surface tilts away from each stone's centre, flatter on
+      // shingle (pebbles lie flat), rounder on cobbles.
+      float dome = stoneMaterial == 2 ? 1.2 : stoneMaterial == 3 ? 1.8 : 1.5;
+      vec2 t = vec2(-shoreNormal.y, shoreNormal.x);
+      vec2 tilt = -shoreNormal * st.offset.x + t * st.offset.y;
+      // Steepest at the rim, like a half-buried ellipsoid.
+      float rim = 1.0 + 2.0 * smoothstep(0.25 * fill, 0.62 * fill, st.centre);
+      N = normalize(N + vec3(tilt.x, 0.0, tilt.y) * dome * rim * body * detail);
+    }
+    stoneW = zone * mix(mixedBeach ? cover : 1.0, nearW, detail);
+    stoneAlbedo = mix(far, near, detail);
+  }
+
   // Wind ripples on dry sand: fine ridges perpendicular to an oblique wind.
-  float rippleFade = 1.0 - smoothstep(0.01, 0.06, footprint);
+  float rippleFade = (1.0 - smoothstep(0.01, 0.06, footprint)) * (1.0 - stoneW);
   vec2 rippleDir = normalize(vec2(0.8, 0.6));
   float warp = vnoise(q * 0.9) * 6.0 + vnoise(q * 3.1) * 1.5;
   float ripple = sin(dot(q, rippleDir) * 28.0 + warp);
@@ -500,6 +605,7 @@ void main() {
   // Albedo variation: patches, darker lines of shell/organic debris.
   float patches = fbm(q / 3.0);
   vec3 albedo = sandAlbedo * (0.82 + 0.3 * patches);
+  albedo = mix(albedo, stoneAlbedo * (0.9 + 0.2 * patches), stoneW);
   float wrack = 1.0 - smoothstep(0.0, 0.08, abs(h - runup * 1.25 - 0.1 * (vnoise(vec2(sa.y / 6.0, 2.0)) - 0.5)));
   albedo *= 1.0 - 0.35 * wrack * smoothstep(0.4, 0.7, vnoise(vec2(sa.y / 2.0, 5.0)));
 
@@ -516,7 +622,8 @@ void main() {
   // Wet sand below the run-up line: darker and glossy.
   float wetLine = runup * (0.85 + 0.3 * vnoise(vec2(sa.y / 25.0, 7.0)));
   float wet = 1.0 - smoothstep(wetLine * 0.7, wetLine, h);
-  albedo *= mix(1.0, 0.55, wet);
+  // Wet stones darken a little more than sand.
+  albedo *= mix(1.0, mix(0.55, 0.5, stoneW), wet);
 
   vec3 L = sunDirection;
   vec3 V = normalize(cameraPosition - vWorld);
@@ -528,7 +635,8 @@ void main() {
 
   if (wet > 0.0) {
     // A film of water: mirror-like reflection of the sky and the sun.
-    vec3 Nw = normalize(mix(N, vec3(0.0, 1.0, 0.0), 0.7));
+    // On stones the film follows each stone, so each gets its own glint.
+    vec3 Nw = normalize(mix(N, vec3(0.0, 1.0, 0.0), mix(0.7, 0.15, stoneW)));
     float NoV = max(dot(Nw, V), 1e-3);
     float F = 0.02 + 0.98 * pow(1.0 - NoV, 5.0);
     vec3 R = reflect(-V, Nw);
@@ -572,6 +680,7 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       skyIrradiance: { value: new Color() },
       envMap: { value: null as Texture | null },
       sandAlbedo: { value: new Color(...coast.sand.albedo) },
+      ...stoneUniforms(coast),
       runup: { value: coast.runup },
       groundCover: { value: new Color(...params.biome.groundCover) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
