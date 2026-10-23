@@ -32,9 +32,9 @@ Ocean shares: Atlantic 39%, Arctic 30%, Pacific 21%, Southern 10%.
 
 | Ocean | Region | Places | Weight | Latitude | Climate | Coastline basis |
 |---|---|---|---|---|---|---|
-| Atlantic | `norway` | Norwegian coast and fjords, Lofoten | 30 | 58–71° | boreal (north), temperate (west) | 83,281 km incl. islands (CIA) |
+| Atlantic | `norway` | Norwegian coast and fjords, Lofoten | 30 | 58–71° | by sub-place (§1b): west temperate, north boreal | 83,281 km incl. islands (CIA) |
 | Atlantic | `britain-ireland` | Scotland, Ireland, Wales, Cornwall | 18 | 50–59° | temperate | UK 12,429 + Ireland 1,448 km (WRI 19,717 + 6,437) |
-| Atlantic | `atlantic-canada` | Newfoundland, Nova Scotia, Fundy, PEI, Gulf of St Lawrence, Maine | 20 | 43–52° | temperate (Newfoundland boreal) | a fraction of Canada's 202,080 km (most of it is Arctic) |
+| Atlantic | `atlantic-canada` | Newfoundland, Nova Scotia, Fundy, PEI, Gulf of St Lawrence, Maine | 20 | 43–52° | temperate (Newfoundland boreal, §1b) | a fraction of Canada's 202,080 km (most of it is Arctic) |
 | Atlantic | `baltic` | Sweden, Finland, Estonia, Danish islands | 12 | 54–66° | boreal | Sweden 26,384, Finland 31,119 km (WRI; skerry archipelagos) |
 | Atlantic | `wadden-north-sea` | Netherlands, Germany, Denmark North Sea | 6 | 52–57° | temperate | 451 + 2,389 + 7,314 km |
 | Atlantic | `brittany-normandy` | Brittany, Normandy, Channel Islands | 6 | 47–50° | temperate | part of France 4,853 km |
@@ -51,7 +51,7 @@ Ocean shares: Atlantic 39%, Arctic 30%, Pacific 21%, Southern 10%.
 | Southern | `patagonia-fjords` | Chilean fjords, Patagonia | 50 | 42–55° | temperate (subpolar oceanic) | Chile 6,435 km (WRI 78,563, mostly fjords) |
 | Southern | `tierra-del-fuego` | Tierra del Fuego, Beagle Channel | 20 | 53–56° | temperate | part of Chile and Argentina |
 | Southern | `tasmania` | Tasmania's south and west coasts | 15 | 41–44° | temperate | part of Australia |
-| Southern | `south-georgia-falklands` | South Georgia, Falklands | 15 | 51–55° | polar (South Georgia), temperate (Falklands) | – |
+| Southern | `south-georgia-falklands` | South Georgia, Falklands | 15 | 51–55° | by sub-place (§1b) | – |
 
 ### Mediterranean
 
@@ -129,6 +129,52 @@ Ocean shares: Indian 45%, Pacific 28%, Atlantic 27%.
 | Pacific | `baja-sonora` | Baja California, Gulf of California | 40 | 23–31° | |
 | Atlantic | `sahara-atlantic` | Mauritania, Western Sahara, south Morocco | 55 | 18–29° | Mauritania 754 km |
 | Atlantic | `namibia` | Skeleton Coast, Walvis Bay | 45 | 17–29° (south) | Namibia 1,572 km |
+
+**Hemisphere:** "(south)" after a latitude marks a southern-hemisphere region; all
+Southern Ocean regions are southern. Everything else is northern.
+
+## 1b. Sub-places
+
+A sub-place is drawn with the region (PLAN_BIOMES 2a) and overrides the region's values
+where listed; regions not listed have no sub-places. Weights are within the region, by
+judgment (≈).
+
+| Region | Sub-place | Weight | Overrides |
+|---|---|---|---|
+| `norway` | `norway-west` (Stavanger to Trøndelag) | 50 | 58–64°, temperate, tide ≈ 0.3–1.5 m |
+| `norway` | `norway-north` (Nordland, Lofoten, Troms, Finnmark) | 50 | 64–71°, boreal, tide ≈ 2–3 m |
+| `atlantic-canada` | `newfoundland` | 30 | 46–52°, boreal |
+| `atlantic-canada` | `nova-scotia` (Atlantic shore) | 25 | 43–47° |
+| `atlantic-canada` | `fundy` | 15 | 44–46°, tide 11.7 m mean (to ~16 m), red mud and sand ~40% of beaches, tidal flats |
+| `atlantic-canada` | `pei` (and Northumberland Strait) | 15 | 46–47°, red sand ~60%, tide ≈ 1 m |
+| `atlantic-canada` | `maine` | 15 | 43–45°, tide ≈ 3 m |
+| `britain-ireland` | `scotland` | 35 | 55–59°, haar |
+| `britain-ireland` | `ireland` | 25 | 51–55° |
+| `britain-ireland` | `cornwall-wales` | 25 | 50–53° |
+| `britain-ireland` | `bristol-channel` | 7 | 51°, tide 9.6 m mean (to ~15 m) |
+| `britain-ireland` | `morecambe-bay` | 8 | 54°, macro tide, tidal flats |
+| `brittany-normandy` | `brittany` | 70 | 47–49°, tide ≈ 5–8 m |
+| `brittany-normandy` | `mont-saint-michel` (Saint-Malo, Chausey) | 30 | 48–49°, tide 8–14 m, tidal flats |
+| `south-georgia-falklands` | `south-georgia` | 50 | 54–55° (south), polar |
+| `south-georgia-falklands` | `falklands` | 50 | 51–52° (south), temperate |
+| `east-asia-subtropical` | `south-japan` | 45 | 30–35° |
+| `east-asia-subtropical` | `taiwan-south-china` (incl. Hong Kong, Matsu) | 35 | 22–26°, blue tears Apr–Jun |
+| `east-asia-subtropical` | `yellow-sea` (Korea west, Incheon) | 20 | 34–38°, temperate, tide ~9.5 m spring, tidal flats |
+| `caribbean` | `antilles` | 70 | 12–23°, tide 0.1–0.2 m |
+| `caribbean` | `yucatan-belize` (incl. Holbox) | 15 | 16–21°, bioluminescence Jun–Sep |
+| `caribbean` | `bahamas-bermuda` | 15 | 21–32°, pink sand ~25%, tide ≈ 0.8 m |
+| `arabia` | `red-sea` | 45 | 13–28°, tide ≈ 0.5 m, reefs |
+| `arabia` | `oman` | 30 | 17–24° |
+| `arabia` | `persian-gulf` | 25 | 24–30°, tide ≈ 1–3 m |
+| `south-asia-islands` | `maldives` | 40 | 0–7°, bioluminescence Jun–Oct |
+| `south-asia-islands` | `sri-lanka` | 30 | 6–10° |
+| `south-asia-islands` | `andaman-lakshadweep` | 30 | 8–14°, bioluminescence Oct–Mar |
+| `alaska` | `cook-inlet` | 15 | 59–61°, tide ~9 m mean (to ~11.6 m) |
+| `alaska` | `se-alaska` | 50 | 54–59°, tide ≈ 4–5 m |
+| `alaska` | `gulf-aleutians` | 35 | 52–60° |
+
+The `bahamas-bermuda` row in the tropical table above is this sub-place (its weight there
+is the same share of the Atlantic tropical days).
 
 ## 2. Sand grain and fall velocity (phase 4)
 

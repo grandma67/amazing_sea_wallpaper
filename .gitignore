@@ -3,3 +3,8 @@ dist
 out
 .DS_Store
 graphify-out/cache/*
+
+# Local-only notes (never commit)
+knowledge/OLD.md
+knowledge/TODO.md
+knowledge/WATERSPOUT_FOG_TASK.md
