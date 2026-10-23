@@ -14,6 +14,7 @@ import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { forced, forcedKind, type MigratorySpecies } from '../sceneSpec'
+import { hasBeach } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 
@@ -208,7 +209,7 @@ export function createMigratoryBirds(ctx: PropContext): InstancedMesh[] {
 
   // Flamingos in a lagoon or bay: a wading flock in the shallows when there
   // are any in view, otherwise in flight.
-  if (species === 'flamingo' && params.coast.type === 'beach' && rng.chance(0.7)) {
+  if (species === 'flamingo' && hasBeach(params.coast) && rng.chance(0.7)) {
     const poses = [wadingFlamingo(false, false), wadingFlamingo(true, false), wadingFlamingo(false, true)]
     let centre: Vector3 | null = null
     for (let i = 0; i < 200 && centre == null; i++) {

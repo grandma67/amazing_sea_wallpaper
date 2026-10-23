@@ -75,7 +75,7 @@ import { stormCells } from './stormCells'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
 import { bindCloudShadow, bindLandShadow, bindShadow, renderLandShadow } from './shadow'
 import { SkyDenoiseEffect } from './skyDenoise'
-import { createTerrain } from './terrain'
+import { createTerrain, hasLand } from './terrain'
 
 const DEG = Math.PI / 180
 const REAL_MOON_ANGULAR_RADIUS = 0.0045
@@ -505,7 +505,7 @@ export async function renderScene(
     // shadow in the air) let the bright clear sky behind the clouds show
     // through as a glowing rim, and a twig thinner than a texel takes the
     // sky's shadowed air. Only full resolution gets those right.
-    clouds.resolution.scale = params.coast.type === 'beach' ? 1 : Math.min(1, 1920 / width)
+    clouds.resolution.scale = hasLand(params.coast) ? 1 : Math.min(1, 1920 / width)
     // A still doesn't need temporal upscaling (one ray per 4×4 block per
     // frame): march every pixel every frame, and the accumulated frames
     // below supersample them.
@@ -621,7 +621,7 @@ export async function renderScene(
     renderer.setRenderTarget(null)
     scratch.dispose()
     ocean.visible = true
-    terrain.visible = params.coast.type === 'beach'
+    terrain.visible = hasLand(params.coast)
     bindShadow(ocean.material.uniforms, sun)
     bindShadow(terrain.material.uniforms, sun)
     if (clouds != null) {
@@ -631,7 +631,7 @@ export async function renderScene(
     }
 
     // Mirror image of land and props for the water (sky comes from the cube).
-    if (params.coast.type === 'beach' || scene.getObjectByName('props')!.children.length > 0) {
+    if (hasLand(params.coast) || scene.getObjectByName('props')!.children.length > 0) {
       const hide = [
         ocean,
         ...scene.children.filter(o => o.userData.sky === true),

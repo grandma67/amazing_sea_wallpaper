@@ -13,7 +13,7 @@ import {
 } from 'three'
 
 import type { CoastParams } from '../params'
-import { shoreToWorld, surfCycle, surfSets, surfWave, worldToShore } from '../terrain'
+import { hasSurfZone, shoreToWorld, surfCycle, surfSets, surfWave, worldToShore } from '../terrain'
 import type { PropContext } from './context'
 
 // White water where waves break: spray thrown up along the breaking crests of
@@ -190,7 +190,7 @@ export class SprayBuilder {
 export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
   const { params } = ctx
   const { coast } = params
-  if (coast.type !== 'beach' || coast.surfAmplitude < 0.15) return []
+  if (!hasSurfZone(coast) || coast.surfAmplitude < 0.15) return []
   const rng = ctx.rng('surf')
   const spray = new SprayBuilder()
   const amplitude = coast.surfAmplitude

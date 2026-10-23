@@ -3,7 +3,7 @@ import { Vector3 } from 'three'
 import { createCamera } from './camera'
 import { generateParams, type SceneParams } from './params'
 import type { SceneSpec } from './sceneSpec'
-import { terrainHeight } from './terrain'
+import { hasLand, terrainHeight } from './terrain'
 
 // Composition check: before rendering, cast a coarse grid of rays from the
 // camera against the terrain and measure how much of the frame is sky, sea
@@ -60,7 +60,7 @@ export function generateSceneParams(date: string, aspect = 16 / 9, spec: SceneSp
   let best: { params: SceneParams; score: number } | null = null
   for (let attempt = 0; attempt < 8; attempt++) {
     const params = generateParams(date, attempt, aspect, spec)
-    if (params.coast.type !== 'beach') return params
+    if (!hasLand(params.coast)) return params
     const coverage = measureFrame(params)
     if (acceptable(coverage)) return params
     const score = Math.min(coverage.sea, 0.12) + Math.min(coverage.sky, 0.2) - Math.max(coverage.land - 0.6, 0)

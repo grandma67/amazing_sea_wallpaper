@@ -143,6 +143,15 @@ Playwright (headless snapshots), Vitest.
 - `terrain.ts`: shared GLSL/TS height function (coast, dunes, hills, sandbar), sand shading,
   surf profile (`surfCycle`, mirrored in `props/surf.ts`). `biome.ts`/`oceans.ts`: palettes,
   plants, sea state, ice.
+- **Coast kinds** (`coastKind.ts`, re-exported by `terrain.ts`): `coast.type` is `open-sea`,
+  `beach`, `rock-shore` or `tidal-flat` (the last two not drawn yet: PLAN_BIOMES 8, 9). Code asks
+  `hasLand` (terrain drawn, camera on land, compositions, rocks, plants, lighthouse on a point),
+  `hasBeach` (sand: debris, shore life, beach animals, mangroves, flamingos wading, "… sand beach"
+  title) or `hasSurfZone` (waves break at the shore: surf height and foam, surf props), never
+  `type === …`. The shader gets an `int coastKind` uniform (index in `COAST_KINDS`, `COAST_*`
+  defines) and `terrainHeightAt` branches on it, so each day runs one profile; the TS
+  `terrainHeight` switches the same way. Rock shores and tidal flats use the beach profile until
+  their phases.
 - **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes
   folded on the midrib (oval oak/almond, ovate birch, lance olive, needles stone pine, rounded
   shrubs, pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to

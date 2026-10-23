@@ -9,7 +9,7 @@ import {
 
 import type { RGB } from '../biome'
 import type { LighthouseParams, TimeOfDay } from '../params'
-import { shoreToWorld } from '../terrain'
+import { hasLand, shoreToWorld } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { fbm3 } from './noise'
@@ -181,7 +181,7 @@ function site(ctx: PropContext, light: LighthouseParams, avoid: Object3D | null)
 
   // Near first, then further; on a beach, a rock if no point fits the
   // frame and the other way round.
-  const kinds: LighthouseParams['site'][] = coast.type !== 'beach' ? ['rock'] : light.site === 'point' ? ['point', 'rock'] : ['rock', 'point']
+  const kinds: LighthouseParams['site'][] = !hasLand(coast) ? ['rock'] : light.site === 'point' ? ['point', 'rock'] : ['rock', 'point']
   for (let i = 0; i < 600; i++) {
     const kind = kinds[Math.floor(i / 300) % kinds.length]
     const reach = 1 + (i % 300) / 100

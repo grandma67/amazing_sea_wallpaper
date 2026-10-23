@@ -12,7 +12,7 @@ import type { Biome, RGB } from '../biome'
 import type { OceanName } from '../oceans'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
-import { shoreToWorld, terrainNormal } from '../terrain'
+import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { beachLines } from './debris'
@@ -106,7 +106,7 @@ export function shoreLifeFor(params: SceneParams, rng: Random): ShoreLife | null
 }
 
 function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
-  if (params.coast.type !== 'beach') return null
+  if (!hasBeach(params.coast)) return null
   const biome = params.biome.name
   const ocean = params.sea.ocean
   const southern = ocean === 'southern'

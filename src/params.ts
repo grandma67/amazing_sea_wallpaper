@@ -4,6 +4,7 @@ import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams }
 
 import { SAND_STYLES, biomeNamed, type Biome, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
+import { hasBeach, hasLand } from './coastKind'
 import { contrailsFor, type Contrail } from './contrails'
 import { visibilityFor } from './seaHaze'
 import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type RollCloudParams, type ShelfCloudParams } from './skyEvents'
@@ -33,7 +34,9 @@ export type TimeOfDay =
 export type Composition = 'shoreline' | 'along-beach' | 'framed' | 'overlook'
 
 export interface CoastParams {
-  type: 'open-sea' | 'beach'
+  /** rock-shore and tidal-flat are not drawn yet (PLAN_BIOMES phases 8, 9);
+   * ask hasLand / hasBeach / hasSurfZone (coastKind.ts), not the type. */
+  type: 'open-sea' | 'beach' | 'rock-shore' | 'tidal-flat'
   /** shoreline: at the water looking out; along-beach: the beach recedes into
    * the distance; framed: just inside the tree line looking out past plants;
    * overlook: high on the hillside above the bay. */
@@ -544,7 +547,7 @@ function generateCoast(
   }
 
   let eyeHeight =
-    type === 'beach'
+    hasLand({ type })
       ? rng.weighted<() => number>([
           [() => rng.range(1.4, 2.2), 6],
           [() => rng.range(4, 15), 3],
@@ -558,7 +561,7 @@ function generateCoast(
 
   // Composition: where the camera stands relative to the shore.
   const crng = Random.derive(seed, `composition${suffix}`)
-  if (type === 'beach') {
+  if (hasLand({ type })) {
     coast.composition = or(
       crng.weighted<Composition>([
         ['shoreline', 3],
@@ -934,7 +937,7 @@ function pickColony(
     kind = northern && rng.chance(0.5) ? 'puffin' : 'gannet'
   }
   // The open sea has no mainland in view.
-  const site = coastType !== 'beach' ? 'island' : or<ColonySite>(mainland < MAINLAND_COLONY[kind] ? 'mainland' : 'island', forceSite)
+  const site = !hasLand({ type: coastType }) ? 'island' : or<ColonySite>(mainland < MAINLAND_COLONY[kind] ? 'mainland' : 'island', forceSite)
   return { kind, site }
 }
 
@@ -987,7 +990,7 @@ function pickPinnipeds(
   const beach = Random.derive(seed, 'pinnipeds/site').float()
   const site = (kind: PinnipedKind): PinnipedParams => ({
     kind,
-    site: coastType !== 'beach' ? 'rock' : or<HaulOut>(beach < BEACH_HAUL_OUT[kind] ? 'beach' : 'rock', forceSite)
+    site: !hasLand({ type: coastType }) ? 'rock' : or<HaulOut>(beach < BEACH_HAUL_OUT[kind] ? 'beach' : 'rock', forceSite)
   })
   if (typeof force === 'string') return site(force)
   const table = PINNIPEDS[biome.name][ocean]
@@ -1015,7 +1018,7 @@ function pickLighthouse(
   // Polar seas: a handful of lights for thousands of kilometres of coast.
   const polar = ocean === 'arctic' || ocean === 'southern' ? 0.2 : 1
   if (!forced(force, rng.chance(LIGHTHOUSE_CHANCE[biome.name] * polar))) return null
-  const site = forcedKind(force, coastType === 'beach' && rng.chance(0.6) ? 'point' : 'rock')
+  const site = forcedKind(force, hasLand({ type: coastType }) && rng.chance(0.6) ? 'point' : 'rock')
   // Rock towers are squat granite or painted; Scandinavian lights are often
   // red cast iron; banded towers everywhere.
   const paints: [LighthouseParams['paint'], number][] =
@@ -1423,7 +1426,7 @@ function buildParams(
 
   const titleParts = [
     timeLabel[timeOfDay],
-    coast.type === 'beach' ? `${biome.name} ${coast.sand.name} sand beach` : seaName(oceanState.windSpeed),
+    hasBeach(coast) ? `${biome.name} ${coast.sand.name} sand beach` : seaName(oceanState.windSpeed),
     basin.label
   ]
   if (landform != null) {
@@ -1459,7 +1462,7 @@ function buildParams(
   if (storm != null) {
     titleParts.push(storm.bolts.length > 0 ? 'thunderstorm' : 'squall')
   } else {
-    if (coast.type === 'beach' && windSpeed >= 10) titleParts.push('windy')
+    if (hasLand(coast) && windSpeed >= 10) titleParts.push('windy')
     const skyTitle = weather.formations.map(g => CLOUD_GENERA[g].title).find(t => t != null)
     if (skyTitle != null && timeOfDay !== 'night') titleParts.push(skyTitle)
   }

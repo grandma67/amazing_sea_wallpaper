@@ -12,7 +12,7 @@ import {
 import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
-import { shoreToWorld, terrainNormal, worldToShore } from '../terrain'
+import { hasBeach, shoreToWorld, terrainNormal, worldToShore } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { beachLines } from './debris'
@@ -116,7 +116,7 @@ export function wildlifeFor(params: SceneParams, rng: Random): Wildlife | null {
 }
 
 function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
-  if (params.coast.type !== 'beach') return null
+  if (!hasBeach(params.coast)) return null
   const { animals, region: placeRegion } = placeNamed(params.place.id)
   const region = animals.length > 0 ? placeRegion : null
   const month = Number(params.date.slice(5, 7))

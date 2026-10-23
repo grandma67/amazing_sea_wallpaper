@@ -8,9 +8,12 @@ import {
   type Texture
 } from 'three'
 
+import { COAST_KINDS, hasLand } from './coastKind'
 import { createPolarGrid } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
+
+export { hasBeach, hasLand, hasSurfZone, type CoastKind } from './coastKind'
 
 // Procedural coast: a shoreline (curved, wobbly) with a sloping beach rising
 // to dunes inland and a sea floor falling away offshore. The same height
@@ -33,7 +36,20 @@ uniform float hillHeight;
 uniform float sandbarDistance;
 uniform float sandbarHeight;
 uniform vec2 noiseOffset;
-uniform float hasCoast;
+// Index into COAST_KINDS (coastKind.ts); one profile branch runs per day.
+uniform int coastKind;
+#define COAST_OPEN_SEA 0
+#define COAST_BEACH 1
+#define COAST_ROCK_SHORE 2
+#define COAST_TIDAL_FLAT 3
+
+bool hasLand() {
+  return coastKind != COAST_OPEN_SEA;
+}
+
+bool hasSurfZone() {
+  return coastKind == COAST_BEACH || coastKind == COAST_ROCK_SHORE;
+}
 
 uint hashCell(ivec2 c) {
   uvec2 p = uvec2(c + ivec2(1 << 20));
@@ -139,7 +155,7 @@ vec2 shoreCoords(vec2 p) {
   return vec2(s, a);
 }
 
-float terrainHeightAt(vec2 p, vec2 sa) {
+float beachHeightAt(vec2 p, vec2 sa) {
   float s = sa.x;
   float u = -s;
   vec2 q = p + noiseOffset;
@@ -160,8 +176,14 @@ float terrainHeightAt(vec2 p, vec2 sa) {
   float bumps = 0.35 * (fbm(q / 7.0) - 0.5) * smoothstep(0.0, beachWidth, u);
   float land = beach + dunes + hills + bumps;
 
-  float h = mix(sea, land, smoothstep(-1.0, 1.0, u));
-  return mix(-200.0, h, hasCoast);
+  return mix(sea, land, smoothstep(-1.0, 1.0, u));
+}
+
+float terrainHeightAt(vec2 p, vec2 sa) {
+  if (coastKind == COAST_OPEN_SEA) return -200.0;
+  // Rock shores and tidal flats use the beach profile until they get their
+  // own (PLAN_BIOMES phases 8 and 9).
+  return beachHeightAt(p, sa);
 }
 
 float terrainHeight(vec2 p) {
@@ -324,7 +346,17 @@ export function terrainNormal(coast: CoastParams, x: number, z: number, e = 0.5)
 }
 
 export function terrainHeight(coast: CoastParams, x: number, z: number): number {
-  if (coast.type !== 'beach') return -200
+  switch (coast.type) {
+    case 'open-sea':
+      return -200
+    case 'beach':
+    case 'rock-shore':
+    case 'tidal-flat':
+      return beachHeight(coast, x, z)
+  }
+}
+
+function beachHeight(coast: CoastParams, x: number, z: number): number {
   const [ox, oz] = coast.noiseOffset
   const [s] = worldToShore(coast, x, z)
 
@@ -370,7 +402,7 @@ export function terrainUniforms(coast: CoastParams): Record<string, { value: unk
     sandbarDistance: { value: coast.sandbarDistance },
     sandbarHeight: { value: coast.sandbarHeight },
     noiseOffset: { value: new Vector2(...coast.noiseOffset) },
-    hasCoast: { value: coast.type === 'beach' ? 1 : 0 }
+    coastKind: { value: COAST_KINDS.indexOf(coast.type) }
   }
 }
 
@@ -516,6 +548,6 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
   })
   const mesh = new Mesh(createPolarGrid({ rings: 600, segments: 1024, outerRadius: 120_000 }), material)
   mesh.frustumCulled = false
-  mesh.visible = coast.type === 'beach'
+  mesh.visible = hasLand(coast)
   return mesh
 }

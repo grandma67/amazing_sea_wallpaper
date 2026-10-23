@@ -12,7 +12,7 @@ import {
 import type { RGB } from '../biome'
 import type { CoastParams, SceneParams } from '../params'
 import type { Random } from '../random'
-import { shoreToWorld, terrainNormal } from '../terrain'
+import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { noise3 } from './noise'
@@ -57,7 +57,7 @@ export function debrisFor(params: SceneParams, rng: Random): DebrisSpec | null {
 }
 
 function drawDebris(params: SceneParams, rng: Random): DebrisSpec | null {
-  if (params.coast.type !== 'beach') return null
+  if (!hasBeach(params.coast)) return null
   const ocean = params.sea.ocean
   const spec: DebrisSpec = { driftwood: 0, rootWads: false, wrack: null, wrackAmount: 0, coconuts: 0 }
   const wood = (chance: number, min: number, max: number): void => {

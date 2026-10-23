@@ -4,7 +4,7 @@ import type { OceanName } from '../oceans'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { forced, forcedKind, type MangroveKind } from '../sceneSpec'
-import { shoreToWorld } from '../terrain'
+import { hasBeach, shoreToWorld } from '../terrain'
 import type { PropContext } from './context'
 import { avicennia, rhizophora } from './trees'
 
@@ -48,7 +48,7 @@ export function mangroveFor(params: SceneParams, rng: Random): MangroveStand | n
   const length = rng.range(80, 300)
   const density = rng.range(0.5, 0.9)
   const sheltered = coast.surfAmplitude < SHELTERED_SURF
-  if (coast.type !== 'beach' || !forced(force, grows && sheltered)) return null
+  if (!hasBeach(coast) || !forced(force, grows && sheltered)) return null
   const kind = forcedKind(force, biome.name === 'tropical' && red ? 'rhizophora' : 'avicennia')
   return { kind, length, density: kind === 'avicennia' ? density * 1.4 : density }
 }

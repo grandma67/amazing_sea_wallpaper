@@ -11,7 +11,7 @@ import {
 
 import type { RGB, VegetationKind } from '../biome'
 import type { Random } from '../random'
-import { shoreToWorld, terrainNormal } from '../terrain'
+import { hasLand, shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { noise3 } from './noise'
@@ -323,7 +323,7 @@ const KINDS: Record<VegetationKind, KindSpec> = {
 export function createVegetation(ctx: PropContext): InstancedMesh[] {
   const { params } = ctx
   const { coast, biome } = params
-  if (coast.type !== 'beach') return []
+  if (!hasLand(coast)) return []
   const rng = ctx.rng('vegetation')
 
   // Which plants grow here today: each of the biome's kinds, most of the time.

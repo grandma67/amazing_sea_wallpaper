@@ -105,7 +105,7 @@ float surfProfile(float x, float steep, float broken, float minFace) {
 }
 
 float surfHeight(vec2 sa, float depth, float resolution) {
-  if (surfAmplitude <= 0.0 || hasCoast < 0.5) return 0.0;
+  if (surfAmplitude <= 0.0 || !hasSurfZone()) return 0.0;
   // Surf lives where the waves feel the bottom, near the shore; out deeper
   // the open-sea spectrum takes over.
   float zone = (1.0 - smoothstep(0.35 * surfWavelength, 0.6 * surfWavelength, depth)) *
@@ -539,7 +539,7 @@ void main() {
   // coverage; the lace texture turns coverage into bubbles.
   float coverage = whitecaps * (1.0 - slick) * (1.0 - smoothstep(-0.1, 0.45, jacobian)) *
     smoothstep(0.3, 0.7, fbm(q * 0.2));
-  if (hasCoast > 0.5) {
+  if (hasSurfZone()) {
     // White water where the waves have broken (surfWave), from the break
     // point to the shore; it starts as the crest begins to spill.
     float sets = surfSets(sa);
@@ -600,7 +600,7 @@ void main() {
   }
   coverage = max(coverage, wakeFoam);
   // The weave is stretched along the crests near the coast.
-  vec2 laceCoords = hasCoast > 0.5 ? vec2(sa.y, sa.x * 1.8) + noiseOffset : q;
+  vec2 laceCoords = hasLand() ? vec2(sa.y, sa.x * 1.8) + noiseOffset : q;
   float foam = foamLace(laceCoords, clamp(coverage, 0.0, 1.0), footprint);
   foam = max(foam, rainDrops.z * 0.9);
   // Foam is matte but wet: diffuse light plus a little sky sheen.
