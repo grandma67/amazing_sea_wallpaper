@@ -165,8 +165,12 @@ Playwright (headless snapshots), Vitest.
   climate)` (place → region override, else `POLAR_MATERIAL` on polar days, else the biome's
   `MATERIAL_CHANCES`), then forced by `spec.beachMaterial`. Open sea is `'sand'`. Stony days
   replace slope, width, sandbar and dune (`stonyShape`, same stream) and get `coast.ridges`
-  (crest distance from `beachLines`, height, width); `coast.stoneColors` is the place's palette.
-  `beachLines` (wrack and storm lines) lives here now. Shares: COASTS.md.
+  (crest distance, height, half-width); `coast.stoneColors` is the place's palette. Stony days
+  also get a steep nearshore (narrow surf zone: `breakerIndex` and `surfBreakDepth` follow
+  `nearshoreSlope`, no material term needed) and run-up × `STONY_RUNUP`. `ridgeHeight` adds
+  Gaussian bumps across the shore in `beachHeightAt` (GLSL `vec3 ridges[3]` + `ridgeCount`, TS
+  mirror `ridgeHeight` in `terrain.ts`, 0 on sand). `beachLines` (wrack and storm lines) lives
+  here now; on stony days its storm line is the storm ridge crest. Shares: COASTS.md.
 - **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes
   folded on the midrib (oval oak/almond, ovate birch, lance olive, needles stone pine, rounded
   shrubs, pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to

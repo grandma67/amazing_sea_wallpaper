@@ -2,7 +2,7 @@ import { MoonPhase } from 'astronomy-engine'
 
 import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
 
-import { beachName, isStony, materialChances, stonyShape, type BeachMaterial, type Ridge } from './beach'
+import { beachName, isStony, materialChances, STONY_RUNUP, stonyShape, type BeachMaterial, type Ridge } from './beach'
 import { SAND_STYLES, biomeNamed, type Biome, type RGB, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
 import { hasBeach, hasLand } from './coastKind'
@@ -563,7 +563,10 @@ function generateCoast(
   // stony beach is steep, narrow and ridged.
   const mrng = Random.derive(seed, 'beach-material')
   const material = or(choose(mrng, materialChances(place, climate)), spec.beachMaterial)
-  if (hasBeach({ type }) && isStony(material)) Object.assign(coast, { material }, stonyShape(coast, material, mrng))
+  if (hasBeach({ type }) && isStony(material)) {
+    if (material !== 'mixed') coast.runup *= STONY_RUNUP
+    Object.assign(coast, { material }, stonyShape(coast, material, mrng))
+  }
 
   let eyeHeight =
     hasLand({ type })

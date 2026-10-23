@@ -132,6 +132,11 @@ tool gotchas in TOOLS.md.
 - Near-camera boats need open water: on beach days no spot ≥ 3 m deep lies within ~150 m in frame;
   use `"coast": "open-sea"` to check wakes/spray up close.
 
+- Surf-zone width follows `nearshoreSlope`, not `beachSlope`: a steep beach face over a gentle
+  nearshore still breaks waves 40–50 m out. Steepen the nearshore too (stony beaches).
+- Lines derived from daily run-up (`beachLines`) sit only metres apart on steep beaches; storm
+  features belong at the storm run-up height, not a multiple of the daily one.
+
 ## Seasons
 
 - A month table needs the hemisphere, not the ocean: `ocean === 'southern'` only flipped the

@@ -92,9 +92,16 @@ shingle 11.7%, cobble 12.5%.
   greywacke, white–cream limestone, black basalt with red scoria, tan and red gravel, pale
   coral rubble.
 - **Profile (temporary, until phase 4):** slope 0.12–0.25 (shingle, cobble) or 0.08–0.14
-  (mixed), beach 12–40 m wide, no sandbar, a 0.5–2.5 m bank behind, 1–3 storm ridges
-  (`coast.ridges`: the storm ridge 0.6–1.2 m at the storm line, a 0.3–0.6 m berm at the
-  high-tide line on 72% of stony days, an older ridge behind on 28%).
+  (mixed), beach 12–40 m wide, no sandbar, a 0.5–2.5 m bank behind; nearshore 0.06–0.12
+  (0.035–0.06 mixed), so waves break on the beach (surf zone ~12 m vs ~48 m on sand, median;
+  breaker index 1.0, Iribarren ~2.8: plunging to surging); run-up × 0.6 on shingle and cobble.
+- **Storm ridges** (`coast.ridges`, drawn in the terrain since 2b): the storm ridge (0.6–1.2 m
+  high, 3–6 m half-width) where storm swash reaches, 1–2.5 m above the sea and ≥ 6 m behind the
+  high-tide line; a 0.3–0.6 m berm at the high-tide line on 72% of stony days; an older ridge
+  6–12 m behind on 28%. Crests wander ±1.5 m along the shore. The plan put the storm ridge on
+  `beachLines`' storm line (2.2 × daily run-up), but that is only ~1 m up and 2–5 m in on a steep
+  beach and merged with the berm; real gravel ridge crests sit at the storm run-up limit (Chesil
+  ~10 m, small ridges 1–3 m). On stony days `beachLines().stormLine` is the ridge crest.
 
 The beaches still render as sand until the stone shader (2c) and stones (2d).
 

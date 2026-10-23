@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { shoreToWorld, surfCycle, surfSets, terrainHeight, terrainNormal, worldToShore } from '../src/terrain'
+import { ridgeHeight, shoreToWorld, surfBreakDepth, surfCycle, surfSets, terrainHeight, terrainNormal, worldToShore } from '../src/terrain'
 import { scene, scenes } from './days'
 
 // Every camera position on the shore, on days across the years.
@@ -44,6 +44,41 @@ describe('terrainHeight', () => {
       const n = terrainNormal(coast, x, z)
       expect(Math.hypot(...n)).toBeCloseTo(1)
       expect(n[1]).toBeGreaterThan(0.5)
+    }
+  })
+})
+
+describe('storm ridges', () => {
+  const stony = (['shingle', 'cobble', 'mixed'] as const).flatMap(beachMaterial =>
+    scenes({ beachMaterial, composition: 'along-beach' }, 10).map(p => p.coast)
+  )
+
+  it('raise the stony beach at each crest, and nothing on sand', () => {
+    for (const coast of stony) {
+      const at = (s: number, a: number): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
+      for (const r of coast.ridges) {
+        // Find the crest near the drawn distance (it wanders ±1.5 m along the
+        // shore) and check it stands above the straight line between its feet.
+        let crest = r.distance
+        for (let u = r.distance - 2; u <= r.distance + 2; u += 0.1) if (ridgeHeight(coast, u, 0) > ridgeHeight(coast, crest, 0)) crest = u
+        const bump = ridgeHeight(coast, crest, 0)
+        expect(bump).toBeGreaterThan(0.6 * r.height)
+        expect(bump).toBeLessThan(1.3 * coast.ridges.reduce((sum, q) => sum + q.height, 0))
+        // The terrain carries the ridge (heights only; bumps noise ±0.18 m).
+        const feet = (at(-(crest - 2.5 * r.width), 0) + at(-(crest + 2.5 * r.width), 0)) / 2
+        expect(at(-crest, 0) - feet).toBeGreaterThan(0.5 * bump - 0.4)
+      }
+      expect(Math.abs(at(0, 0))).toBeLessThan(1.5)
+    }
+    for (const coast of beaches.filter(c => c.material === 'sand')) {
+      expect(coast.ridges).toEqual([])
+      expect(ridgeHeight(coast, 10, 0)).toBe(0)
+    }
+  })
+
+  it('make waves break right on the beach (a narrow surf zone)', () => {
+    for (const coast of stony.filter(c => c.material !== 'mixed')) {
+      expect(surfBreakDepth(coast) / coast.nearshoreSlope).toBeLessThan(30)
     }
   })
 })

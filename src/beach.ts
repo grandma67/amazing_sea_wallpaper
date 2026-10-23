@@ -102,42 +102,60 @@ export interface Ridge {
 }
 
 /** How far inland (m from the waterline) the high-tide wrack line and the
- * storm line lie, from the beach profile in terrain.ts without its bumps. */
-export function beachLines(coast: Pick<CoastParams, 'beachSlope' | 'beachWidth' | 'runup'>): { highTide: number; stormLine: number } {
-  const maxHeight = coast.beachSlope * coast.beachWidth
-  const inland = (h: number): number => -coast.beachWidth * Math.log(1 - Math.min(h / maxHeight, 0.9))
-  const highTide = inland(coast.runup * 1.1)
-  return { highTide, stormLine: Math.max(inland(coast.runup * 2.2), highTide + 3) }
+ * storm line lie, from the beach profile in terrain.ts without its bumps.
+ * On a stony beach the storm line is the storm ridge's crest. */
+export function beachLines(coast: Pick<CoastParams, 'beachSlope' | 'beachWidth' | 'runup'> & { ridges?: readonly Ridge[] }): {
+  highTide: number
+  stormLine: number
+} {
+  const highTide = inlandAt(coast, coast.runup * 1.1)
+  const stormLine = coast.ridges?.[0]?.distance ?? Math.max(inlandAt(coast, coast.runup * 2.2), highTide + 3)
+  return { highTide, stormLine }
 }
 
+/** Distance inland where the bare beach profile reaches height `h`. */
+function inlandAt(coast: Pick<CoastParams, 'beachSlope' | 'beachWidth'>, h: number): number {
+  const maxHeight = coast.beachSlope * coast.beachWidth
+  return -coast.beachWidth * Math.log(1 - Math.min(h / maxHeight, 0.9))
+}
+
+/** Swash sinks into gravel, so it runs less far up a shingle or cobble
+ * beach than up sand. */
+export const STONY_RUNUP = 0.6
+
 /** The profile of a stony beach: steep, narrow, no sandbar, a low bank
- * behind and 1–3 storm ridges. Temporary: phase 4 derives slopes from the
- * beach state (stony beaches are always reflective). */
+ * behind and 1–3 storm ridges. The steep face carries on under water to the
+ * step, so the waves break right on the beach (plunging or surging, a surf
+ * zone metres wide; the breaker index follows the nearshore slope).
+ * Temporary: phase 4 derives slopes from the beach state (stony beaches are
+ * always reflective). `coast.runup` is already the stony one. */
 export function stonyShape(
   coast: Pick<CoastParams, 'runup'>,
   material: Exclude<BeachMaterial, 'sand'>,
   rng: Random
-): Pick<CoastParams, 'beachSlope' | 'beachWidth' | 'sandbarHeight' | 'duneHeight' | 'ridges'> {
+): Pick<CoastParams, 'beachSlope' | 'beachWidth' | 'sandbarHeight' | 'duneHeight' | 'ridges' | 'nearshoreSlope'> {
   const beachSlope = material === 'mixed' ? rng.range(0.08, 0.14) : rng.range(0.12, 0.25)
   const beachWidth = rng.range(12, 40)
   const duneHeight = rng.range(0.5, 2.5)
-  const { highTide, stormLine } = beachLines({ beachSlope, beachWidth, runup: coast.runup })
-  // One ridge: the storm ridge; two: a berm at the high-tide line too; three:
+  const { highTide } = beachLines({ beachSlope, beachWidth, runup: coast.runup })
+  // The storm ridge's crest stands where storm swash reaches, 1–2.5 m above
+  // the sea (Chesil's is ~10 m; small ridges 1–3 m), well behind the daily
+  // swash; one ridge: just it; two: a berm at the high-tide line too; three:
   // an older, grassed-over ridge behind.
+  const stormHeight = Math.min(material === 'mixed' ? rng.range(1, 2) : rng.range(1.2, 2.5), 0.75 * beachSlope * beachWidth)
   const count = rng.weighted([
     [1, 3],
     [2, 4],
     [3, 2]
   ])
-  const ridge = (distance: number, height: number): Ridge => ({
-    distance: Math.min(distance, beachWidth * 1.2),
-    height,
-    width: rng.range(2, 4.5)
-  })
-  const ridges = [ridge(stormLine, rng.range(0.6, 1.2))]
-  if (count >= 2) ridges.push(ridge(highTide, rng.range(0.3, 0.6)))
-  if (count >= 3) ridges.push(ridge(stormLine + rng.range(6, 12), rng.range(0.5, 1.0)))
-  return { beachSlope, beachWidth, sandbarHeight: 0, duneHeight, ridges }
+  const stormLine = Math.max(inlandAt({ beachSlope, beachWidth }, stormHeight), highTide + 6)
+  const ridge = (distance: number, height: number, width: number): Ridge => ({ distance: Math.min(distance, beachWidth * 1.2), height, width })
+  const ridges = [ridge(stormLine, rng.range(0.6, 1.2), rng.range(3, 6))]
+  if (count >= 2) ridges.push(ridge(highTide, rng.range(0.3, 0.6), rng.range(1.5, 3)))
+  if (count >= 3) ridges.push(ridge(stormLine + rng.range(6, 12), rng.range(0.5, 1.0), rng.range(3, 6)))
+  // Mixed beaches keep a sand lower face, less steep.
+  const nearshoreSlope = material === 'mixed' ? rng.range(0.035, 0.06) : rng.range(0.06, 0.12)
+  return { beachSlope, beachWidth, sandbarHeight: 0, duneHeight, ridges, nearshoreSlope }
 }
 
 /** Title words: "cobble beach", "golden sand beach". */

@@ -36,6 +36,10 @@ uniform float hillHeight;
 uniform float sandbarDistance;
 uniform float sandbarHeight;
 uniform vec2 noiseOffset;
+// Storm ridges on stony beaches (beach.ts Ridge): crest distance inland,
+// height, half-width; ridgeCount 0 on sand.
+uniform vec3 ridges[3];
+uniform int ridgeCount;
 // Index into COAST_KINDS (coastKind.ts); one profile branch runs per day.
 uniform int coastKind;
 #define COAST_OPEN_SEA 0
@@ -155,6 +159,21 @@ vec2 shoreCoords(vec2 p) {
   return vec2(s, a);
 }
 
+// Storm ridges thrown up on a stony beach: Gaussian bumps across the shore,
+// their crests wandering a little and rising and falling along it.
+float ridgeHeight(float u, float a) {
+  float h = 0.0;
+  for (int i = 0; i < 3; i++) {
+    if (i >= ridgeCount) break;
+    vec3 r = ridges[i];
+    float fi = float(i);
+    float crest = r.x + 1.5 * (vnoise(vec2(a / 40.0 + fi * 7.3, 11.3) + noiseOffset) * 2.0 - 1.0);
+    float k = (u - crest) / r.z;
+    h += r.y * (0.7 + 0.6 * vnoise(vec2(a / 70.0 + fi * 3.1, 13.7) + noiseOffset)) * exp(-k * k);
+  }
+  return h;
+}
+
 float beachHeightAt(vec2 p, vec2 sa) {
   float s = sa.x;
   float u = -s;
@@ -174,7 +193,7 @@ float beachHeightAt(vec2 p, vec2 sa) {
   float hills = hillHeight * smoothstep(beachWidth + duneWidth, beachWidth + duneWidth + 500.0, u) *
     (0.25 + 0.75 * fbm(q / 450.0)) * smoothstep(-0.2, 1.0, fbm(q / 1400.0 + 7.0));
   float bumps = 0.35 * (fbm(q / 7.0) - 0.5) * smoothstep(0.0, beachWidth, u);
-  float land = beach + dunes + hills + bumps;
+  float land = beach + dunes + hills + bumps + ridgeHeight(u, sa.y);
 
   return mix(sea, land, smoothstep(-1.0, 1.0, u));
 }
@@ -356,9 +375,21 @@ export function terrainHeight(coast: CoastParams, x: number, z: number): number 
   }
 }
 
+/** Storm ridges (mirrors ridgeHeight in TERRAIN_GLSL). */
+export function ridgeHeight(coast: CoastParams, u: number, a: number): number {
+  const [ox, oz] = coast.noiseOffset
+  let h = 0
+  coast.ridges.forEach((r, i) => {
+    const crest = r.distance + 1.5 * (vnoise(a / 40 + i * 7.3 + ox, 11.3 + oz) * 2 - 1)
+    const k = (u - crest) / r.width
+    h += r.height * (0.7 + 0.6 * vnoise(a / 70 + i * 3.1 + ox, 13.7 + oz)) * Math.exp(-k * k)
+  })
+  return h
+}
+
 function beachHeight(coast: CoastParams, x: number, z: number): number {
   const [ox, oz] = coast.noiseOffset
-  const [s] = worldToShore(coast, x, z)
+  const [s, a] = worldToShore(coast, x, z)
 
   const u = -s
   const qx = x + ox
@@ -378,7 +409,7 @@ function beachHeight(coast: CoastParams, x: number, z: number): number {
     (0.25 + 0.75 * fbm(qx / 450, qz / 450)) *
     smoothstep(-0.2, 1, fbm(qx / 1400 + 7, qz / 1400 + 7))
   const bumps = 0.35 * (fbm(qx / 7, qz / 7) - 0.5) * smoothstep(0, coast.beachWidth, u)
-  const land = beach + dunes + hills + bumps
+  const land = beach + dunes + hills + bumps + ridgeHeight(coast, u, a)
 
   const t = smoothstep(-1, 1, u)
   return sea + (land - sea) * t
@@ -402,6 +433,8 @@ export function terrainUniforms(coast: CoastParams): Record<string, { value: unk
     sandbarDistance: { value: coast.sandbarDistance },
     sandbarHeight: { value: coast.sandbarHeight },
     noiseOffset: { value: new Vector2(...coast.noiseOffset) },
+    ridges: { value: [0, 1, 2].map(i => (coast.ridges[i] != null ? new Vector3(coast.ridges[i].distance, coast.ridges[i].height, coast.ridges[i].width) : new Vector3())) },
+    ridgeCount: { value: Math.min(3, coast.ridges.length) },
     coastKind: { value: COAST_KINDS.indexOf(coast.type) }
   }
 }

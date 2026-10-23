@@ -67,10 +67,21 @@ describe('beach material', () => {
       expect(coast.sandbarHeight).toBe(0)
       expect(coast.ridges.length).toBeGreaterThanOrEqual(1)
       expect(coast.ridges.length).toBeLessThanOrEqual(3)
-      const { stormLine } = beachLines(coast)
-      expect(coast.ridges[0].distance).toBeCloseTo(Math.min(stormLine, coast.beachWidth * 1.2), 6)
+      // The storm ridge stands where storm swash reaches (1–2.5 m up), behind
+      // the berm at the high-tide line; it is the beach's storm line.
+      const [storm, berm] = coast.ridges
+      const { highTide, stormLine } = beachLines(coast)
+      expect(stormLine).toBe(storm.distance)
+      const bare = coast.beachSlope * coast.beachWidth * (1 - Math.exp(-storm.distance / coast.beachWidth))
+      if (storm.distance < coast.beachWidth * 1.2) {
+        expect(bare).toBeGreaterThan(0.9)
+        expect(bare).toBeLessThan(2.6)
+        expect(storm.distance).toBeGreaterThanOrEqual(highTide + 6 - 1e-9)
+      }
+      if (berm != null) expect(berm.distance).toBeCloseTo(highTide, 6)
       for (const r of coast.ridges) {
         expect(r.height).toBeGreaterThanOrEqual(0.3)
+        expect(r.width).toBeGreaterThanOrEqual(1.5)
         expect(r.height).toBeLessThanOrEqual(1.2)
         expect(r.distance).toBeGreaterThan(0)
       }
