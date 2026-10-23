@@ -275,11 +275,8 @@ stream is untouched and only the split days change:
    twilight only, by latitude and date); restrict `timeOfDay` in phase 10.
 4. **Rare showpieces stay rare:** bioluminescence, pink and red sand at their real
    frequencies.
-
-## Open questions
-
-1. Phase 3 changes every beach day's slope. OK, or gate it behind its own stream so only
-   new days differ? (Unanswered; ask before phase 3.)
+5. **Beach shape applies to all days:** phase 3 changes slope and bars on every beach day,
+   past ones included (noted in the changelog).
 
 ## Sources
 
