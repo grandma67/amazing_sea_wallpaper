@@ -77,12 +77,19 @@ CLAUDE.md applies (choice/geometry split, own streams, spec fields with `or()` /
 a render or `diff.mjs` showed, `npm test` + `npx tsc --noEmit`, one commit per phase step). In
 addition:
 
-- **Only the days that get a feature change.** Every other day keeps byte-identical
-  params (`test/sceneSpec.test.ts`) and the same image (`bench.mjs` pixel diff: max ≤ 1/255
-  per channel). Exact 0 is not required for renders: adding a uniform or an unused branch
-  to GLSL can change float results through compiler reordering. A diff above 1/255 on an
-  unchanged day is a bug. Each phase's changelog row says which
-  existing days change (e.g. "tropical beach days with a reef", "all beach days" for phase 4).
+- **Old dates may change (decided 2026-10-23).** A date doesn't have to keep its old
+  picture: any phase may change any day if that makes the code simpler or the scene more
+  realistic. Don't preserve draw orders, discard dummy draws or add byte-identical tests
+  just to keep old dates as they were. This overrides CLAUDE.md's "never add draws to the
+  main `rng`" and SCENE_SPECS.md's "without changing unforced days" for this plan.
+  What still holds:
+  - **Own streams** for each feature (`Random.derive(seed, 'xxx')`), so forcing one
+    thing in a spec doesn't reshuffle the rest of that day, and features stay independent.
+  - **Pure refactors** (2b, 2c) are checked by comparing params and images before and
+    after (`bench.mjs` pixel diff ≤ 1/255; GLSL reordering can change the last bit). That's
+    a check on the refactor, not a promise about old dates.
+  - Each phase's changelog row says what changed on which days ("all beach days change
+    slope and bars"), so a different picture for a date can be traced.
 - A forced spec value always wins over gates and tables. Add each new field to SCENE_SPECS.md.
 - **Budget:** render time within ~10% of today per phase (`bench.mjs`); meshes < 100k tris;
   instanced near-camera detail ≤ ~1M tris for stones (1d) and ≤ ~0.5M for everything else added
@@ -142,8 +149,7 @@ Iceland, as a **beach material** that biomes choose, next to sand colour. It add
   texture to ~80 m, and the right colour and steep ridged profile beyond.
 - Views: `shoreline`, `along-beach`, `framed` (stones in the foreground), `overlook`
   (colour and ridges only). Open-sea days are unchanged.
-- Sand days are byte-identical to today (`test/sceneSpec.test.ts`, `bench.mjs` pixel diff 0).
-- Render cost: within ~10% of today on stony days, unchanged on sand days.
+- Render cost: within ~10% of today on stony days, about the same on sand days.
 
 **Materials:**
 
@@ -187,7 +193,7 @@ shingle; polar: as "nordic, Arctic").
 - Title: `nordic cobble beach` / `mediterranean shingle beach` (sand titles unchanged).
 - `src/props/choices.ts`: expose it so `params.mjs --stats 'p => p.coast.material'` works.
 - `test/beach.test.ts`: shares over `allParams()` per biome are roughly as in the table, no
-  shingle in the tropics, sand days identical to before, forced spec works on any biome.
+  shingle in the tropics, forced spec works on any biome.
 - Update COASTS.md with the measured shares.
 
 #### 1b. Terrain shape
@@ -259,7 +265,7 @@ size: 3 cm pebbles to ~5 m (16 px at 5 m), 10 cm cobbles to ~15 m (18 px), 20 cm
   Iceland (volcanic, cobble, framed), mixed (nordic, mixed, shoreline), overlook (mediterranean
   shingle). Front-lit (`sunAzimuthDeg: 160`) first, then backlit.
 - `diff.mjs` with `--off '{"beachMaterial":"sand"}'` to confirm each shows.
-- `bench.mjs --ref HEAD~N`: sand days pixel-identical, stony days within ~10%.
+- `bench.mjs --ref HEAD~N`: render time within ~10%.
 - ~3 render rounds. Then: changelog.md, ARCHITECTURE.md (beach material), LESSONS.md,
   REFERENCES.md (from COASTS.md), COASTS.md shares and mark its stony-beach proposal done,
   ANIMALS.md if animal rules changed.
@@ -301,10 +307,10 @@ The day draws a **place** first; biome, ocean, climate and latitude follow from 
   renormalised) and force that choice; impossible combinations (`biome: "tropical"`,
   `ocean: "arctic"`) throw. Existing scene specs keep working.
 - **Wildlife:** `wildlife.ts` reads the place's `animals` pool instead of `regionFor`.
-  Draw order inside `drawWildlife` stays (its first float is kept and discarded); the
+  Drop wildlife's old region float (no need to keep its draw order). The
   pools reproduce today's regional animals (macaques in se-asia, vervets in east-africa,
   …) and the new places get their own (decision 9). Regenerate ANIMALS.md.
-- **Every date changes** (accepted 2026-10-23): new biome mix, latitudes, animals. Check
+- **Every date changes** (see "Old dates may change"): new biome mix, latitudes, animals. Check
   one day per biome still looks right (front-lit, `bench.mjs` for time), and say so in
   the changelog.
 - Tests (`test/places.test.ts`): shares over `allParams()` per biome, region and place
@@ -323,7 +329,8 @@ The day draws a **place** first; biome, ocean, climate and latitude follow from 
   deciding which each means (composition, camera, props).
 - `terrainHeightAt`: a `coastKind` uniform selects the profile (one branch per day, not all
   evaluated); TS mirror switches the same way. Phase 1's ridges live in the beach branch.
-- Tests: all existing days byte-identical; helper truth table per coast type.
+- Tests: params and images the same before and after (refactor check); helper truth
+  table per coast type.
 
 #### 2c. Re-generation for place rules (no rendering change)
 
@@ -357,7 +364,7 @@ scene spec instead of a patch:
 - Today no place has both rules (marine-layer places aren't polar), so the order
   matters only for future rules; test it with a stub rule pair.
 - Cost: a second pass only on affected days (params are ~0.5 ms).
-- Tests: no rule → one pass, byte-identical; a forced day keeps place, biome, ocean and
+- Tests: no rule → one pass, same params as before (refactor check); a forced day keeps place, biome, ocean and
   heading; user spec beats the rule; rule order with stub rules; the same result for
   `attempt` 0 and 1.
 
@@ -378,8 +385,7 @@ scene spec instead of a patch:
 
 ### 3. Cheap table changes (no new geometry)
 
-Each is a table row or a palette, plus a spec value and a test. Changes only the days that
-get them.
+Each is a table row or a palette, plus a spec value and a test.
 
 | Change | Where | Rule |
 |---|---|---|
@@ -477,7 +483,7 @@ random.
   high-water line in `rocks.ts`); tidepools as flat mirror patches between rocks.
 - Spec: `tide`, `tidalRange`.
 - Tests: ranges per place, spring/neap from moon phase, level in range, terrain and props
-  move together, micro-tidal days byte-identical within 1 cm (or exactly, if level is 0).
+  move together, micro-tidal days visibly unchanged (level within a few cm).
 - Renders: Brittany low and high tide (along-beach), Mediterranean (no visible change);
   `diff.mjs` between low and high.
 - Docs: ARCHITECTURE.md (tides, land offset), LESSONS.md, SCENE_SPECS.md fields,
@@ -502,7 +508,7 @@ mangroves.
   model's job (`SURF_GLSL` / `surfWave`; the sandbar code already re-forms waves; reuse
   it), not the ocean cascades'.
 - `seaLevel()` (CPU) applies the same mask so floating props sit still in a lagoon.
-- Tests: mask 0 everywhere when unused (byte-identical days), lagoon surf height ≤ 0.3 ×
+- Tests: mask 0 everywhere when unused (the ocean as before), lagoon surf height ≤ 0.3 ×
   offshore, CPU/GPU agree.
 - Render check with a forced test lagoon at 640×360 before phase 7 uses it.
 - Docs: ARCHITECTURE.md (shelter), LESSONS.md.
@@ -695,11 +701,12 @@ Sub-steps, one commit each:
   heading solved from the sun: `headingDeg = realSunAz − relSunAz`, keeping `relSunAz`
   (the framing). That turns the coast, so it's part of the re-generation (forced
   `headingDeg`), only on days where the rule fires. Every other day keeps its random
-  compass. Making all days' sun azimuths real (evening sun in the west) is a separate,
-  bigger change that would alter every day; not part of this plan (listed as an idea in
-  ARCHITECTURE.md).
-- Only polar and high-latitude days change (latitude ≥ ~63° in Dec/Jun months); test that
-  every other day is byte-identical.
+  compass. Making all days' sun azimuths real (evening sun in the west) is allowed (old
+  dates may change) but is a bigger, separate piece of work: it ties framing, heading
+  and coast orientation together. Not part of this plan; listed as an idea in
+  ARCHITECTURE.md.
+- Only polar and high-latitude days should get a forced time of day (latitude ≥ ~63° in
+  Dec/Jun months); test that the rule never fires elsewhere.
 - Spec: an explicit `timeOfDay` still wins (like eclipses), so specs can show impossible
   combinations for debugging; `sunElevationDeg` likewise.
 - Tests: Svalbard (78°) in December only night/blue hour; in June never night; the
@@ -769,8 +776,9 @@ squid (Mar–Jun) are not plankton; left out.
    (no night; confirmed 2026-10-23).
 4. **Rare showpieces stay rare:** bioluminescence, pink and red sand at their real
    frequencies.
-5. **Beach shape applies to all days:** phase 4 changes slope and bars on every beach day,
-   past ones included (noted in the changelog).
+5. **Old dates may change:** any phase may change any day, past ones included (phase 4
+   changes every beach day's slope and bars; 2a every date). Own streams stay, for specs;
+   the changelog notes what changed (2026-10-23).
 6. **Tides lower the land** instead of raising the sea (sea level 0 stays everywhere).
 7. **Calm water is a shelter mask** in the ocean and surf shaders, shared by reefs,
    lagoons, spits and fjords.
