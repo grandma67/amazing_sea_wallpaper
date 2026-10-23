@@ -87,7 +87,7 @@ Ocean shares: Pacific 47%, Indian 34%, Atlantic 19%.
 | Indian | `east-africa` | Kenya, Tanzania, Mozambique, Madagascar, Comoros | 35 | 30 | Madagascar 4,828, Mozambique 2,470 km |
 | Indian | `nw-australia` **new parent** | Kimberley, Broome | – | 10 | saltwater crocodiles; macro-tidal |
 | Atlantic | `caribbean` | Greater and Lesser Antilles, Yucatán, Belize, Bahamas, Bermuda | 65 | 65 (incl. bahamas-bermuda) | Cuba 3,735 km (WRI 14,519) |
-| Atlantic | ↳ `bahamas-bermuda` (sub-place of caribbean, §1b) | Bahamas, Turks and Caicos, Bermuda | – | (≈ 10 of the 65) | pink sand; Bahamas 3,542 km |
+| Atlantic | ↳ `bahamas-bermuda` (sub-place of caribbean, §1b) | Bahamas, Turks and Caicos, Bermuda | – | (≈ 12 of the 65) | pink sand; Bahamas 3,542 km |
 | Atlantic | `west-africa` | Gabon, Loango, Bijagós, Senegal, Gulf of Guinea | 35 | 20 | Gabon 885, Guinea-Bissau 350 km (WRI 3,176) |
 | Atlantic | `northeast-brazil` **new parent** | Bahia to Ceará | – | 15 | green turtles, no monkeys on the beach |
 
