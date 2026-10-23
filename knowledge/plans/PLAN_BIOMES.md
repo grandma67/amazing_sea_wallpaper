@@ -71,17 +71,22 @@ CLAUDE.md applies (choice/geometry split, own streams, spec fields with `or()` /
 a render or `diff.mjs` showed, `npm test` + `npx tsc --noEmit`, one commit per phase step). In
 addition:
 
-- **Old dates may change (decided 2026-10-23).** A date doesn't have to keep its old
-  picture: any phase may change any day if that makes the code simpler or the scene more
-  realistic. Don't preserve draw orders, add dummy draws or write byte-identical tests
-  just to keep old dates as they were. This overrides CLAUDE.md's "never add draws to the
-  main `rng`" and SCENE_SPECS.md's "without changing unforced days" for this plan.
-  What still holds:
-  - **Own streams** for each feature (`Random.derive(seed, 'xxx')`), so forcing one
-    thing in a spec doesn't reshuffle the rest of that day, and features stay independent.
+- **Old dates may change on purpose, never by accident (decided 2026-10-23).** A date
+  doesn't have to keep its old picture: a phase may change the days it is about, even
+  all of them (phase 4 changes every beach's slope and bars), if that makes the scene more
+  realistic or the code simpler. Don't add dummy draws or byte-identical tests just to
+  keep old pictures. What stays, and why:
+  - **CLAUDE.md's stream rule stands:** each feature draws on its own stream
+    (`Random.derive(seed, 'xxx')`), never the main `rng`, so adding a feature doesn't
+    cascade into unrelated draws (lens, wind, place) on every day. Cascades make
+    `bench.mjs`/`diff.mjs` comparisons meaningless and silently break fixed dates, test
+    dates and the share tables. **The one exception is 1a:** the place becomes the first
+    main-stream draw and reshuffles every date once, deliberately.
+  - **SCENE_SPECS.md's "make the draw, then force" stands:** forcing one field must leave
+    the rest of the day as the unforced day, or `diff.mjs --off` (phases 2, 7) compares
+    two different scenes.
   - **Pure refactors** (1b) are checked by comparing params and images before and after
-    (`bench.mjs` pixel diff ≤ 1/255; GLSL reordering can change the last bit). That's a
-    check on the refactor, not a promise about old dates.
+    (`bench.mjs` pixel diff ≤ 1/255; GLSL reordering can change the last bit).
   - Each phase's changelog row says what changed on which days ("all beach days change
     slope and bars"), so a different picture for a date can be traced.
 - A forced spec value always wins over gates and tables. Add each new field to SCENE_SPECS.md.
@@ -183,8 +188,14 @@ sky is drawn after, so it can depend on the place (decision 8). Data and weights
   first float goes). Region defaults reproduce today's regional animals (macaques in
   se-asia, vervets in east-africa, …); the new places get their own (decision 9). The
   Galápagos/Hawaii latitude test goes (they're places now). Regenerate ANIMALS.md.
-- **Every date changes:** new biome mix, latitudes, animals. Check one day per biome still
-  looks right (front-lit; `bench.mjs` for time) and say so in the changelog.
+- **Every date changes** (the one deliberate main-stream change, see "Rules"): new biome
+  mix, latitudes, animals. Check one day per biome still looks right (front-lit;
+  `bench.mjs` for time) and say so in the changelog.
+- **Re-find dates that depended on the old draw:** SCENE_SPECS.md "Fixed dates" (real
+  eclipses stay: they're tied to the date, not the draw; others need a new date or a
+  spec), hard-coded dates in `test/` (prefer specs: `scene(spec, date?)`), and dates
+  named in COASTS.md, CLOUDS.md, ANIMALS.md and LESSONS.md. Grep for `20[0-9][0-9]-` and
+  check each still shows what it claims.
 - Tests (`test/places.test.ts`): shares over `allParams()` per biome, region and place
   roughly as weighted; every place's choices non-empty and from the known values;
   latitudes in range and signed by hemisphere; specs `place`, `biome`, `ocean`,
@@ -735,8 +746,8 @@ Good ideas kept on record, with why they're not in the plan now.
   seen. Revisit if phase 10 lagoons exist and a `puerto-rico` place is added.
 - **Re-generating the day for place rules** (a former foundations step): replaced by drawing the place
   before the sky (1a), which lets the sky read the place directly.
-- **Keeping old dates' pictures** (preserved draw orders, dummy draws, byte-identical
-  tests): not needed (decision 5).
+- **Keeping old dates' pictures for their own sake** (dummy draws, byte-identical tests):
+  not needed (decision 5). Own streams and "draw, then force" stay for other reasons.
 - **A real compass sun on every day** (evening sun in the west): allowed, but it ties
   framing, heading and coast orientation together; a separate piece of work. Listed as an
   idea in ARCHITECTURE.md.
@@ -770,9 +781,11 @@ Good ideas kept on record, with why they're not in the plan now.
    (no night).
 4. **Rare showpieces stay rare:** bioluminescence, pink and red sand at their real
    frequencies.
-5. **Old dates may change:** any phase may change any day, past ones included (1a every
-   date; phase 4 every beach day's slope and bars). Own streams stay, for specs; the
-   changelog notes what changed.
+5. **Old dates may change on purpose, never by accident:** a phase may change the days
+   it's about, past ones included (phase 4 every beach day's slope and bars). Features
+   keep their own streams (no cascades) and specs still draw, then force (clean diffs).
+   The one deliberate main-stream change is 1a's place draw, which reshuffles every date
+   once; its fixed and test dates are re-found then.
 6. **Tides lower the land** instead of raising the sea (sea level 0 stays everywhere).
 7. **Calm water is a shelter mask** in the ocean and surf shaders, shared by reefs and
    (later) lagoons, spits and fjords.
