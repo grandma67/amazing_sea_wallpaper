@@ -57,27 +57,19 @@ These shape the order and the shared steps below.
 
 ## Rules for every phase
 
-- Read INITIAL_PLAN.md "How it works" and "Lessons and gotchas" and the closest module first;
-  follow CLAUDE.md (choice/geometry split, own streams, spec fields, tests, renders).
-- **Own streams only.** New draws use `Random.derive(seed, '<feature>')` or
-  `ctx.rng('<feature>')`, never the main `rng` in `generateParams`.
+CLAUDE.md applies (choice/geometry split, own streams, spec fields with `or()` / `forced()` /
+`forcedKind()`, choice tables in `props/choices.ts`, tests, ~3 render rounds, "done" only for what
+a render or `diff.mjs` showed, `npm test` + `npx tsc --noEmit`, one commit per phase step). In
+addition:
+
 - **Only the days that get a feature change.** Every other day stays byte-identical
-  (`test/sceneSpec.test.ts`, `bench.mjs` pixel diff 0). Each phase's changelog row says
-  which existing days change (e.g. "tropical beach days with a reef", "all beach days"
-  for phase 4).
-- **Spec field for every feature** (`sceneSpec.ts`), always drawn, then forced with
-  `or()` / `forced()` / `forcedKind()`. A forced value always wins over gates and tables.
-  Add each field to the CLAUDE.md field list.
-- **Choice tables** are pure `xxxFor(params, rng)` functions exposed in `props/choices.ts`,
-  so `scripts/params.mjs --stats` can count them without rendering.
+  (`test/sceneSpec.test.ts`, `bench.mjs` pixel diff 0). Each phase's changelog row says which
+  existing days change (e.g. "tropical beach days with a reef", "all beach days" for phase 4).
+- A forced spec value always wins over gates and tables. Add each new field to SCENE_SPECS.md.
 - **Budget:** render time within ~10% of today per phase (`bench.mjs`); meshes < 100k tris;
-  instanced near-camera detail ≤ ~1M tris for stones (1d) and ≤ ~0.5M for everything
-  else added here together; detail only near the camera. The terrain shader
-  grows in several phases: measure it each time, and branch on coast kind (uniform) so
-  only one profile runs per day.
-- **"Done"** only for what a render or `diff.mjs` showed. ~3 render rounds per phase.
-- **One commit per phase step**, `npm test` and `npx tsc --noEmit` first. Never commit
-  TODO.md.
+  instanced near-camera detail ≤ ~1M tris for stones (1d) and ≤ ~0.5M for everything else added
+  here together. The terrain shader grows in several phases: measure it each time, and branch on
+  coast kind (uniform) so only one profile runs per day.
 
 ## Phases
 
@@ -109,8 +101,7 @@ Phase 1 adds its ridges to today's beach profile; from phase 2b on, every new pr
 
 - COASTS.md: add "Research: the world's coasts" (coast-type shares, beach states, sand
   colours, tides, reef-fronted beaches, landforms, climates) with sources, and a
-  "Gaps" table pointing to the phases here. Fix "nordic Arctic has conifers" wherever it
-  appears (polar coasts already drop trees; only birch remains in the Arctic).
+  "Gaps" table pointing to the phases here.
 - CLOUDS.md: a "Coastal weather" note: marine layer, sea breeze, harmattan, offshore winds
   (marked "planned, PLAN_BIOMES phases 3/13").
 - ANIMALS.md: a "Planned" list under the rules (sea otter, walrus, polar bear, waders).
@@ -239,8 +230,8 @@ size: 3 cm pebbles to ~5 m (16 px at 5 m), 10 cm cobbles to ~15 m (18 px), 20 cm
   shingle). Front-lit (`sunAzimuthDeg: 160`) first, then backlit.
 - `diff.mjs` with `--off '{"beachMaterial":"sand"}'` to confirm each shows.
 - `bench.mjs --ref HEAD~N`: sand days pixel-identical, stony days within ~10%.
-- ~3 render rounds. Then: changelog.md, INITIAL_PLAN.md ("How it works": beach material; lessons;
-  references from COASTS.md), COASTS.md shares and mark its stony-beach proposal done,
+- ~3 render rounds. Then: changelog.md, ARCHITECTURE.md (beach material), LESSONS.md,
+  REFERENCES.md (from COASTS.md), COASTS.md shares and mark its stony-beach proposal done,
   ANIMALS.md if animal rules changed.
 - Arctic winter stones under snow and an ice foot come in phase 13.
 
@@ -276,7 +267,7 @@ Named places for every coast, so tables can say "Fundy" or "West Africa" instead
   with a bench diff on a Norway and a Galápagos day.
 - Tests: every biome × ocean has regions, shares roughly as weighted, latitudes in range,
   `animals.mjs` table unchanged for days whose region didn't change.
-- Docs: INITIAL_PLAN.md "How it works" (regions), COASTS.md (region table), ANIMALS.md (regions now
+- Docs: ARCHITECTURE.md (regions), COASTS.md (region table), ANIMALS.md (regions now
   shared).
 
 #### 2b. Coast-kind dispatch (no rendering change)
@@ -320,7 +311,7 @@ scene spec instead of a patch:
   get their real seasons. List in the changelog.
 - Tests: a July day in SW Australia is winter (no summer flowers), a January one summer;
   northern days unchanged.
-- Docs: INITIAL_PLAN.md "How it works" (seasons), lessons.
+- Docs: ARCHITECTURE.md (seasons), LESSONS.md.
 
 ### 3. Cheap table changes (no new geometry)
 
@@ -349,7 +340,7 @@ get them.
 - Renders: PEI red beach (`region: "atlantic-canada"`, `sand: "red"`, golden hour),
   Bermuda pink (daylight, front-lit), Svalbard tundra (along-beach), California June
   morning (`"date": "2025-06-14"`, golden hour), Loango harmattan (`2025-01-10`).
-- Docs: COASTS.md sand table, CLOUDS.md marine layer row, INITIAL_PLAN.md "How it works" (sand
+- Docs: COASTS.md sand table, CLOUDS.md marine layer row, ARCHITECTURE.md (sand
   colour gate, tundra), changelog (days that change: marine-layer mornings, harmattan
   days, pink/red days, high-Arctic plants).
 
@@ -385,7 +376,7 @@ random.
   states, terrain TS/GLSL mirror.
 - Renders: along-beach on a cusped reflective beach (Mediterranean) and a dissipative
   multi-bar beach (namibia, big swell); `bench.mjs` (expect pixel change, ≤ 10% time).
-- Docs: INITIAL_PLAN.md "How it works" (beach state), lessons; changelog: "all beach days change
+- Docs: ARCHITECTURE.md (beach state), LESSONS.md; changelog: "all beach days change
   slope and bars".
 
 ### 5. Tides
@@ -412,7 +403,7 @@ random.
   move together, micro-tidal days byte-identical within 1 cm (or exactly, if level is 0).
 - Renders: Brittany low and high tide (along-beach), Mediterranean (no visible change);
   `diff.mjs` between low and high.
-- Docs: INITIAL_PLAN.md "How it works" (tides, land offset), lessons, CLAUDE.md spec fields,
+- Docs: ARCHITECTURE.md (tides, land offset), LESSONS.md, SCENE_SPECS.md fields,
   changelog (days that change: all meso- and macro-tidal beach days).
 
 ### 6. Calm water (shelter mask)
@@ -432,7 +423,7 @@ mangroves.
 - Tests: mask 0 everywhere when unused (byte-identical days), lagoon surf height ≤ 0.3 ×
   offshore, CPU/GPU agree.
 - Render check with a forced test lagoon at 640×360 before phase 7 uses it.
-- Docs: INITIAL_PLAN.md "How it works" (shelter), lessons.
+- Docs: ARCHITECTURE.md (shelter), LESSONS.md.
 
 ### 7. Reef-fronted tropical beaches
 
@@ -456,7 +447,7 @@ mangroves.
   the lagoon.
 - Renders: Maldives-like (shoreline, midday), Tahiti (overlook), Hawaii (along-beach), each
   front-lit then backlit; `diff.mjs --off '{"reef":null}'`.
-- Docs: COASTS.md (reef share), INITIAL_PLAN.md "How it works" (reef profile), changelog (days that
+- Docs: COASTS.md (reef share), ARCHITECTURE.md (reef profile), changelog (days that
   change: tropical beach days with a reef).
 
 ### 8. Rocky shore
@@ -501,7 +492,7 @@ Uses the coast-kind switch from 2b.
 - Tests: share and region table, terrain has no sand band, camera stands on rock.
 - Renders: Peggy's Cove (atlantic-canada, granite, golden hour), Big Sur (california,
   overlook), Iceland basalt (storm swell).
-- Docs: COASTS.md coast table, INITIAL_PLAN.md, changelog (days that change: beach days that
+- Docs: COASTS.md coast table, ARCHITECTURE.md, changelog (days that change: beach days that
   become rocky shores), CLAUDE.md views list.
 
 ### 9. Tidal flats and salt marsh
@@ -518,7 +509,7 @@ Uses the coast-kind switch from 2b.
 - Salt-marsh band at the back: low green-brown grass tufts, instanced like vegetation.
 - Spec: `coast: "tidal-flat"`.
 - Renders: Wadden Sea at low tide (golden hour), Fundy red mud.
-- Docs: COASTS.md, INITIAL_PLAN.md, changelog.
+- Docs: COASTS.md, ARCHITECTURE.md, changelog.
 
 ### 10. Landforms: barrier lagoon, spit, fjord
 
@@ -543,7 +534,7 @@ laid over or beside the cross-section terrain, with lagoons calmed by the shelte
   the lagoon outline.
 - Renders: Outer Banks lagoon (subtropical, overlook), Farewell Spit (temperate),
   Norwegian fjord mouth.
-- Docs: COASTS.md landforms, INITIAL_PLAN.md, changelog.
+- Docs: COASTS.md landforms, ARCHITECTURE.md, changelog.
 
 ### 11. Climates: temperate, subtropical, polar
 
@@ -579,7 +570,7 @@ Sub-steps, one commit each:
   regenerate ANIMALS.md.
 - Renders: one per new climate in each composition once.
 - Docs: COASTS.md biome table (biome × climate shares), CLOUDS.md climate leanings,
-  ANIMALS.md, INITIAL_PLAN.md, CLAUDE.md spec fields, changelog (days that change: split days).
+  ANIMALS.md, ARCHITECTURE.md, SCENE_SPECS.md fields, changelog (days that change: split days).
 
 ### 12. The real sun: polar night and midnight sun
 
@@ -603,7 +594,7 @@ Sub-steps, one commit each:
 - Tests: Svalbard (78°) in December only night/blue hour; in June never night; the
   equator unchanged.
 - Renders: Svalbard noon in December (blue-hour glow), midnight sun in June.
-- Docs: INITIAL_PLAN.md "How it works" (sun limits), CLAUDE.md, changelog (days that change:
+- Docs: ARCHITECTURE.md (sun limits), SCENE_SPECS.md, changelog (days that change:
   Arctic and Southern Ocean days in polar night or midnight sun).
 
 ### 13. Weather extras
@@ -622,7 +613,7 @@ months, with moon illumination < 30% and no storm; it shows on ~15% of eligible 
 squid (Mar–Jun) are not plankton; left out.
 
 - Spec: `seaBreeze`, `offshoreWind`, `snow`, `bioluminescence`.
-- Specs, tests, renders and docs as above (CLOUDS.md for sea breeze, INITIAL_PLAN.md lessons,
+- Specs, tests, renders and docs as above (CLOUDS.md for sea breeze, LESSONS.md,
   changelog with the days that change).
 
 ### 14. Animals
@@ -632,7 +623,7 @@ squid (Mar–Jun) are not plankton; left out.
 | Sea otters (rafts in kelp) | california, alaska, bc | float on their backs in a kelp-bed canopy: also add floating kelp mats (`debris.ts` wrack builder at sea level) on those coasts |
 | Walrus haul-out | svalbard, greenland, arctic-canada, alaska (north) | beach or ice floe, 5–40 animals; `pinnipeds.ts` |
 | Polar bear | arctic regions, near ice | rare (~2% of eligible days), on the beach or a floe |
-| Waders (oystercatchers, knots, sanderlings) | tidal flats and low-tide beaches, temperate/nordic; sanderlings on most sandy swashes | flocks running on the swash; ≥ 0.25 m above the swash line (CLAUDE.md lesson) |
+| Waders (oystercatchers, knots, sanderlings) | tidal flats and low-tide beaches, temperate/nordic; sanderlings on most sandy swashes | flocks running on the swash; ≥ 0.25 m above the swash line (LESSONS.md) |
 | Herons (grey, reef) | rocky shores, reef lagoons | standing in shallow water |
 | Tidepool life | rock-shore at low tide | urchins, anemones, mussels as vertex detail within ~10 m (real size: specks beyond) |
 | Blacktip sharks | reef lagoons, by day | dorsal fins in the shallows near the camera |
@@ -646,12 +637,12 @@ squid (Mar–Jun) are not plankton; left out.
 | Doc | What |
 |---|---|
 | changelog.md | a version row per phase, naming which existing days change |
-| INITIAL_PLAN.md | "How it works" (new modules and rules), "Lessons and gotchas", "References" (sources below), "Decisions" (climate from the region instead of new biomes; lower the land for tides; shelter mask; region rules re-generate the day; hemisphere-aware seasons) |
+| ARCHITECTURE.md, LESSONS.md, REFERENCES.md | how it works (new modules and rules), pitfalls, sources below, "Decisions" (climate from the region instead of new biomes; lower the land for tides; shelter mask; region rules re-generate the day; hemisphere-aware seasons) |
 | REGIONS.md | replace ≈ values with checked ones as each phase uses them; region weights re-measured |
 | COASTS.md | coast-type, material, region, tide, reef, landform, biome and climate shares, re-measured with `params.mjs --stats … 2024-01-01..2026-12-31`; mark the "Proposal" sections done |
 | CLOUDS.md | marine layer, sea breeze, climate leanings |
 | ANIMALS.md | new animals' rules, shared regions, and the regenerated table |
-| CLAUDE.md | new spec fields; fixed dates for new looks (PEI red beach, Wadden low tide, Maldives reef, California June gloom, Svalbard polar night and midnight sun); new views (`rock-shore`, `tidal-flat`) |
+| SCENE_SPECS.md, CLAUDE.md | new spec fields and fixed dates for new looks (SCENE_SPECS.md) (PEI red beach, Wadden low tide, Maldives reef, California June gloom, Svalbard polar night and midnight sun); new views (`rock-shore`, `tidal-flat`) in CLAUDE.md "Before code" |
 | scenes/ | `scenes/coasts.json` with one spec per new coast, climate and weather, for future regression renders |
 | README.md | feature list, if it lists coasts or biomes |
 

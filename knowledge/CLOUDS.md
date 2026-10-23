@@ -1,8 +1,8 @@
 # Clouds
 
 Which clouds the wallpaper draws, on which coasts and in which weather. Status 2026-10-22
-(milestones C1–C7, INITIAL_PLAN.md 0.22–0.27). Code paths are in INITIAL_PLAN.md "How it works", pitfalls in
-"Lessons and gotchas", place and season sources in "References".
+(changelog 0.22–0.27). Code paths: ARCHITECTURE.md; pitfalls: LESSONS.md (takram, storms);
+sources: REFERENCES.md.
 
 ## How a sky is chosen
 
@@ -160,7 +160,7 @@ lenses.
 
 | Cloud | Where and when | Weather | Spec |
 |---|---|---|---|
-| **Waterspout** | Florida Keys/Caribbean May–Oct (peak Aug); Mediterranean Aug–Nov (peak Sep); other tropics in the wet season; ~0.5% of days | daytime, building cumulus, light wind (fair-weather spout); or under storms (tornadic). Forces towering cumulus | `waterspout` |
+| **Waterspout** | Florida Keys/Caribbean May–Oct (peak Aug); Mediterranean Aug–Nov (peak Sep); other tropics in the wet season; 1 day in 3 years (too rare, plans/WATERSPOUT_FOG.md) | daytime, building cumulus, light wind (fair-weather spout); or under storms (tornadic). Forces towering cumulus | `waterspout` |
 | **Morning Glory** (volutus) | tropical Indo-Pacific, dawn, Sep–Nov | – | `rollCloud` |
 | **Lenticulars** | over mountains and volcanoes | wind ≥ 10 m/s | `lenticular` |
 | **Pyrocumulus** (flammagenitus) | white cap on half the volcano plumes | – | – |
@@ -187,17 +187,6 @@ shapes, so single clouds (spouts, rolls, lenticulars) are meshes.
 Not planned: murus, cauda, flumen (supercells, over land); silvagenitus (over land; maybe
 forested coasts later); cataractagenitus (no waterfalls); ship tracks (seen only from
 satellites); nitric-acid PSCs (invisible).
-
-## Adding a cloud feature
-
-- Own stream `Random.derive(seed, '<feature>')`; spec field via `or(drawn, force)`; unforced
-  specs stay byte-identical (`test/sceneSpec.test.ts`).
-- Sky-shader hooks follow `eclipse.ts`/`contrails.ts`/`noctilucent.ts`: main sky only, and the
-  patch throws if it stops matching.
-- Check its height against the day's layers first (`params.mjs --fields weather.formations`):
-  inside the Cb deck (base 600 m) or scud (300–550 m) it is hidden.
-- Render front-lit and verify with `diff.mjs`. Cloudy 4K takes ~6 s; more than 10% added needs
-  a reason.
 
 ## Reference: WMO atlas (ICA 2017, current)
 

@@ -24,7 +24,7 @@ fixed by the code): tropical Pacific se-asia 60 / central-america 40; tropical I
 se-asia 65 / east-africa 35; tropical Atlantic caribbean 65 / west-africa 35; volcanic
 Pacific under 25° galapagos 50 / hawaii 50; mediterranean Atlantic → mediterranean;
 desert Indian → arabia. Rows marked **new parent** below are missing from that list and
-would change which animals appear on some days (see "Open questions").
+change which animals appear on some days (accepted: PLAN_BIOMES decision 9).
 
 ### Nordic
 
@@ -173,9 +173,6 @@ judgment (≈).
 | `alaska` | `se-alaska` | 50 | 54–59°, tide ≈ 4–5 m |
 | `alaska` | `gulf-aleutians` | 35 | 52–60° |
 
-The `bahamas-bermuda` row in the tropical table above is this sub-place (its weight there
-is the same share of the Atlantic tropical days: 18% of caribbean's 65 ≈ 12).
-
 ## 2. Sand grain and fall velocity (phase 4)
 
 ### Size classes (Wentworth)
@@ -317,13 +314,12 @@ Lagoon-only places (Puerto Rico bays, Indian River, Luminous Lagoon) glow in cal
 stirred by boats or fish, not in breaking waves: they need a calm-water scene (PLAN_BIOMES
 phase 6 lagoon), not the surf effect.
 
-## Open questions
+## To check
 
-Decided 2026-10-23 (PLAN_BIOMES decisions 9 and 10): new parent regions are used even
-though they change some warm days' animals, and each region sets its own latitude (basin
-ranges in `oceans.ts` are the fallback).
+Each region sets its own latitude; basin ranges in `oceans.ts` are the fallback (PLAN_BIOMES
+decision 10).
 
-1. ≈ values (tides for Patagonia, Red Sea, Norway, Iceland; some grain sizes; slopes)
+- ≈ values (tides for Patagonia, Red Sea, Norway, Iceland; some grain sizes; slopes)
    need one lookup each in national tables or papers before tests depend on them.
 
 ## Sources

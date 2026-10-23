@@ -99,6 +99,8 @@ doesn't branch everywhere:
 
 ### 3. Render cache
 
+The web already keeps the last 10 renders in a service worker (`public/sw.js`,
+`renderCache.ts`); WebView storage can be evicted, so the app keeps its own:
 - After each render, store the JPEG in app storage (`@capacitor/filesystem`), keyed
   `date + width×height + renderer version` (version = app version; bump on any visual
   change so old images are re-rendered, mirroring "same day, same scene").
@@ -145,17 +147,17 @@ The daily job already renders `latest.jpg` (1920×1080) and `latest-portrait.jpg
 
 ### 6. Phone render budget (only if phase 0 says it's needed)
 
-The project rule is that cheaper rendering must not change the image ("Rejected for speed"
-in INITIAL_PLAN.md). Options in that order:
+The project rule is that cheaper rendering must not change the image (ARCHITECTURE.md
+"Decisions"). Options in that order:
 1. Render on the device at the screen's real size (already: ≤ 1920 long side on small
    screens; ~1290×2796 on big phones) — check it's not the 4K path.
 2. Keep frames at 64 but split the render across animation frames so the OS doesn't
    flag the WebView as hung, and show progress.
-3. Cache the atmosphere LUTs on device after the first run (INITIAL_PLAN.md lists "~48 MB of float
-   3D textures to read back and store" as not done on the web — on a phone the trade-off
+3. Cache the atmosphere LUTs on device after the first run (rejected on the web: ~48 MB of
+   float 3D textures to read back and store — on a phone the trade-off
    is better: storage is cheap, startup GPU time and heat are not). Must give an identical
    image (`bench.mjs`-style pixel diff).
-4. Only then a documented "low-power" mode (INITIAL_PLAN.md Ideas) with fewer frames, labelled as
+4. Only then a documented "low-power" mode (ARCHITECTURE.md "Ideas") with fewer frames, labelled as
    such, never used for the wallpaper the app sets.
 
 ### 7. Store release

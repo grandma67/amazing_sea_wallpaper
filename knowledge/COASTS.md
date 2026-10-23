@@ -1,9 +1,8 @@
 # Coasts
 
-Which coasts the wallpaper draws and how often, and a proposal for stony beaches (pebble,
-shingle, cobble) like Canada's. Status 2026-10-23. Shares are over 2024–2026 (1096 days,
-`node scripts/params.mjs --stats … 2024-01-01..2026-12-31`). Code paths are in INITIAL_PLAN.md
-"How it works".
+Which coasts the wallpaper draws and how often, and research on stony beaches (pebble,
+shingle, cobble). Status 2026-10-23. Shares are over 2024–2026 (1096 days,
+`node scripts/params.mjs --stats … 2024-01-01..2026-12-31`). Code paths are in ARCHITECTURE.md.
 
 ## How a coast is chosen (today)
 
@@ -87,59 +86,9 @@ Sources: [Canadian Encyclopedia: Coast](https://www.thecanadianencyclopedia.ca/e
 [UK Coastal Monitoring: gravel coasts](https://coastalmonitoring.org/ccoresources/gravel_coasts/blog/?story_id=6),
 [Woodruff et al. 2021, mixed beaches of southern New England](https://websites.umass.edu/woodruff/files/2021/09/45_Woodruff_etal_2021_MarineGeology.pdf).
 
-## Proposal: beach material
+## Planned
 
-Canada fits the existing `nordic` biome (Atlantic, Pacific and Arctic oceans, conifers,
-birch, grey water). What's missing is not a biome but a **beach material** axis, which also
-fits the Mediterranean and volcanic coasts.
-
-| Material | What it is |
-|---|---|
-| `sand` | today's beach |
-| `mixed` | sand beach with a gravel/cobble band at the top and on the storm ridge |
-| `shingle` | pebbles 1–6 cm, whole beach |
-| `cobble` | cobbles and small boulders 6–30 cm, often with sand or gravel at the waterline |
-
-### Proposed chances (beach days)
-
-| Biome | sand | mixed | shingle | cobble | Stone colours |
-|---|---|---|---|---|---|
-| nordic | 35% | 25% | 20% | 20% | grey granite, greywacke, some red sandstone |
-| — nordic on Arctic | 25% | 25% | 20% | 30% | grey, frost-shattered, more angular |
-| mediterranean | 55% | 15% | 25% | 5% | white–cream limestone, grey |
-| volcanic | 50% | 15% | 15% | 20% | black basalt (black sand stays) |
-| desert | 75% | 15% | 5% | 5% | tan/red gravel (Atacama, Red Sea) |
-| tropical | 85% | 10% | – | 5% | coral rubble (pale), dark basalt |
-
-Overall: ~23% of beach days stony (shingle or cobble, ~15% of all days), ~15% mixed,
-~62% sand. Today it's 100% sand.
-
-Coast shape should follow the material: slope `beachSlope` 0.12–0.25 for shingle/cobble
-(today 0.035–0.11), narrower beach, one or two storm ridges, no sandbar and no dunes (grass
-or rock behind), surging/plunging surf close in.
-
-### How to build it (cheap)
-
-- **Choice:** `beachMaterialFor(biome, ocean, rng)` in its own stream
-  (`Random.derive(seed, 'beach-material')`), spec field `beachMaterial`, test table. Doesn't
-  change any existing day (sand days stay byte-identical).
-- **Near (≤ ~15 m):** instanced low-poly pebbles/cobbles (a few variants, like `rocks.ts`
-  at 200–800 tris), placed in view only, for real shadows and parallax.
-- **Mid (15–80 m):** terrain shader: Voronoi cells for stones, per-cell albedo and normal
-  bulge, contact shadows in the gaps; fades with pixel footprint like the wind ripples do.
-- **Far:** colour and the storm-ridge relief only.
-- **Wet:** stones wet below run-up are dark and glossy; swash sinks in (shorter wet band).
-- **Knock-on:** crabs and shells skip shingle (crabs on cobbles are fine in nordic), driftwood
-  piles on the storm ridge, no dune grass on the beach itself.
-
-## Proposal: more coasts and biomes
-
-| Addition | Places | Suggested share | Notes |
-|---|---|---|---|
-| Coast type `rock-shore` (wave-cut platform, tidepools, no beach) | Peggy's Cove, Maine, Brittany, Cornwall, Big Sur | 10% of days (from `beach`, 65% → 55%) | rocks.ts boulders + flat ledge terrain; spray on ledges |
-| Coast type `tidal-flat` (wide mud/sand flat at low tide) | Bay of Fundy, Wadden Sea, Morecambe Bay | 3% (nordic/mediterranean Atlantic only) | needs the tide state; low-cost terrain variant |
-| Biome `temperate` (mixed forest, grey–golden sand, much shingle) | Atlantic Canada, New England, Britain, Brittany, Pacific NW, NZ South Island, Tasmania | weight 2 (~15%) | splits off the mild half of `nordic`; adding a biome reshuffles the main-stream biome pick for every date |
-
-Recommended order: beach material first (biggest realism gain, Canada and the Mediterranean
-both benefit, no existing day changes), then `rock-shore`; the `temperate` biome only if
-nordic still reads too Arctic, since it changes every day's biome.
+Beach materials (sand, mixed, shingle, cobble), rocky shores, tidal flats, reefs, tides and
+climates are planned in [plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md) (phase 1: stony beaches;
+decisions there supersede the earlier proposals, e.g. rock-shore ~25% of days and climates from
+the region instead of a new `temperate` biome).

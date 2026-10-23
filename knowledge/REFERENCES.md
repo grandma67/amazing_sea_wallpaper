@@ -1,0 +1,70 @@
+# References
+
+Sources behind built features. Research for planned work lives with its plan: coasts in
+[COASTS.md](COASTS.md), regions/grain/tides/bioluminescence in [REGIONS.md](REGIONS.md), clouds
+(WMO atlas) in [CLOUDS.md](CLOUDS.md), biomes in [plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md).
+
+## Rendering
+
+- takram three-geospatial — https://github.com/takram-design-engineering/three-geospatial
+- jbouny/fft-ocean — https://github.com/jbouny/fft-ocean
+- Ocean Rendering with FFT for Real-Time Applications — https://dspace.zcu.cz/items/a04534b1-2a3b-4457-96ca-0bc326a2b72b/full
+- Cloud noise: handmade.network "Fast High-Quality Cloudscape through Noise and Reprojection"
+
+## Sea
+
+- Breaking waves / shore foam: Wikipedia "Breaking wave"; 80.lv "Real-time shoreline simulation"
+- Breaker index: McCowan (1894) H/d = 0.78; Weggel (1972) slope term; Goda (2010) "Reanalysis of
+  regular and random breaking wave statistics"; J. Coastal Res. "Breaking Waves on a Macrotidal
+  Barred Beach: A Test of McCowan's Criteria"
+- Rain on the sea: Melsheimer et al.; Nystuen 1990
+- Ship wakes: Kelvin (1887) wedge 19.47°; Rabaud & Moisy, PRL 2013 "Ship wakes: Kelvin or Mach
+  angle?" (angle ~ 1/Fr past Fr ≈ 0.5); Darmon, Benzaquen & Raphaël 2014
+- Ship motions: heave/pitch RAOs small below λ/L ≈ 1, near 1 above ~1.75 (IJAME monohull
+  sea-keeping studies); whitecap cover W = 3.84e-6 U^3.41 (Monahan & O'Muircheartaigh 1980)
+- Ship lights: COLREGs, Annex I intensities
+- Arctic boats: Statistics Greenland fishing fleet (3,000–5,000 dinghies); Royal Greenland
+  vessels (65–83 m prawn trawlers)
+
+## Sky and atmosphere
+
+- Visibility: Koschmieder (V = 3.912/σ); WMO scale (very good 20–50 km, excellent > 50 km); sea
+  salt rises with wind (Korean coast extinction vs wind, R² 0.57); Mace Head sea salt peaks in
+  winter maritime polar air; Saharan dust over the Mediterranean in spring and autumn (NASA Earth
+  Observatory)
+- Moon: Allen, *Astrophysical Quantities* (lunar phase magnitude); astronomy-engine
+  `SearchLunarEclipse` / `SearchGlobalSolarEclipse`
+- Waterspouts: NWS Key West (1,400+ events 2006–2024, peak Aug); Balearic climatology 1989–2020
+  (65% in autumn, Sep peak); Sioutas, Aegean 1957–2012 (Sep–Oct); Croatian Adriatic 2001–2011
+  (DHMZ)
+- Noctilucent clouds: NASA, NERC MST radar facility, WMO Cloud Atlas (50–65°, late May–Aug, peak
+  round the solstice)
+- Morning Glory: Smith, LMU "The Morning Glory and related phenomena" (Burketown, late Sep–early
+  Nov, from converging Cape York sea breezes)
+- Contrails: Irvine et al., EGU 2016 (most North Atlantic contrails last < 6 h, ~5% ≥ 24 h);
+  Irvine, Hoskins & Shine, GRL 2012 (ice supersaturation by weather pattern)
+
+## Shore and animals
+
+- Driftwood: Hakai Magazine "Iceland's Sinking Driftwood Supply"; Eggertsson, Jökull 1993
+  (Siberian origin, larch with roots, Transpolar Drift); Wikipedia "Beach wrack"; Deidun et al.
+  (Posidonia banquettes, Malta)
+- Shore life: Wikipedia "Ghost crab" / "Ocypode"; Strachan et al. 1999, Scientia Marina (Ocypode
+  cursor, Cyprus, nocturnal); Cabo Verde burrow zonation (Afr. J. Mar. Sci. 2016); Rhins of
+  Galloway beach flower guide and Wildlife Trusts (sea holly Jul–Sep, sea bindweed Jun–Aug, sea
+  sandwort, sea rocket)
+- Mangroves: FAO "Mangroves of Asia" (Red Sea and Gulf: patchy, pure Avicennia at wadi mouths and
+  sheltered lagoons); Frontiers in Marine Science 2025 review (Middle East Avicennia 2–4 m;
+  freshwater, salinity, heat and shelter control it)
+- Sea turtles: seaturtlesofindia.org (Andaman greens and hawksbills Apr–Sep, olive ridleys
+  Nov–Mar); Volunteer World "Turtle seasons around the world" (Costa Rica, Galápagos, Greece);
+  NC Wildlife (loggerheads May–Aug, ~60 days' incubation)
+- Crocodiles and hippos: Loango NP (Gabon) "surfing hippos" (lagoons by day, beach and surf at
+  dusk), leatherbacks and olive ridleys on Gabon's beaches; saltwater, American, Nile and West
+  African crocodile ranges (bask at river mouths, gaping to cool)
+- Animals in storms: The Condor 32(4) "Behavior of sea gulls during a hail storm" (resting on the
+  water, heads tucked); Bay Nature "Where do birds go in the rain"; Solent Seal Code of Conduct
+  (harbour seals go into the water in wind and rain)
+- Seabird colonies on the mainland: Bempton Cliffs and Muriwai (gannets), Látrabjarg (puffins,
+  guillemots), South Georgia (king penguins); haul-outs: Piedras Blancas (elephant seals), Cape
+  Cross (Cape fur seals)
