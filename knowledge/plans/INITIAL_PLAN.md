@@ -4,7 +4,7 @@ A daily, date-seeded, photorealistic 4K sea-and-beach wallpaper, rendered **in t
 with three.js** and hosted on GitHub Pages. The date is the seed: same day, same scene,
 everywhere; any date can be re-rendered on demand, so the archive is free.
 
-Version history: [changelog.md](changelog.md).
+Version history: [changelog.md](../changelog.md).
 
 ## Decisions
 

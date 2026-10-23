@@ -2,7 +2,7 @@
 
 Which coasts the wallpaper draws and how often, and a proposal for stony beaches (pebble,
 shingle, cobble) like Canada's. Status 2026-10-23. Shares are over 2024–2026 (1096 days,
-`node scripts/params.mjs --stats … 2024-01-01..2026-12-31`). Code paths are in PLAN.md
+`node scripts/params.mjs --stats … 2024-01-01..2026-12-31`). Code paths are in INITIAL_PLAN.md
 "How it works".
 
 ## How a coast is chosen (today)

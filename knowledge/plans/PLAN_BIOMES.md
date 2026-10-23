@@ -57,7 +57,7 @@ These shape the order and the shared steps below.
 
 ## Rules for every phase
 
-- Read PLAN.md "How it works" and "Lessons and gotchas" and the closest module first;
+- Read INITIAL_PLAN.md "How it works" and "Lessons and gotchas" and the closest module first;
   follow CLAUDE.md (choice/geometry split, own streams, spec fields, tests, renders).
 - **Own streams only.** New draws use `Random.derive(seed, '<feature>')` or
   `ctx.rng('<feature>')`, never the main `rng` in `generateParams`.
@@ -239,7 +239,7 @@ size: 3 cm pebbles to ~5 m (16 px at 5 m), 10 cm cobbles to ~15 m (18 px), 20 cm
   shingle). Front-lit (`sunAzimuthDeg: 160`) first, then backlit.
 - `diff.mjs` with `--off '{"beachMaterial":"sand"}'` to confirm each shows.
 - `bench.mjs --ref HEAD~N`: sand days pixel-identical, stony days within ~10%.
-- ~3 render rounds. Then: changelog.md, PLAN.md ("How it works": beach material; lessons;
+- ~3 render rounds. Then: changelog.md, INITIAL_PLAN.md ("How it works": beach material; lessons;
   references from COASTS.md), COASTS.md shares and mark its stony-beach proposal done,
   ANIMALS.md if animal rules changed.
 - Arctic winter stones under snow and an ice foot come in phase 13.
@@ -276,7 +276,7 @@ Named places for every coast, so tables can say "Fundy" or "West Africa" instead
   with a bench diff on a Norway and a Galápagos day.
 - Tests: every biome × ocean has regions, shares roughly as weighted, latitudes in range,
   `animals.mjs` table unchanged for days whose region didn't change.
-- Docs: PLAN.md "How it works" (regions), COASTS.md (region table), ANIMALS.md (regions now
+- Docs: INITIAL_PLAN.md "How it works" (regions), COASTS.md (region table), ANIMALS.md (regions now
   shared).
 
 #### 2b. Coast-kind dispatch (no rendering change)
@@ -320,7 +320,7 @@ scene spec instead of a patch:
   get their real seasons. List in the changelog.
 - Tests: a July day in SW Australia is winter (no summer flowers), a January one summer;
   northern days unchanged.
-- Docs: PLAN.md "How it works" (seasons), lessons.
+- Docs: INITIAL_PLAN.md "How it works" (seasons), lessons.
 
 ### 3. Cheap table changes (no new geometry)
 
@@ -349,7 +349,7 @@ get them.
 - Renders: PEI red beach (`region: "atlantic-canada"`, `sand: "red"`, golden hour),
   Bermuda pink (daylight, front-lit), Svalbard tundra (along-beach), California June
   morning (`"date": "2025-06-14"`, golden hour), Loango harmattan (`2025-01-10`).
-- Docs: COASTS.md sand table, CLOUDS.md marine layer row, PLAN.md "How it works" (sand
+- Docs: COASTS.md sand table, CLOUDS.md marine layer row, INITIAL_PLAN.md "How it works" (sand
   colour gate, tundra), changelog (days that change: marine-layer mornings, harmattan
   days, pink/red days, high-Arctic plants).
 
@@ -385,7 +385,7 @@ random.
   states, terrain TS/GLSL mirror.
 - Renders: along-beach on a cusped reflective beach (Mediterranean) and a dissipative
   multi-bar beach (namibia, big swell); `bench.mjs` (expect pixel change, ≤ 10% time).
-- Docs: PLAN.md "How it works" (beach state), lessons; changelog: "all beach days change
+- Docs: INITIAL_PLAN.md "How it works" (beach state), lessons; changelog: "all beach days change
   slope and bars".
 
 ### 5. Tides
@@ -412,7 +412,7 @@ random.
   move together, micro-tidal days byte-identical within 1 cm (or exactly, if level is 0).
 - Renders: Brittany low and high tide (along-beach), Mediterranean (no visible change);
   `diff.mjs` between low and high.
-- Docs: PLAN.md "How it works" (tides, land offset), lessons, CLAUDE.md spec fields,
+- Docs: INITIAL_PLAN.md "How it works" (tides, land offset), lessons, CLAUDE.md spec fields,
   changelog (days that change: all meso- and macro-tidal beach days).
 
 ### 6. Calm water (shelter mask)
@@ -432,7 +432,7 @@ mangroves.
 - Tests: mask 0 everywhere when unused (byte-identical days), lagoon surf height ≤ 0.3 ×
   offshore, CPU/GPU agree.
 - Render check with a forced test lagoon at 640×360 before phase 7 uses it.
-- Docs: PLAN.md "How it works" (shelter), lessons.
+- Docs: INITIAL_PLAN.md "How it works" (shelter), lessons.
 
 ### 7. Reef-fronted tropical beaches
 
@@ -456,7 +456,7 @@ mangroves.
   the lagoon.
 - Renders: Maldives-like (shoreline, midday), Tahiti (overlook), Hawaii (along-beach), each
   front-lit then backlit; `diff.mjs --off '{"reef":null}'`.
-- Docs: COASTS.md (reef share), PLAN.md "How it works" (reef profile), changelog (days that
+- Docs: COASTS.md (reef share), INITIAL_PLAN.md "How it works" (reef profile), changelog (days that
   change: tropical beach days with a reef).
 
 ### 8. Rocky shore
@@ -501,7 +501,7 @@ Uses the coast-kind switch from 2b.
 - Tests: share and region table, terrain has no sand band, camera stands on rock.
 - Renders: Peggy's Cove (atlantic-canada, granite, golden hour), Big Sur (california,
   overlook), Iceland basalt (storm swell).
-- Docs: COASTS.md coast table, PLAN.md, changelog (days that change: beach days that
+- Docs: COASTS.md coast table, INITIAL_PLAN.md, changelog (days that change: beach days that
   become rocky shores), CLAUDE.md views list.
 
 ### 9. Tidal flats and salt marsh
@@ -518,7 +518,7 @@ Uses the coast-kind switch from 2b.
 - Salt-marsh band at the back: low green-brown grass tufts, instanced like vegetation.
 - Spec: `coast: "tidal-flat"`.
 - Renders: Wadden Sea at low tide (golden hour), Fundy red mud.
-- Docs: COASTS.md, PLAN.md, changelog.
+- Docs: COASTS.md, INITIAL_PLAN.md, changelog.
 
 ### 10. Landforms: barrier lagoon, spit, fjord
 
@@ -543,7 +543,7 @@ laid over or beside the cross-section terrain, with lagoons calmed by the shelte
   the lagoon outline.
 - Renders: Outer Banks lagoon (subtropical, overlook), Farewell Spit (temperate),
   Norwegian fjord mouth.
-- Docs: COASTS.md landforms, PLAN.md, changelog.
+- Docs: COASTS.md landforms, INITIAL_PLAN.md, changelog.
 
 ### 11. Climates: temperate, subtropical, polar
 
@@ -579,7 +579,7 @@ Sub-steps, one commit each:
   regenerate ANIMALS.md.
 - Renders: one per new climate in each composition once.
 - Docs: COASTS.md biome table (biome × climate shares), CLOUDS.md climate leanings,
-  ANIMALS.md, PLAN.md, CLAUDE.md spec fields, changelog (days that change: split days).
+  ANIMALS.md, INITIAL_PLAN.md, CLAUDE.md spec fields, changelog (days that change: split days).
 
 ### 12. The real sun: polar night and midnight sun
 
@@ -603,7 +603,7 @@ Sub-steps, one commit each:
 - Tests: Svalbard (78°) in December only night/blue hour; in June never night; the
   equator unchanged.
 - Renders: Svalbard noon in December (blue-hour glow), midnight sun in June.
-- Docs: PLAN.md "How it works" (sun limits), CLAUDE.md, changelog (days that change:
+- Docs: INITIAL_PLAN.md "How it works" (sun limits), CLAUDE.md, changelog (days that change:
   Arctic and Southern Ocean days in polar night or midnight sun).
 
 ### 13. Weather extras
@@ -622,7 +622,7 @@ months, with moon illumination < 30% and no storm; it shows on ~15% of eligible 
 squid (Mar–Jun) are not plankton; left out.
 
 - Spec: `seaBreeze`, `offshoreWind`, `snow`, `bioluminescence`.
-- Specs, tests, renders and docs as above (CLOUDS.md for sea breeze, PLAN.md lessons,
+- Specs, tests, renders and docs as above (CLOUDS.md for sea breeze, INITIAL_PLAN.md lessons,
   changelog with the days that change).
 
 ### 14. Animals
@@ -646,7 +646,7 @@ squid (Mar–Jun) are not plankton; left out.
 | Doc | What |
 |---|---|
 | changelog.md | a version row per phase, naming which existing days change |
-| PLAN.md | "How it works" (new modules and rules), "Lessons and gotchas", "References" (sources below), "Decisions" (climate from the region instead of new biomes; lower the land for tides; shelter mask; region rules re-generate the day; hemisphere-aware seasons) |
+| INITIAL_PLAN.md | "How it works" (new modules and rules), "Lessons and gotchas", "References" (sources below), "Decisions" (climate from the region instead of new biomes; lower the land for tides; shelter mask; region rules re-generate the day; hemisphere-aware seasons) |
 | REGIONS.md | replace ≈ values with checked ones as each phase uses them; region weights re-measured |
 | COASTS.md | coast-type, material, region, tide, reef, landform, biome and climate shares, re-measured with `params.mjs --stats … 2024-01-01..2026-12-31`; mark the "Proposal" sections done |
 | CLOUDS.md | marine layer, sea breeze, climate leanings |

@@ -1,6 +1,6 @@
 # Amazing Sea Wallpaper
 
-PLAN.md has architecture, decisions, lessons; changelog.md has versions; ANIMALS.md lists every animal (where, when, weather, how often). Dev server: port **5174** (`strictPort`; 5173 is other projects).
+Docs live in `knowledge/` (plans in `knowledge/plans/`). `knowledge/plans/INITIAL_PLAN.md` has architecture, decisions, lessons; `knowledge/changelog.md` has versions; `knowledge/ANIMALS.md` lists every animal (where, when, weather, how often). Dev server: port **5174** (`strictPort`; 5173 is other projects).
 
 # Goal: realistic, and cheap to render
 
@@ -10,7 +10,7 @@ PLAN.md has architecture, decisions, lessons; changelog.md has versions; ANIMALS
 # Developing features
 
 ## 1. Before code
-- Read PLAN.md ("How it works", "Lessons and gotchas") and the closest module: `props/rocks.ts`/`props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
+- Read INITIAL_PLAN.md ("How it works", "Lessons and gotchas") and the closest module: `props/rocks.ts`/`props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
 - Define "done": which views (shoreline, along-beach, framed, overlook, open sea), distance, frequency, readable at wallpaper size vs realistic/subtle. Ask if unclear and it matters (life-size crabs/shells show only within ~20 m).
 - TODO lists: read all open items first; ask every build-changing question (visibility, places, kinds) in one batch.
 - Research briefly (1–2 searches), then encode as a data table by biome/ocean/month/time of day (e.g. `FLOWERS` in `props/shoreLife.ts`, `debrisFor()` in `props/debris.ts`). Test the table.
@@ -144,4 +144,4 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   - `params.ts` changes: determinism and title.
 - `npm test` (typecheck + Vitest, ~6 s) and `npx tsc --noEmit` before committing.
 - Say "done" only for what a render or `diff.mjs` showed; otherwise "placed, not checked".
-- Update changelog.md (versions table), PLAN.md ("How it works", lessons, references) and TODO.md status if used; never commit TODO.md. One commit per feature, descriptive message.
+- Update changelog.md (versions table), INITIAL_PLAN.md ("How it works", lessons, references) and TODO.md status if used; never commit TODO.md. One commit per feature, descriptive message.

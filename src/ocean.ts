@@ -226,7 +226,7 @@ uniform float whitecaps;
 uniform float waveHeight;
 uniform float rain;
 
-// Rain on the sea (research notes: PLAN.md 7.15): each drop throws up
+// Rain on the sea (research notes: INITIAL_PLAN.md 7.15): each drop throws up
 // a crown and a Worthington jet, then sends out a capillary ring wave. Drops
 // fall on a jittered grid with random ages; returns the ring slope (xy) and
 // a splash mark (z) where a drop has just landed. Only resolved close up.

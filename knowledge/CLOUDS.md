@@ -1,7 +1,7 @@
 # Clouds
 
 Which clouds the wallpaper draws, on which coasts and in which weather. Status 2026-10-22
-(milestones C1–C7, PLAN.md 0.22–0.27). Code paths are in PLAN.md "How it works", pitfalls in
+(milestones C1–C7, INITIAL_PLAN.md 0.22–0.27). Code paths are in INITIAL_PLAN.md "How it works", pitfalls in
 "Lessons and gotchas", place and season sources in "References".
 
 ## How a sky is chosen
