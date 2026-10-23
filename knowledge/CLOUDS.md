@@ -169,6 +169,22 @@ The waterspout is an opaque, curved, striated funnel 10–50 m wide reaching int
 lowered soft base (a mesh can't see gaps in the deck), with a spray cascade. Morning Glory is
 1–3 lumpy banded tubes across the view and gets a title. Lenticulars are stacked lenses.
 
+## Coastal weather
+
+Weather tied to a particular coast rather than a biome (PLAN_BIOMES.md; needs places,
+phase 1a, which draws the place before the sky).
+
+| Weather | Where and when | Look | Phase |
+|---|---|---|---|
+| Marine layer (June Gloom, camanchaca) | California May–Jul (~45% of mornings), Aug–Oct ~15%; Atacama–Peru Jun–Sep, weaker | stratus or Sc deck at ~300–600 m, golden hour to late morning, burns off by noon; never with storms | 3 |
+| Harmattan | West Africa Dec–Feb (~50% of days) | dust haze, visibility 2–10 km, ochre sky, dim red sun | 3 |
+| Haar | Scotland, NE England, Norway, Apr–Jul | sea fog rolling in on warm days; check `fogSeason` first | 3 |
+| Sea-breeze cumulus | warm sunny afternoons, mediterranean to tropical | Cu over land, clear over the sea | 13 (later) |
+| Offshore winds | mistral, bora, Santa Ana, harmattan | clear air, smooth faces, spray blown back off crests | 13 (later) |
+
+Sources: [June Gloom](https://en.wikipedia.org/wiki/June_Gloom),
+[Namib fog and Benguela upwelling (ACP 2026)](https://acp.copernicus.org/articles/26/12565/2026/).
+
 ## Limits
 
 takram draws at most 4 layers, all sharing one weather map and repeat (`localWeatherRepeat` ×

@@ -5,7 +5,8 @@ grain sizes and fall velocities (phase 4), tidal ranges (phase 5) and biolumines
 seasons (phase 13, later). Status 2026-10-23: research only, nothing built.
 
 Values marked **≈** are from general knowledge or a single non-authoritative page; check
-them against national tide tables or papers before relying on them in a test.
+them against national tide tables or papers before relying on them in a test. Phase 0
+checked the main ones (see "To check").
 
 ## 1. Places
 
@@ -258,7 +259,7 @@ authors put mega at 8 m).
 | `baltic` | ≈ 0–0.2 m | micro | |
 | `hawaii` | ~0.6 m (daily range ~2 ft) | micro | US Harbors (Honolulu) |
 | `california` | ≈ 1.2–2 m (San Diego 1.4 m on a sample day) | micro | US Harbors |
-| `norway` | ≈ 0.3 m (Skagerrak) to 1.5 m (Bergen) to 3 m (Lofoten, Tromsø) | micro–meso | |
+| `norway` | Oslo ~0.3 m, Bergen ~1.2 m, Tromsø ~2.2 m (mean); amphidrome off the southwest, range rising northward | micro–meso | Yachting Monthly (from Kartverket tables), 1930s IHR paper |
 | `wadden-north-sea` | 1.5–4 m, central part often > 3 m; storm surges to 5 m | meso | Wadden Sea World Heritage; Danish national park |
 | `britain-ireland` | ≈ 2–5 m; Bristol Channel 9.6 m mean, ~15 m max | meso–mega | Wikipedia (tidal range) |
 | `brittany-normandy` | Saint-Malo highs ~11 m, lows ~2.5 m; Chausey 8.2 m mean, > 14 m springs | mega | Britannica, NASA Earth Observatory |
@@ -268,12 +269,12 @@ authors put mega at 8 m).
 | `british-columbia` | ≈ 3–5 m | meso | |
 | `east-asia-subtropical` (Korea, Yellow Sea) | Incheon ~9.5 m spring, ~6.5 m neap | mega | 1908 figures (KoreaScience) |
 | `nw-australia` | Broome ~10 m at times; Derby (King Sound) max 11.8 m; king tides Mar–Apr and Sep–Oct | mega | Wikipedia, Kimberley Ports |
-| `patagonia-fjords`, `tierra-del-fuego` | ≈ 6–13 m (Río Gallegos); not verified | macro–mega | |
-| `iceland` | ≈ 2–4 m | meso | |
+| `patagonia-fjords`, `tierra-del-fuego` | Río Gallegos (Atlantic Patagonia) ~5 m neap to ~9–10 m spring, extremes ~11 m; the Chilean fjords (Pacific side) are much smaller, ≈ 2 m | meso–mega | tide-forecast.com and nashaplaneta predictions (2026); SHN tables not checked |
+| `iceland` | Reykjavík ~1.7 m (small tide) to ~3.8 m (moderate tide), spring highs +4.4 m | meso | Vegagerðin (2025) |
 | `svalbard`, `greenland` | ≈ 1–4 m | micro–meso | |
 | `east-africa` | ≈ 3–4 m (Mombasa, Zanzibar) | meso | |
 | `south-asia-islands` | ≈ 1 m (Maldives) | micro | |
-| `arabia` | Red Sea ≈ 0.5 m; Gulf ≈ 1–3 m; not verified | micro–meso | |
+| `arabia` | Red Sea: ~0.6 m springs at the Suez/Aqaba end, ~0.9 m near Massawa, near 0 at the central amphidrome (Jeddah–Port Sudan, ~19.5°N); Gulf ≈ 1–3 m (not checked) | micro–meso | Red Sea model study (OJMS 2015) |
 | `baja-sonora` | upper Gulf of California ≈ 7–9 m | mega | |
 | everything else | ≈ 1–2 m | micro | |
 
@@ -311,10 +312,26 @@ phases 6 and 10), not the surf effect. Skipped for now (PLAN_BIOMES "Later and s
 Each place sets its own latitude; the basin ranges in `oceans.ts` are no longer used for
 it.
 
+Checked in phase 0 (2026-10-23):
+
+- **Tides:** Norway, Patagonia, Iceland and the Red Sea now carry sourced values in §3.
+  Patagonia is split: the large range is on the Atlantic side (Río Gallegos); the Chilean
+  fjords are small. Still ≈: the Persian Gulf, Svalbard/Greenland, British Columbia, east
+  Africa and the "everything else" row. Phase 5 should treat them as ≈ and test only the
+  class (micro/meso/macro), not exact values.
+- **Slopes:** Bascom's (1951) own figures weren't reachable. A design table derived from
+  the same data (Hong Kong CEDD, "Typical natural beach slopes") gives the **mean** profile
+  slope: 0.2 mm 1:50–1:100, 0.3 mm 1:25–1:50, 0.5 mm 1:20–1:40, 5 mm 1:8–1:15, flatter on
+  exposed coasts. The face slopes in §2 are steeper than these (the face is the steepest
+  part of the profile) and consistent with them. Phase 4 should use the CEDD table for
+  the whole profile and §2 for the swash face.
+- **Grain sizes:** pink (foraminifera) sand: forams are 0.1–1 mm; Bermuda studies sieve
+  0.06–0.5+ mm fractions, no median found; keep 0.5–1 mm ≈ (as coral sand). PEI red sand:
+  no measured median found (a 1962 Parks Canada report covers beach grains but wasn't
+  read); keep 0.15–0.3 mm ≈. White quartz, golden and grey stay ≈; they only pick a
+  beach state in phase 4, where the result is robust to ±50% grain.
 - Coast km per place (split by judgment) and climate weights: rough; refine when a phase
   depends on a specific share.
-- ≈ values (tides for Patagonia, Red Sea, Norway, Iceland; some grain sizes; slopes)
-   need one lookup each in national tables or papers before tests depend on them.
 
 ## Sources
 
@@ -331,6 +348,8 @@ Grain and fall velocity: [Soulsby (1997) in CMS-Flow sediment fall velocity](htt
 [Sand size vs. beachface slope (Geomorphology 2010)](https://home.uevora.pt/~ahr/9.pdf),
 [Woodruff et al. 2021](https://websites.umass.edu/woodruff/files/2021/09/45_Woodruff_etal_2021_MarineGeology.pdf),
 [Bascom 1951 (EarthRef)](https://earthref.org/ERR/190121),
+[Typical natural beach slopes (Hong Kong CEDD)](https://www.cedd.gov.hk/filemanager/eng/content_102/p5_table.pdf),
+[Foraminifera size (Homotrema rubrum)](https://en.wikipedia.org/wiki/Homotrema_rubrum),
 [Beach states, Ω classes (Springer 2025)](https://link.springer.com/article/10.1007/s00367-025-00802-y).
 
 Tides: [Tidal range (Wikipedia)](https://en.wikipedia.org/wiki/Tidal_range),
@@ -347,7 +366,12 @@ Tides: [Tidal range (Wikipedia)](https://en.wikipedia.org/wiki/Tidal_range),
 [Incheon tidal range (KoreaScience)](https://koreascience.or.kr/article/JAKO198011920645802.page),
 [Cook Inlet (historical newspaper)](https://newspapers.lib.utah.edu/details?id=3690949),
 [Honolulu tides (US Harbors)](https://www.usharbors.com/harbor/hawaii/honolulu-hi/tides/),
-[San Diego tides (US Harbors)](https://www.usharbors.com/harbor/california/san-diego-ca/tides/).
+[San Diego tides (US Harbors)](https://www.usharbors.com/harbor/california/san-diego-ca/tides/),
+[Río Gallegos tides (tide-forecast)](https://www.tide-forecast.com/tide/Rio-Gallegos/tide-times),
+[Red Sea tides, model study (OJMS 2015)](https://file.scirp.org/Html/3-1470181_55174.htm),
+[Norway cruising information (Yachting Monthly)](https://www.yachtingmonthly.com/archive/norway-cruising-information-17355),
+[Kartverket tide tables](https://kartverket.no/globalassets/til-sjos/nautiske-publikasjoner/tidvasstabellar-norske-kyst-svalbard-2020.pdf),
+[Tides in Iceland (Vegagerðin)](https://www.vegagerdin.is/en/about-us/operation/news/what-factors-affect-the-tides-in-iceland).
 
 Bioluminescence: [USC Sea Grant: San Diego red tide](https://dornsife.usc.edu/uscseagrant/?p=6911),
 [NBC San Diego: when to see bioluminescence](https://www.nbcsandiego.com/news/local/when-and-where-to-catch-bioluminescence-in-san-diego/3297836/),

@@ -78,6 +78,15 @@ Mediterranean Sea; the Arabian coast (desert, Indian Ocean).
 | Shore crabs | Cooler coasts, at the water's edge | Any | **Storm:** hidden | 45% where no ghost crabs |
 | Starfish | Nordic, Mediterranean, Pacific volcanic beaches | Any | – | 30% |
 
+### Planned (PLAN_BIOMES.md phase 14, later)
+
+| Animal | Where | Notes |
+|---|---|---|
+| Sea otters | California, Alaska, British Columbia | rafts floating on their backs in kelp beds |
+| Walrus | Svalbard, Greenland, Arctic Canada, north Alaska | haul-outs of 5–40 on beaches and floes |
+| Polar bear | Arctic places, near ice | rare (~2% of eligible days) |
+| Waders (oystercatchers, knots, sanderlings) | tidal flats and low-tide beaches; sanderlings on most sandy swashes | flocks on the swash, ≥ 0.25 m above the swash line |
+
 ## How often, over three years
 
 Share of days on which the generator chooses each animal, of all days and of each biome's

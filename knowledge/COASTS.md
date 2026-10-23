@@ -55,6 +55,89 @@ karst 3%); landform 31% (range 19%, stratovolcano 9%, shield 4%).
 **Every beach is sand today.** The only "stone" is boulders and sea stacks (`props/rocks.ts`);
 there is no pebble, shingle or cobble beach surface.
 
+## Research: the world's coasts
+
+What real coasts are like, as the target for PLAN_BIOMES.md. Sources at the end of this
+section.
+
+- **Coast types.** A 2025 global dataset (ESSD) classes ~40% of the world's coastline as
+  sand, gravel or shingle, 21% mud, 13% rocky and 27% bare rock with no sediment; ~33%
+  is cliffed (other estimates put cliffs on up to ~52%). Landsat mapping (Luijendijk et
+  al. 2018) finds ~31% sandy. Mud coasts (~14% of ice-free coast) are 60% tropical
+  (mangroves, deltas). So a sandy beach is a minority view of the world's shore; rock is
+  as common.
+- **Beach states** (Wright & Short 1984). Ω = Hb / (ws · T) sorts beaches into reflective
+  (Ω < ~1.5: steep, no bar, waves surge on the face, cusps), intermediate (four states:
+  longshore bar, rhythmic bar, transverse bar and rip, low-tide terrace) and dissipative
+  (Ω > ~5.5: flat, 2–3 bars, a wide surf zone of spilling breakers). Coarse sand and
+  small swell → reflective (coral and black sand islands, the Mediterranean); fine sand
+  and big swell → dissipative (Namibia, Oregon, the Wadden). Grain and fall velocity:
+  REGIONS.md §2.
+- **Sand colours.** White (coral and shell carbonate, or pure quartz), golden (quartz with
+  iron staining, feldspar), grey (mixed rock, glacial), black (basalt glass, volcanic),
+  pink (red foraminifera *Homotrema rubrum* mixed into coral sand: Bermuda, Bahamas'
+  Harbour Island, Komodo), red (iron-rich sandstone or scoria: Prince Edward Island,
+  Fundy, Kaihalulu on Maui, Santorini), green (olivine, Papakōlea: very rare).
+- **Tides.** Micro < 2 m (Mediterranean ~0.4 m, Caribbean 0.1–0.2 m, Baltic ~0, Hawaii
+  ~0.6 m, most open ocean coasts 1–2 m), meso 2–4 m (Wadden, Iceland, east Africa),
+  macro and mega > 4 m in funnelling bays and wide shelves (Fundy 11.7 m mean, Brittany
+  and Chausey 8–14 m, Bristol Channel 9.6 m, Ungava, Cook Inlet, Incheon, the Kimberley,
+  Atlantic Patagonia ~9–10 m springs). Springs at new and full moon run ~1.2× the mean,
+  neaps ~0.8×. Values per region: REGIONS.md §3.
+- **Reef-fronted beaches.** Most tropical island beaches sit behind a fringing reef:
+  waves break on the reef crest 100–500 m out and lose 50–75% of their height (more at
+  low tide); inside lies a calm turquoise lagoon 1–3 m deep and the beach gets small
+  re-formed waves. Gaps (passes) let swell and currents through every 0.5–2 km.
+  Beachrock (cemented sand ledges) lines many of these beaches.
+- **Landforms.** Barrier islands with lagoons behind (US Atlantic and Gulf, Wadden,
+  southern Brazil; ~10% of the world's coast), spits and hooks (Farewell Spit, Spurn),
+  fjords (Norway, BC, Alaska, Chile, Greenland, NZ), rias (Galicia, Brittany), tidal
+  flats and salt marsh in macro-tidal bays and behind barriers, cliffs with wave-cut
+  platforms on most rocky coasts.
+- **Climates.** Besides the five biomes: temperate oceanic coasts (Britain, Ireland,
+  Atlantic Canada, Pacific Northwest, NZ South Island, southern Chile) with mixed forest,
+  marram dunes and machair; humid subtropical (Florida–Carolinas, southern Brazil,
+  Queensland and NSW, Natal, southern Japan) with live oak, palmetto, sea oats and pale
+  quartz sand; polar coasts north of ~70° are tundra, no trees, only dwarf willow and
+  birch under 30 cm.
+- **Seasons.** Southern-hemisphere coasts have summer in December–February.
+
+Sources: [Global coastal dataset (ESSD preprint 2025)](https://essd.copernicus.org/preprints/essd-2025-388/),
+[Taking stock of the world's sandy beaches (Luijendijk et al. 2018)](https://coastalcare.org/2018/08/taking-stock-of-the-worlds-sandy-beaches/),
+[Global distribution of coastal cliffs](https://openpolar.no/Record/crwiley:10.1002%2Fesp.4574),
+[Beach states, Ω classes (Springer 2025)](https://link.springer.com/article/10.1007/s00367-025-00802-y),
+[Short & Hesp 1982](https://data-ww3.ifremer.fr/BIB/Short_Hesp_MG1982.pdf),
+[Sand colours (Hawaii Guide)](https://www.hawaii-guide.com/blog/hawaii-colored-sand-beaches-black-green-red-white-explained),
+[Bermuda pink sand (BIOS)](https://bios.asu.edu/currents/our-unique-pink-sand),
+[Tidal environments (TU Delft)](https://coastal.citg.tudelft.nl/book/3a_tidal_environments.html),
+[Tides and coasts (SERC)](https://cdn.serc.carleton.edu/files/NAGTWorkshops/geomorph/activities/GlS210_TidesAndCoasts.pdf),
+[Fringing reef wave attenuation](https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2021.684732/epub),
+[Coral reef zones](https://www.remnote.com/learn/science/marine-biology/coral-reef-reef-types-and-physical-zones-study-deck),
+[Coastal landforms](https://www.savemyexams.com/igcse/geography/edexcel/19/revision-notes/2-coastal-environments/2-1-coastal-processes-and-landforms/2-1-2-coastal-landforms/),
+[The myriad faces of the coasts (World Ocean Review)](https://worldoceanreview.com/en/?p=5160),
+[Machair (EUNIS)](https://eunis.eea.europa.eu/habitats/8044).
+
+## Gaps: research vs. today
+
+| Real world | Today | Plan phase |
+|---|---|---|
+| Coasts are real places (latitude, climate, tide, animals) | biome × ocean drawn apart; latitude from the basin | 1a |
+| Southern seasons | only the Southern Ocean flips months | 1c |
+| Pebble, shingle and cobble beaches (~¼ of beaches) | every beach is sand | 2 |
+| Pink and red sand; treeless high Arctic | white, golden, grey, black; Arctic keeps birch | 3 |
+| Marine layer, harmattan, haar | fog and dust, not by place | 3 |
+| Beach slope and bars follow grain and swell | random slope, sandbar 60% | 4 |
+| Tides (micro to mega) | sea level fixed | 5 |
+| Calm water behind reefs and barriers | water calms only where shallow | 6 |
+| Reef-fronted tropical beaches | surf breaks on the sand | 7 |
+| Rocky shores (~40% of coast) | none: beach or open sea | 8 |
+| Tidal flats and salt marsh | none | 9 |
+| Barrier lagoons, spits, fjords | none | 10 (later) |
+| Temperate and subtropical climates | five biomes | 11 |
+| Polar night, midnight sun | time of day ignores latitude and date | 12 |
+| Offshore winds, snow and ice foot, glowing surf, sea-breeze Cu | none | 13 (later) |
+| Sea otters, walrus, polar bears, waders | none | 14 (later) |
+
 ## Research: stony beaches
 
 - **Canada.** Most Canadian beaches are reworked glacial sediment: ice ground the bedrock
