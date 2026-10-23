@@ -1,177 +1,169 @@
-# Regions
+# Places and regions
 
-Research for PLAN_BIOMES.md: the named places each biome × ocean stands for (phase 2), sand
+Research for PLAN_BIOMES.md: the places a day is drawn from (phase 2), sand
 grain sizes and fall velocities (phase 4), tidal ranges (phase 5) and bioluminescence
 seasons (phase 13). Status 2026-10-23: research only, nothing built.
 
 Values marked **≈** are from general knowledge or a single non-authoritative page; check
 them against national tide tables or papers before relying on them in a test.
 
-## 1. Regions by biome and ocean
+## 1. Places
 
-**Method.** Weights follow coastline length (CIA World Factbook, with the World Resources
-Institute figure where the Factbook's count is clearly too coarse, e.g. archipelagos),
-then are adjusted by judgment for how much of that coast fits the biome. Coastline length
-is fractal (it depends on the ruler), so treat the weights as a rough ranking, not
-measured shares. Ocean shares per biome stay as today (COASTS.md, `pickOcean`).
+**One draw: the place.** Each day draws one place (PLAN_BIOMES 2a). Everything else
+about where the camera stands follows from it:
 
-**Climate** column = the climate the region gives in PLAN_BIOMES phase 11. Since each
-region has one climate, the climate split falls out of the region weights instead of
-being drawn separately.
+| Kind | Fields | How |
+|---|---|---|
+| Constant | biome (today's look preset), latitude range, region, tide range, notes | the same every day there |
+| Choose one | ocean, climate; later sand colour, beach material, coast kind (rock shore, tidal flat) | weighted, one per day, each on its own stream |
+| Choose many | animals, plants, debris, flowers | a pool of what can appear; each feature's own rules pick from it |
 
-**Wildlife regions.** Today `wildlife.ts` `regionFor` picks these warm regions (weights
-fixed by the code): tropical Pacific se-asia 60 / central-america 40; tropical Indian
-se-asia 65 / east-africa 35; tropical Atlantic caribbean 65 / west-africa 35; volcanic
-Pacific under 25° galapagos 50 / hawaii 50; mediterranean Atlantic → mediterranean;
-desert Indian → arabia. Rows marked **new parent** below are missing from that list and
-change which animals appear on some days (accepted: PLAN_BIOMES decision 9).
+**Region** = a group of places that share defaults (plants, animals, most of the fields)
+and a name for specs (`place: "atlantic-canada"` = any of its places). It is never drawn
+on its own. A place with no region row ("–") is its own region.
 
-### Nordic
+**Weights: √ of coastline length per region, split among its places by length**
+(decision 2026-10-23). Raw length would make ~70% of days Arctic and nordic (Canada
+alone ~55% of the CIA total); √ keeps the real ranking but compresses it. Taking √ per
+region rather than per place keeps shares from depending on how finely a region is split.
+Lengths are ≈ CIA World Factbook figures (WRI where CIA is clearly too coarse), split by
+judgment; coastline length depends on the ruler, so treat them as a ranking. Shares are
+of all days (open-sea days included: the open-sea draw stays separate, 35%).
 
-Ocean shares: Atlantic 39%, Arctic 30%, Pacific 21%, Southern 10%.
+Result vs. today: nordic 42% (today 19%), tropical 23% (29%), mediterranean 14% (29%),
+volcanic 13% (14%), desert 9% (10%). Polar places ≈ 16% of days.
 
-| Ocean | Region | Places | Weight | Latitude | Climate | Coastline basis |
-|---|---|---|---|---|---|---|
-| Atlantic | `norway` | Norwegian coast and fjords, Lofoten | 30 | 58–71° | by sub-place (§1b): west temperate, north boreal | 83,281 km incl. islands (CIA) |
-| Atlantic | `britain-ireland` | Scotland, Ireland, Wales, Cornwall | 18 | 50–59° | temperate | UK 12,429 + Ireland 1,448 km (WRI 19,717 + 6,437) |
-| Atlantic | `atlantic-canada` | Newfoundland, Nova Scotia, Fundy, PEI, Gulf of St Lawrence, Maine | 20 | 43–52° | temperate (Newfoundland boreal, §1b) | a fraction of Canada's 202,080 km (most of it is Arctic) |
-| Atlantic | `baltic` | Sweden, Finland, Estonia, Danish islands | 12 | 54–66° | boreal | Sweden 26,384, Finland 31,119 km (WRI; skerry archipelagos) |
-| Atlantic | `wadden-north-sea` | Netherlands, Germany, Denmark North Sea | 6 | 52–57° | temperate | 451 + 2,389 + 7,314 km |
-| Atlantic | `brittany-normandy` | Brittany, Normandy, Channel Islands | 6 | 47–50° | temperate | part of France 4,853 km |
-| Atlantic | `iceland-faroe` | Iceland (non-volcanic beaches), Faroes | 8 | 62–66° | boreal | 4,970 + 1,117 km |
-| Arctic | `arctic-canada` | Canadian Arctic Archipelago, Hudson Bay, Ungava | 40 | 58–78° | polar | most of Canada's 202,080 km |
-| Arctic | `greenland` | Greenland west and east coasts | 30 | 60–78° | polar | 44,087 km |
-| Arctic | `arctic-russia` | Kola, White Sea, Siberian coast | 20 | 66–78° | polar | part of Russia 37,653 km (WRI 110,310) |
-| Arctic | `svalbard` | Svalbard | 10 | 76–78° (basin max 78°) | polar | 3,587 km |
-| Pacific | `alaska` | SE Alaska, Gulf of Alaska, Cook Inlet, Aleutians | 40 | 54–61° | boreal | part of US 19,924 km |
-| Pacific | `british-columbia` | BC outer coast and fjords, Haida Gwaii | 25 | 48–55° | temperate | part of Canada |
-| Pacific | `pacific-northwest` | Washington, Oregon | 10 | 42–48° | temperate | part of US |
-| Pacific | `russian-far-east` | Okhotsk Sea, Sakhalin (non-volcanic) | 10 | 48–60° | boreal | part of Russia |
-| Pacific | `new-zealand-south` | NZ South Island | 15 | 41–47° | temperate | part of NZ 15,134 km |
-| Southern | `patagonia-fjords` | Chilean fjords, Patagonia | 50 | 42–55° | temperate (subpolar oceanic) | Chile 6,435 km (WRI 78,563, mostly fjords) |
-| Southern | `tierra-del-fuego` | Tierra del Fuego, Beagle Channel | 20 | 53–56° | temperate | part of Chile and Argentina |
-| Southern | `tasmania` | Tasmania's south and west coasts | 15 | 41–44° | temperate | part of Australia |
-| Southern | `south-georgia-falklands` | South Georgia, Falklands | 15 | 51–55° | by sub-place (§1b) | – |
+**Climate values:** `polar`, `boreal`, `temperate`, `mediterranean`, `subtropical`,
+`tropical`, `arid`. Phase 11 uses them for the look of nordic and mediterranean places;
+on the other biomes climate drives seasons and weather rules only.
 
-### Mediterranean
+**Ocean** values are the code's basins; for the mediterranean biome "atlantic" means the
+Mediterranean Sea itself (as today).
 
-Ocean shares: Atlantic 58% (in the code "Atlantic" = the Mediterranean Sea itself),
-Pacific 29%, Indian 13%. Subtropical regions provide PLAN_BIOMES phase 11's
-`subtropical` climate (≈ 25–30% of mediterranean days with these weights).
+**Latitude:** "S" = southern hemisphere (the sign is the hemisphere; seasons follow it).
+A range across the equator reads "11 S–6".
 
-| Ocean | Region | Places | Weight | Latitude | Climate | Coastline basis |
-|---|---|---|---|---|---|---|
-| Atlantic | `mediterranean-sea` | Greece, Italy, Croatia, Turkey, Spain, France, North Africa | 70 | 31–45° | mediterranean | Greece 13,676, Italy 7,600, Croatia 5,835, Turkey 7,200 km… |
-| Atlantic | `portugal-morocco` | Portugal, Atlantic Spain, Atlantic Morocco | 8 | 30–43° | mediterranean | 1,793 + part of 2,945 km |
-| Atlantic | `florida-carolinas` | Florida, Georgia, Carolinas (barrier islands) | 14 | 25–35° | subtropical | part of US |
-| Atlantic | `south-brazil` | South Brazil, Uruguay | 8 | 25–35° (south) | subtropical | part of Brazil 7,491 km |
-| Pacific | `california` | California | 35 | 32–42° | mediterranean | part of US |
-| Pacific | `central-chile` | Central Chile | 25 | 30–38° (south) | mediterranean | part of Chile |
-| Pacific | `east-australia` | Queensland south, NSW | 20 | 25–35° (south) | subtropical | part of Australia 25,760 km |
-| Pacific | `east-asia-subtropical` | South Japan, Taiwan, South China coast, Korea's west coast (Yellow Sea) | 20 | 22–38° | subtropical | parts of Japan 29,751, China 14,500 km |
-| Indian | `sw-australia` | Perth, Margaret River, Esperance | 50 | 30–35° (south) | mediterranean | part of Australia |
-| Indian | `cape` | Western and Southern Cape | 20 | 33–35° (south) | mediterranean | part of South Africa 2,798 km |
-| Indian | `natal` | KwaZulu-Natal, south Mozambique | 30 | 25–31° (south) | subtropical | part of South Africa |
+**Wildlife today.** `wildlife.ts` `regionFor` picks se-asia, central-america,
+east-africa, caribbean, west-africa, galapagos, hawaii, mediterranean and arabia. With
+places, animals come from each place's pool instead; "new" in the notes marks places that
+had no animal region or the wrong one (no macaques on Tahiti).
 
-### Tropical
+### Nordic (≈ 42% of days)
 
-Ocean shares: Pacific 47%, Indian 34%, Atlantic 19%.
+| Place | Region | Covers | Ocean | Climate | Latitude | Coast km ≈ | Share % | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `norway-west` | `norway` | Stavanger to Trøndelag | atlantic | temperate | 58–64° | 40,000 | 2.5 | tide ≈ 0.3–1.5 m |
+| `norway-north` | `norway` | Nordland, Lofoten, Troms, Finnmark | atlantic 70, arctic 30 | boreal 80, polar 20 | 64–71° | 43,000 | 2.7 | tide ≈ 2–3 m |
+| `scotland` | `britain-ireland` | Scotland, Hebrides, Orkney, Shetland | atlantic | temperate | 55–59° | 6,000 | 1.0 | haar |
+| `ireland` | `britain-ireland` | Ireland | atlantic | temperate | 51–55° | 1,700 | 0.3 |  |
+| `cornwall-wales` | `britain-ireland` | Cornwall, Wales | atlantic | temperate | 50–53° | 2,500 | 0.4 |  |
+| `bristol-channel` | `britain-ireland` | Bristol Channel | atlantic | temperate | 51° | 500 | 0.1 | tide 9.6 m mean (to ~15 m) |
+| `morecambe-bay` | `britain-ireland` | Morecambe Bay | atlantic | temperate | 54° | 300 | 0.1 | macro tide, tidal flats |
+| `newfoundland` | `atlantic-canada` | Newfoundland, Labrador south | atlantic | boreal 70, temperate 30 | 46–52° | 9,600 | 1.1 |  |
+| `nova-scotia` | `atlantic-canada` | Nova Scotia Atlantic shore, Gulf of St Lawrence | atlantic | temperate 70, boreal 30 | 43–47° | 7,400 | 0.8 |  |
+| `fundy` | `atlantic-canada` | Bay of Fundy | atlantic | temperate | 44–46° | 1,500 | 0.2 | tide 11.7 m mean (to ~16 m); red mud and sand ~40%; tidal flats |
+| `pei` | `atlantic-canada` | Prince Edward Island, Northumberland Strait | atlantic | temperate | 46–47° | 1,100 | 0.1 | red sand ~60%; tide ≈ 1 m |
+| `maine` | `atlantic-canada` | Maine | atlantic | temperate | 43–45° | 5,600 | 0.6 | tide ≈ 3 m |
+| `baltic` | – | Sweden, Finland, Estonia, Danish islands | atlantic | boreal 70, temperate 30 | 54–66° | 10,000 | 1.8 | tide ≈ 0 |
+| `wadden-north-sea` | – | Netherlands, Germany, Denmark North Sea | atlantic | temperate | 52–57° | 3,000 | 1.0 | tidal flats |
+| `brittany` | `brittany-normandy` | Brittany, Normandy coast | atlantic | temperate | 47–49° | 2,700 | 0.9 | tide ≈ 5–8 m |
+| `mont-saint-michel` | `brittany-normandy` | Saint-Malo, Mont-Saint-Michel, Chausey | atlantic | temperate | 48–49° | 300 | 0.1 | tide 8–14 m; tidal flats |
+| `iceland-faroe` | – | Iceland's non-volcanic beaches, Faroes | atlantic | boreal 60, temperate 40 | 62–66° | 3,600 | 1.1 |  |
+| `arctic-canada` | – | Canadian Arctic Archipelago, Hudson Bay, Ungava | arctic | polar | 58–78° | 150,000 | 7.0 | Ungava tide 9.75 m |
+| `greenland` | – | Greenland west and east coasts | arctic 70, atlantic 30 | polar | 60–78° | 44,000 | 3.8 |  |
+| `arctic-russia` | – | Kola, White Sea, Siberian coast | arctic | polar | 66–78° | 25,000 | 2.9 |  |
+| `svalbard` | – | Svalbard | arctic | polar | 76–80° | 3,600 | 1.1 |  |
+| `alaska-north` | `alaska` | Alaska's Arctic coast (Beaufort, Chukchi) | arctic | polar | 69–71° | 1,700 | 0.3 | new: walrus, polar bear |
+| `se-alaska` | `alaska` | SE Alaska Inside Passage | pacific | temperate 60, boreal 40 | 54–59° | 3,000 | 0.5 | tide ≈ 4–5 m |
+| `gulf-alaska` | `alaska` | Gulf of Alaska, Kodiak | pacific | boreal | 56–61° | 5,000 | 0.9 |  |
+| `cook-inlet` | `alaska` | Cook Inlet, Turnagain Arm | pacific | boreal | 59–61° | 700 | 0.1 | tide ~9 m mean (to ~11.6 m) |
+| `british-columbia` | – | BC outer coast and fjords, Haida Gwaii | pacific | temperate | 48–55° | 26,000 | 2.9 |  |
+| `pacific-northwest` | – | Washington, Oregon | pacific | temperate | 42–48° | 1,500 | 0.7 |  |
+| `russian-far-east` | – | Okhotsk Sea, Sakhalin | pacific | boreal | 48–60° | 8,000 | 1.6 |  |
+| `new-zealand-south` | – | NZ South Island | pacific | temperate | 41–47 S° | 6,000 | 1.4 |  |
+| `patagonia-fjords` | – | Chilean fjords, Patagonia | southern 70, pacific 30 | temperate | 42–55 S° | 5,000 | 1.3 |  |
+| `tierra-del-fuego` | – | Tierra del Fuego, Beagle Channel | southern | temperate 70, polar 30 | 53–56 S° | 1,500 | 0.7 | southern beech |
+| `tasmania` | – | Tasmania's south and west coasts | southern | temperate | 41–44 S° | 1,500 | 0.7 |  |
+| `south-georgia` | `south-georgia-falklands` | South Georgia | southern | polar | 54–55 S° | 1,000 | 0.4 | tussock grass only |
+| `falklands` | `south-georgia-falklands` | Falklands | southern 60, atlantic 40 | temperate | 51–52 S° | 1,300 | 0.5 |  |
 
-| Ocean | Region | Places | Weight (today) | Weight (proposed) | Notes |
-|---|---|---|---|---|---|
-| Pacific | `se-asia` | Philippines, east Indonesia, Vietnam, PNG | 60 | 50 | Philippines 36,289, Indonesia 54,716 km |
-| Pacific | `pacific-islands` **new parent** | Fiji, Tahiti, Samoa, Micronesia, Vanuatu, Solomons | – | 25 | no monkeys; reef-fronted beaches; French Polynesia 2,525, Fiji 1,129 km (WRI 5,830, 4,638) |
-| Pacific | `central-america` | Pacific Mexico (tropical), Costa Rica, Panama, Colombia | 40 | 25 | |
-| Indian | `se-asia` | West Indonesia, Thailand (Andaman), Malaysia | 65 | 35 | |
-| Indian | `south-asia-islands` **new parent** | Maldives, Sri Lanka, Andaman, Lakshadweep, Seychelles | – | 25 | no vervets or Nile crocodiles; Maldives 644 km (WRI 2,002) |
-| Indian | `east-africa` | Kenya, Tanzania, Mozambique, Madagascar, Comoros | 35 | 30 | Madagascar 4,828, Mozambique 2,470 km |
-| Indian | `nw-australia` **new parent** | Kimberley, Broome | – | 10 | saltwater crocodiles; macro-tidal |
-| Atlantic | `caribbean` | Greater and Lesser Antilles, Yucatán, Belize, Bahamas, Bermuda | 65 | 65 (incl. bahamas-bermuda) | Cuba 3,735 km (WRI 14,519) |
-| Atlantic | ↳ `bahamas-bermuda` (sub-place of caribbean, §1b) | Bahamas, Turks and Caicos, Bermuda | – | (≈ 12 of the 65) | pink sand; Bahamas 3,542 km |
-| Atlantic | `west-africa` | Gabon, Loango, Bijagós, Senegal, Gulf of Guinea | 35 | 20 | Gabon 885, Guinea-Bissau 350 km (WRI 3,176) |
-| Atlantic | `northeast-brazil` **new parent** | Bahia to Ceará | – | 15 | green turtles, no monkeys on the beach |
+### Mediterranean (≈ 14% of days)
 
-Tropical latitudes stay 5–23° as today.
+| Place | Region | Covers | Ocean | Climate | Latitude | Coast km ≈ | Share % | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `aegean` | `mediterranean-sea` | Greece, Aegean Turkey, Cyprus | atlantic | mediterranean | 35–41° | 19,000 | 1.6 |  |
+| `adriatic` | `mediterranean-sea` | Croatia, Adriatic Italy, Albania, Montenegro | atlantic | mediterranean 70, subtropical 30 | 40–46° | 9,000 | 0.8 | bora |
+| `western-med` | `mediterranean-sea` | Mediterranean Spain and France, Tyrrhenian Italy, Corsica, Sardinia, Sicily | atlantic | mediterranean | 36–44° | 10,000 | 0.9 | mistral |
+| `north-africa-levant` | `mediterranean-sea` | Tunisia, Libya, Egypt, Levant, Algeria | atlantic | mediterranean | 31–37° | 6,000 | 0.5 |  |
+| `portugal-morocco` | – | Portugal, Atlantic Spain, Atlantic Morocco | atlantic | mediterranean 80, temperate 20 | 30–43° | 5,000 | 1.3 |  |
+| `florida-carolinas` | – | Florida, Georgia, Carolinas (barrier islands) | atlantic | subtropical | 25–35° | 3,000 | 1.0 |  |
+| `south-brazil` | – | South Brazil, Uruguay | atlantic | subtropical | 25–35 S° | 2,000 | 0.8 |  |
+| `california` | – | California | pacific | mediterranean | 32–42° | 1,400 | 0.7 | marine layer |
+| `central-chile` | – | Central Chile | pacific | mediterranean | 30–38 S° | 1,400 | 0.7 |  |
+| `east-australia` | – | Southern Queensland, NSW | pacific | subtropical | 25–35 S° | 2,500 | 0.9 |  |
+| `south-japan` | `east-asia-subtropical` | Kyushu, Shikoku, south Honshu, Okinawa | pacific | subtropical | 26–35° | 10,000 | 1.3 |  |
+| `taiwan-south-china` | `east-asia-subtropical` | Taiwan, Hong Kong, Matsu, South China coast | pacific | subtropical | 22–26° | 6,000 | 0.8 | blue tears Apr–Jun |
+| `yellow-sea` | `east-asia-subtropical` | Korea's west coast, Incheon | pacific | temperate 60, subtropical 40 | 34–38° | 5,000 | 0.6 | tide ~9.5 m spring; tidal flats |
+| `sw-australia` | – | Perth, Margaret River, Esperance | indian | mediterranean | 30–35 S° | 2,500 | 0.9 |  |
+| `cape` | – | Western and Southern Cape | indian 60, atlantic 40 | mediterranean | 33–35 S° | 1,000 | 0.6 |  |
+| `natal` | – | KwaZulu-Natal, south Mozambique | indian | subtropical | 25–31 S° | 1,500 | 0.7 |  |
 
-### Volcanic
+### Tropical (≈ 23% of days)
 
-Ocean shares: Pacific 47%, Atlantic 31%, Indian 11%, Southern 11%.
+| Place | Region | Covers | Ocean | Climate | Latitude | Coast km ≈ | Share % | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `philippines` | `se-asia` | Philippines | pacific | tropical | 5–19° | 36,000 | 2.1 |  |
+| `indonesia` | `se-asia` | Indonesia | pacific 50, indian 50 | tropical | 11 S–6° | 54,700 | 3.1 |  |
+| `mainland-se-asia` | `se-asia` | Vietnam, Thailand, Malaysia | pacific 60, indian 40 | tropical | 1–21° | 9,000 | 0.5 |  |
+| `pacific-islands` | – | PNG, Solomons, Vanuatu, Fiji, Samoa, Tahiti, Micronesia | pacific | tropical | 23 S–10° | 23,000 | 2.8 | new: no monkeys; reef-fronted |
+| `central-america` | – | Pacific Mexico (tropical), Costa Rica, Panama, Colombia | pacific | tropical | 2–20° | 8,000 | 1.6 |  |
+| `india` | – | India's west and east coasts | indian | tropical | 8–22° | 7,000 | 1.5 | new: was missing |
+| `maldives` | `south-asia-islands` | Maldives | indian | tropical | 1 S–7° | 650 | 0.2 | bioluminescence Jun–Oct |
+| `sri-lanka` | `south-asia-islands` | Sri Lanka | indian | tropical | 6–10° | 1,300 | 0.4 |  |
+| `andaman-lakshadweep` | `south-asia-islands` | Andaman, Nicobar, Lakshadweep | indian | tropical | 8–14° | 1,900 | 0.6 | bioluminescence Oct–Mar |
+| `east-africa` | – | Kenya, Tanzania, Mozambique, Madagascar | indian | tropical | 1–26 S° | 9,000 | 1.7 |  |
+| `north-australia` | – | Top End, Cape York, Great Barrier Reef coast | pacific 50, indian 50 | tropical | 10–23 S° | 10,000 | 1.8 | new: saltwater crocodiles |
+| `nw-australia` | – | Kimberley, Broome | indian | tropical | 13–20 S° | 7,000 | 1.5 | new: macro tide |
+| `antilles` | `caribbean` | Greater and Lesser Antilles | atlantic | tropical | 12–23° | 10,000 | 1.4 | tide 0.1–0.2 m |
+| `yucatan-belize` | `caribbean` | Yucatán, Belize, Holbox | atlantic | tropical | 16–21° | 1,800 | 0.3 | bioluminescence Jun–Sep |
+| `bahamas-bermuda` | `caribbean` | Bahamas, Turks and Caicos, Bermuda | atlantic | tropical | 21–32° | 4,000 | 0.6 | pink sand ~25% |
+| `west-africa` | – | Senegal to Gabon, Bijagós, Loango | atlantic | tropical | 5 S–15° | 6,500 | 1.5 | harmattan |
+| `northeast-brazil` | – | Bahia to Ceará | atlantic | tropical | 3–15 S° | 3,500 | 1.1 | new |
 
-| Ocean | Region | Places | Weight | Latitude | Notes |
-|---|---|---|---|---|---|
-| Pacific (< 25°) | `hawaii` | Hawaiian Islands | 50 of < 25° | 19–22° | today's wildlife region |
-| Pacific (< 25°) | `galapagos` | Galápagos | 50 of < 25° | 0–1° (basin min 5: widen) | today's wildlife region |
-| Pacific (≥ 25°) | `japan` | Honshu, Kyushu, Izu Islands | 45 | 30–43° | |
-| Pacific (≥ 25°) | `kamchatka-kurils` | Kamchatka, Kurils, Aleutians | 30 | 43–60° | |
-| Pacific (≥ 25°) | `new-zealand-north` | Taranaki, Bay of Plenty, Auckland | 25 | 36–40° (south) | |
-| Atlantic | `iceland` | Reynisfjara, Snæfellsnes | 45 | 63–66° | |
-| Atlantic | `canaries` | Canary Islands | 25 | 27–29° | |
-| Atlantic | `azores-madeira` | Azores, Madeira | 15 | 32–39° | |
-| Atlantic | `lesser-antilles-volcanic` | Montserrat, St Lucia, Martinique, Cape Verde | 15 | 13–17° | |
-| Indian | `reunion-mauritius` | Réunion, Mauritius | 60 | 20–21° (south) | |
-| Indian | `comoros` | Comoros | 25 | 11–13° (south) | |
-| Indian | `sumatra-java-south` | Indian Ocean coasts of Java and Sumatra | 15 | 6–9° (south) | |
-| Southern | `south-shetland` | Deception Island, South Shetlands | 40 | 62–63° (south) | polar |
-| Southern | `south-sandwich` | South Sandwich Islands | 20 | 56–60° (south) | polar |
-| Southern | `kerguelen-heard` | Kerguelen, Heard Island | 20 | 49–53° (south) | polar |
-| Southern | `nz-subantarctic` | Auckland, Campbell Islands | 20 | 50–53° (south) | |
+### Volcanic (≈ 14% of days)
 
-### Desert
+| Place | Region | Covers | Ocean | Climate | Latitude | Coast km ≈ | Share % | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `hawaii` | – | Hawaiian Islands | pacific | tropical | 19–22° | 1,200 | 0.6 |  |
+| `galapagos` | – | Galápagos | pacific | tropical | 1 S–1° | 1,300 | 0.7 |  |
+| `japan` | – | Honshu, Kyushu volcanic coasts, Izu Islands, Hokkaido | pacific | temperate 70, subtropical 30 | 31–43° | 15,000 | 2.2 |  |
+| `kamchatka-kurils-aleutians` | `kamchatka-kurils` | Kamchatka, Kurils, Aleutians | pacific | boreal | 43–60° | 6,000 | 1.4 |  |
+| `new-zealand-north` | – | Taranaki, Bay of Plenty, Auckland | pacific | subtropical 50, temperate 50 | 36–40 S° | 4,000 | 1.1 |  |
+| `iceland` | – | Reynisfjara, Snæfellsnes | atlantic | boreal | 63–66° | 2,500 | 0.9 |  |
+| `canaries` | – | Canary Islands | atlantic | subtropical | 27–29° | 1,600 | 0.7 |  |
+| `azores-madeira` | – | Azores, Madeira | atlantic | subtropical | 32–39° | 1,100 | 0.6 |  |
+| `lesser-antilles-volcanic` | – | Montserrat, St Lucia, Martinique, Cape Verde | atlantic | tropical | 13–17° | 1,800 | 0.8 |  |
+| `reunion-mauritius` | – | Réunion, Mauritius | indian | tropical | 20–21 S° | 400 | 0.4 |  |
+| `comoros` | – | Comoros | indian | tropical | 11–13 S° | 340 | 0.3 |  |
+| `sumatra-java-south` | – | Indian Ocean coasts of Java and Sumatra | indian | tropical | 6–9 S° | 2,500 | 0.9 |  |
+| `south-shetland` | – | Deception Island, South Shetlands | southern | polar | 62–63 S° | 1,000 | 0.6 |  |
+| `south-sandwich` | – | South Sandwich Islands | southern | polar | 56–60 S° | 300 | 0.3 |  |
+| `kerguelen-heard` | – | Kerguelen, Heard Island | southern | polar | 49–53 S° | 2,900 | 1.0 |  |
+| `nz-subantarctic` | – | Auckland, Campbell Islands | southern | temperate 50, polar 50 | 50–53 S° | 500 | 0.4 |  |
 
-Ocean shares: Indian 45%, Pacific 28%, Atlantic 27%.
+### Desert (≈ 9% of days)
 
-| Ocean | Region | Places | Weight | Latitude | Notes |
-|---|---|---|---|---|---|
-| Indian | `arabia` | Red Sea, Oman, Persian Gulf, Yemen | 60 (today 100) | 12–30° | Saudi Arabia 2,640, Oman 2,092, Yemen 1,906, UAE 1,318 km |
-| Indian | `horn-of-africa` **new parent** | Somalia, Eritrea, Djibouti | 15 | 2–16° | |
-| Indian | `western-australia-desert` **new parent** | Shark Bay, Ningaloo, Pilbara | 25 | 20–27° (south) | |
-| Pacific | `atacama-peru` | Atacama, Peru | 60 | 5–27° (south) | camanchaca; Peru 2,414 km |
-| Pacific | `baja-sonora` | Baja California, Gulf of California | 40 | 23–31° | |
-| Atlantic | `sahara-atlantic` | Mauritania, Western Sahara, south Morocco | 55 | 18–29° | Mauritania 754 km |
-| Atlantic | `namibia` | Skeleton Coast, Walvis Bay | 45 | 17–29° (south) | Namibia 1,572 km |
-
-**Hemisphere:** "(south)" after a latitude marks a southern-hemisphere region; all
-Southern Ocean regions are southern. Everything else is northern.
-
-## 1b. Sub-places
-
-A sub-place is drawn with the region (PLAN_BIOMES 2a) and overrides the region's values
-where listed; regions not listed have no sub-places. Weights are within the region, by
-judgment (≈).
-
-| Region | Sub-place | Weight | Overrides |
-|---|---|---|---|
-| `norway` | `norway-west` (Stavanger to Trøndelag) | 50 | 58–64°, temperate, tide ≈ 0.3–1.5 m |
-| `norway` | `norway-north` (Nordland, Lofoten, Troms, Finnmark) | 50 | 64–71°, boreal, tide ≈ 2–3 m |
-| `atlantic-canada` | `newfoundland` | 30 | 46–52°, boreal |
-| `atlantic-canada` | `nova-scotia` (Atlantic shore) | 25 | 43–47° |
-| `atlantic-canada` | `fundy` | 15 | 44–46°, tide 11.7 m mean (to ~16 m), red mud and sand ~40% of beaches, tidal flats |
-| `atlantic-canada` | `pei` (and Northumberland Strait) | 15 | 46–47°, red sand ~60%, tide ≈ 1 m |
-| `atlantic-canada` | `maine` | 15 | 43–45°, tide ≈ 3 m |
-| `britain-ireland` | `scotland` | 35 | 55–59°, haar |
-| `britain-ireland` | `ireland` | 25 | 51–55° |
-| `britain-ireland` | `cornwall-wales` | 25 | 50–53° |
-| `britain-ireland` | `bristol-channel` | 7 | 51°, tide 9.6 m mean (to ~15 m) |
-| `britain-ireland` | `morecambe-bay` | 8 | 54°, macro tide, tidal flats |
-| `brittany-normandy` | `brittany` | 70 | 47–49°, tide ≈ 5–8 m |
-| `brittany-normandy` | `mont-saint-michel` (Saint-Malo, Chausey) | 30 | 48–49°, tide 8–14 m, tidal flats |
-| `south-georgia-falklands` | `south-georgia` | 50 | 54–55° (south), polar |
-| `south-georgia-falklands` | `falklands` | 50 | 51–52° (south), temperate |
-| `east-asia-subtropical` | `south-japan` | 45 | 30–35° |
-| `east-asia-subtropical` | `taiwan-south-china` (incl. Hong Kong, Matsu) | 35 | 22–26°, blue tears Apr–Jun |
-| `east-asia-subtropical` | `yellow-sea` (Korea west, Incheon) | 20 | 34–38°, temperate, tide ~9.5 m spring, tidal flats |
-| `caribbean` | `antilles` | 67 | 12–23°, tide 0.1–0.2 m |
-| `caribbean` | `yucatan-belize` (incl. Holbox) | 15 | 16–21°, bioluminescence Jun–Sep |
-| `caribbean` | `bahamas-bermuda` | 18 | 21–32°, pink sand ~25%, tide ≈ 0.8 m |
-| `arabia` | `red-sea` | 45 | 13–28°, tide ≈ 0.5 m, reefs |
-| `arabia` | `oman` | 30 | 17–24° |
-| `arabia` | `persian-gulf` | 25 | 24–30°, tide ≈ 1–3 m |
-| `south-asia-islands` | `maldives` | 40 | 0–7°, bioluminescence Jun–Oct |
-| `south-asia-islands` | `sri-lanka` | 30 | 6–10° |
-| `south-asia-islands` | `andaman-lakshadweep` | 30 | 8–14°, bioluminescence Oct–Mar |
-| `alaska` | `cook-inlet` | 15 | 59–61°, tide ~9 m mean (to ~11.6 m) |
-| `alaska` | `se-alaska` | 50 | 54–59°, tide ≈ 4–5 m |
-| `alaska` | `gulf-aleutians` | 35 | 52–60° |
+| Place | Region | Covers | Ocean | Climate | Latitude | Coast km ≈ | Share % | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `red-sea` | `arabia` | Red Sea coasts (Egypt, Saudi Arabia, Sudan) | indian | arid | 13–28° | 4,500 | 0.7 | tide ≈ 0.5 m; reefs |
+| `oman-yemen` | `arabia` | Oman, Yemen | indian | arid | 12–24° | 4,000 | 0.6 |  |
+| `persian-gulf` | `arabia` | UAE, Qatar, Kuwait, Bahrain, Saudi Gulf, south Iran | indian | arid | 24–30° | 4,800 | 0.8 | tide ≈ 1–3 m |
+| `horn-of-africa` | – | Somalia, Eritrea, Djibouti | indian | arid | 2 S–18° | 5,500 | 1.4 | new |
+| `western-australia-desert` | – | Shark Bay, Ningaloo, Pilbara | indian | arid | 20–27 S° | 4,000 | 1.1 | new |
+| `atacama-peru` | – | Atacama, Peru | pacific | arid | 5–27 S° | 3,900 | 1.1 | camanchaca |
+| `baja-sonora` | – | Baja California, Gulf of California | pacific | arid | 23–31° | 4,500 | 1.2 |  |
+| `sahara-atlantic` | – | Mauritania, Western Sahara, south Morocco | atlantic | arid | 18–29° | 2,400 | 0.9 |  |
+| `namibia` | – | Skeleton Coast, Walvis Bay | atlantic | arid | 17–29 S° | 2,000 | 0.8 |  |
 
 ## 2. Sand grain and fall velocity (phase 4)
 
@@ -316,9 +308,11 @@ phase 6 lagoon), not the surf effect.
 
 ## To check
 
-Each region sets its own latitude; basin ranges in `oceans.ts` are the fallback (PLAN_BIOMES
-decision 10).
+Each place sets its own latitude; the basin ranges in `oceans.ts` are no longer used for
+it.
 
+- Coast km per place (split by judgment) and climate weights: rough; refine when a phase
+  depends on a specific share.
 - ≈ values (tides for Patagonia, Red Sea, Norway, Iceland; some grain sizes; slopes)
    need one lookup each in national tables or papers before tests depend on them.
 
