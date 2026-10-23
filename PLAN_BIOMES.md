@@ -1,9 +1,10 @@
 # Plan: coasts, biomes and coastal weather
 
-Brings the wallpaper's coasts closer to the world's: rocky shores, reef-fronted tropical
-beaches, tides, beach shapes that follow the waves, more sand colours, two missing
-climates, coastal weather and the animals these open up, starting with stony beaches
-(phase 1; research and sources in COASTS.md). Status 2026-10-23: plan only, nothing built.
+Brings the wallpaper's coasts closer to the world's: stony beaches, rocky shores,
+reef-fronted tropical beaches, tides, beach shapes that follow the waves, more sand colours,
+calm lagoons, two missing climates, the real sun for the place and date, coastal weather and
+the animals these open up. Research and sources for stony beaches are in COASTS.md; the rest
+are at the end. Status 2026-10-23: plan only, nothing built.
 
 ## Why: research vs. today
 
@@ -11,44 +12,95 @@ Research summary (sources at the end; details go into COASTS.md in phase 0).
 
 | Topic | Real world | Today | Phase |
 |---|---|---|---|
-| Coast types | ~40% sand/gravel, 21% mud, 13% rocky, 27% bare rock; ~33% cliffed | `beach` 65% (all sand), `open-sea` 35% | 1, 6, 8 |
-| Beach shape | Reflective (steep, no bar), intermediate (cusps, rips), dissipative (flat, 2–3 bars) by grain and swell | Slope 0.035–0.11 and a sandbar 60%, not tied to waves | 3 |
-| Tropical beaches | Most island beaches sit behind a fringing reef: waves break on the crest 100–500 m out, 50–75% of the height lost, calm lagoon inside | Surf breaks on the beach | 4 |
+| Coast types | ~40% sand/gravel, 21% mud, 13% rocky, 27% bare rock; ~33% cliffed | `beach` 65% (all sand), `open-sea` 35% | 1, 8, 9 |
+| Beach shape | Reflective (steep, no bar), intermediate (cusps, rips), dissipative (flat, 2–3 bars) by grain and swell | Slope 0.035–0.11 and a sandbar 60%, not tied to waves | 4 |
+| Tropical beaches | Most island beaches sit behind a fringing reef: waves break on the crest 100–500 m out, 50–75% of the height lost, calm lagoon inside | Surf breaks on the beach | 6, 7 |
 | Tides | Micro < 2 m (Mediterranean, Caribbean, Baltic), meso 2–4 m, macro > 4 m (Fundy, Brittany, Patagonia, NW Australia); spring tides at new and full moon | Fixed sea level | 5 |
-| Sand colour | Also pink (foraminifera: Bermuda, Bahamas, Komodo) and red (iron: Prince Edward Island, Santorini, Maui) | white, golden, grey, black | 2 |
-| Landforms | Barrier islands and lagoons, spits, fjords, rias, beachrock, tidal flats, salt marsh | none of these | 7, 8 |
-| Climates | Temperate oceanic (Britain, Atlantic Canada, Pacific NW, NZ), humid subtropical (Florida, S Brazil, Queensland, Natal, S Japan), treeless polar | Five biomes; nordic Arctic has conifers and birch | 2, 9 |
-| Weather | Marine-layer stratus mornings (California, Atacama, May–Jul), sea-breeze cumulus over land, harmattan dust (West Africa Dec–Feb), offshore wind spray, winter snow and ice foot, bioluminescent surf | fog, sea smoke, dust, monsoon, storms ✓; the rest missing | 2, 10 |
-| Animals | Sea otters, walrus, polar bears, waders on flats, oystercatchers, tidepool life | none of these | 11 |
+| Sand colour | Also pink (foraminifera: Bermuda, Bahamas, Komodo) and red (iron: Prince Edward Island, Santorini, Maui) | white, golden, grey, black | 3 |
+| Landforms | Barrier islands and lagoons, spits, fjords, rias, beachrock, tidal flats, salt marsh | none of these | 7, 9, 10 |
+| Climates | Temperate oceanic (Britain, Atlantic Canada, Pacific NW, NZ), humid subtropical (Florida, S Brazil, Queensland, Natal, S Japan), treeless high Arctic | Five biomes; polar coasts already lose trees, but the Arctic keeps birch | 3, 11 |
+| Sun | Polar night in Arctic winter, midnight sun in Arctic summer | Time of day is a category, independent of latitude and date | 12 |
+| Weather | Marine-layer stratus mornings (California, Atacama, May–Jul), sea-breeze cumulus over land, harmattan dust (West Africa Dec–Feb), offshore wind spray, winter snow and ice foot, bioluminescent surf | fog, sea smoke, dust, monsoon, storms ✓; the rest missing | 3, 13 |
+| Animals | Sea otters, walrus, polar bears, waders on flats, oystercatchers, tidepool life | none of these | 14 |
+
+## What the code does today (constraints found in review)
+
+These shape the order and the shared steps below.
+
+- **Terrain is one cross-section.** `terrainHeightAt` (`terrain.ts`, GLSL and TS mirror) is a
+  function of the distance from the waterline `s` (plus noise); `hasCoast` / `coast.type
+  !== 'beach'` returns −200 m for open sea. Coast type is checked 21 times in 14 files
+  (`composition.ts`, `camera.ts`, `scene.ts`, `terrain.ts`, `params.ts`, props). Shapes that
+  vary along the shore in plan view (spit, lagoon behind a barrier, fjord walls) can't be
+  written as a cross-section.
+- **Water is calm only where it is shallow.** `ocean.ts` `shallowDamping(depth)` is the only
+  damping; there is no shelter. A 2 m lagoon keeps about half the swell, and the surf code
+  breaks waves on its shore.
+- **Sea level is 0 everywhere** (ocean, `SURF_GLSL`, `seaLevel()`, prop placement).
+- **Regions exist only in `props/wildlife.ts`** (`regionFor`: warm coasts only, drawn on a
+  prop stream). Tides, harmattan and new sand colours need named places on every coast.
+- **Time of day is a weighted category** (`params.ts` ~1101), not the sun of a real place
+  and date; eclipses already override it after the draw.
+- **Weather kind is drawn before the biome** (`generateWeather` before `biome` at ~1305);
+  formations are picked later with the climate. Region-dependent weather must override
+  after the biome is known, as the eclipse code does.
+- **Polar coasts already filter plants** (`params.ts` ~1314): Arctic keeps grass, bush and
+  birch; Southern Ocean grass and bush.
 
 ## Rules for every phase
 
 - Read PLAN.md "How it works" and "Lessons and gotchas" and the closest module first;
   follow CLAUDE.md (choice/geometry split, own streams, spec fields, tests, renders).
 - **Own streams only.** New draws use `Random.derive(seed, '<feature>')` or
-  `ctx.rng('<feature>')`, never the main `rng` in `generateParams`. Days that don't get
-  the new feature stay byte-identical (`test/sceneSpec.test.ts`, `bench.mjs` pixel
-  diff 0). The exceptions are phases 3 and 9, which change existing days on purpose:
-  each says so in the changelog.
+  `ctx.rng('<feature>')`, never the main `rng` in `generateParams`.
+- **Only the days that get a feature change.** Every other day stays byte-identical
+  (`test/sceneSpec.test.ts`, `bench.mjs` pixel diff 0). Each phase's changelog row says
+  which existing days change (e.g. "tropical beach days with a reef", "all beach days"
+  for phase 4).
 - **Spec field for every feature** (`sceneSpec.ts`), always drawn, then forced with
-  `or()` / `forced()` / `forcedKind()`. Add each one to the CLAUDE.md field list.
+  `or()` / `forced()` / `forcedKind()`. A forced value always wins over gates and tables.
+  Add each field to the CLAUDE.md field list.
 - **Choice tables** are pure `xxxFor(params, rng)` functions exposed in `props/choices.ts`,
   so `scripts/params.mjs --stats` can count them without rendering.
-- **Budget:** render time within ~10% of today per phase (`bench.mjs`); meshes < 100k tris;
-  detail only near the camera.
+- **Budget:** render time within ~10% of today per phase (`bench.mjs`); meshes < 100k tris,
+  instanced props < ~1M tris in total; detail only near the camera. The terrain shader
+  grows in several phases: measure it each time, and branch on coast kind (uniform) so
+  only one profile runs per day.
 - **"Done"** only for what a render or `diff.mjs` showed. ~3 render rounds per phase.
 - **One commit per phase step**, `npm test` and `npx tsc --noEmit` first. Never commit
   TODO.md.
 
 ## Phases
 
+Order follows dependencies: shared pieces (regions, tides, calm water, coast-kind terrain)
+come before the features that need them.
+
+| # | Phase | Needs |
+|---|---|---|
+| 0 | Docs: research and gaps | – |
+| 1 | Stony beaches | – |
+| 2 | Shared regions | – |
+| 3 | Cheap table changes | 2 |
+| 4 | Beach shape from waves and grain | 1 |
+| 5 | Tides | 2 |
+| 6 | Calm water (shelter mask) | – |
+| 7 | Reef-fronted tropical beaches | 5, 6 |
+| 8 | Coast kinds in the terrain; rocky shore | 1, 5 |
+| 9 | Tidal flats and salt marsh | 5, 8 |
+| 10 | Landforms: barrier lagoon, spit, fjord | 6, 8 |
+| 11 | Climates: temperate, subtropical, polar | 2, 3 |
+| 12 | The real sun: polar night, midnight sun | 2 |
+| 13 | Weather extras | 2, 11, 12 |
+| 14 | Animals | 5, 7, 8, 9, 11 |
+
 ### 0. Docs: research and gaps (no code)
 
 - COASTS.md: add "Research: the world's coasts" (coast-type shares, beach states, sand
   colours, tides, reef-fronted beaches, landforms, climates) with sources, and a
-  "Gaps" table pointing to the phases here.
+  "Gaps" table pointing to the phases here. Fix "nordic Arctic has conifers" wherever it
+  appears (polar coasts already drop trees; only birch remains in the Arctic).
 - CLOUDS.md: a "Coastal weather" note: marine layer, sea breeze, harmattan, offshore winds
-  (marked "planned, PLAN_BIOMES phase 2/10").
+  (marked "planned, PLAN_BIOMES phases 3/13").
 - ANIMALS.md: a "Planned" list under the rules (sea otter, walrus, polar bear, waders).
 - Commit: "Docs: coast and climate research, gaps vs. today".
 
@@ -56,7 +108,7 @@ Research summary (sources at the end; details go into COASTS.md in phase 0).
 
 Adds pebble, shingle and cobble beaches, such as those of Atlantic Canada, Norway, Nice and
 Iceland, as a **beach material** that biomes choose, next to sand colour. It adds
-`coast.material`, steep ridged profiles and the stone shader, which phases 3, 6 and 8 reuse.
+`coast.material`, steep ridged profiles and the stone shader, which phases 4, 8 and 9 reuse.
 
 **Done when:**
 
@@ -88,7 +140,8 @@ Iceland, as a **beach material** that biomes choose, next to sand colour. It add
 | tropical | 85 | 10 | – | 5 | pale coral rubble, dark basalt |
 
 Target over 2024–2026: ~62% of beach days sand, ~15% mixed, ~23% shingle or cobble (close
-to reality; decision 1). Phase 9 adds rows for `temperate` (much shingle) and `polar`.
+to reality; decision 1). Phase 11 re-keys the nordic rows by climate (temperate: much
+shingle; polar: as "nordic, Arctic").
 
 #### 1a. Choice and spec (no rendering change)
 
@@ -97,7 +150,7 @@ to reality; decision 1). Phase 9 adds rows for `temperate` (much shingle) and `p
 - `params.ts` `generateCoast`: `coast.material` drawn from
   `Random.derive(seed, 'beach-material')`, always drawn and then forced via
   `or(drawn, spec.beachMaterial)`. Open-sea days get `'sand'` (unused).
-- Shape on non-sand days only, from that same stream (sand days don't touch it; phase 3
+- Shape on non-sand days only, from that same stream (sand days don't touch it; phase 4
   later derives all slopes from the beach state, with stony beaches always reflective):
   - `beachSlope` 0.12–0.25 (shingle/cobble), 0.08–0.14 (mixed);
   - `beachWidth` 12–40 m; `sandbarHeight = 0`; `duneHeight` small (grass or rock behind);
@@ -121,7 +174,7 @@ to reality; decision 1). Phase 9 adds rows for `temperate` (much shingle) and `p
 - Render check: `--scene '{"beachMaterial":"cobble","composition":"along-beach"}'` with
   stones still drawn as sand; the profile and surf should already look right.
 
-#### 1c. Stone texture in the terrain shader (15–80 m)
+#### 1c. Stone texture in the terrain shader (5–80 m)
 
 - `stoneMaterial` uniform (0 sand, 1 mixed, 2 shingle, 3 cobble), `stoneSize`, `stoneColors`.
 - Voronoi cells over shore coords, cell size = stone size; per cell: albedo from the palette
@@ -134,15 +187,20 @@ to reality; decision 1). Phase 9 adds rows for `temperate` (much shingle) and `p
 - Also feed the palette mean to `ocean.ts` `sandAlbedo` (shallow seabed colour).
 - Test patched GLSL at `--w 320 --h 180 --frames 1` first.
 
-#### 1d. Stones near the camera (≤ ~15 m)
+#### 1d. Stones near the camera (≤ ~5–8 m)
+
+The shader carries the stones from ~5 m out; meshes only where parallax and real shadows
+show (the foreground of `framed` and `shoreline` views).
 
 - `src/props/stones.ts`: `stoneGeometry(rng, size)`: flattened ellipsoid (pebbles: smooth,
-  rounded; cobbles: a few flat facets like `rockGeometry`, much lower detail), 150–600 tris,
+  rounded; cobbles: a few flat facets like `rockGeometry`, much lower detail), 50–150 tris,
   base on y = 0. Preview with `scripts/mesh.mjs`.
 - `createStones(ctx)`: own stream `ctx.rng('stones')`; ~6 variants in one `InstancedMesh`,
-  placed on the visible beach within ~15 m (`ctx.visible`), packed by Poisson-disc with
+  placed on the visible beach within ~5–8 m (`ctx.visible`), packed by Poisson-disc with
   partial burial, rotation, scale by grading. Colour per instance from the palette.
-  `castShadow`/`receiveShadow`, `frustumCulled = false`. Budget: < 40k instances.
+  `castShadow`/`receiveShadow`, `frustumCulled = false`.
+- **Budget:** ≤ ~8k instances, ≤ ~1M triangles in all (pebbles under ~3 cm are shader
+  only). Check with `bench.mjs`; if over 10%, shrink the radius before the triangle count.
 - Register in `props/index.ts`; `--props stones` reports count and nearest distance.
 - Mesh tests: deterministic, finite, base near y = 0, triangle budget.
 
@@ -167,197 +225,319 @@ to reality; decision 1). Phase 9 adds rows for `temperate` (much shingle) and `p
 - ~3 render rounds. Then: changelog.md, PLAN.md ("How it works": beach material; lessons;
   references from COASTS.md), COASTS.md shares and mark its stony-beach proposal done,
   ANIMALS.md if animal rules changed.
-- Arctic winter stones under snow and an ice foot come in phase 10.
+- Arctic winter stones under snow and an ice foot come in phase 13.
 
-### 2. Cheap table changes (no new geometry)
+### 2. Shared regions (no rendering change)
 
-Each is a table row or a palette, plus a spec value and a test.
+Named places for every coast, so tables can say "Fundy" or "West Africa" instead of
+"biome × ocean".
+
+- `src/regions.ts`: `type Region` and `regionFor(biome, ocean, latitudeDeg, rng)` on stream
+  `Random.derive(seed, 'region')`, weighted per biome × ocean, e.g.:
+  - nordic atlantic: norway, scotland, atlantic-canada (incl. Fundy, PEI), iceland-faroe,
+    brittany-cornwall, baltic; nordic pacific: alaska, bc; arctic: svalbard, greenland,
+    arctic-canada; southern: tierra-del-fuego, south-georgia;
+  - mediterranean: mediterranean-sea (atlantic), california, chile, sw-australia,
+    south-africa-cape;
+  - tropical, volcanic, desert: today's warm regions from `wildlife.ts` plus bermuda-bahamas,
+    red-sea, namibia, atacama, canaries, japan, iceland.
+- `SceneParams.region`; spec field `region` (forcing it also forces a matching biome and
+  ocean, or throws if they're forced to something else).
+- `wildlife.ts` reads `params.region` and maps it to its `WildRegion`. **Animal choices must
+  not change:** keep `regionFor`'s warm-coast draws as they are (same stream and order) and
+  only add the new regions where wildlife returned `null`; `node scripts/animals.mjs` table
+  identical before and after.
+- `latitudeDeg` follows the region where it matters (Svalbard 76–78°, the top of the Arctic range; Fundy 44–46°): drawn
+  on the region stream inside the ocean's range, so non-polar days keep today's latitude
+  (check `test/params.test.ts`).
+- Tests: every biome × ocean has regions, shares roughly as weighted, wildlife choices
+  identical over `allParams()`.
+- Docs: PLAN.md "How it works" (regions), COASTS.md (region table), ANIMALS.md (regions now
+  shared).
+
+### 3. Cheap table changes (no new geometry)
+
+Each is a table row or a palette, plus a spec value and a test. Changes only the days that
+get them.
 
 | Change | Where | Rule |
 |---|---|---|
-| Pink sand | `biome.ts` `SANDS` (`pink`, albedo ≈ [0.68, 0.52, 0.48]); tropical Atlantic and Indian sands | ~5% of tropical-Atlantic beaches, ~2% tropical Indian (Komodo) |
-| Red sand | `SANDS` (`red`, ≈ [0.42, 0.2, 0.12]) | nordic Atlantic ~5% (PEI, Fundy), volcanic ~4% (Santorini, Maui), desert ~5% |
-| Sand colour on its own stream | `generateCoast` | New colours drawn from `Random.derive(seed, 'sand-colour')` only when a gate draw says so, so existing sand days keep their colour |
-| No trees on Arctic coasts | `props/vegetation.ts` | `ocean === 'arctic'` or latitude > ~68°: grass, low willow and bush only (tundra); Southern-Ocean nordic (Tierra del Fuego) keeps beech/conifer |
-| Marine-layer mornings | `clouds.ts` / `pickFormations` | Mediterranean-Pacific (California) and desert-Pacific (Atacama), May–Aug: stratus or Sc deck at ~300–600 m on ~45% of mornings (golden hour to late morning), breaking up by afternoon; weaker in other months |
-| Harmattan | `seaHaze.ts` | Tropical Atlantic, West Africa region, Dec–Feb: dust visibility 2–10 km, ochre haze, sun dimmed and reddened; ~50% of those days |
-| Haar | `params.ts` fog | Nordic Atlantic Apr–Jul: advection-fog chance up (check `fogSeason` first; may already be right) |
+| Pink sand | `biome.ts` `SAND_STYLES` (`pink`, albedo ≈ [0.68, 0.52, 0.48]) | bermuda-bahamas ~25% of beaches, se-asia ~3% (Komodo), other tropical ~1% |
+| Red sand | `SAND_STYLES` (`red`, ≈ [0.42, 0.2, 0.12]) | atlantic-canada ~15% (PEI, Fundy), volcanic Mediterranean/Hawaii ~4% (Santorini, Maui), desert ~3% (Oman, Red Sea) |
+| Sand colour gate | `generateCoast` | The colour is still drawn from `biome.sands` as today; a second draw on `Random.derive(seed, 'sand-colour')` replaces it with pink or red at the region's chance. A forced `sand` wins over both |
+| High Arctic tundra | `params.ts` polar filter (~1314) | Already no trees on polar coasts; above ~74° (Svalbard, high Arctic Canada, N Greenland) also drop birch (only dwarf willow and birch, < 30 cm, which read as `grass`/`bush`) |
+| Southern Ocean plants | same | tierra-del-fuego region: add southern beech (as `broadleaf`, wind-bent) at the back; South Georgia stays grass (tussock) |
+| Marine-layer mornings | override after the biome is known (like eclipses) | california and atacama regions, May–Jul (Jun–Sep weaker in Atacama: winter-spring camanchaca), golden hour to late morning: overcast with stratus or Sc deck at ~300–600 m on ~45% of those mornings; ~15% in Aug–Oct; never on storm days |
+| Harmattan | `seaHaze.ts` | west-africa region, Dec–Feb: dust visibility 2–10 km, ochre haze, sun dimmed and reddened; ~50% of those days |
+| Haar | `params.ts` fog | scotland and norway regions Apr–Jul: check `fogSeason` first; raise the advection chance only if it doesn't already peak then |
 
-- Spec: `sand` accepts `pink` and `red`; `weather.marineLayer` via `clouds` already works;
-  add `"dust": "harmattan"` only if `seaHaze` has no force today.
-- Tests: `test/biome.test.ts` (new): pink and red sand only where listed, roughly as often;
-  `test/seaHaze.test.ts`: harmattan only West Africa Dec–Feb; `test/cloudTypes.test.ts`:
-  marine layer by region and month; vegetation: no conifer/birch on Arctic days.
-- Renders: PEI red beach (nordic atlantic, golden hour), Bermuda pink (tropical atlantic,
-  daylight front-lit), Svalbard tundra (nordic arctic, along-beach), California June
-  morning (mediterranean pacific, `"date": "2025-06-14"`, golden hour), Loango harmattan
-  (`2025-01-10`, tropical atlantic).
+- Spec: `sand` accepts `pink` and `red`; marine layer is forced with the existing
+  `weather: "overcast"` + `clouds: ["stratus"]`, plus a new `marineLayer: true|null` so
+  tests can switch it off; harmattan via a new `dust: "harmattan"|null` if `seaHaze` has
+  no force today.
+- Tests: `test/biome.test.ts` (new): pink and red only in the listed regions, roughly as
+  often; `test/seaHaze.test.ts`: harmattan only west-africa Dec–Feb;
+  `test/cloudTypes.test.ts`: marine layer by region, month and time of day; vegetation: no
+  birch above 74°, beech only in tierra-del-fuego.
+- Renders: PEI red beach (`region: "atlantic-canada"`, `sand: "red"`, golden hour),
+  Bermuda pink (daylight, front-lit), Svalbard tundra (along-beach), California June
+  morning (`"date": "2025-06-14"`, golden hour), Loango harmattan (`2025-01-10`).
 - Docs: COASTS.md sand table, CLOUDS.md marine layer row, PLAN.md "How it works" (sand
-  colour stream, tundra), changelog.
+  colour gate, tundra), changelog (days that change: marine-layer mornings, harmattan
+  days, pink/red days, high-Arctic plants).
 
-### 3. Beach shape from waves and grain (Wright & Short)
+### 4. Beach shape from waves and grain (Wright & Short)
 
-Changes every beach day on purpose: slope and bars become physical instead of random.
+Changes every beach day on purpose (decision 5): slope and bars become physical instead of
+random.
 
-- `src/beachState.ts`: `beachStateFor(material, grain, swellHeight, swellPeriod, rng)` →
+- `src/beachState.ts`: `beachStateFor(material, grainMm, breakerHeight, swellPeriod)` →
   `'reflective' | 'low-tide-terrace' | 'transverse-bar-rip' | 'rhythmic-bar' |
   'longshore-bar' | 'dissipative'` from the dimensionless fall velocity
-  Ω = Hb / (ws · T) (reflective < 1.5, dissipative > 5.5). Grain per biome and sand colour
-  (coral and black sand coarse, quartz golden medium, fine on dissipative coasts); shingle
-  and cobble are always reflective.
-- `generateCoast`: slope, bar count (0–3), bar distance and sandbar height from the state;
-  storms and winter months push one state toward dissipative (winter profile).
+  Ω = Hb / (ws · T) (reflective < 1.5, dissipative > 5.5). `ws` from grain size (Gibbs or
+  Soulsby fall-velocity formula). Pure: no rng; the grain is drawn on the beach-material
+  stream.
+- Grain table (`GRAIN`): coral white 0.4–1 mm, black volcanic 0.5–2 mm, golden quartz
+  0.2–0.5 mm, grey 0.15–0.4 mm, pink/red as their parent; shingle and cobble always
+  reflective.
+- `Hb` from the coast's surf amplitude and sets (`surfWave`); winter months and the days
+  after a storm push one state toward dissipative (winter profile).
+- `generateCoast`: slope, bar count (0–3), bar distances and heights from the state.
 - `terrain.ts` (GLSL + TS mirror, `test/terrain.test.ts`):
   - **beach cusps** on reflective and intermediate beaches: horns and bays along `a`,
-    spacing ≈ run-up length (15–40 m), 0.1–0.4 m relief, a cheap sine of `a` with
-    wobble on the upper swash zone;
-  - **rip channels** on transverse-bar-rip and rhythmic states: gaps in the bar every
-    150–400 m; `ocean.ts` gets darker, calmer water and fewer breakers over them (the
-    bar depth already drives breaking).
+    spacing ~1.5 × swash length (15–40 m), 0.1–0.4 m relief, a sine of `a` with wobble on
+    the upper swash zone;
+  - **rip channels** on transverse-bar-rip and rhythmic states: the bar term gets an
+    `a`-dependent gap every 150–400 m. The surf already breaks by local depth, so gaps
+    show as fewer breakers; `ocean.ts` adds darker, rougher water over the channel.
 - Spec: `beachState`.
 - Tests: Ω thresholds, every material/biome gets plausible states, cusps only on steep
   states, terrain TS/GLSL mirror.
 - Renders: along-beach on a cusped reflective beach (Mediterranean) and a dissipative
-  multi-bar beach (desert atlantic, big swell); `bench.mjs` (expect pixel change, ≤ 10% time).
-- Docs: PLAN.md "How it works" (beach state), lessons; changelog notes "all beach days
-  change slope".
-
-### 4. Reef-fronted tropical beaches
-
-- Choice: `reefFor(params, rng)` on stream `'reef'`: fringing reef on ~60% of tropical
-  beach days (Pacific and Indian islands more than continental Atlantic), ~20% of
-  volcanic Pacific (Hawaii) and desert Indian (Red Sea); none elsewhere. Reef distance
-  100–500 m, lagoon depth 1–3 m, passes (gaps) every 0.5–2 km.
-- `terrain.ts`: seabed profile with a shallow lagoon, a reef flat and crest at ~0.3 m below
-  mean sea, then a steep drop-off. Surf breaks on the crest from the existing
-  `surfBreakDepth`; the beach gets only the re-formed small waves (shorebreak 10–30% of
-  offshore height).
-- `ocean.ts`: lagoon colour (turquoise over sand, brown-green patches over coral heads by
-  noise), crest foam line, darker blue past the drop-off; caustics already exist.
-- Beachrock: flat, slightly tilted grey ledges along the waterline on ~30% of reef
-  beaches (`rocks.ts` style, very low poly, instanced).
-- Keeps mangroves and sheltered surf in mind: a reef counts as sheltered for
-  `mangroveFor`.
-- Spec: `reef` (null/true/`"fringing"`), `beachrock`.
-- Tests: reef only on the listed coasts, profile continuity, surf height inside the lagoon.
-- Renders: Maldives-like (tropical indian, shoreline, midday), Tahiti (tropical pacific,
-  overlook), Hawaii (volcanic pacific, along-beach), each front-lit then backlit;
-  `diff.mjs --off '{"reef":null}'`.
-- Docs: COASTS.md (reef share), PLAN.md "How it works" (reef profile), changelog; animals
-  that now fit (phase 11): reef herons, blacktip sharks in the lagoon.
+  multi-bar beach (namibia, big swell); `bench.mjs` (expect pixel change, ≤ 10% time).
+- Docs: PLAN.md "How it works" (beach state), lessons; changelog: "all beach days change
+  slope and bars".
 
 ### 5. Tides
 
-- `src/tides.ts`: `tideFor(params, rng)` → `{ range, level }`. Range class by region
-  (`TIDAL_RANGE` table: Mediterranean and Caribbean micro 0.2–0.5 m; most open coasts
-  meso 1.5–3 m; Fundy, Brittany, Patagonia, NW Australia, Korea, Alaska macro 4–12 m),
-  × 1.2 at spring tides (new/full moon, from the existing moon phase) and × 0.8 at neaps.
-  Level = a random phase of the semidiurnal cycle on stream `'tide'`.
-- Sea level: shift the water plane and every shore-relative thing (`shoreToWorld` s = 0,
-  `beachLines`, run-up, surf profile) by `level`. Wrack stays on the last high-tide line,
-  so at low tide it sits far up a wide wet band.
-- Low-tide look (meso and macro only): wet-sand band widens; exposed rocks get a dark
-  weed/mussel band (vertex colour below the high-water line in `rocks.ts`); tidepools as
-  flat mirror patches between rocks; on reef coasts the reef flat dries.
-- Spec: `tide` (`"low" | "mid" | "high"` or a level in m), `tidalRange`.
-- Tests: ranges per region, spring/neap from moon phase, level in range, all shore props
-  move with the waterline.
-- Renders: Brittany low tide (nordic atlantic, along-beach), same at high tide,
-  Mediterranean (no visible change); `diff.mjs` between low and high.
-- Docs: PLAN.md "How it works" (tides), lessons, CLAUDE.md spec fields, changelog.
+- `src/tides.ts`: `tideFor(params, rng)` → `{ range, level, phase }`. Range by region
+  (`TIDAL_RANGE`): mediterranean-sea, caribbean, baltic micro 0.1–0.5 m; most open coasts
+  meso 1.5–3 m; atlantic-canada (Fundy subset), brittany-cornwall, tierra-del-fuego,
+  nw-australia, korea, alaska macro 4–12 m. × 1.2 at spring tides (moon phase within ~2
+  days of new/full) and × 0.8 at neaps.
+- Level: a random phase of the semidiurnal cycle on stream `'tide'` (real high-water
+  times depend on each port's lunitidal interval; a random phase is realistic for an
+  unnamed beach). Spec `tide: "low"|"mid"|"high"` sets the phase.
+- **Lower the land, not the sea.** Sea level 0 stays everywhere (ocean, surf, `seaLevel()`).
+  The terrain profile and everything placed on it (rocks, debris, plants, animals,
+  lighthouse mound) shift by −`level`; `beachLines` and the wrack stay attached to the
+  land. One offset uniform in `terrain.ts` plus the TS mirror; props already sample the
+  terrain. Distant islands and landforms don't move (sub-pixel).
+- Low-tide look (meso and macro only): wider wet band (wetness by height above the last
+  high water); exposed rocks get a dark weed/mussel band (vertex colour below the
+  high-water line in `rocks.ts`); tidepools as flat mirror patches between rocks.
+- Spec: `tide`, `tidalRange`.
+- Tests: ranges per region, spring/neap from moon phase, level in range, terrain and props
+  move together, micro-tidal days byte-identical within 1 cm (or exactly, if level is 0).
+- Renders: Brittany low and high tide (along-beach), Mediterranean (no visible change);
+  `diff.mjs` between low and high.
+- Docs: PLAN.md "How it works" (tides, land offset), lessons, CLAUDE.md spec fields,
+  changelog (days that change: all meso- and macro-tidal beach days).
 
-### 6. Rocky shore coast type
+### 6. Calm water (shelter mask)
 
-- `generateCoast`: coast types `beach` 55%, `rock-shore` 10%, `open-sea` 35% on
-  stream `'coast-kind'` so beach/open-sea days stay identical; by biome (nordic,
-  volcanic and Mediterranean most; tropical and desert least).
-- Terrain: wave-cut platform (flat, slightly seaward-dipping shelf, ragged edge), a
-  low cliff or boulder slope behind, no sand. Reuse `rocks.ts` boulders on the platform and
-  the phase-1 cobble shader in gaps.
+Needed by reef lagoons (7), barrier lagoons, spits and fjords (10), and later sheltered
+mangroves.
+
+- `ocean.ts`: a `shelter(p)` term in 0..1 multiplying the swell cascades (not the short
+  wind chop), next to `shallowDamping`. Sources, as uniforms: a reef or barrier line in
+  shore coords (`s` beyond which the sea is open), and up to a few polygons/ellipses for
+  lagoons and fjord interiors. Wind chop scales with fetch inside (lagoon width).
+- `SURF_GLSL` and the TS mirror (`surfWave`): offshore height × (1 − shelter), so no sets
+  break on a lagoon shore; foam and refracted surf follow.
+- Waves that pass a reef or bar re-form at 10–30% of the offshore height (the sandbar code
+  already re-forms waves; reuse it).
+- `seaLevel()` (CPU) applies the same mask so floating props sit still in a lagoon.
+- Tests: mask 0 everywhere when unused (byte-identical days), lagoon surf height ≤ 0.3 ×
+  offshore, CPU/GPU agree.
+- Render check with a forced test lagoon at 640×360 before phase 7 uses it.
+- Docs: PLAN.md "How it works" (shelter), lessons.
+
+### 7. Reef-fronted tropical beaches
+
+- Choice: `reefFor(params, rng)` on stream `'reef'`: fringing reef on ~60% of tropical
+  beach days (island regions — se-asia islands, maldives-type Indian, Pacific — more than
+  continental central-america, west-africa, east-africa), ~20% of hawaii and red-sea;
+  none elsewhere. Reef distance 100–500 m, lagoon depth 1–3 m, passes (gaps) every
+  0.5–2 km.
+- `terrain.ts`: seabed profile with a shallow lagoon, a reef flat and crest at ~0.3 m below
+  mean sea, then a steep drop-off. Surf breaks on the reef face from the existing
+  `surfBreakDepth`; the shelter mask (6) calms the lagoon.
+- `ocean.ts`: lagoon colour (turquoise over sand, brown-green patches over coral heads by
+  noise), crest foam line, darker blue past the drop-off; caustics already exist.
+- At low tide (5) the reef flat dries: wet brown-grey coral with puddles.
+- Beachrock: flat, slightly tilted grey ledges along the waterline on ~30% of reef
+  beaches (`rocks.ts` style, very low poly, instanced).
+- A reef counts as sheltered for `mangroveFor`.
+- Spec: `reef` (null/true), `beachrock`.
+- Tests: reef only on the listed coasts and shares, profile continuity, surf height inside
+  the lagoon.
+- Renders: Maldives-like (shoreline, midday), Tahiti (overlook), Hawaii (along-beach), each
+  front-lit then backlit; `diff.mjs --off '{"reef":null}'`.
+- Docs: COASTS.md (reef share), PLAN.md "How it works" (reef profile), changelog (days that
+  change: tropical beach days with a reef).
+
+### 8. Coast kinds in the terrain; rocky shore
+
+#### 8a. Coast kind dispatch (no rendering change)
+
+- `CoastParams.type` gains `'rock-shore'` and `'tidal-flat'`. Replace the 21 `type ===
+  'beach'` / `'open-sea'` checks with helpers in `terrain.ts`: `hasLand(coast)`,
+  `hasBeach(coast)`, `hasSurfZone(coast)`, and go through the 14 files deciding which each
+  means (composition, camera, props).
+- `terrainHeightAt`: a `coastKind` uniform selects the profile (one branch per day, not all
+  evaluated); TS mirror switches the same way.
+- Tests: all existing days byte-identical; helper truth table per coast type.
+
+#### 8b. Rocky shore
+
+- `generateCoast`: draw kind on a new stream `'coast-kind'`: of today's beach days, ~15%
+  become `rock-shore` (≈ 10% of all days), weighted by region (Maine/Atlantic Canada,
+  Brittany-Cornwall, Norway, Iceland, Big Sur/California, Chile most; tropical and desert
+  least). Open-sea days and the other beach days are unchanged.
+- Terrain: wave-cut platform (flat, slightly seaward-dipping shelf, ragged edge as noise
+  in `a`), a low cliff or boulder slope behind, no sand. Reuse `rocks.ts` boulders on the
+  platform and the phase-1 cobble shader in gaps.
 - Water: waves break on the platform edge (rock data for `ocean.ts` foam, `waveOnRock`),
-  spray bursts on the outer ledge, wash across the platform; tidepools at low tide (phase 5).
+  spray bursts on the outer ledge, wash across the platform; tidepools at low tide (5).
 - Compositions: `shoreline` and `framed` from the platform; `overlook` from the cliff top.
 - Spec: `coast: "rock-shore"`.
-- Tests: share and biome table, terrain has no sand band, camera stands on rock.
-- Renders: Peggy's Cove (nordic atlantic, granite, golden hour), Big Sur (mediterranean
-  pacific, overlook), Iceland basalt (volcanic, storm swell).
-- Docs: COASTS.md coast table, PLAN.md, changelog, CLAUDE.md views list.
+- Tests: share and region table, terrain has no sand band, camera stands on rock.
+- Renders: Peggy's Cove (atlantic-canada, granite, golden hour), Big Sur (california,
+  overlook), Iceland basalt (storm swell).
+- Docs: COASTS.md coast table, PLAN.md, changelog (days that change: beach days that
+  become rocky shores), CLAUDE.md views list.
 
-### 7. Landforms: barrier lagoon, spit, fjord walls
+### 9. Tidal flats and salt marsh
 
-- **Barrier and lagoon:** on along-beach and overlook beach days in humid subtropical,
-  Mediterranean and desert coasts (~10%): a narrow sand barrier with dunes, a calm lagoon
-  behind (ocean shader with no swell, low wind chop) where land would be.
-- **Spit:** along-beach views, ~8% of sandy temperate/nordic beaches: the beach runs out
-  into a curving sandy hook with a lagoon behind its tip.
-- **Fjord walls:** nordic days with `range` landform (~30% of them): steep valley walls
-  on both sides of the view running out to sea, snow on tops in winter; far = colour and
-  relief only (`landforms.ts` heightfield).
-- Spec: `landform: "fjord"`, `lagoon`, `spit`.
-- Tests: where each appears, heightfields finite, triangle budget.
-- Renders: Outer Banks lagoon (subtropical, overlook), Farewell Spit (temperate),
-  Norwegian fjord (nordic atlantic).
-- Docs: COASTS.md landforms, PLAN.md, changelog.
-
-### 8. Tidal flats and salt marsh
-
-- Coast kind `tidal-flat`, ~3% of days, only macro- and mesotidal temperate/nordic Atlantic
-  and Korea/China (Wadden Sea, Fundy, Morecambe Bay, Yellow Sea): at low tide a km-wide
-  wet flat with shallow channels and ripples, the sea a far line; salt-marsh band (low
-  green-brown grass tufts, instanced) at the back.
+- Coast kind `tidal-flat`, ~3% of days (from beach days on the `'coast-kind'` stream),
+  only in macro- and mesotidal regions with flats: wadden-sea (add to regions in 2), Fundy,
+  Morecambe Bay (scotland/brittany-cornwall), korea; only when the tide (5) is below mid —
+  at high tide the same day is a beach with a marsh behind.
+- Terrain: a km-wide, near-flat profile (slope ~1:1000) with shallow meandering channels
+  (noise in `a`), sand ripples (reuse the wind-ripple normal, smaller), the sea a far line;
+  wet-flat reflections come from the existing wet-sand shading.
+- Salt-marsh band at the back: low green-brown grass tufts, instanced like vegetation.
 - Spec: `coast: "tidal-flat"`.
-- Renders: Wadden Sea at low tide (golden hour, wet-flat reflections), Fundy red mud.
+- Renders: Wadden Sea at low tide (golden hour), Fundy red mud.
 - Docs: COASTS.md, PLAN.md, changelog.
 
-### 9. Climates: temperate and humid subtropical
+### 10. Landforms: barrier lagoon, spit, fjord
 
-Adding biomes to `BIOMES` reshuffles every day's biome. Instead, add a **climate**
-within each biome on its own stream (`Random.derive(seed, 'climate')`), so the main
-stream is untouched and only the split days change:
+These vary in plan view, so they are **separate heightfield meshes** (like `islands.ts`),
+laid over or beside the cross-section terrain, with lagoons calmed by the shelter mask (6).
 
-| Biome | Climate split | Places |
+- **Barrier and lagoon:** along-beach and overlook beach days in subtropical (11),
+  Mediterranean and desert regions (~10%): the camera's beach becomes a narrow barrier
+  (terrain profile drops below sea level behind the dunes), a calm lagoon behind it
+  (shelter polygon), the mainland shore beyond as a low heightfield.
+- **Spit:** along-beach views on ~8% of sandy temperate and nordic beaches: a curving
+  sandy hook heightfield running out from the far beach, with a calm lagoon behind its tip.
+- **Fjord:** views from a beach **near the fjord mouth** looking out (open-sea horizon
+  between the walls; swell damped inside by the shelter mask): steep walls on both sides
+  as heightfields to 5–15 km, colour and relief only beyond ~2 km; snow on tops in winter.
+  On ~30% of norway, bc, alaska, chile, greenland region days with a `range` landform.
+- Spec: `landform: "fjord"`, `lagoon`, `spit`.
+- Tests: where each appears, heightfields finite, triangle budget, shelter mask matches
+  the lagoon outline.
+- Renders: Outer Banks lagoon (subtropical, overlook), Farewell Spit (temperate),
+  Norwegian fjord mouth.
+- Docs: COASTS.md landforms, PLAN.md, changelog.
+
+### 11. Climates: temperate, subtropical, polar
+
+Adding biomes to `BIOMES` reshuffles every day's biome. Instead, a **climate** within each
+biome on its own stream (`Random.derive(seed, 'climate')`), mostly set by the region (2),
+so the main stream is untouched:
+
+| Biome | Climate split | Regions |
 |---|---|---|
-| nordic | `boreal` (today's) 45%, `temperate` 40%, `polar` 15% (Arctic ocean always polar) | Norway/Alaska; Britain, Atlantic Canada, Pacific NW, NZ South Island; Svalbard, Greenland |
-| mediterranean | `mediterranean` 75%, `subtropical` 25% (Atlantic and Pacific only) | Med, California, Chile; Florida, S Brazil, Queensland, Natal, S Japan |
+| nordic | `boreal` (today's) ~45%, `temperate` ~40%, `polar` ~15% | norway (north), alaska; scotland, atlantic-canada, bc, brittany-cornwall, baltic, tierra-del-fuego, NZ South Island (add); all arctic regions and south-georgia |
+| mediterranean | `mediterranean` ~75%, `subtropical` ~25% | Med, california, chile, sw-australia, cape; florida-carolinas, south-brazil, queensland, natal, south-japan (add) |
 | tropical, volcanic, desert | unchanged | – |
 
-- `temperate`: mixed broadleaf and conifer, marram dunes (yellow dunes), machair on
-  shell-sand Atlantic coasts, golden-grey sand and much shingle (phase 1 table row).
-- `subtropical`: live oak, saw palmetto, sea oats on dunes, wide pale quartz beaches,
-  barrier lagoons (phase 7), more cumulus congestus and summer storms.
-- `polar`: tundra (phase 2), snow (phase 10), no conifers.
-- Every table keyed by biome gets a look: oceans, sands, plants, debris, shore life,
-  animals, fog, clouds, islands, ice.
-- Spec: `climate`.
-- Tests: split shares, tables by climate, unforced non-split days byte-identical.
-- Renders: one per new climate, each composition once.
-- Docs: COASTS.md biome table (biome × climate shares), CLOUDS.md climate leanings,
-  ANIMALS.md (regions per climate), PLAN.md, CLAUDE.md spec fields, changelog.
+Titles use the climate ("temperate shingle beach", "subtropical beach"; decision 2).
 
-### 10. Weather extras
+Sub-steps, one commit each:
+
+- **11a. Climate choice** (no rendering change): `climateFor(biome, region, rng)`,
+  `SceneParams.climate`, spec `climate`, titles; latitudes per climate (temperate 42–58°,
+  subtropical 25–35°, polar ≥ 66°). Tests: shares, non-split days byte-identical.
+- **11b. Land:** sands, beach materials (temperate: shingle up), rock colours, plants:
+  temperate = mixed broadleaf and conifer, marram dunes, machair on shell-sand Atlantic
+  coasts; subtropical = live oak, saw palmetto (as `bush`), sea oats on dunes, pale quartz
+  beaches; polar = the tundra filter from phase 3.
+- **11c. Sea and sky:** oceans and swell per climate, fog (temperate haar, subtropical
+  less), cloud leanings (temperate Sc ×2 like cool; subtropical congestus ×2 and summer
+  storms).
+- **11d. Props:** debris (temperate kelp; subtropical sargassum on the Atlantic, seagrass),
+  shore life (subtropical ghost crabs), islands and landforms (barrier lagoons in
+  subtropical, phase 10).
+- **11e. Animals:** regions per climate in `wildlife.ts`, pinnipeds, migratory birds;
+  regenerate ANIMALS.md.
+- Renders: one per new climate in each composition once.
+- Docs: COASTS.md biome table (biome × climate shares), CLOUDS.md climate leanings,
+  ANIMALS.md, PLAN.md, CLAUDE.md spec fields, changelog (days that change: split days).
+
+### 12. The real sun: polar night and midnight sun
+
+- `src/celestial.ts`: `sunLimits(latitudeDeg, date)` → the day's highest and lowest solar
+  elevation (declination from the date).
+- `params.ts`: after the `timeOfDay` draw (keep the draw, like eclipses), if the category
+  is impossible for that place and date, map it to the nearest possible one:
+  - **polar night** (max elevation < 0°): daylight/midday/golden hour → blue hour (civil
+    twilight glow at noon, max ≥ −6°) or night (max < −6°);
+  - **midnight sun** (min elevation > 0°): night/blue hour → sun-on-horizon or golden hour,
+    sun low in the north (south in the Southern Ocean);
+  - the sun's elevation and azimuth stay within the day's real range.
+- Only polar and high-latitude days change (latitude ≥ ~63° in Dec/Jun months); test that
+  every other day is byte-identical.
+- Spec: an explicit `timeOfDay` still wins (like eclipses), so specs can show impossible
+  combinations for debugging; `sunElevationDeg` likewise.
+- Tests: Svalbard (78°) in December only night/blue hour; in June never night; the
+  equator unchanged.
+- Renders: Svalbard noon in December (blue-hour glow), midnight sun in June.
+- Docs: PLAN.md "How it works" (sun limits), CLAUDE.md, changelog (days that change:
+  Arctic and Southern Ocean days in polar night or midnight sun).
+
+### 13. Weather extras
 
 | Feature | Rule | Build |
 |---|---|---|
-| Sea-breeze cumulus | Warm sunny afternoons (`few`/`scattered`, sun up, land warmer: Mediterranean, subtropical, tropical): Cu over land, clear over the sea | `cloudArrangement.ts`: mask the weather map by a land/sea line ~1–5 km inland, along `seawardAzimuthDeg` |
-| Offshore wind | Mistral, bora, Santa Ana, harmattan: wind from land | wind direction vs. `seawardAzimuthDeg`; offshore: very clear air (visibility up), smooth faces, spray blown back off the crests (`props/surf.ts`) |
-| Snow and ice foot | Polar and nordic winter (latitude and month): snow on land and upper beach, a shore-fast ice ledge at the high-water line | terrain colour by height above high tide; ice foot as a low extruded strip; frozen spray on rocks |
-| Polar night | Arctic latitudes 66–78° have no sun for weeks to months around December (Southern Ocean around June) | limit `timeOfDay` by latitude and date: during polar night only night, blue hour or twilight glow; changes some Arctic winter days (decided: realistic) |
-| Bioluminescent surf | Night, new-moon-ish, summer/autumn blooms: California, Maldives, Puerto Rico, Japan (Toyama) | `ocean.ts`: blue emission on breaking crests and swash (foam mask × bloom), ~2% of eligible nights |
+| Sea-breeze cumulus | Warm sunny afternoons (`few`/`scattered`, sun up after ~11:00, Mediterranean, subtropical, tropical): Cu over land, clear over the sea | `cloudArrangement.ts`: mask the weather map by a land/sea line ~1–5 km inland, along `seawardAzimuthDeg`; patch every pass that reads the weather map (clouds, shadow, env cube), as `stormCells.ts` does |
+| Offshore wind | Mistral (mediterranean-sea), bora (Adriatic), Santa Ana (california, Oct–Mar), harmattan (west-africa): wind from land | wind heading vs. `seawardAzimuthDeg`; offshore: visibility up, smooth wave faces, spray blown back off the crests (`props/surf.ts`) |
+| Snow and ice foot | Polar and nordic winter by latitude and month (and boreal late winter) | terrain colour above the high-tide line by a snow mask (noise, less on steep slopes); snow-capped rocks (vertex colour by normal.y) and plants (white tint on conifers); ice foot as a low extruded strip at the high-water line; frozen spray on rocks |
+| Bioluminescent surf | Dense dinoflagellate blooms: california (Apr–Oct), maldives-type Indian (Jul–Feb), caribbean (Puerto Rico bays), south-japan (Toyama, Apr–Jun) | `ocean.ts`: blue emission on breaking crests and swash (foam mask × bloom), in scene units scaled like the moon (bright against night exposure, invisible by day) |
+
+Bioluminescence is **eligible** on nights (night or late blue hour) in those regions and
+months, with moon illumination < 30% and no storm; it shows on ~15% of eligible nights
+(blooms are episodic; a few days a year per place, decision 4).
 
 - Spec: `seaBreeze`, `offshoreWind`, `snow`, `bioluminescence`.
-- Specs, tests, renders and docs as above (CLOUDS.md for sea breeze, PLAN.md lessons, changelog).
+- Specs, tests, renders and docs as above (CLOUDS.md for sea breeze, PLAN.md lessons,
+  changelog with the days that change).
 
-### 11. Animals
+### 14. Animals
 
 | Animal | Where | Notes |
 |---|---|---|
-| Sea otters (rafts in kelp) | Mediterranean-Pacific (California), nordic Pacific (Alaska, BC) | float on their backs; need kelp-bed patches in the water |
-| Walrus haul-out | nordic Arctic, polar climate | beach or ice floe, 5–40 animals; `pinnipeds.ts` |
-| Polar bear | Arctic, polar climate, near ice | rare (~2% of eligible days), on the beach or a floe |
-| Waders (oystercatchers, knots, sanderlings) | tidal flats and low-tide beaches, temperate/nordic; sanderlings everywhere on the swash | flocks running on the swash (phase 5 needed) |
+| Sea otters (rafts in kelp) | california, alaska, bc | float on their backs in a kelp-bed canopy: also add floating kelp mats (`debris.ts` wrack builder at sea level) on those coasts |
+| Walrus haul-out | svalbard, greenland, arctic-canada, alaska (north) | beach or ice floe, 5–40 animals; `pinnipeds.ts` |
+| Polar bear | arctic regions, near ice | rare (~2% of eligible days), on the beach or a floe |
+| Waders (oystercatchers, knots, sanderlings) | tidal flats and low-tide beaches, temperate/nordic; sanderlings on most sandy swashes | flocks running on the swash; ≥ 0.25 m above the swash line (CLAUDE.md lesson) |
 | Herons (grey, reef) | rocky shores, reef lagoons | standing in shallow water |
-| Tidepool life | rock-shore at low tide | urchins, anemones, mussels as vertex detail near the camera |
-| Blacktip sharks | reef lagoons, by day | fins in the shallows |
+| Tidepool life | rock-shore at low tide | urchins, anemones, mussels as vertex detail within ~10 m (real size: specks beyond) |
+| Blacktip sharks | reef lagoons, by day | dorsal fins in the shallows near the camera |
 
 - `xxxFor` choice per animal, `props/choices.ts`, `test/<animal>.test.ts`, meshes checked
   with `scripts/mesh.mjs` first.
@@ -367,12 +547,12 @@ stream is untouched and only the split days change:
 
 | Doc | What |
 |---|---|
-| changelog.md | a version row per phase; note when existing days change (phases 3, 9, polar night) |
-| PLAN.md | "How it works" (new modules and rules), "Lessons and gotchas", "References" (sources below), "Decisions" (climate split instead of new biomes) |
-| COASTS.md | coast-type, material, tide, reef, landform, biome and climate shares, re-measured with `params.mjs --stats … 2024-01-01..2026-12-31`; mark the "Proposal" sections done |
+| changelog.md | a version row per phase, naming which existing days change |
+| PLAN.md | "How it works" (new modules and rules), "Lessons and gotchas", "References" (sources below), "Decisions" (climate split instead of new biomes; lower the land for tides; shelter mask) |
+| COASTS.md | coast-type, material, region, tide, reef, landform, biome and climate shares, re-measured with `params.mjs --stats … 2024-01-01..2026-12-31`; mark the "Proposal" sections done |
 | CLOUDS.md | marine layer, sea breeze, climate leanings |
-| ANIMALS.md | new animals' rules and the regenerated table |
-| CLAUDE.md | new spec fields; fixed dates for new looks (PEI red beach, Wadden low tide, Maldives reef, California June gloom); new views (`rock-shore`) |
+| ANIMALS.md | new animals' rules, shared regions, and the regenerated table |
+| CLAUDE.md | new spec fields; fixed dates for new looks (PEI red beach, Wadden low tide, Maldives reef, California June gloom, Svalbard polar night and midnight sun); new views (`rock-shore`, `tidal-flat`) |
 | scenes/ | `scenes/coasts.json` with one spec per new coast, climate and weather, for future regression renders |
 | README.md | feature list, if it lists coasts or biomes |
 
@@ -380,14 +560,20 @@ stream is untouched and only the split days change:
 
 1. **Shares follow reality:** `rock-shore` ~10% of days and reefs on ~60% of tropical beach
    days, as in the tables; tune toward measured world shares, not toward more beaches.
-2. **Climate split** (phase 9) is fine: some days now titled "nordic" become "temperate"
+2. **Climate split** (phase 11) is fine: some days now titled "nordic" become "temperate"
    (or "polar"), "mediterranean" ones "subtropical".
 3. **Polar night is real:** Arctic winter days get no sun (night, blue hour or civil
-   twilight only, by latitude and date); restrict `timeOfDay` in phase 10.
+   twilight only, by latitude and date; phase 12). By the same rule, Arctic summer gets the
+   midnight sun.
 4. **Rare showpieces stay rare:** bioluminescence, pink and red sand at their real
    frequencies.
-5. **Beach shape applies to all days:** phase 3 changes slope and bars on every beach day,
+5. **Beach shape applies to all days:** phase 4 changes slope and bars on every beach day,
    past ones included (noted in the changelog).
+6. **Tides lower the land** instead of raising the sea (sea level 0 stays everywhere).
+7. **Calm water is a shelter mask** in the ocean and surf shaders, shared by reefs,
+   lagoons, spits and fjords.
+8. **Regions are shared** (`params.region`) and drive tides, sand colours, weather and
+   animals; wildlife's existing choices stay identical.
 
 ## Sources
 
