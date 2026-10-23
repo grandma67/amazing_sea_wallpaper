@@ -1,4 +1,5 @@
-import { biomeNamed, type Biome } from './biome'
+import { FUNDY_STONES, STONE_COLORS, type BeachMaterial } from './beach'
+import { biomeNamed, type Biome, type RGB } from './biome'
 import type { OceanName } from './oceans'
 import type { CrocodileKind, LizardKind, MonkeyKind, TurtleSpecies } from './props/wildlife'
 import type { Random } from './random'
@@ -10,7 +11,8 @@ import type { Random } from './random'
 // A place has three kinds of field:
 // - constants: `biome` (the look preset), `region`, the signed `latitude`
 //   range (the sign is the hemisphere), `km` of coastline;
-// - choose one: `ocean`, `climate` (weighted, drawn on their own streams);
+// - choose one: `ocean`, `climate`, `material` (weighted, drawn on their own
+//   streams; `material` only where it differs from the biome's, beach.ts);
 // - choose many: `animals`, `plants` (pools; each feature's own rules pick
 //   from them on the day).
 // A region is a group of places sharing defaults and a spec name; it's never
@@ -52,12 +54,16 @@ interface PlaceRow {
   climate: Weights<Climate>
   animals?: readonly Animal[]
   plants?: Plants
+  material?: Weights<BeachMaterial>
+  stones?: readonly RGB[]
 }
 
 /** What a region's places share, unless a place says otherwise. */
 interface RegionDefaults {
   animals?: readonly Animal[]
   plants?: Plants
+  material?: Weights<BeachMaterial>
+  stones?: readonly RGB[]
 }
 
 export interface Place {
@@ -72,6 +78,11 @@ export interface Place {
   climate: Weights<Climate>
   animals: readonly Animal[]
   plants: Plants
+  /** Beach material chances; unset: the biome's (or polar) defaults
+   * (beach.ts materialChances). */
+  material?: Weights<BeachMaterial>
+  /** Stone colours (linear albedo). */
+  stones: readonly RGB[]
 }
 
 const nest = (species: TurtleSpecies, months?: Months, weight = 1): Animal => ({ kind: 'turtle', species, months, weight })
@@ -101,7 +112,7 @@ const REGIONS: Record<string, RegionDefaults> = {
   'mediterranean-sea': { animals: [nest('loggerhead', [6, 8], 0.85), nest('green', [6, 8], 0.15)] },
   arabia: { animals: [nest('green'), lizard('spiny-tailed', 0.25)] },
   // New places (decision 9).
-  'south-asia-islands': { animals: [nest('green', undefined, 0.7), nest('hawksbill', undefined, 0.3)] },
+  'south-asia-islands': { animals: [nest('green', undefined, 0.7), nest('hawksbill', undefined, 0.3)], material: { sand: 95, mixed: 5 } },
   // Saltwater crocodiles across the Top End, Cape York and the Kimberley.
   'north-australia': { animals: [nest('green', [10, 3], 0.7), nest('hawksbill', [10, 3], 0.3), croc('saltwater', 0.15)] },
   'nw-australia': { animals: [nest('green', [11, 3]), croc('saltwater', 0.08)] },
@@ -113,7 +124,59 @@ const REGIONS: Record<string, RegionDefaults> = {
   'florida-carolinas': { animals: [nest('loggerhead', [5, 8], 0.85), nest('green', [5, 8], 0.15)] },
   'horn-of-africa': { animals: [nest('green')] },
   'western-australia-desert': { animals: [nest('green', [11, 3], 0.7), nest('loggerhead', [11, 3], 0.3)] },
-  comoros: { animals: [nest('green')] }
+  comoros: { animals: [nest('green')] },
+  // Beach materials (PLAN_BIOMES phase 2). Temperate shingle coasts: Chesil,
+  // the Normandy galets, Nova Scotia's cobble barriers.
+  'britain-ireland': { material: { sand: 30, mixed: 25, shingle: 35, cobble: 10 } },
+  'brittany-normandy': { material: { sand: 35, mixed: 25, shingle: 30, cobble: 10 } },
+  'atlantic-canada': { material: { sand: 25, mixed: 20, shingle: 30, cobble: 25 } }
+}
+
+// Places whose beaches differ from their region's or biome's.
+const PLACE_MATERIAL: Record<string, Weights<BeachMaterial>> = {
+  // Barrier islands of fine quartz sand.
+  'wadden-north-sea': { sand: 95, mixed: 5 },
+  'florida-carolinas': { sand: 97, mixed: 3 },
+  // Red sandstone sand beaches.
+  pei: { sand: 85, mixed: 10, shingle: 5 },
+  // Sandy in the south (Denmark, Germany, Poland), moraine boulders and
+  // shingle in the Swedish and Finnish archipelagos.
+  baltic: { sand: 60, mixed: 25, shingle: 10, cobble: 5 },
+  // The mediterranean biome's defaults are the Mediterranean Sea's own
+  // (Nice, Liguria, Croatia: shingle). Its ocean-facing places are long
+  // sand beaches with a few cobble coves.
+  'portugal-morocco': { sand: 80, mixed: 10, shingle: 5, cobble: 5 },
+  'north-africa-levant': { sand: 80, mixed: 10, shingle: 10 },
+  california: { sand: 70, mixed: 10, shingle: 5, cobble: 15 },
+  'central-chile': { sand: 80, mixed: 10, cobble: 10 },
+  'south-brazil': { sand: 95, mixed: 5 },
+  'east-australia': { sand: 95, mixed: 5 },
+  'sw-australia': { sand: 95, mixed: 5 },
+  natal: { sand: 90, mixed: 5, cobble: 5 },
+  cape: { sand: 80, mixed: 10, cobble: 10 },
+  'south-japan': { sand: 70, mixed: 15, shingle: 10, cobble: 5 },
+  'taiwan-south-china': { sand: 75, mixed: 15, shingle: 5, cobble: 5 },
+  'yellow-sea': { sand: 80, mixed: 15, shingle: 5 },
+  // Oregon and Washington: long sand beaches between cobble headlands.
+  'pacific-northwest': { sand: 65, mixed: 15, cobble: 20 },
+  // Siberia's eroding permafrost bluffs shed sand and silt; Alaska's Arctic
+  // coast is sand and gravel barrier islands.
+  'arctic-russia': { sand: 50, mixed: 25, shingle: 15, cobble: 10 },
+  'alaska-north': { sand: 40, mixed: 30, shingle: 30 },
+  // Gravel beach ridges round Hudson Bay and the islands; sand and silt on
+  // the Beaufort coast by the Mackenzie delta.
+  'arctic-canada': { sand: 35, mixed: 25, shingle: 20, cobble: 20 },
+  // Black volcanic sand on most of Japan's open coasts.
+  japan: { sand: 60, mixed: 15, shingle: 10, cobble: 15 },
+  // Coral and quartz sand coasts: no gravel source.
+  'bahamas-bermuda': { sand: 97, mixed: 3 },
+  'pacific-islands': { sand: 90, mixed: 5, cobble: 5 },
+  india: { sand: 95, mixed: 5 },
+  'west-africa': { sand: 95, mixed: 5 },
+  'northeast-brazil': { sand: 95, mixed: 5 },
+  // Coral sand coves between the lava.
+  galapagos: { sand: 70, mixed: 10, cobble: 20 },
+  hawaii: { sand: 70, mixed: 10, shingle: 5, cobble: 15 }
 }
 
 /** Every place, from REGIONS.md §1. Animals listed on a row replace the
@@ -130,7 +193,7 @@ const ROWS: readonly PlaceRow[] = [
   { id: 'morecambe-bay', region: 'britain-ireland', biome: 'nordic', latitude: [54, 54], km: 300, ocean: { atlantic: 1 }, climate: { temperate: 1 } }, // Morecambe Bay
   { id: 'newfoundland', region: 'atlantic-canada', biome: 'nordic', latitude: [46, 52], km: 9_600, ocean: { atlantic: 1 }, climate: { boreal: 70, temperate: 30 } }, // Newfoundland, Labrador south
   { id: 'nova-scotia', region: 'atlantic-canada', biome: 'nordic', latitude: [43, 47], km: 7_400, ocean: { atlantic: 1 }, climate: { temperate: 70, boreal: 30 } }, // Nova Scotia Atlantic shore, Gulf of St Lawrence
-  { id: 'fundy', region: 'atlantic-canada', biome: 'nordic', latitude: [44, 46], km: 1_500, ocean: { atlantic: 1 }, climate: { temperate: 1 } }, // Bay of Fundy
+  { id: 'fundy', region: 'atlantic-canada', biome: 'nordic', latitude: [44, 46], km: 1_500, ocean: { atlantic: 1 }, climate: { temperate: 1 }, stones: FUNDY_STONES }, // Bay of Fundy
   { id: 'pei', region: 'atlantic-canada', biome: 'nordic', latitude: [46, 47], km: 1_100, ocean: { atlantic: 1 }, climate: { temperate: 1 } }, // Prince Edward Island, Northumberland Strait
   { id: 'maine', region: 'atlantic-canada', biome: 'nordic', latitude: [43, 45], km: 5_600, ocean: { atlantic: 1 }, climate: { temperate: 1 } }, // Maine
   { id: 'baltic', biome: 'nordic', latitude: [54, 66], km: 10_000, ocean: { atlantic: 1 }, climate: { boreal: 70, temperate: 30 } }, // Sweden, Finland, Estonia, Danish islands
@@ -254,7 +317,9 @@ function resolve(): Place[] {
       ocean: row.ocean,
       climate: row.climate,
       animals: row.animals ?? PLACE_ANIMALS[row.id] ?? defaults.animals ?? [],
-      plants: row.plants ?? defaults.plants ?? biomeNamed(row.biome).vegetation
+      plants: row.plants ?? defaults.plants ?? biomeNamed(row.biome).vegetation,
+      material: row.material ?? PLACE_MATERIAL[row.id] ?? defaults.material,
+      stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome]
     }
   })
 }

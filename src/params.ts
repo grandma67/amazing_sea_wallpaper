@@ -2,7 +2,8 @@ import { MoonPhase } from 'astronomy-engine'
 
 import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
 
-import { SAND_STYLES, biomeNamed, type Biome, type SandStyle, type WaterStyle } from './biome'
+import { beachName, isStony, materialChances, stonyShape, type BeachMaterial, type Ridge } from './beach'
+import { SAND_STYLES, biomeNamed, type Biome, type RGB, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
 import { hasBeach, hasLand } from './coastKind'
 import { contrailsFor, type Contrail } from './contrails'
@@ -66,6 +67,12 @@ export interface CoastParams {
   surfWavelength: number
   surfPhase: number
   sand: SandStyle
+  /** What the beach is made of (beach.ts); 'sand' on the open sea. */
+  material: BeachMaterial
+  /** The place's stone colours (linear albedo), for stony beaches. */
+  stoneColors: readonly RGB[]
+  /** Storm ridges on stony beaches; empty on sand. */
+  ridges: Ridge[]
   noiseOffset: [number, number]
 }
 
@@ -498,6 +505,8 @@ function generateCoast(
   attempt: number,
   headingDeg: number,
   biome: Biome,
+  place: Place,
+  climate: Climate,
   ocean: Pick<SceneParams['ocean'], 'swellHeight' | 'swellWavelength' | 'windSpeed'>,
   spec: SceneSpec
 ): { coast: CoastParams; eyeHeight: number | null } {
@@ -506,7 +515,7 @@ function generateCoast(
   const rng = Random.derive(seed, `coast${suffix}`)
   // Beach or open sea is decided once per date; retries keep it.
   const drawnType = Random.derive(seed, 'coast').chance(0.65) ? 'beach' : 'open-sea'
-  const type = or(drawnType, spec.coast ?? (spec.composition != null ? 'beach' : undefined))
+  const type = or(drawnType, spec.coast ?? (spec.composition != null || isStony(spec.beachMaterial) ? 'beach' : undefined))
   rng.float() // keep attempt 0's stream identical to the original draw order
 
   // Look out to sea at an angle so the shoreline runs diagonally across the
@@ -538,6 +547,9 @@ function generateCoast(
     surfWavelength: rng.range(18, 40),
     surfPhase: rng.range(0, Math.PI * 2),
     sand: SAND_STYLES[or(rng.pick(biome.sands), spec.sand)],
+    material: 'sand',
+    stoneColors: place.stones,
+    ridges: [],
     noiseOffset: [rng.range(-5000, 5000), rng.range(-5000, 5000)]
   }
 
@@ -546,6 +558,12 @@ function generateCoast(
     const depthAtBar = coast.sandbarDistance * coast.nearshoreSlope
     coast.sandbarHeight = depthAtBar * rng.range(0.25, 0.6)
   }
+
+  // Beach material, once per date on its own stream (retries keep it); a
+  // stony beach is steep, narrow and ridged.
+  const mrng = Random.derive(seed, 'beach-material')
+  const material = or(choose(mrng, materialChances(place, climate)), spec.beachMaterial)
+  if (hasBeach({ type }) && isStony(material)) Object.assign(coast, { material }, stonyShape(coast, material, mrng))
 
   let eyeHeight =
     hasLand({ type })
@@ -1389,7 +1407,7 @@ function buildParams(
   oceanSwell.swellHeight *= basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm
   oceanSwell.swellWavelength = Math.min(320, oceanSwell.swellWavelength * basin.swellWavelength)
   const oceanState = { windSpeed: spec.wind ?? windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
-  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, biome, oceanState, spec)
+  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, biome, place, climate, oceanState, spec)
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',
@@ -1425,7 +1443,7 @@ function buildParams(
 
   const titleParts = [
     timeLabel[timeOfDay],
-    hasBeach(coast) ? `${biome.name} ${coast.sand.name} sand beach` : seaName(oceanState.windSpeed),
+    hasBeach(coast) ? `${biome.name} ${beachName(coast.material, coast.sand.name)}` : seaName(oceanState.windSpeed),
     basin.label
   ]
   if (landform != null) {

@@ -9,13 +9,13 @@ import {
   Vector3
 } from 'three'
 
+import { beachLines } from '../beach'
 import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { hasBeach, shoreToWorld, terrainNormal, worldToShore } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
-import { beachLines } from './debris'
 import { noise3 } from './noise'
 import { inMonths, placeNamed, type Animal } from '../places'
 

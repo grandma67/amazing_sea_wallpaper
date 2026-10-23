@@ -8,6 +8,7 @@ import {
   type BufferGeometry
 } from 'three'
 
+import { beachLines } from '../beach'
 import type { Biome, RGB } from '../biome'
 import type { OceanName } from '../oceans'
 import type { SceneParams } from '../params'
@@ -16,7 +17,6 @@ import { monthInSeason } from '../seasons'
 import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
-import { beachLines } from './debris'
 import { noise3 } from './noise'
 
 // Life at the top and bottom of the beach.

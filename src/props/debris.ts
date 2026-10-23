@@ -9,8 +9,9 @@ import {
   type BufferGeometry
 } from 'three'
 
+import { beachLines } from '../beach'
 import type { RGB } from '../biome'
-import type { CoastParams, SceneParams } from '../params'
+import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
@@ -97,15 +98,6 @@ function drawDebris(params: SceneParams, rng: Random): DebrisSpec | null {
   }
   spec.rootWads = spec.driftwood > 0 && rng.chance(ocean === 'arctic' || ocean === 'pacific' ? 0.8 : 0.4)
   return spec
-}
-
-/** How far inland (m from the waterline) the high-tide wrack line and the
- * storm line lie, from the beach profile in terrain.ts without its bumps. */
-export function beachLines(coast: CoastParams): { highTide: number; stormLine: number } {
-  const maxHeight = coast.beachSlope * coast.beachWidth
-  const inland = (h: number): number => -coast.beachWidth * Math.log(1 - Math.min(h / maxHeight, 0.9))
-  const highTide = inland(coast.runup * 1.1)
-  return { highTide, stormLine: Math.max(inland(coast.runup * 2.2), highTide + 3) }
 }
 
 const BLEACHED: RGB = [0.27, 0.25, 0.22]

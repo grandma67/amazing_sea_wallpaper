@@ -160,6 +160,13 @@ Playwright (headless snapshots), Vitest.
   defines) and `terrainHeightAt` branches on it, so each day runs one profile; the TS
   `terrainHeight` switches the same way. Rock shores and tidal flats use the beach profile until
   their phases.
+- **Beach material** (`beach.ts`, PLAN_BIOMES 2): `coast.material` is `sand`, `mixed`, `shingle`
+  or `cobble`, drawn in `generateCoast` on stream `'beach-material'` from `materialChances(place,
+  climate)` (place → region override, else `POLAR_MATERIAL` on polar days, else the biome's
+  `MATERIAL_CHANCES`), then forced by `spec.beachMaterial`. Open sea is `'sand'`. Stony days
+  replace slope, width, sandbar and dune (`stonyShape`, same stream) and get `coast.ridges`
+  (crest distance from `beachLines`, height, width); `coast.stoneColors` is the place's palette.
+  `beachLines` (wrack and storm lines) lives here now. Shares: COASTS.md.
 - **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes
   folded on the midrib (oval oak/almond, ovate birch, lance olive, needles stone pine, rounded
   shrubs, pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to

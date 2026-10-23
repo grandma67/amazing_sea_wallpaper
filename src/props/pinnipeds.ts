@@ -15,13 +15,13 @@ import {
 
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 
+import { beachLines } from '../beach'
 import type { RGB } from '../biome'
 import type { PinnipedKind } from '../params'
 import type { Random } from '../random'
 import { shoreToWorld } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
-import { beachLines } from './debris'
 import { fbm3 } from './noise'
 import { rockMaterial, type RockGrowth } from './rocks'
 

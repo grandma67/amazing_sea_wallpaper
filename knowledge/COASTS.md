@@ -1,7 +1,7 @@
 # Coasts
 
 Which coasts the wallpaper draws and how often, and research on stony beaches (pebble,
-shingle, cobble). Status 2026-10-23. Shares are over 2024–2026 (1096 days,
+shingle, cobble). Status 2026-10-24. Shares are over 2024–2026 (1096 days,
 `node scripts/params.mjs --stats … 2024-01-01..2026-12-31`). Code paths are in ARCHITECTURE.md.
 
 ## How a coast is chosen (today)
@@ -16,6 +16,9 @@ shingle, cobble). Status 2026-10-23. Shares are over 2024–2026 (1096 days,
    date.
 4. **Shape** (same function): slope, beach width, dunes, hills, sandbar (60%), sand colour
    (`biome.sands`), composition (beach days only).
+5. **Beach material** (`beach.ts`, stream `'beach-material'`, PLAN_BIOMES 2a): sand, mixed,
+   shingle or cobble from the place's chances; a stony beach replaces the slope, width,
+   sandbar and dune with a steep, ridged profile.
 
 ### Biomes
 
@@ -58,8 +61,42 @@ mediterranean 9%, arid 8%.
 Other things in view, all days: islands 32% (rocky 13%, high 6%, cay 5%, skerries 4.5%,
 karst 3%); landform 31% (range 19%, stratovolcano 9%, shield 4%).
 
-**Every beach is sand today.** The only "stone" is boulders and sea stacks (`props/rocks.ts`);
-there is no pebble, shingle or cobble beach surface.
+### Beach material
+
+Measured over 2024–2026 beach days (715), PLAN_BIOMES 2a. Target was ~62% sand, ~15% mixed,
+~23% shingle or cobble; the defaults alone gave 53% sand, and sandy overrides for ocean
+coasts (below) bring it to:
+
+| Material | Share of beach days | Nordic | Polar climate | Volcanic | Desert | Mediterranean | Tropical |
+|---|---|---|---|---|---|---|---|
+| `sand` | 58.5% | 38% | 33% | 42% | 71% | 78% | 87% |
+| `mixed` | 17.3% | 27% | 27% | 19% | 15% | 4% | 8% |
+| `shingle` | 11.2% | 17% | 16% | 15% | 2% | 13% | – |
+| `cobble` | 13.0% | 18% | 24% | 23% | 12% | 5% | 4% |
+
+Expected from the tables (place weights × climate × chances): sand 59.1%, mixed 16.7%,
+shingle 11.7%, cobble 12.5%.
+
+- **Defaults** (`MATERIAL_CHANCES` by biome, `POLAR_MATERIAL` for a polar climate) as in
+  PLAN_BIOMES phase 2.
+- **More shingle:** britain-ireland, brittany-normandy, atlantic-canada (Chesil, the Normandy
+  galets, Nova Scotia's cobble barriers).
+- **Mostly sand:** wadden-north-sea, florida-carolinas, PEI, the Baltic (60%), the
+  mediterranean biome's ocean coasts (Portugal and Morocco, North Africa and the Levant,
+  California, Chile, South Brazil, East and SW Australia, Natal, Cape, South Japan, Taiwan,
+  Yellow Sea), Pacific Northwest, Arctic Russia and Alaska's north coast, Arctic Canada
+  (35%, the Beaufort coast), Japan (black sand), Galápagos and Hawaii, and the coral and
+  quartz-sand tropics (Maldives, Sri Lanka, Andaman; Bahamas and Bermuda; Pacific islands;
+  India; West Africa; NE Brazil).
+- **Stone colours** (`STONE_COLORS` by biome; Fundy red sandstone): grey granite and
+  greywacke, white–cream limestone, black basalt with red scoria, tan and red gravel, pale
+  coral rubble.
+- **Profile (temporary, until phase 4):** slope 0.12–0.25 (shingle, cobble) or 0.08–0.14
+  (mixed), beach 12–40 m wide, no sandbar, a 0.5–2.5 m bank behind, 1–3 storm ridges
+  (`coast.ridges`: the storm ridge 0.6–1.2 m at the storm line, a 0.3–0.6 m berm at the
+  high-tide line on 72% of stony days, an older ridge behind on 28%).
+
+The beaches still render as sand until the stone shader (2c) and stones (2d).
 
 ## Research: the world's coasts
 
