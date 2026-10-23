@@ -187,20 +187,25 @@ shingle; polar: as "nordic, Arctic").
 - Also feed the palette mean to `ocean.ts` `sandAlbedo` (shallow seabed colour).
 - Test patched GLSL at `--w 320 --h 180 --frames 1` first.
 
-#### 1d. Stones near the camera (≤ ~5–8 m)
+#### 1d. Stones near the camera (while a stone is ≥ ~10 px)
 
-The shader carries the stones from ~5 m out; meshes only where parallax and real shadows
-show (the foreground of `framed` and `shoreline` views).
+A stone gets a mesh only while it is big on screen: ≥ ~10 px, where its silhouette,
+parallax and cast shadow show. Smaller, the shader (1c) looks the same. At 1080p with a
+50 mm lens (36 mm sensor) one pixel is ~0.37 mrad, so the mesh radius is ≈ 170 × stone
+size: 3 cm pebbles to ~5 m (16 px at 5 m), 10 cm cobbles to ~15 m (18 px), 20 cm to ~15 m
+(capped). Scale the radius with focal length and output height (`ctx` camera).
 
 - `src/props/stones.ts`: `stoneGeometry(rng, size)`: flattened ellipsoid (pebbles: smooth,
   rounded; cobbles: a few flat facets like `rockGeometry`, much lower detail), 50–150 tris,
   base on y = 0. Preview with `scripts/mesh.mjs`.
 - `createStones(ctx)`: own stream `ctx.rng('stones')`; ~6 variants in one `InstancedMesh`,
-  placed on the visible beach within ~5–8 m (`ctx.visible`), packed by Poisson-disc with
+  placed on the visible beach within that radius (`ctx.visible`), packed by Poisson-disc with
   partial burial, rotation, scale by grading. Colour per instance from the palette.
   `castShadow`/`receiveShadow`, `frustumCulled = false`.
-- **Budget:** ≤ ~8k instances, ≤ ~1M triangles in all (pebbles under ~3 cm are shader
-  only). Check with `bench.mjs`; if over 10%, shrink the radius before the triangle count.
+- **Budget:** ≤ ~8k instances, ≤ ~1M triangles in all. Estimated counts in a 40° view
+  with 60% cover: 3 cm to 5 m ≈ 5.6k; 10 cm to 15 m ≈ 4.7k; 20 cm to 15 m ≈ 1.2k. Under
+  ~2 cm: shader only. Hard cap 8k (nearest first). These are estimates: check with
+  `bench.mjs`; if over 10%, shrink the radius before the triangle count.
 - Register in `props/index.ts`; `--props stones` reports count and nearest distance.
 - Mesh tests: deterministic, finite, base near y = 0, triangle budget.
 
@@ -586,15 +591,12 @@ squid (Mar–Jun) are not plankton; left out.
 7. **Calm water is a shelter mask** in the ocean and surf shaders, shared by reefs,
    lagoons, spits and fjords.
 8. **Regions are shared** (`params.region`, table in REGIONS.md) and drive tides, sand
-   colours, weather, climate, latitude and animals. Proposed: new parent regions (Pacific
-   islands, Maldives, NW Australia…) may change those days' animals; see open questions.
-
-## Open questions
-
-1. New parent regions (REGIONS.md "Open questions" 1): accept that some warm days' animals
-   change (realistic: no macaques on Tahiti) or keep today's wildlife regions untouched?
-2. Region latitudes outside today's basin ranges (REGIONS.md "Open questions" 2): let the
-   region set them (changes those days' latitude and so the atmosphere anchor)?
+   colours, weather, climate, latitude and animals.
+9. **New parent regions change animals** (Pacific islands, Maldives, NW Australia,
+   NE Brazil, Horn of Africa, West Australian desert): those warm days lose wrong animals
+   (no macaques on Tahiti); confirmed 2026-10-23.
+10. **Regions set the latitude**, basin ranges are the fallback (Norway to 71°,
+    Galápagos 0°, Tasmania, Patagonia); confirmed 2026-10-23.
 
 ## Sources
 

@@ -273,17 +273,11 @@ phase 6 lagoon), not the surf effect.
 
 ## Open questions
 
-1. **New parent regions change animals.** `pacific-islands`, `south-asia-islands`,
-   `nw-australia`, `northeast-brazil`, `horn-of-africa` and `western-australia-desert` take
-   days from today's wildlife regions. Today Tahiti and the Maldives fall under
-   `se-asia`/`east-africa` and get macaques, vervets or Nile crocodiles, which is wrong.
-   Fixing it means those days' animals change (against PLAN_BIOMES phase 2's "identical"
-   rule).
-2. Some regions' latitudes fall outside today's basin ranges (`oceans.ts`: Pacific 5–50°,
-   Atlantic 10–60°, Indian 5–35°, Southern 48–62°, Arctic 66–78°): Galápagos 0–1°, Norway
-   up to 71°, Iceland 63–66°, Tasmania 41–44° and the Patagonian fjords from 42° under
-   Southern. Let the region set the latitude (basin ranges become the fallback).
-3. ≈ values (tides for Patagonia, Red Sea, Norway, Iceland; some grain sizes; slopes)
+Decided 2026-10-23 (PLAN_BIOMES decisions 9 and 10): new parent regions are used even
+though they change some warm days' animals, and each region sets its own latitude (basin
+ranges in `oceans.ts` are the fallback).
+
+1. ≈ values (tides for Patagonia, Red Sea, Norway, Iceland; some grain sizes; slopes)
    need one lookup each in national tables or papers before tests depend on them.
 
 ## Sources
