@@ -1,5 +1,5 @@
 import { FUNDY_STONES, STONE_COLORS, type BeachMaterial } from './beach'
-import { biomeNamed, type Biome, type RGB, type SandStyle } from './biome'
+import { biomeNamed, type Biome, type RGB, type SandStyle, type VegetationKind } from './biome'
 import type { OceanName } from './oceans'
 import type { CrocodileKind, LizardKind, MonkeyKind, TurtleSpecies } from './props/wildlife'
 import type { Random } from './random'
@@ -87,6 +87,8 @@ export interface Place {
   material?: Weights<BeachMaterial>
   /** Sand colour chances (the biome's unless the place differs). */
   sand: Weights<SandName>
+  /** Plants that grow leaning downwind (flag trees). */
+  windBent: readonly VegetationKind[]
   /** Stone colours (linear albedo). */
   stones: readonly RGB[]
 }
@@ -184,6 +186,21 @@ const PLACE_MATERIAL: Record<string, Weights<BeachMaterial>> = {
   galapagos: { sand: 70, mixed: 10, cobble: 20 },
   hawaii: { sand: 70, mixed: 10, shingle: 5, cobble: 15 }
 }
+
+// Plant pools that replace the biome's. They are what grows there, so the
+// polar filter (plantsFor) leaves them alone.
+const PLACE_PLANTS: Record<string, Plants> = {
+  // Magellanic forest of southern beech (lenga, coihue de Magallanes) behind
+  // the beaches, bent by the westerlies; no conifers.
+  'tierra-del-fuego': [
+    ['grass', 6],
+    ['broadleaf', 2],
+    ['bush', 2]
+  ],
+  // Tussock grass only.
+  'south-georgia': [['grass', 1]]
+}
+const WIND_BENT: Record<string, readonly VegetationKind[]> = { 'tierra-del-fuego': ['broadleaf'] }
 
 // Sand colours that differ from the biome's (PLAN_BIOMES 3). Rare on purpose
 // (decision 4): pink and red beaches are a few named places.
@@ -340,7 +357,8 @@ function resolve(): Place[] {
       ocean: row.ocean,
       climate: row.climate,
       animals: row.animals ?? PLACE_ANIMALS[row.id] ?? defaults.animals ?? [],
-      plants: row.plants ?? defaults.plants ?? biomeNamed(row.biome).vegetation,
+      plants: row.plants ?? PLACE_PLANTS[row.id] ?? defaults.plants ?? biomeNamed(row.biome).vegetation,
+      windBent: WIND_BENT[row.id] ?? [],
       material: row.material ?? PLACE_MATERIAL[row.id] ?? defaults.material,
       sand: row.sand ?? PLACE_SAND[row.id] ?? defaults.sand ?? biomeNamed(row.biome).sands,
       stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome]
@@ -356,6 +374,21 @@ export function placeNamed(id: string): Place {
   const place = PLACES.find(p => p.id === id)
   if (place == null) throw new Error(`no place ${JSON.stringify(id)}`)
   return place
+}
+
+/** Above this latitude the Arctic has no birch trees: only dwarf willow and
+ * birch under 30 cm, which read as grass and bush (Svalbard, the high
+ * Canadian Arctic, north Greenland). */
+export const HIGH_ARCTIC_DEG = 74
+
+/** The day's plant pool. On polar water, tundra: grass and shrubs, and birch
+ * in the low Arctic; a place's own pool (PLACE_PLANTS) is already what grows
+ * there. */
+export function plantsFor(place: Place, polar: 'arctic' | 'southern' | null, latitudeDeg: number): Plants {
+  if (polar == null || place.id in PLACE_PLANTS) return place.plants
+  const hardy: VegetationKind[] = polar === 'arctic' && Math.abs(latitudeDeg) < HIGH_ARCTIC_DEG ? ['grass', 'bush', 'birch'] : ['grass', 'bush']
+  const plants = place.plants.filter(([kind]) => hardy.includes(kind))
+  return plants.length > 0 ? plants : [['grass', 1]]
 }
 
 /** What a scene spec can ask of the place. */

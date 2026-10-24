@@ -181,7 +181,7 @@ Sources: [Global coastal dataset (ESSD preprint 2025)](https://essd.copernicus.o
 | Coasts are real places (latitude, climate, tide, animals) | biome × ocean drawn apart; latitude from the basin | 1a |
 | Southern seasons | only the Southern Ocean flips months | 1c |
 | Pebble, shingle and cobble beaches (~¼ of beaches) | done (phase 2) | 2 |
-| Pink and red sand; treeless high Arctic | pink and red sand done; Arctic keeps birch | 3 |
+| Pink and red sand; treeless high Arctic | done (phase 3): pink and red sand; no birch above 74°; beech in Tierra del Fuego | 3 |
 | Marine layer, harmattan, haar | fog and dust, not by place | 3 |
 | Beach slope and bars follow grain and swell | random slope, sandbar 60% | 4 |
 | Tides (micro to mega) | sea level fixed | 5 |

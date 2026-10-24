@@ -165,6 +165,12 @@ Playwright (headless snapshots), Vitest.
   `places.ts`, else the biome's `sands`) on stream `'sand-colour'`, then forced by `spec.sand`.
   The coast stream keeps a placeholder draw where the colour used to be, so sandbars and eye
   height didn't move.
+- **Plant pools** (`plantsFor` in `places.ts`): the place's `plants` (biome default, region or
+  `PLACE_PLANTS`). On polar water (Arctic, Southern Ocean) they're filtered to tundra: grass and
+  bush, plus birch in the Arctic below `HIGH_ARCTIC_DEG` (74°). A place's own pool skips the
+  filter: Tierra del Fuego has southern beech (`broadleaf`) and no conifers, South Georgia only
+  tussock grass. `place.windBent` kinds (Tierra del Fuego's beech) lean 20–35° downwind (the day's
+  wind) and are 25% shorter, hero trees included (`vegetation.ts`).
 - **Beach material** (`beach.ts`, PLAN_BIOMES 2): `coast.material` is `sand`, `mixed`, `shingle`
   or `cobble`, drawn in `generateCoast` on stream `'beach-material'` from `materialChances(place,
   climate)` (place → region override, else `POLAR_MATERIAL` on polar days, else the biome's

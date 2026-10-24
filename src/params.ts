@@ -13,7 +13,7 @@ import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParam
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
-import { choose, latitudeIn, pickPlace, type Climate, type Place } from './places'
+import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
 import { Random } from './random'
 import { monthInSeason, seasonMonth } from './seasons'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
@@ -1150,16 +1150,10 @@ function buildParams(
   const { basin } = choice
   const climate = choose(Random.derive(seed, 'climate'), place.climate, spec.climate)
   const latitudeDeg = latitudeIn(place, orng)
-  let biome: Biome = { ...biomeNamed(place.biome), vegetation: place.plants }
+  const polar = basin.water == null ? null : basin.name === 'arctic' ? 'arctic' : 'southern'
+  const biome: Biome = { ...biomeNamed(place.biome), vegetation: plantsFor(place, polar, latitudeDeg) }
   const monsoon = or(choice.monsoon, spec.monsoon)
   const ice = spec.ice === undefined ? choice.ice : forceIce(seed, spec.ice, basin.name, choice.ice)
-  // Polar coasts: tundra grass and shrubs (and birch in the Arctic), no trees
-  // from warmer climates.
-  if (basin.water != null) {
-    const hardy = basin.name === 'arctic' ? ['grass', 'bush', 'birch'] : ['grass', 'bush']
-    const vegetation = biome.vegetation.filter(([kind]) => hardy.includes(kind))
-    biome = { ...biome, vegetation: vegetation.length > 0 ? vegetation : [['grass', 1]] }
-  }
 
   let timeOfDay = or(
     rng.weighted<TimeOfDay>([

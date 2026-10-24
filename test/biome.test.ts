@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { SAND_STYLES } from '../src/biome'
-import { PLACES, placeNamed } from '../src/places'
+import { HIGH_ARCTIC_DEG, PLACES, placeNamed } from '../src/places'
 import { allParams, scene, scenes, share } from './days'
 
 const RED_PLACES = ['pei', 'fundy', 'hawaii', 'oman-yemen', 'red-sea']
@@ -55,5 +55,31 @@ describe('sand colour', () => {
     expect(pink.title).toContain('pink sand beach')
     expect({ ...pink.coast, sand: null }).toEqual({ ...drawn.coast, sand: null })
     expect(pink.camera).toEqual(drawn.camera)
+  })
+})
+
+describe('plants', () => {
+  const has = (p: { biome: { vegetation: readonly (readonly [string, number])[] } }, kind: string) => p.biome.vegetation.some(([k]) => k === kind)
+
+  it('drops birch above 74° in the Arctic, keeps it below', () => {
+    const arctic = allParams().filter(p => p.sea.ocean === 'arctic')
+    for (const p of arctic) {
+      if (Math.abs(p.latitudeDeg) >= HIGH_ARCTIC_DEG) expect(has(p, 'birch')).toBe(false)
+    }
+    const svalbard = scenes({ place: 'svalbard' }, 20)
+    expect(svalbard.every(p => !has(p, 'birch') && p.biome.vegetation.every(([k]) => k === 'grass' || k === 'bush'))).toBe(true)
+    expect(arctic.some(p => Math.abs(p.latitudeDeg) < HIGH_ARCTIC_DEG && has(p, 'birch'))).toBe(true)
+  })
+
+  it('has trees on Southern Ocean coasts only in Tierra del Fuego (southern beech, wind-bent)', () => {
+    const southern = allParams().filter(p => p.sea.ocean === 'southern')
+    for (const p of southern) {
+      const trees = p.biome.vegetation.filter(([k]) => k !== 'grass' && k !== 'bush')
+      if (p.place.id === 'tierra-del-fuego') expect(trees.map(([k]) => k)).toEqual(['broadleaf'])
+      else expect(trees).toEqual([])
+    }
+    expect(scenes({ place: 'tierra-del-fuego' }, 10).every(p => has(p, 'broadleaf') && !has(p, 'conifer'))).toBe(true)
+    expect(scenes({ place: 'south-georgia' }, 10).every(p => p.biome.vegetation.length === 1 && has(p, 'grass'))).toBe(true)
+    for (const place of PLACES) expect(place.windBent).toEqual(place.id === 'tierra-del-fuego' ? ['broadleaf'] : [])
   })
 })

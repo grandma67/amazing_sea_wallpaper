@@ -10,12 +10,13 @@ import {
 } from 'three'
 
 import type { RGB, VegetationKind } from '../biome'
+import { placeNamed } from '../places'
 import type { Random } from '../random'
 import { hasLand, shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { noise3 } from './noise'
-import { windMaterials, type Bend } from './wind'
+import { windDirection, windMaterials, type Bend } from './wind'
 import { acacia, birch, broadleaf, bush, conifer, cypress, olive, pandanus, stonePine } from './trees'
 
 // Procedural plants, generated per scene from the seed, then scattered over
@@ -378,6 +379,9 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
   const q = new Quaternion()
   const p = new Vector3()
   const s = new Vector3()
+  // Flag trees (southern beech in Tierra del Fuego) lean downwind.
+  const windBent = placeNamed(params.place.id).windBent
+  const downwind = windDirection(params)
   const seaward = new Vector3(Math.sin((coast.seawardAzimuthDeg * Math.PI) / 180), 0, -Math.cos((coast.seawardAzimuthDeg * Math.PI) / 180))
 
   for (const [kind, weight] of kinds) {
@@ -406,7 +410,9 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
         const size = spec.scale[0] + (spec.scale[1] - spec.scale[0]) * rng.range(0.4, 0.9)
         const yaw = rng.range(0, Math.PI * 2)
         q.setFromAxisAngle(new Vector3(0, 1, 0), yaw)
-        placed.push(new Matrix4().compose(new Vector3(x, y - 0.1, z), q, new Vector3().setScalar(size)))
+        if (windBent.includes(kind)) q.premultiply(new Quaternion().setFromAxisAngle(new Vector3(downwind.z, 0, -downwind.x), rng.range(0.35, 0.6)))
+        const stunted = windBent.includes(kind) ? 0.75 : 1
+        placed.push(new Matrix4().compose(new Vector3(x, y - 0.1, z), q, new Vector3(size, size * stunted, size)))
         colors.push(new Color(1, 1, 1))
       }
     }
@@ -438,10 +444,14 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
         if (Math.abs(ndc.x) < 0.6) continue
       }
 
+      const bent = windBent.includes(kind)
       const tiltAxis = spec.leanSeaward
         ? new Vector3(seaward.z, 0, -seaward.x)
-        : new Vector3(rng.normal(), 0, rng.normal()).normalize()
-      const tilt = (spec.leanSeaward ? rng.range(0.3, 1) : rng.normal(0, 0.5)) * spec.tilt
+        : bent
+          ? new Vector3(downwind.z, 0, -downwind.x)
+          : new Vector3(rng.normal(), 0, rng.normal()).normalize()
+      // Bent trees: 20–35° over, and stunted.
+      const tilt = bent ? rng.range(0.35, 0.6) : (spec.leanSeaward ? rng.range(0.3, 1) : rng.normal(0, 0.5)) * spec.tilt
       // Palm geometry bends toward +X; turn that toward the sea.
       const yaw = spec.leanSeaward
         ? Math.atan2(-seaward.z, seaward.x) + rng.normal(0, 0.4)
@@ -451,7 +461,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       // Slightly different proportions per instance, so copies of the same
       // variant don't read as clones.
       const girth = rng.range(0.85, 1.15)
-      s.set(size * girth, size * rng.range(0.88, 1.12), size * girth)
+      s.set(size * girth, size * rng.range(0.88, 1.12) * (bent ? 0.75 : 1), size * girth)
       placed.push(new Matrix4().compose(p, q, s))
       const tint = 0.8 + 0.4 * rng.float()
       colors.push(new Color(tint, tint * (0.9 + 0.2 * rng.float()), tint))
