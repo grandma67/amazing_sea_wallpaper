@@ -134,6 +134,8 @@ export interface SceneSpec {
   /** A marine-layer morning (overcast stratus or stratocumulus deck);
    * true forces it on any place and time, null/false never. */
   marineLayer?: boolean | null
+  /** Desert dust haze: "harmattan" (or true) forces it, null/false none. */
+  dust?: Force<'harmattan'>
   lighthouse?: Force<'point' | 'rock'>
   landform?: Force<'range' | 'strato' | 'shield'>
   islands?: Force<IslandKind>
@@ -265,6 +267,7 @@ const SPEC = object({
   rainbow: boolean,
   fog: force('advection', 'bank', 'sea-smoke'),
   marineLayer: oneOf(true, false, null),
+  dust: force('harmattan'),
   lighthouse: force('point', 'rock'),
   landform: force('range', 'strato', 'shield'),
   islands: force('skerries', 'rocky', 'cay', 'karst', 'high'),

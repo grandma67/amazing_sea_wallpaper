@@ -49,6 +49,7 @@ import {
 
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
+import type { RGB } from './biome'
 import { createCamera } from './camera'
 import { moonlight as phaseLight } from './celestial'
 import { createClouds, loadCloudAssets, primeCloudShadow, renderCloudyEnvironment } from './clouds'
@@ -73,6 +74,7 @@ import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
+import { dustSkylight, dustTransmittance } from './seaHaze'
 import { bindCloudShadow, bindLandShadow, bindShadow, renderLandShadow } from './shadow'
 import { SkyDenoiseEffect } from './skyDenoise'
 import { createTerrain, hasLand } from './terrain'
@@ -220,7 +222,8 @@ export async function renderScene(
   const oceanSurface = synthesizeOceanAsync(params.ocean)
   const generator = new PrecomputedTexturesGenerator(renderer, { combinedScattering: false })
   const atmosphere = precomputeAtmosphere(renderer, generator)
-  const cloudAssetsLoaded = params.weather.kind === 'clear' ? Promise.resolve(null) : loadCloudAssets()
+  // The clouds pass also draws the sea haze: dust days need it under a clear sky.
+  const cloudAssetsLoaded = params.weather.kind === 'clear' && params.weather.dust == null ? Promise.resolve(null) : loadCloudAssets()
 
   // --- Camera ---------------------------------------------------------------
   const { camera, dip } = createCamera(params, width, height)
@@ -340,6 +343,9 @@ export async function renderScene(
     .multiplyScalar(params.weather.sunVisibility)
     // In totality no sunlight reaches us at all.
     .multiplyScalar(totality ? 0 : 1)
+  // Harmattan dust dims and reddens the sun; the skylight gets it back below.
+  const sunClear = sunIrradiance.clone()
+  sunIrradiance.multiply(new Color(...dustTransmittance(params.weather, params.visibilityKm, params.sunElevationDeg)))
   const skyProbe = new SkyLightProbe({ irradianceTexture: textures.irradianceTexture })
   skyProbe.worldToECEFMatrix.copy(worldToECEF)
   skyProbe.position.copy(camera.position)
@@ -351,6 +357,7 @@ export async function renderScene(
   const skyIrradiance = new Color(sh0.x, sh0.y, sh0.z).multiplyScalar(Math.sqrt(Math.PI))
   // ...only the dark sky and the glow round the horizon (eclipse.ts).
   if (totality) skyIrradiance.multiply(new Color(0.012, 0.009, 0.007))
+  skyIrradiance.setRGB(...dustSkylight(skyIrradiance.toArray() as RGB, sunClear.toArray() as RGB, sunIrradiance.toArray() as RGB, params.sunElevationDeg, params.weather))
 
   const elongation =
     Math.acos(Math.max(-1, Math.min(1, new Vector3(...params.moonDirection).dot(new Vector3(...params.sunDirection))))) / DEG

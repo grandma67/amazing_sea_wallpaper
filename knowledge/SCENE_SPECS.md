@@ -29,7 +29,8 @@ scripts: `--scene <JSON or file>`.
     `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
     `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
     `nacreous`, `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place;
-    null: none), `wind`, `visibilityKm`;
+    null: none), `dust` (`"harmattan"` or true: ochre dust haze, 2–10 km, any place; null:
+    none), `wind`, `visibilityKm`;
   - features: `lighthouse`, `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`, `haulOut`;
   - camera: `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`;
   - props: `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,vegetation,debris,shoreLife,mangroves,wildlife}`.

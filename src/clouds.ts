@@ -169,6 +169,11 @@ export function createClouds(
       }
     })
   )
+  // takram ends haze rays at the top of the highest layer: a clear dust day
+  // gets one empty layer through the dust's height.
+  if (weather.formations.length === 0 && weather.dust != null) {
+    layers[0].set({ channel: 'r', altitude: 0, height: 4000, densityScale: 0, shadow: false })
+  }
   clouds.cloudLayers.copy(layers)
   const cellScale = weather.formations.length > 0 ? (CLOUD_GENERA[weather.formations[0]].cellScale ?? 1) : 1
   clouds.localWeatherRepeat.multiplyScalar(cellScale)

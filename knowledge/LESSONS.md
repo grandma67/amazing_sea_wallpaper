@@ -90,6 +90,13 @@ tool gotchas in TOOLS.md.
   ~140 km. With Bruneton air alone (~220 km visibility) 40–130 km of undersides stacked into a
   dark band on the sea; real sea air (20–60 km) fades them (`seaHaze.ts`). takram's own haze is
   coverage-gated and coloured by ground irradiance (grey at sunrise).
+- takram's haze ray ends at the top of the highest cloud layer (`getHazeRayNearFar`): with no
+  layers there's no haze at all. A clear dust day needs an empty layer (density 0) through the
+  dust's height.
+- Thick dust can't take its colour from the sky behind each ray (the sky stays blue overhead):
+  colour it from the horizon sky in every direction, tinted, and give the sunlight it removes
+  back as diffuse light, or sand under a dimmed sun and blue skylight goes purple.
+- `flat` is a GLSL ES 3 keyword (like `half`).
 - Haze lit by the clear-sky horizon glows under a storm deck: scale it by the light the clouds let
   through, with a floor (storm 0.06, overcast 0.3).
 - Transparent or dithered meshes don't composite with clouds/aerial perspective (they only see the

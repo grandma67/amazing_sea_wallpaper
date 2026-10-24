@@ -11,7 +11,7 @@
 import { inMonths, type Months } from './places'
 import type { TimeOfDay } from './params'
 import type { Random } from './random'
-import { forced } from './sceneSpec'
+import { forced, type Force } from './sceneSpec'
 
 /** Chance of a marine-layer morning by place, in local months. */
 export const MARINE_LAYER: Record<string, readonly (readonly [Months, number])[]> = {
@@ -40,6 +40,22 @@ export interface CoastalDay {
 export function marineLayerChance(day: CoastalDay): number {
   if (day.evening || !MARINE_LAYER_TIMES.includes(day.timeOfDay)) return 0
   return MARINE_LAYER[day.place]?.find(([months]) => inMonths(day.month, months))?.[1] ?? 0
+}
+
+/** Chance of a harmattan day by place, in local months. */
+export const HARMATTAN: Record<string, readonly (readonly [Months, number])[]> = {
+  'west-africa': [[[12, 2], 0.5]]
+}
+
+export type DustKind = 'harmattan'
+
+export function harmattanChance(place: string, month: number): number {
+  return HARMATTAN[place]?.find(([months]) => inMonths(month, months))?.[1] ?? 0
+}
+
+/** Is there dust in the air today? One draw on `rng`, then forced. */
+export function dustFor(place: string, month: number, rng: Random, force?: Force<DustKind>): DustKind | null {
+  return forced(force, rng.chance(harmattanChance(place, month))) ? 'harmattan' : null
 }
 
 /** Is it a marine-layer morning? One draw on `rng`, then forced. */

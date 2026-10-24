@@ -113,6 +113,15 @@ Playwright (headless snapshots), Vitest.
   stratus or stratocumulus layer (stream `'marine-layer-deck'`), wind ≤ 6 m/s, no storm, title
   "marine layer" (`weather.marineLayer`). A forced `weather`/`clouds`, or an eclipse, wins unless
   `spec.marineLayer` is true.
+- **Harmattan** (`coastalWeather.ts` `dustFor`, stream `'dust'`; PLAN_BIOMES 3): West Africa
+  Dec–Feb on half the days, `weather.dust = 'harmattan'`; no storm or rainbow. `visibilityFor`
+  draws 2–10 km (floor 2 km instead of 5). The haze takes the sky's horizon colour in every
+  direction (`hazeFromHorizon`: thick dust scatters the pale horizon light everywhere, so the
+  whole sky goes milky) × ochre `hazeTint`. The sun is dimmed and reddened by
+  `dustTransmittance` (Koschmieder extinction over a 1.2 km layer × airmass, blue ×1.3, red
+  ×0.8) and `dustSkylight` gives 60% of what it lost back as diffuse light, tinted. Clear dust
+  days run the clouds pass for the haze, with one empty 4 km layer (takram ends haze rays at the
+  highest layer's top): ~+1 s on those days.
 - **Sea haze** (`seaHaze.ts`): `visibilityFor()` (own stream) draws visibility log-uniform by
   biome (polar 40–90 km, nordic 40–80, tropical 35–65, Mediterranean 35–70 and 25–50 in summer,
   desert 12–35, dust episodes 8–20); less in strong wind (sea salt), overcast and storms, more
@@ -120,7 +129,7 @@ Playwright (headless snapshots), Vitest.
   Bruneton air's own, no coverage switch-off, colour = the sky behind the ray (just above the
   horizon for rays at or below it) × `hazeLight(weather)`. Covers sky, clouds and scene, so far
   clouds and islands fade into the horizon. Only on days with clouds (clear days have no clouds
-  pass).
+  pass), and clear dust days.
 - **Fog** (`fog.ts`): screen-space exponential-height fog from depth (closed-form optical depth,
   forward-scattering glow), before exposure. `params.ts` picks it by climate on ~5% of days:
   *advection fog* (warm moist air over cold water: California and Chile in summer, Namib and

@@ -12,7 +12,7 @@ import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type
 import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParams } from './noctilucent'
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
-import { marineLayerFor } from './coastalWeather'
+import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
 import { Random } from './random'
@@ -274,6 +274,9 @@ export interface WeatherParams {
   /** A marine-layer morning: a low stratus or stratocumulus deck
    * (coastalWeather.ts). */
   marineLayer: boolean
+  /** Desert dust in the air (harmattan): a short, ochre haze and a dim,
+   * reddened sun (seaHaze.ts). */
+  dust: DustKind | null
   /** Seeded offsets so each day gets its own cloud pattern. */
   weatherOffset: [number, number]
   shapeOffset: [number, number, number]
@@ -659,6 +662,7 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay, force?: WeatherKind
     arrangement: null,
     sunVisibility: 1,
     marineLayer: false,
+    dust: null,
     weatherOffset: [rng.range(0, 1), rng.range(0, 1)],
     shapeOffset: [rng.range(0, 1), rng.range(0, 1), rng.range(0, 1)]
   }
@@ -1208,6 +1212,10 @@ function buildParams(
     marineDeck = [mrng.chance(0.6) ? 'stratus' : 'stratocumulus']
   }
 
+  // Harmattan dust (West Africa Dec–Feb), on its own stream: a dry wind, so
+  // no showers or storms.
+  weather.dust = dustFor(place.id, month, Random.derive(seed, 'dust'), spec.dust)
+
   // Rainbows: a shower passing on a sunny, showery day while the sun is low
   // (the bow is a 42° circle around the point opposite the sun, so it's only
   // above the horizon when the sun is below 42°). On those days the camera
@@ -1216,6 +1224,7 @@ function buildParams(
   const rainbowDay =
     spec.rainbow ??
     (eclipse == null &&
+      weather.dust == null &&
       (timeOfDay === 'golden-hour' || timeOfDay === 'daylight') &&
       (weather.kind === 'scattered' || weather.kind === 'broken') &&
       rainbowRng.chance(0.15))
@@ -1362,7 +1371,7 @@ function buildParams(
   const windHeadingDeg = keep('windHeading', rng.range(0, 360))
 
   const storm =
-    (eclipse != null || weather.marineLayer) && spec.storm === undefined
+    (eclipse != null || weather.marineLayer || weather.dust != null) && spec.storm === undefined
       ? null
       : generateStorm(seed, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.storm)
   if (storm != null) {
@@ -1491,6 +1500,7 @@ function buildParams(
     titleParts.push(islands.islands.length === 1 && islands.kind !== 'skerries' ? names[islands.kind].replace(/s$/, '') : names[islands.kind])
   }
   if (weather.marineLayer) titleParts.push('marine layer')
+  if (weather.dust != null) titleParts.push(weather.dust)
   if (rainbow != null) titleParts.push('rainbow')
   if (waterspout != null) titleParts.push('waterspout')
   if (colony != null) titleParts.push(colony.kind === 'penguin' ? 'penguin colony' : colony.site === 'island' ? 'seabird island' : 'seabird cliffs')

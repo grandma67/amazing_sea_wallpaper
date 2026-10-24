@@ -177,7 +177,7 @@ phase 1a, which draws the place before the sky).
 | Weather | Where and when | Look | Phase |
 |---|---|---|---|
 | Marine layer (June Gloom, camanchaca) | California May–Jul (~45% of mornings), Aug–Oct ~15%; Atacama–Peru Jun–Sep, weaker | stratus (60%) or Sc deck at ~350–650 m, golden hour to late morning (not evenings, midday), wind ≤ 6 m/s; never with storms. **Done** (`coastalWeather.ts`): Atacama Jun–Sep 30%, Oct 15%; 1 day in 2024–2026 (small places); spec `marineLayer` | 3 |
-| Harmattan | West Africa Dec–Feb (~50% of days) | dust haze, visibility 2–10 km, ochre sky, dim red sun | 3 |
+| Harmattan | West Africa Dec–Feb (~50% of days) | dust haze, visibility 2–10 km, ochre sky, dim red sun. **Done** (`coastalWeather.ts`, `seaHaze.ts`): no storms or rainbows; 2 days in 2024–2026; spec `dust` | 3 |
 | Haar | Scotland, NE England, Norway, Apr–Jul | sea fog rolling in on warm days; check `fogSeason` first | 3 |
 | Sea-breeze cumulus | warm sunny afternoons, mediterranean to tropical | Cu over land, clear over the sea | 13 (later) |
 | Offshore winds | mistral, bora, Santa Ana, harmattan | clear air, smooth faces, spray blown back off crests | 13 (later) |
