@@ -182,7 +182,7 @@ Sources: [Global coastal dataset (ESSD preprint 2025)](https://essd.copernicus.o
 | Southern seasons | only the Southern Ocean flips months | 1c |
 | Pebble, shingle and cobble beaches (~¼ of beaches) | done (phase 2) | 2 |
 | Pink and red sand; treeless high Arctic | done (phase 3): pink and red sand; no birch above 74°; beech in Tierra del Fuego | 3 |
-| Marine layer, harmattan, haar | fog and dust, not by place | 3 |
+| Marine layer, harmattan, haar | done (phase 3): marine layer and harmattan by place; haar already in the fog season | 3 |
 | Beach slope and bars follow grain and swell | random slope, sandbar 60% | 4 |
 | Tides (micro to mega) | sea level fixed | 5 |
 | Calm water behind reefs and barriers | water calms only where shallow | 6 |
