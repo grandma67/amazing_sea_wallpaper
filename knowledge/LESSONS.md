@@ -139,6 +139,11 @@ tool gotchas in TOOLS.md.
 - Near-camera boats need open water: on beach days no spot ≥ 3 m deep lies within ~150 m in frame;
   use `"coast": "open-sea"` to check wakes/spray up close.
 
+- Beach-state surveys file a multibar beach under its inner bar (Short 2006), so their state
+  shares and mean Ω per state (TBR 3.6 > RBB 3.1 > LBT 2.4) don't line up with a whole-profile
+  state. Compare shares by beach length, not count: a view shows a stretch of coast.
+- `params.mjs --ref` counts open-sea days for beach-shape changes: their coast carries a shape
+  the terrain never draws (open sea is −200 m). Report beach days separately.
 - Surf-zone width follows `nearshoreSlope`, not `beachSlope`: a steep beach face over a gentle
   nearshore still breaks waves 40–50 m out. Steepen the nearshore too (stony beaches).
 - Pebbles go below a pixel within a few metres of a 1.6 m eye (grazing footprint), so cells

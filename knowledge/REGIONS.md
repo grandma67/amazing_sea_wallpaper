@@ -244,8 +244,71 @@ the original before encoding exact values):
 | 0.35 mm | 1:15 (0.065) |
 | 0.5 mm | 1:10 (0.1) |
 | 1 mm | 1:7 (0.14) |
-| shingle | 1:8–1:4 (0.12–0.25) |
-| cobble | 1:5–1:3 (0.2–0.33) |
+| pure gravel (shingle, cobble) | 0.08–0.24 (Jennings & Shulmeister 2002, 42 NZ beaches) |
+| mixed sand and gravel | 0.04–0.13; composite (gravel berm over a sand terrace) 0.05–0.14 overall |
+
+### Beach states: shape by state
+
+What `beachState.ts` encodes (2026-10-24). ≈ = assumed, no source found; the reason is in the
+note under the table. Distances are seaward of the waterline.
+
+| | Reflective | Low-tide terrace | Transverse bar–rip | Rhythmic bar | Longshore bar | Dissipative |
+|---|---|---|---|---|---|---|
+| Ω (mean ± sd) [1] | < 1.5 | 2.40 ± 0.19 | 3.15 ± 0.64 | 3.50 ± 0.76 | 4.70 ± 0.93 | > 5.5 |
+| Ω band used | < 1.5 | 1.5–2.6 | 2.6–3.3 | 3.3–4.0 | 4.0–5.5 | > 5.5 |
+| Face slope | 0.10–0.20 [2]; grain curve × 1.55 | × 1.25 ≈ | × 1.05 ≈ | × 0.95 ≈ | × 0.9 ≈ | ~0.03 [2]; × 0.85 |
+| Nearshore slope | 0.10–0.20 [2]; 0.10–0.15 | 0.025–0.04 [3] | 0.02–0.03 [3] | 0.015–0.025 [3] | 0.012–0.02 [3] | ~0.01 [2]; 0.008–0.014 |
+| Dry width | 15–40 m ≈ | 25–55 m ≈ | 30–65 m ≈ | 35–70 m ≈ | 40–80 m ≈ | 50–95 m ≈ |
+| Bars | none [2] | terrace reaching 20–50 m out [4] | 1, 40–90 m ≈, welded to the shore between rips | 1, 70–140 m ≈ (inner bars ~100 m [7]); outer bar on 1/3 [5] | 1, 100–150 m [4]; trough 2–3 m deep [4]; outer bar half the time ≈ | 2, occasionally 3 [4] (3 on 15% ≈); surf zone ≤ 500 m [2][4] |
+| Bar crest height | — | 0.5–0.75 × depth ≈ | 0.35–0.6 ≈ | 0.3–0.55 ≈ | 0.3–0.5 ≈ | 0.15–0.45 ≈ |
+| Rips | none | every few tens of m [4]: 40–120 m | 150–400 m [5]; bar swing 30–45% ≈ | 150–400 m [5]; swing 15–25% ≈ | 250–500 m [4]; straight | none [4] |
+| Cusps | "usually" [2]: 80% ≈ | 60% ≈ (steep high-tide face) | 40% ≈ (megacusps) | none ≈ | none ≈ | none |
+| Cusp spacing | g T² tanβ / π [6], clamped 12–45 m ("tens of metres" [8]) | same | same | — | — | — |
+
+[1] Wright, Short & Green 1985, table VII (6.5 years of daily states at Narrabeen). Each split
+between intermediate states sits as many standard deviations from both means (2.57, 3.31, 4.04,
+rounded to 2.6, 3.3, 4.0). Short 2006 gives national means that don't increase steadily
+(LTT 2.5, TBR 3.6, RBB 3.1, LBT 2.4, D 9), because multibar beaches are classified by their
+inner bar.
+[2] Bosboom & Stive, *Coastal Dynamics* §7.3.2, after Wright & Short 1984: reflective
+"nearshore and beach slopes between 0.10 and 0.20", cusps usually present; dissipative
+nearshore ~0.01, beach ~0.03, surf zone up to 500 m. Face factors are set so the states' typical
+grains in our days (reflective ~0.35 mm, dissipative ~0.22 mm) land on those values on the
+grain curve above. The factors between are interpolated (≈).
+[3] Hong Kong CEDD "typical natural beach slopes" by grain (above). No per-state source.
+[4] OzCoasts "Wave-dominated beaches" (Short's typology).
+[5] Short 2006, table 2: Australian mean beach-rip spacing by region, 100 m (Kimberley), 140–150 m
+(NT, Cape York), 250 m (east coast), 280 m (Tasmania), 300–350 m (south), single high-energy beaches
+500–600 m. Of 279 rhythmic-bar beaches, 91 lie behind an outer bar. All intermediate states have
+rips.
+[6] Guza & Inman 1975 (subharmonic edge waves).
+[7] Inner bars ~100 m out, outer crescentic bars 250–500 m (a Japanese barred coast, from a
+search abstract; weak).
+[8] Castelle & Masselink 2023 review.
+
+Why ≈: no survey gives a dry-beach width by state (width depends on sand supply and the
+backshore more than on the state); no bar-height-to-depth ratios by state were found; the rip
+"bar swing" is our own parameter; no measured cusp frequency per state was found (Almar et al.
+2008 count episodes, not days). The longshore trough (2–3 m) is deeper than our profile makes it
+(we don't scour a trough; ARCHITECTURE.md known issues).
+
+**Measured shares of states.** The only full census found is Short 2006: all 10,685 Australian
+mainland beaches. 4934 are wave-dominated (the six states, classified by inner bar); the rest are
+tide-modified (10.5%) or tide-dominated (34%).
+
+| State | Australia, by number [Short 2006 table 1] | by length (km of 6933) | Ours, sand beach days (418) |
+|---|---|---|---|
+| reflective | 2670 (54.1%) | 2062 (29.7%) | 29.4% |
+| low-tide terrace | 931 (18.9%) | ≈ 1412 (20.4%, the remainder) | 33.0% |
+| transverse bar–rip | 1028 (20.8%) | 2370 (34.2%) | 12.2% |
+| rhythmic bar | 279 (5.7%) | ≈ 793 (11.4%) | 6.7% |
+| longshore bar | 8 (0.2%) | 18 (0.3%) | 6.2% |
+| dissipative | 18 (0.4%) | 278 (4.0%) | 12.4% |
+
+Length is the fairer comparison: a view shows a stretch of coast, and long beaches are the
+higher-energy ones. Australia's swell is long (T 10–14 s), which keeps Ω low, and its multibar
+beaches count under their inner bar (mostly TBR). England and Wales have a 98-beach
+classification (Scott, Masselink & Russell 2011), but its group shares weren't readable.
 
 ## 3. Tidal ranges (phase 5)
 
@@ -352,6 +415,16 @@ Grain and fall velocity: [Soulsby (1997) in CMS-Flow sediment fall velocity](htt
 [Typical natural beach slopes (Hong Kong CEDD)](https://www.cedd.gov.hk/filemanager/eng/content_102/p5_table.pdf),
 [Foraminifera size (Homotrema rubrum)](https://en.wikipedia.org/wiki/Homotrema_rubrum),
 [Beach states, Ω classes (Springer 2025)](https://link.springer.com/article/10.1007/s00367-025-00802-y).
+
+Beach-state shapes: [Wright, Short & Green 1985 (Marine Geology 62)](https://www.researchgate.net/publication/222168990_Short-term_changes_in_the_morphodynamic_states_of_beaches_and_surf_zones_An_empirical_predictive_model),
+[Short 2006, Australian beach systems (JCR 22)](https://ozcoasts.org.au/wp-content/uploads/2018/05/ShortJCR06.pdf),
+[OzCoasts: wave-dominated beaches](https://ozcoasts.org.au/?p=1112),
+[Bosboom & Stive: beach states](https://geo.libretexts.org/Bookshelves/Oceanography/Coastal_Dynamics_(Bosboom_and_Stive)/07%3A_Cross-shore_transport_and_profile_development/7.03%3A_Morphodynamics_of_the_upper_shoreface/7.3.2%3A_Beach_states),
+[Castelle & Masselink, morphodynamics of wave-dominated beaches (Cambridge Prisms)](https://www.cambridge.org/core/journals/cambridge-prisms-coastal-futures/article/morphodynamics-of-wavedominated-beaches/337BEAE64CFAC46C1BA9283A4E6195FD),
+[Jennings & Shulmeister 2002, gravel beach classification](https://ref.coastalrestorationtrust.org.nz/documents/a-field-based-classification-scheme-for-gravel-beaches/),
+[Almar et al. 2008, video observations of beach cusps](https://researchcommons.waikato.ac.nz/entities/publication/c59b6b42-f8a8-4a79-9600-abf63952a8f4),
+[Scott, Masselink & Russell 2011, England and Wales beaches](https://researchportal.plymouth.ac.uk/en/publications/morphodynamic-characteristics-and-classification-of-beaches-in-en/),
+[Inner and outer bar distances (CORE)](https://core.ac.uk/works/66644047).
 
 Tides: [Tidal range (Wikipedia)](https://en.wikipedia.org/wiki/Tidal_range),
 [Guinness: greatest tidal range](https://www.guinnessworldrecords.com/world-records/73813-highest-tide-average),

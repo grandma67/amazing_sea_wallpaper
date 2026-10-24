@@ -5,6 +5,8 @@
     { "name": "med-shingle-cusps", "date": "2024-01-06", "place": "western-med", "beachMaterial": "shingle", "composition": "along-beach" },
     { "name": "namibia-dissipative", "date": "2024-06-11", "place": "namibia", "beachMaterial": "sand", "beachState": "dissipative", "composition": "along-beach" },
     { "name": "australia-rips", "date": "2024-01-15", "place": "east-australia", "beachMaterial": "sand", "beachState": "transverse-bar-rip", "composition": "overlook" },
-    { "name": "australia-rips-shore", "date": "2024-01-15", "place": "east-australia", "beachMaterial": "sand", "beachState": "transverse-bar-rip", "composition": "shoreline" }
+    { "name": "australia-rips-shore", "date": "2024-01-15", "place": "east-australia", "beachMaterial": "sand", "beachState": "transverse-bar-rip", "composition": "shoreline" },
+    { "name": "australia-terrace", "date": "2024-01-15", "place": "east-australia", "beachMaterial": "sand", "beachState": "low-tide-terrace", "composition": "overlook" },
+    { "name": "australia-longshore", "date": "2024-01-15", "place": "east-australia", "beachMaterial": "sand", "beachState": "longshore-bar", "composition": "overlook" }
   ]
 }

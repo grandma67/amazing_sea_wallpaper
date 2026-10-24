@@ -229,14 +229,18 @@ Playwright (headless snapshots), Vitest.
   size (one float), then `beachStateFor(material, grain, Hb, T, sediment, rougher)`: Ω = Hb /
   (ws · T) with Soulsby `fallVelocity` (density and carbonate shape factor), Komar–Gaynord
   `breakerHeight` from the offshore swell (`ocean.swellHeight`, T from `swellWavelength`; not
-  `surfWave`, which needs the slope), limits 1.5/2.5/3.5/4.5/5.5. Storm days and |lat| > 25°
+  `surfWave`, which needs the slope), limits 1.5/2.6/3.3/4.0/5.5 (Wright, Short & Green 1985
+means). Storm days and |lat| > 25°
   winters (`season`) move it one state flatter; shingle and cobble are reflective, mixed at
   most a terrace. `spec.beachState` forces it. `beachShape` (fixed draws for every state) sets
-  face slope (sand by grain × state factor; gravel by stone size, ≥ 0.12), nearshore slope
-  and width by state (slope × width ≤ 5 m), `coast.bars` (0–3, crest at a share of the bare
-  depth), `coast.rips` (transverse-bar-rip, rhythmic: spacing 150–400 m, the inner bar swinging
-  shoreward by 15–45% between channels) and `coast.cusps` (reflective 80%, terrace 60%,
-  transverse 40%; spacing g T² tanβ / π, 12–45 m). The coast stream still makes the old
+  face slope (sand by grain × state factor 1.55 reflective … 0.85 dissipative; gravel by stone
+  size, 0.08–0.24), nearshore slope and width by state (slope × width ≤ 5 m), `coast.bars`
+  (layouts weighted by `share`, 0–3 bars, crest at a share of the bare depth), `coast.rips`
+  (`RIPS`: every intermediate state; terrace 40–120 m and longshore 250–500 m with no swing,
+  transverse and rhythmic 150–400 m with the inner bar swinging shoreward by 15–45% between
+  channels) and `coast.cusps` (reflective 80%, terrace 60%, transverse 40%; spacing
+  g T² tanβ / π, 12–45 m). Every number and its source: REGIONS.md §2 "Beach states: shape by
+  state". The coast stream still makes the old
   slope/width/sandbar draws (`skipDraw`) so eye height stays.
 - **Bars, rips, cusps in the terrain** (`TERRAIN_GLSL`, TS mirror `barHeight`, `ripGap`,
   `cuspHeight` in `terrain.ts`): `vec3 bars[3]` + `barCount` replace the one sandbar; at a rip
@@ -384,10 +388,14 @@ rolling onto the beach as surf, turtle heads at sea.
 ## Known issues
 
 - Run-up doesn't depend on the beach state: on flat dissipative beaches the high-tide line lies
-  ~50 m and the storm line (`beachLines`, 2.2 × run-up, capped at 2.3 × width) up to ~160 m inland
+  ~35 m and the storm line (`beachLines`, 2.2 × run-up, capped at 2.3 × width) up to ~120 m inland
   (`scripts/profile.mjs` on Namibia 2024-06-11), so the wet band is very wide and storm-line debris
   sits far back; on steep gravel it is ~1 m. A Stockdon-type run-up (∝ slope × √(H0 L0) on steep
   beaches, ∝ √(H0 L0) on flat ones) would fix both, at the cost of re-tuning the wrack lines.
+- Longshore bars have no trough: OzCoasts gives 2–3 m behind the bar, but the bare profile there
+  is ~1 m deep (only rip channels are scoured).
+- State shares vs Australia's census (COASTS.md "Beach state"): transverse bar–rip under-drawn,
+  longshore and dissipative over-drawn. A retune is proposed there and not done.
 
 - Waterspouts: the fog rule never applies and they're far rarer than intended (1 in 3 years):
   [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md).

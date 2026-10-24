@@ -8,7 +8,8 @@ import type { Random } from './random'
 // sand under big swell flattens it into a wide surf zone over two or three
 // bars (dissipative), with the intermediate states (terrace, bars cut by rip
 // channels, crescentic and straight bars) between. Grain sizes, fall
-// velocities, worked examples and slopes: knowledge/REGIONS.md §2.
+// velocities, worked examples and slopes: knowledge/REGIONS.md §2; the shape
+// tables below and their sources: REGIONS.md §2 "Beach states: shape by state".
 
 /** Wright & Short's six states, steep to flat. */
 export type BeachState =
@@ -29,9 +30,11 @@ export const BEACH_STATES: readonly BeachState[] = [
 ]
 
 /** Ω at the upper end of each state but the last: reflective below 1.5,
- * dissipative above 5.5; the intermediate states split the range in between
- * (their modal Ω: terrace ~2, transverse bars ~3, rhythmic ~4, longshore ~5). */
-export const OMEGA_LIMITS = [1.5, 2.5, 3.5, 4.5, 5.5] as const
+ * dissipative above 5.5 (Wright, Short & Green 1985). Between them, each
+ * split lies as many standard deviations from the two states' mean Ω there
+ * (terrace 2.40 ± 0.19, transverse bars 3.15 ± 0.64, rhythmic 3.50 ± 0.76,
+ * longshore 4.70 ± 0.93). */
+export const OMEGA_LIMITS = [1.5, 2.6, 3.3, 4.0, 5.5] as const
 
 /** A sediment: median grain range (mm), density relative to sea water, and
  * a shape factor on the settling speed (platy, porous carbonate grains sink
@@ -160,30 +163,33 @@ const SAND_FACE: readonly [number, number][] = [
   [2, 0.16]
 ]
 
-/** Face slope of gravel by stone size (m): shingle 1:8–1:4, cobble 1:5–1:3. */
+/** Face slope of gravel by stone size (m): pure gravel beaches lie at
+ * 0.08–0.24 (Jennings & Shulmeister 2002); coarser stones steeper. */
 const STONE_FACE: readonly [number, number][] = [
-  [0.02, 0.12],
-  [0.05, 0.2],
-  [0.15, 0.28],
-  [0.3, 0.33]
+  [0.02, 0.1],
+  [0.05, 0.15],
+  [0.18, 0.24]
 ]
 
 /** Flatter faces toward dissipative: the same sand lies steeper under small
- * waves than under big ones. */
+ * waves than under big ones. The ends give the faces Bosboom & Stive quote
+ * on the states' typical grains (reflective 0.10–0.20 at ~0.35 mm,
+ * dissipative ~0.03 at ~0.22 mm); the steps between are assumed. */
 const FACE_BY_STATE: Record<BeachState, number> = {
-  reflective: 1.1,
-  'low-tide-terrace': 1,
-  'transverse-bar-rip': 0.85,
-  'rhythmic-bar': 0.75,
-  'longshore-bar': 0.65,
-  dissipative: 0.55
+  reflective: 1.55,
+  'low-tide-terrace': 1.25,
+  'transverse-bar-rip': 1.05,
+  'rhythmic-bar': 0.95,
+  'longshore-bar': 0.9,
+  dissipative: 0.85
 }
 
-/** Slope of the surf zone and shoreface (CEDD "typical natural beach
- * slopes": 0.2 mm 1:50–1:100, 0.3 mm 1:25–1:50, 0.5 mm 1:20–1:40; flatter
- * on exposed coasts). */
+/** Slope of the surf zone and shoreface: reflective 0.10–0.20, dissipative
+ * ~0.01 (Bosboom & Stive, after Wright & Short); between them by CEDD
+ * "typical natural beach slopes" (0.2 mm 1:50–1:100, 0.3 mm 1:25–1:50,
+ * 0.5 mm 1:20–1:40). */
 const NEARSHORE: Record<BeachState, [number, number]> = {
-  reflective: [0.035, 0.06],
+  reflective: [0.1, 0.15],
   'low-tide-terrace': [0.025, 0.04],
   'transverse-bar-rip': [0.02, 0.03],
   'rhythmic-bar': [0.015, 0.025],
@@ -191,7 +197,8 @@ const NEARSHORE: Record<BeachState, [number, number]> = {
   dissipative: [0.008, 0.014]
 }
 
-/** Dry beach width scale (m): narrow and steep to wide and flat. */
+/** Dry beach width scale (m): narrow and steep to wide and flat (assumed;
+ * no survey gives a dry width per state). */
 const WIDTH: Record<BeachState, [number, number]> = {
   reflective: [15, 40],
   'low-tide-terrace': [25, 55],
@@ -201,23 +208,53 @@ const WIDTH: Record<BeachState, [number, number]> = {
   dissipative: [50, 95]
 }
 
-/** Bars by state: [distance range (m), crest height as a share of the
- * water depth there] per bar, inner first. Outer bars are lower, in deeper
- * water. The terrace is a shallow shelf at the foot of the face. */
-const BARS: Record<BeachState, [[number, number], [number, number]][][]> = {
-  reflective: [[]],
-  'low-tide-terrace': [[[[15, 35], [0.5, 0.75]]]],
-  'transverse-bar-rip': [[[[40, 90], [0.35, 0.6]]]],
-  'rhythmic-bar': [[[[70, 140], [0.3, 0.55]]], [[[70, 140], [0.3, 0.55]], [[180, 260], [0.2, 0.4]]]],
-  'longshore-bar': [[[[80, 150], [0.3, 0.5]]], [[[80, 150], [0.3, 0.5]], [[190, 280], [0.2, 0.4]]]],
+type BarRange = [[number, number], [number, number]]
+
+/** Bars by state: layouts with their share of beaches, each a list of
+ * [distance range (m), crest height as a share of the water depth there]
+ * per bar, inner first. Outer bars are lower, in deeper water. The terrace
+ * is a shallow shelf at the foot of the face reaching 20–50 m out (its edge
+ * lies ~2 half-widths past the crest); longshore bars stand 100–150 m out
+ * (OzCoasts); dissipative beaches have "two to occasionally three" bars
+ * across a surf zone up to 500 m wide (OzCoasts; Bosboom & Stive). A third
+ * of Australian rhythmic-bar beaches lie behind an outer bar (Short 2006:
+ * 91 of 279). Other distances, heights and shares: assumed. */
+const BARS: Record<BeachState, { share: number; bars: BarRange[] }[]> = {
+  reflective: [{ share: 1, bars: [] }],
+  'low-tide-terrace': [{ share: 1, bars: [[[10, 30], [0.5, 0.75]]] }],
+  'transverse-bar-rip': [{ share: 1, bars: [[[40, 90], [0.35, 0.6]]] }],
+  'rhythmic-bar': [
+    { share: 0.67, bars: [[[70, 140], [0.3, 0.55]]] },
+    { share: 0.33, bars: [[[70, 140], [0.3, 0.55]], [[180, 260], [0.2, 0.4]]] }
+  ],
+  'longshore-bar': [
+    { share: 0.5, bars: [[[100, 150], [0.3, 0.5]]] },
+    { share: 0.5, bars: [[[100, 150], [0.3, 0.5]], [[200, 280], [0.2, 0.4]]] }
+  ],
   dissipative: [
-    [[[70, 130], [0.25, 0.45]], [[160, 250], [0.2, 0.4]]],
-    [[[70, 130], [0.25, 0.45]], [[160, 250], [0.2, 0.4]], [[270, 360], [0.15, 0.3]]]
+    { share: 0.85, bars: [[[70, 130], [0.25, 0.45]], [[160, 250], [0.2, 0.4]]] },
+    { share: 0.15, bars: [[[70, 130], [0.25, 0.45]], [[160, 250], [0.2, 0.4]], [[270, 360], [0.15, 0.3]]] }
   ]
 }
 
-/** Chance of cusps: common on reflective and terraced beaches, fewer on
- * transverse bars (megacusps there), none on the flat states. */
+/** Rip channels by state: spacing (m) and how far the inner bar swings
+ * toward the shore between them (× its distance). All intermediate beaches
+ * have rips (Short 2006); transverse and rhythmic bars every 150–400 m
+ * (Australian regional means 145–355 m, Short 2006 table 2), longshore
+ * bars every 250–500 m and terraces every few tens of metres (OzCoasts).
+ * The swing is assumed; a straight bar and a terrace don't swing. */
+const RIPS: Record<BeachState, { spacing: [number, number]; amplitude: [number, number] } | null> = {
+  reflective: null,
+  'low-tide-terrace': { spacing: [40, 120], amplitude: [0, 0] },
+  'transverse-bar-rip': { spacing: [150, 400], amplitude: [0.3, 0.45] },
+  'rhythmic-bar': { spacing: [150, 400], amplitude: [0.15, 0.25] },
+  'longshore-bar': { spacing: [250, 500], amplitude: [0, 0] },
+  dissipative: null
+}
+
+/** Chance of cusps (assumed): "usually" on reflective beaches (Bosboom &
+ * Stive), on the steep high-tide face of a terrace, fewer on transverse
+ * bars (megacusps there), none on the flat states. */
 export const CUSP_CHANCE: Record<BeachState, number> = {
   reflective: 0.8,
   'low-tide-terrace': 0.6,
@@ -242,8 +279,8 @@ function logLerp(table: readonly [number, number][], x: number): number {
   return table[table.length - 1][1]
 }
 
-/** Cusp spacing (m) from subharmonic edge waves: λ = g T² tanβ / π,
- * 15–40 m on most steep beaches. */
+/** Cusp spacing (m) from subharmonic edge waves: λ = g T² tanβ / π
+ * (Guza & Inman 1975), "tens of metres" (Castelle & Masselink 2023). */
 export function cuspSpacing(period: number, slope: number): number {
   return Math.min(45, Math.max(12, (G * period * period * slope) / Math.PI))
 }
@@ -264,16 +301,18 @@ export function beachShape(
   const stones = material === 'shingle' || material === 'cobble'
   const jitter = rng.range(0.85, 1.15)
   let beachSlope = stones ? logLerp(STONE_FACE, grain) * jitter : logLerp(SAND_FACE, grain) * FACE_BY_STATE[state] * jitter
-  // A mixed beach: a gravel upper beach steepens the sand face.
+  // A mixed beach: a gravel upper beach steepens the sand face (composite
+  // gravel beaches 0.05–0.14 overall, Jennings & Shulmeister 2002).
   if (material === 'mixed') beachSlope = Math.min(0.14, Math.max(0.08, beachSlope))
-  beachSlope = Math.min(stones ? 0.33 : 0.18, Math.max(stones ? 0.12 : 0.015, beachSlope))
+  beachSlope = Math.min(stones ? 0.24 : 0.2, Math.max(stones ? 0.08 : 0.015, beachSlope))
   const near = stones ? [0.06, 0.12] : material === 'mixed' ? [0.035, 0.06] : NEARSHORE[state]
   const nearshoreSlope = rng.range(near[0], near[1])
   const width = material === 'sand' ? WIDTH[state] : [12, 40]
   const beachWidth = Math.max(12, Math.min(rng.range(width[0], width[1]), MAX_BERM / beachSlope))
 
   const options = BARS[state]
-  const layout = options[Math.min(options.length - 1, Math.floor(rng.float() * options.length))]
+  let pick = rng.float()
+  const layout = (options.find(o => (pick -= o.share) < 0) ?? options[options.length - 1]).bars
   const bars: Bar[] = [0, 1, 2].map(i => {
     const distance = rng.range(...(layout[i]?.[0] ?? [0, 1]))
     const share = rng.range(...(layout[i]?.[1] ?? [0, 1]))
@@ -282,10 +321,10 @@ export function beachShape(
   })
   bars.length = layout.length
 
-  const ripped = state === 'transverse-bar-rip' || state === 'rhythmic-bar'
-  const ripSpacing = rng.range(150, 400)
-  const ripAmplitude = state === 'transverse-bar-rip' ? rng.range(0.3, 0.45) : rng.range(0.15, 0.25)
-  const rips = ripped ? { spacing: ripSpacing, amplitude: ripAmplitude } : null
+  const rip = RIPS[state]
+  const ripSpacing = rng.range(...(rip?.spacing ?? [0, 1]))
+  const ripAmplitude = rng.range(...(rip?.amplitude ?? [0, 1]))
+  const rips = rip ? { spacing: ripSpacing, amplitude: ripAmplitude } : null
 
   const cusped = rng.chance(CUSP_CHANCE[state])
   const relief = rng.range(0.1, 0.4)

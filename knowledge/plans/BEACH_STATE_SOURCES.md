@@ -1,7 +1,8 @@
 # Beach states: sourced shape table
 
-Item 4 from the phase 4 retrospective (2026-10-24). Not started. The prompt below can be
-pasted into a new session; it doesn't depend on the conversation that wrote it.
+Item 4 from the phase 4 retrospective (2026-10-24). **Done 2026-10-24** (changelog 0.56; table in
+REGIONS.md §2). Still open: the share retune proposed in COASTS.md "Beach state" (asks first).
+The original prompt is kept below.
 
 ```
 Item 4 from the phase 4 retrospective: give the beach-state shape tables real sources.

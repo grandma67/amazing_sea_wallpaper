@@ -181,19 +181,33 @@ Measured over 2024–2026 beach days (715). Ω = Hb / (ws · T) from the day's s
 beach's grain (`beachState.ts`, REGIONS.md §2); storms and mid-latitude winters one state
 flatter.
 
-| State | All beach days | Sand beaches (418) | Shape |
-|---|---|---|---|
-| reflective | 48.0% | 29% | steep face, no bar, cusps 80% |
-| low-tide-terrace | 29.0% | 31% | a shallow terrace 15–35 m out, cusps 60% |
-| transverse-bar-rip | 9.0% | 15% | bar 40–90 m welded to the shore between rips every 150–400 m, cusps 40% |
-| rhythmic-bar | 4.8% | 8% | crescentic bar 70–140 m (+ an outer bar sometimes), rips |
-| longshore-bar | 2.9% | 5% | straight bar 80–150 m, deep trough (+ an outer bar sometimes) |
-| dissipative | 6.4% | 11% | face ~1:50, 2–3 bars to ~360 m, wide surf zone |
+Shapes are sourced per state in REGIONS.md §2 "Beach states: shape by state" (2026-10-24).
 
-Cusps on 56% of beach days; bars: none 48%, one 41%, two 7%, three 4%. By biome (sand
-beaches): coarse coral and black sands stay steep (tropical 64% reflective or terrace,
-volcanic 80%); fine white quartz under ocean swell flattens (Mediterranean and desert ocean
-coasts: 27% and 24% dissipative). Not yet checked against a measured world share of states.
+| State | All beach days | Sand beaches (418) | Australia by length (Short 2006) | Shape |
+|---|---|---|---|---|
+| reflective | 48.0% | 29% | 30% | face 0.10–0.20, nearshore 0.10–0.15, no bar, cusps 80% |
+| low-tide-terrace | 30.1% | 33% | ≈ 20% | a shallow terrace reaching 20–50 m out, small rips every 40–120 m, cusps 60% |
+| transverse-bar-rip | 7.1% | 12% | 34% | bar 40–90 m welded to the shore between rips every 150–400 m, cusps 40% |
+| rhythmic-bar | 3.9% | 7% | 11% | crescentic bar 70–140 m (+ an outer bar on a third), rips every 150–400 m |
+| longshore-bar | 3.6% | 6% | 0.3% | straight bar 100–150 m cut by rips every 250–500 m (+ an outer bar half the time) |
+| dissipative | 7.3% | 12% | 4% | face ~0.03, nearshore ~0.01, 2 bars (3 on 15%) to ~360 m, wide surf zone |
+
+Cusps on 56% of beach days; rips on 45%; bars: none 48%, one 42%, two 9%, three 2%. By biome (sand
+beaches): coarse coral and black sands stay steep (tropical 66% reflective or terrace, volcanic
+83%); fine white quartz under ocean swell flattens (Mediterranean and desert ocean coasts: 30%
+and 26% dissipative).
+
+**Against the measured world.** The only census is Australia's (Short 2006; by length, which suits a
+view better than counting beaches). Reflective is about right (29% vs 30%). Rip-cut transverse
+bars are under-drawn (12% vs 34%). Longshore bars (6% vs 0.3%) and dissipative beaches (12% vs
+4%) are over-drawn. Part of the gap is real: Australia's long Southern Ocean swell (T 12–14 s)
+keeps Ω low, while our world includes fine-sand storm coasts (Namibia, Oregon, the North Sea).
+Part is how it's counted: Short files a multibar beach under its inner bar, which is mostly
+transverse-bar-rip, while our dissipative and longshore days are the whole profile. Part is ours:
+storm days and mid-latitude winters shift a beach one state flatter, which shows the day rather
+than the modal state. A possible retune (not done, it changes every beach day): drop the winter
+shift and keep only storms, or classify by the inner bar so a double-bar beach with a rip-cut
+inner bar counts as transverse-bar-rip.
 
 ## Gaps: research vs. today
 

@@ -62,7 +62,9 @@ describe('beach material', () => {
         expect(coast.ridges).toEqual([])
         continue
       }
-      expect(coast.beachSlope).toBeGreaterThanOrEqual(coast.material === 'mixed' ? 0.08 : 0.12)
+      // Pure gravel 0.08–0.24 (Jennings & Shulmeister 2002); mixed 0.08–0.14.
+      expect(coast.beachSlope).toBeGreaterThanOrEqual(0.08)
+      expect(coast.beachSlope).toBeLessThanOrEqual(coast.material === 'mixed' ? 0.14 : 0.24)
       expect(coast.beachWidth).toBeLessThanOrEqual(40)
       // Reflective (shingle, cobble) or a gravel upper beach over a sand
       // terrace (mixed): no bars beyond the terrace.

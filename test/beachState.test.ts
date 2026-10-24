@@ -45,9 +45,12 @@ describe('fall velocity and Ω', () => {
     expect(stateForOmega(1.4)).toBe('reflective')
     expect(stateForOmega(2)).toBe('low-tide-terrace')
     expect(stateForOmega(3)).toBe('transverse-bar-rip')
-    expect(stateForOmega(4)).toBe('rhythmic-bar')
+    expect(stateForOmega(3.6)).toBe('rhythmic-bar')
     expect(stateForOmega(5)).toBe('longshore-bar')
     expect(stateForOmega(5.6)).toBe('dissipative')
+    // Each state's mean Ω (Wright, Short & Green 1985) falls in its own band.
+    const means = { 'low-tide-terrace': 2.4, 'transverse-bar-rip': 3.15, 'rhythmic-bar': 3.5, 'longshore-bar': 4.7 } as const
+    for (const [state, mean] of Object.entries(means)) expect(stateForOmega(mean)).toBe(state)
   })
 
   it('gets breakers and periods right', () => {
@@ -101,7 +104,16 @@ describe('beach state on real days', () => {
       if (coast.state === 'reflective') expect(n).toBe(0)
       if (coast.state === 'dissipative') expect(n).toBeGreaterThanOrEqual(2)
       expect(n).toBeLessThanOrEqual(3)
-      expect(coast.rips != null).toBe(coast.state === 'transverse-bar-rip' || coast.state === 'rhythmic-bar')
+      // Every intermediate state has rips (Short 2006); terraces' are closest.
+      expect(coast.rips != null).toBe(coast.state !== 'reflective' && coast.state !== 'dissipative')
+      if (coast.rips != null) {
+        const [lo, hi] = coast.state === 'low-tide-terrace' ? [40, 120] : coast.state === 'longshore-bar' ? [250, 500] : [150, 400]
+        expect(coast.rips.spacing).toBeGreaterThanOrEqual(lo)
+        expect(coast.rips.spacing).toBeLessThanOrEqual(hi)
+        // Straight bars and terraces don't swing toward the shore.
+        if (coast.state === 'low-tide-terrace' || coast.state === 'longshore-bar') expect(coast.rips.amplitude).toBe(0)
+      }
+      if (coast.state === 'longshore-bar') expect(coast.bars[0].distance).toBeGreaterThanOrEqual(100)
       if (coast.cusps != null) {
         expect(steep(coast.state)).toBe(true)
         expect(coast.cusps.spacing).toBeGreaterThanOrEqual(10)
@@ -116,15 +128,27 @@ describe('beach state on real days', () => {
       })
       expect(coast.beachSlope * coast.beachWidth).toBeLessThanOrEqual(5 + 1e-9)
     }
+    // Faces: reflective 0.10–0.20, dissipative ~0.03 (Bosboom & Stive).
+    expect(mean(of('reflective'), p => p.coast.beachSlope)).toBeGreaterThan(0.08)
+    expect(mean(of('dissipative'), p => p.coast.beachSlope)).toBeGreaterThan(0.02)
+    expect(mean(of('dissipative'), p => p.coast.beachSlope)).toBeLessThan(0.04)
+    for (const p of beaches.filter(p => p.coast.material === 'shingle' || p.coast.material === 'cobble')) {
+      expect(p.coast.beachSlope).toBeGreaterThanOrEqual(0.08)
+      expect(p.coast.beachSlope).toBeLessThanOrEqual(0.24)
+    }
     // Cusps show on most steep beaches.
     expect(share(beaches.filter(p => p.coast.state === 'reflective'), p => p.coast.cusps != null)).toBeGreaterThan(0.6)
   })
 
   it('is forced by the spec and keeps the rest of the day', () => {
-    for (const p of scenes({ beachState: 'dissipative', beachMaterial: 'sand', coast: 'beach' }, 10)) {
+    const flat = scenes({ beachState: 'dissipative', beachMaterial: 'sand', coast: 'beach' }, 60)
+    for (const p of flat) {
       expect(p.coast.state).toBe('dissipative')
       expect(p.coast.bars.length).toBeGreaterThanOrEqual(2)
     }
+    // "Two to occasionally three" bars.
+    expect(share(flat, p => p.coast.bars.length === 3)).toBeGreaterThan(0)
+    expect(share(flat, p => p.coast.bars.length === 3)).toBeLessThan(0.35)
     for (const p of sand.slice(0, 15)) {
       expect(scene({ beachState: p.coast.state }, p.date)).toEqual(p)
       const other = scene({ beachState: p.coast.state === 'reflective' ? 'dissipative' : 'reflective' }, p.date)
