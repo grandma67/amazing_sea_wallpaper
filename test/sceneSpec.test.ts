@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { createCamera } from '../src/camera'
 import { generateSceneParams } from '../src/composition'
 import { generateParams, type SceneParams } from '../src/params'
 import { debrisFor } from '../src/props/debris'
@@ -186,5 +187,35 @@ describe('deepPatch', () => {
   it('merges objects and replaces the rest', () => {
     expect(deepPatch({ a: { b: 1, c: [1, 2] }, d: 1 }, { a: { c: [3] }, d: null })).toEqual({ a: { b: 1, c: [3] }, d: null })
     expect(deepPatch({ a: null }, { a: { b: 1 } })).toEqual({ a: { b: 1 } })
+  })
+})
+
+describe('swell and camera ground', () => {
+  it('forces the offshore swell, and the surf and beach state follow', () => {
+    const spec: SceneSpec = { place: 'namibia', coast: 'beach', beachMaterial: 'sand', sand: 'white' }
+    for (const date of sample.slice(0, 10)) {
+      const drawn = scene(spec, date)
+      const big = scene({ ...spec, swellHeight: 2.5, swellPeriod: 12 }, date)
+      expect(big.ocean.swellHeight).toBe(2.5)
+      expect(big.ocean.swellWavelength).toBeCloseTo((9.81 * 144) / (2 * Math.PI), 6)
+      expect(big.coast.surfAmplitude).toBeGreaterThanOrEqual(drawn.coast.surfAmplitude)
+      // Fine quartz under big swell: barred or flat.
+      expect(['rhythmic-bar', 'longshore-bar', 'dissipative']).toContain(big.coast.state)
+      // Draw, then force: the rest of the day stays.
+      expect(big.camera).toEqual(drawn.camera)
+      expect(big.coast.noiseOffset).toEqual(drawn.coast.noiseOffset)
+      expect(big.ocean.windSpeed).toBe(drawn.ocean.windSpeed)
+    }
+    // Long periods are capped at the spectrum's longest swell.
+    expect(scene({ swellPeriod: 20 }).ocean.swellWavelength).toBe(320)
+    expect(() => parseSceneSpec({ swellHeight: 'big' })).toThrow(/swellHeight/)
+  })
+
+  it('stands the camera on a pinned ground height', () => {
+    const p = scene({ coast: 'beach', composition: 'shoreline' })
+    const free = createCamera(p, 1920, 1080).camera
+    const pinned = createCamera({ ...p, camera: { ...p.camera, groundM: 3 } }, 1920, 1080).camera
+    expect(free.position.y).toBeGreaterThan(p.camera.heightM - 1e-9)
+    expect(pinned.position.y).toBeCloseTo(3 + p.camera.heightM, 9)
   })
 })

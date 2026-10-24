@@ -43,6 +43,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Use scene specs, not hunted dates. Ask `scripts/params.mjs` for frequencies and "is it there at all?" before rendering anything.
 - A spec file's base forces `timeOfDay` and `weather` (the date's own may be night); don't force `camera.heightM` (compositions set their own). `--props KIND` also prints CPU build time.
 - Preview new meshes alone with `scripts/mesh.mjs`; render the beach only for placement and light.
+- Terrain and water-depth features (bars, cusps, tides, reefs, flats): check the shape with `scripts/profile.mjs` (numbers, cross-shore profile, top-down depth map with the break line) before rendering; force waves with `swellHeight`/`swellPeriod`, don't hunt dates. Diff terrain changes with `diff.mjs --keep-camera` (the camera stands on the ground).
 - Prove visibility with `scripts/diff.mjs` before the first full render (`⚠ invisible` = fix before looking): props with `--off '{"props":{"<kind>":false}}'`; sky, light, haze and weather features with their spec field off (`'{"dust":null}'`) on a clear **and** a cloudy sky (clear days skip the clouds pass, so haze and cloud-lit effects can vanish there). Read a contact sheet, not single frames.
 - Check front-lit first, then backlit. Act on snapshot ⚠ warnings before reading images.
 - One render command per step, 16 frames at 1080p. ~3 render rounds per feature (see, fix everything, confirm) on the same dates. If a 4th seems needed, reason from numbers, `--props` and `diff.mjs` instead.

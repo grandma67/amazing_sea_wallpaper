@@ -383,6 +383,12 @@ rolling onto the beach as surf, turtle heads at sea.
 
 ## Known issues
 
+- Run-up doesn't depend on the beach state: on flat dissipative beaches the high-tide line lies
+  ~50 m and the storm line (`beachLines`, 2.2 × run-up, capped at 2.3 × width) up to ~160 m inland
+  (`scripts/profile.mjs` on Namibia 2024-06-11), so the wet band is very wide and storm-line debris
+  sits far back; on steep gravel it is ~1 m. A Stockdon-type run-up (∝ slope × √(H0 L0) on steep
+  beaches, ∝ √(H0 L0) on flat ones) would fix both, at the cost of re-tuning the wrack lines.
+
 - Waterspouts: the fog rule never applies and they're far rarer than intended (1 in 3 years):
   [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md).
 - Backlit shelf cloud at sunset is a flat pink band (takram aerial perspective on the mesh;

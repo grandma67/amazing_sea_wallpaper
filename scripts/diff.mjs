@@ -9,6 +9,11 @@
 // Every spec is rendered as written (into OUT/on) and with --off merged in
 // (into OUT/off); --off is merged deeply, so '{"props":{"debris":null}}'
 // keeps the spec's other props.
+// --keep-camera: a terrain change (bars, cusps, tides) also moves the camera,
+// which stands on the ground, and then most of the frame differs. With it,
+// the "on" renders go first and each "off" render stands its camera at the
+// same height (params.camera.groundM). Heading and lens are the date's in
+// both; a composition re-roll (a bad framing) can still differ.
 //
 // Two folders of renders already made (same names), e.g. before/after a code
 // change, or a speed change that should leave the image alone:
@@ -38,6 +43,7 @@ let dirA = option('a', null)
 let dirB = option('b', null)
 const match = new RegExp(option('match', '.'))
 const threshold = Number(option('threshold', 4))
+const keepCamera = args.includes('--keep-camera') && args.splice(args.indexOf('--keep-camera'), 1).length > 0
 const render = ['w', 'h', 'frames', 'url'].flatMap(k => {
   const v = option(k, null)
   return v == null ? [] : [`--${k}`, v]
@@ -67,12 +73,23 @@ if (sceneArg != null) {
   await mkdir(outDir, { recursive: true })
   const named = specs.map((s, i) => ({ ...s, name: s.name ?? s.date ?? `scene-${i + 1}` }))
   await writeFile(join(outDir, 'on.json'), JSON.stringify(named))
-  await writeFile(join(outDir, 'off.json'), JSON.stringify(named.map(s => merge(s, off))))
-  for (const [dir, file] of [[dirA, 'off.json'], [dirB, 'on.json']]) {
+  const snapshot = (dir, file) => {
     const run = spawnSync('node', ['scripts/snapshot.mjs', '--out', dir, ...render, '--scene', join(outDir, file)], { encoding: 'utf8' })
     process.stdout.write(run.stdout.split('\n').filter(l => /\.jpg|⚠|rror/.test(l)).map(l => `${l}\n`).join(''))
     if (run.status !== 0) throw new Error(`snapshot.mjs failed:\n${run.stderr}`)
   }
+  if (keepCamera) snapshot(dirB, 'on.json')
+  const offSpecs = await Promise.all(
+    named.map(async s => {
+      const spec = merge(s, off)
+      if (!keepCamera) return spec
+      const { debug } = JSON.parse(await readFile(join(dirB, `${s.name}.json`), 'utf8'))
+      return merge(spec, { params: { camera: { groundM: debug.cameraGroundM } } })
+    })
+  )
+  await writeFile(join(outDir, 'off.json'), JSON.stringify(offSpecs))
+  snapshot(dirA, 'off.json')
+  if (!keepCamera) snapshot(dirB, 'on.json')
 }
 if (dirA == null || dirB == null) throw new Error('give --scene SPECS --off PATCH, or --a DIR --b DIR')
 

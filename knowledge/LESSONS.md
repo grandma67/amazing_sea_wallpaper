@@ -171,6 +171,13 @@ tool gotchas in TOOLS.md.
   later field and the eye height: keep the draw (`skipDraw`) and check `params.mjs --ref HEAD`
   shows only the intended top-level param changing.
 
+- Rewriting `x *= a * b * c` as `x * a * b * c` changes the last bit of x (different rounding
+  order) and `params.mjs --ref` shows dozens of changed days. Keep the grouping when wrapping a
+  value in `or()`.
+- Tests that compare whole `coast` (or `params`) objects break whenever a field is added that
+  depends on the forced value; compare the fields the test is about, or strip the ones that
+  legitimately follow.
+
 ## Seasons
 
 - A month table needs the hemisphere, not the ocean: `ocean === 'southern'` only flipped the

@@ -53,6 +53,21 @@ lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop the server when don
   node scripts/diff.mjs --scene $SP/specs.json --off '{"contrails":null}' --out $SP/contrails --w 960 --h 540 --frames 16
   node scripts/diff.mjs --a $SP/before --b $SP/after          # two folders, same names
   ```
+  - `--keep-camera`: terrain changes (bars, cusps, tides) also move the camera, which stands on
+    the ground, and then most of the frame differs. With it the "on" renders go first and each
+    "off" render stands at the same height (`params.camera.groundM`, from `debug.cameraGroundM`).
+    Props on the reshaped ground still move. A composition re-roll can still differ.
+- **Coast shape without rendering: `scripts/profile.mjs`** (~0.6 s/scene, TS mirror of the terrain
+  shader). Prints state, grain, slopes, bars, rips, cusps, ridges, run-up, beach lines, break
+  depth and the camera's place; heights along s at the camera and through the nearest rip
+  channel; writes `NAME.profile.png`: sea at the top, a across, land brown→green by height, water
+  light→dark blue by depth, 0.5 m contours, black waterline, **white where the day's waves break**,
+  red camera, 50 m grid. Use it for any terrain or depth feature before a render (rips that don't
+  cut the breaker line, cusps too small, bars too deep show here).
+  ```sh
+  node scripts/profile.mjs --scene scenes/beach-states.json --out $SP/profile
+  node scripts/profile.mjs --scene '{"place":"namibia","coast":"beach","swellHeight":2.5,"swellPeriod":12}' 2024-06-11
+  ```
 - **Contact sheet:** `node scripts/contact-sheet.mjs --dir $SP/feat` (one image read, not eight).
   - `--region top|bottom|centre|X0,Y0,X1,Y1` (fractions) for sky features;
   - `--compare $SP/before` puts pairs side by side;

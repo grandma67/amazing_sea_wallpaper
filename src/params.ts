@@ -385,6 +385,10 @@ export interface SceneParams {
     focalLengthMm: number
     /** Width / height of the image the scene is composed for. */
     aspect: number
+    /** Ground height under the camera (m above the sea); from the terrain
+     * when absent. diff.mjs --keep-camera pins it, so a terrain change
+     * doesn't move the camera between the two renders. */
+    groundM?: number
   }
 
   ocean: {
@@ -1478,8 +1482,10 @@ function buildParams(
     }
   }
   const oceanSwell = swell(seed, windHeadingDeg)
-  oceanSwell.swellHeight *= basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm
-  oceanSwell.swellWavelength = Math.min(320, oceanSwell.swellWavelength * basin.swellWavelength)
+  oceanSwell.swellHeight = or(oceanSwell.swellHeight * (basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm), spec.swellHeight)
+  // Deep-water wavelength from a forced period: L = g T² / 2π.
+  const forcedLength = spec.swellPeriod == null ? undefined : (9.81 * spec.swellPeriod ** 2) / (2 * Math.PI)
+  oceanSwell.swellWavelength = Math.min(320, or(oceanSwell.swellWavelength * basin.swellWavelength, forcedLength))
   const oceanState = { windSpeed: spec.wind ?? windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
   const roughBeach = storm != null || (Math.abs(latitudeDeg) > 25 && season({ date, latitudeDeg }) === 'winter')
   const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach }, spec)

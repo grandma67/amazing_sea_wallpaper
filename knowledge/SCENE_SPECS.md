@@ -22,7 +22,9 @@ scripts: `--scene <JSON or file>`.
   - place: `place` (a place or region id from `src/places.ts`, e.g. `"scotland"`,
     `"atlantic-canada"`), `biome`, `ocean`, `climate` (these three restrict the place draw
     to places that have them and force the choice; a combination no place has throws),
-    `monsoon`, `ice`, `coast`, `composition`, `sand` (`white`, `golden`, `grey`, `black`,
+    `monsoon`, `ice`, `coast`, `composition`, `swellHeight` (m offshore) and `swellPeriod` (s;
+    wavelength capped at 320 m ≈ 14 s): the open sea, surf and beach state follow, so force waves
+    instead of hunting dates; `sand` (`white`, `golden`, `grey`, `black`,
     `pink`, `red`; on any place), `beachMaterial` (`sand`, `mixed`,
     `shingle`, `cobble`; a stony one implies a beach, on any place), `beachState`
     (`reflective`, `low-tide-terrace`, `transverse-bar-rip`, `rhythmic-bar`, `longshore-bar`,

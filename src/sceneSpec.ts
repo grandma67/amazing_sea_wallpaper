@@ -150,6 +150,10 @@ export interface SceneSpec {
   haulOut?: HaulOut
   /** Wind speed (m/s). */
   wind?: number
+  /** Offshore swell height (m) and period (s; its wavelength is capped at
+   * 320 m, ~14 s): the open sea, the surf and the beach state follow. */
+  swellHeight?: number
+  swellPeriod?: number
   /** How far one sees through the sea haze (km). */
   visibilityKm?: number
 
@@ -280,6 +284,8 @@ const SPEC = object({
   colonySite: oneOf('island', 'mainland'),
   haulOut: oneOf('rock', 'beach'),
   wind: number,
+  swellHeight: number,
+  swellPeriod: number,
   visibilityKm: number,
   camera: object({ heightM: number, focalLengthMm: number, horizonFraction: number, rollDeg: number }),
   props: object({

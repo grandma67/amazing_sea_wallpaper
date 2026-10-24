@@ -703,6 +703,8 @@ export async function renderScene(
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),
       pitchDeg: camera.rotation.x / DEG,
+      // Ground under the camera (diff.mjs --keep-camera).
+      cameraGroundM: camera.position.y - params.camera.heightM,
       props: reportProps(props, camera, width, height),
       // CPU time (ms) each prop kind took to build.
       propTimes: Object.fromEntries(Object.entries(props.userData.times as Record<string, number>).map(([k, ms]) => [k, Math.round(ms)])),
