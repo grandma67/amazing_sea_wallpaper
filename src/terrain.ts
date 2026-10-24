@@ -224,6 +224,8 @@ uniform vec3 stoneColors[6];
 uniform int stoneColorCount;
 uniform vec3 stoneMean;
 uniform float stoneHighTide;
+// Mesh stones (props/stones.ts) out to this distance per size class.
+uniform vec3 stoneMeshRadius;
 
 float stoneNearCrest(float u) {
   if (ridgeCount == 0) return 0.0;
@@ -254,6 +256,7 @@ struct StoneHit {
   float presence;
   float shape;    // 0..1: how much of its cell the stone fills
   float size;     // cell size (m)
+  int level;      // size class (STONE_LEVELS)
 };
 
 StoneHit stoneCell(float u, float a) {
@@ -293,6 +296,7 @@ StoneHit stoneCell(float u, float a) {
   hit.presence = float((h2 >> 16) & 0xffffu) / 65535.0;
   hit.shape = float(h2 >> 24) / 255.0;
   hit.size = size;
+  hit.level = level;
   return hit;
 }
 `
@@ -494,7 +498,9 @@ export function stoneUniforms(coast: CoastParams): Record<string, { value: unkno
     stoneColors: { value: [0, 1, 2, 3, 4, 5].map(i => new Color(...(palette[i] ?? palette[0]))) },
     stoneColorCount: { value: palette.length },
     stoneMean: { value: new Color(...stoneMean(palette)) },
-    stoneHighTide: { value: beachLines(coast).highTide }
+    stoneHighTide: { value: beachLines(coast).highTide },
+    // Set from the props (createStones) once they are placed.
+    stoneMeshRadius: { value: new Vector3() }
   }
 }
 
@@ -589,7 +595,11 @@ void main() {
       vec2 tilt = -shoreNormal * st.offset.x + t * st.offset.y;
       // Steepest at the rim, like a half-buried ellipsoid.
       float rim = 1.0 + 2.0 * smoothstep(0.25 * fill, 0.62 * fill, st.centre);
-      N = normalize(N + vec3(tilt.x, 0.0, tilt.y) * dome * rim * body * detail);
+      // Where a mesh stone sits on the cell, it brings its own shape; the
+      // shader keeps only the colour and dark gaps under and between them.
+      float meshR = st.level == 0 ? stoneMeshRadius.x : st.level == 1 ? stoneMeshRadius.y : stoneMeshRadius.z;
+      float meshed = step(0.001, meshR) * (1.0 - smoothstep(0.8 * meshR, meshR, length(vWorld.xz - cameraPosition.xz)));
+      N = normalize(N + vec3(tilt.x, 0.0, tilt.y) * dome * rim * body * detail * (1.0 - meshed));
     }
     stoneW = zone * mix(mixedBeach ? cover : 1.0, nearW, detail);
     stoneAlbedo = mix(far, near, detail);

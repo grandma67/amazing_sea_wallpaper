@@ -141,6 +141,13 @@ tool gotchas in TOOLS.md.
 - A steep stony beach face tilts away from a sun behind the land: at golden hour it sits in
   shade while rocks on it are lit. Judge stone texture under a clear daylight spec
   (`"weather":"clear"`); a heavy cloud deck also leaves the beach flat blue (cloud shadow).
+- Near-camera props sized by "near" miss the frame: our cameras stand 2–5 m up with 50–85 mm
+  lenses and see the ground from ~10–25 m on. Size such radii by pixels on screen
+  (`ctx.pixelAngle`), check the nearest visible ground (march frame-bottom rays) before
+  capping, and measure counts with a test before rendering (`meshStones` placed nothing with
+  the plan's 15 m cap).
+- Scanning cells in a circle round the camera costs mostly cells out of frame or below the frame
+  edge: walk coarse blocks with a tight frustum test, nearest first, and stop at the budget.
 - Lines derived from daily run-up (`beachLines`) sit only metres apart on steep beaches; storm
   features belong at the storm run-up height, not a multiple of the daily one.
 

@@ -233,7 +233,7 @@ export async function renderScene(
   // order, and equal-depth pixels (sand under props) depend on it.
   const ocean = createOcean(params, surface, renderer.capabilities.getMaxAnisotropy())
   const terrain = createTerrain(params)
-  const props = createProps(new PropContext(params, camera, surface))
+  const props = createProps(new PropContext(params, camera, surface, vfov / height))
   const [textures, cloudAssets] = await Promise.all([atmosphere.textures, cloudAssetsLoaded])
 
   // --- Sky ------------------------------------------------------------------
@@ -396,6 +396,7 @@ export async function renderScene(
   tu.sunIrradiance.value.copy(sunIrradiance)
   tu.skyIrradiance.value.copy(skyIrradiance)
   tu.pixelAngle.value = vfov / height
+  tu.stoneMeshRadius.value.set(...(props.userData.stoneRadius as [number, number, number]))
   scene.add(terrain)
 
   // --- Sun light, shadows and props -----------------------------------------

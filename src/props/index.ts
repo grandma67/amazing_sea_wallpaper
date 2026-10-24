@@ -16,6 +16,7 @@ import { createPinnipeds } from './pinnipeds'
 import { createRocks } from './rocks'
 import { createShips } from './ships'
 import { createShoreLife } from './shoreLife'
+import { createStones } from './stones'
 import { createStorm } from './storm'
 import { createSurf, waterRocks, waveOnRock } from './surf'
 import { createVegetation } from './vegetation'
@@ -40,6 +41,8 @@ export function createProps(ctx: PropContext): Group {
   // For the ocean's foam round them (ocean.ts setOceanRocks).
   group.userData.waterRocks = waterRocks(ctx, rocks).map(r => ({ ...r, breaks: waveOnRock(ctx.params.coast, r, ctx.waveHeight).breaks }))
   add('ice', createIce(ctx))
+  // Where mesh stones replace the shader's (terrain.ts stoneMeshRadius).
+  group.userData.stoneRadius = add('stones', createStones(ctx))[0]?.userData.stoneRadius ?? [0, 0, 0]
   add('debris', createDebris(ctx))
   add('shore-life', createShoreLife(ctx))
   add('wildlife', createWildlife(ctx))

@@ -21,7 +21,10 @@ export class PropContext {
     readonly params: SceneParams,
     readonly camera: PerspectiveCamera,
     /** The frozen wave field, for floating things on the waves. */
-    private readonly surface: OceanSurface | null = null
+    private readonly surface: OceanSurface | null = null,
+    /** Radians per output pixel (vertical field of view / height), for
+     * sizing things by how big they are on screen. */
+    readonly pixelAngle = (camera.fov * Math.PI) / 180 / 1080
   ) {
     camera.updateMatrixWorld()
     this.frustum.setFromProjectionMatrix(

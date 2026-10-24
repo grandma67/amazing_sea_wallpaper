@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { beachLines, seabedAlbedo, STONE_LEVELS, STONE_SIZES, stoneAt, stoneCell, stoneCover, stoneGridCell, stoneLevel, stoneMean } from '../src/beach'
+import { createCamera } from '../src/camera'
+import { PropContext } from '../src/props/context'
+import { MAX_RADIUS, MAX_STONES, meshRadius, meshStones, stoneGeometry } from '../src/props/stones'
+import { Random } from '../src/random'
+import type { SceneSpec } from '../src/sceneSpec'
 import { stoneUniforms } from '../src/terrain'
 import { allParams, scene } from './days'
 
@@ -77,4 +82,77 @@ describe('stone cells', () => {
     const sand = scene({ beachMaterial: 'sand' }).coast
     expect(seabedAlbedo(sand)).toEqual(sand.sand.albedo)
   })
+})
+
+describe('mesh stones', () => {
+  const view = (spec: SceneSpec, height = 1080, date?: string): PropContext => {
+    const p = scene({ eclipse: null, ...spec }, date)
+    const { camera } = createCamera(p, (16 / 9) * height, height)
+    return new PropContext(p, camera, null, (camera.fov * Math.PI) / 180 / height)
+  }
+
+  it('builds small, finite stones resting on y = 0, deterministically', () => {
+    for (let i = 0; i < 12; i++) {
+      const g = stoneGeometry(new Random(`stone-${i}`), 0.1, i % 2 === 1)
+      const position = g.attributes.position.array
+      const normal = g.attributes.normal.array
+      expect([...position, ...normal].every(Number.isFinite)).toBe(true)
+      g.computeBoundingBox()
+      const box = g.boundingBox!
+      expect(box.min.y).toBeCloseTo(0, 6)
+      expect(box.max.y).toBeGreaterThan(0.02)
+      expect(box.max.x - box.min.x).toBeLessThan(0.15)
+      const tris = (g.index?.count ?? 0) / 3
+      expect(tris).toBeGreaterThanOrEqual(50)
+      expect(tris).toBeLessThanOrEqual(150)
+    }
+    const a = stoneGeometry(new Random('same'), 1, true).attributes.position.array
+    const b = stoneGeometry(new Random('same'), 1, true).attributes.position.array
+    expect(Array.from(a)).toEqual(Array.from(b))
+  })
+
+  it('sizes the mesh radius by pixels on screen', () => {
+    // 50 mm lens, 1080p: ~0.25 mrad per pixel vertically.
+    expect(meshRadius(0.01, 0.00025)).toBe(0)
+    expect(meshRadius(0.03, 0.00025)).toBeCloseTo(12, 6)
+    expect(meshRadius(0.3, 0.00025)).toBe(MAX_RADIUS)
+    expect(meshRadius(0.04, 0.0005)).toBeLessThan(meshRadius(0.04, 0.00025))
+  })
+
+  it('puts one mesh stone on each nearby shader stone, nearest first, within budget', () => {
+    for (const material of ['shingle', 'cobble', 'mixed'] as const) {
+      for (const composition of ['shoreline', 'along-beach'] as const) {
+        for (const height of [1080, 2160]) {
+          const ctx = view({ place: 'nova-scotia', beachMaterial: material, composition }, height)
+          const { stones, radius } = meshStones(ctx)
+          expect(stones.length).toBeLessThanOrEqual(MAX_STONES)
+          const coast = ctx.params.coast
+          for (const m of stones.slice(0, 200)) {
+            expect(m.distance).toBeLessThanOrEqual(radius[m.stone.level] + 1e-9)
+            // The shader draws this very stone there.
+            if (m.stone.presence < stoneCover(coast, -m.stone.s, m.stone.a)) {
+              expect(stoneCell(coast, m.stone.s, m.stone.a)!.cell).toEqual(m.stone.cell)
+            }
+          }
+          for (let i = 1; i < stones.length; i++) expect(stones[i].distance).toBeGreaterThanOrEqual(stones[i - 1].distance)
+        }
+      }
+    }
+  })
+
+  it('places nothing on sand or at sea', () => {
+    expect(meshStones(view({ beachMaterial: 'sand' })).stones).toHaveLength(0)
+    expect(meshStones(view({ coast: 'open-sea' })).stones).toHaveLength(0)
+  })
+
+  it('stays within the instance and triangle budget on real stony days', () => {
+    const days = allParams()
+      .filter(p => p.coast.type === 'beach' && p.coast.material !== 'sand')
+      .slice(0, 40)
+    for (const p of days) {
+      const { camera } = createCamera(p, 3840, 2160)
+      const { stones } = meshStones(new PropContext(p, camera, null, (camera.fov * Math.PI) / 180 / 2160))
+      expect(stones.length * 80).toBeLessThanOrEqual(1_000_000)
+    }
+  }, 60_000)
 })

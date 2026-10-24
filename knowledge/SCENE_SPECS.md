@@ -30,7 +30,7 @@ scripts: `--scene <JSON or file>`.
     `nacreous`, `rainbow`, `fog`, `wind`, `visibilityKm`;
   - features: `lighthouse`, `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`, `haulOut`;
   - camera: `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`;
-  - props: `props.{marine,birds,migratory,ships,rocks,seaStacks,vegetation,debris,shoreLife,mangroves,wildlife}`.
+  - props: `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,vegetation,debris,shoreLife,mangroves,wildlife}`.
 - `camera.horizonFraction` = how far **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
 - Shared fields: `{"base": {…}, "scenes": [{"name": "a", …}]}`; each scene is deep-merged over the
   base (snapshot.mjs, diff.mjs).

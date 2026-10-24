@@ -53,6 +53,8 @@ export interface PropOverrides {
   ships?: boolean | ShipKind[]
   rocks?: boolean
   seaStacks?: boolean
+  /** false: stony beaches drawn by the terrain shader alone, no mesh stones. */
+  stones?: boolean
   /** Which plants grow (the biome's own list otherwise); [] for none. */
   vegetation?: VegetationKind[]
   /** null: nothing washed up; fields replace the drawn ones. */
@@ -278,6 +280,7 @@ const SPEC = object({
       typeof value === 'boolean' ? undefined : listOf(oneOf('sloop', 'catamaran', 'dhow', 'motor-yacht', 'trawler', 'container-ship', 'tanker', 'dinghy', 'expedition-ship', 'icebreaker'))(value, path),
     rocks: boolean,
     seaStacks: boolean,
+    stones: boolean,
     vegetation: listOf(oneOf(...PLANTS)),
     debris: object(
       { driftwood: number, rootWads: boolean, wrack: oneOf(null, 'kelp', 'seagrass', 'sargassum'), wrackAmount: number, coconuts: number },

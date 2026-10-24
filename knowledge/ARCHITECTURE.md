@@ -180,7 +180,16 @@ Playwright (headless snapshots), Vitest.
   `detail` fades cells out by pixel footprint (`footprint / (0.6 × stoneSize)`); two mottle
   octaves (4× and 16× stone size) carry a stony texture further. The TS mirror in `beach.ts`
   (`stoneAt`, `stoneGridCell`, `stoneCell`) uses the same hashes (`cellNoise.ts`), so mesh
-  stones (2d) can sit on the shader's cells. `seabedAlbedo` gives `ocean.ts` the stone colour.
+  stones can sit on the shader's cells. `seabedAlbedo` gives `ocean.ts` the stone colour.
+- **Mesh stones** (`props/stones.ts`): `meshStones(ctx)` walks 1 m blocks of the beach in view,
+  nearest first (blocks pruned by `stoneGrade` per size class), and returns each shader stone
+  within `meshRadius(size, ctx.pixelAngle)` (≥ 10 px wide, ≤ 30 m) that the shader draws there
+  (same level, present on mixed beaches), ≤ 8k. `createStones` puts an 80-triangle
+  `stoneGeometry` on each (width ≈ the shader's oval, tilted to `terrainNormal`, 15–40% buried,
+  sinking fully over the last 20% of the radius), 6 variants, instance colour = cell colour ×
+  0.8, `rockMaterial` (wet and glossy below the run-up). Per-level radii go back to the terrain
+  as `stoneMeshRadius` (`props.userData.stoneRadius`), where the dome normal is dropped. Most
+  views see the ground from 10–25 m on, so at 1080p cobbles get meshes, pebbles rarely.
 - **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes
   folded on the midrib (oval oak/almond, ovate birch, lance olive, needles stone pine, rounded
   shrubs, pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to

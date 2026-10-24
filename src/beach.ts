@@ -201,10 +201,18 @@ function nearCrest(coast: Pick<CoastParams, 'ridges'>, u: number): number {
 export function stoneLevel(coast: StoneCoast, u: number, a: number, highTide = beachLines(coast).highTide): number {
   const [ox, oz] = coast.noiseOffset
   const scale = 6 * coast.stoneSize
-  let g = 1 + nearCrest(coast, u) - 0.8 * (1 - smooth(0, highTide, u))
-  g += 0.9 * (vnoise(u / scale + 41 + ox, a / scale + 41 + oz) - 0.5)
+  const g = stoneGrade(coast, u, highTide) + STONE_DITHER * (vnoise(u / scale + 41 + ox, a / scale + 41 + oz) - 0.5)
   return Math.min(2, Math.max(0, Math.floor(g + 0.5)))
 }
+
+/** The size class before dithering, by distance inland: stoneLevel rounds
+ * this ± STONE_DITHER / 2. */
+export function stoneGrade(coast: Pick<CoastParams, 'ridges'>, u: number, highTide: number): number {
+  return 1 + nearCrest(coast, u) - 0.8 * (1 - smooth(0, highTide, u))
+}
+
+/** Size-class dither amplitude in stoneLevel. */
+export const STONE_DITHER = 0.9
 
 /** Share of the ground that is stones (0..1): all of it on shingle and
  * cobble; on a mixed beach a band from the high-tide line up and the
@@ -229,6 +237,8 @@ export interface Stone {
   color: RGB
   /** 0..1; the stone is there where this is under stoneCover. */
   presence: number
+  /** 0..1: how much of its cell the stone fills (GLSL hit.shape). */
+  shape: number
 }
 
 /** The stone of cell (i, j) in size class `level` (GLSL stoneAt). */
@@ -250,7 +260,8 @@ export function stoneAt(coast: StoneCoast, level: number, i: number, j: number):
     a: (j + py - oz) * size,
     size,
     color: [base[0] * bright, base[1] * bright, base[2] * bright],
-    presence: ((h2 >>> 16) & 0xffff) / 65535
+    presence: ((h2 >>> 16) & 0xffff) / 65535,
+    shape: (h2 >>> 24) / 255
   }
 }
 
