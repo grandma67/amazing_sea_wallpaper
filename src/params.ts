@@ -502,11 +502,18 @@ function swell(
   }
 }
 
+/** The day's sand colour: the place's chances on its own stream, or the
+ * forced one. The coast stream still makes the one draw the colour used to
+ * take, so the draws after it (sandbars, eye height) stay where they were. */
+function sandColour(coastRng: Random, seed: string, place: Place, force?: SandStyle['name']): SandStyle {
+  coastRng.float()
+  return SAND_STYLES[choose(Random.derive(seed, 'sand-colour'), place.sand, force)]
+}
+
 function generateCoast(
   seed: string,
   attempt: number,
   headingDeg: number,
-  biome: Biome,
   place: Place,
   climate: Climate,
   ocean: Pick<SceneParams['ocean'], 'swellHeight' | 'swellWavelength' | 'windSpeed'>,
@@ -548,7 +555,7 @@ function generateCoast(
     surfAmplitude,
     surfWavelength: rng.range(18, 40),
     surfPhase: rng.range(0, Math.PI * 2),
-    sand: SAND_STYLES[or(rng.pick(biome.sands), spec.sand)],
+    sand: sandColour(rng, seed, place, spec.sand),
     material: 'sand',
     stoneColors: place.stones,
     ridges: [],
@@ -1413,7 +1420,7 @@ function buildParams(
   oceanSwell.swellHeight *= basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm
   oceanSwell.swellWavelength = Math.min(320, oceanSwell.swellWavelength * basin.swellWavelength)
   const oceanState = { windSpeed: spec.wind ?? windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
-  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, biome, place, climate, oceanState, spec)
+  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, spec)
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',

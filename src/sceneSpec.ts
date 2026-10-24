@@ -1,6 +1,6 @@
 import { BEACH_MATERIALS, type BeachMaterial } from './beach'
 import type { EclipseType } from './celestial'
-import type { Biome, SandStyle, VegetationKind } from './biome'
+import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './biome'
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
 import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
@@ -243,7 +243,7 @@ const SPEC = object({
   ice: force('pack', 'bergs'),
   coast: oneOf('beach', 'open-sea'),
   composition: oneOf('shoreline', 'along-beach', 'framed', 'overlook'),
-  sand: oneOf('white', 'golden', 'grey', 'black'),
+  sand: oneOf(...Object.keys(SAND_STYLES)),
   beachMaterial: oneOf(...BEACH_MATERIALS),
   weather: oneOf('clear', 'cirrus', 'few', 'scattered', 'broken', 'overcast'),
   clouds: (value, path) => {

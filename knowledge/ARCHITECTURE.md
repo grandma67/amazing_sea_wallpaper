@@ -160,6 +160,11 @@ Playwright (headless snapshots), Vitest.
   defines) and `terrainHeightAt` branches on it, so each day runs one profile; the TS
   `terrainHeight` switches the same way. Rock shores and tidal flats use the beach profile until
   their phases.
+- **Sand colour** (PLAN_BIOMES 3): `coast.sand` is one of `SAND_STYLES` (`biome.ts`: white,
+  golden, grey, black, pink, red), drawn from the place's `sand` chances (`PLACE_SAND` in
+  `places.ts`, else the biome's `sands`) on stream `'sand-colour'`, then forced by `spec.sand`.
+  The coast stream keeps a placeholder draw where the colour used to be, so sandbars and eye
+  height didn't move.
 - **Beach material** (`beach.ts`, PLAN_BIOMES 2): `coast.material` is `sand`, `mixed`, `shingle`
   or `cobble`, drawn in `generateCoast` on stream `'beach-material'` from `materialChances(place,
   climate)` (place → region override, else `POLAR_MATERIAL` on polar days, else the biome's

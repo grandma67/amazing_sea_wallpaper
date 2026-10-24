@@ -14,7 +14,7 @@ export interface WaterStyle {
 }
 
 export interface SandStyle {
-  name: 'white' | 'golden' | 'grey' | 'black'
+  name: 'white' | 'golden' | 'grey' | 'black' | 'pink' | 'red'
   /** Dry sand albedo (linear). */
   albedo: RGB
 }
@@ -23,7 +23,12 @@ export const SAND_STYLES: Record<SandStyle['name'], SandStyle> = {
   white: { name: 'white', albedo: [0.62, 0.58, 0.5] },
   golden: { name: 'golden', albedo: [0.46, 0.36, 0.23] },
   grey: { name: 'grey', albedo: [0.26, 0.24, 0.22] },
-  black: { name: 'black', albedo: [0.06, 0.06, 0.065] }
+  black: { name: 'black', albedo: [0.06, 0.06, 0.065] },
+  // Coral sand tinted by the red shells of the foraminifer Homotrema rubrum
+  // (Bermuda, Harbour Island, Komodo's Pink Beach).
+  pink: { name: 'pink', albedo: [0.68, 0.52, 0.48] },
+  // Iron-stained sandstone and basalt sand (PEI, Fundy, Maui's Kaihalulu).
+  red: { name: 'red', albedo: [0.42, 0.2, 0.12] }
 }
 
 const WATER: Record<string, WaterStyle> = {
@@ -69,7 +74,8 @@ export type VegetationKind =
 export interface Biome {
   name: 'tropical' | 'mediterranean' | 'nordic' | 'volcanic' | 'desert'
   water: readonly WaterStyle[]
-  sands: readonly SandStyle['name'][]
+  /** Sand colour chances; a place may override them (places.ts). */
+  sands: Partial<Record<SandStyle['name'], number>>
   /** Rock albedo choices (linear). */
   rockColors: readonly RGB[]
   /** Chance of rocks along the shore, and of dramatic sea stacks offshore. */
@@ -88,7 +94,7 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
     {
       name: 'tropical',
       water: [WATER.tropical, WATER.tropical, WATER.deep],
-      sands: ['white', 'white', 'golden'],
+      sands: { white: 66, golden: 33, pink: 1 },
       rockColors: [
         [0.28, 0.25, 0.22],
         [0.35, 0.3, 0.26]
@@ -112,7 +118,7 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
     {
       name: 'mediterranean',
       water: [WATER.mediterranean, WATER.deep],
-      sands: ['golden', 'white', 'grey'],
+      sands: { golden: 1, white: 1, grey: 1 },
       rockColors: [
         [0.42, 0.38, 0.32],
         [0.5, 0.45, 0.38],
@@ -138,7 +144,7 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
     {
       name: 'nordic',
       water: [WATER.northern, WATER.deep],
-      sands: ['grey', 'golden'],
+      sands: { grey: 1, golden: 1 },
       rockColors: [
         [0.2, 0.2, 0.2],
         [0.3, 0.27, 0.25],
@@ -162,7 +168,7 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
     {
       name: 'volcanic',
       water: [WATER.deep, WATER.northern],
-      sands: ['black', 'black', 'grey'],
+      sands: { black: 2, grey: 1 },
       rockColors: [
         [0.05, 0.05, 0.055],
         [0.08, 0.07, 0.07]
@@ -185,7 +191,7 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
     {
       name: 'desert',
       water: [WATER.mediterranean, WATER.tropical, WATER.deep],
-      sands: ['golden', 'golden', 'white'],
+      sands: { golden: 2, white: 1 },
       rockColors: [
         [0.45, 0.32, 0.22],
         [0.5, 0.38, 0.27]

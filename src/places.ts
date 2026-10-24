@@ -1,5 +1,5 @@
 import { FUNDY_STONES, STONE_COLORS, type BeachMaterial } from './beach'
-import { biomeNamed, type Biome, type RGB } from './biome'
+import { biomeNamed, type Biome, type RGB, type SandStyle } from './biome'
 import type { OceanName } from './oceans'
 import type { CrocodileKind, LizardKind, MonkeyKind, TurtleSpecies } from './props/wildlife'
 import type { Random } from './random'
@@ -11,8 +11,9 @@ import type { Random } from './random'
 // A place has three kinds of field:
 // - constants: `biome` (the look preset), `region`, the signed `latitude`
 //   range (the sign is the hemisphere), `km` of coastline;
-// - choose one: `ocean`, `climate`, `material` (weighted, drawn on their own
-//   streams; `material` only where it differs from the biome's, beach.ts);
+// - choose one: `ocean`, `climate`, `material`, `sand` (weighted, drawn on
+//   their own streams; `material` and `sand` only where they differ from the
+//   biome's, beach.ts and biome.ts);
 // - choose many: `animals`, `plants` (pools; each feature's own rules pick
 //   from them on the day).
 // A region is a group of places sharing defaults and a spec name; it's never
@@ -42,6 +43,7 @@ export type Animal =
   | { kind: 'hippo'; chance: number }
 
 type Plants = Biome['vegetation']
+type SandName = SandStyle['name']
 
 interface PlaceRow {
   id: string
@@ -55,6 +57,7 @@ interface PlaceRow {
   animals?: readonly Animal[]
   plants?: Plants
   material?: Weights<BeachMaterial>
+  sand?: Weights<SandName>
   stones?: readonly RGB[]
 }
 
@@ -63,6 +66,7 @@ interface RegionDefaults {
   animals?: readonly Animal[]
   plants?: Plants
   material?: Weights<BeachMaterial>
+  sand?: Weights<SandName>
   stones?: readonly RGB[]
 }
 
@@ -81,6 +85,8 @@ export interface Place {
   /** Beach material chances; unset: the biome's (or polar) defaults
    * (beach.ts materialChances). */
   material?: Weights<BeachMaterial>
+  /** Sand colour chances (the biome's unless the place differs). */
+  sand: Weights<SandName>
   /** Stone colours (linear albedo). */
   stones: readonly RGB[]
 }
@@ -177,6 +183,23 @@ const PLACE_MATERIAL: Record<string, Weights<BeachMaterial>> = {
   // Coral sand coves between the lava.
   galapagos: { sand: 70, mixed: 10, cobble: 20 },
   hawaii: { sand: 70, mixed: 10, shingle: 5, cobble: 15 }
+}
+
+// Sand colours that differ from the biome's (PLAN_BIOMES 3). Rare on purpose
+// (decision 4): pink and red beaches are a few named places.
+const PLACE_SAND: Record<string, Weights<SandName>> = {
+  // Pink coral sand (Homotrema): Bermuda, Harbour Island, the Exumas.
+  'bahamas-bermuda': { white: 65, golden: 10, pink: 25 },
+  // Komodo's Pink Beach.
+  indonesia: { white: 64, golden: 33, pink: 3 },
+  // Red sandstone: nearly every PEI beach, the Fundy shore's red mud and sand.
+  pei: { red: 60, golden: 25, grey: 15 },
+  fundy: { red: 40, grey: 35, golden: 25 },
+  // Maui's Kaihalulu (red cinder).
+  hawaii: { black: 64, grey: 32, red: 4 },
+  // Iron-red sand under the Hajar and Red Sea hills.
+  'oman-yemen': { golden: 65, white: 32, red: 3 },
+  'red-sea': { golden: 65, white: 32, red: 3 }
 }
 
 /** Every place, from REGIONS.md §1. Animals listed on a row replace the
@@ -319,6 +342,7 @@ function resolve(): Place[] {
       animals: row.animals ?? PLACE_ANIMALS[row.id] ?? defaults.animals ?? [],
       plants: row.plants ?? defaults.plants ?? biomeNamed(row.biome).vegetation,
       material: row.material ?? PLACE_MATERIAL[row.id] ?? defaults.material,
+      sand: row.sand ?? PLACE_SAND[row.id] ?? defaults.sand ?? biomeNamed(row.biome).sands,
       stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome]
     }
   })

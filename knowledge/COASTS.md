@@ -15,7 +15,7 @@ shingle, cobble). Status 2026-10-24. Shares are over 2024–2026 (1096 days,
 3. **Coast type** (`generateCoast`, `params.ts`): `beach` 65% / `open-sea` 35%, once per
    date.
 4. **Shape** (same function): slope, beach width, dunes, hills, sandbar (60%), sand colour
-   (`biome.sands`), composition (beach days only).
+   (the place's `sand` chances, stream `'sand-colour'`), composition (beach days only).
 5. **Beach material** (`beach.ts`, stream `'beach-material'`, PLAN_BIOMES 2a): sand, mixed,
    shingle or cobble from the place's chances; a stony beach replaces the slope, width,
    sandbar and dune with a steep, ridged profile.
@@ -24,11 +24,11 @@ shingle, cobble). Status 2026-10-24. Shares are over 2024–2026 (1096 days,
 
 | Biome | Share | Places it stands for | Sand (within biome) | Rocks | Sea stacks |
 |---|---|---|---|---|---|
-| `mediterranean` | 15.2% | Mediterranean, Portugal, California, Chile, SW Australia, Cape; subtropical Florida, S Brazil, E Australia, S Japan, Natal | grey 37%, white 32%, golden 31% | 75% | 30% |
-| `tropical` | 23.5% | SE Asia, Pacific islands, India, Caribbean, East and West Africa, N Australia | white 68%, golden 32% | 45% | 15% |
-| `nordic` | 40.4% | Arctic Canada, Norway, Greenland, Britain, Atlantic Canada, BC, Alaska, Baltic, Patagonia, NZ South | grey 55%, golden 45% | 85% | 20% |
-| `volcanic` | 13.3% | Hawaii, Japan, Iceland, Canaries, Réunion | black 60%, grey 40% | 95% | 45% |
-| `desert` | 7.5% | Arabia, Namibia, Sahara coast, Atacama | golden 61%, white 39% | 40% | 20% |
+| `mediterranean` | 15.2% | Mediterranean, Portugal, California, Chile, SW Australia, Cape; subtropical Florida, S Brazil, E Australia, S Japan, Natal | grey 35%, white 34%, golden 31% | 75% | 30% |
+| `tropical` | 23.5% | SE Asia, Pacific islands, India, Caribbean, East and West Africa, N Australia | white 64%, golden 34%, pink 2% | 45% | 15% |
+| `nordic` | 40.4% | Arctic Canada, Norway, Greenland, Britain, Atlantic Canada, BC, Alaska, Baltic, Patagonia, NZ South | grey 50%, golden 50%, red 0.2% | 85% | 20% |
+| `volcanic` | 13.3% | Hawaii, Japan, Iceland, Canaries, Réunion | black 70%, grey 30%, red (Hawaii 4%) | 95% | 45% |
+| `desert` | 7.5% | Arabia, Namibia, Sahara coast, Atacama | golden 57%, white 43%, red (Red Sea, Oman 3%) | 40% | 20% |
 
 ### Ocean by biome
 
@@ -131,6 +131,10 @@ section.
   pink (red foraminifera *Homotrema rubrum* mixed into coral sand: Bermuda, Bahamas'
   Harbour Island, Komodo), red (iron-rich sandstone or scoria: Prince Edward Island,
   Fundy, Kaihalulu on Maui, Santorini), green (olivine, Papakōlea: very rare).
+  **Drawn** (PLAN_BIOMES 3, `PLACE_SAND` in `places.ts`, else the biome's `sands`): pink on
+  bahamas-bermuda 25%, indonesia 3% (Komodo), other tropical places 1%; red on PEI 60%, Fundy
+  40%, Hawaii 4%, Oman–Yemen and Red Sea 3%. Rare on purpose (decision 4): 2024–2026 has 5
+  pink and 1 red beach day of 1096.
 - **Tides.** Micro < 2 m (Mediterranean ~0.4 m, Caribbean 0.1–0.2 m, Baltic ~0, Hawaii
   ~0.6 m, most open ocean coasts 1–2 m), meso 2–4 m (Wadden, Iceland, east Africa),
   macro and mega > 4 m in funnelling bays and wide shelves (Fundy 11.7 m mean, Brittany
@@ -177,7 +181,7 @@ Sources: [Global coastal dataset (ESSD preprint 2025)](https://essd.copernicus.o
 | Coasts are real places (latitude, climate, tide, animals) | biome × ocean drawn apart; latitude from the basin | 1a |
 | Southern seasons | only the Southern Ocean flips months | 1c |
 | Pebble, shingle and cobble beaches (~¼ of beaches) | done (phase 2) | 2 |
-| Pink and red sand; treeless high Arctic | white, golden, grey, black; Arctic keeps birch | 3 |
+| Pink and red sand; treeless high Arctic | pink and red sand done; Arctic keeps birch | 3 |
 | Marine layer, harmattan, haar | fog and dust, not by place | 3 |
 | Beach slope and bars follow grain and swell | random slope, sandbar 60% | 4 |
 | Tides (micro to mega) | sea level fixed | 5 |

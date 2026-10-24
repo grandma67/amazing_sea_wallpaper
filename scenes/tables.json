@@ -1,0 +1,7 @@
+{
+  "base": { "date": "2025-07-10", "eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "weather": "few", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "pei-red", "place": "pei", "coast": "beach", "beachMaterial": "sand", "sand": "red", "composition": "along-beach", "timeOfDay": "golden-hour" },
+    { "name": "bermuda-pink", "place": "bahamas-bermuda", "coast": "beach", "beachMaterial": "sand", "sand": "pink", "composition": "shoreline" }
+  ]
+}
