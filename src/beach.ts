@@ -124,21 +124,21 @@ function inlandAt(coast: Pick<CoastParams, 'beachSlope' | 'beachWidth'>, h: numb
  * beach than up sand. */
 export const STONY_RUNUP = 0.6
 
-/** The profile of a stony beach: steep, narrow, no sandbar, a low bank
- * behind and 1–3 storm ridges. The steep face carries on under water to the
- * step, so the waves break right on the beach (plunging or surging, a surf
- * zone metres wide; the breaker index follows the nearshore slope).
- * Temporary: phase 4 derives slopes from the beach state (stony beaches are
- * always reflective). `coast.runup` is already the stony one. */
+/** The rest of a stony beach's profile: a low bank behind and 1–3 storm
+ * ridges. Its slopes and width come from the beach state (beachState.ts:
+ * shingle and cobble are always reflective, the face as steep as the stones
+ * allow). The steep face carries on under water to the step, so the waves
+ * break right on the beach (plunging or surging, a surf zone metres wide; the
+ * breaker index follows the nearshore slope). `coast.runup` is already the
+ * stony one. */
 export function stonyShape(
-  coast: Pick<CoastParams, 'runup'>,
+  coast: Pick<CoastParams, 'runup' | 'beachSlope' | 'beachWidth'>,
   material: Exclude<BeachMaterial, 'sand'>,
   rng: Random
-): Pick<CoastParams, 'beachSlope' | 'beachWidth' | 'sandbarHeight' | 'duneHeight' | 'ridges' | 'nearshoreSlope' | 'stoneSize'> {
-  const beachSlope = material === 'mixed' ? rng.range(0.08, 0.14) : rng.range(0.12, 0.25)
-  const beachWidth = rng.range(12, 40)
+): Pick<CoastParams, 'duneHeight' | 'ridges'> {
+  const { beachSlope, beachWidth } = coast
   const duneHeight = rng.range(0.5, 2.5)
-  const { highTide } = beachLines({ beachSlope, beachWidth, runup: coast.runup })
+  const { highTide } = beachLines(coast)
   // The storm ridge's crest stands where storm swash reaches, 1–2.5 m above
   // the sea (Chesil's is ~10 m; small ridges 1–3 m), well behind the daily
   // swash; one ridge: just it; two: a berm at the high-tide line too; three:
@@ -154,10 +154,7 @@ export function stonyShape(
   const ridges = [ridge(stormLine, rng.range(0.6, 1.2), rng.range(3, 6))]
   if (count >= 2) ridges.push(ridge(highTide, rng.range(0.3, 0.6), rng.range(1.5, 3)))
   if (count >= 3) ridges.push(ridge(stormLine + rng.range(6, 12), rng.range(0.5, 1.0), rng.range(3, 6)))
-  // Mixed beaches keep a sand lower face, less steep.
-  const nearshoreSlope = material === 'mixed' ? rng.range(0.035, 0.06) : rng.range(0.06, 0.12)
-  const stoneSize = rng.range(...STONE_SIZES[material])
-  return { beachSlope, beachWidth, sandbarHeight: 0, duneHeight, ridges, nearshoreSlope, stoneSize }
+  return { duneHeight, ridges }
 }
 
 /** Title words: "cobble beach", "golden sand beach". */

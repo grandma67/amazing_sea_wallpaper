@@ -35,8 +35,16 @@ uniform float beachWidth;
 uniform float duneHeight;
 uniform float duneWidth;
 uniform float hillHeight;
-uniform float sandbarDistance;
-uniform float sandbarHeight;
+// Submerged bars (beachState.ts Bar): crest distance seaward, height,
+// half-width; inner first.
+uniform vec3 bars[3];
+uniform int barCount;
+// Rip channels through the inner bar: spacing along the shore (0: none) and
+// how far the bar swings toward the shore between them (× its distance).
+uniform vec2 rips;
+// Beach cusps: spacing (0: none), horn-to-bay relief, and how far up the
+// beach the swash reaches (m inland).
+uniform vec3 cusps;
 uniform vec2 noiseOffset;
 // Storm ridges on stony beaches (beach.ts Ridge): crest distance inland,
 // height, half-width; ridgeCount 0 on sand.
@@ -176,6 +184,61 @@ float ridgeHeight(float u, float a) {
   return h;
 }
 
+// How much deeper than the bare profile a rip channel is, × the bar's height.
+#define RIP_SCOUR 0.8
+
+// 1 in a rip channel, 0 on the bar: one channel every rips.x m along the
+// shore, wandering a little.
+float ripGap(float a) {
+  if (rips.x <= 0.0) return 0.0;
+  float w = a / rips.x + 0.6 * vnoise(vec2(a / (2.0 * rips.x), 21.7) + noiseOffset);
+  return smoothstep(0.75, 0.95, cos(6.2831853 * w));
+}
+
+// Bars across the shoreface. The inner bar of a rip state swings toward the
+// shore between the channels (welded transverse bars, crescents) and is cut
+// through at each channel, which the current scours deeper than the trough
+// from near the shore out past the bar.
+float barHeight(float s, float a) {
+  float h = 0.0;
+  for (int i = 0; i < 3; i++) {
+    if (i >= barCount) break;
+    vec3 b = bars[i];
+    float d = b.x;
+    float open = 1.0;
+    if (i == 0 && rips.x > 0.0) {
+      float w = a / rips.x + 0.6 * vnoise(vec2(a / (2.0 * rips.x), 21.7) + noiseOffset);
+      d *= 1.0 + rips.y * cos(6.2831853 * w);
+      float gap = ripGap(a);
+      open = 1.0 - gap;
+      h -= RIP_SCOUR * b.y * gap * smoothstep(0.0, 0.3 * d, s) * (1.0 - smoothstep(d, 1.5 * d, s));
+    }
+    float k = (s - d) / b.z;
+    h += b.y * open * exp(-k * k);
+  }
+  return h;
+}
+
+// Rip current water (ocean.ts): the channel from the shore out past the
+// inner bar, 0..1.
+float ripWater(vec2 sa) {
+  if (rips.x <= 0.0 || barCount == 0) return 0.0;
+  float reach = bars[0].x * (1.0 + rips.y);
+  return ripGap(sa.y) * smoothstep(-2.0, 5.0, sa.x) * (1.0 - smoothstep(reach, 1.6 * reach, sa.x));
+}
+
+// Beach cusps: horns of coarser sediment pointing seaward with scooped bays
+// between them, along the upper swash zone.
+float cuspHeight(float u, float a) {
+  if (cusps.x <= 0.0) return 0.0;
+  float w = a / cusps.x + 0.35 * vnoise(vec2(a / (3.0 * cusps.x), 23.1) + noiseOffset);
+  float c = 0.5 + 0.5 * cos(6.2831853 * w);
+  float horn = c * c - 0.35;
+  float reach = cusps.z;
+  float band = smoothstep(-0.4 * reach, 0.0, u) * (1.0 - smoothstep(0.7 * reach, 1.3 * reach, u));
+  return cusps.y * horn * band * (0.7 + 0.6 * vnoise(vec2(a / 90.0, 25.3) + noiseOffset));
+}
+
 float beachHeightAt(vec2 p, vec2 sa) {
   float s = sa.x;
   float u = -s;
@@ -185,7 +248,7 @@ float beachHeightAt(vec2 p, vec2 sa) {
   // Clamped: far inland this overflows to infinity, and mix(inf, land, 1)
   // below is inf * 0 = NaN (white specks along distant skylines).
   sea = -seabedDepth * (1.0 - exp(min(sea / seabedDepth, 10.0)));
-  sea += sandbarHeight * exp(-pow((s - sandbarDistance) / 22.0, 2.0));
+  sea += barHeight(s, sa.y);
 
   // Rises with the beach slope, levelling off at the back of the beach.
   float beach = u > 0.0 ? beachSlope * beachWidth * (1.0 - exp(-u / beachWidth)) : u * beachSlope;
@@ -197,7 +260,7 @@ float beachHeightAt(vec2 p, vec2 sa) {
   float bumps = 0.35 * (fbm(q / 7.0) - 0.5) * smoothstep(0.0, beachWidth, u);
   float land = beach + dunes + hills + bumps + ridgeHeight(u, sa.y);
 
-  return mix(sea, land, smoothstep(-1.0, 1.0, u));
+  return mix(sea, land, smoothstep(-1.0, 1.0, u)) + cuspHeight(u, sa.y);
 }
 
 float terrainHeightAt(vec2 p, vec2 sa) {
@@ -436,6 +499,58 @@ export function ridgeHeight(coast: CoastParams, u: number, a: number): number {
   return h
 }
 
+/** 1 in a rip channel, 0 on the bar (mirrors ripGap in TERRAIN_GLSL). */
+export function ripGap(coast: CoastParams, a: number): number {
+  if (coast.rips == null) return 0
+  return smoothstep(0.75, 0.95, Math.cos(2 * Math.PI * ripWave(coast, a)))
+}
+
+function ripWave(coast: CoastParams, a: number): number {
+  const [ox, oz] = coast.noiseOffset
+  const spacing = coast.rips!.spacing
+  return a / spacing + 0.6 * vnoise(a / (2 * spacing) + ox, 21.7 + oz)
+}
+
+/** A rip channel's depth below the bare profile, × the bar's height (RIP_SCOUR in GLSL). */
+const RIP_SCOUR = 0.8
+
+/** Bars across the shoreface (mirrors barHeight). */
+export function barHeight(coast: CoastParams, s: number, a: number): number {
+  let h = 0
+  coast.bars.slice(0, 3).forEach((b, i) => {
+    let d = b.distance
+    let open = 1
+    if (i === 0 && coast.rips != null) {
+      d *= 1 + coast.rips.amplitude * Math.cos(2 * Math.PI * ripWave(coast, a))
+      const gap = ripGap(coast, a)
+      open = 1 - gap
+      h -= RIP_SCOUR * b.height * gap * smoothstep(0, 0.3 * d, s) * (1 - smoothstep(d, 1.5 * d, s))
+    }
+    const k = (s - d) / b.width
+    h += b.height * open * Math.exp(-k * k)
+  })
+  return h
+}
+
+/** How far up the beach the cusps reach (m inland): the swash zone, and
+ * at least a third of their spacing (horns are about as long). */
+export function cuspReach(coast: Pick<CoastParams, 'runup' | 'beachSlope' | 'cusps'>): number {
+  return Math.max(coast.runup / coast.beachSlope, 0.35 * (coast.cusps?.spacing ?? 0))
+}
+
+/** Beach cusps (mirrors cuspHeight). */
+export function cuspHeight(coast: CoastParams, u: number, a: number): number {
+  if (coast.cusps == null) return 0
+  const [ox, oz] = coast.noiseOffset
+  const { spacing, relief } = coast.cusps
+  const w = a / spacing + 0.35 * vnoise(a / (3 * spacing) + ox, 23.1 + oz)
+  const c = 0.5 + 0.5 * Math.cos(2 * Math.PI * w)
+  const horn = c * c - 0.35
+  const reach = cuspReach(coast)
+  const band = smoothstep(-0.4 * reach, 0, u) * (1 - smoothstep(0.7 * reach, 1.3 * reach, u))
+  return relief * horn * band * (0.7 + 0.6 * vnoise(a / 90 + ox, 25.3 + oz))
+}
+
 function beachHeight(coast: CoastParams, x: number, z: number): number {
   const [ox, oz] = coast.noiseOffset
   const [s, a] = worldToShore(coast, x, z)
@@ -445,7 +560,7 @@ function beachHeight(coast: CoastParams, x: number, z: number): number {
   const qz = z + oz
   let sea = -s * coast.nearshoreSlope
   sea = -coast.seabedDepth * (1 - Math.exp(Math.min(sea / coast.seabedDepth, 10)))
-  sea += coast.sandbarHeight * Math.exp(-(((s - coast.sandbarDistance) / 22) ** 2))
+  sea += barHeight(coast, s, a)
 
   const beach =
     u > 0 ? coast.beachSlope * coast.beachWidth * (1 - Math.exp(-u / coast.beachWidth)) : u * coast.beachSlope
@@ -461,7 +576,7 @@ function beachHeight(coast: CoastParams, x: number, z: number): number {
   const land = beach + dunes + hills + bumps + ridgeHeight(coast, u, a)
 
   const t = smoothstep(-1, 1, u)
-  return sea + (land - sea) * t
+  return sea + (land - sea) * t + cuspHeight(coast, u, a)
 }
 
 /** Uniform values for TERRAIN_GLSL. */
@@ -479,8 +594,10 @@ export function terrainUniforms(coast: CoastParams): Record<string, { value: unk
     duneHeight: { value: coast.duneHeight },
     duneWidth: { value: coast.duneWidth },
     hillHeight: { value: coast.hillHeight },
-    sandbarDistance: { value: coast.sandbarDistance },
-    sandbarHeight: { value: coast.sandbarHeight },
+    bars: { value: [0, 1, 2].map(i => (coast.bars[i] != null ? new Vector3(coast.bars[i].distance, coast.bars[i].height, coast.bars[i].width) : new Vector3())) },
+    barCount: { value: Math.min(3, coast.bars.length) },
+    rips: { value: new Vector2(coast.rips?.spacing ?? 0, coast.rips?.amplitude ?? 0) },
+    cusps: { value: new Vector3(coast.cusps?.spacing ?? 0, coast.cusps?.relief ?? 0, cuspReach(coast)) },
     noiseOffset: { value: new Vector2(...coast.noiseOffset) },
     ridges: { value: [0, 1, 2].map(i => (coast.ridges[i] != null ? new Vector3(coast.ridges[i].distance, coast.ridges[i].height, coast.ridges[i].width) : new Vector3())) },
     ridgeCount: { value: Math.min(3, coast.ridges.length) },

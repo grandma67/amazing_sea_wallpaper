@@ -1,4 +1,5 @@
 import { BEACH_MATERIALS, type BeachMaterial } from './beach'
+import { BEACH_STATES, type BeachState } from './beachState'
 import type { EclipseType } from './celestial'
 import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './biome'
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
@@ -107,6 +108,8 @@ export interface SceneSpec {
   sand?: SandStyle['name']
   /** Sand or stones (beach.ts); a stony material implies a beach. */
   beachMaterial?: BeachMaterial
+  /** Wright & Short beach state (beachState.ts): slopes, bars, rips, cusps. */
+  beachState?: BeachState
 
   weather?: Exclude<WeatherKind, 'storm'>
   /** Cloud genera and species, one layer each (at most 4); usually one per
@@ -250,6 +253,7 @@ const SPEC = object({
   composition: oneOf('shoreline', 'along-beach', 'framed', 'overlook'),
   sand: oneOf(...Object.keys(SAND_STYLES)),
   beachMaterial: oneOf(...BEACH_MATERIALS),
+  beachState: oneOf(...BEACH_STATES),
   weather: oneOf('clear', 'cirrus', 'few', 'scattered', 'broken', 'overcast'),
   clouds: (value, path) => {
     listOf(oneOf(...GENERA))(value, path)

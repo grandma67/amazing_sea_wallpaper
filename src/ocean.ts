@@ -452,7 +452,10 @@ void main() {
   // Unresolved slope variance (plus capillary ripples finer than the last
   // cascade) → GGX roughness; floor for the sun's angular size.
   // Ring waves finer than a pixel roughen the surface: rain makes it matte.
-  float alpha = clamp(sqrt(variance.x + variance.y + 0.0006 + rain * 0.006), 0.02, 0.7);
+  // A rip current running out against the waves roughens the water over
+  // its channel (and the channel is deeper, so darker, with fewer breakers).
+  float rip = hasSurfZone() ? ripWater(sa) : 0.0;
+  float alpha = clamp(sqrt(variance.x + variance.y + 0.0006 + rain * 0.006 + rip * 0.012), 0.02, 0.7);
 
   // Sky reflection.
   vec3 R = reflect(-V, N);
@@ -553,12 +556,12 @@ void main() {
     float roller = smoothstep(0.03, 0.15, w) * (1.0 - smoothstep(0.24, 0.3, w));
     float trail = smoothstep(0.2, 0.26, w) * (1.0 - smoothstep(0.26, 0.6, w));
     float ragged = 0.55 + 0.6 * fbm(vec2(sa.y / 14.0, sa.x / 5.0) + noiseOffset);
-    float breaking = surfZone * sets;
+    float breaking = surfZone * sets * (1.0 - 0.5 * rip);
     coverage = max(coverage, breaking * clamp(max(roller, 0.75 * trail) * ragged, 0.0, 1.0));
     // Residual foam is drawn out into streaks parallel to the shore.
     vec2 streak = vec2(sa.y * 0.035, sa.x * 0.22) + noiseOffset;
     float patches = smoothstep(0.5, 0.8, fbm(streak + vec2(0.0, w * 2.0)));
-    coverage = max(coverage, surfZone * 0.55 * patches);
+    coverage = max(coverage, surfZone * 0.55 * patches * (1.0 - 0.6 * rip));
     // Thin features alias into sparkles far away; fade them with pixel size.
     float near = 1.0 - smoothstep(1.0, 5.0, footprint);
     // Only along the real shoreline, not over shallow sandbars offshore.

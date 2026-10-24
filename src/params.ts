@@ -2,7 +2,8 @@ import { MoonPhase } from 'astronomy-engine'
 
 import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
 
-import { beachName, isStony, materialChances, STONY_RUNUP, stonyShape, type BeachMaterial, type Ridge } from './beach'
+import { beachName, isStony, materialChances, STONE_SIZES, STONY_RUNUP, stonyShape, type BeachMaterial, type Ridge } from './beach'
+import { beachShape, beachStateFor, breakerHeight, grainIn, sedimentFor, wavePeriod, type Bar, type BeachState, type Cusps, type Rips } from './beachState'
 import { SAND_STYLES, biomeNamed, type Biome, type RGB, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
 import { hasBeach, hasLand } from './coastKind'
@@ -16,7 +17,7 @@ import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
 import { Random } from './random'
-import { monthInSeason, seasonMonth } from './seasons'
+import { monthInSeason, season, seasonMonth } from './seasons'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
 // Everything random about a scene is decided here, from the date alone.
@@ -60,8 +61,16 @@ export interface CoastParams {
   duneWidth: number
   /** Height of the rolling hills inland (m). */
   hillHeight: number
-  sandbarDistance: number
-  sandbarHeight: number
+  /** Wright & Short beach state, from the waves and the grain (beachState.ts). */
+  state: BeachState
+  /** Median sand grain (mm); on a mixed beach the sand's. */
+  grainMm: number
+  /** Submerged bars, inner first (0–3). */
+  bars: Bar[]
+  /** Rip channels through the inner bar, or null. */
+  rips: Rips | null
+  /** Beach cusps on the upper swash zone, or null. */
+  cusps: Cusps | null
   /** Height wave run-up reaches on the beach (m); the wet-sand band. */
   runup: number
   surfAmplitude: number
@@ -517,6 +526,13 @@ function sandColour(coastRng: Random, seed: string, place: Place, force?: SandSt
   return SAND_STYLES[choose(Random.derive(seed, 'sand-colour'), place.sand, force)]
 }
 
+/** Makes a draw and drops it, so a stream's later draws stay where they
+ * were when a field stops using it. */
+function skipDraw(rng: Random): 0 {
+  rng.float()
+  return 0
+}
+
 function generateCoast(
   seed: string,
   attempt: number,
@@ -524,6 +540,9 @@ function generateCoast(
   place: Place,
   climate: Climate,
   ocean: Pick<SceneParams['ocean'], 'swellHeight' | 'swellWavelength' | 'windSpeed'>,
+  /** Storm days and mid-latitude winters move the beach a state toward
+   * dissipative (the winter profile). */
+  beachWeather: { rough: boolean },
   spec: SceneSpec
 ): { coast: CoastParams; eyeHeight: number | null } {
   // Retries (see composition.ts) re-roll only the coast and composition.
@@ -556,8 +575,12 @@ function generateCoast(
     duneHeight: rng.range(1.5, 9),
     duneWidth: rng.range(15, 50),
     hillHeight: 0,
-    sandbarDistance: rng.range(50, 140),
-    sandbarHeight: 0,
+    state: 'reflective',
+    // The old sandbar distance's draw (see below).
+    grainMm: skipDraw(rng),
+    bars: [],
+    rips: null,
+    cusps: null,
     runup: 0.25 + surfAmplitude * rng.range(0.4, 0.8),
     surfAmplitude,
     surfWavelength: rng.range(18, 40),
@@ -570,19 +593,32 @@ function generateCoast(
     noiseOffset: [rng.range(-5000, 5000), rng.range(-5000, 5000)]
   }
 
-  // Keep sandbars submerged: at most ~60% of the water depth above them.
-  if (rng.chance(0.6)) {
-    const depthAtBar = coast.sandbarDistance * coast.nearshoreSlope
-    coast.sandbarHeight = depthAtBar * rng.range(0.25, 0.6)
-  }
+  // The beach state sets the slopes, width and bars now (below), but the
+  // coast stream still makes the draws they used to take, so the draws
+  // after them (surf, noise, eye height) stay where they were.
+  if (rng.chance(0.6)) rng.float()
 
-  // Beach material, once per date on its own stream (retries keep it); a
-  // stony beach is steep, narrow and ridged.
+  // Beach material, grain and state, once per date on their own stream
+  // (retries keep them): the waves and the grain set the slopes, bars and
+  // cusps; a stony beach is steep, narrow and ridged.
   const mrng = Random.derive(seed, 'beach-material')
-  const material = or(choose(mrng, materialChances(place, climate)), spec.beachMaterial)
-  if (hasBeach({ type }) && isStony(material)) {
+  const drawnMaterial = or(choose(mrng, materialChances(place, climate)), spec.beachMaterial)
+  const material = hasBeach({ type }) ? drawnMaterial : 'sand'
+  const sediment = sedimentFor(coast.sand.name, place.biome)
+  const grainMm = grainIn(sediment, mrng.float())
+  const stoneU = mrng.float()
+  const stoneSize = isStony(material) ? STONE_SIZES[material][0] + stoneU * (STONE_SIZES[material][1] - STONE_SIZES[material][0]) : 0
+  const period = wavePeriod(ocean.swellWavelength)
+  const state = or(
+    beachStateFor(material, grainMm, breakerHeight(ocean.swellHeight, period), period, sediment, beachWeather.rough ? 1 : 0),
+    spec.beachState
+  )
+  const depthAt = (d: number, slope: number): number => coast.seabedDepth * (1 - Math.exp((-d * slope) / coast.seabedDepth))
+  const shape = beachShape(state, material, material === 'shingle' || material === 'cobble' ? stoneSize : grainMm, period, depthAt, mrng)
+  Object.assign(coast, shape, { state, grainMm })
+  if (isStony(material)) {
     if (material !== 'mixed') coast.runup *= STONY_RUNUP
-    Object.assign(coast, { material }, stonyShape(coast, material, mrng))
+    Object.assign(coast, { material, stoneSize }, stonyShape(coast, material, mrng))
   }
 
   let eyeHeight =
@@ -1445,7 +1481,8 @@ function buildParams(
   oceanSwell.swellHeight *= basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm
   oceanSwell.swellWavelength = Math.min(320, oceanSwell.swellWavelength * basin.swellWavelength)
   const oceanState = { windSpeed: spec.wind ?? windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
-  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, spec)
+  const roughBeach = storm != null || (Math.abs(latitudeDeg) > 25 && season({ date, latitudeDeg }) === 'winter')
+  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach }, spec)
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',

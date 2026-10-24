@@ -64,7 +64,9 @@ describe('beach material', () => {
       }
       expect(coast.beachSlope).toBeGreaterThanOrEqual(coast.material === 'mixed' ? 0.08 : 0.12)
       expect(coast.beachWidth).toBeLessThanOrEqual(40)
-      expect(coast.sandbarHeight).toBe(0)
+      // Reflective (shingle, cobble) or a gravel upper beach over a sand
+      // terrace (mixed): no bars beyond the terrace.
+      expect(coast.bars.length).toBeLessThanOrEqual(coast.material === 'mixed' ? 1 : 0)
       expect(coast.ridges.length).toBeGreaterThanOrEqual(1)
       expect(coast.ridges.length).toBeLessThanOrEqual(3)
       // The storm ridge stands where storm swash reaches (1–2.5 m up), behind

@@ -55,7 +55,8 @@ describe('storm ridges', () => {
 
   it('raise the stony beach at each crest, and nothing on sand', () => {
     for (const coast of stony) {
-      const at = (s: number, a: number): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
+      // Without the cusps, which share the berm's band.
+      const at = (s: number, a: number): number => terrainHeight({ ...coast, cusps: null }, ...shoreToWorld(coast, s, a))
       for (const r of coast.ridges) {
         // Find the crest near the drawn distance (it wanders ±1.5 m along the
         // shore) and check it stands above the straight line between its feet.
@@ -64,7 +65,10 @@ describe('storm ridges', () => {
         const bump = ridgeHeight(coast, crest, 0)
         expect(bump).toBeGreaterThan(0.6 * r.height)
         expect(bump).toBeLessThan(1.3 * coast.ridges.reduce((sum, q) => sum + q.height, 0))
-        // The terrain carries the ridge (heights only; bumps noise ±0.18 m).
+        // The terrain carries the ridge (heights only; bumps noise ±0.18 m),
+        // where both feet are on land (a berm metres up a steep cobble face
+        // has its seaward foot in the water).
+        if (crest - 2.5 * r.width < 0) continue
         const feet = (at(-(crest - 2.5 * r.width), 0) + at(-(crest + 2.5 * r.width), 0)) / 2
         expect(at(-crest, 0) - feet).toBeGreaterThan(0.5 * bump - 0.4)
       }
