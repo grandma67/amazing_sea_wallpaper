@@ -494,6 +494,14 @@ random.
   (no visible change); `diff.mjs` between low and high.
 - Docs: ARCHITECTURE.md (tides, land offset), LESSONS.md, SCENE_SPECS.md fields,
   changelog (all meso- and macro-tidal beach days).
+- Done 2026-10-24 (changelog 0.57). Differences from the plan: the profile's s = 0 is the
+  foot of the high-tide beach, with a berm as high as the spring high water; the terrace is
+  added above 2 m spring range (±(range − 2)/2, ~1:65, ≤ 400 m); micro-tidal beaches stay
+  wave-dominated (RTR from the day's waves turned 2/3 of reflective sand beaches into
+  terraces); tidepools are ponded runnels on the terrace, not pools among rocks. Every beach
+  day's water moves (1–2 m default range), not only meso and macro ones. Open: emerged rip
+  channels look step-like at low water (ARCHITECTURE.md known issues). Renders:
+  `scenes/tides.json`.
 
 ### 6. Calm water (shelter mask)
 

@@ -22,6 +22,10 @@ shingle, cobble). Status 2026-10-24. Shares are over 2024–2026 (1096 days,
 6. **Beach state** (`beachState.ts`, same stream, PLAN_BIOMES 4): grain, then a Wright & Short
    state from Ω = Hb / (ws · T), which sets the face and nearshore slopes, width, bars, rips
    and cusps (shares below; sources in REGIONS.md §2).
+7. **Tide** (`tides.ts`, stream `'tide'`, PLAN_BIOMES 5; drawn before the coast): the place's
+   mean range, spring–neap from the moon, a random stage. The beach is built for its spring
+   range (berm, low-tide terrace above 2 m); meso- and macro-tidal sand beaches are
+   tide-modified; the land sits `level` lower and the camera stands by today's water.
 
 ### Biomes
 
@@ -182,7 +186,7 @@ Sources: [Global coastal dataset (ESSD preprint 2025)](https://essd.copernicus.o
 
 ### Beach state (phase 4)
 
-Measured over 2024–2026 beach days (715). Ω = Hb / (ws · T) from the day's swell and the
+Before tides (phase 5 changed these: see "Tides" below). Measured over 2024–2026 beach days (715). Ω = Hb / (ws · T) from the day's swell and the
 beach's grain (`beachState.ts`, REGIONS.md §2); storms and mid-latitude winters one state
 flatter.
 
@@ -214,6 +218,30 @@ than the modal state. A possible retune (not done, it changes every beach day): 
 shift and keep only storms, or classify by the inner bar so a double-bar beach with a rip-cut
 inner bar counts as transverse-bar-rip.
 
+### Tides (phase 5)
+
+Spring ranges over 2024–2026 beach days (715): micro (< 2 m) 58%, meso (2–4 m) 33%, macro
+(4–6 m) 6%, mega (> 6 m) 2%. By biome: nordic 18% micro / 16% meso / 6% macro+ of all beach
+days, tropical 14 / 8 / 1.5, mediterranean 12 / 2 / 0.4, volcanic 9 / 5 / 0, desert 5 / 3 /
+0.3. 42% of beach days have a low-tide terrace (25% under 50 m wide); on 6% today's water is
+more than 100 m out.
+
+Beach states after the tide (Masselink & Short 1993; micro-tidal beaches stay wave-dominated):
+
+| State | All beach days | Sand beaches (418) |
+|---|---|---|
+| reflective | 38.9% | 20% |
+| low-tide-terrace | 39.2% | 42% |
+| transverse-bar-rip | 7.7% | 13% |
+| rhythmic-bar | 3.4% | 6% |
+| longshore-bar | 3.6% | 6% |
+| dissipative | 7.3% | 12% |
+
+Cusps on 54% of beach days, rips on 54%. Against Australia (Short 2006: 47% wave-dominated,
+10.5% tide-modified, 34% tide-dominated) the terrace is high: on meso-tidal coasts with small
+swell a reflective beach becomes reflective + low-tide terrace, which Short files under
+tide-modified.
+
 ## Gaps: research vs. today
 
 | Real world | Today | Plan phase |
@@ -224,7 +252,7 @@ inner bar counts as transverse-bar-rip.
 | Pink and red sand; treeless high Arctic | done (phase 3): pink and red sand; no birch above 74°; beech in Tierra del Fuego | 3 |
 | Marine layer, harmattan, haar | done (phase 3): marine layer and harmattan by place; haar already in the fog season | 3 |
 | Beach slope and bars follow grain and swell | done (phase 4): Wright & Short state from Ω; bars, rips, cusps | 4 |
-| Tides (micro to mega) | sea level fixed | 5 |
+| Tides (micro to mega) | done (phase 5): ranges by place, springs and neaps, low-tide terraces, the land lowered | 5 |
 | Calm water behind reefs and barriers | water calms only where shallow | 6 |
 | Reef-fronted tropical beaches | surf breaks on the sand | 7 |
 | Rocky shores (~40% of coast) | none: beach or open sea | 8 |

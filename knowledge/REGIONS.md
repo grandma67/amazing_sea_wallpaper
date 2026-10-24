@@ -345,6 +345,16 @@ authors put mega at 8 m).
 Spring–neap: Incheon spring/neap ≈ 1.46, a typical ratio; ×1.2 at springs and ×0.8 at neaps
 (plan) is close.
 
+**Built 2026-10-24 (PLAN_BIOMES 5):** `TIDE` in `places.ts` holds a mean-range span per place
+or region, read from this table; each day's beach draws its mean in the span. Ranges this table
+lumps are split by place: Fundy 6–12 m and PEI 0.6–1.2 m within Atlantic Canada; Brittany
+4–8 m, Mont-Saint-Michel 8–11 m; Bristol Channel 8–11 m and Morecambe Bay 6–8 m (≈) in
+Britain (2–5 m elsewhere); Norway west 0.3–1.2 m, north 1.5–2.4 m; Cook Inlet 7–9.5 m, SE
+Alaska 3.5–5 m. Added from general knowledge (≈, not in the table above): Maine 2.5–5 m
+(Portland ~2.9 m, Eastport ~5.5 m), Alaska's Arctic coast 0.1–0.3 m, Gulf of Alaska 2.5–4 m,
+Tierra del Fuego 2–6 m (Beagle Channel small, Atlantic side large), Baja–Sonora 1–4 m (the
+upper Gulf's 7–9 m is a small part of that place).
+
 ## 4. Bioluminescence seasons (phase 13, later)
 
 Glowing surf needs a dense dinoflagellate bloom (*Lingulodinium polyedra* in California,

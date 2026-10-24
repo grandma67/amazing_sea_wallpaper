@@ -28,7 +28,9 @@ scripts: `--scene <JSON or file>`.
     `pink`, `red`; on any place), `beachMaterial` (`sand`, `mixed`,
     `shingle`, `cobble`; a stony one implies a beach, on any place), `beachState`
     (`reflective`, `low-tide-terrace`, `transverse-bar-rip`, `rhythmic-bar`, `longshore-bar`,
-    `dissipative`: slopes, bars, rips and cusps; grain and swell stay the day's);
+    `dissipative`: slopes, bars, rips and cusps; grain and swell stay the day's), `tide`
+    (`low`, `mid`, `high`: the stage; the beach's mean range is still drawn) and `tidalRange`
+    (m, today's low to high water; the beach is rebuilt for it if it's above springs);
   - sky: `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
     `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
     `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,

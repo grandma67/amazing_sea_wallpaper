@@ -80,3 +80,8 @@ Sources behind built features. Research for planned work lives with its plan: co
   breaker height; Hong Kong CEDD "Typical natural beach slopes" and Bascom 1951 (slope by grain);
   edge-wave cusp spacing λ = g T² tanβ / π (Guza & Inman 1975); sources in REGIONS.md §2 and
   PLAN_BIOMES.md
+- Tides: ranges per region in REGIONS.md §3 (Aviso, Kjerfve 1981, US Harbors, Kartverket via
+  Yachting Monthly, Wadden Sea World Heritage, Britannica, NASA Earth Observatory, Vegagerðin,
+  OJMS 2015 Red Sea model); Masselink & Short 1993 (relative tide range, tide-modified and
+  tide-dominated beaches); Short 2006 (shares and low-tide terrace widths); Incheon spring/neap
+  ratio ≈ 1.46

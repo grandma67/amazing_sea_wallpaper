@@ -32,6 +32,10 @@ Playwright (headless snapshots), Vitest.
   length, split among its places by length (raw length would make ~70% of days Arctic and
   nordic). Replaced biome × ocean drawn apart with latitude from the ocean basin. Reshuffled
   every date once, deliberately.
+- **Tides lower the land** (2026-10-24, PLAN_BIOMES 5): sea level 0 stays everywhere (ocean,
+  surf, `seaLevel()`); the terrain and everything standing on it sit `tide.level` lower. Beaches
+  are built for their spring range (a berm, and a low-tide terrace above 2 m) so a 10 m tide
+  neither floods the dunes nor strands the camera.
 - **Cheaper rendering must not change the image.** Rejected for speed: shipping precomputed
   atmosphere LUTs (10–48 MB, slightly different sky), caching sky textures between visits
   (~48 MB of float 3D textures), dropping the higher-order scattering texture (sky and aerial
@@ -72,7 +76,7 @@ Playwright (headless snapshots), Vitest.
   7. Storm (`'storm'`, `'storm-weather'`: overrides weather and wind); water (`'water'`); wind
      × basin, marine-layer wind cap; formations (`'formations'`, `'cloud-species'`);
      waterspout (`'waterspout'`); arrangement; fog (`'fog'`: calms the wind).
-  8. Swell (`'swell'`); coast (`generateCoast`: `'coast'`, `'sand-colour'`,
+  8. Swell (`'swell'`); tide (`'tide'`: the place's mean range, phase); coast (`generateCoast`: `'coast'`, `'sand-colour'`,
      `'beach-material'` (material, grain, stone size, beach state and shape), `'hills'`,
      `'composition'`).
   9. Colony, pinnipeds, lighthouse, landform, islands (`pick*`, own streams); shelf cloud,
@@ -242,6 +246,33 @@ means). Storm days and |lat| > 25°
   g T² tanβ / π, 12–45 m). Every number and its source: REGIONS.md §2 "Beach states: shape by
   state". The coast stream still makes the old
   slope/width/sandbar draws (`skipDraw`) so eye height stays.
+- **Tides** (`tides.ts`, PLAN_BIOMES 5): `place.tide` is a mean range span (`TIDE` in
+  `places.ts`, REGIONS.md §3; 1–2 m by default). `tideFor` draws the beach's mean in it and a
+  semidiurnal phase on `'tide'`; today's range = mean × `springFactor(moonPhaseDeg)` (1.2 at
+  springs ~1.5 days after new and full moon, 0.8 at neaps); level = range/2 × cos(phase). Specs
+  force the stage (`tide`) and `tidalRange`. `coast.tide` keeps `springRange` (mean × 1.2, or
+  today's if bigger), which the beach is built for:
+  - the land frame's s = 0 is the foot of the high-tide beach. Above it the beach gets a berm as
+    high as the spring high water (`highWater`, ≤ 1 m) over its width;
+  - above `MICRO_TIDE` (2 m) a low-tide terrace (`coast.terrace`: ±(range − 2)/2 around mean
+    sea at ~1:65, flattened to stay ≤ 400 m) sits between s = 0 and the shoreface;
+    `seaDistance(s)` measures the shoreface, its bars and rip channels from its seaward edge;
+  - `terrainHeightAt` = profile + `terraceStep(s)` − `tideLevel` (GLSL and TS mirror).
+  `waterlineAt(coast, level)` finds today's water on the bare profile (`coast.waterline`, s of
+  the water). Shoreline and along-beach cameras are placed from it (`distanceToWater` stays the
+  camera's distance to s = 0, so the water is `distanceToWater + waterline` away); framed and
+  overlook stand on the land. `beachLines` (wrack, storm line, stony ridges) are measured from
+  s = 0 at the spring high water, so they stay put as the tide moves. The ocean's surf zone and
+  shore foam, and surf spray, measure from `waterline`. `tideMarks(coast)` gives the world
+  heights of today's and the spring high water: plants and flowers grow above the spring one
+  plus run-up; the terrain shader draws the wrack line there, damp drained sand below today's
+  high water (glossier near the water) and ponded runnels on a terrace; `rockMaterial`'s
+  `tideLine` gives rocks a dark weed and mussel band below the spring high water; mangroves keep
+  to mean sea up to the spring high water. With a spring range ≥ 2 m the beach state is
+  tide-modified by RTR = range / Hb (`tideModified`, Masselink & Short 1993: ≥ 3 reflective →
+  terrace, bars → low-tide bar and rip; ≥ 10 ultradissipative); micro-tidal beaches stay
+  wave-dominated (a calm day's RTR would class most of them as tide-modified, but the census
+  classes by modal waves). Shares: COASTS.md.
 - **Bars, rips, cusps in the terrain** (`TERRAIN_GLSL`, TS mirror `barHeight`, `ripGap`,
   `cuspHeight` in `terrain.ts`): `vec3 bars[3]` + `barCount` replace the one sandbar; at a rip
   channel (`ripGap`, a wandering cosine every `rips.x` m) the inner bar is cut and the bed scoured
@@ -392,6 +423,12 @@ rolling onto the beach as surf, turtle heads at sea.
   (`scripts/profile.mjs` on Namibia 2024-06-11), so the wet band is very wide and storm-line debris
   sits far back; on steep gravel it is ~1 m. A Stockdon-type run-up (∝ slope × √(H0 L0) on steep
   beaches, ∝ √(H0 L0) on flat ones) would fix both, at the cost of re-tuning the wrack lines.
+- At low tide on terraced rip beaches (low-tide bar and rip) the emerged inner bar and rip
+  channels show as straight-edged shelves near the water (e.g. `scenes/tides.json`
+  brittany-low): the channel walls and the terrace edge were shaped to be seen underwater.
+- Tidepools are runnels and puddles on the terrace (shader patches), not pools among rocks.
+- `place: "western-med"`, 2024-05-08, along-beach daylight front-lit: the whole beach renders
+  dark blue (same at a6ac87a, before tides).
 - Longshore bars have no trough: OzCoasts gives 2–3 m behind the bar, but the bare profile there
   is ~1 m deep (only rip channels are scoured).
 - State shares vs Australia's census (COASTS.md "Beach state"): transverse bar–rip under-drawn,

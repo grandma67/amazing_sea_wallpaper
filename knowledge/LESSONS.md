@@ -176,6 +176,15 @@ tool gotchas in TOOLS.md.
   later field and the eye height: keep the draw (`skipDraw`) and check `params.mjs --ref HEAD`
   shows only the intended top-level param changing.
 
+- Tides move the water off s = 0: every "distance from the shore" in the shaders and props (surf
+  zone 150–350 m, shore foam 10–25 m, surf crests from s = 0, pebbles between camera and water)
+  must measure from `coast.waterline`, or a low tide 350 m out loses its surf and foam.
+- Geometry shaped to be seen under water (rip channels, the terrace's seaward edge) shows at low
+  tide as hard steps; soften walls and check the low-water render too.
+- A relative tide range from the day's waves (RTR = range / Hb) makes almost every calm beach
+  with a 1–2 m tide "tide-modified" (reflective 29% → 10%). The census classes by modal waves;
+  keep micro-tidal beaches wave-dominated.
+
 - Rewriting `x *= a * b * c` as `x * a * b * c` changes the last bit of x (different rounding
   order) and `params.mjs --ref` shows dozens of changed days. Keep the grouping when wrapping a
   value in `or()`.
