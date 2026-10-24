@@ -3,6 +3,7 @@ import type { CoastParams } from './params'
 import type { Climate, Weights } from './places'
 import type { Random } from './random'
 import { hashCell, vnoise } from './cellNoise'
+import { highWater, inlandAt, type Terrace, type Tide } from './tides'
 
 // What a beach is made of (PLAN_BIOMES phase 2): sand, or stones from pebbles
 // to small boulders. Each place chooses its material like its ocean and
@@ -102,22 +103,26 @@ export interface Ridge {
   width: number
 }
 
-/** How far inland (m from the waterline) the high-tide wrack line and the
- * storm line lie, from the beach profile in terrain.ts without its bumps.
- * On a stony beach the storm line is the storm ridge's crest. */
-export function beachLines(coast: Pick<CoastParams, 'beachSlope' | 'beachWidth' | 'runup'> & { ridges?: readonly Ridge[] }): {
+/** A coast's profile fields that set where its lines lie. */
+export type LineCoast = Pick<CoastParams, 'beachSlope' | 'beachWidth' | 'runup'> & {
+  ridges?: readonly Ridge[]
+  tide?: Pick<Tide, 'springRange'>
+  terrace?: Terrace
+}
+
+/** How far inland (m from the foot of the high-tide beach, the land frame's
+ * s = 0) the wrack line of the spring high tides and the storm line lie, from
+ * the beach profile in terrain.ts without its bumps. They stay on the land
+ * whatever the tide is doing today (tides.ts). On a stony beach the storm
+ * line is the storm ridge's crest. */
+export function beachLines(coast: LineCoast): {
   highTide: number
   stormLine: number
 } {
-  const highTide = inlandAt(coast, coast.runup * 1.1)
-  const stormLine = coast.ridges?.[0]?.distance ?? Math.max(inlandAt(coast, coast.runup * 2.2), highTide + 3)
+  const high = highWater(coast)
+  const highTide = inlandAt(coast, high + coast.runup * 1.1)
+  const stormLine = coast.ridges?.[0]?.distance ?? Math.max(inlandAt(coast, high + coast.runup * 2.2), highTide + 3)
   return { highTide, stormLine }
-}
-
-/** Distance inland where the bare beach profile reaches height `h`. */
-function inlandAt(coast: Pick<CoastParams, 'beachSlope' | 'beachWidth'>, h: number): number {
-  const maxHeight = coast.beachSlope * coast.beachWidth
-  return -coast.beachWidth * Math.log(1 - Math.min(h / maxHeight, 0.9))
 }
 
 /** Swash sinks into gravel, so it runs less far up a shingle or cobble
@@ -132,7 +137,7 @@ export const STONY_RUNUP = 0.6
  * breaker index follows the nearshore slope). `coast.runup` is already the
  * stony one. */
 export function stonyShape(
-  coast: Pick<CoastParams, 'runup' | 'beachSlope' | 'beachWidth'>,
+  coast: LineCoast,
   material: Exclude<BeachMaterial, 'sand'>,
   rng: Random
 ): Pick<CoastParams, 'duneHeight' | 'ridges'> {
@@ -140,7 +145,7 @@ export function stonyShape(
   const duneHeight = rng.range(0.5, 2.5)
   const { highTide } = beachLines(coast)
   // The storm ridge's crest stands where storm swash reaches, 1–2.5 m above
-  // the sea (Chesil's is ~10 m; small ridges 1–3 m), well behind the daily
+  // the spring high water (Chesil's is ~10 m; small ridges 1–3 m), well behind the daily
   // swash; one ridge: just it; two: a berm at the high-tide line too; three:
   // an older, grassed-over ridge behind.
   const stormHeight = Math.min(material === 'mixed' ? rng.range(1, 2) : rng.range(1.2, 2.5), 0.75 * beachSlope * beachWidth)
@@ -149,7 +154,7 @@ export function stonyShape(
     [2, 4],
     [3, 2]
   ])
-  const stormLine = Math.max(inlandAt({ beachSlope, beachWidth }, stormHeight), highTide + 6)
+  const stormLine = Math.max(inlandAt(coast, highWater(coast) + stormHeight), highTide + 6)
   const ridge = (distance: number, height: number, width: number): Ridge => ({ distance: Math.min(distance, beachWidth * 1.2), height, width })
   const ridges = [ridge(stormLine, rng.range(0.6, 1.2), rng.range(3, 6))]
   if (count >= 2) ridges.push(ridge(highTide, rng.range(0.3, 0.6), rng.range(1.5, 3)))
@@ -182,7 +187,7 @@ export const STONE_SIZES: Record<Exclude<BeachMaterial, 'sand'>, [number, number
  * beach, coarse on the storm ridge crest. */
 export const STONE_LEVELS = [0.6, 1, 1.6] as const
 
-type StoneCoast = Pick<CoastParams, 'material' | 'stoneSize' | 'ridges' | 'noiseOffset' | 'stoneColors' | 'beachSlope' | 'beachWidth' | 'runup'>
+type StoneCoast = Pick<CoastParams, 'material' | 'stoneSize' | 'ridges' | 'noiseOffset' | 'stoneColors' | 'beachSlope' | 'beachWidth' | 'runup'> & Partial<Pick<CoastParams, 'tide' | 'terrace'>>
 
 /** How close to the storm ridge crest (1 on it, 0 away). */
 function nearCrest(coast: Pick<CoastParams, 'ridges'>, u: number): number {

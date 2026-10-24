@@ -14,6 +14,7 @@ import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
 import { createPolarGrid } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
+import { highWater, tideMarks } from './tides'
 
 export { hasBeach, hasLand, hasSurfZone, type CoastKind } from './coastKind'
 
@@ -52,6 +53,14 @@ uniform vec3 ridges[3];
 uniform int ridgeCount;
 // Index into COAST_KINDS (coastKind.ts); one profile branch runs per day.
 uniform int coastKind;
+// Tides (tides.ts): the land sits tideLevel lower; a low-tide terrace from
+// +terrace.x at s = 0 (the foot of the high-tide beach) down to −terrace.x at
+// s = terrace.y; a berm as high as the spring high water (highWater) over the
+// beach; today's water at s ≈ waterline.
+uniform float tideLevel;
+uniform vec2 terrace;
+uniform float highWater;
+uniform float waterline;
 #define COAST_OPEN_SEA 0
 #define COAST_BEACH 1
 #define COAST_ROCK_SHORE 2
@@ -169,6 +178,19 @@ vec2 shoreCoords(vec2 p) {
   return vec2(s, a);
 }
 
+// Distance seaward of low water's foot of the terrace: where the shoreface,
+// its bars and rip channels begin.
+float seaDistance(float s) {
+  return s - clamp(s, 0.0, terrace.y);
+}
+
+// The terrace's height above the profile around it: +terrace.x on the land,
+// sloping down across it to −terrace.x on the sea side.
+float terraceStep(float s) {
+  if (terrace.y <= 0.0) return 0.0;
+  return terrace.x * (1.0 - 2.0 * clamp(s / terrace.y, 0.0, 1.0));
+}
+
 // Storm ridges thrown up on a stony beach: Gaussian bumps across the shore,
 // their crests wandering a little and rising and falling along it.
 float ridgeHeight(float u, float a) {
@@ -192,7 +214,7 @@ float ridgeHeight(float u, float a) {
 float ripGap(float a) {
   if (rips.x <= 0.0) return 0.0;
   float w = a / rips.x + 0.6 * vnoise(vec2(a / (2.0 * rips.x), 21.7) + noiseOffset);
-  return smoothstep(0.75, 0.95, cos(6.2831853 * w));
+  return smoothstep(0.55, 0.97, cos(6.2831853 * w));
 }
 
 // Bars across the shoreface. The inner bar of a rip state swings toward the
@@ -224,7 +246,8 @@ float barHeight(float s, float a) {
 float ripWater(vec2 sa) {
   if (rips.x <= 0.0 || barCount == 0) return 0.0;
   float reach = bars[0].x * (1.0 + rips.y);
-  return ripGap(sa.y) * smoothstep(-2.0, 5.0, sa.x) * (1.0 - smoothstep(reach, 1.6 * reach, sa.x));
+  float s = seaDistance(sa.x);
+  return ripGap(sa.y) * smoothstep(-2.0, 5.0, s) * (1.0 - smoothstep(reach, 1.6 * reach, s));
 }
 
 // Beach cusps: horns of coarser sediment pointing seaward with scooped bays
@@ -244,14 +267,17 @@ float beachHeightAt(vec2 p, vec2 sa) {
   float u = -s;
   vec2 q = p + noiseOffset;
 
-  float sea = -s * nearshoreSlope;
+  float sSea = seaDistance(s);
+  float sea = -sSea * nearshoreSlope;
   // Clamped: far inland this overflows to infinity, and mix(inf, land, 1)
   // below is inf * 0 = NaN (white specks along distant skylines).
   sea = -seabedDepth * (1.0 - exp(min(sea / seabedDepth, 10.0)));
-  sea += barHeight(s, sa.y);
+  sea += barHeight(sSea, sa.y);
 
-  // Rises with the beach slope, levelling off at the back of the beach.
+  // Rises with the beach slope, levelling off at the back of the beach,
+  // over a berm the high tides build.
   float beach = u > 0.0 ? beachSlope * beachWidth * (1.0 - exp(-u / beachWidth)) : u * beachSlope;
+  beach += highWater * smoothstep(0.0, beachWidth, u);
   float duneMask = smoothstep(beachWidth, beachWidth + duneWidth, u);
   float dunes = duneHeight * duneMask * (0.45 + 0.55 * fbm(q / 40.0));
   // Rolling hills inland, rising over a few hundred metres behind the dunes.
@@ -260,7 +286,7 @@ float beachHeightAt(vec2 p, vec2 sa) {
   float bumps = 0.35 * (fbm(q / 7.0) - 0.5) * smoothstep(0.0, beachWidth, u);
   float land = beach + dunes + hills + bumps + ridgeHeight(u, sa.y);
 
-  return mix(sea, land, smoothstep(-1.0, 1.0, u)) + cuspHeight(u, sa.y);
+  return mix(sea, land, smoothstep(-1.0, 1.0, u)) + cuspHeight(u, sa.y) + terraceStep(s) - tideLevel;
 }
 
 float terrainHeightAt(vec2 p, vec2 sa) {
@@ -502,7 +528,7 @@ export function ridgeHeight(coast: CoastParams, u: number, a: number): number {
 /** 1 in a rip channel, 0 on the bar (mirrors ripGap in TERRAIN_GLSL). */
 export function ripGap(coast: CoastParams, a: number): number {
   if (coast.rips == null) return 0
-  return smoothstep(0.75, 0.95, Math.cos(2 * Math.PI * ripWave(coast, a)))
+  return smoothstep(0.55, 0.97, Math.cos(2 * Math.PI * ripWave(coast, a)))
 }
 
 function ripWave(coast: CoastParams, a: number): number {
@@ -558,12 +584,14 @@ function beachHeight(coast: CoastParams, x: number, z: number): number {
   const u = -s
   const qx = x + ox
   const qz = z + oz
-  let sea = -s * coast.nearshoreSlope
+  const sSea = seaDistance(coast, s)
+  let sea = -sSea * coast.nearshoreSlope
   sea = -coast.seabedDepth * (1 - Math.exp(Math.min(sea / coast.seabedDepth, 10)))
-  sea += barHeight(coast, s, a)
+  sea += barHeight(coast, sSea, a)
 
   const beach =
-    u > 0 ? coast.beachSlope * coast.beachWidth * (1 - Math.exp(-u / coast.beachWidth)) : u * coast.beachSlope
+    (u > 0 ? coast.beachSlope * coast.beachWidth * (1 - Math.exp(-u / coast.beachWidth)) : u * coast.beachSlope) +
+    highWater(coast) * smoothstep(0, coast.beachWidth, u)
   const duneMask = smoothstep(coast.beachWidth, coast.beachWidth + coast.duneWidth, u)
   const dunes = coast.duneHeight * duneMask * (0.45 + 0.55 * fbm(qx / 40, qz / 40))
   const hillStart = coast.beachWidth + coast.duneWidth
@@ -576,7 +604,19 @@ function beachHeight(coast: CoastParams, x: number, z: number): number {
   const land = beach + dunes + hills + bumps + ridgeHeight(coast, u, a)
 
   const t = smoothstep(-1, 1, u)
-  return sea + (land - sea) * t + cuspHeight(coast, u, a)
+  return sea + (land - sea) * t + cuspHeight(coast, u, a) + terraceStep(coast, s) - coast.tide.level
+}
+
+/** Seaward distance from the terrace's low-water edge (mirrors seaDistance). */
+export function seaDistance(coast: Pick<CoastParams, 'terrace'>, s: number): number {
+  return s - Math.min(Math.max(s, 0), coast.terrace.width)
+}
+
+/** The terrace's height above the profile around it (mirrors terraceStep). */
+export function terraceStep(coast: Pick<CoastParams, 'terrace'>, s: number): number {
+  const { height, width } = coast.terrace
+  if (width <= 0) return 0
+  return height * (1 - 2 * Math.min(Math.max(s / width, 0), 1))
 }
 
 /** Uniform values for TERRAIN_GLSL. */
@@ -601,7 +641,11 @@ export function terrainUniforms(coast: CoastParams): Record<string, { value: unk
     noiseOffset: { value: new Vector2(...coast.noiseOffset) },
     ridges: { value: [0, 1, 2].map(i => (coast.ridges[i] != null ? new Vector3(coast.ridges[i].distance, coast.ridges[i].height, coast.ridges[i].width) : new Vector3())) },
     ridgeCount: { value: Math.min(3, coast.ridges.length) },
-    coastKind: { value: COAST_KINDS.indexOf(coast.type) }
+    coastKind: { value: COAST_KINDS.indexOf(coast.type) },
+    tideLevel: { value: coast.tide.level },
+    terrace: { value: new Vector2(coast.terrace.height, coast.terrace.width) },
+    highWater: { value: highWater(coast) },
+    waterline: { value: coast.waterline }
   }
 }
 
@@ -649,6 +693,9 @@ uniform vec3 skyIrradiance;
 uniform samplerCube envMap;
 uniform vec3 sandAlbedo;
 uniform float runup;
+// World heights of today's high water and the spring high water (tides.ts).
+uniform float tideHigh;
+uniform float tideSpring;
 uniform vec3 groundCover;
 uniform float groundCoverAmount;
 uniform float pixelAngle;
@@ -733,7 +780,7 @@ void main() {
   float patches = fbm(q / 3.0);
   vec3 albedo = sandAlbedo * (0.82 + 0.3 * patches);
   albedo = mix(albedo, stoneAlbedo * (0.9 + 0.2 * patches), stoneW);
-  float wrack = 1.0 - smoothstep(0.0, 0.08, abs(h - runup * 1.25 - 0.1 * (vnoise(vec2(sa.y / 6.0, 2.0)) - 0.5)));
+  float wrack = 1.0 - smoothstep(0.0, 0.08, abs(h - tideSpring - runup * 1.25 - 0.1 * (vnoise(vec2(sa.y / 6.0, 2.0)) - 0.5)));
   albedo *= 1.0 - 0.35 * wrack * smoothstep(0.4, 0.7, vnoise(vec2(sa.y / 2.0, 5.0)));
 
   // Vegetation behind the beach: patchy ground cover thickening inland, thin
@@ -751,6 +798,22 @@ void main() {
   float wet = 1.0 - smoothstep(wetLine * 0.7, wetLine, h);
   // Wet stones darken a little more than sand.
   albedo *= mix(1.0, mix(0.55, 0.5, stoneW), wet);
+  // Sand the falling tide has left since high water: still saturated near
+  // the water, draining higher up; on a low-tide terrace water stays ponded
+  // in runnels along the shore and in puddles.
+  float highMark = tideHigh + runup;
+  float exposed = (1.0 - smoothstep(0.8 * highMark, highMark, h)) * (1.0 - wet);
+  float drained = clamp(h / max(highMark, 0.01), 0.0, 1.0);
+  float pools = 0.0;
+  if (terrace.y > 0.0) {
+    float onTerrace = smoothstep(0.0, 8.0, sa.x) * (1.0 - smoothstep(terrace.y - 8.0, terrace.y, sa.x));
+    // Runnels drawn out along the shore, warped so they wander and break up.
+    vec2 warp = 1.5 * vec2(vnoise(q / 25.0 + 5.0), vnoise(q / 25.0 + 19.0));
+    float runnels = fbm(vec2(sa.y / 30.0, sa.x / 12.0) + warp + noiseOffset + 3.0) + 0.3 * (fbm(q / 5.0 + 11.0) - 0.5);
+    pools = onTerrace * exposed * smoothstep(0.6, 0.7, runnels);
+  }
+  albedo *= mix(1.0, 0.68, exposed * (1.0 - stoneW)) * mix(1.0, 0.6, pools);
+  float gloss = max(max(wet, pools), exposed * (1.0 - stoneW) * (0.5 - 0.4 * drained));
 
   vec3 L = sunDirection;
   vec3 V = normalize(cameraPosition - vWorld);
@@ -760,10 +823,11 @@ void main() {
   vec3 diffuse = albedo / PI * (sunIrradiance * NoL + skyIrradiance * (0.6 + 0.4 * N.y));
   vec3 color = diffuse;
 
-  if (wet > 0.0) {
+  if (gloss > 0.0) {
     // A film of water: mirror-like reflection of the sky and the sun.
-    // On stones the film follows each stone, so each gets its own glint.
-    vec3 Nw = normalize(mix(N, vec3(0.0, 1.0, 0.0), mix(0.7, 0.15, stoneW)));
+    // On stones the film follows each stone, so each gets its own glint;
+    // ponded water lies flat.
+    vec3 Nw = normalize(mix(N, vec3(0.0, 1.0, 0.0), max(mix(0.7, 0.15, stoneW), pools)));
     float NoV = max(dot(Nw, V), 1e-3);
     float F = 0.02 + 0.98 * pow(1.0 - NoV, 5.0);
     vec3 R = reflect(-V, Nw);
@@ -773,18 +837,19 @@ void main() {
     float NoH = max(dot(Nw, H), 0.0);
     // Widen the highlight where a pixel covers a lot of sand, so thin distant
     // wet strips shimmer softly instead of sparkling.
-    float alpha = clamp(0.08 + footprint * 0.4, 0.08, 0.6);
+    // Damp sand is a rougher reflector than a film of water.
+    float alpha = clamp(mix(0.25, 0.08, max(wet, pools)) + footprint * 0.4, 0.08, 0.6);
     float a2 = alpha * alpha;
     float d = NoH * NoH * (a2 - 1.0) + 1.0;
     float NoLw = max(dot(Nw, L), 0.0) * shadow;
     float k = alpha * 0.5;
     float G = NoLw / (NoLw * (1.0 - k) + k) * NoV / (NoV * (1.0 - k) + k);
     float spec = a2 / (PI * d * d) * F * G / (4.0 * NoV);
-    color += wet * (reflected * F + sunIrradiance * min(spec, 0.6));
+    color += gloss * (reflected * F + sunIrradiance * min(spec, 0.6));
 
     // Lacy foam left by the last wave at the edge of the swash.
     float edge = 1.0 - smoothstep(0.0, 0.08, abs(h - wetLine * 0.55 - 0.03 * (vnoise(q * 0.4) - 0.5)));
-    edge *= 0.35 + 0.65 * fbm(vec2(sa.y / 9.0, 3.3) + noiseOffset);
+    edge *= (0.35 + 0.65 * fbm(vec2(sa.y / 9.0, 3.3) + noiseOffset)) * step(0.001, wet);
     float foam = foamLace(vec2(sa.y, sa.x * 1.8) + noiseOffset, edge * 0.8, footprint) *
       (1.0 - smoothstep(0.3, 1.5, footprint));
     color = mix(color, vec3(0.85) / PI * (sunIrradiance * NoL + skyIrradiance), foam);
@@ -809,6 +874,8 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       sandAlbedo: { value: new Color(...coast.sand.albedo) },
       ...stoneUniforms(coast),
       runup: { value: coast.runup },
+      tideHigh: { value: tideMarks(coast).high },
+      tideSpring: { value: tideMarks(coast).spring },
       groundCover: { value: new Color(...params.biome.groundCover) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
       pixelAngle: { value: 0.001 },

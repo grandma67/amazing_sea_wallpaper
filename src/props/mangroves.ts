@@ -102,9 +102,10 @@ export function createMangroves(ctx: PropContext): InstancedMesh[] {
     const s = rng.range(sMin, sMax)
     const [x, z] = shoreToWorld(coast, s, along)
     const y = ctx.ground(x, z)
-    // Out of the intertidal (too high and dry, or too deep), or thinning out
-    // seaward.
-    if (y > 0.9 || y < -0.9) continue
+    // Out of the intertidal (too high and dry, or too deep: by mean sea, up
+    // to the spring high water), or thinning out seaward.
+    const mean = y + coast.tide.level
+    if (mean > Math.max(0.9, coast.tide.springRange / 2 + 0.3) || mean < -0.9) continue
     if (s > 0 && rng.float() < s / sMax) continue
     if (ctx.distance(x, z) < 12) continue
     const size = rng.range(0.7, 1.25)

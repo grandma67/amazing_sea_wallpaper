@@ -200,13 +200,15 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
   // --- Breaking crests ---------------------------------------------------
   const [, camA] = worldToShore(coast, ctx.camera.position.x, ctx.camera.position.z)
   const step = 1.2
+  // From today's water out (tides move it across the terrace).
+  const first = Math.floor(coast.waterline / coast.surfWavelength)
   for (let a = camA - 700; a < camA + 700; a += step) {
     // Crests sit where the surf cycle reaches 0.25: solve along s.
-    for (let k = 0; k < 12; k++) {
+    for (let k = first; k < first + 12; k++) {
       const s0 = (k + 0.25 - surfCycle(coast, 0, a)) * coast.surfWavelength
       // The cycle's along-shore noise doesn't depend on s, so this is exact.
       const s = s0 + rng.range(-0.6, 0.6)
-      if (s < 0 || s > 260) continue
+      if (s < coast.waterline || s > coast.waterline + 260) continue
       const [x, z] = shoreToWorld(coast, s, a)
       const depth = -ctx.ground(x, z)
       // Only where the wave is breaking (surfWave): deeper it's still a

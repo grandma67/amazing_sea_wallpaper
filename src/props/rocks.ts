@@ -17,6 +17,7 @@ import type { Biome, RGB } from '../biome'
 import type { Random } from '../random'
 import { forced } from '../sceneSpec'
 import { hasLand, shoreToWorld } from '../terrain'
+import { tideMarks } from '../tides'
 import type { PropContext } from './context'
 import { fbm3 } from './noise'
 
@@ -125,7 +126,10 @@ const GROWTH: Record<Biome['name'], { chance: number; growth: RockGrowth }> = {
   }
 }
 
-export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | null): MeshStandardMaterial {
+/** `tideLine`: world height of the spring high water; below it, above the
+ * splash zone, rocks the tide has left carry a dark band of wrack weed,
+ * mussels and barnacles (0: none). */
+export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | null, tideLine = 0): MeshStandardMaterial {
   const material = new MeshStandardMaterial({
     color: new Color(...color),
     vertexColors: true,
@@ -138,6 +142,7 @@ export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | nul
   // top where it stays dry.
   material.onBeforeCompile = shader => {
     shader.uniforms.wetLine = { value: runup * 1.3 }
+    shader.uniforms.tideLine = { value: tideLine }
     shader.uniforms.moss = { value: g.moss }
     shader.uniforms.mossColor = { value: new Color(...g.mossColor) }
     shader.uniforms.lichen = { value: g.lichen }
@@ -163,6 +168,7 @@ export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | nul
         varying vec3 vRockWorld;
         varying vec3 vRockNormal;
         uniform float wetLine;
+        uniform float tideLine;
         uniform float moss;
         uniform vec3 mossColor;
         uniform float lichen;
@@ -191,6 +197,14 @@ export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | nul
         diffuseColor.rgb *= mix(1.0, 0.5, rockWet);
         vec3 q = vRockWorld;
         float patches = rockNoise(q * 0.9) * 0.65 + rockNoise(q * 3.7) * 0.35;
+        // The intertidal band the falling tide has uncovered: dark olive
+        // wrack weed in patches over black mussels, still damp, with a ragged
+        // top edge at the spring high water.
+        float tideBand = (1.0 - smoothstep(tideLine - 0.25, tideLine + 0.05 * rockNoise(q * 4.0), q.y)) *
+          smoothstep(wetLine * 0.6, wetLine, q.y) * step(wetLine, tideLine);
+        vec3 weed = mix(vec3(0.035, 0.035, 0.04), vec3(0.09, 0.075, 0.025) * (0.7 + 0.6 * rockNoise(q * 7.0)), smoothstep(0.35, 0.55, patches));
+        diffuseColor.rgb = mix(diffuseColor.rgb, weed, 0.85 * tideBand);
+        rockWet = max(rockWet, 0.6 * tideBand);
         // Algae: a slick band around the water line.
         float algaeBand = (1.0 - smoothstep(wetLine * 0.7, wetLine * 1.4, q.y)) * smoothstep(0.25, 0.5, patches);
         diffuseColor.rgb = mix(diffuseColor.rgb, algaeColor * (0.7 + 0.6 * rockNoise(q * 9.0)), algae * algaeBand);
@@ -260,7 +274,8 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
     const clusters = rng.int(3, 9)
     for (let c = 0; c < clusters; c++) {
       const ca = camA + rng.normal(0, 260)
-      const cs = rng.range(-coast.beachWidth * 0.5, 25)
+      // Down to today's water when the tide is out.
+      const cs = rng.range(-coast.beachWidth * 0.5, Math.max(25, coast.waterline + 25))
       const count = rng.int(4, 22)
       const spread = rng.range(4, 18)
       for (let i = 0; i < count; i++) {
@@ -275,7 +290,7 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
     for (let i = 0; i < (isStony(coast.material) ? 0 : 120); i++) {
       const size = 0.08 + 0.5 * rng.float() ** 4
       const aspect = new Vector3(rng.range(0.8, 1.3), rng.range(0.4, 0.8), rng.range(0.8, 1.3))
-      place(camS + rng.range(-25, coast.distanceToWater + 6), camA + rng.normal(0, 45), size, aspect, 0.35)
+      place(camS + rng.range(-25, coast.distanceToWater + coast.waterline + 6), camA + rng.normal(0, 45), size, aspect, 0.35)
     }
   }
 
@@ -311,7 +326,7 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
 
   const color = rng.pick(biome.rockColors)
   const growthSpec = GROWTH[biome.name]
-  const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null)
+  const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null, tideMarks(coast).spring)
   const meshes: InstancedMesh[] = []
   const m = new Matrix4()
   const q = new Quaternion()

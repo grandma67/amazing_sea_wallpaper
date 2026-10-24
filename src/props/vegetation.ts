@@ -13,6 +13,7 @@ import type { RGB, VegetationKind } from '../biome'
 import { placeNamed } from '../places'
 import type { Random } from '../random'
 import { hasLand, shoreToWorld, terrainNormal } from '../terrain'
+import { tideMarks } from '../tides'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { noise3 } from './noise'
@@ -326,6 +327,8 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
   const { coast, biome } = params
   if (!hasLand(coast)) return []
   const rng = ctx.rng('vegetation')
+  // Plants grow above the spring tides' swash.
+  const dry = tideMarks(coast).spring + coast.runup + 0.6
 
   // Which plants grow here today: each of the biome's kinds, most of the time.
   // The biome's signature plant always grows; the others most of the time.
@@ -406,7 +409,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
         const x = camera.position.x + dir.x * dist
         const z = camera.position.z + dir.z * dist
         const y = ctx.ground(x, z)
-        if (y < coast.runup + 0.6) continue
+        if (y < dry) continue
         const size = spec.scale[0] + (spec.scale[1] - spec.scale[0]) * rng.range(0.4, 0.9)
         const yaw = rng.range(0, Math.PI * 2)
         q.setFromAxisAngle(new Vector3(0, 1, 0), yaw)
@@ -429,7 +432,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
         forest * 0.45 + noise3(x / 70, 0, z / 70, seed) * 0.4 + noise3(x / 15, 3, z / 15, seed) * 0.15
       if (density < spec.clumping) continue
       const y = ctx.ground(x, z)
-      if (y < coast.runup + 0.6) continue
+      if (y < dry) continue
       const n = terrainNormal(coast, x, z, 1)
       if (n[1] < spec.minSlope) continue
       const size = spec.scale[0] + (spec.scale[1] - spec.scale[0]) * rng.float()

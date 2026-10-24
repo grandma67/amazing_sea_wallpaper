@@ -15,6 +15,7 @@ import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { monthInSeason } from '../seasons'
 import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
+import { tideMarks } from '../tides'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { noise3 } from './noise'
@@ -814,7 +815,7 @@ export function createShoreLife(ctx: PropContext): InstancedMesh[] {
         const pu = u + rng.normal(0, 0.8)
         const pa = a + rng.normal(0, 1.2)
         const [x, z] = shoreToWorld(coast, -pu, pa)
-        if (ctx.ground(x, z) < coast.runup + 0.4) continue
+        if (ctx.ground(x, z) < tideMarks(coast).spring + coast.runup + 0.4) continue
         place(pieces, species[rng.int(0, 2)], pu, pa, 1)
       }
     }

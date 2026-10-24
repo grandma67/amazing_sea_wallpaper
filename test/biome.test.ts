@@ -54,7 +54,8 @@ describe('sand colour', () => {
     expect(pink.title).toContain('pink sand beach')
     // Pink (foraminifera) sand is coarser than Scotland's grey: the grain,
     // and with it the beach's shape, follow the colour; nothing else does.
-    const rest = ({ sand, grainMm, state, beachSlope, nearshoreSlope, beachWidth, bars, rips, cusps, ...other }: typeof pink.coast) => other
+    // (The water stands elsewhere on a different slope, and the camera by it.)
+    const rest = ({ sand, grainMm, state, beachSlope, nearshoreSlope, beachWidth, bars, rips, cusps, waterline, distanceToWater, ...other }: typeof pink.coast) => other
     expect(pink.coast.grainMm).toBeGreaterThan(drawn.coast.grainMm)
     expect(rest(pink.coast)).toEqual(rest(drawn.coast))
     expect(pink.camera).toEqual(drawn.camera)

@@ -110,7 +110,7 @@ float surfHeight(vec2 sa, float depth, float resolution) {
   // Surf lives where the waves feel the bottom, near the shore; out deeper
   // the open-sea spectrum takes over.
   float zone = (1.0 - smoothstep(0.35 * surfWavelength, 0.6 * surfWavelength, depth)) *
-    (1.0 - smoothstep(150.0, 350.0, sa.x));
+    (1.0 - smoothstep(150.0, 350.0, sa.x - waterline));
   float sets = surfSets(sa);
   vec2 wave = surfWave(depth, sets);
   float x = fract(surfCycle(sa) - 0.25);
@@ -565,7 +565,7 @@ void main() {
     // Thin features alias into sparkles far away; fade them with pixel size.
     float near = 1.0 - smoothstep(1.0, 5.0, footprint);
     // Only along the real shoreline, not over shallow sandbars offshore.
-    float shore = (1.0 - smoothstep(0.0, 0.2, depth)) * (1.0 - smoothstep(10.0, 25.0, sa.x)) *
+    float shore = (1.0 - smoothstep(0.0, 0.2, depth)) * (1.0 - smoothstep(10.0, 25.0, sa.x - waterline)) *
       smoothstep(0.2, 0.6, fbm(q * 0.3 + 5.0));
     coverage = max(coverage, shore * near * 0.8);
 

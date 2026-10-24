@@ -188,7 +188,9 @@ describe('bars, rips and cusps in the terrain', () => {
       const withoutBars = { ...coast, bars: [] }
       const a = onBar[0]
       const crest = Array.from({ length: 200 }, (_, i) => i * 1.5).reduce((best, s) => (barHeight(coast, s, a) > barHeight(coast, best, a) ? s : best), 0)
-      expect(at(coast, crest, a) - at(withoutBars, crest, a)).toBeCloseTo(barHeight(coast, crest, a), 6)
+      // (Bars are measured from the low-tide terrace's seaward edge.)
+      const s = crest + coast.terrace.width
+      expect(at(coast, s, a) - at(withoutBars, s, a)).toBeCloseTo(barHeight(coast, crest, a), 6)
     }
   })
 

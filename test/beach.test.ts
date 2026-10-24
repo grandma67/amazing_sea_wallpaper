@@ -4,6 +4,7 @@ import { BEACH_MATERIALS, beachLines, FUNDY_STONES, materialChances, MATERIAL_CH
 import { hasBeach } from '../src/coastKind'
 import { generateParams } from '../src/params'
 import { PLACES, placeNamed } from '../src/places'
+import { bareBeach, highWater } from '../src/tides'
 import { allParams, scene, scenes, share } from './days'
 
 describe('beach material', () => {
@@ -71,12 +72,13 @@ describe('beach material', () => {
       expect(coast.bars.length).toBeLessThanOrEqual(coast.material === 'mixed' ? 1 : 0)
       expect(coast.ridges.length).toBeGreaterThanOrEqual(1)
       expect(coast.ridges.length).toBeLessThanOrEqual(3)
-      // The storm ridge stands where storm swash reaches (1–2.5 m up), behind
+      // The storm ridge stands where storm swash reaches (1–2.5 m above the
+      // spring high water), behind
       // the berm at the high-tide line; it is the beach's storm line.
       const [storm, berm] = coast.ridges
       const { highTide, stormLine } = beachLines(coast)
       expect(stormLine).toBe(storm.distance)
-      const bare = coast.beachSlope * coast.beachWidth * (1 - Math.exp(-storm.distance / coast.beachWidth))
+      const bare = bareBeach(coast, storm.distance) - highWater(coast)
       if (storm.distance < coast.beachWidth * 1.2) {
         expect(bare).toBeGreaterThan(0.9)
         expect(bare).toBeLessThan(2.6)

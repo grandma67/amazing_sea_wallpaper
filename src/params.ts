@@ -18,6 +18,7 @@ import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
 import { Random } from './random'
 import { monthInSeason, season, seasonMonth } from './seasons'
+import { MICRO_TIDE, relativeTideRange, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
 // Everything random about a scene is decided here, from the date alone.
@@ -47,8 +48,17 @@ export interface CoastParams {
   composition: Composition
   /** Azimuth pointing from land out to sea, perpendicular to the shore. */
   seawardAzimuthDeg: number
-  /** Horizontal distance from the camera to the waterline (m). */
+  /** Horizontal distance from the camera to the land frame's s = 0 (m): the
+   * foot of the high-tide beach (mean sea on micro-tidal beaches). The water
+   * is `waterline` further on. */
   distanceToWater: number
+  /** Where the water is today, seaward of s = 0 (m; negative: up the beach),
+   * on the bare profile (tides.ts waterlineAt). */
+  waterline: number
+  /** The day's tide (tides.ts); the land sits `tide.level` lower. */
+  tide: Tide
+  /** Low-tide terrace below the high-tide beach (zero on micro-tidal beaches). */
+  terrace: Terrace
   /** Positive = bay (shore curves seaward on both sides). 1/m. */
   curvature: number
   /** Amplitude of along-shore wiggles in the coastline (m). */
@@ -547,6 +557,7 @@ function generateCoast(
   /** Storm days and mid-latitude winters move the beach a state toward
    * dissipative (the winter profile). */
   beachWeather: { rough: boolean },
+  tide: Tide,
   spec: SceneSpec
 ): { coast: CoastParams; eyeHeight: number | null } {
   // Retries (see composition.ts) re-roll only the coast and composition.
@@ -570,6 +581,9 @@ function generateCoast(
       [() => rng.range(15, 45), 3],
       [() => rng.range(45, 110), 1]
     ])(),
+    waterline: 0,
+    tide,
+    terrace: terraceFor(tide.springRange),
     curvature: rng.chance(0.5) ? rng.range(0.0002, 0.0012) : rng.range(-0.0002, 0.0003),
     wobble: rng.range(3, 25),
     beachSlope: rng.range(0.035, 0.11),
@@ -613,8 +627,13 @@ function generateCoast(
   const stoneU = mrng.float()
   const stoneSize = isStony(material) ? STONE_SIZES[material][0] + stoneU * (STONE_SIZES[material][1] - STONE_SIZES[material][0]) : 0
   const period = wavePeriod(ocean.swellWavelength)
+  // A big tide for the waves modifies the state (Masselink & Short 1993);
+  // micro-tidal beaches stay wave-dominated (their RTR from a calm day's
+  // waves would be large, but the census classes by modal waves).
+  const breaker = breakerHeight(ocean.swellHeight, period)
+  const waveState = beachStateFor(material, grainMm, breaker, period, sediment, beachWeather.rough ? 1 : 0)
   const state = or(
-    beachStateFor(material, grainMm, breakerHeight(ocean.swellHeight, period), period, sediment, beachWeather.rough ? 1 : 0),
+    tide.springRange < MICRO_TIDE ? waveState : tideModified(waveState, material, relativeTideRange(tide.springRange, breaker)),
     spec.beachState
   )
   const depthAt = (d: number, slope: number): number => coast.seabedDepth * (1 - Math.exp((-d * slope) / coast.seabedDepth))
@@ -623,6 +642,12 @@ function generateCoast(
   if (isStony(material)) {
     if (material !== 'mixed') coast.runup *= STONY_RUNUP
     Object.assign(coast, { material, stoneSize }, stonyShape(coast, material, mrng))
+  }
+  // The camera stands by today's water (shoreline, along the beach) or on
+  // the land (framed, overlook): the drawn distances are from the water.
+  if (hasLand({ type })) {
+    coast.waterline = waterlineAt(coast, tide.level)
+    coast.distanceToWater -= coast.waterline
   }
 
   let eyeHeight =
@@ -654,7 +679,7 @@ function generateCoast(
     switch (coast.composition) {
       case 'along-beach':
         coast.seawardAzimuthDeg = headingDeg - side * crng.range(62, 84)
-        coast.distanceToWater = crng.range(8, coast.beachWidth * 0.8)
+        coast.distanceToWater = crng.range(8, coast.beachWidth * 0.8) - coast.waterline
         eyeHeight = crng.chance(0.75) ? crng.range(1.4, 2.2) : crng.range(5, 18)
         break
       case 'framed':
@@ -1488,7 +1513,8 @@ function buildParams(
   oceanSwell.swellWavelength = Math.min(320, or(oceanSwell.swellWavelength * basin.swellWavelength, forcedLength))
   const oceanState = { windSpeed: spec.wind ?? windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
   const roughBeach = storm != null || (Math.abs(latitudeDeg) > 25 && season({ date, latitudeDeg }) === 'winter')
-  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach }, spec)
+  const tide = tideFor(place.tide, moonPhaseDeg, Random.derive(seed, 'tide'), spec)
+  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach }, tide, spec)
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',

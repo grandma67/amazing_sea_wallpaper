@@ -27,13 +27,14 @@ describe('terrainHeight', () => {
     expect(terrainHeight(open, 0, 0)).toBe(-200)
   })
 
-  it('is near sea level at the waterline, land behind and seabed in front', () => {
+  it("is near sea level at today's waterline, land behind and seabed in front", () => {
     for (const coast of beaches) {
       const at = (s: number): number => terrainHeight(coast, ...shoreToWorld(coast, s, 0))
-      expect(Math.abs(at(0))).toBeLessThan(1.5)
-      expect(at(-coast.beachWidth * 0.5)).toBeGreaterThan(0)
-      expect(at(200)).toBeLessThan(0)
-      expect(at(5000)).toBeGreaterThanOrEqual(-coast.seabedDepth - 0.01)
+      const w = coast.waterline
+      expect(Math.abs(at(w))).toBeLessThan(1.5)
+      expect(at(w - coast.beachWidth * 0.5)).toBeGreaterThan(0)
+      expect(at(w + 200)).toBeLessThan(0)
+      expect(at(5000)).toBeGreaterThanOrEqual(-coast.seabedDepth - coast.terrace.height - coast.tide.level - 0.01)
       expect(Number.isFinite(at(-3000))).toBe(true)
     }
   })

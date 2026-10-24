@@ -5,6 +5,7 @@ import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
 import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
+import type { TideStage } from './tides'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
 import type { DebrisSpec } from './props/debris'
 import type { ShoreLife } from './props/shoreLife'
@@ -110,6 +111,10 @@ export interface SceneSpec {
   beachMaterial?: BeachMaterial
   /** Wright & Short beach state (beachState.ts): slopes, bars, rips, cusps. */
   beachState?: BeachState
+  /** The tide's stage today (tides.ts): low water, half tide, high water. */
+  tide?: TideStage
+  /** Today's tidal range (m), low to high water. */
+  tidalRange?: number
 
   weather?: Exclude<WeatherKind, 'storm'>
   /** Cloud genera and species, one layer each (at most 4); usually one per
@@ -258,6 +263,8 @@ const SPEC = object({
   sand: oneOf(...Object.keys(SAND_STYLES)),
   beachMaterial: oneOf(...BEACH_MATERIALS),
   beachState: oneOf(...BEACH_STATES),
+  tide: oneOf('low', 'mid', 'high'),
+  tidalRange: number,
   weather: oneOf('clear', 'cirrus', 'few', 'scattered', 'broken', 'overcast'),
   clouds: (value, path) => {
     listOf(oneOf(...GENERA))(value, path)

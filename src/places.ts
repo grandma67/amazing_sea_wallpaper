@@ -15,7 +15,8 @@ import type { Random } from './random'
 //   their own streams; `material` and `sand` only where they differ from the
 //   biome's, beach.ts and biome.ts);
 // - choose many: `animals`, `plants` (pools; each feature's own rules pick
-//   from them on the day).
+//   from them on the day);
+// - `tide`: the mean tidal range, a span the day's beach draws in (tides.ts).
 // A region is a group of places sharing defaults and a spec name; it's never
 // drawn on its own. A place with no region is its own region. Defaults merge
 // biome → region → place.
@@ -91,6 +92,8 @@ export interface Place {
   windBent: readonly VegetationKind[]
   /** Stone colours (linear albedo). */
   stones: readonly RGB[]
+  /** Mean tidal range (m), a span: each day's beach draws one in it (tides.ts). */
+  tide: readonly [number, number]
 }
 
 const nest = (species: TurtleSpecies, months?: Months, weight = 1): Animal => ({ kind: 'turtle', species, months, weight })
@@ -217,6 +220,53 @@ const PLACE_SAND: Record<string, Weights<SandName>> = {
   // Iron-red sand under the Hajar and Red Sea hills.
   'oman-yemen': { golden: 65, white: 32, red: 3 },
   'red-sea': { golden: 65, white: 32, red: 3 }
+}
+
+// Mean tidal ranges (m) by place or region (REGIONS.md §3; ≈: not checked
+// against tide tables); everything else 1–2 m. Springs are × 1.2, neaps × 0.8
+// (tides.ts).
+const DEFAULT_TIDE = [1, 2] as const
+const TIDE: Record<string, readonly [number, number]> = {
+  // Micro-tidal seas.
+  'mediterranean-sea': [0.1, 0.4],
+  caribbean: [0.1, 0.3],
+  'bahamas-bermuda': [0.7, 0.9],
+  baltic: [0.02, 0.2],
+  hawaii: [0.4, 0.7],
+  'south-asia-islands': [0.6, 1],
+  // Red Sea: near zero at the central amphidrome, ~0.6 m at the ends.
+  'red-sea': [0.1, 0.6],
+  'persian-gulf': [1, 2.5], // ≈
+  california: [1.1, 1.7],
+  pei: [0.6, 1.2],
+  'alaska-north': [0.1, 0.3], // ≈ Beaufort and Chukchi coasts
+  // Norway: an amphidrome off the southwest, the range rising northward.
+  'norway-west': [0.3, 1.2],
+  'norway-north': [1.5, 2.4],
+  'patagonia-fjords': [1.5, 2.5],
+  // Meso-tidal.
+  'wadden-north-sea': [1.5, 3.5],
+  'britain-ireland': [2, 5],
+  iceland: [1.5, 3.5],
+  'iceland-faroe': [1.5, 3.5],
+  svalbard: [1, 3], // ≈
+  greenland: [1, 3], // ≈
+  'british-columbia': [3, 5], // ≈
+  'se-alaska': [3.5, 5],
+  'gulf-alaska': [2.5, 4], // ≈
+  maine: [2.5, 5], // ≈ Portland ~2.9 m, Eastport ~5.5 m
+  'east-africa': [2.5, 3.5], // ≈
+  'tierra-del-fuego': [2, 6], // ≈ Beagle Channel small, Atlantic side large
+  'baja-sonora': [1, 4], // ≈ Pacific side small, upper Gulf 7–9 m
+  // Macro- and mega-tidal.
+  brittany: [4, 8],
+  'mont-saint-michel': [8, 11],
+  'bristol-channel': [8, 11],
+  'morecambe-bay': [6, 8], // ≈
+  fundy: [6, 12],
+  'cook-inlet': [7, 9.5],
+  'yellow-sea': [5, 8],
+  'nw-australia': [5, 9]
 }
 
 /** Every place, from REGIONS.md §1. Animals listed on a row replace the
@@ -361,7 +411,8 @@ function resolve(): Place[] {
       windBent: WIND_BENT[row.id] ?? [],
       material: row.material ?? PLACE_MATERIAL[row.id] ?? defaults.material,
       sand: row.sand ?? PLACE_SAND[row.id] ?? defaults.sand ?? biomeNamed(row.biome).sands,
-      stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome]
+      stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome],
+      tide: TIDE[row.id] ?? TIDE[region] ?? DEFAULT_TIDE
     }
   })
 }
