@@ -107,6 +107,12 @@ Playwright (headless snapshots), Vitest.
   ×~0.01, no aerial-perspective inscatter, dim environment on props. Simplification: the scene
   has no real location, so off-path days show the eclipse as if on the path (partials at a
   random 30–85%).
+- **Marine layer** (`coastalWeather.ts`, PLAN_BIOMES 3): `marineLayerFor` on stream
+  `'marine-layer'` from `MARINE_LAYER` (place × local month) on morning golden hour, sunrise and
+  daylight. After the eclipse fix-up the day turns overcast (coverage 0.75–0.82) with one
+  stratus or stratocumulus layer (stream `'marine-layer-deck'`), wind ≤ 6 m/s, no storm, title
+  "marine layer" (`weather.marineLayer`). A forced `weather`/`clouds`, or an eclipse, wins unless
+  `spec.marineLayer` is true.
 - **Sea haze** (`seaHaze.ts`): `visibilityFor()` (own stream) draws visibility log-uniform by
   biome (polar 40–90 km, nordic 40–80, tropical 35–65, Mediterranean 35–70 and 25–50 in summer,
   desert 12–35, dust episodes 8–20); less in strong wind (sea salt), overcast and storms, more

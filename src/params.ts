@@ -12,6 +12,7 @@ import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type
 import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParams } from './noctilucent'
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
+import { marineLayerFor } from './coastalWeather'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
 import { Random } from './random'
@@ -270,6 +271,9 @@ export interface WeatherParams {
   arrangement: { kind: CloudArrangement; headingDeg: number } | null
   /** Fraction of direct sunlight reaching the scene through the clouds. */
   sunVisibility: number
+  /** A marine-layer morning: a low stratus or stratocumulus deck
+   * (coastalWeather.ts). */
+  marineLayer: boolean
   /** Seeded offsets so each day gets its own cloud pattern. */
   weatherOffset: [number, number]
   shapeOffset: [number, number, number]
@@ -654,6 +658,7 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay, force?: WeatherKind
     duplicatusLiftM: null,
     arrangement: null,
     sunVisibility: 1,
+    marineLayer: false,
     weatherOffset: [rng.range(0, 1), rng.range(0, 1)],
     shapeOffset: [rng.range(0, 1), rng.range(0, 1), rng.range(0, 1)]
   }
@@ -1189,6 +1194,20 @@ function buildParams(
     }
   }
 
+  // Marine-layer mornings (California, Peru and Chile), on their own stream;
+  // not on eclipse days or under a forced sky.
+  const marineDay = { place: place.id, month, timeOfDay, evening: isEvening }
+  const marineLayer = marineLayerFor(marineDay, Random.derive(seed, 'marine-layer'), spec.marineLayer)
+  // A stratus deck, sometimes stratocumulus (300–650 m up).
+  let marineDeck: CloudGenus[] | undefined
+  if (marineLayer && (spec.marineLayer === true || (eclipse == null && spec.weather == null && spec.clouds == null))) {
+    const mrng = Random.derive(seed, 'marine-layer-deck')
+    weather.kind = 'overcast'
+    weather.coverage = mrng.range(0.75, 0.82)
+    weather.marineLayer = true
+    marineDeck = [mrng.chance(0.6) ? 'stratus' : 'stratocumulus']
+  }
+
   // Rainbows: a shower passing on a sunny, showery day while the sun is low
   // (the bow is a 42° circle around the point opposite the sun, so it's only
   // above the horizon when the sun is below 42°). On those days the camera
@@ -1343,12 +1362,13 @@ function buildParams(
   const windHeadingDeg = keep('windHeading', rng.range(0, 360))
 
   const storm =
-    eclipse != null && spec.storm === undefined
+    (eclipse != null || weather.marineLayer) && spec.storm === undefined
       ? null
       : generateStorm(seed, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.storm)
   if (storm != null) {
     const srng = Random.derive(seed, 'storm-weather')
     weather.kind = 'storm'
+    weather.marineLayer = false
     weather.coverage = srng.range(0.55, 0.68)
     const altostratus = srng.chance(0.6)
     // Gale-force gusts under the cells; the spectrum turns them into a high,
@@ -1364,6 +1384,8 @@ function buildParams(
   // seas; pack ice smothers waves, leaving calm leads between the floes.
   const iceCalm = ice != null && ice.packIce > 0 ? 0.4 : 1
   windSpeed = or(Math.min(24, windSpeed * basin.wind * (monsoon ? 1.35 : 1)), spec.wind)
+  // Under the inversion the breeze is light until the deck burns off.
+  if (weather.marineLayer && spec.wind == null) windSpeed = Math.min(windSpeed, 6)
   addFormations(
     seed,
     weather,
@@ -1374,7 +1396,7 @@ function buildParams(
       windSpeed,
       morning: !isEvening && (timeOfDay === 'golden-hour' || timeOfDay === 'daylight' || timeOfDay === 'sun-on-horizon')
     },
-    spec.clouds
+    spec.clouds ?? (weather.marineLayer ? marineDeck : undefined)
   )
   const waterspout = waterspoutFor(
     {
@@ -1468,6 +1490,7 @@ function buildParams(
     const names: Record<IslandKind, string> = { skerries: 'skerries', rocky: 'islands', cay: 'palm islets', karst: 'karst islands', high: 'islands' }
     titleParts.push(islands.islands.length === 1 && islands.kind !== 'skerries' ? names[islands.kind].replace(/s$/, '') : names[islands.kind])
   }
+  if (weather.marineLayer) titleParts.push('marine layer')
   if (rainbow != null) titleParts.push('rainbow')
   if (waterspout != null) titleParts.push('waterspout')
   if (colony != null) titleParts.push(colony.kind === 'penguin' ? 'penguin colony' : colony.site === 'island' ? 'seabird island' : 'seabird cliffs')

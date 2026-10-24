@@ -4,7 +4,7 @@ Brings the wallpaper's coasts closer to the world's: real places, stony beaches,
 shores, reef-fronted tropical beaches, tides, beach shapes that follow the waves, more sand
 colours, calm lagoons, two missing climates, the real sun for the place and date, and (later)
 coastal weather and the animals these open up. Research is in COASTS.md and REGIONS.md;
-sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture), 2d (mesh stones), 2e (other props) and 2f (renders) done, so phase 2 is complete; phase 3 in progress (pink and red sand, polar plants done); the rest planned.
+sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture), 2d (mesh stones), 2e (other props) and 2f (renders) done, so phase 2 is complete; phase 3 in progress (pink and red sand, polar plants, marine layer done); the rest planned.
 
 ## Why: research vs. today
 

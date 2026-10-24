@@ -4,6 +4,7 @@
     { "name": "pei-red", "place": "pei", "coast": "beach", "beachMaterial": "sand", "sand": "red", "composition": "along-beach", "timeOfDay": "golden-hour" },
     { "name": "bermuda-pink", "place": "bahamas-bermuda", "coast": "beach", "beachMaterial": "sand", "sand": "pink", "composition": "shoreline" },
     { "name": "svalbard-tundra", "place": "svalbard", "coast": "beach", "composition": "along-beach", "ice": null },
-    { "name": "fuego-beech", "place": "tierra-del-fuego", "coast": "beach", "beachMaterial": "sand", "composition": "framed", "date": "2025-01-15" }
+    { "name": "fuego-beech", "place": "tierra-del-fuego", "coast": "beach", "beachMaterial": "sand", "composition": "framed", "date": "2025-01-15" },
+    { "name": "california-june", "place": "california", "date": "2025-06-14", "timeOfDay": "golden-hour", "evening": false, "marineLayer": true, "coast": "beach", "composition": "along-beach" }
   ]
 }

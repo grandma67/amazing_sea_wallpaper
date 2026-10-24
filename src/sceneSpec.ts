@@ -131,6 +131,9 @@ export interface SceneSpec {
   storm?: Force<'thunderstorm' | 'squall'>
   rainbow?: boolean
   fog?: Force<'advection' | 'bank' | 'sea-smoke'>
+  /** A marine-layer morning (overcast stratus or stratocumulus deck);
+   * true forces it on any place and time, null/false never. */
+  marineLayer?: boolean | null
   lighthouse?: Force<'point' | 'rock'>
   landform?: Force<'range' | 'strato' | 'shield'>
   islands?: Force<IslandKind>
@@ -261,6 +264,7 @@ const SPEC = object({
   storm: force('thunderstorm', 'squall'),
   rainbow: boolean,
   fog: force('advection', 'bank', 'sea-smoke'),
+  marineLayer: oneOf(true, false, null),
   lighthouse: force('point', 'rock'),
   landform: force('range', 'strato', 'shield'),
   islands: force('skerries', 'rocky', 'cay', 'karst', 'high'),

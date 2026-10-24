@@ -28,7 +28,8 @@ scripts: `--scene <JSON or file>`.
   - sky: `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
     `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
     `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
-    `nacreous`, `rainbow`, `fog`, `wind`, `visibilityKm`;
+    `nacreous`, `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place;
+    null: none), `wind`, `visibilityKm`;
   - features: `lighthouse`, `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`, `haulOut`;
   - camera: `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`;
   - props: `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,vegetation,debris,shoreLife,mangroves,wildlife}`.
