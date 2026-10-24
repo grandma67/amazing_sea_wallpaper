@@ -24,7 +24,9 @@ scripts: `--scene <JSON or file>`.
     to places that have them and force the choice; a combination no place has throws),
     `monsoon`, `ice`, `coast`, `composition`, `sand` (`white`, `golden`, `grey`, `black`,
     `pink`, `red`; on any place), `beachMaterial` (`sand`, `mixed`,
-    `shingle`, `cobble`; a stony one implies a beach, on any place);
+    `shingle`, `cobble`; a stony one implies a beach, on any place), `beachState`
+    (`reflective`, `low-tide-terrace`, `transverse-bar-rip`, `rhythmic-bar`, `longshore-bar`,
+    `dissipative`: slopes, bars, rips and cusps; grain and swell stay the day's);
   - sky: `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
     `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
     `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,

@@ -91,8 +91,9 @@ shingle 11.7%, cobble 12.5%.
 - **Stone colours** (`STONE_COLORS` by biome; Fundy red sandstone): grey granite and
   greywacke, white–cream limestone, black basalt with red scoria, tan and red gravel, pale
   coral rubble.
-- **Profile (temporary, until phase 4):** slope 0.12–0.25 (shingle, cobble) or 0.08–0.14
-  (mixed), beach 12–40 m wide, no sandbar, a 0.5–2.5 m bank behind; nearshore 0.06–0.12
+- **Profile** (phase 4 replaced 2a's random slope with the beach state): shingle and cobble are
+  reflective, face 0.12–0.33 by stone size; mixed 0.08–0.14; beach 12–40 m wide, no bars (mixed:
+  a sand terrace at most), a 0.5–2.5 m bank behind; nearshore 0.06–0.12
   (0.035–0.06 mixed), so waves break on the beach (surf zone ~12 m vs ~48 m on sand, median;
   breaker index 1.0, Iribarren ~2.8: plunging to surging); run-up × 0.6 on shingle and cobble.
 - **Storm ridges** (`coast.ridges`, drawn in the terrain since 2b): the storm ridge (0.6–1.2 m
@@ -174,6 +175,26 @@ Sources: [Global coastal dataset (ESSD preprint 2025)](https://essd.copernicus.o
 [The myriad faces of the coasts (World Ocean Review)](https://worldoceanreview.com/en/?p=5160),
 [Machair (EUNIS)](https://eunis.eea.europa.eu/habitats/8044).
 
+### Beach state (phase 4)
+
+Measured over 2024–2026 beach days (715). Ω = Hb / (ws · T) from the day's swell and the
+beach's grain (`beachState.ts`, REGIONS.md §2); storms and mid-latitude winters one state
+flatter.
+
+| State | All beach days | Sand beaches (418) | Shape |
+|---|---|---|---|
+| reflective | 48.0% | 29% | steep face, no bar, cusps 80% |
+| low-tide-terrace | 29.0% | 31% | a shallow terrace 15–35 m out, cusps 60% |
+| transverse-bar-rip | 9.0% | 15% | bar 40–90 m welded to the shore between rips every 150–400 m, cusps 40% |
+| rhythmic-bar | 4.8% | 8% | crescentic bar 70–140 m (+ an outer bar sometimes), rips |
+| longshore-bar | 2.9% | 5% | straight bar 80–150 m, deep trough (+ an outer bar sometimes) |
+| dissipative | 6.4% | 11% | face ~1:50, 2–3 bars to ~360 m, wide surf zone |
+
+Cusps on 56% of beach days; bars: none 48%, one 41%, two 7%, three 4%. By biome (sand
+beaches): coarse coral and black sands stay steep (tropical 64% reflective or terrace,
+volcanic 80%); fine white quartz under ocean swell flattens (Mediterranean and desert ocean
+coasts: 27% and 24% dissipative). Not yet checked against a measured world share of states.
+
 ## Gaps: research vs. today
 
 | Real world | Today | Plan phase |
@@ -183,7 +204,7 @@ Sources: [Global coastal dataset (ESSD preprint 2025)](https://essd.copernicus.o
 | Pebble, shingle and cobble beaches (~¼ of beaches) | done (phase 2) | 2 |
 | Pink and red sand; treeless high Arctic | done (phase 3): pink and red sand; no birch above 74°; beech in Tierra del Fuego | 3 |
 | Marine layer, harmattan, haar | done (phase 3): marine layer and harmattan by place; haar already in the fog season | 3 |
-| Beach slope and bars follow grain and swell | random slope, sandbar 60% | 4 |
+| Beach slope and bars follow grain and swell | done (phase 4): Wright & Short state from Ω; bars, rips, cusps | 4 |
 | Tides (micro to mega) | sea level fixed | 5 |
 | Calm water behind reefs and barriers | water calms only where shallow | 6 |
 | Reef-fronted tropical beaches | surf breaks on the sand | 7 |

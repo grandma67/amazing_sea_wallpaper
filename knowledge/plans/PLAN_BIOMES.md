@@ -4,7 +4,7 @@ Brings the wallpaper's coasts closer to the world's: real places, stony beaches,
 shores, reef-fronted tropical beaches, tides, beach shapes that follow the waves, more sand
 colours, calm lagoons, two missing climates, the real sun for the place and date, and (later)
 coastal weather and the animals these open up. Research is in COASTS.md and REGIONS.md;
-sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture), 2d (mesh stones), 2e (other props) and 2f (renders) done, so phase 2 is complete; phase 3 (cheap table changes) done; the rest planned.
+sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture), 2d (mesh stones), 2e (other props) and 2f (renders) done, so phase 2 is complete; phase 3 (cheap table changes) done; phase 4 (beach state) done; the rest planned.
 
 ## Why: research vs. today
 
@@ -436,6 +436,11 @@ random.
   multi-bar beach (`namibia`, big swell); `bench.mjs` (expect pixel change, ≤ 10% time).
 - Docs: ARCHITECTURE.md (beach state), LESSONS.md; changelog: "all beach days change
   slope and bars".
+- Done 2026-10-24. Mixed beaches stop at a terrace (gravel over sand); rip channels needed
+  scouring below the profile, not only a gap in the bar, to show; cusps reach ≥ ⅓ of their
+  spacing up the beach (the daily run-up on steep gravel is ~1 m). Renders:
+  `scenes/beach-states.json` (rips on 2024-01-15, east Australia: the 2024-01-11 swell was too
+  small to break on the bar). Bench vs 212984b: time unchanged.
 
 ### 5. Tides
 

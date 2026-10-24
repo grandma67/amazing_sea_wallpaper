@@ -73,7 +73,8 @@ Playwright (headless snapshots), Vitest.
      × basin, marine-layer wind cap; formations (`'formations'`, `'cloud-species'`);
      waterspout (`'waterspout'`); arrangement; fog (`'fog'`: calms the wind).
   8. Swell (`'swell'`); coast (`generateCoast`: `'coast'`, `'sand-colour'`,
-     `'beach-material'`, `'hills'`, `'composition'`).
+     `'beach-material'` (material, grain, stone size, beach state and shape), `'hills'`,
+     `'composition'`).
   9. Colony, pinnipeds, lighthouse, landform, islands (`pick*`, own streams); shelf cloud,
      lenticular; rainbow geometry; title.
   10. Moon scale, horizon, roll, time, choppiness (main, `keep`).
@@ -214,13 +215,37 @@ Playwright (headless snapshots), Vitest.
   or `cobble`, drawn in `generateCoast` on stream `'beach-material'` from `materialChances(place,
   climate)` (place → region override, else `POLAR_MATERIAL` on polar days, else the biome's
   `MATERIAL_CHANCES`), then forced by `spec.beachMaterial`. Open sea is `'sand'`. Stony days
-  replace slope, width, sandbar and dune (`stonyShape`, same stream) and get `coast.ridges`
+  get a low bank and `coast.ridges` (`stonyShape`, same stream; slopes and width come from the
+  beach state below)
   (crest distance, height, half-width); `coast.stoneColors` is the place's palette. Stony days
   also get a steep nearshore (narrow surf zone: `breakerIndex` and `surfBreakDepth` follow
   `nearshoreSlope`, no material term needed) and run-up × `STONY_RUNUP`. `ridgeHeight` adds
   Gaussian bumps across the shore in `beachHeightAt` (GLSL `vec3 ridges[3]` + `ridgeCount`, TS
   mirror `ridgeHeight` in `terrain.ts`, 0 on sand). `beachLines` (wrack and storm lines) lives
   here now; on stony days its storm line is the storm ridge crest. Shares: COASTS.md.
+- **Beach state** (`beachState.ts`, PLAN_BIOMES 4; Wright & Short 1984): in `generateCoast`, after
+  the material on the same `'beach-material'` stream: grain (`sedimentFor(sand, biome)`: `GRAIN`
+  by sand colour, white = coral on tropical coasts; one float, geometric in the range), stone
+  size (one float), then `beachStateFor(material, grain, Hb, T, sediment, rougher)`: Ω = Hb /
+  (ws · T) with Soulsby `fallVelocity` (density and carbonate shape factor), Komar–Gaynord
+  `breakerHeight` from the offshore swell (`ocean.swellHeight`, T from `swellWavelength`; not
+  `surfWave`, which needs the slope), limits 1.5/2.5/3.5/4.5/5.5. Storm days and |lat| > 25°
+  winters (`season`) move it one state flatter; shingle and cobble are reflective, mixed at
+  most a terrace. `spec.beachState` forces it. `beachShape` (fixed draws for every state) sets
+  face slope (sand by grain × state factor; gravel by stone size, ≥ 0.12), nearshore slope
+  and width by state (slope × width ≤ 5 m), `coast.bars` (0–3, crest at a share of the bare
+  depth), `coast.rips` (transverse-bar-rip, rhythmic: spacing 150–400 m, the inner bar swinging
+  shoreward by 15–45% between channels) and `coast.cusps` (reflective 80%, terrace 60%,
+  transverse 40%; spacing g T² tanβ / π, 12–45 m). The coast stream still makes the old
+  slope/width/sandbar draws (`skipDraw`) so eye height stays.
+- **Bars, rips, cusps in the terrain** (`TERRAIN_GLSL`, TS mirror `barHeight`, `ripGap`,
+  `cuspHeight` in `terrain.ts`): `vec3 bars[3]` + `barCount` replace the one sandbar; at a rip
+  channel (`ripGap`, a wandering cosine every `rips.x` m) the inner bar is cut and the bed scoured
+  0.8 × bar height below the bare profile from the shore out past the bar (`RIP_SCOUR`), so
+  waves break less there (the surf model goes by local depth). `ripWater(sa)` tells the ocean
+  where the channel is: rougher water (+GGX variance) and half the breaking foam. Cusps add
+  horns and bays over `cuspReach` (the swash zone, at least 0.35 × spacing; on steep gravel the
+  daily run-up alone is ~1 m). Shares: COASTS.md.
 - **Stone texture** (`terrain.ts` `STONE_GLSL`, terrain fragment shader only; uniforms from
   `stoneUniforms`): Voronoi cells over shore coords (u inland, a along), cell size =
   `coast.stoneSize` × `STONE_LEVELS` (0.6/1/1.6). `stoneLevel` picks the size class per pixel

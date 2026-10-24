@@ -72,3 +72,8 @@ Sources behind built features. Research for planned work lives with its plan: co
 - Seabird colonies on the mainland: Bempton Cliffs and Muriwai (gannets), Látrabjarg (puffins,
   guillemots), South Georgia (king penguins); haul-outs: Piedras Blancas (elephant seals), Cape
   Cross (Cape fur seals)
+- Beach states: Wright & Short 1984 (Ω classes, rips on transverse and rhythmic bars, cusps on
+  reflective and terraced beaches); Soulsby 1997 fall velocity (CIRP wiki); Komar & Gaynord 1975
+  breaker height; Hong Kong CEDD "Typical natural beach slopes" and Bascom 1951 (slope by grain);
+  edge-wave cusp spacing λ = g T² tanβ / π (Guza & Inman 1975); sources in REGIONS.md §2 and
+  PLAN_BIOMES.md

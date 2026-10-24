@@ -162,6 +162,15 @@ tool gotchas in TOOLS.md.
 - Lines derived from daily run-up (`beachLines`) sit only metres apart on steep beaches; storm
   features belong at the storm run-up height, not a multiple of the daily one.
 
+- A gap in a bar isn't a rip: with only the bar removed the channel is as shallow as the trough
+  and waves still break across it. Scour the channel below the bare profile (rip channels are
+  1–2 m deeper than the bar) so the depth-based surf leaves a gap in the white water.
+- Anything sized by the daily run-up vanishes on steep gravel (0.2–0.4 m run-up on a 0.3 face is
+  ~1 m of beach): beach cusps need a band of ~⅓ of their spacing, as real horns have.
+- Removing a draw from the middle of an object literal (the old `sandbarDistance`) shifts every
+  later field and the eye height: keep the draw (`skipDraw`) and check `params.mjs --ref HEAD`
+  shows only the intended top-level param changing.
+
 ## Seasons
 
 - A month table needs the hemisphere, not the ocean: `ocean === 'southern'` only flipped the
