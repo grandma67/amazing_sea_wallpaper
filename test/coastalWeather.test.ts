@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { marineLayerChance, MARINE_LAYER } from '../src/coastalWeather'
 import { PLACES } from '../src/places'
-import { allParams, scene, scenes, share } from './days'
+import { allParams, expectShare, scene, scenes } from './days'
 
 describe('marine layer', () => {
   const morning = { timeOfDay: 'golden-hour', evening: false, eclipse: null } as const
@@ -26,7 +26,7 @@ describe('marine layer', () => {
 
   it('is roughly as often as the table on June mornings in California', () => {
     const days = Array.from({ length: 120 }, (_, i) => scene({ ...morning, place: 'california', seed: `june-${i}` }, '2025-06-14'))
-    expect(Math.abs(share(days, p => p.weather.marineLayer) - 0.45)).toBeLessThan(0.12)
+    expectShare(days, p => p.weather.marineLayer, 0.45)
   })
 
   it('is a low overcast deck with a light wind, never a storm', () => {

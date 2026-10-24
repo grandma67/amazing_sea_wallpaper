@@ -70,6 +70,12 @@ lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop the server when don
   node scripts/params.mjs --rendered --scene '{"place":"nova-scotia","composition":"shoreline"}' --fields view 2025-07-10
   node scripts/params.mjs --stats 'p => p.coast.composition + " " + Math.min(40, Math.round(p.view.nearest / 5) * 5)' --where 'p => p.coast.type === "beach"'
   ```
+- **Which days did a change touch:** `params.mjs --ref HEAD` (or any ref) generates every test
+  day with that commit (temporary worktree) and with this tree, and counts the days that differ
+  per top-level param (fields added since are listed, not counted). `--fields a.b` narrows it,
+  `--list` prints each changed day's leaf values before → after. Use it for the changelog's
+  "N of 1096 days change" and to catch accidental cascades (a new draw on the wrong stream shows
+  as `camera` or `ocean` changing on every day).
 - **Props in tests:** `view(spec, height)` / `viewOf(params, height)` in `test/days.ts` give a
   `PropContext` (camera, `pixelAngle`) without WebGL: test what a creator places, how far and
   how many pixels, over specs and real days, before any render.

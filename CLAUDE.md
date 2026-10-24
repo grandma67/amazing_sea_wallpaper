@@ -24,7 +24,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 # Developing features
 
 ## 1. Before code
-- Read ARCHITECTURE.md (the relevant module), LESSONS.md (relevant sections) and the closest module: `props/rocks.ts` / `props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
+- Read ARCHITECTURE.md (the relevant module; for a new decision in `params.ts`, its "Draw order in `buildParams`" first), LESSONS.md (relevant sections) and the closest module: `props/rocks.ts` / `props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
 - Define "done": which views (shoreline, along-beach, framed, overlook, open sea), what distance, how often, and whether it must read at wallpaper size or may be realistic and subtle. Ask if it's unclear and it matters (life-size crabs and shells show only within ~20 m).
 - Near-camera features: read how near the ground in frame is on real days (`params.mjs` `p.view`) and count placements in a test (`view()` in `test/days.ts`) before rendering. Plan numbers (radii, counts, budgets) are estimates until then.
 - TODO lists: read all open items first, then ask every build-changing question (visibility, places, kinds) in one batch.
@@ -43,19 +43,20 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Use scene specs, not hunted dates. Ask `scripts/params.mjs` for frequencies and "is it there at all?" before rendering anything.
 - A spec file's base forces `timeOfDay` and `weather` (the date's own may be night); don't force `camera.heightM` (compositions set their own). `--props KIND` also prints CPU build time.
 - Preview new meshes alone with `scripts/mesh.mjs`; render the beach only for placement and light.
-- Prove visibility with `scripts/diff.mjs` (`⚠ invisible` = fix before looking). Read a contact sheet, not single frames.
+- Prove visibility with `scripts/diff.mjs` before the first full render (`⚠ invisible` = fix before looking): props with `--off '{"props":{"<kind>":false}}'`; sky, light, haze and weather features with their spec field off (`'{"dust":null}'`) on a clear **and** a cloudy sky (clear days skip the clouds pass, so haze and cloud-lit effects can vanish there). Read a contact sheet, not single frames.
 - Check front-lit first, then backlit. Act on snapshot ⚠ warnings before reading images.
 - One render command per step, 16 frames at 1080p. ~3 render rounds per feature (see, fix everything, confirm) on the same dates. If a 4th seems needed, reason from numbers, `--props` and `diff.mjs` instead.
 - Stop the dev server when done: `lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`.
 
 ## 4. Tests and finishing
 - `test/<feature>.test.ts` covering:
-  - the choice table over `allParams()` (real days): only where intended, roughly as often, season respected;
+  - the choice table over `allParams()` (real days): only where intended, roughly as often (`expectShare` in `test/days.ts`, not `toBeCloseTo`), season respected;
   - feature rules via specs: `scene(spec, date?)` and `scenes(spec, count)` in `test/days.ts` (e.g. `scenes({ lighthouse: true, timeOfDay: 'night', fog: null })`). Add `eclipse: null` when forcing time of day or sky (real eclipse days override);
   - meshes: deterministic, finite positions and normals, base near y = 0, within the triangle budget;
   - `params.ts` changes: determinism and title.
 - Run `npm test` (typecheck + Vitest, ~6 s) and `npx tsc --noEmit` before committing.
 - Say "done" only for what a render or `diff.mjs` showed; otherwise say "placed, not checked".
 - After new animals or changed chances: run `node scripts/animals.mjs` and paste its table into ANIMALS.md (update the rules there too).
+- Count the days a change touches with `node scripts/params.mjs --ref HEAD` (before committing; `--list` shows each day's changed values) for the changelog row.
 - Update docs: changelog.md, ARCHITECTURE.md (how it works, known issues), LESSONS.md, REFERENCES.md, the topic doc (ANIMALS, CLOUDS, COASTS), SCENE_SPECS.md (new fields), and TODO.md status if used.
 - Never commit TODO.md. One commit per feature, with a descriptive message.

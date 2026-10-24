@@ -94,6 +94,10 @@ gives, real dates (eclipses) and "is it there at all?". Use specs for looks.
 node scripts/params.mjs --stats 'p => p.weather.formations'                 # counts over 3 years
 node scripts/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
 node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
+node scripts/params.mjs --ref HEAD                                           # days changed vs the last commit, by field
+node scripts/params.mjs --ref HEAD~2 --fields coast.sand.name --list --limit 5 # each changed day, before → after
+node scripts/params.mjs --scene scenes/stony.json --fields title,place.id   # each scene of a {base, scenes} file
+node scripts/params.mjs --help
 node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-06
 node scripts/params.mjs --scene '{"storm":"squall"}' --stats 'p => p.weather.formations'   # spec on every day
 node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'    # prop choices

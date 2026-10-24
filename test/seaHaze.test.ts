@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { Random } from '../src/random'
 import { dustSkylight, dustTransmittance, HARMATTAN, hazeLight, hazeTint, MAX_VISIBILITY_KM, MIN_VISIBILITY_KM, visibilityFor } from '../src/seaHaze'
-import { allParams, scene, scenes, share } from './days'
+import { allParams, expectShare, scene, scenes, share } from './days'
 
 describe('sea haze', () => {
   const days = allParams()
@@ -49,7 +49,7 @@ describe('sea haze', () => {
         expect([12, 1, 2]).toContain(Number(p.date.slice(5, 7)))
       }
       const winter = Array.from({ length: 120 }, (_, i) => scene({ place: 'west-africa', seed: `harmattan-${i}` }, '2025-01-10'))
-      expect(Math.abs(share(winter, p => p.weather.dust === 'harmattan') - 0.5)).toBeLessThan(0.12)
+      expectShare(winter, p => p.weather.dust === 'harmattan', 0.5)
       const july = Array.from({ length: 20 }, (_, i) => scene({ place: 'west-africa', seed: `july-${i}` }, '2025-07-10'))
       expect(july.every(p => p.weather.dust == null)).toBe(true)
     })

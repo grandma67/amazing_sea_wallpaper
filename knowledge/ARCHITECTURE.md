@@ -56,6 +56,30 @@ Playwright (headless snapshots), Vitest.
   `ocean`, `climate` restrict the draw to places that have them and force the choice;
   `placesFor()` throws on a combination no place has. `latitudeDeg` is signed now (south
   negative): readers that meant "distance from the equator" use `Math.abs`.
+- **Draw order in `buildParams`** (`params.ts`; read this before adding a decision, then open
+  only that part of the file). *main* = the main `rng` (its draws after the sky are pinned with
+  `keep()`); `'x'` = `Random.derive(seed, 'x')`. A decision can only read what's above it.
+  1. Eclipse (`'eclipse'`), moon phase; `'moon-sky'` stream made.
+  2. Place (main, first draw) → ocean, monsoon, ice and latitude (`'ocean'`), climate
+     (`'climate'`), biome with `plantsFor` (no draw).
+  3. Time of day, evening (main).
+  4. Weather kind and coverage (`'weather'`, `generateWeather`); eclipse fix-up; marine layer
+     (`'marine-layer'`, deck on `'marine-layer-deck'`); dust (`'dust'`); rainbow day
+     (`'rainbow'`).
+  5. Heading, sun elevation and azimuth (main; eclipse and rainbow override), moon direction
+     (main, `'moon-framing'`), day moon and night sky (`'moon-sky'`).
+  6. Camera height, focal length (main, `keep`), wind speed and heading (main, `keep`).
+  7. Storm (`'storm'`, `'storm-weather'`: overrides weather and wind); water (`'water'`); wind
+     × basin, marine-layer wind cap; formations (`'formations'`, `'cloud-species'`);
+     waterspout (`'waterspout'`); arrangement; fog (`'fog'`: calms the wind).
+  8. Swell (`'swell'`); coast (`generateCoast`: `'coast'`, `'sand-colour'`,
+     `'beach-material'`, `'hills'`, `'composition'`).
+  9. Colony, pinnipeds, lighthouse, landform, islands (`pick*`, own streams); shelf cloud,
+     lenticular; rainbow geometry; title.
+  10. Moon scale, horizon, roll, time, choppiness (main, `keep`).
+  11. After `params` exists (read it whole): noctilucent, nacreous, roll cloud, contrails,
+      visibility (`'visibility'`, reads `weather.dust`).
+  Props decide later, at render, on `ctx.rng(kind)` (`props/choices.ts`).
 - **Seasons** (`seasons.ts`): seasonal tables are written in northern-hemisphere months;
   `seasonMonth(day)` shifts the month by six south of the equator (sign of `latitudeDeg`, so
   Chile, the Cape, SW Australia and NZ count, not only the Southern Ocean), `season(day)` gives

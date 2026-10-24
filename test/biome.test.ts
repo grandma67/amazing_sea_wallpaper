@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { SAND_STYLES } from '../src/biome'
 import { HIGH_ARCTIC_DEG, PLACES, placeNamed } from '../src/places'
-import { allParams, scene, scenes, share } from './days'
+import { allParams, expectShare, scene, scenes, share } from './days'
 
 const RED_PLACES = ['pei', 'fundy', 'hawaii', 'oman-yemen', 'red-sea']
 
@@ -35,15 +35,14 @@ describe('sand colour', () => {
   })
 
   it('follows the place roughly as often as the table says', () => {
-    const red = (place: string) => share(scenes({ place, coast: 'beach' }, 200), p => p.coast.sand.name === 'red')
-    const pink = (place: string) => share(scenes({ place, coast: 'beach' }, 200), p => p.coast.sand.name === 'pink')
-    // 200 days: ±0.035 sampling noise, so ±0.1 bounds.
-    const near = (value: number, target: number) => expect(Math.abs(value - target)).toBeLessThan(0.1)
-    near(red('pei'), 0.6)
-    near(red('fundy'), 0.4)
-    expect(red('nova-scotia')).toBe(0)
-    near(pink('bahamas-bermuda'), 0.25)
-    expect(pink('indonesia')).toBeLessThan(0.08)
+    const beaches = (place: string) => scenes({ place, coast: 'beach' }, 200)
+    const red = (p: { coast: { sand: { name: string } } }) => p.coast.sand.name === 'red'
+    const pink = (p: { coast: { sand: { name: string } } }) => p.coast.sand.name === 'pink'
+    expectShare(beaches('pei'), red, 0.6)
+    expectShare(beaches('fundy'), red, 0.4)
+    expect(share(beaches('nova-scotia'), red)).toBe(0)
+    expectShare(beaches('bahamas-bermuda'), pink, 0.25)
+    expectShare(beaches('indonesia'), pink, 0.03)
     expect(placeNamed('philippines').sand.pink).toBe(1)
   })
 
