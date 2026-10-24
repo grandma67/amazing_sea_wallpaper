@@ -8,7 +8,7 @@ import {
   type BufferGeometry
 } from 'three'
 
-import { beachLines } from '../beach'
+import { beachLines, isStony, type BeachMaterial } from '../beach'
 import type { Biome, RGB } from '../biome'
 import type { OceanName } from '../oceans'
 import type { SceneParams } from '../params'
@@ -37,6 +37,13 @@ import { noise3 } from './noise'
 // bindweed (Jun–Aug), sea holly (Jul–Sep), sea daffodil (Aug–Oct) and ice
 // plant (spring) in the Mediterranean; sea thrift (Apr–Aug), sea rocket
 // (Jun–Oct) and the blue oysterplant (Jun–Aug, Iceland and the Arctic) up north.
+//
+// Stony beaches (PLAN_BIOMES 2e): ghost crabs need sand to dig in, so none on
+// shingle or cobble; shore crabs hide under cobbles; fewer shells survive the
+// grinding stones, and no sand dollars. Their flowers are the vegetated-shingle
+// flora on the storm ridge: sea kale (May–Jul), yellow horned poppy (May–Oct),
+// sea pea (Jun–Aug) and sea campion (May–Aug), with sea rocket, thrift, sea
+// holly and oysterplant, which grow on sand and stones alike.
 
 export type CrabKind = 'ghost' | 'shore' | 'hermit'
 export type ShellKind = 'clam' | 'cockle' | 'scallop' | 'mussel' | 'razor' | 'sand-dollar'
@@ -49,6 +56,10 @@ export type FlowerKind =
   | 'thrift'
   | 'sea-rocket'
   | 'oysterplant'
+  | 'sea-kale'
+  | 'horned-poppy'
+  | 'sea-pea'
+  | 'sea-campion'
 
 export interface ShoreLife {
   crab: CrabKind | null
@@ -65,17 +76,34 @@ export interface ShoreLife {
 
 type BiomeName = Biome['name']
 
+/** What a flower roots in: dune sand, the stones of a shingle ridge, or
+ * either. Mixed beaches have both. */
+export type FlowerGround = 'sand' | 'stones' | 'both'
+
 /** Where each flower grows and its months in bloom (northern-hemisphere
  * months, shifted south of the equator by monthInSeason; null = all year). */
-export const FLOWERS: Record<FlowerKind, { biomes: BiomeName[]; months: [number, number] | null; oceans?: OceanName[] }> = {
-  'morning-glory': { biomes: ['tropical'], months: null },
-  bindweed: { biomes: ['mediterranean', 'nordic'], months: [6, 8], oceans: ['atlantic', 'pacific', 'indian'] },
-  'sea-holly': { biomes: ['mediterranean', 'nordic'], months: [7, 9], oceans: ['atlantic', 'pacific', 'indian'] },
-  'sea-daffodil': { biomes: ['mediterranean'], months: [8, 10] },
-  'ice-plant': { biomes: ['mediterranean', 'desert'], months: [3, 6] },
-  thrift: { biomes: ['nordic', 'volcanic'], months: [4, 8] },
-  'sea-rocket': { biomes: ['nordic', 'volcanic', 'mediterranean'], months: [6, 10] },
-  oysterplant: { biomes: ['nordic', 'volcanic'], months: [6, 8], oceans: ['arctic', 'atlantic'] }
+export const FLOWERS: Record<FlowerKind, { biomes: BiomeName[]; months: [number, number] | null; oceans?: OceanName[]; ground: FlowerGround }> = {
+  'morning-glory': { biomes: ['tropical'], months: null, ground: 'sand' },
+  bindweed: { biomes: ['mediterranean', 'nordic'], months: [6, 8], oceans: ['atlantic', 'pacific', 'indian'], ground: 'sand' },
+  'sea-holly': { biomes: ['mediterranean', 'nordic'], months: [7, 9], oceans: ['atlantic', 'pacific', 'indian'], ground: 'both' },
+  'sea-daffodil': { biomes: ['mediterranean'], months: [8, 10], ground: 'sand' },
+  'ice-plant': { biomes: ['mediterranean', 'desert'], months: [3, 6], ground: 'sand' },
+  thrift: { biomes: ['nordic', 'volcanic'], months: [4, 8], ground: 'both' },
+  'sea-rocket': { biomes: ['nordic', 'volcanic', 'mediterranean'], months: [6, 10], ground: 'both' },
+  oysterplant: { biomes: ['nordic', 'volcanic'], months: [6, 8], oceans: ['arctic', 'atlantic'], ground: 'both' },
+  // Vegetated shingle: Atlantic Europe and the Baltic (sea kale), Atlantic
+  // Europe and the Mediterranean (horned poppy), circumboreal (sea pea, also
+  // Iceland), north-west Europe, Iceland and Norway (sea campion).
+  'sea-kale': { biomes: ['nordic'], months: [5, 7], oceans: ['atlantic'], ground: 'stones' },
+  'horned-poppy': { biomes: ['mediterranean', 'nordic'], months: [5, 10], oceans: ['atlantic'], ground: 'stones' },
+  'sea-pea': { biomes: ['nordic', 'volcanic'], months: [6, 8], oceans: ['atlantic', 'pacific', 'arctic'], ground: 'stones' },
+  'sea-campion': { biomes: ['nordic', 'volcanic'], months: [5, 8], oceans: ['atlantic', 'arctic'], ground: 'stones' }
+}
+
+/** Whether a flower roots on a beach of this material. */
+export function growsOn(ground: FlowerGround, material: BeachMaterial | undefined): boolean {
+  if (ground === 'both' || material === 'mixed') return true
+  return (ground === 'stones') === isStony(material)
 }
 
 const SHELLS: Record<BiomeName, Partial<Record<OceanName, ShellKind[]>> & { other: ShellKind[] }> = {
@@ -108,6 +136,9 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
   const southernOcean = ocean === 'southern'
   const night = params.timeOfDay === 'night' || params.timeOfDay === 'blue-hour'
   const dusk = params.timeOfDay === 'golden-hour' || params.timeOfDay === 'sun-on-horizon'
+  const material = params.coast.material
+  /** Shingle or cobble all over: no sand to dig in. */
+  const stones = material === 'shingle' || material === 'cobble'
 
   const life: ShoreLife = {
     crab: null,
@@ -121,7 +152,7 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
   }
 
   // Crabs.
-  const ghostChance = { tropical: 0.85, desert: 0.7, mediterranean: 0.3, nordic: 0, volcanic: 0 }[biome]
+  const ghostChance = stones ? 0 : { tropical: 0.85, desert: 0.7, mediterranean: 0.3, nordic: 0, volcanic: 0 }[biome]
   if (!southernOcean && ocean !== 'arctic') {
     if (rng.chance(ghostChance)) {
       life.crab = 'ghost'
@@ -142,6 +173,10 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
   const table = SHELLS[biome]
   life.shells = southernOcean ? ['mussel'] : (table[ocean] ?? table.other)
   life.shellCount = rng.int(80, 420)
+  if (stones) {
+    life.shells = life.shells.filter(k => k !== 'sand-dollar')
+    life.shellCount = Math.round(life.shellCount * 0.3)
+  }
   if ((biome === 'nordic' || biome === 'mediterranean' || (biome === 'volcanic' && ocean === 'pacific')) && rng.chance(0.3)) {
     life.starfish = rng.int(1, 6)
   }
@@ -151,6 +186,7 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
     for (const [kind, where] of Object.entries(FLOWERS) as [FlowerKind, (typeof FLOWERS)[FlowerKind]][]) {
       if (!where.biomes.includes(biome)) continue
       if (where.oceans != null && !where.oceans.includes(ocean)) continue
+      if (!growsOn(where.ground, material)) continue
       if (where.months != null && !monthInSeason(params, ...where.months)) continue
       if (rng.chance(0.7)) life.flowers.push(kind)
     }
@@ -376,12 +412,15 @@ function trumpet(b: MeshBuilder, at: Vector3, radius: number, petal: RGB, throat
   for (let s = 0; s < 10; s++) b.triangle(face, ring[(s + 1) % 10], ring[s])
 }
 
-/** A daisy-like flower: a disc of thin petals round a centre, facing `up`. */
-function daisy(b: MeshBuilder, at: Vector3, radius: number, petal: RGB, centre: RGB, petals: number): void {
+/** A daisy-like flower: a disc of thin petals round a centre, facing `up`;
+ * `width` (× radius) broad petals and `rise` a cup (poppies, campions). */
+function daisy(b: MeshBuilder, at: Vector3, radius: number, petal: RGB, centre: RGB, petals: number, width = 0.12, rise = 0.15): void {
   for (let i = 0; i < petals; i++) {
     const az = (i / petals) * Math.PI * 2
-    const dir = new Vector3(Math.cos(az), 0.15, Math.sin(az))
-    b.ribbon([at, at.clone().addScaledVector(dir, radius)], t => radius * 0.12 * (1 - 0.5 * t), petal, new Vector3(-dir.z, 0, dir.x))
+    const dir = new Vector3(Math.cos(az), rise, Math.sin(az))
+    const thin = width < 0.3
+    const steps = thin ? 1 : 2
+    b.ribbon(Array.from({ length: steps + 1 }, (_, k) => at.clone().addScaledVector(dir, (radius * k) / steps)), t => radius * width * (thin ? 1 - 0.5 * t : 0.4 + 0.6 * Math.sin(Math.PI * (0.25 + 0.6 * t))), petal, new Vector3(-dir.z, 0, dir.x))
   }
   b.blob(at.clone().setY(at.y + radius * 0.05), new Vector3(radius * 0.25, radius * 0.12, radius * 0.25), () => centre, () => 1, 3)
 }
@@ -543,6 +582,100 @@ export function flowerGeometry(rng: Random, kind: FlowerKind): BufferGeometry {
           const bell = rng.chance(0.6) ? [0.15, 0.25, 0.6] : [0.55, 0.25, 0.45]
           b.blob(tip.clone().add(new Vector3(rng.normal(0, 0.01), 0.015 + rng.range(0, 0.01), rng.normal(0, 0.01))), new Vector3(0.005, 0.007, 0.005), () => bell as RGB, () => 1, 2)
         }
+      }
+      break
+    }
+    case 'sea-kale': {
+      // A low dome of big, wavy, blue-grey cabbage leaves among the stones,
+      // under a mound of small white four-petalled flowers on branched stalks.
+      const width = rng.range(0.35, 0.6)
+      const kale: RGB = [0.13, 0.2, 0.19]
+      for (let i = 0; i < rng.int(12, 18); i++) {
+        const az = rng.range(0, Math.PI * 2)
+        const len = width * rng.range(0.6, 1)
+        const rise = rng.range(0.4, 1.1)
+        const path = [0, 1, 2, 3, 4, 5].map(k => {
+          const t = k / 5
+          return new Vector3(Math.cos(az) * len * t, len * rise * Math.sin(Math.PI * t * 0.8), Math.sin(az) * len * t)
+        })
+        // Wavy margins: the width ripples along the leaf.
+        b.ribbon(path, t => len * 0.55 * Math.sin(Math.PI * Math.min(0.95, t * 0.9 + 0.08)) * (0.85 + 0.15 * Math.sin(t * 25)), t => shade(kale, 0.85 + 0.35 * t))
+      }
+      const white: RGB = [0.72, 0.72, 0.68]
+      for (let i = 0; i < rng.int(3, 6); i++) {
+        const top = new Vector3(rng.normal(0, width * 0.3), rng.range(0.3, 0.5), rng.normal(0, width * 0.3))
+        b.tube([new Vector3(0, 0.05, 0), top], () => 0.006, () => [0.12, 0.17, 0.12], 4)
+        for (let f = 0; f < 12; f++) {
+          const at = top.clone().add(new Vector3(rng.normal(0, 0.06), rng.normal(0, 0.02), rng.normal(0, 0.06)))
+          b.blob(at, new Vector3(0.028, 0.016, 0.028), n => shade(white, 0.9 + 0.15 * n.y), n => 0.8 + 0.3 * noise3(n.x * 6, n.y * 6, n.z * 6, f), 2)
+        }
+      }
+      break
+    }
+    case 'horned-poppy': {
+      // A rosette of lobed, silvery leaves; tall stalks with yellow
+      // four-petalled poppies and long curved seed horns.
+      const silver: RGB = [0.2, 0.25, 0.22]
+      for (let i = 0; i < rng.int(6, 9); i++) {
+        const az = (i / 7) * Math.PI * 2 + rng.normal(0, 0.2)
+        const dir = new Vector3(Math.cos(az), 0.3, Math.sin(az)).normalize()
+        const leaf = [0, 1, 2, 3, 4, 5, 6].map(k => dir.clone().multiplyScalar((0.18 * k) / 6))
+        b.ribbon(leaf, t => 0.07 * Math.sin(Math.PI * Math.min(0.95, t * 0.9 + 0.05)) * (0.6 + 0.4 * Math.abs(Math.sin(t * 11))), silver)
+      }
+      const yellow: RGB = [0.72, 0.5, 0.03]
+      for (let i = 0; i < rng.int(2, 4); i++) {
+        const top = new Vector3(rng.normal(0, 0.08), rng.range(0.3, 0.55), rng.normal(0, 0.08))
+        b.tube([new Vector3(0, 0, 0), top.clone().multiplyScalar(0.5).add(new Vector3(rng.normal(0, 0.03), 0, rng.normal(0, 0.03))), top], () => 0.004, () => silver, 4)
+        daisy(b, top, rng.range(0.03, 0.04), yellow, [0.6, 0.45, 0.05], 4, 1.1, 0.5)
+        // A seed horn curving out below the flower.
+        const az = rng.range(0, Math.PI * 2)
+        const horn = [0, 1, 2, 3].map(k => top.clone().add(new Vector3(Math.cos(az) * 0.05 * k, -0.02 - 0.012 * k * k, Math.sin(az) * 0.05 * k)))
+        b.tube(horn, t => 0.003 * (1 - 0.6 * t), () => [0.1, 0.13, 0.09], 3)
+      }
+      break
+    }
+    case 'sea-pea': {
+      // Sprawling stems over the stones with paired leaflets and clusters
+      // of purple pea flowers.
+      const leaf: RGB = [0.08, 0.14, 0.08]
+      for (let i = 0; i < rng.int(6, 10); i++) {
+        let az = rng.range(0, Math.PI * 2)
+        const path: Vector3[] = [new Vector3(0, 0.02, 0)]
+        for (let k = 1; k <= 6; k++) {
+          az += rng.normal(0, 0.3)
+          path.push(path[k - 1].clone().add(new Vector3(Math.cos(az) * 0.07, k < 3 ? 0.02 : -0.005, Math.sin(az) * 0.07)))
+        }
+        b.tube(path, () => 0.003, () => leaf, 3)
+        path.forEach((node, k) => {
+          if (k === 0) return
+          for (const side of [-1, 1]) {
+            const dir = new Vector3(Math.cos(az + side * 1.2), 0.3, Math.sin(az + side * 1.2)).normalize()
+            b.ribbon([0, 1, 2].map(j => node.clone().addScaledVector(dir, 0.02 * j)), t => 0.024 * Math.sin(Math.PI * (0.1 + t * 0.8)), shade(leaf, 1.2))
+          }
+        })
+        if (rng.chance(0.7)) {
+          const tip = path[path.length - 1]
+          const purple = rng.pick<RGB>([[0.3, 0.08, 0.32], [0.4, 0.12, 0.38]])
+          for (let f = 0; f < 5; f++) {
+            b.blob(tip.clone().add(new Vector3(rng.normal(0, 0.012), 0.04 + f * 0.008, rng.normal(0, 0.012))), new Vector3(0.008, 0.009, 0.005), n => shade(purple, 0.8 + 0.3 * n.y), () => 1, 2)
+          }
+          b.tube([tip, tip.clone().setY(tip.y + 0.04)], () => 0.0025, () => leaf, 3)
+        }
+      }
+      break
+    }
+    case 'sea-campion': {
+      // A low, grey-green cushion spilling over the stones, white flowers
+      // over swollen, veined calyces.
+      const cushion = rng.range(0.1, 0.22)
+      const green: RGB = [0.13, 0.2, 0.15]
+      b.blob(new Vector3(0, cushion * 0.05, 0), new Vector3(cushion, cushion * 0.25, cushion), n => shade(green, 0.8 + 0.4 * n.y), n => 0.75 + 0.4 * noise3(n.x * 12, n.y * 12, n.z * 12, 5), 6)
+      for (let i = 0; i < rng.int(10, 22); i++) {
+        const base = new Vector3(rng.normal(0, cushion * 0.45), cushion * 0.3, rng.normal(0, cushion * 0.45))
+        const top = base.clone().add(new Vector3(rng.normal(0, 0.02), rng.range(0.04, 0.1), rng.normal(0, 0.02)))
+        b.tube([base, top], () => 0.002, () => GREY_LEAF, 3)
+        b.blob(top, new Vector3(0.007, 0.01, 0.007), () => [0.3, 0.25, 0.22], () => 1, 2)
+        daisy(b, top.clone().setY(top.y + 0.008), 0.016, [0.78, 0.77, 0.74], [0.6, 0.6, 0.55], 5, 0.9, 0.35)
       }
       break
     }

@@ -160,9 +160,12 @@ function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
     crocodiles: 0,
     hippos: 0
   }
-  // Turtles: nesting (and its tracks) in season, hatchlings ~2 months later.
-  const nester = nestingSpecies(animals, month, pick)
-  const hatcher = nestingSpecies(animals, ((month + 9) % 12) + 1, pick)
+  // Turtles: nesting (and its tracks) in season, hatchlings ~2 months later;
+  // they dig their nests in sand, not on shingle or cobble.
+  const material = params.coast.material
+  const sandy = material !== 'shingle' && material !== 'cobble'
+  const nester = sandy ? nestingSpecies(animals, month, pick) : null
+  const hatcher = sandy ? nestingSpecies(animals, ((month + 9) % 12) + 1, pick) : null
   if (nester != null && active) {
     life.turtle = nester
     if (dark) {

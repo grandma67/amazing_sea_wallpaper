@@ -15,11 +15,11 @@ import {
 
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 
-import { beachLines } from '../beach'
+import { beachLines, isStony } from '../beach'
 import type { RGB } from '../biome'
 import type { PinnipedKind } from '../params'
 import type { Random } from '../random'
-import { shoreToWorld } from '../terrain'
+import { shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { fbm3 } from './noise'
@@ -280,11 +280,14 @@ function skerry(ctx: PropContext, rng: Random): Mesh | null {
 
 /** A herd hauled out on the beach: packed close in a patch along the shore,
  * from just above the waterline up to the storm line; null if no beach in
- * view has room. */
+ * view has room. On a stony beach: above the swash (it surges hard up the
+ * steep face), up to the storm ridge crest, not over it. */
 function onBeach(ctx: PropContext, rng: Random, count: number, room: number): { spots: Vector3[]; centre: Vector3; radius: number } | null {
   const { coast } = ctx.params
   const { stormLine } = beachLines(coast)
-  const low = coast.runup * 0.5
+  const stony = isStony(coast.material)
+  const low = coast.runup * (stony ? 1 : 0.5)
+  const top = stony ? stormLine : stormLine * 1.3
   for (let i = 0; i < 300; i++) {
     const a0 = rng.normal(0, 120 * (1 + i / 100))
     const u0 = rng.range(1, stormLine)
@@ -297,7 +300,7 @@ function onBeach(ctx: PropContext, rng: Random, count: number, room: number): { 
     for (let k = 0; k < count * 20 && spots.length < count; k++) {
       const a = a0 + rng.normal(0, length / 3)
       const u = u0 + rng.normal(0, stormLine / 3)
-      if (u < 0 || u > stormLine * 1.3) continue
+      if (u < 0 || u > top) continue
       const [x, z] = shoreToWorld(coast, -u, a)
       const y = ctx.ground(x, z)
       if (y < low || ctx.distance(x, z) < 5) continue
@@ -377,9 +380,13 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
   // surface: only heads show, more of them.
   const storm = stormy(ctx.params)
   if (storm) spots = []
+  // Lying along the slope of a steep stony beach or ridge, not level.
+  const tilt = beach != null && isStony(ctx.params.coast.material)
+  const up = new Vector3(0, 1, 0)
   for (const spot of spots) {
     const k = rng.weighted(poses.map(([, w], i) => [i, w] as const))
     const q = new Quaternion().setFromEuler(new Euler(0, rng.range(0, Math.PI * 2), 0))
+    if (tilt) q.premultiply(new Quaternion().setFromUnitVectors(up, new Vector3(...terrainNormal(ctx.params.coast, spot.x, spot.z, room))))
     // Sink a little into the rock so bellies rest on it.
     placed[k].push(new Matrix4().compose(spot.clone().setY(spot.y - 0.05), q, new Vector3().setScalar(rng.range(0.85, 1.1))))
   }

@@ -9,7 +9,7 @@ import {
   type BufferGeometry
 } from 'three'
 
-import { beachLines } from '../beach'
+import { beachLines, isStony } from '../beach'
 import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
@@ -21,7 +21,9 @@ import { noise3 } from './noise'
 // What the sea leaves on the beach. Two lines run along most beaches: the
 // wrack line at the last high tide (seaweed, seagrass, a few sticks), and
 // higher up, at the back of the beach, the storm line where big waves threw
-// logs that the tides can't reach to move again.
+// logs that the tides can't reach to move again. On a stony beach that is
+// the storm ridge: logs and old weed lie along its crest and just behind it,
+// the fresh wrack on the high-tide berm below.
 //
 // Driftwood comes from forested coasts and rivers: the Pacific Northwest and
 // New Zealand pile whole trees at the back of their beaches, and the treeless
@@ -332,6 +334,8 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
   const seed = rng.int(0, 1e6)
 
   const { highTide, stormLine } = beachLines(coast)
+  /** The storm ridge on a stony beach, where the storms leave wood and weed. */
+  const ridge = isStony(coast.material) ? coast.ridges[0] : undefined
   // Turning +X (a log's length) by -azimuth about Y lays it along the shore.
   const alongShore = -(coast.seawardAzimuthDeg * Math.PI) / 180
 
@@ -403,7 +407,8 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
     // Try spots until enough piles land in view.
     for (let p = 0, tries = 0; p < piles && tries < piles * 8; tries++) {
       const a = rng.normal(0, 160)
-      const u = rng.range(stormLine, Math.max(stormLine + 2, coast.beachWidth * 0.95))
+      // On the crest and its back slope, or the back of a sand beach.
+      const u = ridge != null ? ridge.distance + rng.range(-0.3, 1) * ridge.width : rng.range(stormLine, Math.max(stormLine + 2, coast.beachWidth * 0.95))
       const [px, pz] = shoreToWorld(coast, -u, a)
       if (!ctx.visible(px, ctx.ground(px, pz), pz, 4)) continue
       p++
@@ -411,7 +416,7 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
       for (let i = 0; i < count; i++) {
         const variant = rng.int(0, LOGS - 1)
         const yaw = rng.chance(0.75) ? rng.normal(0, 0.3) : rng.range(0, Math.PI)
-        place(pieces, variant, u + rng.normal(0, 2), a + rng.normal(0, 6), yaw, 5, rng.range(0.7, 1.2), 0.08, rng.range(0.85, 1.1))
+        place(pieces, variant, u + rng.normal(0, ridge != null ? ridge.width * 0.3 : 2), a + rng.normal(0, 6), yaw, 5, rng.range(0.7, 1.2), 0.08, rng.range(0.85, 1.1))
       }
     }
     // Sticks and branches up and down the beach, more on the wrack line.
@@ -437,7 +442,8 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
       // Patchy: the line comes and goes along the shore.
       if (noise3(a / 18, 0, 0, seed) < 0.55 - spec.wrackAmount * 0.25) continue
       const older = rng.chance(0.25)
-      const u = (older ? highTide * 1.6 + 1 : highTide) + rng.normal(0, 0.6)
+      const old = ridge != null ? ridge.distance : highTide * 1.6 + 1
+      const u = (older ? old : highTide) + rng.normal(0, 0.6)
       const r = rng.float()
       const variant = kind !== 'seagrass' ? rng.int(0, 3) : r < 0.12 ? 4 : r < 0.3 ? 3 : rng.int(0, 2)
       const tint = older ? rng.range(0.9, 1.3) : rng.range(0.7, 1)

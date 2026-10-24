@@ -12,6 +12,7 @@ import {
 } from 'three'
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 
+import { isStony, type BeachMaterial } from '../beach'
 import type { Biome, RGB } from '../biome'
 import type { Random } from '../random'
 import { forced } from '../sceneSpec'
@@ -23,6 +24,18 @@ import { fbm3 } from './noise'
 // the flat fractured faces of real boulders, with crevices darkened in the
 // vertex colours. Placed in clusters along the waterline, scattered on the
 // beach, and sometimes as towering sea stacks offshore.
+//
+// Stony beaches: cobble beaches lie below eroding till and rock and carry
+// boulders more often; shingle beaches are sorted pebbles, boulders rarer.
+// Their loose stones are props/stones.ts, so no scattered pebbles here.
+
+/** Chance of boulders along the shore: the biome's, more on cobble (60% of
+ * the boulder-free days get them), half on shingle. */
+export function rockChanceFor(biomeChance: number, material: BeachMaterial | undefined): number {
+  if (material === 'cobble') return 1 - (1 - biomeChance) * 0.4
+  if (material === 'shingle') return biomeChance * 0.5
+  return biomeChance
+}
 
 const VARIANTS = 6
 const STACK_VARIANTS = 2
@@ -211,7 +224,7 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
   const { coast, biome } = params
   if (!hasLand(coast)) return []
   const rng = ctx.rng('rocks')
-  const hasRocks = forced(params.overrides?.rocks, rng.chance(biome.rockChance))
+  const hasRocks = forced(params.overrides?.rocks, rng.chance(rockChanceFor(biome.rockChance, coast.material)))
   const hasStacks = forced(params.overrides?.seaStacks, rng.chance(biome.seaStackChance))
   if (!hasRocks && !hasStacks) return []
 
@@ -257,8 +270,9 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
         place(cs + rng.normal(0, spread * 0.5), ca + rng.normal(0, spread), size, aspect, 0.3)
       }
     }
-    // Scattered pebbles and stones on the beach near the camera.
-    for (let i = 0; i < 120; i++) {
+    // Scattered pebbles and stones on the beach near the camera (stony
+    // beaches have their own).
+    for (let i = 0; i < (isStony(coast.material) ? 0 : 120); i++) {
       const size = 0.08 + 0.5 * rng.float() ** 4
       const aspect = new Vector3(rng.range(0.8, 1.3), rng.range(0.4, 0.8), rng.range(0.8, 1.3))
       place(camS + rng.range(-25, coast.distanceToWater + 6), camA + rng.normal(0, 45), size, aspect, 0.35)
