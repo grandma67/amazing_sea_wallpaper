@@ -4,7 +4,7 @@ Brings the wallpaper's coasts closer to the world's: real places, stony beaches,
 shores, reef-fronted tropical beaches, tides, beach shapes that follow the waves, more sand
 colours, calm lagoons, two missing climates, the real sun for the place and date, and (later)
 coastal weather and the animals these open up. Research is in COASTS.md and REGIONS.md;
-sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture) and 2d (mesh stones) done; the rest planned.
+sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture), 2d (mesh stones), 2e (other props) and 2f (renders) done, so phase 2 is complete; the rest planned.
 
 ## Why: research vs. today
 
@@ -366,6 +366,10 @@ size: 3 cm pebbles to ~5 m (16 px at 5 m), 10 cm cobbles to ~15 m (18 px), 20 cm
   REFERENCES.md (from COASTS.md), COASTS.md shares and mark its stony-beach proposal done,
   ANIMALS.md if animal rules changed.
 - Arctic winter stones under snow and an ice foot: later (phase 13).
+- Done 2026-10-24. `framed` can't show stones in the foreground (the camera stands 15–60 m
+  inland behind the plants), so `scenes/stony.json` adds `iceland-seals` (along-beach, seals
+  hauled out, driftwood). Bench vs. 960a411: stony scenes −2% in total (worst +8%), default
+  dates identical.
 
 ### 3. Cheap table changes (no new geometry)
 

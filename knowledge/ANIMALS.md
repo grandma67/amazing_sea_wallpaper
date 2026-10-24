@@ -75,7 +75,7 @@ Galápagos and Hawaii are places). New pools:
 
 | Animal | Where | When | Weather | Chance |
 |---|---|---|---|---|
-| Sea turtles nesting, crawl tracks and nest mounds | Caribbean: leatherback Mar–Jun, green/hawksbill Jul–Oct; Central America: olive ridley Jul–Dec, green otherwise; SE Asia: green/hawksbill Apr–Sep, olive ridley Nov–Mar; West Africa: leatherback/olive ridley Oct–Mar; East Africa, Galápagos, Arabia: green all year; Mediterranean: loggerhead Jun–Aug | Nesting females at night and blue hour; fresh tracks in the morning, softened by evening | – | 35% in season |
+| Sea turtles nesting, crawl tracks and nest mounds | Caribbean: leatherback Mar–Jun, green/hawksbill Jul–Oct; Central America: olive ridley Jul–Dec, green otherwise; SE Asia: green/hawksbill Apr–Sep, olive ridley Nov–Mar; West Africa: leatherback/olive ridley Oct–Mar; East Africa, Galápagos, Arabia: green all year; Mediterranean: loggerhead Jun–Aug | Nesting females at night and blue hour; fresh tracks in the morning, softened by evening | – | 35% in season; never on shingle or cobble (they dig in sand) |
 | Hatchlings running to the sea | As nesting, ~2 months later | Night, blue hour, sunrise | – | 30% of those |
 | Basking green turtles | Hawaii | Day | **Storm:** none | 45% |
 | Long-tailed macaques | South-East Asia | Day | **Storm:** hidden | 30% |
@@ -90,9 +90,9 @@ Galápagos and Hawaii are places). New pools:
 | Nile crocodiles | East Africa | As above | As above | 10% |
 | West African crocodiles | West Africa | As above | As above | 12% |
 | Hippos (a pod of 2–7) | West Africa (Loango, Bijagós); rarely East Africa | On the beach from dusk to dawn (sunset, evening golden hour, blue hour, night); in the water by day, backs and heads awash | **Storm:** in the water | 15%, 4% |
-| Ghost crabs, burrows and sand fans | Tropical 85%, desert 70%, Mediterranean 30% (not Southern Ocean or Arctic) | Most at night (6–18), some at dusk, few by day | **Storm:** in their burrows (burrows still show) | as listed |
+| Ghost crabs, burrows and sand fans | Tropical 85%, desert 70%, Mediterranean 30% (not Southern Ocean or Arctic; not on shingle or cobble) | Most at night (6–18), some at dusk, few by day | **Storm:** in their burrows (burrows still show) | as listed |
 | Hermit crabs | Tropical wrack lines | Any | **Storm:** hidden | 60% where no ghost crabs |
-| Shore crabs | Cooler coasts, at the water's edge | Any | **Storm:** hidden | 45% where no ghost crabs |
+| Shore crabs | Cooler coasts, at the water's edge (and among cobbles) | Any | **Storm:** hidden | 45% where no ghost crabs |
 | Starfish | Nordic, Mediterranean, Pacific volcanic beaches | Any | – | 30% |
 
 ### Planned (PLAN_BIOMES.md phase 14, later)
@@ -113,9 +113,9 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 
 | Animal | All days | nordic | mediterranean | volcanic | desert | tropical | atlantic | pacific | indian | arctic | southern |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Crabs: ghost | 18% | – | 16% | – | 48% | 51% | 16% | 22% | 40% | – | – |
-| Crabs: hermit | 0.8% | – | – | – | – | 3% | – | 2% | 2% | – | – |
-| Crabs: shore | 13% | 17% | 17% | 27% | – | – | 22% | 16% | 5% | – | – |
+| Crabs: ghost | 17% | – | 12% | – | 44% | 50% | 14% | 20% | 39% | – | – |
+| Crabs: hermit | 1% | – | – | – | – | 5% | – | 2% | 3% | – | – |
+| Crabs: shore | 14% | 17% | 20% | 27% | – | – | 23% | 17% | 5% | – | – |
 | Crocodile: american | 0.6% | – | – | – | – | 3% | 0.6% | 1% | – | – | – |
 | Crocodile: saltwater | 0.5% | – | – | – | – | 2% | – | 1% | – | – | – |
 | Crocodile: west-african | 0.3% | – | – | – | – | 1% | 0.8% | – | – | – | – |
@@ -136,8 +136,8 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 | Monkeys: capuchin | 0.5% | – | – | – | – | 2% | – | 2% | – | – | – |
 | Monkeys: macaque | 0.9% | – | – | – | – | 4% | – | 2% | 0.6% | – | – |
 | Monkeys: vervet | 0.2% | – | – | – | – | 0.8% | – | – | 1% | – | – |
-| Sea turtle: green | 3% | – | – | 5% | 11% | 8% | – | 4% | 15% | – | – |
-| Sea turtle: hawksbill | 0.5% | – | – | – | – | 2% | – | 0.8% | 1% | – | – |
+| Sea turtle: green | 3% | – | – | 5% | 10% | 7% | – | 4% | 14% | – | – |
+| Sea turtle: hawksbill | 0.4% | – | – | – | – | 2% | – | 0.5% | 1% | – | – |
 | Sea turtle: loggerhead | 0.3% | – | 2% | – | – | – | 0.8% | – | – | – | – |
 | Sea turtle: olive-ridley | 1% | – | – | – | – | 5% | 0.6% | 2% | 1% | – | – |
 | Seabird colony: gannet (island) | 4% | 4% | 11% | 2% | – | – | 6% | 3% | 1% | 4% | – |

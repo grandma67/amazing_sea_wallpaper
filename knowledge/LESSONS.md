@@ -179,6 +179,12 @@ tool gotchas in TOOLS.md.
   low skerries can read as one shore. Make low features nearer, not bigger.
 - A rock dropped on a beach reads as a block; a mainland headland must run inland (long along
   the seaward axis).
+- Stony beaches move every line: `beachLines().stormLine` is the ridge crest, and a 1:4 face
+  tilts long animals (seals) by ~14°: tilt them to `terrainNormal` or one end floats. A
+  sea-facing shoreline view has no beach 30–300 m off in frame, so beach haul-outs fall back to
+  a skerry: check them along-beach.
+- Keep sand days identical when a choice depends on beach material: gate before the draw
+  (`continue` before `rng.chance`) or change only the chance, not the number of draws.
 
 ## Meshes
 

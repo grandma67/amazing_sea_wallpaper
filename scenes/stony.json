@@ -1,0 +1,12 @@
+{
+  "base": { "date": "2025-07-10", "eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "weather": "clear", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "nova-scotia-cobble", "place": "nova-scotia", "beachMaterial": "cobble", "composition": "along-beach", "timeOfDay": "golden-hour" },
+    { "name": "arctic-cobble", "place": "arctic-canada", "beachMaterial": "cobble", "composition": "along-beach", "weather": "overcast" },
+    { "name": "nice-shingle", "place": "western-med", "beachMaterial": "shingle", "composition": "shoreline", "timeOfDay": "daylight" },
+    { "name": "iceland-cobble", "place": "iceland", "beachMaterial": "cobble", "composition": "framed" },
+    { "name": "iceland-seals", "place": "iceland", "beachMaterial": "cobble", "composition": "along-beach", "pinnipeds": "seal", "haulOut": "beach", "props": { "debris": { "driftwood": 1 } } },
+    { "name": "scotland-mixed", "place": "scotland", "beachMaterial": "mixed", "composition": "shoreline" },
+    { "name": "aegean-shingle", "place": "aegean", "beachMaterial": "shingle", "composition": "overlook" }
+  ]
+}

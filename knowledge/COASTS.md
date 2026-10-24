@@ -103,7 +103,10 @@ shingle 11.7%, cobble 12.5%.
   beach and merged with the berm; real gravel ridge crests sit at the storm run-up limit (Chesil
   ~10 m, small ridges 1–3 m). On stony days `beachLines().stormLine` is the ridge crest.
 
-The beaches still render as sand until the stone shader (2c) and stones (2d).
+Done (2c–2f): stone texture in the terrain shader, mesh stones near the camera, and the other
+props following the stones (shingle flowers, driftwood and old wrack on the ridge crest, no
+ghost crabs or turtle nests on shingle and cobble, seals above the swash, more boulders on
+cobble). Specs: `scenes/stony.json`.
 
 ## Research: the world's coasts
 
@@ -173,7 +176,7 @@ Sources: [Global coastal dataset (ESSD preprint 2025)](https://essd.copernicus.o
 |---|---|---|
 | Coasts are real places (latitude, climate, tide, animals) | biome × ocean drawn apart; latitude from the basin | 1a |
 | Southern seasons | only the Southern Ocean flips months | 1c |
-| Pebble, shingle and cobble beaches (~¼ of beaches) | every beach is sand | 2 |
+| Pebble, shingle and cobble beaches (~¼ of beaches) | done (phase 2) | 2 |
 | Pink and red sand; treeless high Arctic | white, golden, grey, black; Arctic keeps birch | 3 |
 | Marine layer, harmattan, haar | fog and dust, not by place | 3 |
 | Beach slope and bars follow grain and swell | random slope, sandbar 60% | 4 |

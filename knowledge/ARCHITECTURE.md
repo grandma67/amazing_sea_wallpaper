@@ -226,16 +226,24 @@ Playwright (headless snapshots), Vitest.
 - **Shore debris** (`debris.ts`, `debrisFor()` by biome and ocean): wrack (kelp, Posidonia mats
   and fibre balls, sargassum, sticks) on the high-tide line at ~1.1× run-up height, plus a fainter
   older line; logs on the storm line above ~2.2× and up to the back of the beach (`logGeometry`:
-  bowed, oval, knots, checks, splintered end, root wads); coconuts on palm coasts.
+  bowed, oval, knots, checks, splintered end, root wads); coconuts on palm coasts. Stony days:
+  logs on the storm ridge crest and its back slope, the older wrack line on the crest.
 - **Shore life** (`shoreLife.ts`, `shoreLifeFor()`): crabs by biome and time of day, shells by
   coast, flowers in bloom by month (`FLOWERS`). Real size: crabs and shells show only near the
-  camera.
+  camera. Each flower has a `ground` (`sand`, `stones`, `both`; `growsOn`): shingle and cobble
+  get the vegetated-shingle flora (sea kale, horned poppy, sea pea, sea campion) plus the
+  either-ground ones; no ghost crabs or sand dollars, 30% of the shells. Mixed beaches get both.
 - **Wildlife** (`wildlife.ts`, `wildlifeFor()`): the place's `animals` pool (`places.ts`), then
   turtles (`nestingSpecies(animals, month, pick)`: in-season entries weighted), monkeys, lizards,
   crocodiles, hippos and basking turtles by the pool's chances. `inWater()` decides where the big ones are; `inSea()` places them by depth via
   `ctx.seaPoint`. `spot()` casts rays through the lower frame and marches them to the ground, so
   each group lands in view, near first; tracks are a world-space strip of churned sand.
+  Turtles don't nest on shingle or cobble (basking ones still haul out).
 - **Pinnipeds** (`pinnipeds.ts`): hauled out on rock or beach; `swimmingHead` for heads in water.
+  On a stony beach: above the full run-up (the swash surges up the steep face), no higher than
+  the storm ridge crest, tilted to `terrainNormal`. **Rocks** (`rockChanceFor`): boulders more
+  often on cobble (60% of the rock-free days get them), half as often on shingle; stony days
+  skip the scattered near-camera pebbles (`props/stones.ts` draws them).
   **Colonies** (`colony.ts`): island or mainland headland/rookery.
 - **Storms and animals:** `stormy(params)` (`props/context.ts`: storm or storm sky). Gulls rest on
   water or sand facing the wind (`restingGull`), colonies have no birds up, pinnipeds leave the
@@ -306,6 +314,12 @@ rolling onto the beach as surf, turtle heads at sea.
   e.g. 2010-04-01).
 - 2026-05-01: a sailboat drawn as a bare, steeply tilted mast.
 - 2026-02-13: sparkly dots in the air over the sea.
+- Stony beaches: shingle reads as a flat mottled colour on most 1080p views (a 2–5 cm pebble is
+  under a pixel tall past ~10 m at eye height; the nearest ground is often 20–40 m), so many
+  "shingle" days look sandy-coloured; `framed` stands 15–60 m inland behind the plants, so it
+  never has stones in the foreground. Iceland (volcanic biome) gets the volcanic default plants,
+  including palms; its basalt cobbles render brown (palette mean pulled up by the red scoria
+  entry and exposure).
 - Elephant seals within ~25 m look like smooth boulders (beach herds keep 30 m off); hippos are
   stylised up close (barrel + boxy head).
 - Physically subtle (not bugs): Posidonia wrack at normal distance, hatchlings (5 cm) beyond

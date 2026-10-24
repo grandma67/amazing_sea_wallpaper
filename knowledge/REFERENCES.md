@@ -65,6 +65,10 @@ Sources behind built features. Research for planned work lives with its plan: co
 - Animals in storms: The Condor 32(4) "Behavior of sea gulls during a hail storm" (resting on the
   water, heads tucked); Bay Nature "Where do birds go in the rain"; Solent Seal Code of Conduct
   (harbour seals go into the water in wind and rain)
+- Vegetated shingle flora: EUNIS "Channel / Baltic Crambe maritima communities" (sea kale,
+  sea pea on shingle); Sussex Wildlife Trust "Shingle flowers" (Rye Harbour: yellow horned
+  poppy May–Oct, sea pea just above extreme high water); RHS and Wikipedia *Crambe maritima*
+  (white flowers May–Jul); stony-beach research and sources in COASTS.md
 - Seabird colonies on the mainland: Bempton Cliffs and Muriwai (gannets), Látrabjarg (puffins,
   guillemots), South Georgia (king penguins); haul-outs: Piedras Blancas (elephant seals), Cape
   Cross (Cape fur seals)
