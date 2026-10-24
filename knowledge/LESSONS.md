@@ -141,11 +141,15 @@ tool gotchas in TOOLS.md.
 - A steep stony beach face tilts away from a sun behind the land: at golden hour it sits in
   shade while rocks on it are lit. Judge stone texture under a clear daylight spec
   (`"weather":"clear"`); a heavy cloud deck also leaves the beach flat blue (cloud shadow).
-- Near-camera props sized by "near" miss the frame: our cameras stand 2–5 m up with 50–85 mm
-  lenses and see the ground from ~10–25 m on. Size such radii by pixels on screen
-  (`ctx.pixelAngle`), check the nearest visible ground (march frame-bottom rays) before
-  capping, and measure counts with a test before rendering (`meshStones` placed nothing with
-  the plan's 15 m cap).
+- Near-camera props sized by "near" miss the frame: the plan assumed stones in view from ~5 m,
+  and our cameras do stand ~2 m up (overlooks 15–45 m) with mostly < 40 mm lenses, but the nearest
+  ground in frame ranges from ~5 m (along-beach, framed) to 20–40 m (many shorelines) and beyond
+  (overlooks). One forced date showed 21 m and was taken for the rule at first.
+  Size radii by pixels on screen (`ctx.pixelAngle`), read `p.view` (`params.mjs`) for the real
+  distances, and count placements in a test (`view()` in `test/days.ts`) before rendering:
+  `meshStones` placed nothing with the plan's 15 m cap on the test shorelines.
+- Plan numbers (radii, counts, budgets) are estimates until measured: check them against
+  `p.view` and a placement test before writing code that depends on them.
 - Scanning cells in a circle round the camera costs mostly cells out of frame or below the frame
   edge: walk coarse blocks with a tight frustum test, nearest first, and stop at the budget.
 - Lines derived from daily run-up (`beachLines`) sit only metres apart on steep beaches; storm

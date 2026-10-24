@@ -11,6 +11,8 @@
 // same name in DIR_B (before | after), one pair per row. --region shows only
 // part of every image, as fractions of its width and height (top = the upper
 // half, where sky features are): bigger thumbnails of what you're checking.
+// A single matching image fills the sheet, so --match NAME --region X0,Y0,X1,Y1
+// zooms into one render (a 0.45 × 0.16 region of a 1080p frame comes out ~2.7×).
 
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -23,7 +25,7 @@ const option = (name, fallback) => {
   return i === -1 ? fallback : args[i + 1]
 }
 const dir = resolve(option('dir', 'out'))
-const cols = Number(option('cols', 4))
+const colsArg = option('cols', null)
 const width = Number(option('width', 2400))
 const match = new RegExp(option('match', '.'))
 const compare = option('compare', null)
@@ -37,6 +39,9 @@ const all = await readdir(dir)
 const files = all
   .filter(f => f.endsWith('.jpg') && !f.startsWith('contact-sheet') && match.test(f.replace(/\.jpg$/, '')))
   .sort()
+// One image fills the sheet: with --region, a zoom at up to
+// native resolution.
+const cols = Number(colsArg ?? (files.length === 1 ? 1 : 4))
 
 async function cell(folder, f, tag) {
   const name = f.replace(/\.jpg$/, '')

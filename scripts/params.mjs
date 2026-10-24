@@ -18,12 +18,20 @@
 // Each day also has p.props: what the props choose (src/props/choices.ts:
 //   gulls, marine, migratory, wildlife, shoreLife, debris, mangroves), on the
 //   render's own random streams. Placement can still miss the frame.
+// And p.view: what the camera sees of the ground at 1080p (eye height, lens,
+//   pixel angle, nearest ground in frame; src/composition.ts frameView), to
+//   check before rendering whether a near-camera prop can be in view and how
+//   many pixels it gets.
+// --rendered uses the params the page renders (generateSceneParams: a bad
+//   framing re-rolls the coast) instead of the first attempt; slower.
 //
 // Examples:
 //   node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-06
 //   node scripts/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
 //   node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
 //   node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile' --where 'p => p.props.wildlife != null'
+//   node scripts/params.mjs --rendered --scene '{"beachMaterial":"cobble","composition":"shoreline"}' --fields view 2025-07-10
+//   node scripts/params.mjs --stats 'p => p.coast.composition + " " + Math.round(p.view.nearest / 5) * 5' --where 'p => p.coast.type === "beach"'
 
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'vite'
@@ -47,6 +55,7 @@ const where = option('where', null)
 const stats = option('stats', null)
 const limit = Number(option('limit', 1e9))
 const list = flag('list')
+const rendered = flag('rendered')
 
 const shift = (date, days) => {
   const d = new Date(`${date}T12:00:00Z`)
@@ -73,10 +82,17 @@ try {
   const { generateParams } = await server.ssrLoadModule('/src/params.ts')
   const { parseSceneSpec } = await server.ssrLoadModule('/src/sceneSpec.ts')
   const { propChoices } = await server.ssrLoadModule('/src/props/choices.ts')
+  const { frameView, generateSceneParams } = await server.ssrLoadModule('/src/composition.ts')
   parseSceneSpec(spec)
   const days = dates()
-    .map(date => generateParams(date, 0, 16 / 9, spec))
-    .map(p => ({ ...p, props: propChoices(p) }))
+    // --rendered: the params the page renders (composition re-rolls).
+    .map(date => (rendered ? generateSceneParams(date, 16 / 9, spec) : generateParams(date, 0, 16 / 9, spec)))
+    .map(p => {
+      const day = { ...p, props: propChoices(p) }
+      // Computed only when asked for (it marches rays over the terrain).
+      Object.defineProperty(day, 'view', { get: () => frameView(p), enumerable: false })
+      return day
+    })
     .filter(p => keep(p))
 
   if (stats != null) {

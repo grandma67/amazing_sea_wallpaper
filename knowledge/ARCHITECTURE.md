@@ -189,7 +189,8 @@ Playwright (headless snapshots), Vitest.
   sinking fully over the last 20% of the radius), 6 variants, instance colour = cell colour ×
   0.8, `rockMaterial` (wet and glossy below the run-up). Per-level radii go back to the terrain
   as `stoneMeshRadius` (`props.userData.stoneRadius`), where the dome normal is dropped. Most
-  views see the ground from 10–25 m on, so at 1080p cobbles get meshes, pebbles rarely.
+  views see the ground from 5–40 m on (`frameView`), so at 1080p cobbles get meshes, pebbles
+  mostly on along-beach and framed days.
 - **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes
   folded on the midrib (oval oak/almond, ovate birch, lance olive, needles stone pine, rounded
   shrubs, pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to
@@ -263,7 +264,8 @@ Playwright (headless snapshots), Vitest.
 
 ### Frame and post
 
-- `camera.ts`; `composition.ts` (ray-grid coverage, re-rolls bad framings); `reflection.ts`
+- `camera.ts`; `composition.ts` (ray-grid coverage, re-rolls bad framings; `frameView`: eye
+  height, pixel angle and nearest ground in frame, for `params.mjs` `p.view`); `reflection.ts`
   (planar reflection).
 - `accumulate.ts` + `stillScene.ts`: render the scene once, redraw only clouds/spray per frame
   (Halton sub-pixel jitter; takram's cloud TAA history off). A second sky-less render gives each

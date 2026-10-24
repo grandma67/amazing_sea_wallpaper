@@ -27,40 +27,47 @@ import { createWildlife } from './wildlife'
 export function createProps(ctx: PropContext): Group {
   const group = new Group()
   group.name = 'props'
-  /** Adds a creator's objects, tagged with its kind for reportProps(). */
-  const add = <T extends Object3D>(kind: string, objects: T[]): T[] => {
+  // Build time (ms) per kind, for snapshot.mjs --props.
+  const times: Record<string, number> = {}
+  group.userData.times = times
+  /** Runs a creator and adds its objects, tagged with its kind for
+   * reportProps(), timing it. */
+  const add = <T extends Object3D>(kind: string, create: () => T[]): T[] => {
+    const start = performance.now()
+    const objects = create()
+    times[kind] = (times[kind] ?? 0) + performance.now() - start
     for (const o of objects) {
       o.userData.prop = kind
       group.add(o)
     }
     return objects
   }
-  add('landforms', createLandforms(ctx))
-  const rocks = add('rocks', createRocks(ctx))
-  add('surf', createSurf(ctx, rocks))
+  add('landforms', () => createLandforms(ctx))
+  const rocks = add('rocks', () => createRocks(ctx))
+  add('surf', () => createSurf(ctx, rocks))
   // For the ocean's foam round them (ocean.ts setOceanRocks).
   group.userData.waterRocks = waterRocks(ctx, rocks).map(r => ({ ...r, breaks: waveOnRock(ctx.params.coast, r, ctx.waveHeight).breaks }))
-  add('ice', createIce(ctx))
+  add('ice', () => createIce(ctx))
   // Where mesh stones replace the shader's (terrain.ts stoneMeshRadius).
-  group.userData.stoneRadius = add('stones', createStones(ctx))[0]?.userData.stoneRadius ?? [0, 0, 0]
-  add('debris', createDebris(ctx))
-  add('shore-life', createShoreLife(ctx))
-  add('wildlife', createWildlife(ctx))
-  const colony = add('colony', createColony(ctx))
+  group.userData.stoneRadius = add('stones', () => createStones(ctx))[0]?.userData.stoneRadius ?? [0, 0, 0]
+  add('debris', () => createDebris(ctx))
+  add('shore-life', () => createShoreLife(ctx))
+  add('wildlife', () => createWildlife(ctx))
+  const colony = add('colony', () => createColony(ctx))
   const island = (colony.find(o => o.userData.island === true) as Mesh | undefined) ?? null
-  add('islands', createIslands(ctx, island))
-  add('pinnipeds', createPinnipeds(ctx, island))
-  add('lighthouse', createLighthouse(ctx, island))
-  add('vegetation', createVegetation(ctx))
-  add('mangroves', createMangroves(ctx))
+  add('islands', () => createIslands(ctx, island))
+  add('pinnipeds', () => createPinnipeds(ctx, island))
+  add('lighthouse', () => createLighthouse(ctx, island))
+  add('vegetation', () => createVegetation(ctx))
+  add('mangroves', () => createMangroves(ctx))
   // For their wakes and the hull cut out of the sea (ocean.ts setOceanShips).
-  group.userData.ships = add('ships', createShips(ctx)).flatMap(o => o.userData.wake ?? [])
-  add('marine-life', createMarineLife(ctx))
-  add('birds', createBirds(ctx))
-  add('migratory-birds', createMigratoryBirds(ctx))
-  add('storm', createStorm(ctx))
-  add('waterspout', createWaterspout(ctx))
-  add('shelf-cloud', createShelfCloud(ctx))
-  add('roll-cloud', createRollCloud(ctx))
+  group.userData.ships = add('ships', () => createShips(ctx)).flatMap(o => o.userData.wake ?? [])
+  add('marine-life', () => createMarineLife(ctx))
+  add('birds', () => createBirds(ctx))
+  add('migratory-birds', () => createMigratoryBirds(ctx))
+  add('storm', () => createStorm(ctx))
+  add('waterspout', () => createWaterspout(ctx))
+  add('shelf-cloud', () => createShelfCloud(ctx))
+  add('roll-cloud', () => createRollCloud(ctx))
   return group
 }

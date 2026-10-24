@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { beachLines, seabedAlbedo, STONE_LEVELS, STONE_SIZES, stoneAt, stoneCell, stoneCover, stoneGridCell, stoneLevel, stoneMean } from '../src/beach'
-import { createCamera } from '../src/camera'
-import { PropContext } from '../src/props/context'
 import { MAX_RADIUS, MAX_STONES, meshRadius, meshStones, stoneGeometry } from '../src/props/stones'
 import { Random } from '../src/random'
-import type { SceneSpec } from '../src/sceneSpec'
 import { stoneUniforms } from '../src/terrain'
-import { allParams, scene } from './days'
+import { allParams, scene, view, viewOf } from './days'
 
 const cobble = scene({ place: 'nova-scotia', beachMaterial: 'cobble' }).coast
 const mixed = scene({ place: 'scotland', beachMaterial: 'mixed' }).coast
@@ -85,12 +82,6 @@ describe('stone cells', () => {
 })
 
 describe('mesh stones', () => {
-  const view = (spec: SceneSpec, height = 1080, date?: string): PropContext => {
-    const p = scene({ eclipse: null, ...spec }, date)
-    const { camera } = createCamera(p, (16 / 9) * height, height)
-    return new PropContext(p, camera, null, (camera.fov * Math.PI) / 180 / height)
-  }
-
   it('builds small, finite stones resting on y = 0, deterministically', () => {
     for (let i = 0; i < 12; i++) {
       const g = stoneGeometry(new Random(`stone-${i}`), 0.1, i % 2 === 1)
@@ -123,7 +114,7 @@ describe('mesh stones', () => {
     for (const material of ['shingle', 'cobble', 'mixed'] as const) {
       for (const composition of ['shoreline', 'along-beach'] as const) {
         for (const height of [1080, 2160]) {
-          const ctx = view({ place: 'nova-scotia', beachMaterial: material, composition }, height)
+          const ctx = view({ place: 'nova-scotia', beachMaterial: material, composition, eclipse: null }, height)
           const { stones, radius } = meshStones(ctx)
           expect(stones.length).toBeLessThanOrEqual(MAX_STONES)
           const coast = ctx.params.coast
@@ -150,8 +141,7 @@ describe('mesh stones', () => {
       .filter(p => p.coast.type === 'beach' && p.coast.material !== 'sand')
       .slice(0, 40)
     for (const p of days) {
-      const { camera } = createCamera(p, 3840, 2160)
-      const { stones } = meshStones(new PropContext(p, camera, null, (camera.fov * Math.PI) / 180 / 2160))
+      const { stones } = meshStones(viewOf(p, 2160))
       expect(stones.length * 80).toBeLessThanOrEqual(1_000_000)
     }
   }, 60_000)

@@ -15,7 +15,8 @@
 //
 // Checking a feature without reading whole images:
 //   --props islands,rocks   print where those props landed (count, in frame,
-//                           nearest distance, pixel box; "all" for every kind)
+//                           nearest distance, pixel box; "all" for every kind),
+//                           each one's CPU build time and the three slowest
 //   --crop islands,rocks    also save <name>.<kind>.jpg: the frame cropped to
 //                           that prop's box, padded
 //   --budget 600            give up after this many seconds in all (default
@@ -155,13 +156,20 @@ for (const { date, spec, name } of todo) {
   if (process.env.DEBUG) console.log(JSON.stringify(params.debug))
   for (const warning of snapshotWarnings(params, propKinds.filter(k => k !== 'all'))) console.log(`  ⚠ ${warning}`)
   const props = params.debug?.props ?? {}
+  const times = params.debug?.propTimes ?? {}
+  const built = kind => (times[kind] != null ? `, built in ${times[kind]} ms` : '')
   for (const kind of propKinds.includes('all') ? Object.keys(props) : propKinds) {
     const r = props[kind]
     if (r == null) {
-      console.log(`  ${kind}: none placed`)
+      console.log(`  ${kind}: none placed${built(kind)}`)
       continue
     }
-    console.log(`  ${kind}: ${r.inFrame}/${r.placed} in frame, nearest ${r.nearest} m, box ${JSON.stringify(r.box)}`)
+    console.log(`  ${kind}: ${r.inFrame}/${r.placed} in frame, nearest ${r.nearest} m, box ${JSON.stringify(r.box)}${built(kind)}`)
+  }
+  if (propKinds.length > 0) {
+    const total = Object.values(times).reduce((a, b) => a + b, 0)
+    const slowest = Object.entries(times).sort((a, b) => b[1] - a[1]).slice(0, 3)
+    console.log(`  props built in ${total} ms; slowest ${slowest.map(([k, ms]) => `${k} ${ms}`).join(', ')}`)
   }
   for (const kind of cropKinds.includes('all') ? Object.keys(props) : cropKinds) {
     const box = props[kind]?.box

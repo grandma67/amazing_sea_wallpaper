@@ -26,13 +26,14 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 ## 1. Before code
 - Read ARCHITECTURE.md (the relevant module), LESSONS.md (relevant sections) and the closest module: `props/rocks.ts` / `props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
 - Define "done": which views (shoreline, along-beach, framed, overlook, open sea), what distance, how often, and whether it must read at wallpaper size or may be realistic and subtle. Ask if it's unclear and it matters (life-size crabs and shells show only within ~20 m).
+- Near-camera features: read how near the ground in frame is on real days (`params.mjs` `p.view`) and count placements in a test (`view()` in `test/days.ts`) before rendering. Plan numbers (radii, counts, budgets) are estimates until then.
 - TODO lists: read all open items first, then ask every build-changing question (visibility, places, kinds) in one batch.
 - Research briefly (1–2 searches), then encode the result as a data table by biome, ocean, month and time of day (e.g. `FLOWERS` in `props/shoreLife.ts`, `debrisFor()` in `props/debris.ts`). Test the table.
 
 ## 2. Structure
 - Split choice from geometry: a pure `xxxFor(params, rng)` decides; builders (`logGeometry(rng, …)`) work at real size with the base on y = 0; `createXxx(ctx)` places. The first two are unit-testable without WebGL. Add new choices to `props/choices.ts`.
 - New randomness = its own stream: `ctx.rng('my-feature')` (props) or `Random.derive(seed, 'my-feature')` (`params.ts`). Never add draws to the main `rng` in `generateParams` (that changes every day). In-mesh detail may use `hash()`/`noise3()`.
-- Every new random feature gets a scene-spec field, forced without changing unforced days (SCENE_SPECS.md "Adding a spec field").
+- Every new random feature gets a scene-spec field, forced without changing unforced days (SCENE_SPECS.md "Adding a spec field"). Every new prop gets an off switch (`props.<kind>: false`) so `diff.mjs` can show what it adds.
 - Shore coords: `shoreToWorld(coast, s, a)`. s < 0 is land, 0 the waterline; `a` runs along the shore. The camera is at a ≈ 0, s = −distanceToWater. `beachLines(coast)` gives the high-tide and storm lines.
 - Place by trying spots until enough is in view (`ctx.visible`, `ctx.inFrame` for things that must be seen whole), not one sample round the camera.
 - Materials: `vertexColors`; `DoubleSide` for thin parts; `castShadow`/`receiveShadow`; `frustumCulled = false` on instanced meshes. Plants get no direct specular.
@@ -40,6 +41,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 
 ## 3. Check it (details: SCENE_SPECS.md, TOOLS.md)
 - Use scene specs, not hunted dates. Ask `scripts/params.mjs` for frequencies and "is it there at all?" before rendering anything.
+- A spec file's base forces `timeOfDay` and `weather` (the date's own may be night); don't force `camera.heightM` (compositions set their own). `--props KIND` also prints CPU build time.
 - Preview new meshes alone with `scripts/mesh.mjs`; render the beach only for placement and light.
 - Prove visibility with `scripts/diff.mjs` (`⚠ invisible` = fix before looking). Read a contact sheet, not single frames.
 - Check front-lit first, then backlit. Act on snapshot ⚠ warnings before reading images.

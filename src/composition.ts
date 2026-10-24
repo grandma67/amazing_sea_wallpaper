@@ -49,6 +49,51 @@ export function measureFrame(params: SceneParams): FrameCoverage {
   return { sky: counts.sky / total, sea: counts.sea / total, land: counts.land / total }
 }
 
+/** What the camera sees of the ground, for sizing near-camera props by
+ * pixels on screen before rendering (scripts/params.mjs `p.view`). */
+export interface FrameView {
+  /** Eye height above the ground (or sea) below the camera (m). */
+  eye: number
+  focalLengthMm: number
+  /** Vertical angle of one output pixel (mrad), at `height` px. */
+  pixelMrad: number
+  /** Distance (m) to the nearest ground or sea in frame (along the bottom
+   * edge), and to the ground at the bottom centre. */
+  nearest: number
+  bottomCentre: number
+}
+
+/** Where the frame's bottom edge meets the ground, at `height` output
+ * pixels (16:9 or the params' aspect). Nothing nearer than `nearest` is in
+ * view, so a thing of size S shows at most S / (nearest × pixelMrad / 1000)
+ * pixels wide. */
+export function frameView(params: SceneParams, height = 1080): FrameView {
+  const aspect = params.camera.aspect
+  const { camera } = createCamera(params, aspect * height, height)
+  const below = Math.max(terrainHeight(params.coast, camera.position.x, camera.position.z), 0)
+  const dir = new Vector3()
+  const p = new Vector3()
+  const hit = (ndcX: number): number => {
+    dir.set(ndcX, -1, 0.5).unproject(camera).sub(camera.position).normalize()
+    // Fine steps near the camera, growing further out.
+    for (let t = 0.3; t < 30_000; t *= 1.01) {
+      p.copy(camera.position).addScaledVector(dir, t)
+      if (p.y <= Math.max(terrainHeight(params.coast, p.x, p.z), 0)) return Math.hypot(p.x - camera.position.x, p.z - camera.position.z)
+      if (p.y > 2000) break
+    }
+    return Infinity
+  }
+  const bottom = [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1].map(hit)
+  const round = (v: number): number => Math.round(v * 10) / 10
+  return {
+    eye: round(camera.position.y - below),
+    focalLengthMm: round(params.camera.focalLengthMm),
+    pixelMrad: Math.round(((camera.fov * Math.PI) / 180 / height) * 1e5) / 100,
+    nearest: round(Math.min(...bottom)),
+    bottomCentre: round(bottom[4])
+  }
+}
+
 function acceptable(c: FrameCoverage): boolean {
   return c.sea >= 0.12 && c.sky >= 0.2 && c.land <= 0.6
 }

@@ -19,8 +19,9 @@ const VARIANTS = 6
 /** A stone gets a mesh while it is at least this many pixels wide. */
 export const MESH_PIXELS = 10
 /** Furthest mesh stone (m). The plan's 15 m left most days without any:
- * the cameras stand 2–5 m up and see the ground from 10–25 m on, where a
- * 15 cm cobble is still 20–50 px wide at 4K. MAX_STONES bounds the cost. */
+ * the nearest ground in frame is ~5 m away on along-beach and framed days
+ * but often 20–40 m on shorelines (params.mjs p.view), where a 15 cm cobble
+ * is still 20–50 px wide at 4K. MAX_STONES bounds the cost. */
 export const MAX_RADIUS = 30
 /** Smaller stones are shader only (≈ a pixel's worth of silhouette). */
 export const MIN_SIZE = 0.02

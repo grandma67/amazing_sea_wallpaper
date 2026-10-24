@@ -14,7 +14,9 @@ lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop the server when don
 ```
 
 - `--props KINDS|all` reports, per prop, pieces placed, in frame, nearest distance and pixel box
-  (also `debug.props` in `<name>.json`). Kinds are the creators in `props/index.ts` (`rocks`,
+  (also `debug.props` in `<name>.json`), each kind's CPU build time and the three slowest
+  (`debug.propTimes`; e.g. rocks ~275 ms and vegetation ~320 ms on a Nova Scotia beach). Use it
+  for a new prop's cost instead of probe tests: `bench.mjs` only times the whole render. Kinds are the creators in `props/index.ts` (`rocks`,
   `islands`, `shore-life`, `colony`, `ships`, …). Placement-only check: `--w 640 --h 360
   --frames 1`.
 - `--crop KINDS` saves `<name>.<kind>.jpg`; read the crop, not the frame.
@@ -55,8 +57,22 @@ lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop the server when don
   - `--region top|bottom|centre|X0,Y0,X1,Y1` (fractions) for sky features;
   - `--compare $SP/before` puts pairs side by side;
   - `--match REGEX` filters names (`'\.rocks$'` for crops).
-- Manual crop: `sips -c <h> <w> --cropOffset <y> <x> in.jpg --out crop.jpg` (height before width,
-  y before x); resize with `sips -Z 1200`. There's no PIL here.
+- **Zoom into one render:** `contact-sheet.mjs --dir D --match '^NAME$' --region X0,Y0,X1,Y1`. A
+  single image fills the sheet (2400 px wide), so a small region comes out magnified (the bottom
+  0.45 × 0.16 of a 1080p frame ≈ 2.7×). Several images share the width: thumbnails, not a zoom.
+  `sips --cropOffset` silently returns the whole image here; there's no PIL.
+- **What the camera sees, without rendering:** `params.mjs` gives each day `p.view` (eye height
+  above the ground, lens, pixel angle at 1080p, nearest ground in frame, ground at the bottom
+  centre; `frameView` in `composition.ts`). Ask it before sizing near-camera props: a thing of
+  size S at distance d is S / (d × pixelMrad / 1000) px wide. `--rendered` uses the params the
+  page renders (`generateSceneParams` may re-roll a bad framing).
+  ```sh
+  node scripts/params.mjs --rendered --scene '{"place":"nova-scotia","composition":"shoreline"}' --fields view 2025-07-10
+  node scripts/params.mjs --stats 'p => p.coast.composition + " " + Math.min(40, Math.round(p.view.nearest / 5) * 5)' --where 'p => p.coast.type === "beach"'
+  ```
+- **Props in tests:** `view(spec, height)` / `viewOf(params, height)` in `test/days.ts` give a
+  `PropContext` (camera, `pixelAngle`) without WebGL: test what a creator places, how far and
+  how many pixels, over specs and real days, before any render.
 - **Speed: `scripts/bench.mjs --ref HEAD~3`** checks out the ref in a temp worktree on port 5175
   and renders the same dates (or `--scene`) both ways, best of `--runs 2`. It prints times
   (`⚠ >10% slower`) and the pixel diff (~35 s, 4 default dates). Use it for the 10% rule and for
@@ -84,5 +100,7 @@ styles after clicks/taps:
   `reading 'hasFeature'` (two three.js copies). Restart with `npx vite --force`.
 - `bench.mjs` clears `out/bench` first. Its first HEAD render can come out wrong (no haze): re-run
   before blaming the change.
+- Vitest hides `console.log` from passing tests: a throwaway probe test prints with
+  `process.stderr.write(…)` (and is deleted afterwards). Prefer `params.mjs` or a real test.
 - Scripted edits: Python `str.replace` hits every match (`"  cirrus: {"` also hit the choice
   table), and loose regexes hit params. Prefer Edit, or assert exactly one match.

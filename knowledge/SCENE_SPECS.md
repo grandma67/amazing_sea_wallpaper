@@ -43,7 +43,20 @@ scripts: `--scene <JSON or file>`.
 - Forced features are still placed normally (a crab needs sand near the camera in frame; a boat is
   skipped if there's no sea spot).
 - Light it to see it: front-lit first (`"sunAzimuthDeg": 160`, `"timeOfDay": "daylight"`), then
-  backlit for looks.
+  backlit for looks. A spec file's `base` must force the time of day and weather (`"weather":
+  "clear"` for textures): the date's own may be night or overcast, and a whole render round is
+  wasted. Base for checking ground and textures:
+  ```json
+  { "base": { "date": "2025-07-10", "eclipse": null, "storm": null, "fog": null,
+              "timeOfDay": "daylight", "weather": "clear", "sunAzimuthDeg": 160 } }
+  ```
+- Don't force `camera.heightM` to get closer: each composition sets its own camera (a forced
+  1.6 m put framed and overlook cameras inside the grass). Pick the composition, and check how
+  near the ground in frame is with `params.mjs --fields view` (TOOLS.md).
+- One forced date is one framing: the 2025-07-10 shorelines see the ground from ~21 m, while
+  over real beach days the nearest ground is under ~7 m on 40–55% of along-beach and framed
+  days, anywhere from 5 to 40 m on shorelines and 40 m+ on overlooks (`p.view.nearest`). For near-camera features,
+  pick dates whose `view.nearest` fits, or check the real-day spread with `--stats`.
 
 ### Adding a spec field
 

@@ -697,6 +697,8 @@ export async function renderScene(
       skyIrradiance: skyIrradiance.toArray(),
       pitchDeg: camera.rotation.x / DEG,
       props: reportProps(props, camera, width, height),
+      // CPU time (ms) each prop kind took to build.
+      propTimes: Object.fromEntries(Object.entries(props.userData.times as Record<string, number>).map(([k, ms]) => [k, Math.round(ms)])),
       vfovDeg: vfov / DEG
     }
   }
