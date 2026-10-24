@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { execSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
@@ -26,5 +27,9 @@ export default defineConfig({
   // Port 5174, not Vite's default 5173 (often taken by other projects), and
   // fail rather than drift to another port, so the snapshot script's
   // default URL always reaches this app.
-  server: { port: 5174, strictPort: true, watch: { ignored: ['**/out/**'] } }
+  server: { port: 5174, strictPort: true, watch: { ignored: ['**/out/**'] } },
+  // Tests over every real day (allParams, generateSceneParams) take 1–4 s
+  // alone and time out at the default 5 s when renders or another suite
+  // share the machine.
+  test: { testTimeout: 20_000 }
 })

@@ -6,6 +6,7 @@
 //   node scripts/params.mjs --stats 'p => p.weather.formations' [--where EXPR]
 //   node scripts/params.mjs --list [--where EXPR] [--fields a.b,c] [--limit 40]
 //   node scripts/params.mjs --ref REF [--fields a.b,c] [--list] [--scene SPEC] [DATE...]
+//   node scripts/params.mjs --ref REF --stats 'p => …' [--where EXPR]
 //   node scripts/params.mjs --help
 //
 // DATE is YYYY-MM-DD or a range FROM..TO. Without dates, --stats and --list
@@ -31,6 +32,10 @@
 //   worktree, as bench.mjs does): how many days changed and in which
 //   top-level params (or in --fields), for the changelog's "N of 1096 days
 //   change" line. --list prints each changed day with before → after.
+//   With --stats: the shares before and now side by side, and the change in
+//   points (⚠ at 5 or more), so a shifted distribution shows before any
+//   render. --where runs on each side's own params; a field the ref doesn't
+//   have reads as undefined there.
 // --rendered uses the params the page renders (generateSceneParams: a bad
 //   framing re-rolls the coast) instead of the first attempt; slower.
 //
@@ -43,6 +48,7 @@
 //   node scripts/params.mjs --stats 'p => p.coast.composition + " " + Math.round(p.view.nearest / 5) * 5' --where 'p => p.coast.type === "beach"'
 //   node scripts/params.mjs --ref HEAD~1                    # which days did my change touch?
 //   node scripts/params.mjs --ref HEAD --fields coast.sand.name --list --limit 10
+//   node scripts/params.mjs --ref HEAD --stats 'p => p.coast.state' --where 'p => p.coast.type === "beach"'
 //   node scripts/params.mjs --scene scenes/stony.json --fields title,view
 
 import { spawnSync } from 'node:child_process'
@@ -81,7 +87,6 @@ const rendered = flag('rendered')
 const limit = Number(option('limit', ref != null ? 20 : 1e9))
 const unknown = args.find(a => a.startsWith('--'))
 if (unknown != null) throw new Error(`unknown option ${unknown} (see --help)`)
-if (ref != null && stats != null) throw new Error('--ref compares days; use --stats without it')
 
 const shift = (date, days) => {
   const d = new Date(`${date}T12:00:00Z`)
@@ -167,16 +172,44 @@ async function worktree() {
   return { sha, tree, remove: () => git('worktree', 'remove', '--force', tree) }
 }
 
-function printStats(days) {
+function countStats(days) {
   const of = fn(stats)
   const counts = new Map()
   for (const p of days) {
-    const value = of(p)
-    for (const v of new Set(Array.isArray(value) ? value.map(x => JSON.stringify(x)) : [JSON.stringify(value)])) counts.set(v, (counts.get(v) ?? 0) + 1)
+    let value
+    try {
+      value = of(p)
+    } catch {
+      value = undefined // a field this side doesn't have
+    }
+    for (const v of new Set(Array.isArray(value) ? value.map(x => JSON.stringify(x)) : [JSON.stringify(value) ?? 'undefined'])) counts.set(v, (counts.get(v) ?? 0) + 1)
   }
+  return counts
+}
+
+const pct = (n, total) => (100 * n) / Math.max(1, total)
+
+function printStats(days) {
+  const counts = countStats(days)
   console.log(`${days.length} days`)
   for (const [v, n] of [...counts].sort((a, b) => b[1] - a[1]))
-    console.log(`${String(n).padStart(6)}  ${((100 * n) / Math.max(1, days.length)).toFixed(1).padStart(5)}%  ${v}`)
+    console.log(`${String(n).padStart(6)}  ${pct(n, days.length).toFixed(1).padStart(5)}%  ${v}`)
+}
+
+/** Shares at the ref and now, side by side. */
+function printStatsVs(before, now, sha) {
+  const a = countStats(before)
+  const b = countStats(now)
+  console.log(`${before.length} days at ${sha}, ${now.length} now`)
+  console.log(`${sha.padStart(14)}   ${'now'.padStart(13)}   change`)
+  const values = [...new Set([...a.keys(), ...b.keys()])].sort((x, y) => (b.get(y) ?? 0) - (b.get(x) ?? 0) || (a.get(y) ?? 0) - (a.get(x) ?? 0))
+  for (const v of values) {
+    const pa = pct(a.get(v) ?? 0, before.length)
+    const pb = pct(b.get(v) ?? 0, now.length)
+    const d = pb - pa
+    const cell = (n, p) => `${String(n).padStart(6)} ${p.toFixed(1).padStart(5)}%`
+    console.log(`${cell(a.get(v) ?? 0, pa)}   ${cell(b.get(v) ?? 0, pb)}   ${(d >= 0 ? '+' : '') + d.toFixed(1)} pts${Math.abs(d) >= 5 ? '  ⚠' : ''}  ${v}`)
+  }
 }
 
 function printDays(days) {
@@ -241,6 +274,17 @@ try {
     here.parseSceneSpec(raw)
     const { spec, dates } = datesFor(raw)
     if (name != null) console.log(`== ${name}`)
+    if (there != null && stats != null) {
+      const before = dates.map(d => there.day(d, spec)).filter(p => {
+        try {
+          return keep(p)
+        } catch {
+          return false
+        }
+      })
+      printStatsVs(before, dates.map(d => here.day(d, spec)).filter(p => keep(p)), old.sha)
+      continue
+    }
     if (there != null) {
       const pairs = dates.map(d => [there.day(d, spec), here.day(d, spec)]).filter(([, now]) => keep(now))
       printChanges(pairs, old.sha)

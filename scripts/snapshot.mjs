@@ -21,12 +21,19 @@
 //                           that prop's box, padded
 //   --budget 600            give up after this many seconds in all (default
 //                           900), so a hung render can't stall a session
+//
+// Another commit, without stashing your changes:
+//   --ref HEAD              render with that commit instead of --url (a
+//                           temporary worktree served on 5177, refServer.mjs),
+//                           e.g. "was this already broken before my change?".
+//                           Spec fields the commit doesn't know fail there.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
 import { snapshotWarnings } from './checks.mjs'
+import { serveRef } from './refServer.mjs'
 
 const args = process.argv.slice(2)
 const option = (name, fallback) => {
@@ -35,7 +42,8 @@ const option = (name, fallback) => {
   const [, value] = args.splice(i, 2)
   return value
 }
-const baseUrl = option('url', 'http://localhost:5174/')
+let baseUrl = option('url', 'http://localhost:5174/')
+const ref = option('ref', null)
 const outDir = option('out', 'out')
 const width = Number(option('w', 3840))
 const height = Number(option('h', 2160))
@@ -102,6 +110,14 @@ async function jobs() {
 }
 const todo = await jobs()
 await mkdir(outDir, { recursive: true })
+if (ref != null) {
+  const old = await serveRef(ref, 5177)
+  // Synchronous, so it also runs when the budget timer exits the process.
+  process.on('exit', old.close)
+  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(130))
+  baseUrl = old.url
+  console.log(`[snapshot] rendering ${ref} (${old.sha})`)
+}
 
 const browser = await chromium.launch({
   channel,

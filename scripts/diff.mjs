@@ -15,6 +15,12 @@
 // same height (params.camera.groundM). Heading and lens are the date's in
 // both; a composition re-roll (a bad framing) can still differ.
 //
+// Your change vs another commit (renders the specs with REF into OUT/off,
+// via snapshot.mjs --ref, and with this tree into OUT/on):
+//   node scripts/diff.mjs --scene specs.json --ref HEAD --out $SP/change
+// --off is optional here and patches only the REF side (e.g. to drop a spec
+// field that commit doesn't know).
+//
 // Two folders of renders already made (same names), e.g. before/after a code
 // change, or a speed change that should leave the image alone:
 //   node scripts/diff.mjs --a $SP/before --b $SP/after [--match REGEX]
@@ -38,6 +44,7 @@ const option = (name, fallback) => {
 }
 const sceneArg = option('scene', null)
 const offArg = option('off', null)
+const refArg = option('ref', null)
 const outDir = resolve(option('out', 'out/diff'))
 let dirA = option('a', null)
 let dirB = option('b', null)
@@ -59,7 +66,7 @@ const merge = (a, b) => {
 const readJson = async arg => JSON.parse(/^\s*[[{]/.test(arg) ? arg : await readFile(arg, 'utf8'))
 
 if (sceneArg != null) {
-  if (offArg == null) throw new Error('--scene needs --off: the patch that turns the feature off')
+  if (offArg == null && refArg == null) throw new Error('--scene needs --off (the patch that turns the feature off) or --ref (a commit to compare with)')
   const parsed = await readJson(sceneArg)
   const specs =
     !Array.isArray(parsed) && Array.isArray(parsed.scenes)
@@ -67,14 +74,15 @@ if (sceneArg != null) {
       : Array.isArray(parsed)
         ? parsed
         : [parsed]
-  const off = await readJson(offArg)
+  const off = offArg != null ? await readJson(offArg) : {}
   dirA = join(outDir, 'off')
   dirB = join(outDir, 'on')
   await mkdir(outDir, { recursive: true })
   const named = specs.map((s, i) => ({ ...s, name: s.name ?? s.date ?? `scene-${i + 1}` }))
   await writeFile(join(outDir, 'on.json'), JSON.stringify(named))
   const snapshot = (dir, file) => {
-    const run = spawnSync('node', ['scripts/snapshot.mjs', '--out', dir, ...render, '--scene', join(outDir, file)], { encoding: 'utf8' })
+    const atRef = refArg != null && file === 'off.json' ? ['--ref', refArg] : []
+    const run = spawnSync('node', ['scripts/snapshot.mjs', '--out', dir, ...render, ...atRef, '--scene', join(outDir, file)], { encoding: 'utf8' })
     process.stdout.write(run.stdout.split('\n').filter(l => /\.jpg|⚠|rror/.test(l)).map(l => `${l}\n`).join(''))
     if (run.status !== 0) throw new Error(`snapshot.mjs failed:\n${run.stderr}`)
   }
