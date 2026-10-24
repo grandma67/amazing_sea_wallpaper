@@ -1,0 +1,11 @@
+{
+  "base": { "eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "weather": "scattered", "coast": "beach", "beachMaterial": "sand", "date": "2024-05-08", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "brittany-low", "place": "brittany", "tide": "low", "composition": "along-beach" },
+    { "name": "brittany-high", "place": "brittany", "tide": "high", "composition": "along-beach" },
+    { "name": "brittany-low-backlit", "place": "brittany", "tide": "low", "composition": "shoreline", "timeOfDay": "golden-hour", "sunAzimuthDeg": 20 },
+    { "name": "brittany-rocks-mid", "place": "brittany", "tide": "mid", "composition": "along-beach", "props": { "rocks": true } },
+    { "name": "msm-low-overlook", "place": "mont-saint-michel", "tide": "low", "composition": "overlook" },
+    { "name": "aegean-low", "place": "aegean", "tide": "low", "composition": "along-beach" }
+  ]
+}

@@ -118,6 +118,12 @@ try {
     console.log(`bars: ${list(c.bars, b => `${f(b.distance, 0)} m out, ${f(b.height)} m high, ±${f(b.width, 0)} m`)}`)
     console.log(`rips: ${c.rips == null ? 'none' : `every ${f(c.rips.spacing, 0)} m, bar swing ${f(c.rips.amplitude)}`} · cusps: ${c.cusps == null ? 'none' : `${f(c.cusps.spacing, 0)} m apart, ${f(c.cusps.relief)} m relief`}`)
     console.log(`ridges: ${list(c.ridges, r => `${f(r.distance, 1)} m in, ${f(r.height)} m, ±${f(r.width, 1)} m`)}`)
+    const { range, level } = c.tide
+    console.log(
+      `tide: range ${f(range, 1)} m (mean ${f(c.tide.mean, 1)}, built for ${f(c.tide.springRange, 1)}) · level ${f(level)} m · ` +
+        `water ${f(c.waterline, 1)} m out` +
+        (c.terrace.width > 0 ? ` · terrace ±${f(c.terrace.height, 1)} m over ${f(c.terrace.width, 0)} m` : '')
+    )
     console.log(`camera: ${f(-camS, 1)} m inland, a = ${f(camA, 0)} m, ${c.composition}, eye ${f(p.camera.heightM, 1)} m`)
 
     // Cross-shore profiles: at the camera, and through the nearest channel.
@@ -127,14 +133,16 @@ try {
       for (let a = camA - c.rips.spacing; a <= camA + c.rips.spacing; a += 1) if (ripGap(c, a) > 0.99 && (best == null || Math.abs(a - camA) < Math.abs(best - camA))) best = a
       if (best != null) cuts.push(['rip', best])
     }
-    const ss = [-40, -30, -20, -15, -10, -5, -2, 0, 2, 5, 10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 150, 200, 250, 300, 400]
+    // Around today's water (the tide moves it across a terrace).
+    const w = Math.round(Math.max(0, c.waterline) / 10) * 10
+    const ss = [-40, -30, -20, -15, -10, -5, -2, 0, 2, 5, 10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 150, 200, 250, 300, 400].map(s => s + w)
     console.log(`s (m)      ${ss.map(s => String(s).padStart(6)).join('')}`)
     for (const [label, a] of cuts) console.log(`${`${label} a=${f(a, 0)}`.padEnd(11)}${ss.map(s => f(at(s, a)).padStart(6)).join('')}`)
 
     // Top-down map: rows from the sea (top) to the land, columns along the shore.
     // Down to just behind the camera (overlooks stand up to ~600 m inland).
     const s0 = Math.max(-650, Math.min(-80, camS - 40))
-    const s1 = Math.max(260, ...c.bars.map(b => b.distance * 1.6), breakDepth / c.nearshoreSlope + 60)
+    const s1 = Math.max(260, ...c.bars.map(b => b.distance * 1.6), breakDepth / c.nearshoreSlope + 60) + Math.max(0, c.waterline)
     const a0 = camA - 400
     const a1 = camA + 400
     const W = Math.round((a1 - a0) / res)
