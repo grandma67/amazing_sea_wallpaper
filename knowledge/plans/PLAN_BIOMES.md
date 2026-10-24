@@ -4,7 +4,7 @@ Brings the wallpaper's coasts closer to the world's: real places, stony beaches,
 shores, reef-fronted tropical beaches, tides, beach shapes that follow the waves, more sand
 colours, calm lagoons, two missing climates, the real sun for the place and date, and (later)
 coastal weather and the animals these open up. Research is in COASTS.md and REGIONS.md;
-sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture), 2d (mesh stones), 2e (other props) and 2f (renders) done, so phase 2 is complete; phase 3 (cheap table changes) done; phase 4 (beach state) done; the rest planned.
+sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture), 2d (mesh stones), 2e (other props) and 2f (renders) done, so phase 2 is complete; phase 3 (cheap table changes) done; phase 4 (beach state) done, its shape tables sourced (REGIONS.md §2); the rest planned.
 
 ## Why: research vs. today
 
@@ -441,6 +441,15 @@ random.
   spacing up the beach (the daily run-up on steep gravel is ~1 m). Renders:
   `scenes/beach-states.json` (rips on 2024-01-15, east Australia: the 2024-01-11 swell was too
   small to break on the bar). Bench vs 212984b: time unchanged.
+- Shape tables sourced 2026-10-24 (changelog 0.56; REGIONS.md §2 "Beach states: shape by
+  state"). Ω splits are now 1.5/2.6/3.3/4.0/5.5. Rips are on every intermediate state (terraces
+  every 40–120 m, longshore bars every 250–500 m). Reflective slopes are 0.10–0.20 and gravel
+  0.08–0.24. Width, bar heights, rip swing and cusp chances stay assumed.
+- **Open: share retune (ask first; it changes every beach day).** Against Short's (2006)
+  Australian census by length, transverse bar–rip is under-drawn (12% vs 34%), longshore (6% vs
+  0.3%) and dissipative (12% vs 4%) over-drawn (COASTS.md "Beach state"). Options: drop the
+  winter one-state shift and keep only storms; or name a multi-bar beach by its inner bar, as
+  Short does. Also open: no trough behind longshore bars (ARCHITECTURE.md known issues).
 
 ### 5. Tides
 
@@ -470,7 +479,11 @@ random.
     every composition still frames the water. `beachLines` returns both the mean and
     the current waterline.
   - Phase 4's beach state uses the range too (macro-tidal beaches skew to low-tide
-    terrace and dissipative).
+    terrace and dissipative): relative tide range RTR = tide range / Hb (Masselink & Short
+    1993); RTR < 3 wave-dominated (the six states), 3–10 tide-modified (reflective + low-tide
+    terrace, + low-tide bar and rips, ultradissipative), 10–50 tide-dominated grading into
+    flats. Australia: 47% / 10.5% / 34% of beaches (Short 2006; Hb, grain and terrace widths
+    per type there, e.g. the low-tide terrace averages 120 m wide).
 - Low-tide look (meso and macro only): wider wet band (wetness by height above the last
   high water); exposed rocks get a dark weed/mussel band (vertex colour below the
   high-water line in `rocks.ts`); tidepools as flat mirror patches between rocks.

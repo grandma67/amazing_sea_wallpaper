@@ -14,11 +14,14 @@ shingle, cobble). Status 2026-10-24. Shares are over 2024–2026 (1096 days,
    signed) follow.
 3. **Coast type** (`generateCoast`, `params.ts`): `beach` 65% / `open-sea` 35%, once per
    date.
-4. **Shape** (same function): slope, beach width, dunes, hills, sandbar (60%), sand colour
-   (the place's `sand` chances, stream `'sand-colour'`), composition (beach days only).
+4. **Shape** (same function): dunes, hills, sand colour (the place's `sand` chances, stream
+   `'sand-colour'`), composition (beach days only).
 5. **Beach material** (`beach.ts`, stream `'beach-material'`, PLAN_BIOMES 2a): sand, mixed,
-   shingle or cobble from the place's chances; a stony beach replaces the slope, width,
-   sandbar and dune with a steep, ridged profile.
+   shingle or cobble from the place's chances; a stony beach gets a low bank and storm ridges
+   instead of dunes.
+6. **Beach state** (`beachState.ts`, same stream, PLAN_BIOMES 4): grain, then a Wright & Short
+   state from Ω = Hb / (ws · T), which sets the face and nearshore slopes, width, bars, rips
+   and cusps (shares below; sources in REGIONS.md §2).
 
 ### Biomes
 
@@ -92,7 +95,7 @@ shingle 11.7%, cobble 12.5%.
   greywacke, white–cream limestone, black basalt with red scoria, tan and red gravel, pale
   coral rubble.
 - **Profile** (phase 4 replaced 2a's random slope with the beach state): shingle and cobble are
-  reflective, face 0.12–0.33 by stone size; mixed 0.08–0.14; beach 12–40 m wide, no bars (mixed:
+  reflective, face 0.08–0.24 by stone size (Jennings & Shulmeister 2002); mixed 0.08–0.14; beach 12–40 m wide, no bars (mixed:
   a sand terrace at most), a 0.5–2.5 m bank behind; nearshore 0.06–0.12
   (0.035–0.06 mixed), so waves break on the beach (surf zone ~12 m vs ~48 m on sand, median;
   breaker index 1.0, Iribarren ~2.8: plunging to surging); run-up × 0.6 on shingle and cobble.
@@ -125,8 +128,10 @@ section.
   longshore bar, rhythmic bar, transverse bar and rip, low-tide terrace) and dissipative
   (Ω > ~5.5: flat, 2–3 bars, a wide surf zone of spilling breakers). Coarse sand and
   small swell → reflective (coral and black sand islands, the Mediterranean); fine sand
-  and big swell → dissipative (Namibia, Oregon, the Wadden). Grain and fall velocity:
-  REGIONS.md §2.
+  and big swell → dissipative (Namibia, Oregon, the Wadden). The only full census, all
+  Australian beaches (Short 2006), finds 47% wave-dominated (by length: reflective 30%,
+  transverse bar–rip 34%, terrace ~20%, rhythmic 11%, dissipative 4%) and the rest tide-modified
+  or tide-dominated. Grain, fall velocity and shape by state: REGIONS.md §2.
 - **Sand colours.** White (coral and shell carbonate, or pure quartz), golden (quartz with
   iron staining, feldspar), grey (mixed rock, glacial), black (basalt glass, volcanic),
   pink (red foraminifera *Homotrema rubrum* mixed into coral sand: Bermuda, Bahamas'
@@ -246,7 +251,8 @@ inner bar counts as transverse-bar-rip.
   sand and pebbles; Hawaii and the Azores have boulder beaches). Coral rubble beaches occur
   on tropical islands after storms.
 - **What it looks like.** Steep (shingle lets the swash sink in, so backwash erodes less):
-  slopes of ~1:4–1:8 versus 1:10–1:30 for sand. One or more storm ridges (berms) at high
+  slopes of ~1:4–1:8 versus 1:10–1:30 for sand (measured on 42 NZ pure gravel beaches:
+  0.08–0.24, i.e. 1:12–1:4; Jennings & Shulmeister 2002). One or more storm ridges (berms) at high
   tide and storm lines; no wind ripples, no dunes right behind; waves surge or plunge right
   on the beach (no wide surf zone). Grain sorts along the profile: biggest cobbles at the
   crest, finer gravel or sand at the waterline (mixed sand–gravel). Wet stones are dark and

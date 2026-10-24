@@ -8,7 +8,7 @@ Docs in `knowledge/` (read what the task needs):
 - `REFERENCES.md`: sources.
 - `ANIMALS.md`, `CLOUDS.md`, `COASTS.md`: what appears where and how often.
 - `REGIONS.md`: research for the plans.
-- `plans/`: open plans (biomes, phone app, waterspout fix, beach-state sources).
+- `plans/`: open plans (biomes, phone app, waterspout fix).
 
 Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5173 is other projects).
 
