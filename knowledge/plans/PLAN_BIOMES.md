@@ -93,6 +93,14 @@ addition:
 - **Place data lives in the place tables** (`src/places.ts`, from REGIONS.md §1): a new
   per-place choice (sand, material, coast kind, reef, tide) is a field there with a region
   default, not a separate table keyed by biome × ocean.
+- **Terrain and shore phases write the geometry down before code** (lesson from phase 5):
+  where s = 0 sits, the profile's pieces and how they join (heights and slopes at each join),
+  what `distanceToWater`, `waterline` and `beachLines` mean afterwards, and which readers in
+  ARCHITECTURE.md "Coordinates and heights" must change. Check the shape with
+  `profile.mjs` (it can be sketched with a forced spec first) before any shader work.
+- **Shares before renders:** after the first passing test, run `params.mjs --ref HEAD --stats`
+  on every choice the phase touches (state, cusps, rips, material…); a ⚠ (≥ 5 points) is
+  either the point of the phase or a bug, decided before rendering.
 - **Budget:** render time within ~10% of today per phase (`bench.mjs`); meshes < 100k tris;
   instanced near-camera detail ≤ ~1M tris for stones (2d) and ≤ ~0.5M for everything else added
   here together. The terrain shader grows in several phases: measure it each time, and branch on

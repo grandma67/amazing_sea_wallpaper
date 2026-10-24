@@ -91,12 +91,21 @@ lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop the server when don
   `--list` prints each changed day's leaf values before → after. Use it for the changelog's
   "N of 1096 days change" and to catch accidental cascades (a new draw on the wrong stream shows
   as `camera` or `ocean` changing on every day).
+- **Did the shares move:** `params.mjs --ref HEAD --stats 'p => p.coast.state' --where …` prints
+  each value's share at the ref and now side by side, with the change in points (⚠ at ≥ 5).
+  Run it on every choice a change touches before rendering (phase 5 found reflective beaches
+  29% → 10% only at the docs step). `--where` runs on each side's own params.
+- **Before/after images without stashing:** `snapshot.mjs --ref HEAD …` renders with that commit
+  (temporary worktree on port 5177, `scripts/refServer.mjs`); `diff.mjs --scene S --ref HEAD`
+  renders S at the ref (OUT/off) and now (OUT/on) and diffs them; `--off` then patches only the
+  ref side (drop a spec field it doesn't know). Use it for "was this already broken?".
 - **Props in tests:** `view(spec, height)` / `viewOf(params, height)` in `test/days.ts` give a
   `PropContext` (camera, `pixelAngle`) without WebGL: test what a creator places, how far and
   how many pixels, over specs and real days, before any render.
 - **Speed: `scripts/bench.mjs --ref HEAD~3`** checks out the ref in a temp worktree on port 5175
-  and renders the same dates (or `--scene`) both ways, best of `--runs 2`. It prints times
-  (`⚠ >10% slower`) and the pixel diff (~35 s, 4 default dates). Use it for the 10% rule and for
+  and renders the same dates (or `--scene`) both ways, best of `--runs 3`. It prints times
+  (`⚠ >10% slower`; `noisy` when a scene's runs differ by > 10%: the machine was busy, so rerun
+  before believing it) and the pixel diff (~50 s, 4 default dates). Use it for the 10% rule and for
   speed work, where the image must stay identical.
 - **Animals table:** `node scripts/animals.mjs` → paste into ANIMALS.md.
 - Reason from numbers before re-rendering. Post-exposure units: sky ≈ 0.1–1; above 40 clamps to
@@ -119,6 +128,12 @@ styles after clicks/taps:
   `--url http://localhost:5176/` (snapshot, bench).
 - The first `mesh.mjs` run on a fresh dev server can re-optimise deps; renders then throw
   `reading 'hasFeature'` (two three.js copies). Restart with `npx vite --force`.
+- Two vite servers must not share one deps cache. A worktree that symlinks this tree's
+  `node_modules` would share `node_modules/.vite`, and both pages then fail with `reading
+  'hasFeature'`. `refServer.mjs` gives the worktree its own `cacheDir`. If 5174 is broken that
+  way: stop it, `rm -rf node_modules/.vite`, start `npx vite` again.
+- Waiting for the dev server: it answers in 1–2 s; cap a wait loop at ~10 s and treat longer
+  as a fault, not something to wait out.
 - `bench.mjs` clears `out/bench` first. Its first HEAD render can come out wrong (no haze): re-run
   before blaming the change.
 - Vitest hides `console.log` from passing tests: a throwaway probe test prints with

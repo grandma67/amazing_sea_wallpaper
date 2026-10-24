@@ -190,6 +190,35 @@ Playwright (headless snapshots), Vitest.
   trail, and for breaking rocks white water surging after each crest (cycle 0.2–0.85); spray
   bursts only when a crest is at a breaking rock (cycle 0.2–0.38).
 
+### Coordinates and heights (read before changing terrain, tides or the shore)
+
+- **World:** camera at the origin (x, z), +Y up; azimuth 0 = −Z, clockwise from above. Height 0
+  is the sea surface at rest, always (tides lower the land, never raise the sea). The ocean is
+  drawn where `terrainHeightAt` < 0.3 m; `seaLevel()` adds the waves.
+- **Shore coordinates** (`worldToShore` / `shoreToWorld`, GLSL `shoreCoords`): `s` seaward, `a`
+  along the shore; `u = −s` inland. **s = 0 is the land frame's origin, not the water:** the foot
+  of the high-tide beach (= mean sea on micro-tidal beaches). Today's water is at `s =
+  coast.waterline`; the shoreface, bars and rips start at the terrace's seaward edge
+  (`seaDistance(s)`). The coast's curvature and wobble are in `s`, so a line of constant `s`
+  follows the shore.
+- **Camera:** stands on `max(terrainHeight(0, 0), 0)` + `camera.heightM`. `coast.distanceToWater`
+  is the camera's `u` (distance to s = 0); the water is `distanceToWater + waterline` away.
+- **Heights the props compare against** (all world heights, sea 0):
+  - `coast.runup`: today's swash above the current sea (wet sand, wet rocks).
+  - `tideMarks(coast).high` / `.spring`: today's and the spring high water. Things that must be
+    dry (plants, flowers) sit above `spring + runup`; wrack lies there.
+  - `beachLines(coast)`: wrack and storm lines as **distances inland of s = 0** (`u`), fixed on
+    the land whatever the tide does.
+- **Who measures from the shore** (update them when the water or s = 0 moves): ocean surf zone
+  (150–350 m) and shore foam (10–25 m) from `waterline` (`ocean.ts`); surf crests and spray
+  (`props/surf.ts`); rocks' pebbles and clusters (`rocks.ts`); shoreline/along-beach camera
+  distances (`generateCoast`); stones' size grading and mixed cover (`stoneHighTide`); cusps
+  (`cuspReach`, u from s = 0); ridges; debris, shore life, wildlife, pinnipeds, colonies
+  (`beachLines`); vegetation and flowers (`tideMarks`); mangroves (mean sea = height + level);
+  `profile.mjs`.
+- **Mirrors:** every height term lives in both `TERRAIN_GLSL` and the TS `beachHeight`
+  (`terrain.ts`); `test/terrain.test.ts` and `test/tides.test.ts` check them.
+
 ### Land and plants
 
 - `terrain.ts`: shared GLSL/TS height function (coast, dunes, hills, sandbar), sand shading,
