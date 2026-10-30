@@ -1,6 +1,7 @@
 import { Group, type Mesh, type Object3D } from 'three'
 
 import type { PropContext } from './context'
+import { createBeachrock } from './beachrock'
 import { createBirds } from './birds'
 import { createRollCloud, createShelfCloud } from './cloudEvents'
 import { createColony } from './colony'
@@ -50,6 +51,7 @@ export function createProps(ctx: PropContext): Group {
   add('ice', () => createIce(ctx))
   // Where mesh stones replace the shader's (terrain.ts stoneMeshRadius).
   group.userData.stoneRadius = add('stones', () => createStones(ctx))[0]?.userData.stoneRadius ?? [0, 0, 0]
+  add('beachrock', () => createBeachrock(ctx))
   add('debris', () => createDebris(ctx))
   add('shore-life', () => createShoreLife(ctx))
   add('wildlife', () => createWildlife(ctx))

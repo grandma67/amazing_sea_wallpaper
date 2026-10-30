@@ -14,7 +14,7 @@ import {
 
 import type { CoastParams } from '../params'
 import { shelterAt } from '../shelter'
-import { hasSurfZone, shoreToWorld, surfCycle, surfSets, surfWave, worldToShore } from '../terrain'
+import { hasSurfZone, shoreToWorld, surfCycle, surfReach, surfSets, surfWave, worldToShore } from '../terrain'
 import type { PropContext } from './context'
 
 // White water where waves break: spray thrown up along the breaking crests of
@@ -204,13 +204,16 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
   const step = 1.2
   // From today's water out (tides move it across the terrace).
   const first = Math.floor(coast.waterline / coast.surfWavelength)
+  // Out to the surf zone's end (a reef's crest).
+  const reach = surfReach(coast) + 110
+  const crests = Math.max(12, Math.ceil(reach / coast.surfWavelength) + 1)
   for (let a = camA - 700; a < camA + 700; a += step) {
     // Crests sit where the surf cycle reaches 0.25: solve along s.
-    for (let k = first; k < first + 12; k++) {
+    for (let k = first; k < first + crests; k++) {
       const s0 = (k + 0.25 - surfCycle(coast, 0, a)) * coast.surfWavelength
       // The cycle's along-shore noise doesn't depend on s, so this is exact.
       const s = s0 + rng.range(-0.6, 0.6)
-      if (s < coast.waterline || s > coast.waterline + 260) continue
+      if (s < coast.waterline || s > coast.waterline + reach) continue
       const [x, z] = shoreToWorld(coast, s, a)
       const depth = -ctx.ground(x, z)
       // Only where the wave is breaking (surfWave): deeper it's still a

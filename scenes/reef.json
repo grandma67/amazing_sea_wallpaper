@@ -1,0 +1,10 @@
+{
+  "base": {"eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "weather": "few", "date": "2025-07-10", "sunAzimuthDeg": 160, "reef": true, "tide": "mid", "swellHeight": 2, "swellPeriod": 11},
+  "scenes": [
+    {"name": "maldives-shoreline", "place": "maldives", "composition": "shoreline", "timeOfDay": "midday"},
+    {"name": "tahiti-overlook", "place": "pacific-islands", "composition": "overlook"},
+    {"name": "hawaii-along", "place": "hawaii", "composition": "along-beach"},
+    {"name": "maldives-low", "place": "maldives", "composition": "along-beach", "tide": "low", "tidalRange": 1.2},
+    {"name": "beachrock-along", "place": "antilles", "composition": "along-beach", "beachrock": true}
+  ]
+}

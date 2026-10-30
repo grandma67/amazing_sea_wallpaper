@@ -4,6 +4,7 @@ import {
   ShaderMaterial,
   Vector2,
   Vector3,
+  Vector4,
   type BufferGeometry,
   type Texture
 } from 'three'
@@ -13,6 +14,7 @@ import { fbm, smoothstep, vnoise } from './cellNoise'
 import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
 import { createPolarGrid } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
+import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { highWater, tideMarks } from './tides'
 
@@ -61,6 +63,14 @@ uniform float tideLevel;
 uniform vec2 terrace;
 uniform float highWater;
 uniform float waterline;
+// Fringing reef (reef.ts): crest distance seaward of the shoreface's start
+// (0: none), reef flat width, lagoon floor and crest depth below the
+// shoreface's start; passes: spacing and width along the shore, and the
+// slope down to the lagoon floor.
+uniform vec4 reef;
+uniform vec3 reefPass;
+#define REEF_RAMP ${REEF_RAMP.toFixed(1)}
+#define REEF_DROP ${REEF_DROP.toFixed(2)}
 #define COAST_OPEN_SEA 0
 #define COAST_BEACH 1
 #define COAST_ROCK_SHORE 2
@@ -262,17 +272,86 @@ float cuspHeight(float u, float a) {
   return cusps.y * horn * band * (0.7 + 0.6 * vnoise(vec2(a / 90.0, 25.3) + noiseOffset));
 }
 
+// 1 in a pass through the reef, 0 on the reef: one every reefPass.x m,
+// wandering a little.
+float reefGap(float a) {
+  float w = a / reefPass.x + 0.4 * vnoise(vec2(a / (1.5 * reefPass.x), 33.1) + noiseOffset);
+  float d = abs(fract(w + 0.5) - 0.5) * reefPass.x;
+  return 1.0 - smoothstep(0.5 * reefPass.y, reefPass.y, d);
+}
+
+// The reef crest's distance at a, wandering ±8 m.
+float reefCrest(float a) {
+  return reef.x + 8.0 * (vnoise(vec2(a / 150.0, 31.3) + noiseOffset) * 2.0 - 1.0);
+}
+
+// Coral heads (bommies) scattered over the lagoon floor, 0..1.
+float coralHeads(vec2 q) {
+  return smoothstep(0.62, 0.76, fbm(q / 14.0 + 41.0));
+}
+
+// The seabed of a reef-fronted beach: the beach face down to the lagoon
+// floor (with coral heads), up a ramp to the reef flat, the crest, then the
+// drop-off to the deep. In a pass the lagoon floor runs on to the drop-off.
+float reefHeight(float sSea, float a, vec2 q) {
+  float r = reefCrest(a);
+  float w = reef.y;
+  float lagoonDepth = reef.z;
+  float gap = reefGap(a);
+  float lagoon = -lagoonDepth * (1.0 - exp(min(-sSea * reefPass.z / lagoonDepth, 10.0)));
+  if (sSea <= r) {
+    float heads = coralHeads(q) * smoothstep(10.0, 40.0, sSea) * (1.0 - smoothstep(r - w - 40.0, r - w - REEF_RAMP, sSea));
+    lagoon += 0.6 * lagoonDepth * heads;
+    float t = smoothstep(r - w - REEF_RAMP, r - w, sSea) * (1.0 - gap);
+    // The flat dips a little toward the lagoon; the crest is highest.
+    float back = 1.0 - smoothstep(r - w, r, sSea);
+    float reefFlat = -reef.w - 0.25 * back - 0.15 * (vnoise(q / 6.0) - 0.5) * (1.0 - smoothstep(r - 10.0, r, sSea));
+    return mix(lagoon, reefFlat, t);
+  }
+  float top = mix(reef.w, lagoonDepth * (1.0 - exp(-r * reefPass.z / lagoonDepth)), gap);
+  return -top - seabedDepth * (1.0 - exp(-(sSea - r) * REEF_DROP / seabedDepth));
+}
+
+// Coral's colour (linear albedo): brown live coral and turf algae, greener
+// in patches (coral reflects ~5–15% in the visible, sand 30–50%).
+vec3 coralAlbedo(vec2 q) {
+  vec3 c = mix(vec3(0.16, 0.12, 0.07), vec3(0.09, 0.12, 0.06), smoothstep(0.4, 0.7, fbm(q / 9.0 + 17.0)));
+  return c * (0.6 + 0.8 * vnoise(q / 1.5));
+}
+
+// How much of the seabed here is coral rather than sand, 0..1: the reef
+// flat and drop-off, and coral heads in the lagoon.
+float reefCover(vec2 sa, vec2 q) {
+  if (reef.x <= 0.0) return 0.0;
+  float sSea = seaDistance(sa.x);
+  float r = reefCrest(sa.y);
+  float onReef = smoothstep(r - reef.y - REEF_RAMP, r - reef.y, sSea) * (1.0 - reefGap(sa.y));
+  float heads = coralHeads(q) * smoothstep(10.0, 40.0, sSea) * (1.0 - smoothstep(r - reef.y - 40.0, r - reef.y - REEF_RAMP, sSea));
+  return max(onReef * (0.75 + 0.25 * vnoise(q / 4.0)), smoothstep(0.0, 0.6, heads));
+}
+
+// How far seaward of today's water the surf zone reaches before fading
+// (m): out to a reef's crest.
+float surfReach() {
+  return reef.x > 0.0 ? max(150.0, terrace.y + reef.x - waterline + 60.0) : 150.0;
+}
+
 float beachHeightAt(vec2 p, vec2 sa) {
   float s = sa.x;
   float u = -s;
   vec2 q = p + noiseOffset;
 
   float sSea = seaDistance(s);
-  float sea = -sSea * nearshoreSlope;
-  // Clamped: far inland this overflows to infinity, and mix(inf, land, 1)
-  // below is inf * 0 = NaN (white specks along distant skylines).
-  sea = -seabedDepth * (1.0 - exp(min(sea / seabedDepth, 10.0)));
-  sea += barHeight(sSea, sa.y);
+  float sea;
+  if (reef.x > 0.0) {
+    sea = reefHeight(sSea, sa.y, q);
+  } else {
+    sea = -sSea * nearshoreSlope;
+    // Clamped: far inland this overflows to infinity, and mix(inf, land, 1)
+    // below is inf * 0 = NaN (white specks along distant skylines).
+    sea = -seabedDepth * (1.0 - exp(min(sea / seabedDepth, 10.0)));
+    sea += barHeight(sSea, sa.y);
+  }
 
   // Rises with the beach slope, levelling off at the back of the beach,
   // over a berm the high tides build.
@@ -578,6 +657,57 @@ export function cuspHeight(coast: CoastParams, u: number, a: number): number {
   return relief * horn * band * (0.7 + 0.6 * vnoise(a / 90 + ox, 25.3 + oz))
 }
 
+/** How far seaward of today's water the surf zone reaches before fading
+ * (m): out to a reef's crest (mirrors surfReach). */
+export function surfReach(coast: Pick<CoastParams, 'reef' | 'terrace' | 'waterline'>): number {
+  return coast.reef != null ? Math.max(150, coast.terrace.width + coast.reef.distance - coast.waterline + 60) : 150
+}
+
+/** Reef values as the shader sees them (mirrors the reef uniforms): depths
+ * below the shoreface's start, which sits terrace.height below mean sea. */
+function reefFrame(coast: Pick<CoastParams, 'reef' | 'terrace' | 'beachSlope'>): { lagoon: number; crest: number; slope: number } {
+  const reef = coast.reef!
+  const lagoon = Math.max(0.1, reef.lagoonDepth - coast.terrace.height)
+  return { lagoon, crest: Math.max(0.05, reef.crestDepth - coast.terrace.height), slope: lagoonSlope(coast) }
+}
+
+/** 1 in a pass through the reef, 0 on the reef (mirrors reefGap). */
+export function reefGap(coast: CoastParams, a: number): number {
+  if (coast.reef == null) return 0
+  const [ox, oz] = coast.noiseOffset
+  const { passSpacing, passWidth } = coast.reef
+  const w = a / passSpacing + 0.4 * vnoise(a / (1.5 * passSpacing) + ox, 33.1 + oz)
+  const d = Math.abs(w + 0.5 - Math.floor(w + 0.5) - 0.5) * passSpacing
+  return 1 - smoothstep(0.5 * passWidth, passWidth, d)
+}
+
+/** The crest's distance seaward of the shoreface's start at `a` (mirrors reefCrest). */
+export function reefCrest(coast: CoastParams, a: number): number {
+  const [ox, oz] = coast.noiseOffset
+  return coast.reef!.distance + 8 * (vnoise(a / 150 + ox, 31.3 + oz) * 2 - 1)
+}
+
+/** The seabed of a reef-fronted beach (mirrors reefHeight); qx, qz: world
+ * coords plus the noise offset. */
+export function reefHeight(coast: CoastParams, sSea: number, a: number, qx: number, qz: number): number {
+  const reef = coast.reef!
+  const { lagoon: lagoonDepth, crest, slope } = reefFrame(coast)
+  const r = reefCrest(coast, a)
+  const w = reef.flatWidth
+  const gap = reefGap(coast, a)
+  let lagoon = -lagoonDepth * (1 - Math.exp(Math.min((-sSea * slope) / lagoonDepth, 10)))
+  if (sSea <= r) {
+    const heads = smoothstep(0.62, 0.76, fbm(qx / 14 + 41, qz / 14 + 41)) * smoothstep(10, 40, sSea) * (1 - smoothstep(r - w - 40, r - w - REEF_RAMP, sSea))
+    lagoon += 0.6 * lagoonDepth * heads
+    const t = smoothstep(r - w - REEF_RAMP, r - w, sSea) * (1 - gap)
+    const back = 1 - smoothstep(r - w, r, sSea)
+    const flat = -crest - 0.25 * back - 0.15 * (vnoise(qx / 6, qz / 6) - 0.5) * (1 - smoothstep(r - 10, r, sSea))
+    return lagoon + (flat - lagoon) * t
+  }
+  const top = crest + (lagoonDepth * (1 - Math.exp((-r * slope) / lagoonDepth)) - crest) * gap
+  return -top - coast.seabedDepth * (1 - Math.exp((-(sSea - r) * REEF_DROP) / coast.seabedDepth))
+}
+
 function beachHeight(coast: CoastParams, x: number, z: number): number {
   const [ox, oz] = coast.noiseOffset
   const [s, a] = worldToShore(coast, x, z)
@@ -586,9 +716,14 @@ function beachHeight(coast: CoastParams, x: number, z: number): number {
   const qx = x + ox
   const qz = z + oz
   const sSea = seaDistance(coast, s)
-  let sea = -sSea * coast.nearshoreSlope
-  sea = -coast.seabedDepth * (1 - Math.exp(Math.min(sea / coast.seabedDepth, 10)))
-  sea += barHeight(coast, sSea, a)
+  let sea: number
+  if (coast.reef != null) {
+    sea = reefHeight(coast, sSea, a, qx, qz)
+  } else {
+    sea = -sSea * coast.nearshoreSlope
+    sea = -coast.seabedDepth * (1 - Math.exp(Math.min(sea / coast.seabedDepth, 10)))
+    sea += barHeight(coast, sSea, a)
+  }
 
   const beach =
     (u > 0 ? coast.beachSlope * coast.beachWidth * (1 - Math.exp(-u / coast.beachWidth)) : u * coast.beachSlope) +
@@ -646,7 +781,11 @@ export function terrainUniforms(coast: CoastParams): Record<string, { value: unk
     tideLevel: { value: coast.tide.level },
     terrace: { value: new Vector2(coast.terrace.height, coast.terrace.width) },
     highWater: { value: highWater(coast) },
-    waterline: { value: coast.waterline }
+    waterline: { value: coast.waterline },
+    reef: {
+      value: coast.reef != null ? new Vector4(coast.reef.distance, coast.reef.flatWidth, reefFrame(coast).lagoon, reefFrame(coast).crest) : new Vector4()
+    },
+    reefPass: { value: new Vector3(coast.reef?.passSpacing ?? 1000, coast.reef?.passWidth ?? 0, coast.reef != null ? lagoonSlope(coast) : 0) }
   }
 }
 
@@ -770,8 +909,12 @@ void main() {
     stoneAlbedo = mix(far, near, detail);
   }
 
+  // Coral: a reef flat the low tide has bared (under water the ocean
+  // shader draws it).
+  float coral = reefCover(sa, q);
+
   // Wind ripples on dry sand: fine ridges perpendicular to an oblique wind.
-  float rippleFade = (1.0 - smoothstep(0.01, 0.06, footprint)) * (1.0 - stoneW);
+  float rippleFade = (1.0 - smoothstep(0.01, 0.06, footprint)) * (1.0 - stoneW) * (1.0 - coral);
   vec2 rippleDir = normalize(vec2(0.8, 0.6));
   float warp = vnoise(q * 0.9) * 6.0 + vnoise(q * 3.1) * 1.5;
   float ripple = sin(dot(q, rippleDir) * 28.0 + warp);
@@ -781,6 +924,7 @@ void main() {
   float patches = fbm(q / 3.0);
   vec3 albedo = sandAlbedo * (0.82 + 0.3 * patches);
   albedo = mix(albedo, stoneAlbedo * (0.9 + 0.2 * patches), stoneW);
+  albedo = mix(albedo, coralAlbedo(q), coral);
   float wrack = 1.0 - smoothstep(0.0, 0.08, abs(h - tideSpring - runup * 1.25 - 0.1 * (vnoise(vec2(sa.y / 6.0, 2.0)) - 0.5)));
   albedo *= 1.0 - 0.35 * wrack * smoothstep(0.4, 0.7, vnoise(vec2(sa.y / 2.0, 5.0)));
 
@@ -813,6 +957,8 @@ void main() {
     float runnels = fbm(vec2(sa.y / 30.0, sa.x / 12.0) + warp + noiseOffset + 3.0) + 0.3 * (fbm(q / 5.0 + 11.0) - 0.5);
     pools = onTerrace * exposed * smoothstep(0.6, 0.7, runnels);
   }
+  // Water left standing in hollows of the bare reef flat.
+  pools = max(pools, coral * exposed * smoothstep(0.58, 0.68, fbm(q / 5.0 + 23.0)));
   albedo *= mix(1.0, 0.68, exposed * (1.0 - stoneW)) * mix(1.0, 0.6, pools);
   float gloss = max(max(wet, pools), exposed * (1.0 - stoneW) * (0.5 - 0.4 * drained));
 

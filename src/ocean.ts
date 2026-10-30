@@ -117,7 +117,7 @@ float surfHeight(vec2 sa, float depth, float resolution) {
   // Surf lives where the waves feel the bottom, near the shore; out deeper
   // the open-sea spectrum takes over.
   float zone = (1.0 - smoothstep(0.35 * surfWavelength, 0.6 * surfWavelength, depth)) *
-    (1.0 - smoothstep(150.0, 350.0, sa.x - waterline));
+    (1.0 - smoothstep(surfReach(), surfReach() + 200.0, sa.x - waterline));
   float sets = surfIncoming(sa);
   vec2 wave = surfWave(depth, sets);
   float x = fract(surfCycle(sa) - 0.25);
@@ -548,7 +548,8 @@ void main() {
   vec3 transmittance = exp(-absorption * path);
   float causticFade = (1.0 - smoothstep(0.3, 2.0, footprint)) * (1.0 - smoothstep(2.0, 12.0, depth));
   float caustic = mix(1.0, caustics(q + slope * depth * 2.0), causticFade);
-  vec3 floorRadiance = sandAlbedo * 0.6 / PI *
+  vec3 seabed = mix(sandAlbedo, coralAlbedo(q), reefCover(sa, q));
+  vec3 floorRadiance = seabed * 0.6 / PI *
     (sunIrradiance * max(L.y, 0.0) * caustic + skyIrradiance);
   vec3 refracted = floorRadiance * transmittance + body * (1.0 - transmittance);
 
@@ -578,6 +579,15 @@ void main() {
     vec2 streak = vec2(sa.y * 0.035, sa.x * 0.22) + noiseOffset;
     float patches = smoothstep(0.5, 0.8, fbm(streak + vec2(0.0, w * 2.0)));
     coverage = max(coverage, surfZone * 0.55 * patches * (1.0 - 0.6 * rip));
+    // A reef's crest: each wave breaks on the edge and runs on over the flat
+    // as a band of white water tens of metres wide (the surf model alone
+    // breaks it on a strip of the steep face), quieter in the passes.
+    if (reef.x > 0.0) {
+      float x = seaDistance(sa.x) - reefCrest(sa.y);
+      float band = smoothstep(-0.6 * reef.y, -0.1 * reef.y, x) * (1.0 - smoothstep(0.0, 12.0, x)) * (1.0 - reefGap(sa.y));
+      float wash = band * smoothstep(0.1, 0.6, surfAmplitude) * (0.5 + 0.5 * surfSets(sa));
+      coverage = max(coverage, wash * clamp(max(roller, 0.8 * trail) * ragged + 0.35 * patches, 0.0, 1.0));
+    }
     // Thin features alias into sparkles far away; fade them with pixel size.
     float near = 1.0 - smoothstep(1.0, 5.0, footprint);
     // Only along the real shoreline, not over shallow sandbars offshore.

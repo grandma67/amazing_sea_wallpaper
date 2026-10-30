@@ -18,6 +18,7 @@ import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
 import { Random } from './random'
 import { monthInSeason, season, seasonMonth } from './seasons'
+import { reefFor, reefShelter, type Reef } from './reef'
 import type { Shelter } from './shelter'
 import { MICRO_TIDE, relativeTideRange, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
@@ -98,6 +99,8 @@ export interface CoastParams {
   stoneSize: number
   /** Calm water behind a reef or barrier, or in a lagoon (shelter.ts); null: none. */
   shelter: Shelter | null
+  /** A fringing reef offshore (reef.ts); null: none. */
+  reef: Reef | null
   noiseOffset: [number, number]
 }
 
@@ -568,7 +571,10 @@ function generateCoast(
   const rng = Random.derive(seed, `coast${suffix}`)
   // Beach or open sea is decided once per date; retries keep it.
   const drawnType = Random.derive(seed, 'coast').chance(0.65) ? 'beach' : 'open-sea'
-  const type = or(drawnType, spec.coast ?? (spec.composition != null || isStony(spec.beachMaterial) ? 'beach' : undefined))
+  const type = or(
+    drawnType,
+    spec.coast ?? (spec.composition != null || isStony(spec.beachMaterial) || spec.reef === true || spec.beachrock === true ? 'beach' : undefined)
+  )
   rng.float() // keep attempt 0's stream identical to the original draw order
 
   // Look out to sea at an angle so the shoreline runs diagonally across the
@@ -612,6 +618,7 @@ function generateCoast(
     ridges: [],
     stoneSize: 0,
     shelter: null,
+    reef: null,
     noiseOffset: [rng.range(-5000, 5000), rng.range(-5000, 5000)]
   }
 
@@ -631,10 +638,14 @@ function generateCoast(
   const stoneU = mrng.float()
   const stoneSize = isStony(material) ? STONE_SIZES[material][0] + stoneU * (STONE_SIZES[material][1] - STONE_SIZES[material][0]) : 0
   const period = wavePeriod(ocean.swellWavelength)
+  // A fringing reef offshore (own stream): the beach behind it is shaped by
+  // the waves that cross the reef, 10–30% of the offshore ones.
+  const reef = reefFor(place.reef, hasBeach({ type }), tide.springRange, Random.derive(seed, 'reef'), spec)
+  const crossing = reef != null ? 1 - reef.strength : 1
   // A big tide for the waves modifies the state (Masselink & Short 1993);
   // micro-tidal beaches stay wave-dominated (their RTR from a calm day's
   // waves would be large, but the census classes by modal waves).
-  const breaker = breakerHeight(ocean.swellHeight, period)
+  const breaker = breakerHeight(ocean.swellHeight * crossing, period)
   const waveState = beachStateFor(material, grainMm, breaker, period, sediment, beachWeather.rough ? 1 : 0)
   const state = or(
     tide.springRange < MICRO_TIDE ? waveState : tideModified(waveState, material, relativeTideRange(tide.springRange, breaker)),
@@ -643,6 +654,11 @@ function generateCoast(
   const depthAt = (d: number, slope: number): number => coast.seabedDepth * (1 - Math.exp((-d * slope) / coast.seabedDepth))
   const shape = beachShape(state, material, material === 'shingle' || material === 'cobble' ? stoneSize : grainMm, period, depthAt, mrng)
   Object.assign(coast, shape, { state, grainMm })
+  if (reef != null) {
+    // A lagoon: no bars or rips; calm water and a lower run-up behind the reef.
+    Object.assign(coast, { reef, bars: [], rips: null, shelter: reefShelter(reef, coast.terrace.width) })
+    coast.runup = 0.25 + (coast.runup - 0.25) * crossing
+  }
   if (isStony(material)) {
     if (material !== 'mixed') coast.runup *= STONY_RUNUP
     Object.assign(coast, { material, stoneSize }, stonyShape(coast, material, mrng))
@@ -1557,6 +1573,7 @@ function buildParams(
     hasBeach(coast) ? `${biome.name} ${beachName(coast.material, coast.sand.name)}` : seaName(oceanState.windSpeed),
     basin.label
   ]
+  if (coast.reef != null) titleParts.push('coral reef')
   if (landform != null) {
     titleParts.push(
       landform.kind === 'range'

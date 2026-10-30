@@ -10,12 +10,12 @@ import { allParams, scene } from './days'
 
 /** A test lagoon: a reef 250 m out stopping 80% of the swell. */
 const reef: Shelter = { strength: 0.8, line: 250, basins: [], blur: 60 }
-const beach = scene({ coast: 'beach', beachMaterial: 'sand', tide: 'mid' })
+const beach = scene({ coast: 'beach', beachMaterial: 'sand', tide: 'mid', reef: null })
 const lagoon: CoastParams = { ...beach.coast, shelter: reef, surfAmplitude: 1.2, surfWavelength: 30 }
 
 describe('shelter mask', () => {
-  it('is unused on every real day: the ocean as before', () => {
-    for (const p of allParams()) expect(p.coast.shelter).toBeNull()
+  it('is set only behind a reef: the ocean as before elsewhere', () => {
+    for (const p of allParams()) expect(p.coast.shelter != null).toBe(p.coast.reef != null)
     expect(shelterAt(beach.coast, 100, 0)).toBe(0)
     const u = shelterUniforms(beach.coast, 8, 6)
     expect(u.shelterStrength.value).toBe(0)

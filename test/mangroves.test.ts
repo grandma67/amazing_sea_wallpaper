@@ -14,7 +14,8 @@ describe('mangroves', () => {
       const s = stand(p)
       if (s == null) continue
       expect(p.coast.type).toBe('beach')
-      expect(p.coast.surfAmplitude).toBeLessThan(SHELTERED_SURF)
+      // Calm surf, or a reef taking the swell.
+      if (p.coast.reef == null) expect(p.coast.surfAmplitude).toBeLessThan(SHELTERED_SURF)
       expect(['tropical', 'desert']).toContain(p.biome.name)
       // Red mangroves need the humid tropics; the desert coasts have grey only.
       if (p.biome.name === 'desert') {

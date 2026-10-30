@@ -76,7 +76,8 @@ describe('fall velocity and Ω', () => {
 
 describe('beach state on real days', () => {
   const days = allParams()
-  const beaches = days.filter(p => hasBeach(p.coast))
+  // Reef-fronted beaches have a lagoon instead of bars and rips (test/reef.test.ts).
+  const beaches = days.filter(p => hasBeach(p.coast) && p.coast.reef == null)
   const sand = beaches.filter(p => p.coast.material === 'sand')
 
   it('spans the states on sand, mostly steep to intermediate', () => {
@@ -141,7 +142,7 @@ describe('beach state on real days', () => {
   })
 
   it('is forced by the spec and keeps the rest of the day', () => {
-    const flat = scenes({ beachState: 'dissipative', beachMaterial: 'sand', coast: 'beach' }, 60)
+    const flat = scenes({ beachState: 'dissipative', beachMaterial: 'sand', coast: 'beach', reef: null }, 60)
     for (const p of flat) {
       expect(p.coast.state).toBe('dissipative')
       expect(p.coast.bars.length).toBeGreaterThanOrEqual(2)

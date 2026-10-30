@@ -1,6 +1,7 @@
 import type { BeachMaterial } from './beach'
 import type { BeachState } from './beachState'
 import type { CoastParams } from './params'
+import { lagoonSlope, type Reef } from './reef'
 import type { Random } from './random'
 
 // Tides (PLAN_BIOMES phase 5). Each place has a mean range (places.ts, from
@@ -128,14 +129,21 @@ export function tideModified(state: BeachState, material: BeachMaterial, rtr: nu
 /** Where the water is at `level` (m above mean sea): its seaward distance s in
  * the land frame, on the bare profile (no bars, cusps or noise). */
 export function waterlineAt(
-  coast: Pick<CoastParams, 'beachSlope' | 'beachWidth' | 'nearshoreSlope' | 'seabedDepth' | 'terrace'> & { tide?: Pick<Tide, 'springRange'> },
+  coast: Pick<CoastParams, 'beachSlope' | 'beachWidth' | 'nearshoreSlope' | 'seabedDepth' | 'terrace'> & {
+    tide?: Pick<Tide, 'springRange'>
+    reef?: Reef | null
+  },
   level: number
 ): number {
   const { height, width } = coast.terrace
   if (level >= height) return -inlandAt(coast, level - height)
   if (level >= -height) return (width * (height - level)) / (2 * height)
-  const depth = Math.min(-(level + height), coast.seabedDepth * 0.95)
-  return width - (coast.seabedDepth / coast.nearshoreSlope) * Math.log(1 - depth / coast.seabedDepth)
+  // Behind a reef the beach face runs down to the lagoon floor
+  // (terrain.ts reefHeight).
+  const floor = coast.reef != null ? Math.max(0.1, coast.reef.lagoonDepth - height) : coast.seabedDepth
+  const slope = coast.reef != null ? lagoonSlope({ ...coast, reef: coast.reef }) : coast.nearshoreSlope
+  const depth = Math.min(-(level + height), floor * 0.95)
+  return width - (floor / slope) * Math.log(1 - depth / floor)
 }
 
 /** Height of the bare high-tide beach `u` m inland of its foot: the face

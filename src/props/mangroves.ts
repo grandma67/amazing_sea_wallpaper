@@ -47,7 +47,8 @@ export function mangroveFor(params: SceneParams, rng: Random): MangroveStand | n
   const red = rng.chance(0.75)
   const length = rng.range(80, 300)
   const density = rng.range(0.5, 0.9)
-  const sheltered = coast.surfAmplitude < SHELTERED_SURF
+  // Calm surf, or a reef offshore taking the swell (reef.ts).
+  const sheltered = coast.surfAmplitude < SHELTERED_SURF || coast.reef != null
   if (!hasBeach(coast) || !forced(force, grows && sheltered)) return null
   const kind = forcedKind(force, biome.name === 'tropical' && red ? 'rhizophora' : 'avicennia')
   return { kind, length, density: kind === 'avicennia' ? density * 1.4 : density }

@@ -16,7 +16,8 @@ import type { Random } from './random'
 //   biome's, beach.ts and biome.ts);
 // - choose many: `animals`, `plants` (pools; each feature's own rules pick
 //   from them on the day);
-// - `tide`: the mean tidal range, a span the day's beach draws in (tides.ts).
+// - `tide`: the mean tidal range, a span the day's beach draws in (tides.ts);
+// - `reef`: the chance a beach day has a fringing reef offshore (reef.ts).
 // A region is a group of places sharing defaults and a spec name; it's never
 // drawn on its own. A place with no region is its own region. Defaults merge
 // biome → region → place.
@@ -94,6 +95,8 @@ export interface Place {
   stones: readonly RGB[]
   /** Mean tidal range (m), a span: each day's beach draws one in it (tides.ts). */
   tide: readonly [number, number]
+  /** Chance a beach day has a fringing reef offshore (reef.ts). */
+  reef: number
 }
 
 const nest = (species: TurtleSpecies, months?: Months, weight = 1): Animal => ({ kind: 'turtle', species, months, weight })
@@ -269,6 +272,38 @@ const TIDE: Record<string, readonly [number, number]> = {
   'nw-australia': [5, 9]
 }
 
+// Fringing reefs (PLAN_BIOMES 7; COASTS.md "Reef-fronted beaches"), by place
+// or region; none elsewhere. Islands of carbonate sand and clear water are
+// mostly reef-fronted; continental coasts much less (river mud and sand,
+// upwelling: West Africa and India have almost none). Hawaii's young islands
+// have little fringing reef (Oahu, Molokai, Kauai's north shore).
+const REEF: Record<string, number> = {
+  maldives: 0.95,
+  'andaman-lakshadweep': 0.75,
+  'sri-lanka': 0.35,
+  'pacific-islands': 0.8,
+  philippines: 0.7,
+  indonesia: 0.65,
+  'mainland-se-asia': 0.25,
+  'north-australia': 0.4,
+  'nw-australia': 0.1,
+  antilles: 0.65,
+  'bahamas-bermuda': 0.8,
+  'yucatan-belize': 0.6,
+  'central-america': 0.15,
+  'east-africa': 0.45,
+  // Recife's sandstone and coral reefs along Pernambuco and Alagoas.
+  'northeast-brazil': 0.3,
+  india: 0.05,
+  'reunion-mauritius': 0.6,
+  comoros: 0.4,
+  'lesser-antilles-volcanic': 0.25,
+  hawaii: 0.2,
+  'red-sea': 0.2,
+  // Ningaloo.
+  'western-australia-desert': 0.1
+}
+
 /** Every place, from REGIONS.md §1. Animals listed on a row replace the
  * region's. */
 const ROWS: readonly PlaceRow[] = [
@@ -412,7 +447,8 @@ function resolve(): Place[] {
       material: row.material ?? PLACE_MATERIAL[row.id] ?? defaults.material,
       sand: row.sand ?? PLACE_SAND[row.id] ?? defaults.sand ?? biomeNamed(row.biome).sands,
       stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome],
-      tide: TIDE[row.id] ?? TIDE[region] ?? DEFAULT_TIDE
+      tide: TIDE[row.id] ?? TIDE[region] ?? DEFAULT_TIDE,
+      reef: REEF[row.id] ?? REEF[region] ?? 0
     }
   })
 }

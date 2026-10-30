@@ -57,6 +57,8 @@ export interface PropOverrides {
   seaStacks?: boolean
   /** false: stony beaches drawn by the terrain shader alone, no mesh stones. */
   stones?: boolean
+  /** false: no beachrock ledges (the reef's beachrock stays in the params). */
+  beachrock?: boolean
   /** Which plants grow (the biome's own list otherwise); [] for none. */
   vegetation?: VegetationKind[]
   /** null: nothing washed up; fields replace the drawn ones. */
@@ -115,6 +117,10 @@ export interface SceneSpec {
   tide?: TideStage
   /** Today's tidal range (m), low to high water. */
   tidalRange?: number
+  /** A fringing reef offshore (reef.ts): true on any beach (implies one), null: none. */
+  reef?: boolean | null
+  /** Beachrock ledges along the waterline: true implies a reef; null: none. */
+  beachrock?: boolean | null
 
   weather?: Exclude<WeatherKind, 'storm'>
   /** Cloud genera and species, one layer each (at most 4); usually one per
@@ -265,6 +271,8 @@ const SPEC = object({
   beachState: oneOf(...BEACH_STATES),
   tide: oneOf('low', 'mid', 'high'),
   tidalRange: number,
+  reef: oneOf(true, false, null),
+  beachrock: oneOf(true, false, null),
   weather: oneOf('clear', 'cirrus', 'few', 'scattered', 'broken', 'overcast'),
   clouds: (value, path) => {
     listOf(oneOf(...GENERA))(value, path)
@@ -305,6 +313,7 @@ const SPEC = object({
     rocks: boolean,
     seaStacks: boolean,
     stones: boolean,
+    beachrock: boolean,
     vegetation: listOf(oneOf(...PLANTS)),
     debris: object(
       { driftwood: number, rootWads: boolean, wrack: oneOf(null, 'kelp', 'seagrass', 'sargassum'), wrackAmount: number, coconuts: number },
