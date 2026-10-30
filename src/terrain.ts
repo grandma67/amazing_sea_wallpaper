@@ -420,9 +420,10 @@ export function breakerIndex(coast: CoastParams): number {
  * is to breaking (0..1) and how broken it is (0 = swell, 1 = a bore). It
  * shoals from half a wavelength deep (Green's law, H ~ d^-1/4), breaks at
  * H = index × d and stays depth-limited after. `sets` scales the incoming
- * wave (surfSets). */
-export function surfWave(coast: CoastParams, depth: number, sets = 1): { height: number; steepness: number; broken: number } {
-  const h0 = 1.3 * coast.surfAmplitude * sets
+ * wave (surfSets), and a reef or barrier takes `shelter` of it (shelterAt;
+ * ocean.ts surfIncoming). */
+export function surfWave(coast: CoastParams, depth: number, sets = 1, shelter = 0): { height: number; steepness: number; broken: number } {
+  const h0 = 1.3 * coast.surfAmplitude * sets * (1 - shelter)
   const half = 0.5 * coast.surfWavelength
   const shoaled = h0 * (half / Math.min(half, Math.max(0.05, depth))) ** 0.25
   const cap = breakerIndex(coast) * depth

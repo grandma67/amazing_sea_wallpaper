@@ -18,6 +18,7 @@ import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
 import { Random } from './random'
 import { monthInSeason, season, seasonMonth } from './seasons'
+import type { Shelter } from './shelter'
 import { MICRO_TIDE, relativeTideRange, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
@@ -95,6 +96,8 @@ export interface CoastParams {
   ridges: Ridge[]
   /** Median stone size (m) on stony beaches (beach.ts STONE_SIZES); 0 on sand. */
   stoneSize: number
+  /** Calm water behind a reef or barrier, or in a lagoon (shelter.ts); null: none. */
+  shelter: Shelter | null
   noiseOffset: [number, number]
 }
 
@@ -608,6 +611,7 @@ function generateCoast(
     stoneColors: place.stones,
     ridges: [],
     stoneSize: 0,
+    shelter: null,
     noiseOffset: [rng.range(-5000, 5000), rng.range(-5000, 5000)]
   }
 

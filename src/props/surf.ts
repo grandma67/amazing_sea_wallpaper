@@ -13,6 +13,7 @@ import {
 } from 'three'
 
 import type { CoastParams } from '../params'
+import { shelterAt } from '../shelter'
 import { hasSurfZone, shoreToWorld, surfCycle, surfSets, surfWave, worldToShore } from '../terrain'
 import type { PropContext } from './context'
 
@@ -131,11 +132,12 @@ export function waterRocks(ctx: PropContext, rocks: InstancedMesh[]): WaterRock[
  * Either way the rock cuts the surface, so there's always some foam round
  * it and in its lee.
  */
-export function waveOnRock(coast: CoastParams, rock: Pick<WaterRock, 'top' | 'depth'>, seaHeight: number, sets = 1): { crest: number; breaks: number } {
+export function waveOnRock(coast: CoastParams, rock: Pick<WaterRock, 'top' | 'depth'>, seaHeight: number, sets = 1, shelter = 0): { crest: number; breaks: number } {
   // A crest stands about 0.7 of a shallow-water wave's height above still
-  // water; open-sea crests about half the significant height.
-  const surf = coast.surfAmplitude > 0 && rock.depth < 0.6 * coast.surfWavelength ? 0.7 * surfWave(coast, rock.depth, sets).height : 0
-  const crest = Math.max(surf, 0.5 * seaHeight)
+  // water; open-sea crests about half the significant height. Sheltered
+  // water keeps neither the surf nor the swell.
+  const surf = coast.surfAmplitude > 0 && rock.depth < 0.6 * coast.surfWavelength ? 0.7 * surfWave(coast, rock.depth, sets, shelter).height : 0
+  const crest = Math.max(surf, 0.5 * seaHeight * (1 - shelter))
   const breaks = crest < 0.05 ? 0 : smoothstep(0.8, 1.2, rock.top / crest)
   return { crest, breaks }
 }
@@ -216,7 +218,7 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
       if (depth < 0.15) continue
       const sets = surfSets(coast, s, a)
       if (sets < 0.3) continue
-      const wave = surfWave(coast, depth, sets)
+      const wave = surfWave(coast, depth, sets, shelterAt(coast, s, a))
       if (wave.steepness < 0.9) continue
       const distance = ctx.distance(x, z)
       if (distance > 900 || !ctx.visible(x, 1, z, 5)) continue
@@ -256,7 +258,7 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
     if (!ctx.visible(rock.x, rock.top, rock.z, size * 3)) continue
     const [s, a] = worldToShore(coast, rock.x, rock.z)
     const sets = surfSets(coast, s, a)
-    const wave = waveOnRock(coast, rock, ctx.waveHeight, sets)
+    const wave = waveOnRock(coast, rock, ctx.waveHeight, sets, shelterAt(coast, s, a))
     // In the surf a crest is at the rock when the cycle is near its crest
     // (0.25); offshore the waves are irregular: a fair chance.
     const cycle = surfCycle(coast, s, a)

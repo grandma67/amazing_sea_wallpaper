@@ -18,6 +18,7 @@ import {
 import { createPolarGrid } from './grid'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { seabedAlbedo } from './beach'
+import { middleCascadeLongest, SHELTER_GLSL, shelterUniforms } from './shelter'
 import { TERRAIN_GLSL, terrainUniforms } from './terrain'
 import { EARTH_RADIUS, type SceneParams } from './params'
 import { CASCADE_SIZE, type OceanSurface } from './spectrum'
@@ -105,13 +106,19 @@ float surfProfile(float x, float steep, float broken, float minFace) {
   return shape - mean;
 }
 
+// The incoming wave's size: its set, less what a reef or barrier has taken
+// (shelter.ts). Past a reef the broken waves re-form at 1 − shelter.
+float surfIncoming(vec2 sa) {
+  return surfSets(sa) * (1.0 - shelter(sa));
+}
+
 float surfHeight(vec2 sa, float depth, float resolution) {
   if (surfAmplitude <= 0.0 || !hasSurfZone()) return 0.0;
   // Surf lives where the waves feel the bottom, near the shore; out deeper
   // the open-sea spectrum takes over.
   float zone = (1.0 - smoothstep(0.35 * surfWavelength, 0.6 * surfWavelength, depth)) *
     (1.0 - smoothstep(150.0, 350.0, sa.x - waterline));
-  float sets = surfSets(sa);
+  float sets = surfIncoming(sa);
   vec2 wave = surfWave(depth, sets);
   float x = fract(surfCycle(sa) - 0.25);
   return wave.x * zone * surfProfile(x, surfSteepness(depth, sets), wave.y, 2.5 * resolution / surfWavelength);
@@ -120,6 +127,7 @@ float surfHeight(vec2 sa, float depth, float resolution) {
 
 const vertexShader = /* glsl */ `
 ${TERRAIN_GLSL}
+${SHELTER_GLSL}
 ${SURF_GLSL}
 uniform float waveHeight;
 uniform sampler2D a0;
@@ -155,9 +163,13 @@ void main() {
 
   vec2 sa = shoreCoords(grid);
   float depth = max(-terrainHeightAt(grid, sa), 0.0);
+  // Sheltered water keeps no swell and only the chop its fetch raises
+  // (shelter.ts cascadeShelter).
+  float sheltered = shelter(sa);
+  float damping = shallowDamping(depth);
   vec3 d =
-    (displacement(a0, grid, cascadeSize.x, spacing) +
-    displacement(a1, grid, cascadeSize.y, spacing)) * shallowDamping(depth) +
+    displacement(a0, grid, cascadeSize.x, spacing) * damping * (1.0 - sheltered) +
+    displacement(a1, grid, cascadeSize.y, spacing) * damping * (1.0 - sheltered * (1.0 - shelterChop)) +
     displacement(a2, grid, cascadeSize.z, spacing) * shortDamping(depth);
   d.y += surfHeight(sa, depth, spacing);
 
@@ -177,6 +189,7 @@ const fragmentShader = /* glsl */ `
 #define PI 3.14159265359
 ${TERRAIN_GLSL}
 ${SHADOW_GLSL}
+${SHELTER_GLSL}
 ${SURF_GLSL}
 uniform vec3 absorption;
 uniform vec3 sandAlbedo;
@@ -328,15 +341,18 @@ void main() {
   float depth = max(-ground, 0.0);
   float damping = shallowDamping(depth);
   float shortDamp = shortDamping(depth);
+  // One factor for everything read from the cascades: slopes, the Jacobian
+  // foam and whitecaps (as in the vertex shader).
+  float sheltered = shelter(sa);
 
   vec4 derivatives = vec4(0.0);
   float dxz = 0.0;
   vec2 variance = vec2(0.0);
-  cascade(a0, b0, c0, cascadeSize.x, damping, derivatives, dxz, variance);
+  cascade(a0, b0, c0, cascadeSize.x, damping * (1.0 - sheltered), derivatives, dxz, variance);
   // Wind gusts and slicks: large patches where the short waves are rougher or
   // calmer. Breaks up visible tiling and looks like real open water.
   float gust = mix(0.45, 1.5, fbm(vGrid / 700.0 + noiseOffset * 0.01));
-  cascade(a1, b1, c1, cascadeSize.y, damping * mix(1.0, gust, 0.5), derivatives, dxz, variance);
+  cascade(a1, b1, c1, cascadeSize.y, damping * (1.0 - sheltered * (1.0 - shelterChop)) * mix(1.0, gust, 0.5), derivatives, dxz, variance);
   // Rain stirs a thin turbulent layer that damps the shortest gravity waves.
   cascade(a2, b2, c2, cascadeSize.z, shortDamp * gust * (1.0 - 0.6 * rain), derivatives, dxz, variance);
 
@@ -546,7 +562,7 @@ void main() {
   if (hasSurfZone()) {
     // White water where the waves have broken (surfWave), from the break
     // point to the shore; it starts as the crest begins to spill.
-    float sets = surfSets(sa);
+    float sets = surfIncoming(sa);
     float surfZone = smoothstep(0.85, 1.0, surfSteepness(depth, sets));
     // A spilling breaker: a turbulent roller of whitewater tumbling down the
     // steep front face, and a trail of foam left behind the crest that thins
@@ -565,8 +581,9 @@ void main() {
     // Thin features alias into sparkles far away; fade them with pixel size.
     float near = 1.0 - smoothstep(1.0, 5.0, footprint);
     // Only along the real shoreline, not over shallow sandbars offshore.
+    // A sheltered shore gets only ripples lapping at it: a thin edge.
     float shore = (1.0 - smoothstep(0.0, 0.2, depth)) * (1.0 - smoothstep(10.0, 25.0, sa.x - waterline)) *
-      smoothstep(0.2, 0.6, fbm(q * 0.3 + 5.0));
+      smoothstep(0.2, 0.6, fbm(q * 0.3 + 5.0)) * (1.0 - 0.7 * sheltered);
     coverage = max(coverage, shore * near * 0.8);
 
     // Rocks tear the sea: a collar of foam where the water wraps round them
@@ -677,6 +694,7 @@ export function createOcean(
       c2: { value: s2.c },
       cascadeSize: { value: new Vector3(s0.size, s1.size, s2.size) },
       ...terrainUniforms(params.coast),
+      ...shelterUniforms(params.coast, ocean.windSpeed, middleCascadeLongest(surface.cascades.map(c => c.size))),
       surfAmplitude: { value: params.coast.surfAmplitude },
       surfWavelength: { value: params.coast.surfWavelength },
       surfPhase: { value: params.coast.surfPhase },

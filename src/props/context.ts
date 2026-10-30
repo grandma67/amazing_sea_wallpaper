@@ -2,8 +2,9 @@ import { DataUtils, Frustum, Matrix4, Vector3, type PerspectiveCamera } from 'th
 
 import type { SceneParams } from '../params'
 import { Random } from '../random'
+import { cascadeShelter, chopFactor, middleCascadeLongest, shelterAt, shelterFetch } from '../shelter'
 import { CASCADE_SIZE, type OceanSurface } from '../spectrum'
-import { terrainHeight } from '../terrain'
+import { terrainHeight, worldToShore } from '../terrain'
 
 /** A storm overhead (thunderstorm, squall or storm sky): animals take
  * cover — gulls sit it out on the water, seals go into the sea, crabs stay
@@ -43,12 +44,17 @@ export class PropContext {
 
   /** Height of the open-sea waves at (x, z): the sum of the FFT cascades'
    * heights, sampled like the ocean shader does (ignoring the small
-   * sideways displacement and the damping in the shallows). */
+   * sideways displacement and the damping in the shallows), with sheltered
+   * water's swell taken out as the shader does (shelter.ts). */
   seaLevel(x: number, z: number): number {
     if (this.surface == null) return 0
     const n = CASCADE_SIZE
+    const { coast } = this.params
+    const sheltered = coast.shelter != null ? shelterAt(coast, ...worldToShore(coast, x, z)) : 0
+    const keep = sheltered > 0 ? cascadeShelter(sheltered, this.chop) : [1, 1, 1]
     let h = 0
-    for (const { size, a } of this.surface.cascades) {
+    for (const [c, { size, a }] of this.surface.cascades.entries()) {
+      if (keep[c] <= 0) continue
       const u = (x / size) * n - 0.5
       const v = (z / size) * n - 0.5
       const i = Math.floor(u)
@@ -60,9 +66,16 @@ export class PropContext {
         const row = (((j + dj) % n) + n) % n
         return DataUtils.fromHalfFloat(a[(row * n + col) * 4 + 1])
       }
-      h += (at(0, 0) * (1 - fu) + at(1, 0) * fu) * (1 - fv) + (at(0, 1) * (1 - fu) + at(1, 1) * fu) * fv
+      const level = (at(0, 0) * (1 - fu) + at(1, 0) * fu) * (1 - fv) + (at(0, 1) * (1 - fu) + at(1, 1) * fu) * fv
+      h += keep[c] === 1 ? level : level * keep[c]
     }
     return h
+  }
+
+  /** Share of the middle cascade's chop a sheltered fetch keeps (shelter.ts). */
+  private get chop(): number {
+    if (this.surface == null) return 1
+    return chopFactor(shelterFetch(this.params.coast), this.params.ocean.windSpeed, middleCascadeLongest(this.surface.cascades.map(c => c.size)))
   }
 
   /** Significant wave height of the open sea (m), 0 without waves. */

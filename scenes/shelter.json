@@ -1,0 +1,10 @@
+{
+  "base": { "eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "weather": "scattered", "coast": "beach", "beachMaterial": "sand", "date": "2024-05-08", "sunAzimuthDeg": 160, "tide": "mid", "swellHeight": 2.5, "swellPeriod": 11,
+    "params": { "coast": { "shelter": { "strength": 0.8, "line": 160, "basins": [], "blur": 60 } } } },
+  "scenes": [
+    { "name": "lagoon-shoreline", "place": "maldives", "composition": "shoreline" },
+    { "name": "lagoon-overlook", "place": "maldives", "composition": "overlook" },
+    { "name": "basin-overlook", "place": "norway", "composition": "overlook",
+      "params": { "coast": { "shelter": { "strength": 1, "line": null, "basins": [{ "s": 250, "a": 0, "halfS": 200, "halfA": 600 }], "blur": 60 } } } }
+  ]
+}
