@@ -185,6 +185,16 @@ tool gotchas in TOOLS.md.
   with a 1–2 m tide "tide-modified" (reflective 29% → 10%). The census classes by modal waves;
   keep micro-tidal beaches wave-dominated.
 
+- Calming water means more than lowering the displacement: slopes, the Jacobian foam, whitecaps,
+  the surf (incoming height, not the depth cap), spray, waves on rocks and the CPU `seaLevel()`
+  each read the waves separately. Put the factor beside `shallowDamping` in both shaders and pass
+  the same mask to every TS mirror (`shelterAt`), or the calm lagoon keeps spray and foam.
+- Scaling the surf's deep-water height still shoals the re-formed wave by Green's law as the
+  lagoon shallows: "≤ 0.3 × offshore" holds against the incoming wave at the same depth, not
+  against the deep-water height (at 1 m depth 0.2 × h0 shoals to ~0.4 × h0).
+- Wind chop in a lagoon is fetch-limited: a 10 m/s wind over 300 m raises ~1.7 m waves, which
+  live in the middle cascade (1–6.5 m), not the shortest (< 1 m). Scale the middle cascade by
+  fetch and leave the shortest alone.
 - Rewriting `x *= a * b * c` as `x * a * b * c` changes the last bit of x (different rounding
   order) and `params.mjs --ref` shows dozens of changed days. Keep the grouping when wrapping a
   value in `or()`.

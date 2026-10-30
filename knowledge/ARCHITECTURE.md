@@ -184,6 +184,18 @@ Playwright (headless snapshots), Vitest.
   trough ≈ −0.3 H); face narrows 0.3 → 0.12 of the wavelength toward breaking, 0.06 broken, never
   below 2.5 grid cells or pixels. Waves re-form over the trough behind a sandbar. Roller foam and
   crest spray (`props/surf.ts`) follow the steepness.
+- **Calm water** (`shelter.ts`, PLAN_BIOMES 6): `coast.shelter` (null on every day until the
+  reef, phase 7) holds a `strength` (0..1), a reef/barrier `line` (an `s`: calm shoreward of it)
+  and up to 4 `basins` (ellipses in shore coords), blurred over `blur` m (~1 swell wavelength,
+  all on the calm side). `shelterAt` (TS) mirrors `shelter()` in `SHELTER_GLSL`. Per cascade
+  (`cascadeShelter`): the longest × (1 − m), the middle × (1 − m (1 − chop)), the shortest
+  untouched; `chop = chopFactor(fetch, wind, longest)` is fetch-limited JONSWAP (Hs ∝ √F up to
+  the fetch whose peak reaches the middle cascade's longest wave, `cascadeSize[1] / 6`); fetch is
+  the lagoon width behind a line or a basin's mean diameter. Both ocean shaders apply it next to
+  `shallowDamping`, so slopes, Jacobian foam and whitecaps follow; `PropContext.seaLevel()` too.
+  Surf: `surfIncoming` = sets × (1 − m) (TS: `surfWave(…, shelter)`), so waves past a reef re-form
+  at 1 − strength; spray, `waveOnRock` (surf and open-sea crest) and shore foam (× 1 − 0.7 m)
+  follow. Test with `params.coast.shelter` (`scenes/shelter.json`).
 - **Rocks in the sea:** `props/surf.ts` `waterRocks()` lists rocks cutting the surface; 
   `waveOnRock()` compares the crest there (0.7 × surf height, or half the open sea's Hs) with the
   rock top → `breaks`. `ocean.ts setOceanRocks()` (nearest 48, `rockData`): collar foam, a lee
@@ -455,6 +467,12 @@ rolling onto the beach as surf, turtle heads at sea.
 - At low tide on terraced rip beaches (low-tide bar and rip) the emerged inner bar and rip
   channels show as straight-edged shelves near the water (e.g. `scenes/tides.json`
   brittany-low): the channel walls and the terrace edge were shaped to be seen underwater.
+- Waves re-form at full height behind a sandbar: the surf is local-depth only, so a wave that
+  broke on the bar crest grows back in the trough as if it hadn't (real ones leave at ~γ × the
+  crest depth and decay toward ~0.4 × depth, Dally et al. 1985). The shelter mask covers reefs and
+  barriers, not bars; doing it for bars changes every barred day.
+- Shelter doesn't lower run-up or calm the wet-sand band yet (`coast.runup` is drawn from the
+  open surf); phase 7 should set it for reef beaches.
 - Tidepools are runnels and puddles on the terrace (shader patches), not pools among rocks.
 - `place: "western-med"`, 2024-05-08, along-beach daylight front-lit: the whole beach renders
   dark blue (same at a6ac87a, before tides).

@@ -85,3 +85,6 @@ Sources behind built features. Research for planned work lives with its plan: co
   OJMS 2015 Red Sea model); Masselink & Short 1993 (relative tide range, tide-modified and
   tide-dominated beaches); Short 2006 (shares and low-tide terrace widths); Incheon spring/neap
   ratio ≈ 1.46
+- Calm water (`shelter.ts`): Hasselmann et al. 1973 (JONSWAP fetch-limited growth: g·Hs/U² =
+  1.6e-3 (gF/U²)^½, U·fp/g = 3.5 (gF/U²)^−0.33); Dally, Dean & Dalrymple 1985 (broken waves decay
+  toward a stable height ~0.4 × depth, behind bars: a known issue, not modelled)
