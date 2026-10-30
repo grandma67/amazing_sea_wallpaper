@@ -26,7 +26,12 @@
 //   --ref HEAD              render with that commit instead of --url (a
 //                           temporary worktree served on 5177, refServer.mjs),
 //                           e.g. "was this already broken before my change?".
-//                           Spec fields the commit doesn't know fail there.
+//                           Implies --drop-unknown.
+//   --drop-unknown          leave out spec fields the served commit doesn't
+//                           know (a new feature's own field, e.g. "reef"),
+//                           checked with that commit's sceneSpec.ts and
+//                           printed, instead of failing; bench.mjs passes it
+//                           for the "before" run
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -44,6 +49,9 @@ const option = (name, fallback) => {
 }
 let baseUrl = option('url', 'http://localhost:5174/')
 const ref = option('ref', null)
+const dropFlag = args.indexOf('--drop-unknown')
+if (dropFlag !== -1) args.splice(dropFlag, 1)
+const dropUnknown = dropFlag !== -1 || ref != null
 const outDir = option('out', 'out')
 const width = Number(option('w', 3840))
 const height = Number(option('h', 2160))
@@ -140,7 +148,33 @@ page.on('console', msg => {
 })
 page.on('pageerror', error => console.log('[page error]', error.message))
 
-for (const { date, spec, name } of todo) {
+/** The spec without the fields the served commit's parser rejects as
+ * unknown (its own src/sceneSpec.ts, loaded from the dev server). */
+async function knownFields(spec) {
+  await page.goto(new URL('src/sceneSpec.ts', baseUrl).toString())
+  const { kept, dropped } = await page.evaluate(async spec => {
+    const { parseSceneSpec } = await import('/src/sceneSpec.ts')
+    const dropped = []
+    for (;;) {
+      try {
+        parseSceneSpec(spec)
+        return { kept: spec, dropped }
+      } catch (error) {
+        const m = /scene spec: spec\.([\w.]+) is not a known field/.exec(error.message)
+        if (m == null) throw error
+        const path = m[1].split('.')
+        const owner = path.slice(0, -1).reduce((o, k) => o[k], spec)
+        delete owner[path.at(-1)]
+        dropped.push(m[1])
+      }
+    }
+  }, structuredClone(spec))
+  if (dropped.length > 0) console.log(`[snapshot] not known at this commit, left out: ${dropped.join(', ')}`)
+  return kept
+}
+
+for (const { date, spec: asked, name } of todo) {
+  const spec = asked != null && dropUnknown ? await knownFields(asked) : asked
   const started = Date.now()
   const url = new URL(baseUrl)
   if (date != null) url.searchParams.set('date', date)

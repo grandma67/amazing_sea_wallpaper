@@ -228,6 +228,23 @@ Playwright (headless snapshots), Vitest.
   (`cuspReach`, u from s = 0); ridges; debris, shore life, wildlife, pinnipeds, colonies
   (`beachLines`); vegetation and flowers (`tideMarks`); mangroves (mean sea = height + level);
   `profile.mjs`.
+- **A new seabed or shore profile** (reef, rock platform, tidal flat): its readers, beyond the
+  height function itself (found one by one in phase 7):
+  1. `TERRAIN_GLSL` and the TS `beachHeight` (and its tests: `test/terrain.test.ts`);
+  2. `waterlineAt` (`tides.ts`): today's water is found on the bare profile, so a new shoreface
+     must be invertible there;
+  3. the surf zone's reach (`surfReach`: ocean `surfHeight`, spray in `props/surf.ts`) if waves
+     break further than ~150 m out, and the break band (`profile.mjs` prints it);
+  4. seabed colour under water (`ocean.ts` floor albedo) and the terrain shader where it dries;
+  5. the shelter mask (`coast.shelter`), run-up and the beach state's breaker if waves lose
+     height before the beach;
+  6. props that ask for calm or deep water (mangroves, `waterSpot`, rocks in the sea, beach
+     lines);
+  7. tests that assume every beach has bars, rips or no shelter (`beachState`, `shelter`,
+     `mangroves` tests) — filter the new kind out there, test it in its own file;
+  8. `profile.mjs` (map extent, the numbers it prints) so the shape can be checked unrendered.
+  Keep shared helpers in a module that imports neither `terrain.ts` nor `tides.ts` (they import
+  each other's dependents: a cycle broke half the test files).
 - **Mirrors:** every height term lives in both `TERRAIN_GLSL` and the TS `beachHeight`
   (`terrain.ts`); `test/terrain.test.ts` and `test/tides.test.ts` check them.
 

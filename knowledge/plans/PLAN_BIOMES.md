@@ -98,6 +98,18 @@ addition:
   what `distanceToWater`, `waterline` and `beachLines` mean afterwards, and which readers in
   ARCHITECTURE.md "Coordinates and heights" must change. Check the shape with
   `profile.mjs` (it can be sketched with a forced spec first) before any shader work.
+- **Research per phase:** 1–2 searches for the phase's numbers before code (CLAUDE.md), recorded
+  with their source in REGIONS.md or COASTS.md. Cite only what was read: a figure "from" a paper
+  that wasn't opened is worse than no figure (phase 7 had to take one out).
+- **Props are their own step:** a new prop (beachrock, salt-marsh tufts, tidepool life) gets its
+  own checklist line and commit after the terrain and water work, so a long phase can stop
+  cleanly between them.
+- **New profiles:** go through ARCHITECTURE.md "A new seabed or shore profile" (the readers
+  besides the height function) before code, and check drawn vs reached numbers in
+  `profile.mjs` before the first render.
+- **Expected shares from the table:** `params.mjs --expect 'pl => …'` gives a choice's expected
+  share from the place weights with no sampling; use it for test targets and the plan's
+  "~N% of days" checks.
 - **Shares before renders:** after the first passing test, run `params.mjs --ref HEAD --stats`
   on every choice the phase touches (state, cusps, rips, material…); a ⚠ (≥ 5 points) is
   either the point of the phase or a bug, decided before rendering.

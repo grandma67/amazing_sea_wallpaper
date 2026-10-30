@@ -12,9 +12,12 @@
 // ones the page renders (generateSceneParams).
 //
 // Prints: state, grain, slopes, width, bars, rips, cusps, ridges, run-up,
-// beach lines and the break depth; then heights along s (m seaward of the
-// waterline; negative is land) at the camera's along-shore position, and at
-// the nearest rip channel when there is one.
+// beach lines and the break depth; a reef's numbers (drawn and reached
+// lagoon depth, crest, passes, shelter) and the surf zone's reach; where
+// waves break along the camera's cut (bands of s, so a 2 m strip on a steep
+// reef face shows before any render); then heights along s (m seaward of the
+// waterline; negative is land) at the camera's along-shore position, at the
+// nearest rip channel and at the nearest reef pass.
 // Writes OUT/NAME.profile.png (default out/profile): sea at the top, land
 // below, the along-shore coordinate a across. Land brown to green by height,
 // water light to dark blue by depth, contours every 0.5 m, the waterline
@@ -86,10 +89,10 @@ const f = (x, d = 2) => (Math.abs(x) < 1e4 ? Number(x).toFixed(d) : String(x))
 
 const server = await createServer({ cacheDir: resolve('node_modules/.vite-params'), server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom', logLevel: 'error' })
 try {
-  const [{ generateSceneParams }, { parseSceneSpec }, terrain, { beachLines }] = await Promise.all(
-    ['/src/composition.ts', '/src/sceneSpec.ts', '/src/terrain.ts', '/src/beach.ts'].map(p => server.ssrLoadModule(p))
+  const [{ generateSceneParams }, { parseSceneSpec }, terrain, { beachLines }, { shelterAt }, { lagoonSlope }] = await Promise.all(
+    ['/src/composition.ts', '/src/sceneSpec.ts', '/src/terrain.ts', '/src/beach.ts', '/src/shelter.ts', '/src/reef.ts'].map(p => server.ssrLoadModule(p))
   )
-  const { terrainHeight, shoreToWorld, worldToShore, surfBreakDepth, ripGap, hasLand } = terrain
+  const { terrainHeight, shoreToWorld, worldToShore, surfBreakDepth, surfWave, surfReach, ripGap, reefGap, reefCrest, hasLand } = terrain
   await mkdir(outDir, { recursive: true })
   for (const { name, spec: raw } of await specs()) {
     const { date: specDate, ...spec } = raw
@@ -125,6 +128,36 @@ try {
         (c.terrace.width > 0 ? ` · terrace ±${f(c.terrace.height, 1)} m over ${f(c.terrace.width, 0)} m` : '')
     )
     console.log(`camera: ${f(-camS, 1)} m inland, a = ${f(camA, 0)} m, ${c.composition}, eye ${f(p.camera.heightM, 1)} m`)
+    const reach = surfReach(c)
+    if (c.reef != null) {
+      const r = c.reef
+      const crestS = c.terrace.width + reefCrest(c, camA)
+      // Heights above mean sea (+ level), so they compare with the drawn depths.
+      let floor = 0
+      for (let s = c.waterline; s < crestS - r.flatWidth - 15; s += 1) floor = Math.min(floor, at(s, camA) + level)
+      console.log(
+        `reef: crest ${f(crestS, 0)} m out (${f(at(crestS - 2, camA) + level)} m at mean sea, drawn −${f(r.crestDepth)}) · flat ${f(r.flatWidth, 0)} m · ` +
+          `lagoon floor ${f(floor)} m reached (drawn −${f(r.lagoonDepth)}, slope ${f(lagoonSlope(c), 3)}) · passes every ${f(r.passSpacing, 0)} m, ${f(r.passWidth, 0)} m wide · ` +
+          `shelter ${f(r.strength)} from ${f(c.shelter.line - c.shelter.blur, 0)} m in · beachrock ${r.beachrock ? 'yes' : 'no'}`
+      )
+    } else if (c.shelter != null) {
+      console.log(`shelter: ${f(c.shelter.strength)} · line ${c.shelter.line == null ? 'none' : `${f(c.shelter.line, 0)} m`} · ${c.shelter.basins.length} basins · blur ${f(c.shelter.blur, 0)} m`)
+    }
+    // Where a full set wave breaks along the camera's cut (shelter included).
+    const breaking = []
+    let wasOn = false
+    for (let i = 0; i < 2 * (reach + 200); i++) {
+      const s = c.waterline + i / 2
+      const depth = -at(s, camA)
+      const on = depth > 0.15 && surfWave(c, depth, 1, shelterAt(c, s, camA)).steepness >= 0.9
+      if (on && wasOn) breaking.at(-1)[1] = s
+      else if (on) breaking.push([s, s])
+      wasOn = on
+    }
+    console.log(
+      `surf zone to ${f(c.waterline + reach, 0)} m out (fades by +200) · breaking at ` +
+        (breaking.length === 0 ? 'none' : breaking.map(([a, b]) => `${f(a, 0)}–${f(b, 0)} m (${f(b - a + 0.5, 1)} m wide)`).join(', '))
+    )
 
     // Cross-shore profiles: at the camera, and through the nearest channel.
     const cuts = [['camera', camA]]
@@ -133,16 +166,27 @@ try {
       for (let a = camA - c.rips.spacing; a <= camA + c.rips.spacing; a += 1) if (ripGap(c, a) > 0.99 && (best == null || Math.abs(a - camA) < Math.abs(best - camA))) best = a
       if (best != null) cuts.push(['rip', best])
     }
+    if (c.reef != null) {
+      let best = null
+      for (let a = camA - c.reef.passSpacing; a <= camA + c.reef.passSpacing; a += 2) if (reefGap(c, a) > 0.99 && (best == null || Math.abs(a - camA) < Math.abs(best - camA))) best = a
+      if (best != null) cuts.push(['pass', best])
+    }
     // Around today's water (the tide moves it across a terrace).
     const w = Math.round(Math.max(0, c.waterline) / 10) * 10
     const ss = [-40, -30, -20, -15, -10, -5, -2, 0, 2, 5, 10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 150, 200, 250, 300, 400].map(s => s + w)
+    // Out past a reef's crest.
+    if (c.reef != null) {
+      const crestS = Math.round(c.terrace.width + reefCrest(c, camA))
+      for (const d of [-c.reef.flatWidth - 15, -10, 0, 10, 30]) ss.push(Math.round(crestS + d))
+      ss.sort((x, y) => x - y)
+    }
     console.log(`s (m)      ${ss.map(s => String(s).padStart(6)).join('')}`)
     for (const [label, a] of cuts) console.log(`${`${label} a=${f(a, 0)}`.padEnd(11)}${ss.map(s => f(at(s, a)).padStart(6)).join('')}`)
 
     // Top-down map: rows from the sea (top) to the land, columns along the shore.
     // Down to just behind the camera (overlooks stand up to ~600 m inland).
     const s0 = Math.max(-650, Math.min(-80, camS - 40))
-    const s1 = Math.max(260, ...c.bars.map(b => b.distance * 1.6), breakDepth / c.nearshoreSlope + 60) + Math.max(0, c.waterline)
+    const s1 = Math.max(260, ...c.bars.map(b => b.distance * 1.6), breakDepth / c.nearshoreSlope + 60, reach + 100) + Math.max(0, c.waterline)
     const a0 = camA - 400
     const a1 = camA + 400
     const W = Math.round((a1 - a0) / res)

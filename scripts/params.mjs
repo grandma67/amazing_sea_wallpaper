@@ -7,6 +7,7 @@
 //   node scripts/params.mjs --list [--where EXPR] [--fields a.b,c] [--limit 40]
 //   node scripts/params.mjs --ref REF [--fields a.b,c] [--list] [--scene SPEC] [DATE...]
 //   node scripts/params.mjs --ref REF --stats 'p => …' [--where EXPR]
+//   node scripts/params.mjs --expect 'pl => …'
 //   node scripts/params.mjs --help
 //
 // DATE is YYYY-MM-DD or a range FROM..TO. Without dates, --stats and --list
@@ -24,6 +25,15 @@
 // Each day also has p.props: what the props choose (src/props/choices.ts:
 //   gulls, marine, migratory, wildlife, shoreLife, debris, mangroves), on the
 //   render's own random streams. Placement can still miss the frame.
+// And p.placeData: the day's place as places.ts resolves it (weight, tide,
+//   reef chance, material and sand chances, pools), for expressions such as
+//   'p => p.placeData.reef > 0.5'.
+// --expect 'pl => …' asks the place table instead of the days: over every
+//   place weighted by its share of days, a number is averaged ("the share
+//   of days you should get") and anything else is counted as a weighted
+//   share; null leaves the place out (a filter). E.g. the expected reef
+//   share on tropical beach days: 'pl => pl.biome === "tropical" ? pl.reef : null'.
+//   No sampling noise, and no days to generate.
 // And p.view: what the camera sees of the ground at 1080p (eye height, lens,
 //   pixel angle, nearest ground in frame; src/composition.ts frameView), to
 //   check before rendering whether a near-camera prop can be in view and how
@@ -50,6 +60,8 @@
 //   node scripts/params.mjs --ref HEAD --fields coast.sand.name --list --limit 10
 //   node scripts/params.mjs --ref HEAD --stats 'p => p.coast.state' --where 'p => p.coast.type === "beach"'
 //   node scripts/params.mjs --scene scenes/stony.json --fields title,view
+//   node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null'
+//   node scripts/params.mjs --stats 'p => p.coast.reef != null' --where 'p => p.placeData.reef > 0'
 
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -82,6 +94,7 @@ const fields = (fieldsArg ?? 'title').split(',').filter(Boolean)
 const where = option('where', null)
 const stats = option('stats', null)
 const ref = option('ref', null)
+const expect = option('expect', null)
 const list = flag('list')
 const rendered = flag('rendered')
 const limit = Number(option('limit', ref != null ? 20 : 1e9))
@@ -139,20 +152,24 @@ async function load(root) {
   // is written into the worktree while git removes it.
   const server = await createServer({ root, cacheDir: resolve('node_modules/.vite-params'), server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom', logLevel: 'error' })
   const mod = path => server.ssrLoadModule(path)
-  const [{ generateParams }, { parseSceneSpec }, { propChoices }, { frameView, generateSceneParams }] = await Promise.all([
+  const [{ generateParams }, { parseSceneSpec }, { propChoices }, { frameView, generateSceneParams }, places] = await Promise.all([
     mod('/src/params.ts'),
     mod('/src/sceneSpec.ts'),
     mod('/src/props/choices.ts'),
-    mod('/src/composition.ts')
+    mod('/src/composition.ts'),
+    // Older refs may not have places.ts.
+    mod('/src/places.ts').catch(() => ({}))
   ])
   const day = (date, spec) => {
     const p = rendered ? generateSceneParams(date, 16 / 9, spec) : generateParams(date, 0, 16 / 9, spec)
     const out = { ...p, props: propChoices(p) }
     // Computed only when asked for (it marches rays over the terrain).
     Object.defineProperty(out, 'view', { get: () => frameView(p), enumerable: false })
+    // Not enumerable either: it isn't a param, so --ref doesn't count it.
+    Object.defineProperty(out, 'placeData', { get: () => places.PLACES?.find(pl => pl.id === p.place?.id), enumerable: false })
     return out
   }
-  return { server, parseSceneSpec, day }
+  return { server, parseSceneSpec, day, places: places.PLACES ?? [] }
 }
 
 /** A temporary worktree of `ref` (removed afterwards), as bench.mjs makes. */
@@ -266,7 +283,31 @@ function printChanges(pairs, sha) {
   }
 }
 
+/** Weighted over the place table: numbers averaged, the rest counted. */
+function printExpect(places) {
+  const of = fn(expect)
+  const rows = places.map(pl => [of(pl), pl.weight]).filter(([v]) => v != null)
+  const total = rows.reduce((t, [, w]) => t + w, 0)
+  const share = places.reduce((t, pl) => t + pl.weight, 0)
+  console.log(`${rows.length} of ${places.length} places, ${(100 * total / share).toFixed(1)}% of days`)
+  if (rows.every(([v]) => typeof v === 'number')) {
+    console.log(`weighted mean ${(rows.reduce((t, [v, w]) => t + v * w, 0) / total).toFixed(4)}`)
+    return
+  }
+  const counts = new Map()
+  for (const [v, w] of rows) counts.set(JSON.stringify(v), (counts.get(JSON.stringify(v)) ?? 0) + w)
+  for (const [v, w] of [...counts].sort((a, b) => b[1] - a[1])) console.log(`${(100 * w / total).toFixed(1).padStart(6)}%  ${v}`)
+}
+
 const here = await load(process.cwd())
+if (expect != null) {
+  try {
+    printExpect(here.places)
+  } finally {
+    await here.server.close()
+  }
+  process.exit(0)
+}
 const old = ref != null ? await worktree() : null
 const there = old != null ? await load(old.tree) : null
 try {

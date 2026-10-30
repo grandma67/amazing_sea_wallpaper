@@ -59,11 +59,17 @@ lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop the server when don
     Props on the reshaped ground still move. A composition re-roll can still differ.
 - **Coast shape without rendering: `scripts/profile.mjs`** (~0.6 s/scene, TS mirror of the terrain
   shader). Prints state, grain, slopes, bars, rips, cusps, ridges, run-up, beach lines, break
-  depth and the camera's place; heights along s at the camera and through the nearest rip
-  channel; writes `NAME.profile.png`: sea at the top, a across, land brown→green by height, water
+  depth and the camera's place; on reef days the reef (crest and lagoon depth **drawn vs
+  reached**, flat, passes, shelter); how far the surf zone reaches (`surfReach`) and **where a full
+  wave breaks along the camera's cut** (bands of s with their width: a 2 m strip on a steep face
+  won't read as a white line from afar); heights along s at the camera, through the nearest rip
+  channel and the nearest reef pass (out past the crest); writes `NAME.profile.png` (out to the
+  surf zone's end): sea at the top, a across, land brown→green by height, water
   light→dark blue by depth, 0.5 m contours, black waterline, **white where the day's waves break**,
   red camera, 50 m grid. Use it for any terrain or depth feature before a render (rips that don't
-  cut the breaker line, cusps too small, bars too deep show here).
+  cut the breaker line, cusps too small, bars too deep, a lagoon that never reaches its depth,
+  surf breaking on too narrow a band show here). Compare every drawn number with the reached
+  one before rendering.
   ```sh
   node scripts/profile.mjs --scene scenes/beach-states.json --out $SP/profile
   node scripts/profile.mjs --scene '{"place":"namibia","coast":"beach","swellHeight":2.5,"swellPeriod":12}' 2024-06-11
@@ -72,7 +78,9 @@ lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop the server when don
   - `--region top|bottom|centre|X0,Y0,X1,Y1` (fractions) for sky features;
   - `--compare $SP/before` puts pairs side by side;
   - `--match REGEX` filters names (`'\.rocks$'` for crops).
-- **Zoom into one render:** `contact-sheet.mjs --dir D --match '^NAME$' --region X0,Y0,X1,Y1`. A
+- **Zoom into one render:** `contact-sheet.mjs --dir D --match '^NAME$' --region X0,Y0,X1,Y1`
+  (fractions 0..1 of the frame, not pixels: a `--props` box `[627,926,821,1080]` at 1920×1080 is
+  `0.33,0.86,0.43,1`). A
   single image fills the sheet (2400 px wide), so a small region comes out magnified (the bottom
   0.45 × 0.16 of a 1080p frame ≈ 2.7×). Several images share the width: thumbnails, not a zoom.
   `sips --cropOffset` silently returns the whole image here; there's no PIL.
@@ -84,6 +92,15 @@ lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop the server when don
   ```sh
   node scripts/params.mjs --rendered --scene '{"place":"nova-scotia","composition":"shoreline"}' --fields view 2025-07-10
   node scripts/params.mjs --stats 'p => p.coast.composition + " " + Math.min(40, Math.round(p.view.nearest / 5) * 5)' --where 'p => p.coast.type === "beach"'
+  ```
+- **Expected shares from the place table, no sampling:** `params.mjs --expect 'pl => …'` weighs
+  every place (`places.ts` `Place`) by its share of days: numbers are averaged (the share you
+  should get), anything else counted; null leaves a place out. Each day also has `p.placeData`
+  (its resolved place: weight, tide, reef, material and sand chances, pools) for `--where` and
+  `--stats`. Use these instead of a probe test to set a test's `expectShare` target.
+  ```sh
+  node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null'   # 0.46
+  node scripts/params.mjs --stats 'p => p.coast.reef != null' --where 'p => p.placeData.reef > 0.5'
   ```
 - **Which days did a change touch:** `params.mjs --ref HEAD` (or any ref) generates every test
   day with that commit (temporary worktree) and with this tree, and counts the days that differ
@@ -98,14 +115,18 @@ lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop the server when don
 - **Before/after images without stashing:** `snapshot.mjs --ref HEAD …` renders with that commit
   (temporary worktree on port 5177, `scripts/refServer.mjs`); `diff.mjs --scene S --ref HEAD`
   renders S at the ref (OUT/off) and now (OUT/on) and diffs them; `--off` then patches only the
-  ref side (drop a spec field it doesn't know). Use it for "was this already broken?".
+  ref side. Spec fields the ref doesn't know (the feature's own `reef`, `props.beachrock`) are
+  left out there and named (`--drop-unknown`, checked with the ref's own `sceneSpec.ts`), so a
+  new feature's scene file works with `--ref` as it is. Use it for "was this already broken?".
 - **Props in tests:** `view(spec, height)` / `viewOf(params, height)` in `test/days.ts` give a
   `PropContext` (camera, `pixelAngle`) without WebGL: test what a creator places, how far and
   how many pixels, over specs and real days, before any render.
 - **Speed: `scripts/bench.mjs --ref HEAD~3`** checks out the ref in a temp worktree on port 5175
   and renders the same dates (or `--scene`) both ways, best of `--runs 3`. It prints times
   (`⚠ >10% slower`; `noisy` when a scene's runs differ by > 10%: the machine was busy, so rerun
-  before believing it) and the pixel diff (~50 s, 4 default dates). Use it for the 10% rule and for
+  before believing it) and the pixel diff (~50 s, 4 default dates). With `--scene`, the ref run
+  drops spec fields it doesn't know (as `snapshot.mjs --ref`), so the feature's own scene file
+  benchmarks it. Use it for the 10% rule and for
   speed work, where the image must stay identical.
 - **Animals table:** `node scripts/animals.mjs` → paste into ANIMALS.md.
 - Reason from numbers before re-rendering. Post-exposure units: sky ≈ 0.1–1; above 40 clamps to
@@ -136,6 +157,10 @@ styles after clicks/taps:
   as a fault, not something to wait out.
 - `bench.mjs` clears `out/bench` first. Its first HEAD render can come out wrong (no haze): re-run
   before blaming the change.
+- GLSL ES 3.00 keywords and reserved words that read like names: `flat`, `smooth`, `half`,
+  `input`, `output`, `filter`, `active`, `common`, `partition`, `fixed`, `long`, `short`. And `smoothstep(e0, e1, x)` with
+  e0 ≥ e1 is undefined (works on one GPU, not another): write `1.0 - smoothstep(e1, e0, x)`. Both
+  show only at render time: after any shader edit, render `--w 320 --h 180 --frames 1` first.
 - Vitest hides `console.log` from passing tests: a throwaway probe test prints with
   `process.stderr.write(…)` (and is deleted afterwards). Prefer `params.mjs` or a real test.
 - Scripted edits: Python `str.replace` hits every match (`"  cirrus: {"` also hit the choice

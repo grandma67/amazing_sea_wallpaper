@@ -41,9 +41,9 @@ describe('reef chances', () => {
       expect(hasBeach(p.coast)).toBe(true)
       expect(placeNamed(p.place.id).reef).toBeGreaterThan(0)
     }
-    // Over forced tropical beach days, the place-weighted chance (≈ 0.48:
+    // Over forced tropical beach days, the place-weighted chance (0.46, params.mjs --expect:
     // continental coasts, a third of tropical days, have few reefs).
-    expectShare(scenes({ ...base, biome: 'tropical' }, 400), p => p.coast.reef != null, 0.48)
+    expectShare(scenes({ ...base, biome: 'tropical' }, 400), p => p.coast.reef != null, 0.46)
     expectShare(scenes({ ...base, place: 'maldives' }, 100), p => p.coast.reef != null, 0.95)
   })
 

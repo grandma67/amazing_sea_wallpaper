@@ -43,12 +43,12 @@ const sha = shortSha(ref)
 /** Renders everything `runs` times; the fastest time per name, and the
  * spread (slowest / fastest) to tell a real change from a busy machine. */
 const spread = new Map()
-function render(url, dir) {
+function render(url, dir, extra = []) {
   const times = new Map()
   const slowest = new Map()
   for (let run = 0; run < runs; run++) {
     const job = scene != null ? ['--scene', scene] : dates
-    const r = spawnSync('node', ['scripts/snapshot.mjs', '--url', url, '--out', dir, ...size, ...job], { encoding: 'utf8' })
+    const r = spawnSync('node', ['scripts/snapshot.mjs', '--url', url, '--out', dir, ...size, ...extra, ...job], { encoding: 'utf8' })
     if (r.status !== 0) throw new Error(`snapshot.mjs failed on ${url}:\n${r.stdout}\n${r.stderr}`)
     for (const line of r.stdout.split('\n')) {
       const m = line.match(/\/([^/]+)\.jpg\s+([\d.]+)s/)
@@ -70,7 +70,8 @@ try {
   const old = await serveRef(ref, 5175)
   let before
   try {
-    before = render(old.url, join(out, 'before'))
+    // A new feature's spec fields don't exist at the ref: left out there.
+    before = render(old.url, join(out, 'before'), ['--drop-unknown'])
   } finally {
     old.close()
   }

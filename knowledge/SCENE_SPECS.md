@@ -109,8 +109,11 @@ node scripts/params.mjs --help
 node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-06
 node scripts/params.mjs --scene '{"storm":"squall"}' --stats 'p => p.weather.formations'   # spec on every day
 node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'    # prop choices
+node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null' # from the place table
 ```
 
+- `p.placeData` = the day's resolved place (`places.ts` `Place`: weight, tide, reef, chances,
+  pools); `--expect 'pl => …'` asks the place table directly, weighted by share of days.
 - `p.props` = what the props choose (`src/props/choices.ts`: gulls, marine, migratory, wildlife,
   shoreLife, debris, mangroves), on the same streams as the render.
 - `--where`/`--stats` take a JS function of `SceneParams`; `--stats` counts array elements.
