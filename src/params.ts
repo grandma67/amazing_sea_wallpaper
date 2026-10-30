@@ -677,7 +677,7 @@ function generateCoast(
   // back face.
   if (type === 'rock-shore') {
     const rrng = Random.derive(seed, 'rock-shore')
-    const rock = rockShoreFor(tide.springRange, rrng, { kind: spec.rockShore, overlook: spec.composition == null ? undefined : spec.composition === 'overlook' })
+    const rock = rockShoreFor(tide.springRange, biomeNamed(place.biome).rockColors, rrng, { kind: spec.rockShore, overlook: spec.composition == null ? undefined : spec.composition === 'overlook' })
     Object.assign(coast, {
       rock,
       nearshoreSlope: rrng.range(0.03, 0.06),

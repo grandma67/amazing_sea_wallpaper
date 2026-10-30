@@ -15,7 +15,7 @@ describe('rock shore shape', () => {
   it('has each drawn kind within its real ranges', () => {
     for (let i = 0; i < 300; i++) {
       for (const range of [0.3, 1.5, 4, 9]) {
-        const rock = rockShoreFor(range, Random.derive(`r${i}`, 'rock-shore'))
+        const rock = rockShoreFor(range, [[0.3, 0.3, 0.3]], Random.derive(`r${i}`, 'rock-shore'))
         expect(rock.top).toBeGreaterThan(range / 2)
         if (rock.kind === 'platform') {
           expect(rock.width).toBeGreaterThanOrEqual(25)
@@ -34,13 +34,13 @@ describe('rock shore shape', () => {
   })
 
   it('draws a third cliffs and forces the kind without moving other draws', () => {
-    const kinds = Array.from({ length: 3000 }, (_, i) => rockShoreFor(1, Random.derive(`k${i}`, 'rock-shore')).kind)
+    const kinds = Array.from({ length: 3000 }, (_, i) => rockShoreFor(1, [[0.3, 0.3, 0.3]], Random.derive(`k${i}`, 'rock-shore')).kind)
     expect(kinds.filter(k => k === 'cliff').length / kinds.length).toBeCloseTo(0.33, 1)
-    const drawn = rockShoreFor(1, Random.derive('x', 'rock-shore'), { kind: 'platform' })
-    const again = rockShoreFor(1, Random.derive('x', 'rock-shore'), { kind: 'platform' })
+    const drawn = rockShoreFor(1, [[0.3, 0.3, 0.3]], Random.derive('x', 'rock-shore'), { kind: 'platform' })
+    const again = rockShoreFor(1, [[0.3, 0.3, 0.3]], Random.derive('x', 'rock-shore'), { kind: 'platform' })
     expect(again).toEqual(drawn)
-    expect(rockShoreFor(1, Random.derive('x', 'rock-shore'), { overlook: true }).kind).toBe('cliff')
-    for (let i = 0; i < 50; i++) expect(rockShoreFor(1, Random.derive(`o${i}`, 'rock-shore'), { overlook: false }).kind).not.toBe('cliff')
+    expect(rockShoreFor(1, [[0.3, 0.3, 0.3]], Random.derive('x', 'rock-shore'), { overlook: true }).kind).toBe('cliff')
+    for (let i = 0; i < 50; i++) expect(rockShoreFor(1, [[0.3, 0.3, 0.3]], Random.derive(`o${i}`, 'rock-shore'), { overlook: false }).kind).not.toBe('cliff')
   })
 
   it('finds the water on its bare profile (rockWaterline inverts bareRock)', () => {

@@ -3,6 +3,9 @@
     { "name": "platform", "rockShore": "platform" },
     { "name": "platform-along", "rockShore": "platform", "composition": "along-beach" },
     { "name": "platform-framed", "rockShore": "platform", "composition": "framed" },
-    { "name": "boulder", "rockShore": "boulder" },
-    { "name": "cliff", "rockShore": "cliff" }
+    { "name": "boulder", "rockShore": "boulder", "composition": "along-beach" },
+    { "name": "cliff", "rockShore": "cliff" },
+    { "name": "iceland-basalt", "place": "iceland", "rockShore": "platform", "composition": "along-beach", "sunAzimuthDeg": 20 },
+    { "name": "med-cliff", "place": "aegean", "rockShore": "cliff", "timeOfDay": "golden-hour", "sunAzimuthDeg": 30 },
+    { "name": "brittany-low", "place": "brittany", "rockShore": "platform", "tide": "low", "composition": "along-beach" }
   ] }

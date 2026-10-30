@@ -15,7 +15,7 @@ import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
 import { createPolarGrid } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
-import { ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
+import { LICHEN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { highWater, tideMarks } from './tides'
 
@@ -385,7 +385,10 @@ float bareRock(float s, float width, float r) {
   float top = rockShape.y;
   float backWidth = max(rockBack.y, ROCK_MIN_FACE * r);
   if (s <= -backWidth) return top + rockBack.x;
-  if (s < 0.0) return top - rockBack.x * s / backWidth;
+  if (s < 0.0) {
+    float t = -s / backWidth;
+    return top + rockBack.x * t * t * (3.0 - 2.0 * t);
+  }
   float slope = rockShape.x > 0.0 ? (rockShape.z - top) / rockShape.x : 0.0;
   if (s <= width) return top + slope * s;
   float edge = top + slope * width;
@@ -430,8 +433,12 @@ float boulderField(vec2 x, float size) {
       uint n = hashCell(c + ivec2(i, j) + ivec2(907, 311));
       vec2 centre = vec2(i, j) + 0.25 + 0.5 * vec2(float(n & 0xffu), float((n >> 8) & 0xffu)) / 255.0;
       float r = 0.35 + 0.25 * float((n >> 16) & 0xffu) / 255.0;
-      float k = length(f - centre) / r;
-      h = max(h, r * 1.3 * sqrt(max(0.0, 1.0 - k * k)));
+      // Blocky, not balls: a lumpy outline, flattened tops of varied height.
+      vec2 d = f - centre;
+      float lump = 0.8 + 0.4 * vnoise(d * 3.0 + vec2(float(n >> 24), 7.0));
+      float k = length(d) / (r * lump);
+      float tall = 0.6 + 0.8 * float((n >> 24) & 0xfu) / 15.0;
+      h = max(h, r * tall * min(1.0, 1.6 * sqrt(max(0.0, 1.0 - k * k))));
     }
   }
   return h * size;
@@ -455,7 +462,7 @@ float rockHeightAt(vec2 p, vec2 sa) {
     smoothstep(-0.2, 1.0, fbm(q / 1400.0 + 7.0));
   h += 0.35 * (fbm(q / 7.0) - 0.5) * smoothstep(back, back + 10.0, u);
   float footS = width + max(rockShape.w / rockBack.z, ROCK_MIN_FACE * length(p));
-  float band = smoothstep(-back - 25.0, -back + 1.0, s) * (1.0 - smoothstep(footS + 20.0, footS + 50.0, s));
+  float band = smoothstep(rockBack.w > 0.0 ? -back - 2.0 : -back - 25.0, -back + 1.0, s) * (1.0 - smoothstep(footS + 20.0, footS + 50.0, s));
   if (band > 0.0) {
     // The camera is at the origin: detail finer than the terrain grid
     // (2.2% of the distance) softens with distance, or it zig-zags.
@@ -974,6 +981,9 @@ uniform float tideSpring;
 uniform vec3 groundCover;
 uniform float groundCoverAmount;
 uniform float pixelAngle;
+// Rocky shores: the rock's colour and the lichens' (linear albedo).
+uniform vec3 rockColor;
+uniform vec3 lichenColor;
 varying vec3 vWorld;
 
 void main() {
@@ -1047,9 +1057,11 @@ void main() {
   // Coral: a reef flat the low tide has bared (under water the ocean
   // shader draws it).
   float coral = reefCover(sa, q);
+  // A rocky shore (rockShore.ts): bare rock instead of sand.
+  float rockW = coastKind == COAST_ROCK_SHORE ? 1.0 : 0.0;
 
   // Wind ripples on dry sand: fine ridges perpendicular to an oblique wind.
-  float rippleFade = (1.0 - smoothstep(0.01, 0.06, footprint)) * (1.0 - stoneW) * (1.0 - coral);
+  float rippleFade = (1.0 - smoothstep(0.01, 0.06, footprint)) * (1.0 - stoneW) * (1.0 - coral) * (1.0 - rockW);
   vec2 rippleDir = normalize(vec2(0.8, 0.6));
   float warp = vnoise(q * 0.9) * 6.0 + vnoise(q * 3.1) * 1.5;
   float ripple = sin(dot(q, rippleDir) * 28.0 + warp);
@@ -1061,13 +1073,47 @@ void main() {
   albedo = mix(albedo, stoneAlbedo * (0.9 + 0.2 * patches), stoneW);
   albedo = mix(albedo, coralAlbedo(q), coral);
   float wrack = 1.0 - smoothstep(0.0, 0.08, abs(h - tideSpring - runup * 1.25 - 0.1 * (vnoise(vec2(sa.y / 6.0, 2.0)) - 0.5)));
-  albedo *= 1.0 - 0.35 * wrack * smoothstep(0.4, 0.7, vnoise(vec2(sa.y / 2.0, 5.0)));
+  albedo *= 1.0 - 0.35 * wrack * smoothstep(0.4, 0.7, vnoise(vec2(sa.y / 2.0, 5.0))) * (1.0 - rockW);
+  float rockPools = 0.0;
+  if (rockW > 0.0) {
+    float fine = 1.0 - smoothstep(0.05, 0.4, footprint);
+    vec3 rockC = rockColor * (0.72 + 0.5 * fbm(q / 2.5) + 0.25 * fine * (vnoise(q * 3.0) - 0.5));
+    // Faces and risers darker and bare.
+    float steep = smoothstep(0.35, 0.85, 1.0 - N.y);
+    rockC *= mix(1.0, 0.72, steep);
+    float patchy = fbm(q / 1.7 + 5.0);
+    // Above the sea's reach, lichens: a black band in the splash zone
+    // (Verrucaria), then the biome's grey, yellow or orange crusts.
+    float above = h - tideSpring - runup;
+    float splash = smoothstep(-0.2, 0.3, above) * (1.0 - smoothstep(1.2, 2.5, above));
+    rockC = mix(rockC, vec3(0.03, 0.03, 0.035), 0.7 * splash * smoothstep(0.35, 0.55, patchy));
+    float spots = smoothstep(0.62, 0.7, vnoise(q * 1.3 + 3.0) * 0.6 + patchy * 0.4) * smoothstep(1.5, 3.0, above) * (1.0 - steep);
+    rockC = mix(rockC, lichenColor, 0.6 * spots);
+    // Below the spring high water: weed, mussels and barnacles.
+    float tideBand = 1.0 - smoothstep(tideSpring - 0.3, tideSpring + 0.1 * vnoise(q * 2.0), h);
+    vec3 weed = mix(vec3(0.035, 0.035, 0.04), vec3(0.09, 0.075, 0.025) * (0.7 + 0.6 * vnoise(q * 4.0)), smoothstep(0.35, 0.55, patchy));
+    rockC = mix(rockC, weed, 0.8 * tideBand);
+    // Cobbles on the gully floors.
+    float g = rockGully(sa, length(p));
+    float cobbles = 1.0 - smoothstep(0.015, 0.05, footprint);
+    if (g > 0.3 && cobbles > 0.0) {
+      vec2 c = q / 0.18;
+      float stones = smoothstep(0.05, 0.15, cellBorder(c));
+      vec3 cobble = rockColor * (0.6 + 0.6 * cellValue(ivec2(floor(c))));
+      rockC = mix(rockC, mix(rockColor * 0.2, cobble, stones), smoothstep(0.3, 0.7, g) * cobbles);
+    }
+    // Pools the falling tide leaves in hollows and gullies of the platform.
+    float onPlatform = smoothstep(-1.0, 3.0, sa.x) * (1.0 - smoothstep(rockShape.x - 5.0, rockShape.x + 2.0, sa.x));
+    float hollow = max(smoothstep(0.6, 0.85, g), 1.0 - smoothstep(0.3, 0.36, fbm(q / 18.0)));
+    rockPools = onPlatform * hollow * (1.0 - smoothstep(tideSpring - 0.2, tideSpring + 0.1, h));
+    albedo = rockC;
+  }
 
   // Vegetation behind the beach: patchy ground cover thickening inland, thin
   // on steep slopes and dune crests.
   float inland = -sa.x;
-  float coverStart = beachWidth * 0.75 + duneWidth * 0.3;
-  float cover = smoothstep(coverStart, coverStart + duneWidth + 30.0, inland);
+  float coverStart = rockW > 0.0 ? rockBack.y + 1.0 : beachWidth * 0.75 + duneWidth * 0.3;
+  float cover = smoothstep(coverStart, coverStart + (rockW > 0.0 ? 8.0 : duneWidth + 30.0), inland);
   cover *= smoothstep(0.25, 0.65, fbm(q / 25.0) * 0.6 + fbm(q / 4.0) * 0.4 + cover * 0.25);
   cover *= smoothstep(0.75, 0.9, N.y) * groundCoverAmount;
   vec3 coverAlbedo = groundCover * (0.6 + 0.8 * fbm(q / 9.0 + 4.0));
@@ -1077,7 +1123,8 @@ void main() {
   float wetLine = runup * (0.85 + 0.3 * vnoise(vec2(sa.y / 25.0, 7.0)));
   float wet = 1.0 - smoothstep(wetLine * 0.7, wetLine, h);
   // Wet stones darken a little more than sand.
-  albedo *= mix(1.0, mix(0.55, 0.5, stoneW), wet);
+  float hard = max(stoneW, rockW);
+  albedo *= mix(1.0, mix(0.55, 0.5, hard), wet);
   // Sand the falling tide has left since high water: still saturated near
   // the water, draining higher up; on a low-tide terrace water stays ponded
   // in runnels along the shore and in puddles.
@@ -1094,8 +1141,9 @@ void main() {
   }
   // Water left standing in hollows of the bare reef flat.
   pools = max(pools, coral * exposed * smoothstep(0.58, 0.68, fbm(q / 5.0 + 23.0)));
-  albedo *= mix(1.0, 0.68, exposed * (1.0 - stoneW)) * mix(1.0, 0.6, pools);
-  float gloss = max(max(wet, pools), exposed * (1.0 - stoneW) * (0.5 - 0.4 * drained));
+  pools = max(pools, rockPools);
+  albedo *= mix(1.0, 0.68, exposed * (1.0 - hard)) * mix(1.0, 0.6, pools);
+  float gloss = max(max(wet, pools), exposed * (1.0 - hard) * (0.5 - 0.4 * drained));
 
   vec3 L = sunDirection;
   vec3 V = normalize(cameraPosition - vWorld);
@@ -1109,7 +1157,7 @@ void main() {
     // A film of water: mirror-like reflection of the sky and the sun.
     // On stones the film follows each stone, so each gets its own glint;
     // ponded water lies flat.
-    vec3 Nw = normalize(mix(N, vec3(0.0, 1.0, 0.0), max(mix(0.7, 0.15, stoneW), pools)));
+    vec3 Nw = normalize(mix(N, vec3(0.0, 1.0, 0.0), max(mix(0.7, 0.15, hard), pools)));
     float NoV = max(dot(Nw, V), 1e-3);
     float F = 0.02 + 0.98 * pow(1.0 - NoV, 5.0);
     vec3 R = reflect(-V, Nw);
@@ -1160,6 +1208,8 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       tideSpring: { value: tideMarks(coast).spring },
       groundCover: { value: new Color(...params.biome.groundCover) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
+      rockColor: { value: new Color(...(coast.rock?.color ?? [0.3, 0.3, 0.3])) },
+      lichenColor: { value: new Color(...LICHEN[params.biome.name]) },
       pixelAngle: { value: 0.001 },
       ...shadowUniforms()
     }

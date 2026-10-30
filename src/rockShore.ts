@@ -1,4 +1,5 @@
 import { fbm, hashCell, smoothstep, vnoise } from './cellNoise'
+import type { Biome, RGB } from './biome'
 import type { Random } from './random'
 
 // Rocky shores (PLAN_BIOMES 8; knowledge/plans/ROCK_SHORE.md): no beach, the
@@ -54,6 +55,17 @@ export interface RockShore {
   gully: number
   /** Boulder size (m) on a boulder shore; 0: none. */
   boulder: number
+  /** The rock's colour (linear albedo), one of the biome's rock colours. */
+  color: RGB
+}
+
+/** Lichen crusts on dry rock by biome (as props/rocks.ts GROWTH). */
+export const LICHEN: Record<Biome['name'], RGB> = {
+  tropical: [0.45, 0.42, 0.35],
+  mediterranean: [0.55, 0.38, 0.08],
+  nordic: [0.5, 0.5, 0.42],
+  volcanic: [0.45, 0.45, 0.4],
+  desert: [0.5, 0.32, 0.1]
 }
 
 /** Kind weights: cliff tops about a third (much rocky coast is only seen
@@ -77,9 +89,10 @@ export interface RockForce {
 /** The day's rocky shore: every draw made first on `rng` (stream
  * 'rock-shore'), then the kind is forced. `springRange`: the tide the shore
  * is built for (tides.ts). */
-export function rockShoreFor(springRange: number, rng: Random, force: RockForce = {}): RockShore {
+export function rockShoreFor(springRange: number, colors: readonly RGB[], rng: Random, force: RockForce = {}): RockShore {
   const drawn = rng.weighted(KIND_WEIGHTS)
   const u = Array.from({ length: 14 }, () => rng.float())
+  const color = colors[Math.min(colors.length - 1, Math.floor(rng.float() * colors.length))]
   const kind = force.kind ?? (force.overlook === true ? 'cliff' : force.overlook === false && drawn === 'cliff' ? 'platform' : drawn)
   const hw = springRange / 2
   const common = {
@@ -117,7 +130,8 @@ export function rockShoreFor(springRange: number, rng: Random, force: RockForce 
         bedding: 0.25 + 0.45 * u[12],
         ...common,
         gully: 0.4 + 1.1 * u[13],
-        boulder: 0
+        boulder: 0,
+        color
       }
     }
     case 'boulder': {
@@ -138,7 +152,8 @@ export function rockShoreFor(springRange: number, rng: Random, force: RockForce 
         bedding: 0.4,
         ...common,
         gully: 0,
-        boulder: 0.8 + 1.4 * u[12]
+        boulder: 0.8 + 1.4 * u[12],
+        color
       }
     }
     case 'cliff': {
@@ -159,7 +174,8 @@ export function rockShoreFor(springRange: number, rng: Random, force: RockForce 
         bedding: 1 + 2 * u[12],
         ...common,
         gully: 0.4 + 1.1 * u[13],
-        boulder: 0
+        boulder: 0,
+        color
       }
     }
   }
@@ -180,7 +196,11 @@ export const ROCK_MIN_FACE = 0.03
 export function bareRock(rock: RockShore, nearshoreSlope: number, seabedDepth: number, s: number, width = rock.width, distance = 0): number {
   const backWidth = Math.max(rock.backWidth, ROCK_MIN_FACE * distance)
   if (s <= -backWidth) return rock.top + rock.backHeight
-  if (s < 0) return rock.top - (rock.backHeight * s) / backWidth
+  if (s < 0) {
+    // Rounded at the crest and the foot, steepest (1.5 × the mean) between.
+    const t = -s / backWidth
+    return rock.top + rock.backHeight * t * t * (3 - 2 * t)
+  }
   if (s <= width) return width > 0 ? rock.top + ((rock.edge - rock.top) * s) / width : rock.top
   const edge = rock.top + (rock.edge - rock.top) * (rock.width > 0 ? width / rock.width : 0)
   const run = Math.max(rock.scarp / rock.scarpSlope, ROCK_MIN_FACE * distance)
@@ -194,7 +214,18 @@ export function bareRock(rock: RockShore, nearshoreSlope: number, seabedDepth: n
 /** Where the water is at `level` (m above mean sea) on the bare profile:
  * its seaward distance s (m). Inverts bareRock. */
 export function rockWaterline(rock: RockShore, nearshoreSlope: number, seabedDepth: number, level: number): number {
-  if (level >= rock.top) return -Math.min(1, (level - rock.top) / rock.backHeight) * rock.backWidth
+  if (level >= rock.top) {
+    // Invert the back face's smoothstep.
+    const k = Math.min(1, (level - rock.top) / rock.backHeight)
+    let lo = 0
+    let hi = 1
+    for (let i = 0; i < 40; i++) {
+      const t = (lo + hi) / 2
+      if (t * t * (3 - 2 * t) < k) lo = t
+      else hi = t
+    }
+    return -((lo + hi) / 2) * rock.backWidth
+  }
   if (rock.width > 0 && level >= rock.edge) return (rock.width * (rock.top - level)) / Math.max(rock.top - rock.edge, 1e-6)
   const foot = scarpFoot(rock)
   if (level >= foot.height) return rock.width + (rock.edge - level) / rock.scarpSlope
@@ -265,8 +296,12 @@ export function boulderField(x: number, z: number, size: number): number {
       const px = i + 0.25 + (0.5 * (n & 0xff)) / 255
       const pz = j + 0.25 + (0.5 * ((n >>> 8) & 0xff)) / 255
       const r = 0.35 + (0.25 * ((n >>> 16) & 0xff)) / 255
-      const k = Math.hypot(fx - px, fz - pz) / r
-      h = Math.max(h, r * 1.3 * Math.sqrt(Math.max(0, 1 - k * k)))
+      const dx = fx - px
+      const dz = fz - pz
+      const lump = 0.8 + 0.4 * vnoise(dx * 3 + (n >>> 24), dz * 3 + 7)
+      const k = Math.hypot(dx, dz) / (r * lump)
+      const tall = 0.6 + (0.8 * ((n >>> 24) & 0xf)) / 15
+      h = Math.max(h, r * tall * Math.min(1, 1.6 * Math.sqrt(Math.max(0, 1 - k * k))))
     }
   }
   return h * size
@@ -296,7 +331,7 @@ export function rockSurface(coast: RockCoast, s: number, a: number, x: number, z
   h += coast.hillHeight * smoothstep(back + 20, back + 520, u) * (0.25 + 0.75 * fbm(qx / 450, qz / 450)) * smoothstep(-0.2, 1, fbm(qx / 1400 + 7, qz / 1400 + 7))
   h += 0.35 * (fbm(qx / 7, qz / 7) - 0.5) * smoothstep(back, back + 10, u)
   const footS = width + Math.max(rock.scarp / rock.scarpSlope, ROCK_MIN_FACE * dist)
-  const band = smoothstep(-back - 25, -back + 1, s) * (1 - smoothstep(footS + 20, footS + 50, s))
+  const band = smoothstep(rock.boulder > 0 ? -back - 2 : -back - 25, -back + 1, s) * (1 - smoothstep(footS + 20, footS + 50, s))
   if (band > 0) {
     const n = rock.relief * 2 * (fbm(qx / 18, qz / 18) - 0.5)
     const sharp =
