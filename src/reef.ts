@@ -3,8 +3,9 @@ import type { Shelter } from './shelter'
 
 // Reef-fronted tropical beaches (PLAN_BIOMES 7). Most island beaches in the
 // tropics sit behind a fringing reef: the waves break on its crest 100–500 m
-// out and lose 70–90% of their height there, and a calm lagoon 1–3 m deep
-// lies between it and the sand (Kench & Brander 2006; Gourlay 1996). The reef
+// out and lose most of their height there (re-formed at 10–30%, PLAN_BIOMES
+// 6), and a calm lagoon 1–3 m deep lies between it and the sand (research
+// and sources: COASTS.md "Reef-fronted beaches"). The reef
 // flat behind the crest has grown up to about the lowest tides, so spring low
 // water lays it bare. Passes cut it every kilometre or so. On ~30% of these
 // beaches beachrock (sand cemented in the intertidal) crops out as grey
@@ -36,8 +37,8 @@ export interface Reef {
 export const REEF_RAMP = 15
 /** Fore-reef slope below the crest (the drop-off, ~30°). */
 export const REEF_DROP = 0.6
-/** Share of reef beaches with beachrock (Vousdoukas et al. 2007: common on
- * tropical and subtropical micro-tidal beaches). */
+/** Share of reef beaches with beachrock (the plan's; Vousdoukas et al. 2007:
+ * common on tropical and subtropical micro-tidal beaches). */
 const BEACHROCK = 0.3
 
 /** What a scene spec can force. */

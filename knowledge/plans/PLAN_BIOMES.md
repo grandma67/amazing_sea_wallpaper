@@ -4,7 +4,7 @@ Brings the wallpaper's coasts closer to the world's: real places, stony beaches,
 shores, reef-fronted tropical beaches, tides, beach shapes that follow the waves, more sand
 colours, calm lagoons, two missing climates, the real sun for the place and date, and (later)
 coastal weather and the animals these open up. Research is in COASTS.md and REGIONS.md;
-sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture), 2d (mesh stones), 2e (other props) and 2f (renders) done, so phase 2 is complete; phase 3 (cheap table changes) done; phase 4 (beach state) done, its shape tables sourced (REGIONS.md §2); phase 5 (tides) done; phase 6 (shelter mask, 2026-10-30) done, unused until the reef (7); the rest planned.
+sources at the end. Status 2026-10-24: phases 0, 1, 2a (beach material), 2b (stony beach shape), 2c (stone texture), 2d (mesh stones), 2e (other props) and 2f (renders) done, so phase 2 is complete; phase 3 (cheap table changes) done; phase 4 (beach state) done, its shape tables sourced (REGIONS.md §2); phase 5 (tides) done; phase 6 (shelter mask, 2026-10-30) done; phase 7 (reefs, 2026-10-30) done; the rest planned.
 
 ## Why: research vs. today
 
@@ -560,6 +560,13 @@ mangroves.
   backlit; `diff.mjs --off '{"reef":null}'`.
 - Docs: COASTS.md (reef share), ARCHITECTURE.md (reef profile), changelog (tropical beach
   days with a reef).
+- Done 2026-10-30 (changelog 0.60). Differences from the plan: reefs on ~48% of tropical beach
+  days, not ~60% (continental places have few; COASTS.md); the crest sits at about the spring
+  low water (max(0.3, 0.8 × half the spring range)), not a fixed 0.3 m; the lagoon is 1–3 m
+  below low water; the crest's white water is its own band (the surf model breaks on a ~2 m
+  strip); Ningaloo 0.1 and other volcanic tropics (Mauritius, Comoros) get reefs too. Open: the
+  shelter is a straight line, so passes don't let swell into the lagoon. Renders:
+  `scenes/reef.json`.
 
 ### 8. Rocky shore (own plan first)
 

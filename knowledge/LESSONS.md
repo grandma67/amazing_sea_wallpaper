@@ -195,6 +195,18 @@ tool gotchas in TOOLS.md.
 - Wind chop in a lagoon is fetch-limited: a 10 m/s wind over 300 m raises ~1.7 m waves, which
   live in the middle cascade (1–6.5 m), not the shortest (< 1 m). Scale the middle cascade by
   fetch and leave the shortest alone.
+- A reef's waves break on a ~2 m strip of its steep face in the surf model, so there's no white
+  line from afar: the crest needs its own band of white water. And the surf zone ends 150–350 m
+  from the water; anything breaking further out (a reef 400 m off) needs `surfReach`.
+- A lagoon curve at the beach slope (0.03) to a 3 m floor never gets there behind a reef 150 m
+  out: the drawn depth must be reached (`lagoonSlope`), or the test "lagoon floor ≈ depth" fails
+  and the lagoon reads too shallow.
+- Steep-sided features (coral heads) make "no steps along s" tests fail: test the joins between
+  profile pieces, not every metre.
+- GLSL: `flat` is a reserved word (like `half`), and `smoothstep(e0, e1, x)` with e0 > e1 is
+  undefined; write `1.0 - smoothstep(e1, e0, x)`.
+- `tides.ts` importing from `terrain.ts` (which imports `tides.ts`) left half the test files
+  failing to load: put shared helpers in the module with no imports (`reef.ts`).
 - Rewriting `x *= a * b * c` as `x * a * b * c` changes the last bit of x (different rounding
   order) and `params.mjs --ref` shows dozens of changed days. Keep the grouping when wrapping a
   value in `or()`.

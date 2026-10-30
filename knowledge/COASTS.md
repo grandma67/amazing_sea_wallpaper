@@ -242,6 +242,22 @@ Cusps on 54% of beach days, rips on 54%. Against Australia (Short 2006: 47% wave
 swell a reflective beach becomes reflective + low-tide terrace, which Short files under
 tide-modified.
 
+### Reef-fronted beaches (phase 7)
+
+`place.reef` chances (`places.ts` REEF): Maldives 0.95; Pacific islands, Bahamas–Bermuda 0.8;
+Andaman–Lakshadweep 0.75; Philippines 0.7; Indonesia, Antilles 0.65; Yucatán–Belize,
+Réunion–Mauritius 0.6; East Africa 0.45; North Australia, Comoros 0.4; Sri Lanka 0.35; NE Brazil
+0.3; mainland SE Asia, Lesser Antilles volcanic 0.25; Hawaii, Red Sea 0.2; Central America 0.15;
+NW Australia, Ningaloo 0.1; India 0.05; West Africa and everywhere else 0.
+
+Measured over 2024–2026 (`params.mjs`): 86 of 1096 days (7.8%) have a reef; ~48% of tropical beach
+days (1096 forced tropical beach days: 525). The plan asked ~60%: continental tropical places
+(India, West Africa, NW Australia, Central America, North Australia) are a third of tropical
+days and mostly lack fringing reefs, so the research wins. By place: Pacific islands 22%,
+Indonesia 17%, Philippines 16%, East Africa 8%, Andaman, Antilles 6% each, the rest ≤ 5%. Reef
+beaches: reflective 59%, low-tide terrace 41% (the waves crossing the reef are small).
+Beachrock on 30% of them.
+
 ## Gaps: research vs. today
 
 | Real world | Today | Plan phase |
@@ -253,8 +269,8 @@ tide-modified.
 | Marine layer, harmattan, haar | done (phase 3): marine layer and harmattan by place; haar already in the fog season | 3 |
 | Beach slope and bars follow grain and swell | done (phase 4): Wright & Short state from Ω; bars, rips, cusps | 4 |
 | Tides (micro to mega) | done (phase 5): ranges by place, springs and neaps, low-tide terraces, the land lowered | 5 |
-| Calm water behind reefs and barriers | water calms only where shallow | 6 |
-| Reef-fronted tropical beaches | surf breaks on the sand | 7 |
+| Calm water behind reefs and barriers | done (phase 6): shelter mask (reefs use it; barriers later) | 6 |
+| Reef-fronted tropical beaches | done (phase 7): reef chance by place, lagoon, crest foam, beachrock | 7 |
 | Rocky shores (~40% of coast) | none: beach or open sea | 8 |
 | Tidal flats and salt marsh | none | 9 |
 | Barrier lagoons, spits, fjords | none | 10 (later) |

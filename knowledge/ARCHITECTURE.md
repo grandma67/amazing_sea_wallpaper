@@ -184,8 +184,8 @@ Playwright (headless snapshots), Vitest.
   trough ≈ −0.3 H); face narrows 0.3 → 0.12 of the wavelength toward breaking, 0.06 broken, never
   below 2.5 grid cells or pixels. Waves re-form over the trough behind a sandbar. Roller foam and
   crest spray (`props/surf.ts`) follow the steepness.
-- **Calm water** (`shelter.ts`, PLAN_BIOMES 6): `coast.shelter` (null on every day until the
-  reef, phase 7) holds a `strength` (0..1), a reef/barrier `line` (an `s`: calm shoreward of it)
+- **Calm water** (`shelter.ts`, PLAN_BIOMES 6): `coast.shelter` (set only behind a reef, phase
+  7; null on other days) holds a `strength` (0..1), a reef/barrier `line` (an `s`: calm shoreward of it)
   and up to 4 `basins` (ellipses in shore coords), blurred over `blur` m (~1 swell wavelength,
   all on the calm side). `shelterAt` (TS) mirrors `shelter()` in `SHELTER_GLSL`. Per cascade
   (`cascadeShelter`): the longest × (1 − m), the middle × (1 − m (1 − chop)), the shortest
@@ -222,7 +222,7 @@ Playwright (headless snapshots), Vitest.
   - `beachLines(coast)`: wrack and storm lines as **distances inland of s = 0** (`u`), fixed on
     the land whatever the tide does.
 - **Who measures from the shore** (update them when the water or s = 0 moves): ocean surf zone
-  (150–350 m) and shore foam (10–25 m) from `waterline` (`ocean.ts`); surf crests and spray
+  (150–350 m, out past a reef's crest: `surfReach`) and shore foam (10–25 m) from `waterline` (`ocean.ts`); surf crests and spray
   (`props/surf.ts`); rocks' pebbles and clusters (`rocks.ts`); shoreline/along-beach camera
   distances (`generateCoast`); stones' size grading and mixed cover (`stoneHighTide`); cusps
   (`cuspReach`, u from s = 0); ridges; debris, shore life, wildlife, pinnipeds, colonies
@@ -314,6 +314,27 @@ means). Storm days and |lat| > 25°
   terrace, bars → low-tide bar and rip; ≥ 10 ultradissipative); micro-tidal beaches stay
   wave-dominated (a calm day's RTR would class most of them as tide-modified, but the census
   classes by modal waves). Shares: COASTS.md.
+- **Reefs** (`reef.ts`, PLAN_BIOMES 7): `place.reef` is a chance (`REEF` in `places.ts`, by place
+  or region; 0 outside the tropics but Ningaloo and the Red Sea). `reefFor` draws everything on
+  `'reef'` in `generateCoast` before the beach state, then the chance or `spec.reef` /
+  `spec.beachrock` decides. `coast.reef`: crest `distance` (100–500 m, seaward of the
+  shoreface's start, `seaDistance`), `flatWidth` (0.2–0.45 × distance, 30–150 m), `lagoonDepth`
+  (1–3 m below spring low water, from mean sea), `crestDepth` (max(0.3, 0.8 × spring low water)),
+  passes (`passSpacing` 0.5–2 km, `passWidth` 30–80 m), `strength` (0.7–0.9), `beachrock` (30%).
+  The beach state uses the breaker of the swell × (1 − strength); bars and rips are dropped;
+  run-up's surf part × (1 − strength); `coast.shelter = reefShelter()` (line at the crest, blur
+  = flat + ramp). Terrain (`reefHeight`, GLSL and TS): beach face down to the lagoon floor
+  (`lagoonSlope`: the beach slope, steeper if needed to reach 95% of the floor before the ramp)
+  with coral heads (`coralHeads`, up to 0.6 × the depth, steep-sided), a 15 m ramp (`REEF_RAMP`)
+  up to the flat, which dips 0.25 m toward the lagoon, the crest wandering ±8 m (`reefCrest`),
+  then the drop-off (`REEF_DROP` 0.6) to −seabedDepth; in a pass (`reefGap`) the lagoon floor
+  runs on to the drop-off. Uniforms `reef` (distance, flat, depths below the shoreface's start,
+  i.e. minus `terrace.height`) and `reefPass` (spacing, width, lagoon slope). `reefCover` tells
+  the ocean (seabed `coralAlbedo` under the water) and the terrain (bare coral and puddles on a
+  dried flat) where coral is; `ocean.ts` adds white water over the crest; `surfReach` extends the
+  surf zone and spray out to it. Beachrock (`props/beachrock.ts`): 2–4 outcrops ≤ 250 m away, 1–3
+  rows of slabs (1.5–5 × 1–2.5 m, 15–35 cm thick, 21 triangles) from 0.3 m above to 0.3 m below
+  mean sea, dipping seaward 5–12°, half buried, `rockMaterial` with the tide line.
 - **Bars, rips, cusps in the terrain** (`TERRAIN_GLSL`, TS mirror `barHeight`, `ripGap`,
   `cuspHeight` in `terrain.ts`): `vec3 bars[3]` + `barCount` replace the one sandbar; at a rip
   channel (`ripGap`, a wandering cosine every `rips.x` m) the inner bar is cut and the bed scoured
@@ -349,7 +370,7 @@ means). Storm days and |lat| > 25°
   triangles per species (tested). In-mesh randomness from `hash()`. Plants get no direct
   specular.
 - **Mangroves** (`props/mangroves.ts`): `mangroveFor()` picks a stand by biome, ocean and shelter
-  (`SHELTERED_SURF`, surf < 0.35 m); `createMangroves()` finds waterline in frame, runs the stand
+  (`SHELTERED_SURF`, surf < 0.35 m, or a reef offshore); `createMangroves()` finds waterline in frame, runs the stand
   80–300 m along shore, trees where ground is within ±0.9 m of sea level, thinning seaward.
   `rhizophora()`/`avicennia()` in `trees.ts`. Shoreline views look straight out to sea and never
   show a stand.
@@ -471,8 +492,11 @@ rolling onto the beach as surf, turtle heads at sea.
   broke on the bar crest grows back in the trough as if it hadn't (real ones leave at ~γ × the
   crest depth and decay toward ~0.4 × depth, Dally et al. 1985). The shelter mask covers reefs and
   barriers, not bars; doing it for bars changes every barred day.
-- Shelter doesn't lower run-up or calm the wet-sand band yet (`coast.runup` is drawn from the
-  open surf); phase 7 should set it for reef beaches.
+- The reef's shelter is a straight line: swell coming through a pass doesn't spread into the
+  lagoon behind it (the pass is only deeper, with no white water). Basins could stand in.
+- Reef crest foam is a band over the reef edge timed with the surf cycle, not breaking waves
+  (the surf model breaks them on a ~2 m strip of the steep face); against a low sun ahead it
+  fades into the glare like all foam.
 - Tidepools are runnels and puddles on the terrace (shader patches), not pools among rocks.
 - `place: "western-med"`, 2024-05-08, along-beach daylight front-lit: the whole beach renders
   dark blue (same at a6ac87a, before tides).

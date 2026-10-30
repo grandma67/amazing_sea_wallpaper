@@ -30,7 +30,9 @@ scripts: `--scene <JSON or file>`.
     (`reflective`, `low-tide-terrace`, `transverse-bar-rip`, `rhythmic-bar`, `longshore-bar`,
     `dissipative`: slopes, bars, rips and cusps; grain and swell stay the day's), `tide`
     (`low`, `mid`, `high`: the stage; the beach's mean range is still drawn) and `tidalRange`
-    (m, today's low to high water; the beach is rebuilt for it if it's above springs);
+    (m, today's low to high water; the beach is rebuilt for it if it's above springs), `reef`
+    (true: a fringing reef offshore on any beach, implies a beach; null: none) and `beachrock`
+    (true: ledges along the waterline, implies a reef; null: none);
   - sky: `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
     `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
     `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
@@ -39,7 +41,7 @@ scripts: `--scene <JSON or file>`.
     none), `wind`, `visibilityKm`;
   - features: `lighthouse`, `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`, `haulOut`;
   - camera: `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`;
-  - props: `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,vegetation,debris,shoreLife,mangroves,wildlife}`.
+  - props: `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,vegetation,debris,shoreLife,mangroves,wildlife}`.
 - `camera.horizonFraction` = how far **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
 - Shared fields: `{"base": {…}, "scenes": [{"name": "a", …}]}`; each scene is deep-merged over the
   base (snapshot.mjs, diff.mjs).

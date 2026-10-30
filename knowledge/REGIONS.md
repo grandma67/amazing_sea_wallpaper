@@ -16,7 +16,7 @@ about where the camera stands follows from it:
 
 | Kind | Fields | How |
 |---|---|---|
-| Constant | biome (today's look preset), latitude range, region, tide range, notes | the same every day there |
+| Constant | biome (today's look preset), latitude range, region, tide range, reef chance (`REEF`, COASTS.md "Reef-fronted beaches"), notes | the same every day there |
 | Choose one | ocean, climate; later sand colour, beach material, coast kind (rock shore, tidal flat) | weighted, one per day, each on its own stream |
 | Choose many | animals, plants, debris, flowers | a pool of what can appear; each feature's own rules pick from it |
 

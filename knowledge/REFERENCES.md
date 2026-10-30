@@ -88,3 +88,7 @@ Sources behind built features. Research for planned work lives with its plan: co
 - Calm water (`shelter.ts`): Hasselmann et al. 1973 (JONSWAP fetch-limited growth: g·Hs/U² =
   1.6e-3 (gF/U²)^½, U·fp/g = 3.5 (gF/U²)^−0.33); Dally, Dean & Dalrymple 1985 (broken waves decay
   toward a stable height ~0.4 × depth, behind bars: a known issue, not modelled)
+- Reefs (`reef.ts`): Frontiers in Marine Science 2021 (fringing reef wave attenuation; the
+  50–75% height loss in COASTS.md); reef zones (lagoon, back reef, flat, crest, fore reef), both
+  linked in COASTS.md; the 10–30% re-formed height (strength 0.7–0.9) is the plan's (phase 6); Vousdoukas, Velegrakis & Plomaritis 2007 (beachrock:
+  intertidal, micro-tidal warm coasts, seaward-dipping slabs in steps)
