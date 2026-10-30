@@ -21,7 +21,7 @@ ARCHITECTURE.md and `arch/`. Status 2026-10-30: phases 0–7 done; 8, 9, 11, 12 
 | 5 | Tides | micro to mega ranges, springs and neaps | done (0.57); s = 0 is the foot of the high-tide beach with a berm; terrace above 2 m spring range; micro-tidal stay wave-dominated; tidepools are runnels on the terrace |
 | 6 | Calm water (shelter mask) | calm water behind reefs and barriers | done (0.59); reefs use it, barriers later |
 | 7 | Reef-fronted tropical beaches | most island beaches sit behind a fringing reef | done (0.60); ~48% of tropical beach days, not ~60% (continental places have few reefs); crest at about spring low water; crest white water is its own band |
-| 8 | Rocky shore | ~40% of coast is rock without sediment, ~33% cliffed | planned, own plan first |
+| 8 | Rocky shore | ~36% of coast is rock, about half cliff-backed | planned: [ROCK_SHORE.md](ROCK_SHORE.md) |
 | 9 | Tidal flats and salt marsh | 21% of coast is mud | planned |
 | 10 | Landforms: barrier lagoon, spit, fjord | | later, own plan |
 | 11 | Climates: temperate, subtropical, polar | temperate oceanic and humid subtropical coasts | planned |
@@ -84,62 +84,15 @@ and a link here. Stopping after 12 leaves a complete result.
 
 ## Remaining phases
 
-### 8. Rocky shore (own plan first)
+### 8. Rocky shore ([plans/ROCK_SHORE.md](ROCK_SHORE.md))
 
-Uses the coast-kind switch from 1b.
-
-- `generateCoast`: the place's `coast` choice (beach / rock-shore / tidal-flat; open sea
-  stays its own 35% draw) on a new stream `'coast-kind'`: overall ~38% of beach days
-  become `rock-shore` (≈ 25% of all days; decision 1: the world's coasts are ~40% rock
-  without sediment and ~33% cliffed, against ~40% sand and gravel). Region defaults,
-  place overrides: Norway, Greenland, Arctic Canada, BC, Alaska, Patagonian fjords,
-  Atlantic Canada, Britain, Brittany, Iceland, California, Chile most (≈ 50–60% of their
-  coast days); Mediterranean ~40%; tropical, desert and barrier-island coasts (Florida,
-  Wadden) least (≈ 10–20%). Measure the result with `params.mjs` and record it in
-  COASTS.md.
-- Kinds of rocky shore: low wave-cut platform (most), boulder shore, cliff top (the
-  `overlook` composition). Cliff-top views make up roughly a third, since much rocky coast
-  can only be seen from above.
-- Terrain: wave-cut platform (flat, slightly seaward-dipping shelf, ragged edge as noise
-  in `a`), a low cliff or boulder slope behind, no sand. Reuse `rocks.ts` boulders on the
-  platform and the phase-2 stone shader in gaps.
-- **The hard part is looking like rock, not lumpy ground.** Real rocky shores have
-  gullies, stepped ledges along bedding or joints, sharp edges and overhangs; a
-  cross-section plus noise reads as smooth hills. Plan for it before building:
-  - near the camera (~0–60 m): a separate rock heightfield mesh (like `islands.ts`)
-    with terraced noise (quantised steps for bedding), joint-aligned gullies cut along
-    `a`, and sharp ridged noise; further out the cross-section profile with the same
-    colours;
-  - preview it alone with `scripts/mesh.mjs`, then compare with reference photos
-    (Peggy's Cove granite, Big Sur, Icelandic basalt) in a contact sheet before
-    adding water;
-  - phase 8's own plan (see "Status") fixes the mesh, its triangle budget and the
-    shader before any props.
-- Water: waves break on the platform edge (rock data for `ocean.ts` foam, `waveOnRock`),
-  spray bursts on the outer ledge, wash across the platform; tidepools at low tide (5).
-- Compositions: `shoreline` and `framed` from the platform; `overlook` from the cliff top.
-- **Props on a rocky shore** (each creator checks `hasBeach` / `coast.type`):
-
-  | Prop | On a rocky shore |
-  |---|---|
-  | Rocks, boulders, sea stacks | yes, more (the shore itself) |
-  | Gulls, colonies, migratory flocks, marine life, ships, islands, landforms, lighthouse | yes, as on beaches (lighthouse on the platform or cliff instead of a mound) |
-  | Seals and sea lions | yes: rock haul-outs on the platform edge (rock shares up, beach haul-outs off) |
-  | Marine iguanas (Galápagos), shore crabs, starfish | yes, on the platform and in pools |
-  | Driftwood, wrack | yes, jammed in the back of the platform and gullies; no piles |
-  | Vegetation | yes, behind the cliff or boulder slope; no dune grass |
-  | Turtles and hatchlings, ghost and hermit crabs, shells, sand flowers | no (need sand) |
-  | Crocodiles, hippos, monkeys, green iguanas, monitors, spiny-tailed lizards | no (beach animals; beach days only) |
-  | Mangroves | no |
-  | Stones (phase 2) | only in gaps and gullies (shader), no beach |
-
-  So these beach animals appear less often over all days; regenerate ANIMALS.md.
-- Spec: `coast: "rock-shore"`.
-- Tests: shares by region, terrain has no sand band, camera stands on rock.
-- Renders: Peggy's Cove (`place: "nova-scotia"`, granite, golden hour), Big Sur
-  (`place: "california"`, overlook), Iceland basalt (`place: "iceland"`, storm swell).
-- Docs: COASTS.md coast table, ARCHITECTURE.md, changelog (beach days that become rocky
-  shores), CLAUDE.md views list.
+~38% of land days (≈ 25% of all days) become a rocky shore, from the place's `coast` weights
+(stream `'coast-kind'`; fjord, North Atlantic and North Pacific coasts ~55%, Mediterranean ~40%,
+tropical, desert and barrier coasts 10–20%). Kinds: wave-cut platform, boulder shore, cliff top
+(a third; the overlook). The rock relief (bedding ledges, joint gullies, boulders) lives in the
+terrain height function so every reader agrees; the surf breaks on the platform edge by depth,
+with spray bursts along it. Props follow the plan's table (no sand animals, rock haul-outs,
+wrack in gullies). Spec `coast: "rock-shore"`, `rockShore`.
 
 ### 9. Tidal flats and salt marsh
 
