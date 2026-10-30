@@ -19,6 +19,7 @@ import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } fr
 import { Random } from './random'
 import { monthInSeason, season, seasonMonth } from './seasons'
 import { reefFor, reefShelter, type Reef } from './reef'
+import { ROCK_NAMES, rockGround, rockShoreFor, rockWaterline, wobbleAtCamera, type RockShore } from './rockShore'
 import type { Shelter } from './shelter'
 import { MICRO_TIDE, relativeTideRange, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
@@ -41,8 +42,8 @@ export type TimeOfDay =
 export type Composition = 'shoreline' | 'along-beach' | 'framed' | 'overlook'
 
 export interface CoastParams {
-  /** rock-shore and tidal-flat are not drawn yet (PLAN_BIOMES phases 8, 9);
-   * ask hasLand / hasBeach / hasSurfZone (coastKind.ts), not the type. */
+  /** tidal-flat is not drawn yet (PLAN_BIOMES phase 9); ask hasLand /
+   * hasBeach / hasSurfZone (coastKind.ts), not the type. */
   type: 'open-sea' | 'beach' | 'rock-shore' | 'tidal-flat'
   /** shoreline: at the water looking out; along-beach: the beach recedes into
    * the distance; framed: just inside the tree line looking out past plants;
@@ -101,6 +102,8 @@ export interface CoastParams {
   shelter: Shelter | null
   /** A fringing reef offshore (reef.ts); null: none. */
   reef: Reef | null
+  /** The rocky shore's shape on rock-shore days (rockShore.ts); null otherwise. */
+  rock: RockShore | null
   noiseOffset: [number, number]
 }
 
@@ -573,7 +576,12 @@ function generateCoast(
   const drawnType = Random.derive(seed, 'coast').chance(0.65) ? 'beach' : 'open-sea'
   const type = or(
     drawnType,
-    spec.coast ?? (spec.composition != null || isStony(spec.beachMaterial) || spec.reef === true || spec.beachrock === true ? 'beach' : undefined)
+    spec.coast ??
+      (spec.rockShore != null
+        ? 'rock-shore'
+        : spec.composition != null || isStony(spec.beachMaterial) || spec.reef === true || spec.beachrock === true
+          ? 'beach'
+          : undefined)
   )
   rng.float() // keep attempt 0's stream identical to the original draw order
 
@@ -619,6 +627,7 @@ function generateCoast(
     stoneSize: 0,
     shelter: null,
     reef: null,
+    rock: null,
     noiseOffset: [rng.range(-5000, 5000), rng.range(-5000, 5000)]
   }
 
@@ -663,10 +672,30 @@ function generateCoast(
     if (material !== 'mixed') coast.runup *= STONY_RUNUP
     Object.assign(coast, { material, stoneSize }, stonyShape(coast, material, mrng))
   }
+  // A rocky shore (own stream, once per date): no beach, so none of its
+  // terrace, bars, rips, cusps, ridges or reef; plants start on top of the
+  // back face.
+  if (type === 'rock-shore') {
+    const rrng = Random.derive(seed, 'rock-shore')
+    const rock = rockShoreFor(tide.springRange, rrng, { kind: spec.rockShore, overlook: spec.composition == null ? undefined : spec.composition === 'overlook' })
+    Object.assign(coast, {
+      rock,
+      nearshoreSlope: rrng.range(0.03, 0.06),
+      terrace: { height: 0, width: 0 },
+      bars: [],
+      rips: null,
+      cusps: null,
+      ridges: [],
+      reef: null,
+      shelter: null,
+      beachWidth: rock.backWidth + 4,
+      duneHeight: 0
+    })
+  }
   // The camera stands by today's water (shoreline, along the beach) or on
   // the land (framed, overlook): the drawn distances are from the water.
   if (hasLand({ type })) {
-    coast.waterline = waterlineAt(coast, tide.level)
+    coast.waterline = coast.rock != null ? rockWaterline(coast.rock, coast.nearshoreSlope, coast.seabedDepth, tide.level) : waterlineAt(coast, tide.level)
     coast.distanceToWater -= coast.waterline
   }
 
@@ -685,7 +714,9 @@ function generateCoast(
 
   // Composition: where the camera stands relative to the shore.
   const crng = Random.derive(seed, `composition${suffix}`)
-  if (hasLand({ type })) {
+  if (coast.rock != null) {
+    eyeHeight = rockCamera(coast, coast.rock, headingDeg, eyeHeight!, Random.derive(seed, `rock-camera${suffix}`), spec.composition)
+  } else if (hasLand({ type })) {
     coast.composition = or(
       crng.weighted<Composition>([
         ['shoreline', 3],
@@ -717,6 +748,59 @@ function generateCoast(
     }
   }
   return { coast, eyeHeight }
+}
+
+/** Where the camera stands on a rocky shore, and its eye height: on the
+ * platform or boulders by today's water (shoreline, along the shore), on top
+ * of the low back cliff among the plants (framed), or on the cliff top
+ * (overlook, every cliff day). Never on the back face itself. */
+function rockCamera(coast: CoastParams, rock: RockShore, headingDeg: number, eyeHeight: number, rng: Random, force?: Composition): number {
+  const drawn = rng.weighted<Composition>([
+    ['shoreline', 3],
+    ['along-beach', 3],
+    ['framed', 2]
+  ])
+  const side = rng.chance(0.5) ? 1 : -1
+  const angle = rng.float()
+  const near = rng.float()
+  const eye = rng.range(1.5, 2.1)
+  coast.composition = rock.kind === 'cliff' ? 'overlook' : force != null && force !== 'overlook' ? force : drawn
+  switch (coast.composition) {
+    case 'along-beach':
+      coast.seawardAzimuthDeg = headingDeg - side * (62 + 22 * angle)
+      coast.distanceToWater = 6 + 24 * near - coast.waterline
+      eyeHeight = eye
+      break
+    case 'framed':
+      coast.seawardAzimuthDeg = headingDeg - side * (10 + 35 * angle)
+      coast.distanceToWater = rock.backWidth + 3 + 12 * near
+      eyeHeight = eye
+      break
+    case 'overlook':
+      // Near the edge, to see down the cliff; the plants start behind.
+      coast.seawardAzimuthDeg = headingDeg - side * (15 + 40 * angle)
+      coast.distanceToWater = rock.backWidth + 2 + 8 * near
+      coast.beachWidth = coast.distanceToWater + 2
+      eyeHeight = eye
+      break
+    case 'shoreline':
+      break
+  }
+  // The distances above are in s; the wobble moves the shore at a = 0.
+  const wobble = wobbleAtCamera(coast)
+  coast.distanceToWater -= wobble
+  // Off the back face: onto its top.
+  const offFace = (): void => {
+    const u = coast.distanceToWater + wobble
+    if (u > -1 && u < rock.backWidth + 2) coast.distanceToWater = rock.backWidth + 2 - wobble
+  }
+  offFace()
+  // Out of the gullies and the swash: step inland until dry.
+  for (let i = 0; i < 60 && rockGround(coast) < coast.runup + 0.3; i++) {
+    coast.distanceToWater += 3
+    offFace()
+  }
+  return eyeHeight
 }
 
 function generateWeather(seed: string, timeOfDay: TimeOfDay, force?: WeatherKind): WeatherParams {
@@ -1570,7 +1654,11 @@ function buildParams(
 
   const titleParts = [
     timeLabel[timeOfDay],
-    hasBeach(coast) ? `${biome.name} ${beachName(coast.material, coast.sand.name)}` : seaName(oceanState.windSpeed),
+    hasBeach(coast)
+      ? `${biome.name} ${beachName(coast.material, coast.sand.name)}`
+      : coast.rock != null
+        ? `${biome.name} ${ROCK_NAMES[coast.rock.kind]}`
+        : seaName(oceanState.windSpeed),
     basin.label
   ]
   if (coast.reef != null) titleParts.push('coral reef')

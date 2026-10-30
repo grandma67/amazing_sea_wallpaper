@@ -1,0 +1,8 @@
+{ "base": { "date": "2024-07-12", "eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "weather": "clear", "sunAzimuthDeg": 160, "place": "nova-scotia" },
+  "scenes": [
+    { "name": "platform", "rockShore": "platform" },
+    { "name": "platform-along", "rockShore": "platform", "composition": "along-beach" },
+    { "name": "platform-framed", "rockShore": "platform", "composition": "framed" },
+    { "name": "boulder", "rockShore": "boulder" },
+    { "name": "cliff", "rockShore": "cliff" }
+  ] }

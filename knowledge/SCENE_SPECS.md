@@ -34,7 +34,9 @@ Allowed values are in `sceneSpec.ts`.
 - **Place:** `place` (a place or region id from `places.ts`, e.g. `"scotland"`,
   `"atlantic-canada"`); `biome`, `ocean`, `climate` (restrict the place draw to places that have
   them and force the choice; a combination no place has throws); `monsoon`, `ice`.
-- **Coast:** `coast`, `composition`; `swellHeight` (m offshore) and `swellPeriod` (s; wavelength
+- **Coast:** `coast` (`beach`, `open-sea`, `rock-shore`), `composition`; `rockShore` (`platform`,
+  `boulder`, `cliff`: a rocky shore of that kind, implies one; on a rock shore `overlook` means a
+  cliff and any other composition not a cliff); `swellHeight` (m offshore) and `swellPeriod` (s; wavelength
   capped at 320 m ≈ 14 s): open sea, surf and beach state follow, so force waves instead of hunting
   dates; `sand` (`white`, `golden`, `grey`, `black`, `pink`, `red`; any place); `beachMaterial`
   (`sand`, `mixed`, `shingle`, `cobble`; a stony one implies a beach, any place); `beachState`
@@ -94,4 +96,4 @@ Every new random feature gets one. Always make the draw, then apply the force vi
   - 2024-09-06: Mediterranean waterspout season (western-med, open sea);
   - 2024-04-24: storm + shelf cloud (norway-west).
 - Spec files for each finished feature: `scenes/` (`examples`, `stony`, `tables`, `beach-states`,
-  `tides`, `shelter`, `reef`).
+  `tides`, `shelter`, `reef`, `rock`).

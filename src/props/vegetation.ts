@@ -390,7 +390,10 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
   for (const [kind, weight] of kinds) {
     const spec = KINDS[kind]
     const target = Math.round(spec.count * lushness * Math.min(1.5, weight / 3))
-    const [uMin, uMax] = spec.inland(coast.beachWidth, coast.duneWidth)
+    const [beachMin, uMax] = spec.inland(coast.beachWidth, coast.duneWidth)
+    // On a rocky shore nothing grows on the bare rock: plants start on top
+    // of the back face (beachWidth there).
+    const uMin = coast.rock != null ? Math.max(beachMin, coast.beachWidth) : beachMin
     const seed = rng.int(0, 1e6)
     const placed: Matrix4[] = []
     const colors: Color[] = []

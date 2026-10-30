@@ -23,9 +23,9 @@ describe('coast kinds', () => {
     expect(terrainUniforms(scene({ coast: 'beach' }).coast).coastKind.value).toBe(1)
   })
 
-  it('use the beach profile for the kinds without their own yet', () => {
+  it('use the beach profile for tidal flats (no profile of their own yet)', () => {
     const beach = scene({ coast: 'beach' }).coast
-    for (const type of ['rock-shore', 'tidal-flat'] as const) {
+    for (const type of ['tidal-flat'] as const) {
       for (const [x, z] of [[0, 0], [40, -25], [-300, 800]]) {
         expect(terrainHeight({ ...beach, type }, x, z)).toBe(terrainHeight(beach, x, z))
       }

@@ -140,6 +140,24 @@ try {
           `lagoon floor ${f(floor)} m reached (drawn −${f(r.lagoonDepth)}, slope ${f(lagoonSlope(c), 3)}) · passes every ${f(r.passSpacing, 0)} m, ${f(r.passWidth, 0)} m wide · ` +
           `shelter ${f(r.strength)} from ${f(c.shelter.line - c.shelter.blur, 0)} m in · beachrock ${r.beachrock ? 'yes' : 'no'}`
       )
+    } else if (c.rock != null) {
+      // Drawn vs reached, heights above mean sea, each the median over 200 m
+      // of shore round the camera (ledges and gullies scatter single cuts).
+      const r = c.rock
+      const med = s => {
+        const hs = []
+        for (let a = camA - 100; a <= camA + 100; a += 4) hs.push(at(s, a) + level)
+        return hs.sort((x, y) => x - y)[hs.length >> 1]
+      }
+      const foot = r.width + r.scarp / r.scarpSlope
+      console.log(
+        `rock: ${r.kind} · back face ${f(r.backHeight, 1)} m over ${f(r.backWidth, 1)} m (top ${f(med(-r.backWidth - 3))} reached, drawn ${f(r.top + r.backHeight)}) · ` +
+          `platform ${f(r.width, 0)} m: back ${f(med(2))} (drawn ${f(r.top)}), edge ${f(r.width > 0 ? med(r.width * 0.9) : r.edge)} at 0.9 W (drawn ${f(r.edge)}) · ` +
+          `scarp ${f(r.scarp, 1)} m at ${f(r.scarpSlope)}, foot ${f(med(foot + 2))} (drawn ${f(r.edge - r.scarp)}) · ` +
+          `relief ${f(r.relief)}, beds ${f(r.bedding)} m dipping ${f((Math.atan(r.dip) * 180) / Math.PI, 0)}°, joints ${f(r.jointSpacing, 0)} m, gullies ${f(r.gully)} m` +
+          (r.boulder > 0 ? `, boulders ${f(r.boulder)} m` : '')
+      )
+      console.log(`camera ground ${f(at(camS, camA))} m above today's sea`)
     } else if (c.shelter != null) {
       console.log(`shelter: ${f(c.shelter.strength)} · line ${c.shelter.line == null ? 'none' : `${f(c.shelter.line, 0)} m`} · ${c.shelter.basins.length} basins · blur ${f(c.shelter.blur, 0)} m`)
     }
@@ -174,6 +192,11 @@ try {
     // Around today's water (the tide moves it across a terrace).
     const w = Math.round(Math.max(0, c.waterline) / 10) * 10
     const ss = [-40, -30, -20, -15, -10, -5, -2, 0, 2, 5, 10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 150, 200, 250, 300, 400].map(s => s + w)
+    if (c.rock != null) {
+      const r = c.rock
+      for (const s of [-r.backWidth - 5, -r.backWidth / 2, 0, r.width / 2, r.width, r.width + r.scarp / r.scarpSlope]) ss.push(Math.round(s))
+      ss.sort((x, y) => x - y)
+    }
     // Out past a reef's crest.
     if (c.reef != null) {
       const crestS = Math.round(c.terrace.width + reefCrest(c, camA))

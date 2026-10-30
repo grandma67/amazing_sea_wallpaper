@@ -15,6 +15,7 @@ import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
 import { createPolarGrid } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
+import { ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { highWater, tideMarks } from './tides'
 
@@ -69,8 +70,17 @@ uniform float waterline;
 // slope down to the lagoon floor.
 uniform vec4 reef;
 uniform vec3 reefPass;
+// Rocky shore (rockShore.ts): platform width, its back and edge heights
+// above mean sea, the scarp's drop; back face height and width, scarp slope,
+// boulder size (0: none); ledge relief, bedding step, dip (tan), strike
+// (rad); joint spacing, angle (rad), gully depth.
+uniform vec4 rockShape;
+uniform vec4 rockBack;
+uniform vec4 rockBeds;
+uniform vec3 rockJoints;
 #define REEF_RAMP ${REEF_RAMP.toFixed(1)}
 #define REEF_DROP ${REEF_DROP.toFixed(2)}
+#define ROCK_MIN_FACE ${ROCK_MIN_FACE.toFixed(3)}
 #define COAST_OPEN_SEA 0
 #define COAST_BEACH 1
 #define COAST_ROCK_SHORE 2
@@ -368,10 +378,116 @@ float beachHeightAt(vec2 p, vec2 sa) {
   return mix(sea, land, smoothstep(-1.0, 1.0, u)) + cuspHeight(u, sa.y) + terraceStep(s) - tideLevel;
 }
 
+// The bare rocky profile (rockShore.ts bareRock): plateau, back face,
+// platform out to width (its ragged edge), scarp, seabed. Steep faces are
+// at least 3% of the distance r wide, or they zig-zag across the grid.
+float bareRock(float s, float width, float r) {
+  float top = rockShape.y;
+  float backWidth = max(rockBack.y, ROCK_MIN_FACE * r);
+  if (s <= -backWidth) return top + rockBack.x;
+  if (s < 0.0) return top - rockBack.x * s / backWidth;
+  float slope = rockShape.x > 0.0 ? (rockShape.z - top) / rockShape.x : 0.0;
+  if (s <= width) return top + slope * s;
+  float edge = top + slope * width;
+  float run = max(rockShape.w / rockBack.z, ROCK_MIN_FACE * r);
+  float footS = width + run;
+  if (s <= footS) return edge - (s - width) * rockShape.w / run;
+  float foot = edge - rockShape.w;
+  float range = max(1.0, seabedDepth + foot);
+  return foot - range * (1.0 - exp(max(-(s - footS) * nearshoreSlope / range, -10.0)));
+}
+
+// Gullies (surge channels) along two joint sets, 0..1 (1 on a gully's
+// floor); they come and go along their length.
+float rockGully(vec2 sa, float r) {
+  if (rockJoints.z <= 0.0) return 0.0;
+  float g = 0.0;
+  for (int i = 0; i < 2; i++) {
+    float fi = float(i);
+    float angle = rockJoints.y + fi * 1.05;
+    vec2 dir = vec2(cos(angle), sin(angle));
+    float along = dot(sa, dir);
+    float across = dot(sa, vec2(-dir.y, dir.x));
+    float spacing = rockJoints.x * (1.0 + 0.7 * fi);
+    float w = across / spacing + 0.5 * vnoise(vec2(along / 30.0 + fi * 5.3, 43.1) + noiseOffset);
+    float d = abs(fract(w) - 0.5) * spacing;
+    float half_ = 0.5 + 0.08 * spacing;
+    float floor_ = 1.0 - smoothstep(0.35 * half_ * (1.0 - min(0.9, r / 150.0)), half_ * (1.0 + r / 150.0), d);
+    floor_ *= smoothstep(0.35, 0.6, vnoise(vec2(along / 25.0 + fi * 3.7, 47.9) + noiseOffset));
+    g = max(g, floor_ * (1.0 - 0.5 * fi));
+  }
+  return g;
+}
+
+// Rounded boulders, half buried: one per cell of size m (0..~0.8 size).
+float boulderField(vec2 x, float size) {
+  vec2 g = x / size;
+  ivec2 c = ivec2(floor(g));
+  vec2 f = fract(g);
+  float h = 0.0;
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      uint n = hashCell(c + ivec2(i, j) + ivec2(907, 311));
+      vec2 centre = vec2(i, j) + 0.25 + 0.5 * vec2(float(n & 0xffu), float((n >> 8) & 0xffu)) / 255.0;
+      float r = 0.35 + 0.25 * float((n >> 16) & 0xffu) / 255.0;
+      float k = length(f - centre) / r;
+      h = max(h, r * 1.3 * sqrt(max(0.0, 1.0 - k * k)));
+    }
+  }
+  return h * size;
+}
+
+// A rocky shore (rockShore.ts): the bare profile with hills behind, and in
+// the rock band ledges along dipping beds, sharp ridged roughness, gullies
+// along the joints, or boulders.
+float rockHeightAt(vec2 p, vec2 sa) {
+  float s = sa.x;
+  float u = -s;
+  vec2 q = p + noiseOffset;
+  float gully = rockGully(sa, length(p));
+  // The platform's ragged edge wanders ±25% and is cut back in gullies.
+  float width = rockShape.x > 0.0
+    ? max(0.0, rockShape.x * (1.0 + 0.25 * (vnoise(vec2(sa.y / 40.0, 41.3) + noiseOffset) * 2.0 - 1.0)) - 8.0 * gully)
+    : 0.0;
+  float h = bareRock(s, width, length(p));
+  float back = rockBack.y;
+  h += hillHeight * smoothstep(back + 20.0, back + 520.0, u) * (0.25 + 0.75 * fbm(q / 450.0)) *
+    smoothstep(-0.2, 1.0, fbm(q / 1400.0 + 7.0));
+  h += 0.35 * (fbm(q / 7.0) - 0.5) * smoothstep(back, back + 10.0, u);
+  float footS = width + max(rockShape.w / rockBack.z, ROCK_MIN_FACE * length(p));
+  float band = smoothstep(-back - 25.0, -back + 1.0, s) * (1.0 - smoothstep(footS + 20.0, footS + 50.0, s));
+  if (band > 0.0) {
+    // The camera is at the origin: detail finer than the terrain grid
+    // (2.2% of the distance) softens with distance, or it zig-zags.
+    float r = length(p);
+    float n = rockBeds.x * 2.0 * (fbm(q / 18.0) - 0.5);
+    float sharp = 0.22 * (1.0 - abs(vnoise(q / 6.0) * 2.0 - 1.0)) +
+      0.08 * (1.0 - abs(vnoise(q / 2.3 + 5.0) * 2.0 - 1.0)) * (1.0 - smoothstep(40.0, 120.0, r)) - 0.2;
+    float rock;
+    if (rockBack.w > 0.0) {
+      rock = h + 0.3 * n + sharp + (boulderField(q, rockBack.w) - 0.35 * rockBack.w) * (1.0 - smoothstep(80.0, 250.0, r));
+    } else {
+      // Beds dipping across their strike, outcropping as flat ledges with
+      // short risers.
+      vec2 strike = vec2(cos(rockBeds.w), sin(rockBeds.w));
+      float planes = dot(sa, vec2(-strike.y, strike.x)) * rockBeds.z;
+      float layer = (h + n - planes) / rockBeds.y;
+      // Risers widen with distance and on steep faces (scarp, cliff), so
+      // each step spans a few grid cells.
+      float steep = abs(bareRock(s + 0.5, width, r) - bareRock(s - 0.5, width, r));
+      float riser = min(1.0, 0.15 + 0.008 * r + 0.05 * r * steep / rockBeds.y);
+      rock = (floor(layer) + smoothstep(1.0 - riser, 1.0, fract(layer)) + 0.5 - 0.5 * riser + 0.01) * rockBeds.y + planes + sharp;
+      rock -= rockJoints.z * gully * (0.4 + 0.6 * smoothstep(0.0, max(width, 20.0), s)) * (1.0 - smoothstep(150.0, 400.0, r));
+    }
+    h = mix(h, rock, band);
+  }
+  return h - tideLevel;
+}
+
 float terrainHeightAt(vec2 p, vec2 sa) {
   if (coastKind == COAST_OPEN_SEA) return -200.0;
-  // Rock shores and tidal flats use the beach profile until they get their
-  // own (PLAN_BIOMES phases 8 and 9).
+  if (coastKind == COAST_ROCK_SHORE) return rockHeightAt(p, sa);
+  // Tidal flats use the beach profile until they get their own (PLAN_BIOMES 9).
   return beachHeightAt(p, sa);
 }
 
@@ -586,8 +702,9 @@ export function terrainHeight(coast: CoastParams, x: number, z: number): number 
   switch (coast.type) {
     case 'open-sea':
       return -200
-    case 'beach':
     case 'rock-shore':
+      return rockHeight(coast, x, z)
+    case 'beach':
     case 'tidal-flat':
       return beachHeight(coast, x, z)
   }
@@ -743,6 +860,12 @@ function beachHeight(coast: CoastParams, x: number, z: number): number {
   return sea + (land - sea) * t + cuspHeight(coast, u, a) + terraceStep(coast, s) - coast.tide.level
 }
 
+/** A rocky shore's height (rockShore.ts rockSurface, mirrors rockHeightAt). */
+function rockHeight(coast: CoastParams, x: number, z: number): number {
+  const [s, a] = worldToShore(coast, x, z)
+  return rockSurface(coast, s, a, x, z)
+}
+
 /** Seaward distance from the terrace's low-water edge (mirrors seaDistance). */
 export function seaDistance(coast: Pick<CoastParams, 'terrace'>, s: number): number {
   return s - Math.min(Math.max(s, 0), coast.terrace.width)
@@ -785,7 +908,19 @@ export function terrainUniforms(coast: CoastParams): Record<string, { value: unk
     reef: {
       value: coast.reef != null ? new Vector4(coast.reef.distance, coast.reef.flatWidth, reefFrame(coast).lagoon, reefFrame(coast).crest) : new Vector4()
     },
-    reefPass: { value: new Vector3(coast.reef?.passSpacing ?? 1000, coast.reef?.passWidth ?? 0, coast.reef != null ? lagoonSlope(coast) : 0) }
+    reefPass: { value: new Vector3(coast.reef?.passSpacing ?? 1000, coast.reef?.passWidth ?? 0, coast.reef != null ? lagoonSlope(coast) : 0) },
+    ...rockUniforms(coast.rock)
+  }
+}
+
+/** Uniform values for the rocky shore (a harmless shape when there is none). */
+function rockUniforms(rock: RockShore | null): Record<string, { value: unknown }> {
+  const r = rock ?? { width: 0, top: 0, edge: 0, scarp: 1, backHeight: 1, backWidth: 1, scarpSlope: 1, boulder: 0, relief: 0, bedding: 1, dip: 0, strike: 0, jointSpacing: 10, jointAngle: 0, gully: 0 }
+  return {
+    rockShape: { value: new Vector4(r.width, r.top, r.edge, r.scarp) },
+    rockBack: { value: new Vector4(r.backHeight, r.backWidth, r.scarpSlope, r.boulder) },
+    rockBeds: { value: new Vector4(r.relief, r.bedding, r.dip, r.strike) },
+    rockJoints: { value: new Vector3(r.jointSpacing, r.jointAngle, r.gully) }
   }
 }
 

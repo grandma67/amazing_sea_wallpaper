@@ -5,6 +5,7 @@ import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
 import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
+import { ROCK_KINDS, type RockKind } from './rockShore'
 import type { TideStage } from './tides'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
 import type { DebrisSpec } from './props/debris'
@@ -105,8 +106,10 @@ export interface SceneSpec {
   climate?: Climate
   monsoon?: boolean
   ice?: Force<'pack' | 'bergs'>
-  coast?: 'beach' | 'open-sea'
-  /** Implies a beach. */
+  coast?: 'beach' | 'open-sea' | 'rock-shore'
+  /** A rocky shore of this kind (rockShore.ts); implies a rock shore. */
+  rockShore?: RockKind
+  /** Implies a beach (on a rock shore: overlook is the cliff top). */
   composition?: Composition
   sand?: SandStyle['name']
   /** Sand or stones (beach.ts); a stony material implies a beach. */
@@ -264,7 +267,8 @@ const SPEC = object({
   climate: oneOf(...CLIMATES),
   monsoon: boolean,
   ice: force('pack', 'bergs'),
-  coast: oneOf('beach', 'open-sea'),
+  coast: oneOf('beach', 'open-sea', 'rock-shore'),
+  rockShore: oneOf(...ROCK_KINDS),
   composition: oneOf('shoreline', 'along-beach', 'framed', 'overlook'),
   sand: oneOf(...Object.keys(SAND_STYLES)),
   beachMaterial: oneOf(...BEACH_MATERIALS),
