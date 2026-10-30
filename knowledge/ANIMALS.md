@@ -51,14 +51,13 @@ seals 85%.
 
 ### On the beach (`props/wildlife.ts`, `props/shoreLife.ts`)
 
-Beach days only. The animals come from the day's **place** (`src/places.ts`, PLAN_BIOMES
-1a): each region has a pool (nesting turtles with their months and weights, and a chance
-per day for monkeys, lizards, crocodiles, hippos, basking turtles), and a place may
-replace its region's pool. Places without a pool have none of these animals. The old
-warm-coast regions keep their animals (`se-asia` = Philippines, Indonesia, mainland SE
-Asia; `caribbean` = Antilles, Yucatán–Belize; `mediterranean-sea` = Aegean, Adriatic,
-western Med, North Africa–Levant; `arabia` = Red Sea, Oman–Yemen, Persian Gulf; the
-Galápagos and Hawaii are places). New pools:
+Beach days only. The animals come from the day's **place** (`src/places.ts`): each region
+has a pool (nesting turtles with their months and weights, and a chance per day for monkeys,
+lizards, crocodiles, hippos, basking turtles), and a place may replace its region's pool.
+Places without a pool have none of these animals. Regions in the second table: `se-asia` =
+Philippines, Indonesia, mainland SE Asia; `caribbean` = Antilles, Yucatán–Belize;
+`mediterranean-sea` = Aegean, Adriatic, western Med, North Africa–Levant; `arabia` = Red Sea,
+Oman–Yemen, Persian Gulf; the Galápagos and Hawaii are places. Other pools:
 
 | Place or region | Animals |
 |---|---|
@@ -95,14 +94,8 @@ Galápagos and Hawaii are places). New pools:
 | Shore crabs | Cooler coasts, at the water's edge (and among cobbles) | Any | **Storm:** hidden | 45% where no ghost crabs |
 | Starfish | Nordic, Mediterranean, Pacific volcanic beaches | Any | – | 30% |
 
-### Planned (PLAN_BIOMES.md phase 14, later)
-
-| Animal | Where | Notes |
-|---|---|---|
-| Sea otters | California, Alaska, British Columbia | rafts floating on their backs in kelp beds |
-| Walrus | Svalbard, Greenland, Arctic Canada, north Alaska | haul-outs of 5–40 on beaches and floes |
-| Polar bear | Arctic places, near ice | rare (~2% of eligible days) |
-| Waders (oystercatchers, knots, sanderlings) | tidal flats and low-tide beaches; sanderlings on most sandy swashes | flocks on the swash, ≥ 0.25 m above the swash line |
+Planned animals (sea otters, walrus, polar bears, waders, herons, tidepool life, blacktip
+sharks): PLAN_BIOMES.md phase 14.
 
 ## How often, over three years
 

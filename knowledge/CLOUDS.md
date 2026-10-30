@@ -1,8 +1,7 @@
 # Clouds
 
-Which clouds the wallpaper draws, on which coasts and in which weather. Status 2026-10-22
-(changelog 0.22–0.27). Code paths: ARCHITECTURE.md; pitfalls: LESSONS.md (takram, storms);
-sources: REFERENCES.md.
+Which clouds the wallpaper draws, on which coasts and in which weather. How the code works:
+[arch/SKY.md](arch/SKY.md); pitfalls: LESSONS.md (takram, storms); sources: REFERENCES.md.
 
 ## How a sky is chosen
 
@@ -160,7 +159,7 @@ lenses.
 
 | Cloud | Where and when | Weather | Spec |
 |---|---|---|---|
-| **Waterspout** | Florida Keys/Caribbean May–Oct (peak Aug); Mediterranean Aug–Nov (peak Sep); other tropics in the wet season; 1 day in 3 years (too rare, plans/WATERSPOUT_FOG.md) | daytime, building cumulus, light wind (fair-weather spout); or under storms (tornadic). Forces towering cumulus | `waterspout` |
+| **Waterspout** | Florida Keys/Caribbean May–Oct (peak Aug); Mediterranean Aug–Nov (peak Sep); other tropics in the wet season; 1 day in 3 years (too rare: [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md)) | daytime, building cumulus, light wind (fair-weather spout); or under storms (tornadic). Forces towering cumulus | `waterspout` |
 | **Morning Glory** (volutus) | tropical Indo-Pacific, dawn, Sep–Nov | – | `rollCloud` |
 | **Lenticulars** | over mountains and volcanoes | wind ≥ 10 m/s | `lenticular` |
 | **Pyrocumulus** (flammagenitus) | white cap on half the volcano plumes | – | – |
@@ -171,16 +170,16 @@ lowered soft base (a mesh can't see gaps in the deck), with a spray cascade. Mor
 
 ## Coastal weather
 
-Weather tied to a particular coast rather than a biome (PLAN_BIOMES.md; needs places,
-phase 1a, which draws the place before the sky).
+Weather tied to a place rather than a biome (`coastalWeather.ts`; needs the place drawn before the
+sky, PLAN_BIOMES 1a).
 
-| Weather | Where and when | Look | Phase |
+| Weather | Where and when | Look | Status |
 |---|---|---|---|
-| Marine layer (June Gloom, camanchaca) | California May–Jul (~45% of mornings), Aug–Oct ~15%; Atacama–Peru Jun–Sep, weaker | stratus (60%) or Sc deck at ~350–650 m, golden hour to late morning (not evenings, midday), wind ≤ 6 m/s; never with storms. **Done** (`coastalWeather.ts`): Atacama Jun–Sep 30%, Oct 15%; 1 day in 2024–2026 (small places); spec `marineLayer` | 3 |
-| Harmattan | West Africa Dec–Feb (~50% of days) | dust haze, visibility 2–10 km, ochre sky, dim red sun. **Done** (`coastalWeather.ts`, `seaHaze.ts`): no storms or rainbows; 2 days in 2024–2026; spec `dust` | 3 |
-| Haar | Scotland, NE England, Norway, Apr–Jul | sea fog rolling in on warm days. **Checked, unchanged:** `fogSeason` already peaks May–Sep (nordic Atlantic 0.14, Arctic 0.25 × time of day × breeze; ×0.35 the rest of the year), so May–Jul haar is covered; April runs at the off-season rate (2024–2026: Britain–Ireland 4 fog days in April vs 9 in May; Norway 4 vs 13) | 3 |
-| Sea-breeze cumulus | warm sunny afternoons, mediterranean to tropical | Cu over land, clear over the sea | 13 (later) |
-| Offshore winds | mistral, bora, Santa Ana, harmattan | clear air, smooth faces, spray blown back off crests | 13 (later) |
+| Marine layer (June Gloom, camanchaca) | California May–Jul 45% of mornings, Aug–Oct 15%; Atacama–Peru Jun–Sep 30%, Oct 15%; morning golden hour to daylight | overcast stratus (60%) or Sc deck at ~350–650 m, wind ≤ 6 m/s, never with storms; title "marine layer" | done; 1 day in 2024–2026 (small places); spec `marineLayer` |
+| Harmattan | West Africa Dec–Feb, ~50% of days | dust haze, visibility 2–10 km, ochre sky, dim red sun; no storms or rainbows | done; 2 days in 2024–2026; spec `dust` |
+| Haar | Scotland, NE England, Norway, Apr–Jul | sea fog rolling in on warm days | covered by `fogSeason` (nordic Atlantic 0.14, Arctic 0.25 × time of day × breeze, peak May–Sep; ×0.35 the rest of the year). April runs at the off-season rate (2024–2026: Britain–Ireland 4 fog days in April vs 9 in May; Norway 4 vs 13) |
+| Sea-breeze cumulus | warm sunny afternoons, mediterranean to tropical | Cu over land, clear over the sea | PLAN_BIOMES 13 (later) |
+| Offshore winds | mistral, bora, Santa Ana, harmattan | clear air, smooth faces, spray blown back off crests | PLAN_BIOMES 13 (later) |
 
 Sources: [June Gloom](https://en.wikipedia.org/wiki/June_Gloom),
 [Namib fog and Benguela upwelling (ACP 2026)](https://acp.copernicus.org/articles/26/12565/2026/).
@@ -225,8 +224,4 @@ nitric-acid/water PSCs, noctilucent.
 Sources: [WMO classification](https://cloudatlas.wmo.int/en/cloud-classification-summary.html),
 [WMO new classifications](https://wmo.int/node/36164),
 [WMO new edition](https://wmo.int/node/25382),
-[RMetS](https://rmets.org/metmatters/international-cloud-atlas-and-new-cloud-classifications),
-[ScienceAlert](https://www.sciencealert.com/it-s-official-there-are-now-12-new-types-of-cloud),
-[Smithsonian](https://www.smithsonianmag.com/smart-news/cloud-atlas-adds-first-new-species-almost-70-years-180962654/),
-[Weathergamut](https://www.weathergamut.com/2017/03/23/twelve-new-cloud-types-added-to-international-cloud-atlas/),
-[WTOC](https://www.wtoc.com/story/35016011/new-cloud-species-added-to-international-cloud-atlas/).
+[RMetS](https://rmets.org/metmatters/international-cloud-atlas-and-new-cloud-classifications).

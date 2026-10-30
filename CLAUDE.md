@@ -1,13 +1,14 @@
 # Amazing Sea Wallpaper
 
 Docs in `knowledge/` (read what the task needs):
-- `ARCHITECTURE.md`: decisions, how each module works, ideas, known issues.
+- `ARCHITECTURE.md`: decisions, params and draw order, page/CI, ideas, known issues; `arch/SKY.md`,
+  `arch/OCEAN.md`, `arch/COAST.md` (coordinates and heights, beaches, tides, reefs, stones),
+  `arch/PROPS.md`: how each area works.
 - `LESSONS.md`: pitfalls by topic.
-- `SCENE_SPECS.md`: spec fields, fixed dates, `params.mjs` queries.
-- `TOOLS.md`: snapshot, mesh preview, diff, contact sheet, bench, tool gotchas.
-- `REFERENCES.md`: sources.
+- `TOOLS.md`: `params.mjs` queries, profile, snapshot, diff, mesh preview, contact sheet, bench, tool gotchas.
+- `SCENE_SPECS.md`: spec fields, writing specs that show a feature, fixed dates.
 - `ANIMALS.md`, `CLOUDS.md`, `COASTS.md`: what appears where and how often.
-- `REGIONS.md`: research for the plans.
+- `REGIONS.md`: research behind places, grain, tides; `REFERENCES.md`: sources.
 - `plans/`: open plans (biomes, phone app, waterspout fix).
 
 Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5173 is other projects).
@@ -24,31 +25,29 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 # Developing features
 
 ## 1. Before code
-- Read ARCHITECTURE.md (the relevant module; for a new decision in `params.ts`, its "Draw order in `buildParams`" first), LESSONS.md (relevant sections) and the closest module: `props/rocks.ts` / `props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
+- Read the relevant `arch/` doc (for a new decision in `params.ts`, ARCHITECTURE.md "Draw order in `buildParams`" first), LESSONS.md (relevant sections) and the closest module: `props/rocks.ts` / `props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
 - Define "done": which views (shoreline, along-beach, framed, overlook, open sea), what distance, how often, and whether it must read at wallpaper size or may be realistic and subtle. Ask if it's unclear and it matters (life-size crabs and shells show only within ~20 m).
 - Near-camera features: read how near the ground in frame is on real days (`params.mjs` `p.view`) and count placements in a test (`view()` in `test/days.ts`) before rendering. Plan numbers (radii, counts, budgets) are estimates until then.
 - TODO lists: read all open items first, then ask every build-changing question (visibility, places, kinds) in one batch.
 - Research briefly (1–2 searches; cite only what you read), then encode the result as a data table by biome, ocean, month and time of day (e.g. `FLOWERS` in `props/shoreLife.ts`, `debrisFor()` in `props/debris.ts`). Test the table.
+- Terrain, shore and water-level features: read `arch/COAST.md` "Coordinates and heights" first (s = 0 is the land, not the water; who measures from the shore; the readers of "A new seabed or shore profile") and write the geometry down before code.
 
 ## 2. Structure
 - Split choice from geometry: a pure `xxxFor(params, rng)` decides; builders (`logGeometry(rng, …)`) work at real size with the base on y = 0; `createXxx(ctx)` places. The first two are unit-testable without WebGL. Add new choices to `props/choices.ts`.
 - New randomness = its own stream: `ctx.rng('my-feature')` (props) or `Random.derive(seed, 'my-feature')` (`params.ts`). Never add draws to the main `rng` in `generateParams` (that changes every day). In-mesh detail may use `hash()`/`noise3()`.
 - Every new random feature gets a scene-spec field, forced without changing unforced days (SCENE_SPECS.md "Adding a spec field"). Every new prop gets an off switch (`props.<kind>: false`) so `diff.mjs` can show what it adds.
-- Shore coords: `shoreToWorld(coast, s, a)`. s < 0 is land, 0 the waterline; `a` runs along the shore. The camera is at a ≈ 0, s = −distanceToWater. `beachLines(coast)` gives the high-tide and storm lines.
+- Shore coords: `shoreToWorld(coast, s, a)`. s < 0 is land, 0 the foot of the high-tide beach; `a` runs along the shore. The camera is at a ≈ 0, s = −distanceToWater. `beachLines(coast)` gives the high-tide and storm lines.
 - Place by trying spots until enough is in view (`ctx.visible`, `ctx.inFrame` for things that must be seen whole), not one sample round the camera.
 - Materials: `vertexColors`; `DoubleSide` for thin parts; `castShadow`/`receiveShadow`; `frustumCulled = false` on instanced meshes. Plants get no direct specular.
 - Storm-aware props: `stormy(params)` (`props/context.ts`). Animals in water: `ctx.waterSpot(rng, depth, maxDistance)`.
 
-## 3. Check it (details: SCENE_SPECS.md, TOOLS.md)
-- Use scene specs, not hunted dates. Ask `scripts/params.mjs` for frequencies and "is it there at all?" before rendering anything.
-- A spec file's base forces `timeOfDay` and `weather` (the date's own may be night); don't force `camera.heightM` (compositions set their own). `--props KIND` also prints CPU build time.
-- Preview new meshes alone with `scripts/mesh.mjs`; render the beach only for placement and light.
-- Terrain, shore and water-level features: read ARCHITECTURE.md "Coordinates and heights" first (s = 0 is the land, not the water; who measures from the shore; the readers of "A new seabed or shore profile") and write the geometry down before code. In `profile.mjs`, compare drawn and reached numbers (depths, crest, where waves break) before rendering.
-- Changed a choice or its inputs? `node scripts/params.mjs --ref HEAD --stats 'p => …'` shows the shares before and now (⚠ at ≥ 5 points) — run it before rendering. Expected shares of a place-table choice: `params.mjs --expect 'pl => …'` (no sampling; use it for test targets).
-- "Was this already broken?": `snapshot.mjs --ref HEAD` (or `diff.mjs --scene … --ref HEAD`) renders the last commit without stashing.
-- Terrain and water-depth features (bars, cusps, tides, reefs, flats): check the shape with `scripts/profile.mjs` (numbers, cross-shore profile, top-down depth map with the break line) before rendering; force waves with `swellHeight`/`swellPeriod`, don't hunt dates. Diff terrain changes with `diff.mjs --keep-camera` (the camera stands on the ground).
-- After any shader edit, render `--w 320 --h 180 --frames 1` first (GLSL errors and reserved words like `flat` show only at render time; TOOLS.md).
+## 3. Check it (details: TOOLS.md, SCENE_SPECS.md)
+- Numbers before renders. Use scene specs, not hunted dates; ask `params.mjs` for frequencies and "is it there at all?". Changed a choice or its inputs? `params.mjs --ref HEAD --stats 'p => …'` (⚠ at ≥ 5 points). Test targets: `params.mjs --expect 'pl => …'` (no sampling).
+- Terrain and water-depth features (bars, cusps, tides, reefs, flats): `profile.mjs` (numbers, cross-shore profile, top-down depth map with the break line); compare drawn and reached numbers; force waves with `swellHeight`/`swellPeriod`. Diff terrain changes with `diff.mjs --keep-camera`.
+- A spec file's base forces `timeOfDay` and `weather` (the date's own may be night); don't force `camera.heightM` (compositions set their own). `--props KIND` also prints CPU build time. Preview new meshes alone with `scripts/mesh.mjs`; render the beach only for placement and light.
+- After any shader edit, render `--w 320 --h 180 --frames 1` first (GLSL errors and reserved words like `flat` show only at render time).
 - Prove visibility with `scripts/diff.mjs` before the first full render (`⚠ invisible` = fix before looking): props with `--off '{"props":{"<kind>":false}}'`; sky, light, haze and weather features with their spec field off (`'{"dust":null}'`) on a clear **and** a cloudy sky (clear days skip the clouds pass, so haze and cloud-lit effects can vanish there). Read a contact sheet, not single frames.
+- "Was this already broken?": `snapshot.mjs --ref HEAD` (or `diff.mjs --scene … --ref HEAD`) renders the last commit without stashing.
 - Check front-lit first, then backlit. Act on snapshot ⚠ warnings before reading images.
 - One render command per step, 16 frames at 1080p. ~3 render rounds per feature (see, fix everything, confirm) on the same dates. If a 4th seems needed, reason from numbers, `--props` and `diff.mjs` instead.
 - Stop the dev server when done: `lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`.
@@ -63,5 +62,5 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Say "done" only for what a render or `diff.mjs` showed; otherwise say "placed, not checked".
 - After new animals or changed chances: run `node scripts/animals.mjs` and paste its table into ANIMALS.md (update the rules there too).
 - Count the days a change touches with `node scripts/params.mjs --ref HEAD` (before committing; `--list` shows each day's changed values) for the changelog row.
-- Update docs: changelog.md, ARCHITECTURE.md (how it works, known issues), LESSONS.md, REFERENCES.md, the topic doc (ANIMALS, CLOUDS, COASTS), SCENE_SPECS.md (new fields), and TODO.md status if used.
+- Update docs: changelog.md, ARCHITECTURE.md and the `arch/` doc (how it works, known issues), LESSONS.md, REFERENCES.md, the topic doc (ANIMALS, CLOUDS, COASTS), SCENE_SPECS.md (new fields), and TODO.md status if used.
 - Never commit TODO.md. One commit per feature, with a descriptive message.

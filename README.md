@@ -37,7 +37,8 @@ a scene — time of day, biome, weather, lighthouse, crabs… — on top of a da
 has the fields.
 
 Versions are in `changelog.md`. Docs are in `knowledge/`: `ARCHITECTURE.md` (decisions, how
-it works), `LESSONS.md`, and what appears where (`ANIMALS.md`, `CLOUDS.md`, `COASTS.md`).
+it works, with `arch/` per area), `LESSONS.md`, `TOOLS.md`, and what appears where (`ANIMALS.md`,
+`CLOUDS.md`, `COASTS.md`).
 
 ## How it works
 

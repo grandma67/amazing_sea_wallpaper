@@ -1,10 +1,12 @@
 # Coasts
 
-Which coasts the wallpaper draws and how often, and research on stony beaches (pebble,
-shingle, cobble). Status 2026-10-24. Shares are over 2024–2026 (1096 days,
-`node scripts/params.mjs --stats … 2024-01-01..2026-12-31`). Code paths are in ARCHITECTURE.md.
+Which coasts the wallpaper draws and how often, and the research behind them. Status
+2026-10-30 (PLAN_BIOMES phases 1–7). Shares are over 2024–2026 (1096 days, 715 beach days;
+`node scripts/params.mjs --stats … 2024-01-01..2026-12-31`). How the code works:
+[arch/COAST.md](arch/COAST.md); research numbers per region: REGIONS.md; plan:
+[plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md).
 
-## How a coast is chosen (today)
+## How a coast is chosen
 
 1. **Place** (`places.ts`, the first main-stream draw; PLAN_BIOMES 1a): a real stretch of
    coast, weighted by √ of its region's coastline length (REGIONS.md §1). It fixes the
@@ -16,16 +18,20 @@ shingle, cobble). Status 2026-10-24. Shares are over 2024–2026 (1096 days,
    date.
 4. **Shape** (same function): dunes, hills, sand colour (the place's `sand` chances, stream
    `'sand-colour'`), composition (beach days only).
-5. **Beach material** (`beach.ts`, stream `'beach-material'`, PLAN_BIOMES 2a): sand, mixed,
+5. **Beach material** (`beach.ts`, stream `'beach-material'`, PLAN_BIOMES 2): sand, mixed,
    shingle or cobble from the place's chances; a stony beach gets a low bank and storm ridges
    instead of dunes.
-6. **Beach state** (`beachState.ts`, same stream, PLAN_BIOMES 4): grain, then a Wright & Short
+6. **Reef** (`reef.ts`, stream `'reef'`, PLAN_BIOMES 7): the place's reef chance; a reef
+   calms the lagoon and drops bars and rips.
+7. **Beach state** (`beachState.ts`, stream `'beach-material'`, PLAN_BIOMES 4): grain, then a Wright & Short
    state from Ω = Hb / (ws · T), which sets the face and nearshore slopes, width, bars, rips
    and cusps (shares below; sources in REGIONS.md §2).
-7. **Tide** (`tides.ts`, stream `'tide'`, PLAN_BIOMES 5; drawn before the coast): the place's
+8. **Tide** (`tides.ts`, stream `'tide'`, PLAN_BIOMES 5; drawn before the coast): the place's
    mean range, spring–neap from the moon, a random stage. The beach is built for its spring
    range (berm, low-tide terrace above 2 m); meso- and macro-tidal sand beaches are
    tide-modified; the land sits `level` lower and the camera stands by today's water.
+
+## Shares
 
 ### Biomes
 
@@ -70,7 +76,7 @@ karst 3%); landform 31% (range 19%, stratovolcano 9%, shield 4%).
 
 ### Beach material
 
-Measured over 2024–2026 beach days (715), PLAN_BIOMES 2a. Target was ~62% sand, ~15% mixed,
+Measured over 2024–2026 beach days. Target was ~62% sand, ~15% mixed,
 ~23% shingle or cobble; the defaults alone gave 53% sand, and sandy overrides for ocean
 coasts (below) bring it to:
 
@@ -84,8 +90,10 @@ coasts (below) bring it to:
 Expected from the tables (place weights × climate × chances): sand 59.1%, mixed 16.7%,
 shingle 11.7%, cobble 12.5%.
 
-- **Defaults** (`MATERIAL_CHANCES` by biome, `POLAR_MATERIAL` for a polar climate) as in
-  PLAN_BIOMES phase 2.
+- **Defaults** (`MATERIAL_CHANCES` by biome, `POLAR_MATERIAL` for a polar climate), in % sand /
+  mixed / shingle / cobble: nordic 35/25/20/20, polar 25/25/20/30, mediterranean 55/15/25/5,
+  volcanic 50/15/15/20, desert 75/15/5/5, tropical 85/10/0/5. Tune with the overrides, not the
+  defaults.
 - **More shingle:** britain-ireland, brittany-normandy, atlantic-canada (Chesil, the Normandy
   galets, Nova Scotia's cobble barriers).
 - **Mostly sand:** wadden-north-sea, florida-carolinas, PEI, the Baltic (60%), the
@@ -98,7 +106,7 @@ shingle 11.7%, cobble 12.5%.
 - **Stone colours** (`STONE_COLORS` by biome; Fundy red sandstone): grey granite and
   greywacke, white–cream limestone, black basalt with red scoria, tan and red gravel, pale
   coral rubble.
-- **Profile** (phase 4 replaced 2a's random slope with the beach state): shingle and cobble are
+- **Profile** (from the beach state): shingle and cobble are
   reflective, face 0.08–0.24 by stone size (Jennings & Shulmeister 2002); mixed 0.08–0.14; beach 12–40 m wide, no bars (mixed:
   a sand terrace at most), a 0.5–2.5 m bank behind; nearshore 0.06–0.12
   (0.035–0.06 mixed), so waves break on the beach (surf zone ~12 m vs ~48 m on sand, median;
@@ -111,15 +119,68 @@ shingle 11.7%, cobble 12.5%.
   beach and merged with the berm; real gravel ridge crests sit at the storm run-up limit (Chesil
   ~10 m, small ridges 1–3 m). On stony days `beachLines().stormLine` is the ridge crest.
 
-Done (2c–2f): stone texture in the terrain shader, mesh stones near the camera, and the other
-props following the stones (shingle flowers, driftwood and old wrack on the ridge crest, no
-ghost crabs or turtle nests on shingle and cobble, seals above the swash, more boulders on
-cobble). Specs: `scenes/stony.json`.
+Drawn as stone texture in the terrain shader plus mesh stones near the camera; the other props
+follow (shingle flowers, driftwood and old wrack on the ridge crest, no ghost crabs or turtle
+nests on shingle and cobble, seals above the swash, more boulders on cobble). Specs:
+`scenes/stony.json`.
+
+### Beach state and tides
+
+Ω = Hb / (ws · T) from the day's swell and the beach's grain (`beachState.ts`, REGIONS.md §2);
+storms and mid-latitude winters one state flatter; meso- and macro-tidal beaches tide-modified
+(Masselink & Short 1993; micro-tidal ones stay wave-dominated). Shapes per state: REGIONS.md §2
+"Beach states: shape by state".
+
+| State | All beach days | Sand beaches (418) | Australia by length (Short 2006) | Shape |
+|---|---|---|---|---|
+| reflective | 38.9% | 20% | 30% | face 0.10–0.20, nearshore 0.10–0.15, no bar, cusps 80% |
+| low-tide-terrace | 39.2% | 42% | ≈ 20% | a shallow terrace reaching 20–50 m out, small rips every 40–120 m, cusps 60% |
+| transverse-bar-rip | 7.7% | 13% | 34% | bar 40–90 m welded to the shore between rips every 150–400 m, cusps 40% |
+| rhythmic-bar | 3.4% | 6% | 11% | crescentic bar 70–140 m (+ an outer bar on a third), rips every 150–400 m |
+| longshore-bar | 3.6% | 6% | 0.3% | straight bar 100–150 m cut by rips every 250–500 m (+ an outer bar half the time) |
+| dissipative | 7.3% | 12% | 4% | face ~0.03, nearshore ~0.01, 2 bars (3 on 15%) to ~360 m, wide surf zone |
+
+Cusps on 54% of beach days, rips on 54%. By biome (sand beaches): coarse coral and black sands
+stay steep (tropical 66% reflective or terrace, volcanic 83%); fine white quartz under ocean swell
+flattens (Mediterranean and desert ocean coasts ~30% dissipative).
+
+Tides: spring ranges on beach days micro (< 2 m) 58%, meso (2–4 m) 33%, macro (4–6 m) 6%, mega
+(> 6 m) 2%. By biome (micro / meso / macro+ as % of all beach days): nordic 18 / 16 / 6, tropical
+14 / 8 / 1.5, mediterranean 12 / 2 / 0.4, volcanic 9 / 5 / 0, desert 5 / 3 / 0.3. 42% of beach
+days have a low-tide terrace (25% under 50 m wide); on 6% today's water is more than 100 m out.
+
+**Against the measured world.** The only census is Australia's (Short 2006; by length, which
+suits a view better than counting beaches; REGIONS.md §2). Before tides, wave-dominated shares
+matched on reflective (29% vs 30%). Now the terrace is high: on meso-tidal coasts with small swell
+a reflective beach becomes reflective + low-tide terrace, which Short files under tide-modified
+(Australia: 47% wave-dominated, 10.5% tide-modified, 34% tide-dominated). Rip-cut transverse bars
+are under-drawn (13% vs 34%); longshore bars (6% vs 0.3%) and dissipative beaches (12% vs 4%)
+over-drawn. Part of the gap is real (Australia's long Southern Ocean swell, T 12–14 s, keeps Ω
+low, while our world includes fine-sand storm coasts: Namibia, Oregon, the North Sea); part is
+counting (Short files a multibar beach under its inner bar, mostly transverse bar–rip); part is
+ours (storm days and winters shift a beach one state flatter, showing the day rather than the
+modal state). **Possible retune (not done; ask first, it changes every beach day):** drop the
+winter shift and keep only storms, or classify a multibar beach by its inner bar.
+
+### Reef-fronted beaches
+
+`place.reef` chances (`places.ts` REEF): Maldives 0.95; Pacific islands, Bahamas–Bermuda 0.8;
+Andaman–Lakshadweep 0.75; Philippines 0.7; Indonesia, Antilles 0.65; Yucatán–Belize,
+Réunion–Mauritius 0.6; East Africa 0.45; North Australia, Comoros 0.4; Sri Lanka 0.35; NE Brazil
+0.3; mainland SE Asia, Lesser Antilles volcanic 0.25; Hawaii, Red Sea 0.2; Central America 0.15;
+NW Australia, Ningaloo 0.1; India 0.05; West Africa and everywhere else 0.
+
+Measured over 2024–2026 (`params.mjs`): 86 of 1096 days (7.8%) have a reef; ~48% of tropical beach
+days (1096 forced tropical beach days: 525). The plan asked ~60%: continental tropical places
+(India, West Africa, NW Australia, Central America, North Australia) are a third of tropical
+days and mostly lack fringing reefs, so the research wins. By place: Pacific islands 22%,
+Indonesia 17%, Philippines 16%, East Africa 8%, Andaman, Antilles 6% each, the rest ≤ 5%. Reef
+beaches: reflective 59%, low-tide terrace 41% (the waves crossing the reef are small).
+Beachrock on 30% of them.
 
 ## Research: the world's coasts
 
-What real coasts are like, as the target for PLAN_BIOMES.md. Sources at the end of this
-section.
+What real coasts are like: the target for PLAN_BIOMES.md.
 
 - **Coast types.** A 2025 global dataset (ESSD) classes ~40% of the world's coastline as
   sand, gravel or shingle, 21% mud, 13% rocky and 27% bare rock with no sediment; ~33%
@@ -132,10 +193,8 @@ section.
   longshore bar, rhythmic bar, transverse bar and rip, low-tide terrace) and dissipative
   (Ω > ~5.5: flat, 2–3 bars, a wide surf zone of spilling breakers). Coarse sand and
   small swell → reflective (coral and black sand islands, the Mediterranean); fine sand
-  and big swell → dissipative (Namibia, Oregon, the Wadden). The only full census, all
-  Australian beaches (Short 2006), finds 47% wave-dominated (by length: reflective 30%,
-  transverse bar–rip 34%, terrace ~20%, rhythmic 11%, dissipative 4%) and the rest tide-modified
-  or tide-dominated. Grain, fall velocity and shape by state: REGIONS.md §2.
+  and big swell → dissipative (Namibia, Oregon, the Wadden). Census shares: "Beach state and
+  tides" above; grain, fall velocity and shape by state: REGIONS.md §2.
 - **Sand colours.** White (coral and shell carbonate, or pure quartz), golden (quartz with
   iron staining, feldspar), grey (mixed rock, glacial), black (basalt glass, volcanic),
   pink (red foraminifera *Homotrema rubrum* mixed into coral sand: Bermuda, Bahamas'
@@ -143,7 +202,7 @@ section.
   Fundy, Kaihalulu on Maui, Santorini), green (olivine, Papakōlea: very rare).
   **Drawn** (PLAN_BIOMES 3, `PLACE_SAND` in `places.ts`, else the biome's `sands`): pink on
   bahamas-bermuda 25%, indonesia 3% (Komodo), other tropical places 1%; red on PEI 60%, Fundy
-  40%, Hawaii 4%, Oman–Yemen and Red Sea 3%. Rare on purpose (decision 4): 2024–2026 has 5
+  40%, Hawaii 4%, Oman–Yemen and Red Sea 3%. Rare on purpose (PLAN_BIOMES decision 4): 2024–2026 has 5
   pink and 1 red beach day of 1096.
 - **Tides.** Micro < 2 m (Mediterranean ~0.4 m, Caribbean 0.1–0.2 m, Baltic ~0, Hawaii
   ~0.6 m, most open ocean coasts 1–2 m), meso 2–4 m (Wadden, Iceland, east Africa),
@@ -184,101 +243,6 @@ Sources: [Global coastal dataset (ESSD preprint 2025)](https://essd.copernicus.o
 [The myriad faces of the coasts (World Ocean Review)](https://worldoceanreview.com/en/?p=5160),
 [Machair (EUNIS)](https://eunis.eea.europa.eu/habitats/8044).
 
-### Beach state (phase 4)
-
-Before tides (phase 5 changed these: see "Tides" below). Measured over 2024–2026 beach days (715). Ω = Hb / (ws · T) from the day's swell and the
-beach's grain (`beachState.ts`, REGIONS.md §2); storms and mid-latitude winters one state
-flatter.
-
-Shapes are sourced per state in REGIONS.md §2 "Beach states: shape by state" (2026-10-24).
-
-| State | All beach days | Sand beaches (418) | Australia by length (Short 2006) | Shape |
-|---|---|---|---|---|
-| reflective | 48.0% | 29% | 30% | face 0.10–0.20, nearshore 0.10–0.15, no bar, cusps 80% |
-| low-tide-terrace | 30.1% | 33% | ≈ 20% | a shallow terrace reaching 20–50 m out, small rips every 40–120 m, cusps 60% |
-| transverse-bar-rip | 7.1% | 12% | 34% | bar 40–90 m welded to the shore between rips every 150–400 m, cusps 40% |
-| rhythmic-bar | 3.9% | 7% | 11% | crescentic bar 70–140 m (+ an outer bar on a third), rips every 150–400 m |
-| longshore-bar | 3.6% | 6% | 0.3% | straight bar 100–150 m cut by rips every 250–500 m (+ an outer bar half the time) |
-| dissipative | 7.3% | 12% | 4% | face ~0.03, nearshore ~0.01, 2 bars (3 on 15%) to ~360 m, wide surf zone |
-
-Cusps on 56% of beach days; rips on 45%; bars: none 48%, one 42%, two 9%, three 2%. By biome (sand
-beaches): coarse coral and black sands stay steep (tropical 66% reflective or terrace, volcanic
-83%); fine white quartz under ocean swell flattens (Mediterranean and desert ocean coasts: 30%
-and 26% dissipative).
-
-**Against the measured world.** The only census is Australia's (Short 2006; by length, which suits a
-view better than counting beaches). Reflective is about right (29% vs 30%). Rip-cut transverse
-bars are under-drawn (12% vs 34%). Longshore bars (6% vs 0.3%) and dissipative beaches (12% vs
-4%) are over-drawn. Part of the gap is real: Australia's long Southern Ocean swell (T 12–14 s)
-keeps Ω low, while our world includes fine-sand storm coasts (Namibia, Oregon, the North Sea).
-Part is how it's counted: Short files a multibar beach under its inner bar, which is mostly
-transverse-bar-rip, while our dissipative and longshore days are the whole profile. Part is ours:
-storm days and mid-latitude winters shift a beach one state flatter, which shows the day rather
-than the modal state. A possible retune (not done, it changes every beach day): drop the winter
-shift and keep only storms, or classify by the inner bar so a double-bar beach with a rip-cut
-inner bar counts as transverse-bar-rip.
-
-### Tides (phase 5)
-
-Spring ranges over 2024–2026 beach days (715): micro (< 2 m) 58%, meso (2–4 m) 33%, macro
-(4–6 m) 6%, mega (> 6 m) 2%. By biome: nordic 18% micro / 16% meso / 6% macro+ of all beach
-days, tropical 14 / 8 / 1.5, mediterranean 12 / 2 / 0.4, volcanic 9 / 5 / 0, desert 5 / 3 /
-0.3. 42% of beach days have a low-tide terrace (25% under 50 m wide); on 6% today's water is
-more than 100 m out.
-
-Beach states after the tide (Masselink & Short 1993; micro-tidal beaches stay wave-dominated):
-
-| State | All beach days | Sand beaches (418) |
-|---|---|---|
-| reflective | 38.9% | 20% |
-| low-tide-terrace | 39.2% | 42% |
-| transverse-bar-rip | 7.7% | 13% |
-| rhythmic-bar | 3.4% | 6% |
-| longshore-bar | 3.6% | 6% |
-| dissipative | 7.3% | 12% |
-
-Cusps on 54% of beach days, rips on 54%. Against Australia (Short 2006: 47% wave-dominated,
-10.5% tide-modified, 34% tide-dominated) the terrace is high: on meso-tidal coasts with small
-swell a reflective beach becomes reflective + low-tide terrace, which Short files under
-tide-modified.
-
-### Reef-fronted beaches (phase 7)
-
-`place.reef` chances (`places.ts` REEF): Maldives 0.95; Pacific islands, Bahamas–Bermuda 0.8;
-Andaman–Lakshadweep 0.75; Philippines 0.7; Indonesia, Antilles 0.65; Yucatán–Belize,
-Réunion–Mauritius 0.6; East Africa 0.45; North Australia, Comoros 0.4; Sri Lanka 0.35; NE Brazil
-0.3; mainland SE Asia, Lesser Antilles volcanic 0.25; Hawaii, Red Sea 0.2; Central America 0.15;
-NW Australia, Ningaloo 0.1; India 0.05; West Africa and everywhere else 0.
-
-Measured over 2024–2026 (`params.mjs`): 86 of 1096 days (7.8%) have a reef; ~48% of tropical beach
-days (1096 forced tropical beach days: 525). The plan asked ~60%: continental tropical places
-(India, West Africa, NW Australia, Central America, North Australia) are a third of tropical
-days and mostly lack fringing reefs, so the research wins. By place: Pacific islands 22%,
-Indonesia 17%, Philippines 16%, East Africa 8%, Andaman, Antilles 6% each, the rest ≤ 5%. Reef
-beaches: reflective 59%, low-tide terrace 41% (the waves crossing the reef are small).
-Beachrock on 30% of them.
-
-## Gaps: research vs. today
-
-| Real world | Today | Plan phase |
-|---|---|---|
-| Coasts are real places (latitude, climate, tide, animals) | biome × ocean drawn apart; latitude from the basin | 1a |
-| Southern seasons | only the Southern Ocean flips months | 1c |
-| Pebble, shingle and cobble beaches (~¼ of beaches) | done (phase 2) | 2 |
-| Pink and red sand; treeless high Arctic | done (phase 3): pink and red sand; no birch above 74°; beech in Tierra del Fuego | 3 |
-| Marine layer, harmattan, haar | done (phase 3): marine layer and harmattan by place; haar already in the fog season | 3 |
-| Beach slope and bars follow grain and swell | done (phase 4): Wright & Short state from Ω; bars, rips, cusps | 4 |
-| Tides (micro to mega) | done (phase 5): ranges by place, springs and neaps, low-tide terraces, the land lowered | 5 |
-| Calm water behind reefs and barriers | done (phase 6): shelter mask (reefs use it; barriers later) | 6 |
-| Reef-fronted tropical beaches | done (phase 7): reef chance by place, lagoon, crest foam, beachrock | 7 |
-| Rocky shores (~40% of coast) | none: beach or open sea | 8 |
-| Tidal flats and salt marsh | none | 9 |
-| Barrier lagoons, spits, fjords | none | 10 (later) |
-| Temperate and subtropical climates | five biomes | 11 |
-| Polar night, midnight sun | time of day ignores latitude and date | 12 |
-| Offshore winds, snow and ice foot, glowing surf, sea-breeze Cu | none | 13 (later) |
-| Sea otters, walrus, polar bears, waders | none | 14 (later) |
-
 ## Research: stony beaches
 
 - **Canada.** Most Canadian beaches are reworked glacial sediment: ice ground the bedrock
@@ -310,10 +274,3 @@ Sources: [Canadian Encyclopedia: Coast](https://www.thecanadianencyclopedia.ca/e
 [EUNIS: Atlantic, Baltic and Arctic coastal shingle beach](https://eunis.eea.europa.eu/habitats/8045),
 [UK Coastal Monitoring: gravel coasts](https://coastalmonitoring.org/ccoresources/gravel_coasts/blog/?story_id=6),
 [Woodruff et al. 2021, mixed beaches of southern New England](https://websites.umass.edu/woodruff/files/2021/09/45_Woodruff_etal_2021_MarineGeology.pdf).
-
-## Planned
-
-Beach materials (sand, mixed, shingle, cobble), rocky shores, tidal flats, reefs, tides and
-climates are planned in [plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md) (phase 1: places;
-phase 2: stony beaches; decisions there supersede the earlier proposals, e.g. rock-shore ~25% of
-days and climate as a choice of each place instead of a new `temperate` biome).

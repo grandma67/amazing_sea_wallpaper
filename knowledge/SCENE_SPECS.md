@@ -1,75 +1,81 @@
-# Scene specs and the params generator
+# Scene specs
 
-## Scene specs (JSON) instead of hunting dates
-
-`src/sceneSpec.ts` forces what's needed; the rest comes from the date. Browser: `?scene=<JSON>`;
-scripts: `--scene <JSON or file>`.
+Force what's needed in JSON instead of hunting dates; the rest comes from the date.
+`src/sceneSpec.ts` validates it. Browser: `?scene=<JSON>`; scripts: `--scene <JSON or file>`.
+Querying params (`params.mjs`) and rendering: [TOOLS.md](TOOLS.md).
 
 ```json
 { "name": "arctic-driftwood", "date": "2024-02-12", "timeOfDay": "golden-hour",
   "biome": "nordic", "ocean": "arctic", "composition": "along-beach", "storm": null, "fog": null,
-  "camera": { "heightM": 1.6 },
   "props": { "debris": { "driftwood": 1, "rootWads": true }, "shoreLife": null } }
 ```
 
 - Output is `<name>.jpg` (or `<date>.jpg`) plus `<name>.json` (params, spec).
 - Omitted fields come from the date (`date` also sets the moon phase and month). Forcing one field
-  keeps the rest: `{"date": D, "timeOfDay": "night"}` is day D's biome, coast and lens at night.
+  keeps the rest: `{"date": D, "timeOfDay": "night"}` is day D's place, coast and lens at night.
   `seed` gives another scene on the same date.
-- Fields (allowed values in `sceneSpec.ts`):
-  - time and light: `timeOfDay`, `evening`, `sunElevationDeg`, `sunAzimuthDeg` (0 = ahead),
-    `moonPhaseDeg`, `dayMoon`, `nightSky`, `eclipse`;
-  - place: `place` (a place or region id from `src/places.ts`, e.g. `"scotland"`,
-    `"atlantic-canada"`), `biome`, `ocean`, `climate` (these three restrict the place draw
-    to places that have them and force the choice; a combination no place has throws),
-    `monsoon`, `ice`, `coast`, `composition`, `swellHeight` (m offshore) and `swellPeriod` (s;
-    wavelength capped at 320 m ≈ 14 s): the open sea, surf and beach state follow, so force waves
-    instead of hunting dates; `sand` (`white`, `golden`, `grey`, `black`,
-    `pink`, `red`; on any place), `beachMaterial` (`sand`, `mixed`,
-    `shingle`, `cobble`; a stony one implies a beach, on any place), `beachState`
-    (`reflective`, `low-tide-terrace`, `transverse-bar-rip`, `rhythmic-bar`, `longshore-bar`,
-    `dissipative`: slopes, bars, rips and cusps; grain and swell stay the day's), `tide`
-    (`low`, `mid`, `high`: the stage; the beach's mean range is still drawn) and `tidalRange`
-    (m, today's low to high water; the beach is rebuilt for it if it's above springs), `reef`
-    (true: a fringing reef offshore on any beach, implies a beach; null: none) and `beachrock`
-    (true: ledges along the waterline, implies a reef; null: none);
-  - sky: `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
-    `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
-    `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
-    `nacreous`, `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place;
-    null: none), `dust` (`"harmattan"` or true: ochre dust haze, 2–10 km, any place; null:
-    none), `wind`, `visibilityKm`;
-  - features: `lighthouse`, `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`, `haulOut`;
-  - camera: `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`;
-  - props: `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,vegetation,debris,shoreLife,mangroves,wildlife}`.
-- `camera.horizonFraction` = how far **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
 - Shared fields: `{"base": {…}, "scenes": [{"name": "a", …}]}`; each scene is deep-merged over the
-  base (snapshot.mjs, diff.mjs).
+  base (snapshot, diff, params, profile). A spec's own `date` is used when no date is given.
 - Optional features: `null`/`false` removes, `true` ensures, a kind (`"rock"`, `"bank"`, `"orca"`)
   forces that kind.
 - Anything else: `params`, a deep patch over the finished `SceneParams`
-  (`{"params": {"coast": {"distanceToWater": 6}}}`). It's applied last, so the title and derived
-  values don't follow it.
+  (`{"params": {"coast": {"distanceToWater": 6}}}`). Applied last, so the title and derived values
+  don't follow it.
 - Unknown fields and bad values throw, naming the field.
 - Forced features are still placed normally (a crab needs sand near the camera in frame; a boat is
   skipped if there's no sea spot).
-- Light it to see it: front-lit first (`"sunAzimuthDeg": 160`, `"timeOfDay": "daylight"`), then
-  backlit for looks. A spec file's `base` must force the time of day and weather (`"weather":
-  "clear"` for textures): the date's own may be night or overcast, and a whole render round is
-  wasted. Base for checking ground and textures:
+
+## Fields
+
+Allowed values are in `sceneSpec.ts`.
+
+- **Time and light:** `timeOfDay`, `evening`, `sunElevationDeg`, `sunAzimuthDeg` (0 = ahead),
+  `moonPhaseDeg`, `dayMoon`, `nightSky`, `eclipse`.
+- **Place:** `place` (a place or region id from `places.ts`, e.g. `"scotland"`,
+  `"atlantic-canada"`); `biome`, `ocean`, `climate` (restrict the place draw to places that have
+  them and force the choice; a combination no place has throws); `monsoon`, `ice`.
+- **Coast:** `coast`, `composition`; `swellHeight` (m offshore) and `swellPeriod` (s; wavelength
+  capped at 320 m ≈ 14 s): open sea, surf and beach state follow, so force waves instead of hunting
+  dates; `sand` (`white`, `golden`, `grey`, `black`, `pink`, `red`; any place); `beachMaterial`
+  (`sand`, `mixed`, `shingle`, `cobble`; a stony one implies a beach, any place); `beachState`
+  (`reflective`, `low-tide-terrace`, `transverse-bar-rip`, `rhythmic-bar`, `longshore-bar`,
+  `dissipative`: slopes, bars, rips and cusps; grain and swell stay the day's); `tide` (`low`,
+  `mid`, `high`: the stage; the mean range is still drawn); `tidalRange` (m, today's low to high
+  water; the beach is rebuilt for it if above springs); `reef` (true: a fringing reef on any beach,
+  implies a beach; null: none); `beachrock` (true: ledges along the waterline, implies a reef;
+  null: none).
+- **Sky:** `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
+  `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
+  `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
+  `nacreous`, `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place; null:
+  none), `dust` (`"harmattan"` or true: ochre dust haze, 2–10 km, any place; null: none), `wind`,
+  `visibilityKm`.
+- **Features:** `lighthouse`, `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`,
+  `haulOut`.
+- **Camera:** `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`. `horizonFraction` = how far
+  **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
+- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,vegetation,debris,shoreLife,mangroves,wildlife}`.
+  Off for `diff.mjs`: `false` (booleans and kinds), `[]` (`vegetation`), `null` (`debris`,
+  `shoreLife`, `wildlife`).
+
+## Writing specs that show the feature
+
+- **Light it to see it:** front-lit first (`"sunAzimuthDeg": 160`, `"timeOfDay": "daylight"`),
+  then backlit. A spec file's `base` must force the time of day and weather (`"weather": "clear"`
+  for textures): the date's own may be night or overcast. Add `"eclipse": null` when forcing time
+  of day or sky (real eclipse days override). Base for ground and textures:
   ```json
   { "base": { "date": "2025-07-10", "eclipse": null, "storm": null, "fog": null,
               "timeOfDay": "daylight", "weather": "clear", "sunAzimuthDeg": 160 } }
   ```
-- Don't force `camera.heightM` to get closer: each composition sets its own camera (a forced
-  1.6 m put framed and overlook cameras inside the grass). Pick the composition, and check how
-  near the ground in frame is with `params.mjs --fields view` (TOOLS.md).
-- One forced date is one framing: the 2025-07-10 shorelines see the ground from ~21 m, while
-  over real beach days the nearest ground is under ~7 m on 40–55% of along-beach and framed
-  days, anywhere from 5 to 40 m on shorelines and 40 m+ on overlooks (`p.view.nearest`). For near-camera features,
+- **Don't force `camera.heightM`** to get closer: each composition sets its own camera (a forced
+  1.6 m put framed and overlook cameras inside the grass). Pick the composition and check how near
+  the ground in frame is (`params.mjs --fields view`).
+- **One forced date is one framing:** the 2025-07-10 shorelines see the ground from ~21 m, while
+  real days range from ~5 m to 40 m+ (TOOLS.md "What the camera sees"). For near-camera features
   pick dates whose `view.nearest` fits, or check the real-day spread with `--stats`.
 
-### Adding a spec field
+## Adding a spec field
 
 Every new random feature gets one. Always make the draw, then apply the force via
 `or(drawn, force)`, `forced()` or `forcedKind()`, so unforced specs stay byte-identical
@@ -77,50 +83,15 @@ Every new random feature gets one. Always make the draw, then apply the force vi
 
 ## Fixed dates
 
-- Eclipses:
-  - 2024-04-08, 2026-08-12: total solar;
-  - 2024-10-02, 2026-02-17: annular;
-  - 2025-03-29: partial solar;
-  - 2025-03-14, 2025-09-07, 2026-03-03: blood moon;
-  - 2026-08-28: partial lunar.
-- Looks (re-found 2026-10-23 after places, PLAN_BIOMES 1a, reshuffled every date):
+- Eclipses: 2024-04-08, 2026-08-12 total solar; 2024-10-02, 2026-02-17 annular; 2025-03-29
+  partial solar; 2025-03-14, 2025-09-07, 2026-03-03 blood moon; 2026-08-28 partial lunar.
+- Looks (re-found 2026-10-23 after places reshuffled every date; they change whenever the main
+  stream does, so prefer a spec with `place`, `biome`, `timeOfDay`…):
   - 2024-01-03: Arctic beach (arctic-canada), driftwood, kelp, icebergs, midday;
   - 2024-11-23: nordic beach (nova-scotia), kelp, moon by day;
   - 2024-09-05: Mediterranean beach (north-africa-levant), seagrass, shells;
   - 2024-02-26: tropical golden hour (indonesia);
   - 2024-09-06: Mediterranean waterspout season (western-med, open sea);
   - 2024-04-24: storm + shelf cloud (norway-west).
-- For a look, prefer a spec (`place`, `biome`, `timeOfDay`…) over a date: dates change
-  whenever the main stream does.
-
-## Ask the generator, don't render: `scripts/params.mjs`
-
-Params are cheap (3 years in ~1.5 s). Use the script for frequencies, which days, what a spec
-gives, real dates (eclipses) and "is it there at all?". Use specs for looks.
-
-```sh
-node scripts/params.mjs --stats 'p => p.weather.formations'                 # counts over 3 years
-node scripts/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
-node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
-node scripts/params.mjs --ref HEAD                                           # days changed vs the last commit, by field
-node scripts/params.mjs --ref HEAD~2 --fields coast.sand.name --list --limit 5 # each changed day, before → after
-node scripts/params.mjs --scene scenes/stony.json --fields title,place.id   # each scene of a {base, scenes} file
-node scripts/params.mjs --help
-node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-06
-node scripts/params.mjs --scene '{"storm":"squall"}' --stats 'p => p.weather.formations'   # spec on every day
-node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'    # prop choices
-node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null' # from the place table
-```
-
-- `p.placeData` = the day's resolved place (`places.ts` `Place`: weight, tide, reef, chances,
-  pools); `--expect 'pl => …'` asks the place table directly, weighted by share of days.
-- `p.props` = what the props choose (`src/props/choices.ts`: gulls, marine, migratory, wildlife,
-  shoreLife, debris, mangroves), on the same streams as the render.
-- `--where`/`--stats` take a JS function of `SceneParams`; `--stats` counts array elements.
-- Dates are `YYYY-MM-DD` or `FROM..TO`; with none it uses the test days (`test/days.ts`). Pick 4–8
-  dates covering the cases (each biome, near/far, day/night).
-- Must-be-in-frame features (moon, eclipse): compute from `camera.headingDeg`, `focalLengthMm`
-  (36×24 mm sensor) and `horizonFraction`; don't render to find out.
-- Sky features: before the first render, compare height and distance with that day's cloud layers
-  (`--fields weather.formations`, altitudes in `cloudTypes.ts`). Inside the storm deck (Cb base
-  600 m) or scud (300–550 m) means hidden.
+- Spec files for each finished feature: `scenes/` (`examples`, `stony`, `tables`, `beach-states`,
+  `tides`, `shelter`, `reef`).

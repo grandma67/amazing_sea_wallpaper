@@ -1,46 +1,76 @@
 # Lessons and gotchas
 
-Things that bit us, by topic. Read the sections for what you're touching. Workflow is in CLAUDE.md,
-tool gotchas in TOOLS.md.
+Things that bit us, by topic. Read the sections for what you're touching. Workflow: CLAUDE.md;
+tool gotchas: TOOLS.md.
 
 ## Debugging approach
 
 - "Not showing" is usually placement, light or size: check `--props`, backlight and pixel size
-  before debugging shaders. Small things at real scale vanish (10 cm crab: ~70 px at 5 m at 4K,
-  a speck at 20 m).
+  before debugging shaders. Small things at real scale vanish (10 cm crab: ~70 px at 5 m at 4K, a
+  speck at 20 m).
 - Placed but invisible: print the physics with a temporary `console.warn('DBG …')` at 640×360,
-  1 frame, before tuning looks (ship spray: water rose only ±0.1 m on the hull, so no splash
-  could trigger).
+  1 frame, before tuning looks (ship spray: water rose only ±0.1 m on the hull, so no splash could
+  trigger).
 - Shader debugging: force a visible output (`coverage = 1.0` over a region), move it step by step.
 - Find a cause by switching passes off one at a time (the sunset tree glow had four causes).
 - Suspect float precision when a pattern depends on one direction only; isolate by changing one
   offset at a time (`params` patches of `weather.shapeOffset`, `weatherOffset`, `latitudeDeg`;
   `"clouds": [one genus]`).
 - After fixing a shared layer (cloud type, exposure, fog), re-check conclusions made while it was
-  broken: scud made every storm flat grey, and "calvus = capillatus from below" was wrongly
-  blamed on physics.
+  broken: scud made every storm flat grey, and "calvus = capillatus from below" was wrongly blamed
+  on physics.
 - Physically faint is fine, but say so rather than boost (noctilucents need the sun 6–16° down;
   our blue hour stops at −7°; blue-hour contrails are dark lines in the earth's shadow).
-- Speed work: compare with a pixel diff, not by eye; two runs of the same code on the same GPU
-  are pixel-identical. Benchmark under `caffeinate -i`; GPU noise floor ≤ 5/255 on a few pixels.
+- Speed work: compare with a pixel diff, not by eye; two runs of the same code on the same GPU are
+  pixel-identical. Benchmark under `caffeinate -i`; GPU noise floor ≤ 5/255 on a few pixels.
 - three sorts opaque meshes by **material id** (creation order) before depth: creating meshes in a
   different order changes equal-depth pixels.
-- Tests that need a rare event on **real days** ("at least one waterspout in three years",
-  "tropical streets more often than elsewhere" on a few dozen days) break when the main stream
-  changes (places, 1a, broke four). Check the rules on real days, but get the event from a spec
-  over every date (`scenes({ place: 'caribbean', … }, DAYS.length)`), and compare rates on
-  forced, equal conditions.
+- Plan numbers (radii, counts, budgets) are estimates until measured against `p.view` and a
+  placement test: the stones plan assumed ground in view from ~5 m, but the nearest ground in frame
+  is ~5 m (along-beach, framed), 20–40 m (many shorelines) or beyond (overlooks); one forced date
+  showed 21 m and was taken for the rule at first, and `meshStones` placed nothing with the plan's
+  15 m cap. Size near-camera things by pixels (`ctx.pixelAngle`).
+
+## Randomness, params and tests
+
+- Tests that need a rare event on **real days** ("at least one waterspout in three years") break
+  when the main stream changes (places, 1a, broke four). Check rules on real days, but get the
+  event from a spec over every date (`scenes({ place: 'caribbean', … }, DAYS.length)`), and
+  compare rates on forced, equal conditions.
+- Removing a draw from the middle of an object literal (the old `sandbarDistance`) shifts every
+  later field and the eye height: keep the draw (`skipDraw`) and check `params.mjs --ref HEAD`
+  shows only the intended param changing.
+- Rewriting `x *= a * b * c` as `x * a * b * c` changes the last bit (rounding order) and
+  `params.mjs --ref` shows dozens of changed days. Keep the grouping when wrapping a value in
+  `or()`.
+- Keep other days identical when a choice depends on a new input (e.g. beach material): gate
+  before the draw (`continue` before `rng.chance`) or change only the chance, not the number of
+  draws.
+- Tests that compare whole `coast` (or `params`) objects break whenever a field is added that
+  follows the forced value; compare the fields the test is about.
+- `params.mjs --ref` counts open-sea days for beach-shape changes (their coast carries a shape the
+  terrain never draws): report beach days separately.
 - Pack ice calms `params.ocean.windSpeed` (×0.4, for the waves) but not the wind the sky reads
   (lenticulars, fog): compare sky features with the wind before the ice factor.
+- Module cycles: `tides.ts` importing `terrain.ts` (which imports `tides.ts`) left half the test
+  files failing to load. Put shared helpers in a module with no imports (`reef.ts`).
+
+## Seasons
+
+- A month table needs the hemisphere, not the ocean: `ocean === 'southern'` only flipped the
+  Southern Ocean, so Chile, SW Australia and the Cape bloomed in July. Read months through
+  `seasons.ts` (`monthInSeason`); keep calendar months only for data already local (turtle nesting
+  per place). Tests that pin "a northern beach" pin a northern `place`, since a biome/ocean spec
+  can draw a southern place.
 
 ## Light and exposure
 
 - Auto exposure re-normalises: scaling the whole scene does nothing; change `exposure` (e.g.
   `nightScale`) or relative brightness.
 - Post-exposure units: sky ≈ 0.1–1; > 40 clamps white (GradeEffect). Effects added after exposure
-  in fixed units look equally strong by day and dusk: physical sources need fixed scene radiance
-  × exposure. Fixed-power lights (lanterns, beams) scale per time of day against the metered sky,
-  or they vanish at dusk and blind at night.
+  in fixed units look equally strong by day and dusk: physical sources need fixed scene radiance ×
+  exposure. Fixed-power lights (lanterns, beams) scale per time of day against the metered sky, or
+  they vanish at dusk and blind at night.
 - Pale things (foam, spray, mist) vanish against a low sun ahead: foam is no brighter than the
   glare. Check front-lit (`sunAzimuthDeg` ≈ 160, daylight) first, then backlit.
 - A low sun lights vertical flanks far more than flat sand: dark animals look pale beside the
@@ -51,14 +81,24 @@ tool gotchas in TOOLS.md.
 - Env cube is 256²: bright specks become texel blocks in wet-sand reflections. Don't boost things
   in `envScene`. Screen-space effects (lightning flash) aren't in it: the ocean shader must add
   them along `R` itself (radiance = graded value / exposure).
-- A plain vertex-coloured sand mesh lights brighter than the terrain's sand shader: tint
-  sand-coloured overlays (tracks) ~0.8×.
+- Sand overlays: a plain vertex-coloured sand mesh lights brighter than the terrain's sand shader;
+  tint sand-coloured overlays (tracks, stones) ~0.8×.
 - Glow round trees against a low sun had four causes: cloud TAA smearing light shafts past
   silhouettes (history now off; our accumulation averages), half-res clouds upsampled across
   silhouettes (rims, pink ridge outlines at blue hour), MSAA edge pixels keeping some bare sky
   (`SkyFillEffect`), GGX glints on edge-on leaves (no direct specular on plants). A pass reading
   the depth buffer composites per pixel; anything blended into a pixel (MSAA, bilinear) needs
   coverage handled explicitly.
+- A steep stony beach face tilts away from a sun behind the land: at golden hour it sits in shade
+  while rocks on it are lit. Judge ground texture under `"weather":"clear"`; a heavy deck also
+  leaves the beach flat blue (cloud shadow).
+
+## Shaders (GLSL)
+
+- Reserved words that read like names: `flat`, `smooth`, `half`, `input`, `output`, `filter`,
+  `active`, `common`, `partition`, `fixed`, `long`, `short`. `smoothstep(e0, e1, x)` with e0 ≥ e1
+  is undefined (works on one GPU, not another): write `1.0 - smoothstep(e1, e0, x)`. Both show
+  only at render time.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
   bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN terrain.
 
@@ -76,9 +116,9 @@ tool gotchas in TOOLS.md.
 - Floating things (contrail, high cloud): `GetSunAndSkyIrradiance` is for surfaces (cosine, zero
   below the plane); use `GetSunAndSkyScalarIrradiance` + a phase function.
 - `coverageFilterWidth` near 1 turns a layer into a sheet over the sky (density =
-  remap(mix(weather, 1, width), …)); ragged scraps need a narrow width + high `weatherExponent`.
-  An étage's 2nd layer reads weather-map alpha (`layerChannels`). Under a closed deck you never
-  see cloud tops.
+  remap(mix(weather, 1, width), …)); ragged scraps need a narrow width + high `weatherExponent`. An
+  étage's 2nd layer reads weather-map alpha (`layerChannels`). Under a closed deck you never see
+  cloud tops.
 - The cloud shadow map is temporal (~8 updates to converge): unprimed, the first of 16 frames saw
   clouds unshadowed and low-sun bases came out too pink (`primeCloudShadow`).
 - Temporal upscaling + along-ray-only jitter left spots and grain in averaged stills: Halton
@@ -87,16 +127,15 @@ tool gotchas in TOOLS.md.
   (`sqrt(a - sqrt(a² - 6mx²))` = 0 within ~1 km of our anchor's meridian), not wind or texture
   (`stabiliseCubeSphereUv`).
 - Clouds on a round earth: a 700 m base sinks below a 2 m eye's horizon at ~95 km, tops show to
-  ~140 km. With Bruneton air alone (~220 km visibility) 40–130 km of undersides stacked into a
-  dark band on the sea; real sea air (20–60 km) fades them (`seaHaze.ts`). takram's own haze is
+  ~140 km. With Bruneton air alone (~220 km visibility) 40–130 km of undersides stacked into a dark
+  band on the sea; real sea air (20–60 km) fades them (`seaHaze.ts`). takram's own haze is
   coverage-gated and coloured by ground irradiance (grey at sunrise).
 - takram's haze ray ends at the top of the highest cloud layer (`getHazeRayNearFar`): with no
   layers there's no haze at all. A clear dust day needs an empty layer (density 0) through the
   dust's height.
 - Thick dust can't take its colour from the sky behind each ray (the sky stays blue overhead):
-  colour it from the horizon sky in every direction, tinted, and give the sunlight it removes
-  back as diffuse light, or sand under a dimmed sun and blue skylight goes purple.
-- `flat` is a GLSL ES 3 keyword (like `half`).
+  colour it from the horizon sky in every direction, tinted, and give the sunlight it removes back
+  as diffuse light, or sand under a dimmed sun and blue skylight goes purple.
 - Haze lit by the clear-sky horizon glows under a storm deck: scale it by the light the clouds let
   through, with a floor (storm 0.06, overcast 0.3).
 - Transparent or dithered meshes don't composite with clouds/aerial perspective (they only see the
@@ -107,14 +146,14 @@ tool gotchas in TOOLS.md.
 
 ## Storms and sky objects
 
-- Anything meant to show under a storm sits below the volumetric base (Cb 600 m) and clear of
-  scud (300–550 m); the deck hides whatever is inside it. Check heights against the day's layers
+- Anything meant to show under a storm sits below the volumetric base (Cb 600 m) and clear of scud
+  (300–550 m); the deck hides whatever is inside it. Check heights against the day's layers
   (`params.mjs --fields weather.formations`, altitudes in `cloudTypes.ts`) before rendering.
 - Things that come out of a cloud (bolts, rain) are placed independently of the weather map: put
   the cloud there (`stormCells.ts`). Keep them ≤ ~9 km: a 600 m base 10+ km away sits < 3.5° up
   behind ~70% haze (Koschmieder at 30 km) and washes pale.
-- A mesh hanging from the volumetric clouds (waterspout) can't see deck gaps: give it its own
-  soft base (spray puffs).
+- A mesh hanging from the volumetric clouds (waterspout) can't see deck gaps: give it its own soft
+  base (spray puffs).
 - Camera-facing ribbons widened along one fixed vector vanish where a segment runs along it
   (lightning as dashes): widen across each segment (`dir × toCamera`).
 - Exponential fog with large scale height fills the sky; a fog *bank* needs tens of metres.
@@ -130,6 +169,8 @@ tool gotchas in TOOLS.md.
   clamp widths to grid and pixel size (`surfProfile`'s `minFace`).
 - Breaking at H = 0.78 d puts the break line far out on gentle beaches: wide surf zone, smaller
   waves.
+- Surf-zone width follows `nearshoreSlope`, not `beachSlope`: a steep face over a gentle nearshore
+  still breaks waves 40–50 m out. Steepen the nearshore too (stony beaches).
 - A hull rides waves longer than itself: in Hs 3.5 m swell the water climbs a small boat only
   ±0.1 m. Spray comes from wind-sea crests it can't follow (slamming, breaking): model those
   statistically. Sample the sea every ~2 m under a hull (7 points under a 250 m ship aliased 12 m
@@ -138,112 +179,70 @@ tool gotchas in TOOLS.md.
   the wedge (strongest on the cusp lines), break up with noise.
 - Near-camera boats need open water: on beach days no spot ≥ 3 m deep lies within ~150 m in frame;
   use `"coast": "open-sea"` to check wakes/spray up close.
+- Calming water means more than lowering the displacement: slopes, Jacobian foam, whitecaps, the
+  surf (incoming height, not the depth cap), spray, waves on rocks and the CPU `seaLevel()` each
+  read the waves separately. Put the factor beside `shallowDamping` in both shaders and pass the
+  same mask to every TS mirror (`shelterAt`), or the calm lagoon keeps spray and foam.
+- Scaling the surf's deep-water height still shoals the re-formed wave by Green's law as the
+  lagoon shallows: "≤ 0.3 × offshore" holds against the incoming wave at the same depth, not the
+  deep-water height (at 1 m depth 0.2 × h0 shoals to ~0.4 × h0).
+- Wind chop in a lagoon is fetch-limited: a 10 m/s wind over 300 m raises ~1.7 m waves, which live
+  in the middle cascade (1–6.5 m), not the shortest (< 1 m). Scale the middle cascade by fetch.
+- A reef's waves break on a ~2 m strip of its steep face in the surf model, so there's no white
+  line from afar: the crest needs its own band of white water. The surf zone ends 150–350 m from
+  the water; anything breaking further out (a reef 400 m off) needs `surfReach`.
 
-- Beach-state surveys file a multibar beach under its inner bar (Short 2006), so their state
-  shares and mean Ω per state (TBR 3.6 > RBB 3.1 > LBT 2.4) don't line up with a whole-profile
-  state. Compare shares by beach length, not count: a view shows a stretch of coast.
-- `params.mjs --ref` counts open-sea days for beach-shape changes: their coast carries a shape
-  the terrain never draws (open sea is −200 m). Report beach days separately.
-- Surf-zone width follows `nearshoreSlope`, not `beachSlope`: a steep beach face over a gentle
-  nearshore still breaks waves 40–50 m out. Steepen the nearshore too (stony beaches).
-- Pebbles go below a pixel within a few metres of a 1.6 m eye (grazing footprint), so cells
-  alone leave a flat colour beyond ~5 m on shingle: keep coarser mottle octaves (patches of
-  sorted stones) that fade out later. Voronoi cells filled edge to edge read as paving: draw an
-  oval of jittered size inside each cell with thin gaps.
-- A steep stony beach face tilts away from a sun behind the land: at golden hour it sits in
-  shade while rocks on it are lit. Judge stone texture under a clear daylight spec
-  (`"weather":"clear"`); a heavy cloud deck also leaves the beach flat blue (cloud shadow).
-- Near-camera props sized by "near" miss the frame: the plan assumed stones in view from ~5 m,
-  and our cameras do stand ~2 m up (overlooks 15–45 m) with mostly < 40 mm lenses, but the nearest
-  ground in frame ranges from ~5 m (along-beach, framed) to 20–40 m (many shorelines) and beyond
-  (overlooks). One forced date showed 21 m and was taken for the rule at first.
-  Size radii by pixels on screen (`ctx.pixelAngle`), read `p.view` (`params.mjs`) for the real
-  distances, and count placements in a test (`view()` in `test/days.ts`) before rendering:
-  `meshStones` placed nothing with the plan's 15 m cap on the test shorelines.
-- Plan numbers (radii, counts, budgets) are estimates until measured: check them against
-  `p.view` and a placement test before writing code that depends on them.
-- Scanning cells in a circle round the camera costs mostly cells out of frame or below the frame
-  edge: walk coarse blocks with a tight frustum test, nearest first, and stop at the budget.
-- Lines derived from daily run-up (`beachLines`) sit only metres apart on steep beaches; storm
-  features belong at the storm run-up height, not a multiple of the daily one.
+## Coast and terrain
 
-- A gap in a bar isn't a rip: with only the bar removed the channel is as shallow as the trough
-  and waves still break across it. Scour the channel below the bare profile (rip channels are
-  1–2 m deeper than the bar) so the depth-based surf leaves a gap in the white water.
-- Anything sized by the daily run-up vanishes on steep gravel (0.2–0.4 m run-up on a 0.3 face is
-  ~1 m of beach): beach cusps need a band of ~⅓ of their spacing, as real horns have.
-- Removing a draw from the middle of an object literal (the old `sandbarDistance`) shifts every
-  later field and the eye height: keep the draw (`skipDraw`) and check `params.mjs --ref HEAD`
-  shows only the intended top-level param changing.
-
-- Tides move the water off s = 0: every "distance from the shore" in the shaders and props (surf
-  zone 150–350 m, shore foam 10–25 m, surf crests from s = 0, pebbles between camera and water)
-  must measure from `coast.waterline`, or a low tide 350 m out loses its surf and foam.
+- Tides move the water off s = 0: every "distance from the shore" in shaders and props (surf zone,
+  shore foam, surf crests, pebbles between camera and water) must measure from `coast.waterline`,
+  or a low tide 350 m out loses its surf and foam.
 - Geometry shaped to be seen under water (rip channels, the terrace's seaward edge) shows at low
   tide as hard steps; soften walls and check the low-water render too.
-- A relative tide range from the day's waves (RTR = range / Hb) makes almost every calm beach
-  with a 1–2 m tide "tide-modified" (reflective 29% → 10%). The census classes by modal waves;
-  keep micro-tidal beaches wave-dominated.
-
-- Calming water means more than lowering the displacement: slopes, the Jacobian foam, whitecaps,
-  the surf (incoming height, not the depth cap), spray, waves on rocks and the CPU `seaLevel()`
-  each read the waves separately. Put the factor beside `shallowDamping` in both shaders and pass
-  the same mask to every TS mirror (`shelterAt`), or the calm lagoon keeps spray and foam.
-- Scaling the surf's deep-water height still shoals the re-formed wave by Green's law as the
-  lagoon shallows: "≤ 0.3 × offshore" holds against the incoming wave at the same depth, not
-  against the deep-water height (at 1 m depth 0.2 × h0 shoals to ~0.4 × h0).
-- Wind chop in a lagoon is fetch-limited: a 10 m/s wind over 300 m raises ~1.7 m waves, which
-  live in the middle cascade (1–6.5 m), not the shortest (< 1 m). Scale the middle cascade by
-  fetch and leave the shortest alone.
-- A reef's waves break on a ~2 m strip of its steep face in the surf model, so there's no white
-  line from afar: the crest needs its own band of white water. And the surf zone ends 150–350 m
-  from the water; anything breaking further out (a reef 400 m off) needs `surfReach`.
+- A relative tide range from the day's waves (RTR = range / Hb) makes almost every calm beach with
+  a 1–2 m tide "tide-modified" (reflective 29% → 10%). The census classes by modal waves; keep
+  micro-tidal beaches wave-dominated.
+- A gap in a bar isn't a rip: with only the bar removed the channel is as shallow as the trough
+  and waves still break across it. Scour the channel below the bare profile (rip channels are
+  1–2 m deeper than the bar).
+- Anything sized by the daily run-up vanishes on steep gravel (0.2–0.4 m run-up on a 0.3 face is
+  ~1 m of beach): cusps need a band of ~⅓ of their spacing. Lines derived from daily run-up
+  (`beachLines`) sit only metres apart on steep beaches; storm features belong at the storm run-up
+  height, not a multiple of the daily one.
+- Beach-state surveys file a multibar beach under its inner bar (Short 2006), so their shares and
+  mean Ω per state (TBR 3.6 > RBB 3.1 > LBT 2.4) don't line up with a whole-profile state. Compare
+  shares by beach length, not count: a view shows a stretch of coast.
 - A lagoon curve at the beach slope (0.03) to a 3 m floor never gets there behind a reef 150 m
-  out: the drawn depth must be reached (`lagoonSlope`), or the test "lagoon floor ≈ depth" fails
-  and the lagoon reads too shallow.
+  out: the drawn depth must be reached (`lagoonSlope`). Compare drawn and reached numbers in
+  `profile.mjs`.
 - Steep-sided features (coral heads) make "no steps along s" tests fail: test the joins between
   profile pieces, not every metre.
-- GLSL: `flat` is a reserved word (like `half`), and `smoothstep(e0, e1, x)` with e0 > e1 is
-  undefined; write `1.0 - smoothstep(e1, e0, x)`.
-- `tides.ts` importing from `terrain.ts` (which imports `tides.ts`) left half the test files
-  failing to load: put shared helpers in the module with no imports (`reef.ts`).
-- Rewriting `x *= a * b * c` as `x * a * b * c` changes the last bit of x (different rounding
-  order) and `params.mjs --ref` shows dozens of changed days. Keep the grouping when wrapping a
-  value in `or()`.
-- Tests that compare whole `coast` (or `params`) objects break whenever a field is added that
-  depends on the forced value; compare the fields the test is about, or strip the ones that
-  legitimately follow.
-
-## Seasons
-
-- A month table needs the hemisphere, not the ocean: `ocean === 'southern'` only flipped the
-  Southern Ocean, so Chile, SW Australia and the Cape bloomed in July. Read months through
-  `seasons.ts` (`monthInSeason`); keep calendar months only for data that is already local
-  (turtle nesting per place). Tests that pin "a northern beach" pin a northern `place`, since a
-  biome/ocean spec can now draw a southern place.
+- Pebbles go below a pixel within a few metres of a 1.6 m eye (grazing footprint), so cells alone
+  leave a flat colour beyond ~5 m: keep coarser mottle octaves that fade out later. Voronoi cells
+  filled edge to edge read as paving: draw an oval of jittered size inside each cell with thin
+  gaps.
+- Scanning cells in a circle round the camera costs mostly cells out of frame: walk coarse blocks
+  with a tight frustum test, nearest first, and stop at the budget.
 
 ## Placement
 
 - Place by trying spots until enough is in view: sampling shore coords round the camera fails in
-  along-beach views (the beach in view is ahead). Cast rays through the frame and march them to
-  the ground (`spot()` in `props/wildlife.ts`). Flocks: by a view ray reaching the target
-  altitude, not fixed NDC heights.
-- `ctx.visible()` only says a sphere touches the frustum, so features end up cut by the frame
-  edge: use `ctx.inFrame()` (NDC inside the central 75–85%) for things seen whole.
+  along-beach views (the beach in view is ahead). Cast rays through the frame and march them to the
+  ground (`spot()` in `props/wildlife.ts`). Flocks: by a view ray reaching the target altitude, not
+  fixed NDC heights.
+- `ctx.visible()` only says a sphere touches the frustum, so features end up cut by the frame edge:
+  use `ctx.inFrame()` (NDC inside the central 75–85%) for things seen whole.
 - Beach animals near the waterline vanish under the swash: keep ≥ 0.25 m above sea level
-  (`place(..., wet)`). Tropical shelves put 1.2 m deep water only > 150 m out: "in the water"
-  needs a shallow fallback (hippos lie down, storm seals 0.8 m). Animals in water:
-  `ctx.waterSpot(rng, depth, maxDistance)`.
-- From a 1.6 m eye the horizon is ~4.5 km: a 2 m cay is a line of palms over a white strip, and
-  low skerries can read as one shore. Make low features nearer, not bigger.
-- A rock dropped on a beach reads as a block; a mainland headland must run inland (long along
-  the seaward axis).
-- Stony beaches move every line: `beachLines().stormLine` is the ridge crest, and a 1:4 face
-  tilts long animals (seals) by ~14°: tilt them to `terrainNormal` or one end floats. A
-  sea-facing shoreline view has no beach 30–300 m off in frame, so beach haul-outs fall back to
-  a skerry: check them along-beach.
-- Keep sand days identical when a choice depends on beach material: gate before the draw
-  (`continue` before `rng.chance`) or change only the chance, not the number of draws.
+  (`place(..., wet)`). Tropical shelves put 1.2 m deep water only > 150 m out: "in the water" needs
+  a shallow fallback (hippos lie down, storm seals 0.8 m).
+- From a 1.6 m eye the horizon is ~4.5 km: a 2 m cay is a line of palms over a white strip, and low
+  skerries can read as one shore. Make low features nearer, not bigger.
+- A rock dropped on a beach reads as a block; a mainland headland must run inland (long along the
+  seaward axis).
+- Stony beaches move every line: `beachLines().stormLine` is the ridge crest, and a 1:4 face tilts
+  long animals (seals) by ~14°: tilt them to `terrainNormal` or one end floats. A sea-facing
+  shoreline view has no beach 30–300 m off in frame, so beach haul-outs fall back to a skerry:
+  check them along-beach.
 
 ## Meshes
 
@@ -258,13 +257,13 @@ tool gotchas in TOOLS.md.
 - Heads in water read as balls/posts from stacked ellipsoids, as "Nessie" if the neck shows and
   the skull is no wider than the neck. Seals (`swimmingHead`): one lofted tube, skull bulb wider
   than the neck, short tapered muzzle, waterline at the throat; bottling tips about the skull.
-- Sheer walls on a polar grid read as drums (karst towers as canisters): vary the wall's foot
-  with angle, cover with vegetation and dark streaks.
+- Sheer walls on a polar grid read as drums (karst towers as canisters): vary the wall's foot with
+  angle, cover with vegetation and dark streaks.
 - Instanced repeats (trees) < ~100k triangles each; in-mesh randomness from `hash()`/`noise3()`,
   not `rng`, so added detail doesn't reshape every instance.
 
 ## Page
 
 - Splash boat: CSS waves from quadratic Béziers are parabolas, so a boat rides one exactly with
-  quad-ease heave keyframes and linear pitch at the wave's period (middle wave: 7 s per 2
-  periods → 3.5 s).
+  quad-ease heave keyframes and linear pitch at the wave's period (middle wave: 7 s per 2 periods →
+  3.5 s).

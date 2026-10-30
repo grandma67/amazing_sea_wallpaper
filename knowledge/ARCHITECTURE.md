@@ -1,9 +1,22 @@
 # Architecture
 
-A daily, date-seeded, photorealistic 4K sea-and-beach wallpaper, rendered **in the browser
-with three.js** and hosted on GitHub Pages. Same date → same scene everywhere; any date can be
-re-rendered, so the archive is free. Versions: [changelog.md](../changelog.md). Pitfalls:
-[LESSONS.md](LESSONS.md). Sources: [REFERENCES.md](REFERENCES.md).
+A daily, date-seeded, photorealistic 4K sea-and-beach wallpaper, rendered **in the browser with
+three.js** and hosted on GitHub Pages. Same date → same scene everywhere; any date can be
+re-rendered, so the archive is free.
+
+How each area works (read the one you touch):
+
+| Doc | Covers |
+|---|---|
+| [arch/SKY.md](arch/SKY.md) | atmosphere, clouds, storms, moon and eclipses, coastal weather, haze, fog, light reaching sea and sand |
+| [arch/OCEAN.md](arch/OCEAN.md) | spectrum, surf, calm water (shelter), rocks in the sea |
+| [arch/COAST.md](arch/COAST.md) | **coordinates and heights**, coast kinds, sand, beach material, beach state, tides, reefs, bars/rips/cusps, stones |
+| [arch/PROPS.md](arch/PROPS.md) | plants, mangroves, islands, lighthouse, debris, shore life, wildlife, pinnipeds, storms and animals, ships and their lights |
+
+What appears where and how often: [COASTS.md](COASTS.md), [CLOUDS.md](CLOUDS.md),
+[ANIMALS.md](ANIMALS.md). Pitfalls: [LESSONS.md](LESSONS.md). Tools: [TOOLS.md](TOOLS.md),
+[SCENE_SPECS.md](SCENE_SPECS.md). Sources: [REFERENCES.md](REFERENCES.md). Versions:
+[changelog.md](../changelog.md).
 
 ## Stack
 
@@ -16,56 +29,53 @@ Playwright (headless snapshots), Vitest.
 
 - **Web-only rendering** (2026-10-13): static Pages site, each visitor's browser renders the day.
   Seed → params is exactly deterministic; pixels may differ slightly across GPUs. A still can
-  afford seconds per image. Rejected: Blender/Cycles headless (needs a render step outside the
-  browser), AI image generation (paid, less control).
+  afford seconds. Rejected: Blender/Cycles headless (render step outside the browser), AI image
+  generation (paid, less control).
 - **Procedural props, no downloaded models:** zero asset weight, per-date variety.
 - **Stills averaged over many frames** (64 by default) so stochastic clouds converge.
 - **Overlap CPU and GPU at startup** (2026-10-15): `precomputeAtmosphere()` (`scene.ts`) issues
   takram's passes at once (its generator yields between them) so props build while the GPU
   computes the sky.
-- **Clouds at full resolution on beaches** (2026-10-15): half-res clouds and light shafts
-  upsampled across trees and ridges gave glowing rims; depth-aware upsampling can't recover
-  twigs thinner than a texel. Cloudy 4K beach ~5 → ~9 s.
+- **Clouds at full resolution on beaches** (2026-10-15): half-res clouds and light shafts upsampled
+  across trees and ridges gave glowing rims; depth-aware upsampling can't recover twigs thinner
+  than a texel. Cloudy 4K beach ~5 → ~9 s.
 - **One draw: the place, before the sky** (2026-10-23, PLAN_BIOMES 1a): each day draws a real
-  stretch of coast (`places.ts`), the first main-stream draw; biome, ocean, climate and latitude
-  follow from it, so the sky can depend on the place. Weights are √ of each region's coastline
-  length, split among its places by length (raw length would make ~70% of days Arctic and
-  nordic). Replaced biome × ocean drawn apart with latitude from the ocean basin. Reshuffled
+  stretch of coast (`places.ts`) as the first main-stream draw; biome, ocean, climate and latitude
+  follow, so the sky can depend on the place. Weights: √ of each region's coastline length, split
+  among its places by length (raw length would make ~70% of days Arctic and nordic). Reshuffled
   every date once, deliberately.
-- **Tides lower the land** (2026-10-24, PLAN_BIOMES 5): sea level 0 stays everywhere (ocean,
-  surf, `seaLevel()`); the terrain and everything standing on it sit `tide.level` lower. Beaches
-  are built for their spring range (a berm, and a low-tide terrace above 2 m) so a 10 m tide
-  neither floods the dunes nor strands the camera.
+- **Old dates may change on purpose, never by accident** (2026-10-23): a feature may change the
+  days it is about (say which in the changelog), but every feature draws on its own stream and
+  specs draw, then force, so nothing cascades into unrelated draws.
+- **Tides lower the land** (2026-10-24, PLAN_BIOMES 5): sea level 0 stays everywhere; terrain and
+  everything on it sit `tide.level` lower (arch/COAST.md).
+- **Calm water is one shelter mask** (PLAN_BIOMES 6) shared by reefs and, later, lagoons and fjords.
+- **Biome is a constant of the place, climate a choice of it** (PLAN_BIOMES 11): no new biomes.
 - **Cheaper rendering must not change the image.** Rejected for speed: shipping precomputed
   atmosphere LUTs (10–48 MB, slightly different sky), caching sky textures between visits
   (~48 MB of float 3D textures), dropping the higher-order scattering texture (sky and aerial
-  perspective use it), one shared clouds effect for all env-cube faces (fragile), fewer frames
-  or lower cloud resolution (cloud shadow map hasn't converged by 32 frames).
+  perspective use it), one shared clouds effect for all env-cube faces (fragile), fewer frames or
+  lower cloud resolution (the cloud shadow map hasn't converged by 32 frames).
 
-## How it works
-
-### Params and randomness
+## Params and randomness
 
 - `random.ts`: cyrb128 + sfc32; `Random.derive(seed, name)` gives independent streams, so a new
   feature doesn't shift other draws. `params.ts`: date → `SceneParams` (time of day, sun/moon,
-  weather, storm, rainbow, ocean, biome, landform, colony, camera, wind, title).
-- **Places** (`places.ts`, data from REGIONS.md §1): ~90 places in regions. Constants (`biome`,
-  `region`, signed `latitude`, `km`), choose-one weights (`ocean`, `climate`) and choose-many
-  pools (`animals`, `plants`); defaults merge biome → region → place. Draw order in
-  `buildParams`: `pickPlace` (main stream, one float even when a spec restricts it), then
-  `pickOcean` from the place's weights on `'ocean'` (monsoon, ice as before), climate on
-  `'climate'`, latitude on `'ocean'`; then eclipse, time of day and the rest of the sky.
-  `params.place` = `{ id, region, climate, hemisphere }`; `params.biome` and
-  `params.sea.ocean` stay for every reader. Specs: `place` (place or region id); `biome`,
-  `ocean`, `climate` restrict the draw to places that have them and force the choice;
-  `placesFor()` throws on a combination no place has. `latitudeDeg` is signed now (south
-  negative): readers that meant "distance from the equator" use `Math.abs`.
-- **Draw order in `buildParams`** (`params.ts`; read this before adding a decision, then open
-  only that part of the file). *main* = the main `rng` (its draws after the sky are pinned with
-  `keep()`); `'x'` = `Random.derive(seed, 'x')`. A decision can only read what's above it.
+  weather, storm, rainbow, place, ocean, biome, coast, landform, colony, camera, wind, title).
+- **Places** (`places.ts`; data and weights: REGIONS.md §1): ~90 places in regions. Constants
+  (`biome`, `region`, signed `latitude`, `km`, `tide`, `reef`), choose-one weights (`ocean`,
+  `climate`, `sand`, `material`) and choose-many pools (`animals`, `plants`); defaults merge
+  biome → region → place. `params.place` = `{ id, region, climate, hemisphere }`; `params.biome`
+  and `params.sea.ocean` stay for every reader. `latitudeDeg` is signed (south negative): code
+  that means "distance from the equator" uses `Math.abs`. Specs: `place` (place or region id);
+  `biome`, `ocean`, `climate` restrict the draw to places that have them and force the choice;
+  `placesFor()` throws on a combination no place has.
+- **Draw order in `buildParams`** (read this before adding a decision, then open only that part
+  of `params.ts`). *main* = the main `rng` (its draws after the sky are pinned with `keep()`);
+  `'x'` = `Random.derive(seed, 'x')`. A decision can only read what's above it.
   1. Eclipse (`'eclipse'`), moon phase; `'moon-sky'` stream made.
-  2. Place (main, first draw) → ocean, monsoon, ice and latitude (`'ocean'`), climate
-     (`'climate'`), biome with `plantsFor` (no draw).
+  2. Place (main, first draw; one float even when a spec restricts it) → ocean, monsoon, ice and
+     latitude (`'ocean'`), climate (`'climate'`), biome with `plantsFor` (no draw).
   3. Time of day, evening (main).
   4. Weather kind and coverage (`'weather'`, `generateWeather`); eclipse fix-up; marine layer
      (`'marine-layer'`, deck on `'marine-layer-deck'`); dust (`'dust'`); rainbow day
@@ -76,390 +86,35 @@ Playwright (headless snapshots), Vitest.
   7. Storm (`'storm'`, `'storm-weather'`: overrides weather and wind); water (`'water'`); wind
      × basin, marine-layer wind cap; formations (`'formations'`, `'cloud-species'`);
      waterspout (`'waterspout'`); arrangement; fog (`'fog'`: calms the wind).
-  8. Swell (`'swell'`); tide (`'tide'`: the place's mean range, phase); coast (`generateCoast`: `'coast'`, `'sand-colour'`,
-     `'beach-material'` (material, grain, stone size, beach state and shape), `'hills'`,
-     `'composition'`).
+  8. Swell (`'swell'`); tide (`'tide'`); coast (`generateCoast`: `'coast'`, `'sand-colour'`,
+     `'beach-material'` (material, grain, stone size, beach state and shape), `'reef'`,
+     `'hills'`, `'composition'`).
   9. Colony, pinnipeds, lighthouse, landform, islands (`pick*`, own streams); shelf cloud,
      lenticular; rainbow geometry; title.
   10. Moon scale, horizon, roll, time, choppiness (main, `keep`).
   11. After `params` exists (read it whole): noctilucent, nacreous, roll cloud, contrails,
       visibility (`'visibility'`, reads `weather.dust`).
+
   Props decide later, at render, on `ctx.rng(kind)` (`props/choices.ts`).
 - **Seasons** (`seasons.ts`): seasonal tables are written in northern-hemisphere months;
-  `seasonMonth(day)` shifts the month by six south of the equator (sign of `latitudeDeg`, so
-  Chile, the Cape, SW Australia and NZ count, not only the Southern Ocean), `season(day)` gives
-  winter/spring/summer/autumn, `monthInSeason(day, from, to)` tests a range. Used by flowers
-  (`FLOWERS`), fog season and sea smoke (`pickFog`), cloud summer (`addFormations`), Arctic/
-  Antarctic nacreous winter, noctilucent season, Mediterranean summer haze and migratory passage.
-  Not by tables of real local months for one region: turtle nesting per place (already local),
-  waterspouts, the Morning Glory, polar ship seasons (by ocean), Arctic ice (north only).
-- **Scene specs** (`sceneSpec.ts`): typed, validated JSON. `generateParams(date, attempt, aspect,
-  spec)` applies it at each decision but still makes every draw. Forcing the time of day changes
-  how many main-stream draws the sky makes, so later main-stream draws (lens, wind,
-  horizon…) are pinned to the unforced day's (`keep()`). Prop choices reach props as
-  `params.overrides`; a final `params` deep patch covers the rest.
+  `seasonMonth(day)` shifts the month by six south of the equator (sign of `latitudeDeg`),
+  `season(day)` gives winter/spring/summer/autumn, `monthInSeason(day, from, to)` tests a range.
+  Used by flowers (`FLOWERS`), fog season and sea smoke (`pickFog`), cloud summer
+  (`addFormations`), polar nacreous winter, noctilucent season, Mediterranean summer haze and
+  migratory passage. Not used by tables already in local months for one region: turtle nesting
+  per place, waterspouts, the Morning Glory, polar ship seasons (by ocean), Arctic ice (north
+  only).
+- **Scene specs** (`sceneSpec.ts`, SCENE_SPECS.md): typed, validated JSON.
+  `generateParams(date, attempt, aspect, spec)` applies it at each decision but still makes
+  every draw. Forcing the time of day changes how many main-stream draws the sky makes, so later
+  main-stream draws (lens, wind, horizon…) are pinned to the unforced day's (`keep()`). Prop
+  choices reach props as `params.overrides`; a final `params` deep patch covers the rest.
 - **Prop choices without rendering:** `props/choices.ts` `propChoices(params)` runs each
   creator's pure `xxxFor(params, rng)` (gulls, marine, migratory, wildlife, shore life, debris,
   mangroves) on its own stream, for `scripts/params.mjs` (`p.props`), `scripts/animals.mjs` and
   tests.
-- Coast choice (place → biome, ocean → beach/open-sea → shape): [COASTS.md](COASTS.md). Sky choice:
-  [CLOUDS.md](CLOUDS.md). Animals: [ANIMALS.md](ANIMALS.md).
 
-### Sky, clouds, light
-
-- `scene.ts`: atmosphere, env cube, post. `exposure.ts` meters a 32² sky cube (auto exposure).
-- **Clouds** (`clouds.ts`, `cloudTypes.ts`): WMO genera and species (each has its `genus`);
-  `pickFormations` draws one per étage, `pickSpecies` (own stream) refines and adds fractus,
-  scud and duplicatus, ≤ 4 layers; `layerChannels` gives an étage's second layer the weather
-  map's spare channel `a` (fine Perlin) so it doesn't mirror the first; storms:
-  `stormFormations`. `cloudArrangement.ts` patches the weather-map lookup with a 2×2 transform in
-  cube-sphere uv, so streets/bands follow `weather.arrangement.headingDeg`;
-  `stabiliseCubeSphereUv` rewrites takram's u in a cancellation-free form.
-- **Storms:** `stormCells.ts` raises the Cb layer's weather to full (density ×3 in the core) in
-  a cell (r ≈ 3.5 km + 10% of distance) over each bolt and rain curtain, in the clouds, shadow
-  and env-cube passes. `stormEffects.ts`: rain shafts, lightning flash (fixed scene radiance
-  `FLASH_RADIANCE`: invisible by day, a glow by blue hour), lens rain, rainbows. Bolts strike
-  3–9 km out, ribbons widened across each segment toward the camera, forks head down.
-- **Sky-shader features** (patched into takram's sky: functions before `getSkyRadiance(`):
-  `eclipse.ts`, `contrails.ts`, `noctilucent.ts`.
-- **Moon and eclipses:** `celestial.ts`: phase law (Allen's magnitude fit: half moon ~1/10 of
-  full), disc-overlap geometry, `eclipseOn(date)` (real peaks; penumbral lunar left out).
-  `params.ts` sets `nightSky` (moonlit/starlit; moon down 20% of nights or new → starlit),
-  `moonlight`, `eclipse`, `sunScale` (sun and moon 3× on solar eclipse days), and frames
-  eclipses (24–35 mm, more sky, sun/moon low ahead; clear or cirrus, total under clear). The
-  moon by day is framed with the sun on ~35% of days with the moon > 15% lit. `scene.ts`: night
-  exposure × max(moonlight, 0.06)^0.5 (starlit 0.5, lit by a dim overhead light standing in for
-  starlight and airglow), stars boosted as the night darkens (not in the reflection cube); moon
-  disc at constant surface brightness, earthshine on crescents, umbra with copper glow
-  (`moon.ts`); lunar eclipses dim the moonlight. `eclipse.ts`: the moon covers the sun; in
-  totality the sky darkens to a horizon glow with corona and stars, no direct sun, sky light
-  ×~0.01, no aerial-perspective inscatter, dim environment on props. Simplification: the scene
-  has no real location, so off-path days show the eclipse as if on the path (partials at a
-  random 30–85%).
-- **Marine layer** (`coastalWeather.ts`, PLAN_BIOMES 3): `marineLayerFor` on stream
-  `'marine-layer'` from `MARINE_LAYER` (place × local month) on morning golden hour, sunrise and
-  daylight. After the eclipse fix-up the day turns overcast (coverage 0.75–0.82) with one
-  stratus or stratocumulus layer (stream `'marine-layer-deck'`), wind ≤ 6 m/s, no storm, title
-  "marine layer" (`weather.marineLayer`). A forced `weather`/`clouds`, or an eclipse, wins unless
-  `spec.marineLayer` is true.
-- **Harmattan** (`coastalWeather.ts` `dustFor`, stream `'dust'`; PLAN_BIOMES 3): West Africa
-  Dec–Feb on half the days, `weather.dust = 'harmattan'`; no storm or rainbow. `visibilityFor`
-  draws 2–10 km (floor 2 km instead of 5). The haze takes the sky's horizon colour in every
-  direction (`hazeFromHorizon`: thick dust scatters the pale horizon light everywhere, so the
-  whole sky goes milky) × ochre `hazeTint`. The sun is dimmed and reddened by
-  `dustTransmittance` (Koschmieder extinction over a 1.2 km layer × airmass, blue ×1.3, red
-  ×0.8) and `dustSkylight` gives 60% of what it lost back as diffuse light, tinted. Clear dust
-  days run the clouds pass for the haze, with one empty 4 km layer (takram ends haze rays at the
-  highest layer's top): ~+1 s on those days.
-- **Sea haze** (`seaHaze.ts`): `visibilityFor()` (own stream) draws visibility log-uniform by
-  biome (polar 40–90 km, nordic 40–80, tropical 35–65, Mediterranean 35–70 and 25–50 in summer,
-  desert 12–35, dust episodes 8–20); less in strong wind (sea salt), overcast and storms, more
-  after showers. `applySeaHaze()` patches takram's clouds-pass haze: density 3.912/V minus the
-  Bruneton air's own, no coverage switch-off, colour = the sky behind the ray (just above the
-  horizon for rays at or below it) × `hazeLight(weather)`. Covers sky, clouds and scene, so far
-  clouds and islands fade into the horizon. Only on days with clouds (clear days have no clouds
-  pass), and clear dust days.
-- **Fog** (`fog.ts`): screen-space exponential-height fog from depth (closed-form optical depth,
-  forward-scattering glow), before exposure. `params.ts` picks it by climate on ~5% of days:
-  *advection fog* (warm moist air over cold water: California and Chile in summer, Namib and
-  Atacama nearly all year, North Sea, Newfoundland, Arctic in spring/summer; light wind, likeliest
-  at dawn), *fog bank* offshore, *sea smoke* (very cold air over warmer water, polar winters,
-  calm and clear). Inside fog the sun dims and the sea calms.
-- **Light reaching sea and sand** (`shadow.ts lightReaching`): direct sun/moon (glitter, body,
-  floor) = min(props' shadow map ±320 m, land shadow map to the horizon (`renderLandShadow`))
-  × cloud transmittance from takram's cascaded cloud shadow map (exp(−(maxOpticalDepth + tail)),
-  primed by `primeCloudShadow` because the sea is drawn once at frame 0). `weather.sunVisibility`
-  stays as the overall dimming.
-
-### Ocean and surf
-
-- `spectrum.ts` (on `spectrumWorker.ts`): JONSWAP + swell on 3 cascades with `fft.ts`.
-  `ocean.ts`: whitecaps, glitter, refracted surf in sets, shallows, caustics, foam, rain rings;
-  `grid.ts`: polar grid to 120 km. `PropContext.seaLevel()` samples the FFT height on the CPU so
-  things float on the actual waves.
-- **Surf** (`ocean.ts` SURF_GLSL, mirrored and tested in `terrain.ts` `surfWave`,
-  `surfBreakDepth`, `surfProfile`): offshore height 1.3 × `surfAmplitude` × sets; shoaling
-  ×(L/2d)^¼ below depth L/2 (Green's law); breaks where it reaches γ·d, γ = 0.72 + 5.6 × slope
-  (McCowan/Weggel), H = γ·d inside (bore). Profile averages zero over a cycle (crest ≈ 0.7 H,
-  trough ≈ −0.3 H); face narrows 0.3 → 0.12 of the wavelength toward breaking, 0.06 broken, never
-  below 2.5 grid cells or pixels. Waves re-form over the trough behind a sandbar. Roller foam and
-  crest spray (`props/surf.ts`) follow the steepness.
-- **Calm water** (`shelter.ts`, PLAN_BIOMES 6): `coast.shelter` (set only behind a reef, phase
-  7; null on other days) holds a `strength` (0..1), a reef/barrier `line` (an `s`: calm shoreward of it)
-  and up to 4 `basins` (ellipses in shore coords), blurred over `blur` m (~1 swell wavelength,
-  all on the calm side). `shelterAt` (TS) mirrors `shelter()` in `SHELTER_GLSL`. Per cascade
-  (`cascadeShelter`): the longest × (1 − m), the middle × (1 − m (1 − chop)), the shortest
-  untouched; `chop = chopFactor(fetch, wind, longest)` is fetch-limited JONSWAP (Hs ∝ √F up to
-  the fetch whose peak reaches the middle cascade's longest wave, `cascadeSize[1] / 6`); fetch is
-  the lagoon width behind a line or a basin's mean diameter. Both ocean shaders apply it next to
-  `shallowDamping`, so slopes, Jacobian foam and whitecaps follow; `PropContext.seaLevel()` too.
-  Surf: `surfIncoming` = sets × (1 − m) (TS: `surfWave(…, shelter)`), so waves past a reef re-form
-  at 1 − strength; spray, `waveOnRock` (surf and open-sea crest) and shore foam (× 1 − 0.7 m)
-  follow. Test with `params.coast.shelter` (`scenes/shelter.json`).
-- **Rocks in the sea:** `props/surf.ts` `waterRocks()` lists rocks cutting the surface; 
-  `waveOnRock()` compares the crest there (0.7 × surf height, or half the open sea's Hs) with the
-  rock top → `breaks`. `ocean.ts setOceanRocks()` (nearest 48, `rockData`): collar foam, a lee
-  trail, and for breaking rocks white water surging after each crest (cycle 0.2–0.85); spray
-  bursts only when a crest is at a breaking rock (cycle 0.2–0.38).
-
-### Coordinates and heights (read before changing terrain, tides or the shore)
-
-- **World:** camera at the origin (x, z), +Y up; azimuth 0 = −Z, clockwise from above. Height 0
-  is the sea surface at rest, always (tides lower the land, never raise the sea). The ocean is
-  drawn where `terrainHeightAt` < 0.3 m; `seaLevel()` adds the waves.
-- **Shore coordinates** (`worldToShore` / `shoreToWorld`, GLSL `shoreCoords`): `s` seaward, `a`
-  along the shore; `u = −s` inland. **s = 0 is the land frame's origin, not the water:** the foot
-  of the high-tide beach (= mean sea on micro-tidal beaches). Today's water is at `s =
-  coast.waterline`; the shoreface, bars and rips start at the terrace's seaward edge
-  (`seaDistance(s)`). The coast's curvature and wobble are in `s`, so a line of constant `s`
-  follows the shore.
-- **Camera:** stands on `max(terrainHeight(0, 0), 0)` + `camera.heightM`. `coast.distanceToWater`
-  is the camera's `u` (distance to s = 0); the water is `distanceToWater + waterline` away.
-- **Heights the props compare against** (all world heights, sea 0):
-  - `coast.runup`: today's swash above the current sea (wet sand, wet rocks).
-  - `tideMarks(coast).high` / `.spring`: today's and the spring high water. Things that must be
-    dry (plants, flowers) sit above `spring + runup`; wrack lies there.
-  - `beachLines(coast)`: wrack and storm lines as **distances inland of s = 0** (`u`), fixed on
-    the land whatever the tide does.
-- **Who measures from the shore** (update them when the water or s = 0 moves): ocean surf zone
-  (150–350 m, out past a reef's crest: `surfReach`) and shore foam (10–25 m) from `waterline` (`ocean.ts`); surf crests and spray
-  (`props/surf.ts`); rocks' pebbles and clusters (`rocks.ts`); shoreline/along-beach camera
-  distances (`generateCoast`); stones' size grading and mixed cover (`stoneHighTide`); cusps
-  (`cuspReach`, u from s = 0); ridges; debris, shore life, wildlife, pinnipeds, colonies
-  (`beachLines`); vegetation and flowers (`tideMarks`); mangroves (mean sea = height + level);
-  `profile.mjs`.
-- **A new seabed or shore profile** (reef, rock platform, tidal flat): its readers, beyond the
-  height function itself (found one by one in phase 7):
-  1. `TERRAIN_GLSL` and the TS `beachHeight` (and its tests: `test/terrain.test.ts`);
-  2. `waterlineAt` (`tides.ts`): today's water is found on the bare profile, so a new shoreface
-     must be invertible there;
-  3. the surf zone's reach (`surfReach`: ocean `surfHeight`, spray in `props/surf.ts`) if waves
-     break further than ~150 m out, and the break band (`profile.mjs` prints it);
-  4. seabed colour under water (`ocean.ts` floor albedo) and the terrain shader where it dries;
-  5. the shelter mask (`coast.shelter`), run-up and the beach state's breaker if waves lose
-     height before the beach;
-  6. props that ask for calm or deep water (mangroves, `waterSpot`, rocks in the sea, beach
-     lines);
-  7. tests that assume every beach has bars, rips or no shelter (`beachState`, `shelter`,
-     `mangroves` tests) — filter the new kind out there, test it in its own file;
-  8. `profile.mjs` (map extent, the numbers it prints) so the shape can be checked unrendered.
-  Keep shared helpers in a module that imports neither `terrain.ts` nor `tides.ts` (they import
-  each other's dependents: a cycle broke half the test files).
-- **Mirrors:** every height term lives in both `TERRAIN_GLSL` and the TS `beachHeight`
-  (`terrain.ts`); `test/terrain.test.ts` and `test/tides.test.ts` check them.
-
-### Land and plants
-
-- `terrain.ts`: shared GLSL/TS height function (coast, dunes, hills, sandbar), sand shading,
-  surf profile (`surfCycle`, mirrored in `props/surf.ts`). `biome.ts`/`oceans.ts`: palettes,
-  plants, sea state, ice.
-- **Coast kinds** (`coastKind.ts`, re-exported by `terrain.ts`): `coast.type` is `open-sea`,
-  `beach`, `rock-shore` or `tidal-flat` (the last two not drawn yet: PLAN_BIOMES 8, 9). Code asks
-  `hasLand` (terrain drawn, camera on land, compositions, rocks, plants, lighthouse on a point),
-  `hasBeach` (sand: debris, shore life, beach animals, mangroves, flamingos wading, "… sand beach"
-  title) or `hasSurfZone` (waves break at the shore: surf height and foam, surf props), never
-  `type === …`. The shader gets an `int coastKind` uniform (index in `COAST_KINDS`, `COAST_*`
-  defines) and `terrainHeightAt` branches on it, so each day runs one profile; the TS
-  `terrainHeight` switches the same way. Rock shores and tidal flats use the beach profile until
-  their phases.
-- **Sand colour** (PLAN_BIOMES 3): `coast.sand` is one of `SAND_STYLES` (`biome.ts`: white,
-  golden, grey, black, pink, red), drawn from the place's `sand` chances (`PLACE_SAND` in
-  `places.ts`, else the biome's `sands`) on stream `'sand-colour'`, then forced by `spec.sand`.
-  The coast stream keeps a placeholder draw where the colour used to be, so sandbars and eye
-  height didn't move.
-- **Plant pools** (`plantsFor` in `places.ts`): the place's `plants` (biome default, region or
-  `PLACE_PLANTS`). On polar water (Arctic, Southern Ocean) they're filtered to tundra: grass and
-  bush, plus birch in the Arctic below `HIGH_ARCTIC_DEG` (74°). A place's own pool skips the
-  filter: Tierra del Fuego has southern beech (`broadleaf`) and no conifers, South Georgia only
-  tussock grass. `place.windBent` kinds (Tierra del Fuego's beech) lean 20–35° downwind (the day's
-  wind) and are 25% shorter, hero trees included (`vegetation.ts`).
-- **Beach material** (`beach.ts`, PLAN_BIOMES 2): `coast.material` is `sand`, `mixed`, `shingle`
-  or `cobble`, drawn in `generateCoast` on stream `'beach-material'` from `materialChances(place,
-  climate)` (place → region override, else `POLAR_MATERIAL` on polar days, else the biome's
-  `MATERIAL_CHANCES`), then forced by `spec.beachMaterial`. Open sea is `'sand'`. Stony days
-  get a low bank and `coast.ridges` (`stonyShape`, same stream; slopes and width come from the
-  beach state below)
-  (crest distance, height, half-width); `coast.stoneColors` is the place's palette. Stony days
-  also get a steep nearshore (narrow surf zone: `breakerIndex` and `surfBreakDepth` follow
-  `nearshoreSlope`, no material term needed) and run-up × `STONY_RUNUP`. `ridgeHeight` adds
-  Gaussian bumps across the shore in `beachHeightAt` (GLSL `vec3 ridges[3]` + `ridgeCount`, TS
-  mirror `ridgeHeight` in `terrain.ts`, 0 on sand). `beachLines` (wrack and storm lines) lives
-  here now; on stony days its storm line is the storm ridge crest. Shares: COASTS.md.
-- **Beach state** (`beachState.ts`, PLAN_BIOMES 4; Wright & Short 1984): in `generateCoast`, after
-  the material on the same `'beach-material'` stream: grain (`sedimentFor(sand, biome)`: `GRAIN`
-  by sand colour, white = coral on tropical coasts; one float, geometric in the range), stone
-  size (one float), then `beachStateFor(material, grain, Hb, T, sediment, rougher)`: Ω = Hb /
-  (ws · T) with Soulsby `fallVelocity` (density and carbonate shape factor), Komar–Gaynord
-  `breakerHeight` from the offshore swell (`ocean.swellHeight`, T from `swellWavelength`; not
-  `surfWave`, which needs the slope), limits 1.5/2.6/3.3/4.0/5.5 (Wright, Short & Green 1985
-means). Storm days and |lat| > 25°
-  winters (`season`) move it one state flatter; shingle and cobble are reflective, mixed at
-  most a terrace. `spec.beachState` forces it. `beachShape` (fixed draws for every state) sets
-  face slope (sand by grain × state factor 1.55 reflective … 0.85 dissipative; gravel by stone
-  size, 0.08–0.24), nearshore slope and width by state (slope × width ≤ 5 m), `coast.bars`
-  (layouts weighted by `share`, 0–3 bars, crest at a share of the bare depth), `coast.rips`
-  (`RIPS`: every intermediate state; terrace 40–120 m and longshore 250–500 m with no swing,
-  transverse and rhythmic 150–400 m with the inner bar swinging shoreward by 15–45% between
-  channels) and `coast.cusps` (reflective 80%, terrace 60%, transverse 40%; spacing
-  g T² tanβ / π, 12–45 m). Every number and its source: REGIONS.md §2 "Beach states: shape by
-  state". The coast stream still makes the old
-  slope/width/sandbar draws (`skipDraw`) so eye height stays.
-- **Tides** (`tides.ts`, PLAN_BIOMES 5): `place.tide` is a mean range span (`TIDE` in
-  `places.ts`, REGIONS.md §3; 1–2 m by default). `tideFor` draws the beach's mean in it and a
-  semidiurnal phase on `'tide'`; today's range = mean × `springFactor(moonPhaseDeg)` (1.2 at
-  springs ~1.5 days after new and full moon, 0.8 at neaps); level = range/2 × cos(phase). Specs
-  force the stage (`tide`) and `tidalRange`. `coast.tide` keeps `springRange` (mean × 1.2, or
-  today's if bigger), which the beach is built for:
-  - the land frame's s = 0 is the foot of the high-tide beach. Above it the beach gets a berm as
-    high as the spring high water (`highWater`, ≤ 1 m) over its width;
-  - above `MICRO_TIDE` (2 m) a low-tide terrace (`coast.terrace`: ±(range − 2)/2 around mean
-    sea at ~1:65, flattened to stay ≤ 400 m) sits between s = 0 and the shoreface;
-    `seaDistance(s)` measures the shoreface, its bars and rip channels from its seaward edge;
-  - `terrainHeightAt` = profile + `terraceStep(s)` − `tideLevel` (GLSL and TS mirror).
-  `waterlineAt(coast, level)` finds today's water on the bare profile (`coast.waterline`, s of
-  the water). Shoreline and along-beach cameras are placed from it (`distanceToWater` stays the
-  camera's distance to s = 0, so the water is `distanceToWater + waterline` away); framed and
-  overlook stand on the land. `beachLines` (wrack, storm line, stony ridges) are measured from
-  s = 0 at the spring high water, so they stay put as the tide moves. The ocean's surf zone and
-  shore foam, and surf spray, measure from `waterline`. `tideMarks(coast)` gives the world
-  heights of today's and the spring high water: plants and flowers grow above the spring one
-  plus run-up; the terrain shader draws the wrack line there, damp drained sand below today's
-  high water (glossier near the water) and ponded runnels on a terrace; `rockMaterial`'s
-  `tideLine` gives rocks a dark weed and mussel band below the spring high water; mangroves keep
-  to mean sea up to the spring high water. With a spring range ≥ 2 m the beach state is
-  tide-modified by RTR = range / Hb (`tideModified`, Masselink & Short 1993: ≥ 3 reflective →
-  terrace, bars → low-tide bar and rip; ≥ 10 ultradissipative); micro-tidal beaches stay
-  wave-dominated (a calm day's RTR would class most of them as tide-modified, but the census
-  classes by modal waves). Shares: COASTS.md.
-- **Reefs** (`reef.ts`, PLAN_BIOMES 7): `place.reef` is a chance (`REEF` in `places.ts`, by place
-  or region; 0 outside the tropics but Ningaloo and the Red Sea). `reefFor` draws everything on
-  `'reef'` in `generateCoast` before the beach state, then the chance or `spec.reef` /
-  `spec.beachrock` decides. `coast.reef`: crest `distance` (100–500 m, seaward of the
-  shoreface's start, `seaDistance`), `flatWidth` (0.2–0.45 × distance, 30–150 m), `lagoonDepth`
-  (1–3 m below spring low water, from mean sea), `crestDepth` (max(0.3, 0.8 × spring low water)),
-  passes (`passSpacing` 0.5–2 km, `passWidth` 30–80 m), `strength` (0.7–0.9), `beachrock` (30%).
-  The beach state uses the breaker of the swell × (1 − strength); bars and rips are dropped;
-  run-up's surf part × (1 − strength); `coast.shelter = reefShelter()` (line at the crest, blur
-  = flat + ramp). Terrain (`reefHeight`, GLSL and TS): beach face down to the lagoon floor
-  (`lagoonSlope`: the beach slope, steeper if needed to reach 95% of the floor before the ramp)
-  with coral heads (`coralHeads`, up to 0.6 × the depth, steep-sided), a 15 m ramp (`REEF_RAMP`)
-  up to the flat, which dips 0.25 m toward the lagoon, the crest wandering ±8 m (`reefCrest`),
-  then the drop-off (`REEF_DROP` 0.6) to −seabedDepth; in a pass (`reefGap`) the lagoon floor
-  runs on to the drop-off. Uniforms `reef` (distance, flat, depths below the shoreface's start,
-  i.e. minus `terrace.height`) and `reefPass` (spacing, width, lagoon slope). `reefCover` tells
-  the ocean (seabed `coralAlbedo` under the water) and the terrain (bare coral and puddles on a
-  dried flat) where coral is; `ocean.ts` adds white water over the crest; `surfReach` extends the
-  surf zone and spray out to it. Beachrock (`props/beachrock.ts`): 2–4 outcrops ≤ 250 m away, 1–3
-  rows of slabs (1.5–5 × 1–2.5 m, 15–35 cm thick, 21 triangles) from 0.3 m above to 0.3 m below
-  mean sea, dipping seaward 5–12°, half buried, `rockMaterial` with the tide line.
-- **Bars, rips, cusps in the terrain** (`TERRAIN_GLSL`, TS mirror `barHeight`, `ripGap`,
-  `cuspHeight` in `terrain.ts`): `vec3 bars[3]` + `barCount` replace the one sandbar; at a rip
-  channel (`ripGap`, a wandering cosine every `rips.x` m) the inner bar is cut and the bed scoured
-  0.8 × bar height below the bare profile from the shore out past the bar (`RIP_SCOUR`), so
-  waves break less there (the surf model goes by local depth). `ripWater(sa)` tells the ocean
-  where the channel is: rougher water (+GGX variance) and half the breaking foam. Cusps add
-  horns and bays over `cuspReach` (the swash zone, at least 0.35 × spacing; on steep gravel the
-  daily run-up alone is ~1 m). Shares: COASTS.md.
-- **Stone texture** (`terrain.ts` `STONE_GLSL`, terrain fragment shader only; uniforms from
-  `stoneUniforms`): Voronoi cells over shore coords (u inland, a along), cell size =
-  `coast.stoneSize` × `STONE_LEVELS` (0.6/1/1.6). `stoneLevel` picks the size class per pixel
-  (finer below high tide, coarsest on the storm ridge, dithered patches), then one 3×3 search;
-  per cell: palette colour × brightness, presence (mixed beaches: `stoneCover`, sand below the
-  high-tide line), fill. Stones are ovals inside their cells with a dome normal and dark gaps.
-  `detail` fades cells out by pixel footprint (`footprint / (0.6 × stoneSize)`); two mottle
-  octaves (4× and 16× stone size) carry a stony texture further. The TS mirror in `beach.ts`
-  (`stoneAt`, `stoneGridCell`, `stoneCell`) uses the same hashes (`cellNoise.ts`), so mesh
-  stones can sit on the shader's cells. `seabedAlbedo` gives `ocean.ts` the stone colour.
-- **Mesh stones** (`props/stones.ts`): `meshStones(ctx)` walks 1 m blocks of the beach in view,
-  nearest first (blocks pruned by `stoneGrade` per size class), and returns each shader stone
-  within `meshRadius(size, ctx.pixelAngle)` (≥ 10 px wide, ≤ 30 m) that the shader draws there
-  (same level, present on mixed beaches), ≤ 8k. `createStones` puts an 80-triangle
-  `stoneGeometry` on each (width ≈ the shader's oval, tilted to `terrainNormal`, 15–40% buried,
-  sinking fully over the last 20% of the radius), 6 variants, instance colour = cell colour ×
-  0.8, `rockMaterial` (wet and glossy below the run-up). Per-level radii go back to the terrain
-  as `stoneMeshRadius` (`props.userData.stoneRadius`), where the dome normal is dropped. Most
-  views see the ground from 5–40 m on (`frameView`), so at 1080p cobbles get meshes, pebbles
-  mostly on along-beach and framed days.
-- **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes
-  folded on the midrib (oval oak/almond, ovate birch, lance olive, needles stone pine, rounded
-  shrubs, pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to
-  5 cm, buttress roots). Built once into the still scene but instanced hundreds of times: < 100k
-  triangles per species (tested). In-mesh randomness from `hash()`. Plants get no direct
-  specular.
-- **Mangroves** (`props/mangroves.ts`): `mangroveFor()` picks a stand by biome, ocean and shelter
-  (`SHELTERED_SURF`, surf < 0.35 m, or a reef offshore); `createMangroves()` finds waterline in frame, runs the stand
-  80–300 m along shore, trees where ground is within ±0.9 m of sea level, thinning seaward.
-  `rhizophora()`/`avicennia()` in `trees.ts`. Shoreline views look straight out to sea and never
-  show a stand.
-- **Islands:** `params.ts` `pickIslands()` (own stream; ~30% of days) picks kind by biome
-  (`ISLANDS`) and per island offset, distance, width, height (low 1–4 km, high 8–30 km).
-  `props/islands.ts` moves each to open water in frame (12-point footprint over seabed, clear of
-  others and the colony rock), builds a polar-grid heightfield with noisy outline and per-kind
-  profile (`islandHeight`), colours by height/slope/noise, instances palms (cays) or distant pines
-  (skerries). Past 5 km `distant` (left out of the planar reflection, like mountains).
-- **Lighthouse:** `params.ts` picks site, paint, height and light character by coast (~9% of
-  days; most on nordic, mediterranean, volcanic; rare in tropics, deserts, polar seas). Sites: a
-  rocky point with keeper's cottage (beach days) or a stout flared tower on a rock at sea; the
-  other is tried if one doesn't fit the frame. Paint: white, red cast iron (Scandinavia), red or
-  black bands, bare granite on rocks; red, black or copper domes. Rotating Fresnel lens: ~2°
-  beams grouped by chart character (`Fl(2) W 15s` = 2 beams per group), landward side screened on
-  a point; lit sunset to sunrise and in fog. `props/lighthouse.ts` builds it; `lighthouse.ts`
-  draws beams in screen space (closest approach of view ray and beam axis, haze + fog scattering,
-  depth-occluded) and flash glare, before exposure.
-
-### Props (`src/props/`, built with `builder.ts` `MeshBuilder`)
-
-- Rocks, sea stacks, vegetation, birds, migratory flocks, ships, marine life, ice, colonies,
-  pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`,
-  `props/cloudEvents.ts`), waterspout. All at real size.
-- **Shore debris** (`debris.ts`, `debrisFor()` by biome and ocean): wrack (kelp, Posidonia mats
-  and fibre balls, sargassum, sticks) on the high-tide line at ~1.1× run-up height, plus a fainter
-  older line; logs on the storm line above ~2.2× and up to the back of the beach (`logGeometry`:
-  bowed, oval, knots, checks, splintered end, root wads); coconuts on palm coasts. Stony days:
-  logs on the storm ridge crest and its back slope, the older wrack line on the crest.
-- **Shore life** (`shoreLife.ts`, `shoreLifeFor()`): crabs by biome and time of day, shells by
-  coast, flowers in bloom by month (`FLOWERS`). Real size: crabs and shells show only near the
-  camera. Each flower has a `ground` (`sand`, `stones`, `both`; `growsOn`): shingle and cobble
-  get the vegetated-shingle flora (sea kale, horned poppy, sea pea, sea campion) plus the
-  either-ground ones; no ghost crabs or sand dollars, 30% of the shells. Mixed beaches get both.
-- **Wildlife** (`wildlife.ts`, `wildlifeFor()`): the place's `animals` pool (`places.ts`), then
-  turtles (`nestingSpecies(animals, month, pick)`: in-season entries weighted), monkeys, lizards,
-  crocodiles, hippos and basking turtles by the pool's chances. `inWater()` decides where the big ones are; `inSea()` places them by depth via
-  `ctx.seaPoint`. `spot()` casts rays through the lower frame and marches them to the ground, so
-  each group lands in view, near first; tracks are a world-space strip of churned sand.
-  Turtles don't nest on shingle or cobble (basking ones still haul out).
-- **Pinnipeds** (`pinnipeds.ts`): hauled out on rock or beach; `swimmingHead` for heads in water.
-  On a stony beach: above the full run-up (the swash surges up the steep face), no higher than
-  the storm ridge crest, tilted to `terrainNormal`. **Rocks** (`rockChanceFor`): boulders more
-  often on cobble (60% of the rock-free days get them), half as often on shingle; stony days
-  skip the scattered near-camera pebbles (`props/stones.ts` draws them).
-  **Colonies** (`colony.ts`): island or mainland headland/rookery.
-- **Storms and animals:** `stormy(params)` (`props/context.ts`: storm or storm sky). Gulls rest on
-  water or sand facing the wind (`restingGull`), colonies have no birds up, pinnipeds leave the
-  haul-out (heads only, up to 100 m off), crabs, monkeys, lizards and basking turtles hide;
-  migratory flocks and whales are off.
-- **Ships** (`ships.ts`): hulls lofted per kind; `polarFleet()` replaces leisure craft in Arctic
-  and Southern Ocean waters (dinghies, trawlers, expedition ships in season, icebreakers).
-  `seaSpot()` aims at the lower half of the frame, then samples distance (log-uniform) and bearing
-  in view. `shipSpeed()` by kind (`UNDERWAY`, stream `ships/motion`); `floatOnWaves()` fits a
-  plane to `seaLevel()` every ~2 m over the waterplane (follows waves longer than the hull,
-  averages shorter ones, as RAOs do). `wakeFor()`: Kelvin height 0.1 × beam × Fr, wake foam
-  (propellers; sail only when quick), foam lifetime 8 + 0.8 × beam s, hull collar.
-  `ocean.ts setOceanShips` (8 nearest): discards sea inside the hull (`hullHalfWidth` mirrors
-  `hullShape`), adds the Kelvin field's slope (stationary phase: tan a = T/(1 + 2T²),
-  k = g/(U cos θ)², two branches, weighted by how well a hull of length L makes that wavelength:
-  fast boats' wakes narrow, Rabaud & Moisy), foam and a slick. `hullSpray()`: bow slam (0.6 U in
-  a sea), breaking crests on the weather side (`whitecapFraction`), crests climbing the hull
-  (`pose.rel`), chine sheets.
-- **Ship lights** (`shipLights.ts`, sunset to sunrise): `shipLightsFor()` encodes COLREGs
-  (masthead 225°, sidelights 112.5°, stern 135°, two mastheads from 50 m, sailing tricolour under
-  20 m, anchor all-round, trawling green over white, deck/work lamps) at Annex I intensities
-  (0.9–94 cd). Only lights whose sector faces the camera are added, as additive sprites ≥ 2.5 px
-  with radiance × area = intensity, in scene units via metered luminance / `skyLuminance()`. The
-  ocean mirrors the 12 brightest as GGX point lights (hidden from the planar mirror). The night
-  grade is mesopic: pixels far above sky level keep their colour.
-
-### Frame and post
+## Frame and post
 
 - `camera.ts`; `composition.ts` (ray-grid coverage, re-rolls bad framings; `frameView`: eye
   height, pixel angle and nearest ground in frame, for `params.mjs` `p.view`); `reflection.ts`
@@ -469,18 +124,18 @@ means). Storm days and |lat| > 25°
   pixel's geometry coverage and `SkyFillEffect` blends the finished sky into silhouette pixels.
   `skyDenoise.ts` smooths light-shaft grain once.
 
-### Page, cache, CI
+## Page, cache, CI
 
-- `main.ts`: portrait/landscape, device-aware size, prev/next/today/random, download (Today
-  greyed on today). A click/tap outside the bar toggles it (`data-ui` on `<html>`): phones start
-  shown, PCs hidden (hover reveals); hidden on phones = no pointer events. `random/index.html`
-  redirects to a random past day.
+- `main.ts`: portrait/landscape, device-aware size, prev/next/today/random, download (Today greyed
+  on today). A click/tap outside the bar toggles it (`data-ui` on `<html>`): phones start shown,
+  PCs hidden (hover reveals); hidden on phones = no pointer events. `random/index.html`
+  redirects to a random past day. Prev/next reload the whole page.
 - **Render cache** (`public/sw.js`, `renderCache.ts`): the 10 most recently viewed renders (JPEG
   0.95, Cache Storage, LRU) keyed by build commit (`__BUILD_ID__`), date, size, frames, portrait,
-  spec; a hit is drawn straight to the canvas (~60 ms) and the render worker stopped. Page reads
-  and stores via `rendered/*.jpg` GET/PUT that only the worker answers. Off in dev and under
-  `navigator.webdriver`; `?cache=1|0` forces. A first visit renders before the worker controls the
-  page, then stores.
+  spec; a hit is drawn straight to the canvas (~60 ms) and the render worker stopped. The page
+  reads and stores via `rendered/*.jpg` GET/PUT that only the worker answers. Off in dev and under
+  `navigator.webdriver`; `?cache=1|0` forces. A first visit renders before the worker controls
+  the page, then stores.
 - **Mesh preview:** `tools/mesh.html` + `src/meshPreview.ts` (dev only), screenshot by
   `scripts/mesh.mjs`.
 - **Tests** (`test/`, Vitest, `npm test`, also in CI before the build): logic, not rendering —
@@ -493,47 +148,50 @@ means). Storm days and |lat| > 25°
 
 Breaking-wave lips, ambient occlusion under trees, low-power mode for phones, wind-blown sand and
 leaves, lamp reflections on wet sand, lit windows on cruise ships, ship roll resonance, wakes
-rolling onto the beach as surf, turtle heads at sea.
+rolling onto the beach as surf, turtle heads at sea, a real compass sun on every day (ties framing,
+heading and coast orientation together).
 
 ## Known issues
 
+Coast and surf:
 - Run-up doesn't depend on the beach state: on flat dissipative beaches the high-tide line lies
   ~35 m and the storm line (`beachLines`, 2.2 × run-up, capped at 2.3 × width) up to ~120 m inland
-  (`scripts/profile.mjs` on Namibia 2024-06-11), so the wet band is very wide and storm-line debris
-  sits far back; on steep gravel it is ~1 m. A Stockdon-type run-up (∝ slope × √(H0 L0) on steep
+  (`profile.mjs` on Namibia 2024-06-11), so the wet band is very wide and storm-line debris sits
+  far back; on steep gravel it is ~1 m. A Stockdon-type run-up (∝ slope × √(H0 L0) on steep
   beaches, ∝ √(H0 L0) on flat ones) would fix both, at the cost of re-tuning the wrack lines.
-- At low tide on terraced rip beaches (low-tide bar and rip) the emerged inner bar and rip
-  channels show as straight-edged shelves near the water (e.g. `scenes/tides.json`
-  brittany-low): the channel walls and the terrace edge were shaped to be seen underwater.
-- Waves re-form at full height behind a sandbar: the surf is local-depth only, so a wave that
-  broke on the bar crest grows back in the trough as if it hadn't (real ones leave at ~γ × the
-  crest depth and decay toward ~0.4 × depth, Dally et al. 1985). The shelter mask covers reefs and
-  barriers, not bars; doing it for bars changes every barred day.
-- The reef's shelter is a straight line: swell coming through a pass doesn't spread into the
-  lagoon behind it (the pass is only deeper, with no white water). Basins could stand in.
-- Reef crest foam is a band over the reef edge timed with the surf cycle, not breaking waves
-  (the surf model breaks them on a ~2 m strip of the steep face); against a low sun ahead it
-  fades into the glare like all foam.
+- At low tide on terraced rip beaches the emerged inner bar and rip channels show as
+  straight-edged shelves near the water (`scenes/tides.json` brittany-low): they were shaped to be
+  seen underwater.
+- Waves re-form at full height behind a sandbar (surf is local-depth only; real broken waves
+  decay toward ~0.4 × depth, Dally et al. 1985). The shelter mask covers reefs, not bars; doing it
+  for bars changes every barred day.
+- Longshore bars have no trough: OzCoasts gives 2–3 m behind the bar, our bare profile ~1 m (only
+  rip channels are scoured).
+- Beach-state shares vs Australia's census: transverse bar–rip under-drawn, longshore and
+  dissipative over-drawn. A retune is proposed in COASTS.md "Beach state and tides" (not done; ask first, it
+  changes every beach day).
+- The reef's shelter is a straight line: swell through a pass doesn't spread into the lagoon
+  (the pass is only deeper, no white water). Basins could stand in.
+- Reef crest foam is a band timed with the surf cycle, not breaking waves (the surf model breaks
+  them on a ~2 m strip of the steep face); against a low sun ahead it fades into the glare.
 - Tidepools are runnels and puddles on the terrace (shader patches), not pools among rocks.
-- `place: "western-med"`, 2024-05-08, along-beach daylight front-lit: the whole beach renders
-  dark blue (same at a6ac87a, before tides).
-- Longshore bars have no trough: OzCoasts gives 2–3 m behind the bar, but the bare profile there
-  is ~1 m deep (only rip channels are scoured).
-- State shares vs Australia's census (COASTS.md "Beach state"): transverse bar–rip under-drawn,
-  longshore and dissipative over-drawn. A retune is proposed there and not done.
+- `place: "western-med"`, 2024-05-08, along-beach daylight front-lit: the whole beach renders dark
+  blue (same at a6ac87a, before tides).
+- Stony beaches: shingle reads as a flat mottled colour on most 1080p views (a 2–5 cm pebble is
+  under a pixel past ~10 m at eye height; the nearest ground is often 20–40 m); `framed` stands
+  15–60 m inland behind the plants, so it never has stones in the foreground. Iceland (volcanic
+  biome) gets the volcanic default plants, including palms; its basalt cobbles render brown
+  (palette mean pulled up by the red scoria entry and exposure).
 
+Sky:
 - Waterspouts: the fog rule never applies and they're far rarer than intended (1 in 3 years):
   [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md).
 - Backlit shelf cloud at sunset is a flat pink band (takram aerial perspective on the mesh;
   e.g. 2010-04-01).
-- 2026-05-01: a sailboat drawn as a bare, steeply tilted mast.
 - 2026-02-13: sparkly dots in the air over the sea.
-- Stony beaches: shingle reads as a flat mottled colour on most 1080p views (a 2–5 cm pebble is
-  under a pixel tall past ~10 m at eye height; the nearest ground is often 20–40 m), so many
-  "shingle" days look sandy-coloured; `framed` stands 15–60 m inland behind the plants, so it
-  never has stones in the foreground. Iceland (volcanic biome) gets the volcanic default plants,
-  including palms; its basalt cobbles render brown (palette mean pulled up by the red scoria
-  entry and exposure).
+
+Props:
+- 2026-05-01: a sailboat drawn as a bare, steeply tilted mast.
 - Elephant seals within ~25 m look like smooth boulders (beach herds keep 30 m off); hippos are
   stylised up close (barrel + boxy head).
 - Physically subtle (not bugs): Posidonia wrack at normal distance, hatchlings (5 cm) beyond
