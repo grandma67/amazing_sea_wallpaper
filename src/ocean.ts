@@ -27,6 +27,10 @@ import type { ShipWake } from './props/ships'
 
 /** How many rocks the ocean shader foams round (the nearest). */
 export const MAX_ROCKS = 48
+/** How many islands and big rocks it foams round (the nearest), and the
+ * points on each outline (props/surf.ts OUTLINE_POINTS). */
+export const MAX_ISLANDS = 4
+const ISLAND_POINTS = 32
 /** How many boats the ocean shader cuts out and draws wakes for (the nearest). */
 export const MAX_SHIPS = 8
 /** Ship lamps the sea mirrors (props/shipLights.ts lampsForOcean). */
@@ -219,6 +223,22 @@ uniform mat4 planarProjInv;
 // radius, and whether the waves break on them (waveOnRock), 0..1.
 uniform vec4 rockData[${MAX_ROCKS}];
 uniform int rockCount;
+// Islands and big rocks (props/index.ts waterIslands): x, z, wave crest
+// height and whether the waves break on them; waterline radii at angles
+// k·2π/${ISLAND_POINTS} (atan(z, x)), 4 per vec4.
+uniform vec4 islandData[${MAX_ISLANDS}];
+uniform vec4 islandOutline[${(MAX_ISLANDS * ISLAND_POINTS) / 4}];
+uniform int islandCount;
+
+float islandRadius(int i, float angle) {
+  float f = mod(angle / (2.0 * PI) * ${ISLAND_POINTS}.0 + ${ISLAND_POINTS}.0, ${ISLAND_POINTS}.0);
+  int j0 = int(floor(f));
+  int j1 = (j0 + 1) % ${ISLAND_POINTS};
+  int base = i * ${ISLAND_POINTS / 4};
+  float r0 = islandOutline[base + j0 / 4][j0 % 4];
+  float r1 = islandOutline[base + j1 / 4][j1 % 4];
+  return mix(r0, r1, fract(f));
+}
 // Boats (props/ships.ts ShipWake): x, z, bow direction; length, beam, speed,
 // catamaran hull offset; Kelvin wave height, wake foam, foam lifetime (s),
 // white water round the hull.
@@ -654,6 +674,38 @@ void main() {
       coverage = max(coverage, foamHere * clamp(r / max(footprint, 1e-3), 0.0, 1.0));
     }
   }
+  // Islands and big rocks: the same collar, lee trail and surge as a rock,
+  // round their outline and sized by the waves, not their size: white
+  // water round a cliff is a band a few wave heights wide (a calm sea's
+  // lapping, a metre; a big swell's surge, ten). Offshore the crests come
+  // irregularly. Each band fades with its own width against the pixel's.
+  for (int i = 0; i < ${MAX_ISLANDS}; i++) {
+    if (i >= islandCount) break;
+    vec4 island = islandData[i];
+    vec2 dv = vGrid - island.xy;
+    float hc = island.z;
+    float breaksOn = island.w;
+    float R = islandRadius(i, atan(dv.y, dv.x));
+    float e = length(dv) - R;
+    float leeLength = min(2.5 * R, 20.0 * hc + 10.0);
+    if (e > leeLength + 20.0) continue;
+    float out_ = max(e, 0.0);
+    vec2 isa = shoreCoords(island.xy);
+    float ragged = 0.45 + 0.8 * fbm(vGrid / 3.0 + noiseOffset + float(i) * 7.1);
+    float collarWidth = 0.8 + 1.5 * hc;
+    float collar = exp(-pow(out_ / collarWidth, 2.0)) * ragged;
+    float apronWidth = 3.0 * hc + 2.0;
+    float seaward = smoothstep(-0.3 * R, 0.3 * R, sa.x - isa.x);
+    float apron = exp(-out_ / apronWidth) * seaward * breaksOn * 0.5 * ragged;
+    float lee = isa.x - sa.x;
+    float trail = smoothstep(0.0, 0.3 * R, lee) * exp(-out_ / leeLength) *
+      (1.0 - smoothstep(R * 0.5, R * 0.9 + out_ * 0.3, abs(sa.y - isa.y))) *
+      0.45 * fbm(vec2(sa.y / 3.0, sa.x / 6.0) + noiseOffset) * 1.6;
+    float pixel = max(footprint, 1e-3);
+    coverage = max(coverage, collar * (0.6 + 0.4 * breaksOn) * clamp(collarWidth / pixel, 0.0, 1.0));
+    coverage = max(coverage, apron * clamp(apronWidth / pixel, 0.0, 1.0));
+    coverage = max(coverage, trail * clamp(collarWidth / pixel, 0.0, 1.0));
+  }
   coverage = max(coverage, wakeFoam);
   // The weave is stretched along the crests near the coast.
   vec2 laceCoords = hasLand() ? vec2(sa.y, sa.x * 1.8) + noiseOffset : q;
@@ -703,6 +755,23 @@ export function setOceanRocks(ocean: Mesh<BufferGeometry, ShaderMaterial>, rocks
   const u = ocean.material.uniforms
   nearest.forEach((r, i) => (u.rockData.value as Vector4[])[i].set(r.x, r.z, r.radius, r.breaks))
   u.rockCount.value = nearest.length
+}
+
+/** Tell the ocean where islands and big rocks stand (props/index.ts
+ * waterIslands): the nearest MAX_ISLANDS, apart from the 48 rocks. */
+export function setOceanIslands(
+  ocean: Mesh<BufferGeometry, ShaderMaterial>,
+  islands: { x: number; z: number; outline: number[]; crest: number; breaks: number }[],
+  camera: Vector3
+): void {
+  const nearest = [...islands].sort((p, q) => Math.hypot(p.x - camera.x, p.z - camera.z) - Math.hypot(q.x - camera.x, q.z - camera.z)).slice(0, MAX_ISLANDS)
+  const u = ocean.material.uniforms
+  const outline = u.islandOutline.value as Vector4[]
+  nearest.forEach((island, i) => {
+    ;(u.islandData.value as Vector4[])[i].set(island.x, island.z, island.crest, island.breaks)
+    for (let k = 0; k < ISLAND_POINTS; k++) outline[i * (ISLAND_POINTS / 4) + Math.floor(k / 4)].setComponent(k % 4, island.outline[k] ?? 0)
+  })
+  u.islandCount.value = nearest.length
 }
 
 /** Tell the ocean where boats are and what wakes they make (props/ships.ts ShipWake). */
@@ -778,6 +847,9 @@ export function createOcean(
       rockData: { value: Array.from({ length: MAX_ROCKS }, () => new Vector4()) },
       oceanView: { value: Math.max(0, OCEAN_VIEWS.indexOf(params.debug?.oceanView ?? 'none')) },
       rockCount: { value: 0 },
+      islandData: { value: Array.from({ length: MAX_ISLANDS }, () => new Vector4()) },
+      islandOutline: { value: Array.from({ length: (MAX_ISLANDS * ISLAND_POINTS) / 4 }, () => new Vector4()) },
+      islandCount: { value: 0 },
       shipPose: { value: Array.from({ length: MAX_SHIPS }, () => new Vector4()) },
       shipHull: { value: Array.from({ length: MAX_SHIPS }, () => new Vector4()) },
       shipWake: { value: Array.from({ length: MAX_SHIPS }, () => new Vector4()) },

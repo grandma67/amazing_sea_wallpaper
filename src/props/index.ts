@@ -20,8 +20,9 @@ import { createShips } from './ships'
 import { createShoreLife } from './shoreLife'
 import { createStones } from './stones'
 import { createStorm } from './storm'
-import { createSurf, edgeRocks, waterRocks, waveOnRock } from './surf'
+import { createIslandSpray, createSurf, edgeRocks, islandWaves, waterRocks, waveOnRock, type IslandWater, type WaterIsland } from './surf'
 import { createVegetation } from './vegetation'
+import { addWash, setWash } from './wash'
 import { createWaterspout } from './waterspout'
 import { createWildlife } from './wildlife'
 
@@ -64,6 +65,8 @@ export function createProps(ctx: PropContext): Group {
   add('islands', () => createIslands(ctx, island))
   add('pinnipeds', () => createPinnipeds(ctx, island))
   add('lighthouse', () => createLighthouse(ctx, island))
+  group.userData.waterIslands = off ? [] : waterIslandsOf(ctx, group.children)
+  add('surf', () => createIslandSpray(ctx, group.userData.waterIslands as IslandWater[]))
   add('vegetation', () => createVegetation(ctx))
   add('salt-marsh', () => createSaltMarsh(ctx))
   add('mangroves', () => createMangroves(ctx))
@@ -78,6 +81,30 @@ export function createProps(ctx: PropContext): Group {
   add('roll-cloud', () => createRollCloud(ctx))
   add('markers', () => createMarkers(ctx, group))
   return group
+}
+
+/** Islands, a colony's stack and a lighthouse's rock standing in the sea
+ * (`userData.waterline`), for the ocean's foam round them
+ * (ocean.ts setOceanIslands), spray against them and a wash of white water
+ * on their faces. None past 5 km: no foam band resolves there, and their
+ * faces are hazed (they're left out of the reflection too). */
+export function waterIslandsOf(ctx: PropContext, objects: Object3D[]): IslandWater[] {
+  const out: IslandWater[] = []
+  for (const o of objects) {
+    const waterline = o.userData.waterline as WaterIsland | undefined
+    if (waterline == null || o.userData.distant === true || ctx.distance(waterline.x, waterline.z) > 5000) continue
+    const waves = islandWaves(ctx.params.coast, waterline, ctx.waveHeight)
+    out.push({ ...waterline, ...waves })
+    const material = (o as Mesh).material
+    if (material instanceof MeshStandardMaterial) {
+      addWash(material)
+      // Run-up on a face: about the crest, up to three times it where the
+      // waves break; a calm sea's lapping is fainter. A low rock's top
+      // stays dark between the waves washing over it.
+      setWash(material, Math.min(waves.crest * (1 + 2 * waves.breaks), 0.8 * waterline.top), 0.5 + 0.5 * waves.breaks)
+    }
+  }
+  return out
 }
 
 /** Marker colours by source, in order. */

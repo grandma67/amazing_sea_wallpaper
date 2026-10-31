@@ -229,6 +229,12 @@ tool gotchas: TOOLS.md.
   target is transparent, so any blur fades the image right where it should touch. Real blur grows
   with the reflected ray's length t past the water (∝ t / (D + t)): read the mirror's depth and
   scale the mip and the wave shift by it.
+- Foam on the sea plane is invisible at grazing distance: at 855 m from a 38 m eye a pixel on the
+  water is ~0.5 m wide but ~11 m deep, so a 2 m collar is 0.2 px tall. Put the white water on the
+  object's vertical face (wash band) and in spray; size sea foam by wave height, not object radius
+  (a 60 m island's `0.35 r` collar was 20 m of white), and fade it by band width over footprint.
+- `waveOnRock().breaks` compares the crest with the rock's top only: any cliff "breaks" a 5 cm
+  swell. For islands also gate by the crest's own height (`islandWaves`).
 
 ## Coast and terrain
 

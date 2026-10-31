@@ -1,4 +1,5 @@
 import {
+  Box3,
   BufferAttribute,
   Mesh,
   MeshBasicMaterial,
@@ -13,6 +14,7 @@ import { hasLand, shoreToWorld } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { fbm3 } from './noise'
+import { outlineOfMesh, type WaterIsland } from './surf'
 import { rockGeometry, rockMaterial } from './rocks'
 
 // A lighthouse (see LighthouseParams): a tapering round tower with a gallery,
@@ -217,6 +219,11 @@ function site(ctx: PropContext, light: LighthouseParams, avoid: Object3D | null)
     foot.castShadow = true
     foot.receiveShadow = true
     foot.updateMatrixWorld()
+    if (kind === 'rock') {
+      // For the foam and white water round it (props/index.ts waterIslands).
+      const waterline: WaterIsland = { x: p.x, z: p.z, outline: outlineOfMesh(foot), top: new Box3().setFromObject(foot).max.y, depth: Math.max(0, -ctx.ground(p.x, p.z)) }
+      foot.userData.waterline = waterline
+    }
     const [sx, , sz] = [Math.sin(coast.seawardAzimuthDeg * (Math.PI / 180)), 0, -Math.cos(coast.seawardAzimuthDeg * (Math.PI / 180))]
     const seaward = kind === 'point' ? coast.seawardAzimuthDeg : null
     // Seaward of the point's centre, on its highest ground.

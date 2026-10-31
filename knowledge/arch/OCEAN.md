@@ -41,6 +41,14 @@ surf".
   (≥ 0.35 rise over 5 m) meets today's water, a 3 m "rock" at the face, so the scarp, a cliff's
   foot or a boulder apron gets the same bursts, collars and lee trails. The surf breaks on the
   scarp by depth already.
+- **Islands and big rocks** (`setOceanIslands`, `MAX_ISLANDS` = 4 nearest, apart from the 48 rocks;
+  PROPS.md "Big rocks in the sea"): `islandData` (x, z, crest Hc, breaks) and `islandOutline`
+  (32 radii each, 4 per vec4, linearly interpolated by angle: e = distance − R(θ), fine for the
+  star-shaped outlines). Sized by the waves, not the radius: collar `exp(−(e/(0.8 + 1.5 Hc))²)`,
+  ragged; seaward apron `3 Hc + 2` m when breaking (constant 0.5 surge: offshore crests come
+  irregularly); lee trail `min(2.5 R, 20 Hc + 10)` m. Each band fades with its own width over the
+  pixel footprint (not R). Outside the surf-zone block, so open-sea days get it too. Calm sea
+  (Hc ≈ 0.1): a ~1 m broken line; from far it's the face's wash band (`props/wash.ts`) that reads.
 - **Reflections** (`reflection.ts`, ocean.ts "Land, rocks, trees and boats mirrored"): the scene
   rendered from a camera mirrored in y = 0 (oblique clip at the water) into a half-res target
   cleared to (0,0,0,0), with a depth texture. Blended **premultiplied** (`reflected · (1 − a) +

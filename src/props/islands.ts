@@ -18,6 +18,7 @@ import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { curvatureDrop } from './landforms'
 import { fbm3 } from './noise'
+import { OUTLINE_POINTS, type WaterIsland } from './surf'
 import { palm } from './vegetation'
 
 // Islands offshore, a few kilometres out (see IslandParams). Each is a
@@ -107,6 +108,22 @@ export function islandHeight(shape: Shape, x: number, y: number): number {
   // Off the island: drop under the sea so no gap shows at the waterline.
   if (r > 1) h = -Math.min(1, (r - 1) * 12) * Math.max(4, H * 0.1)
   return h
+}
+
+/** The shoreline as a WaterIsland outline (props/surf.ts): world radius at
+ * world angles k·2π/n round the centre, for an island whose local x runs
+ * along `across` and y along `away` (unit, horizontal). The shore is
+ * radius() = 1, so along a direction it lies at outline / |direction|
+ * in the radii's units. */
+export function outlineOfIsland(shape: Shape, across: { x: number; z: number }, away: { x: number; z: number }, n = OUTLINE_POINTS): number[] {
+  const out: number[] = []
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI * 2
+    const lx = (Math.cos(a) * across.x + Math.sin(a) * across.z) / shape.rx
+    const ly = (Math.cos(a) * away.x + Math.sin(a) * away.z) / shape.ry
+    out.push(outline(shape, Math.atan2(ly, lx)) / Math.hypot(lx, ly))
+  }
+  return out
 }
 
 interface Palette {
@@ -298,7 +315,11 @@ export function createIslands(ctx: PropContext, avoid: Object3D | null): Object3
       p.y = h - curvatureDrop(p.x, p.z)
       return p
     }
-    const group: Object3D[] = [new Mesh(islandGeometry(shape, palette, toWorld), material)]
+    const land = new Mesh(islandGeometry(shape, palette, toWorld), material)
+    // For the foam and white water round it (props/index.ts waterIslands).
+    const waterline: WaterIsland = { x: at.x, z: at.z, outline: outlineOfIsland(shape, across, away), top: island.height, depth: Math.max(0, -ctx.ground(at.x, at.z)) }
+    land.userData.waterline = waterline
+    const group: Object3D[] = [land]
     const local = new Random(`${ctx.params.seed}/island/${island.seed}`)
     if (params.kind === 'cay') {
       const palms = trees(local, shape, toWorld, () => palm(local, biome.foliage), Math.min(250, Math.round(island.width * 0.4)), [0.6, Infinity])

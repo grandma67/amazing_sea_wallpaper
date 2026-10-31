@@ -42,6 +42,20 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   others and the colony rock), builds a polar-grid heightfield with noisy outline and per-kind
   profile (`islandHeight`), colours by height/slope/noise, instances palms (cays) or distant pines
   (skerries). Past 5 km `distant` (left out of the planar reflection, like mountains).
+- **Big rocks in the sea** (islands, an island colony's stack, a lighthouse's rock): the heightfield,
+  stack or foot mesh carries `userData.waterline` (`WaterIsland` in `props/surf.ts`: centre, 32
+  waterline radii at world angles, top, depth). Islands: `outlineOfIsland()` (analytic, the shore is
+  `radius() = 1`); the stack and foot: `outlineOfMesh()` (horizontal rays inward at y = 0.2).
+  `props/index.ts` `waterIslandsOf()` (after the lighthouse) keeps those within 5 km and not
+  `distant`, adds `islandWaves()` (`waveOnRock`'s crest; `breaks` × smoothstep(0.25, 0.9, crest):
+  a few centimetres of swell laps at a cliff, white water needs tenths of a metre) →
+  `userData.waterIslands` → `ocean.ts setOceanIslands()` (4 nearest, OCEAN.md) and
+  `createIslandSpray()` (bursts every ~10 m of the swell-facing outline, ≤ 30 per island, when
+  `breaks` > 0.5). Their material gets a **wash band** (`props/wash.ts` `addWash`/`setWash`): white
+  foam on the face from the local sea level up to min(crest × (1 + 2 breaks), 0.8 × top), ragged,
+  brightest at the bottom, 0.5–1 strong; at a distance this is what shows the waterline (foam on
+  the water is a fraction of a pixel tall at grazing angles). Mainland headlands and icebergs are
+  not tagged.
 - **Lighthouse:** `params.ts` picks site, paint, height and light character by coast (~9% of days;
   most on nordic, mediterranean, volcanic; rare in tropics, deserts, polar seas). Sites: a rocky
   point with keeper's cottage (beach days) or a stout flared tower on a rock at sea; the other is
@@ -84,7 +98,8 @@ platform 3–20 m in from today's water. Vegetation starts on top of the back fa
 - **Rocks** (`rockChanceFor`): boulders more often on cobble (60% of the rock-free days get them),
   half as often on shingle; stony days skip the scattered near-camera pebbles (`props/stones.ts`
   draws them).
-- **Colonies** (`colony.ts`): island or mainland headland/rookery.
+- **Colonies** (`colony.ts`): island or mainland headland/rookery. Only the island stack is a big
+  rock in the sea (`userData.waterline`, Landmarks).
 - **Storms and animals:** `stormy(params)` (`props/context.ts`: storm or storm sky). Gulls rest on
   water or sand facing the wind (`restingGull`), colonies have no birds up, pinnipeds leave the
   haul-out (heads only, up to 100 m off), crabs, monkeys, lizards and basking turtles hide;

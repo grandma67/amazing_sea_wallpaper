@@ -1,13 +1,16 @@
 import {
+  Box3,
   BufferAttribute,
   BufferGeometry,
   Color,
   Matrix4,
   Points,
   Quaternion,
+  Raycaster,
   ShaderMaterial,
   Vector3,
   type InstancedMesh,
+  type Mesh,
   type Object3D,
   type PerspectiveCamera
 } from 'three'
@@ -179,6 +182,69 @@ function smoothstep(a: number, b: number, x: number): number {
   return t * t * (3 - 2 * t)
 }
 
+/** Points round a big rock's or island's waterline outline. */
+export const OUTLINE_POINTS = 32
+
+/** Something big standing in the sea (an island, a colony's stack, a
+ * lighthouse's rock): too big and irregular for a WaterRock circle. */
+export interface WaterIsland {
+  x: number
+  z: number
+  /** Waterline radius (m) from (x, z) at world angles k·2π/OUTLINE_POINTS,
+   * measured as atan2(z, x). */
+  outline: number[]
+  /** Height of its top above still water (m). */
+  top: number
+  /** Water depth at its foot (m). */
+  depth: number
+}
+
+/** A WaterIsland with what the waves do there (islandWaves). */
+export interface IslandWater extends WaterIsland {
+  crest: number
+  breaks: number
+}
+
+/** The waterline radius at a world angle, between the outline's points. */
+export function outlineRadius(outline: number[], angle: number): number {
+  const n = outline.length
+  const f = ((((angle / (2 * Math.PI)) % 1) + 1) % 1) * n
+  const i = Math.floor(f) % n
+  const t = f - Math.floor(f)
+  return outline[i] * (1 - t) + outline[(i + 1) % n] * t
+}
+
+/** The outline where a mesh cuts the plane y = `level`, centred on
+ * (cx, cz): for each angle a ray cast horizontally inward from twice its
+ * horizontal extent; the first hit, or that extent if nothing is hit. */
+export function outlineOfMesh(mesh: Mesh, cx = mesh.position.x, cz = mesh.position.z, level = 0.2, n = OUTLINE_POINTS): number[] {
+  mesh.updateMatrixWorld()
+  const box = new Box3().setFromObject(mesh)
+  const extent = Math.max(box.max.x - cx, cx - box.min.x, box.max.z - cz, cz - box.min.z) * Math.SQRT2
+  const raycaster = new Raycaster()
+  const out: number[] = []
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI * 2
+    const dir = new Vector3(Math.cos(a), 0, Math.sin(a))
+    const origin = new Vector3(cx, level, cz).addScaledVector(dir, 2 * extent)
+    raycaster.set(origin, dir.clone().negate())
+    raycaster.far = 2 * extent
+    const hit = raycaster.intersectObject(mesh, false)[0]
+    out.push(hit == null ? extent : Math.max(0.5, 2 * extent - hit.distance))
+  }
+  return out
+}
+
+/** What the waves do at a big rock or island. `crest` as at any rock
+ * (waveOnRock). `breaks`: whether they throw white water against its face.
+ * A cliff stands higher than any crest, but a swell of a few centimetres
+ * reflects off it with only a lapping wash line; white water needs crests
+ * of a few tenths of a metre, all of it from about a metre. */
+export function islandWaves(coast: CoastParams, island: Pick<WaterIsland, 'top' | 'depth'>, seaHeight: number): { crest: number; breaks: number } {
+  const { crest, breaks } = waveOnRock(coast, island, seaHeight)
+  return { crest, breaks: breaks * smoothstep(0.25, 0.9, crest) }
+}
+
 /** Point-sprite droplets or puffs; also used for volcanic plumes. */
 export class SprayBuilder {
   readonly positions: number[] = []
@@ -287,7 +353,6 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
   // A wave lower than the rock bursts against its seaward face when a crest
   // is there now; one higher washes over it. Sea stacks offshore take the
   // open sea's waves.
-  const q = new Vector3()
   for (const rock of [...waterRocks(ctx, rocks), ...edgeRocks(ctx)]) {
     const size = rock.radius
     if (!ctx.visible(rock.x, rock.top, rock.z, size * 3)) continue
@@ -306,26 +371,68 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
     const [lx, lz] = shoreToWorld(coast, s - 1, a)
     const landward = new Vector3(lx - rock.x, 0, lz - rock.z).normalize()
     const plume = hitting && wave.breaks > 0.3 ? Math.min(8 + size * 0.3, (wave.crest * 2.2 + size * 0.15) * wave.breaks * rng.range(0.6, 1.2) * windy) : 0
-    // A burst of white water thrown up and landward: a dense core of
-    // small droplets low and central, thinning out with height, inside a
-    // faint veil of mist. Droplets are a few centimetres; anything bigger
-    // reads as floating discs.
-    const count = Math.round(Math.min(2500, plume * 220 * Math.max(1, size / 3)))
-    for (let k = 0; k < count; k++) {
-      const t = rng.float()
-      const spread = size * (0.4 + 1.1 * t)
-      q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
-      const y = plume * Math.sqrt(t) * rng.range(0.4, 1.1)
-      const p = face.clone().add(q).addScaledVector(landward, t * size * 1.2).setY(y + Math.max(0, ground))
-      spray.add(p, rng.range(0.03, 0.12) * Math.max(1, size / 4), rng.range(0.5, 1) * (1 - 0.6 * t))
-    }
-    for (let k = 0; k < Math.round(plume * 25); k++) {
-      const t = rng.float()
-      const spread = size * (0.6 + 1.6 * t)
-      q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
-      const p = face.clone().add(q).addScaledVector(landward, t * size * 1.5)
-      p.setY(plume * t * rng.range(0.3, 0.9) + Math.max(0, ground))
-      spray.add(p, rng.range(0.8, 2) * (0.5 + plume * 0.15), rng.range(0.04, 0.1))
+    burst(spray, rng, face, landward, size, plume, ground)
+  }
+  const points = spray.build()
+  return points == null ? [] : [points]
+}
+
+/** A burst of white water thrown up and landward from `face`: a dense core
+ * of small droplets low and central, thinning out with height, inside a
+ * faint veil of mist. Droplets are a few centimetres; anything bigger reads
+ * as floating discs. */
+function burst(spray: SprayBuilder, rng: ReturnType<PropContext['rng']>, face: Vector3, landward: Vector3, size: number, plume: number, ground: number): void {
+  const q = new Vector3()
+  const count = Math.round(Math.min(2500, plume * 220 * Math.max(1, size / 3)))
+  for (let k = 0; k < count; k++) {
+    const t = rng.float()
+    const spread = size * (0.4 + 1.1 * t)
+    q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
+    const y = plume * Math.sqrt(t) * rng.range(0.4, 1.1)
+    const p = face.clone().add(q).addScaledVector(landward, t * size * 1.2).setY(y + Math.max(0, ground))
+    spray.add(p, rng.range(0.03, 0.12) * Math.max(1, size / 4), rng.range(0.5, 1) * (1 - 0.6 * t))
+  }
+  for (let k = 0; k < Math.round(plume * 25); k++) {
+    const t = rng.float()
+    const spread = size * (0.6 + 1.6 * t)
+    q.set(rng.normal(0, spread), 0, rng.normal(0, spread))
+    const p = face.clone().add(q).addScaledVector(landward, t * size * 1.5)
+    p.setY(plume * t * rng.range(0.3, 0.9) + Math.max(0, ground))
+    spray.add(p, rng.range(0.8, 2) * (0.5 + plume * 0.15), rng.range(0.04, 0.1))
+  }
+}
+
+/** Spray bursting against the seaward faces of islands and big rocks
+ * (islandWaves `breaks` > 0.5): every ~10 m of the outline facing the
+ * swell, at most 30 per island, each with the open sea's fair chance (0.35)
+ * of a crest there now, timed and sized like a rock's. */
+export function createIslandSpray(ctx: PropContext, islands: IslandWater[]): Points[] {
+  const breaking = islands.filter(i => i.breaks > 0.5)
+  if (breaking.length === 0) return []
+  const { coast } = ctx.params
+  const rng = ctx.rng('surf/islands')
+  const spray = new SprayBuilder()
+  const windy = Math.min(1.5, 0.6 + ctx.params.ocean.windSpeed / 12)
+  const size = 4
+  for (const island of breaking) {
+    const [s, a] = worldToShore(coast, island.x, island.z)
+    const [sx, sz] = shoreToWorld(coast, s + 1, a)
+    const seaward = new Vector3(sx - island.x, 0, sz - island.z).normalize()
+    const perimeter = island.outline.reduce((sum, r) => sum + (2 * Math.PI * r) / island.outline.length, 0)
+    const n = Math.min(30, Math.max(4, Math.round(perimeter / 10)))
+    const offset = rng.float()
+    for (let k = 0; k < n; k++) {
+      const angle = ((k + offset) / n) * Math.PI * 2
+      const normal = new Vector3(Math.cos(angle), 0, Math.sin(angle))
+      const hitting = rng.chance(0.35)
+      const strength = rng.range(0.6, 1.2)
+      if (normal.dot(seaward) < 0.2 || !hitting) continue
+      const r = outlineRadius(island.outline, angle)
+      const face = new Vector3(island.x, 0, island.z).addScaledVector(normal, r + 1)
+      if (!ctx.visible(face.x, 2, face.z, size * 3)) continue
+      const plume = Math.min(8 + size * 0.3, (island.crest * 2.2 + size * 0.15) * island.breaks * strength * windy)
+      // Thrown up the face; little of it gets over a cliff.
+      burst(spray, rng, face, normal.clone().multiplyScalar(-0.3), size, plume, 0)
     }
   }
   const points = spray.build()

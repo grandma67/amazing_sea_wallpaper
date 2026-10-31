@@ -5,13 +5,63 @@
   "eclipse": null
  },
  "scenes": [
-  { "name": "colony-calm", "date": "2015-04-19" },
-  { "name": "colony-front", "date": "2015-04-19", "sunAzimuthDeg": 160 },
-  { "name": "colony-rough", "date": "2015-04-19", "swellHeight": 2.5, "swellPeriod": 11 },
-  { "name": "islands-near", "date": "2015-04-19", "islands": "karst", "colony": null, "ice": null },
-  { "name": "islands-near-broken", "date": "2015-04-19", "islands": "karst", "colony": null, "ice": null, "weather": "broken" },
-  { "name": "skerries", "date": "2015-04-19", "islands": "skerries", "colony": null, "ice": null, "sunAzimuthDeg": 160 },
-  { "name": "iceberg", "date": "2015-04-19", "colony": null, "ice": "bergs" },
-  { "name": "lighthouse-rock", "date": "2015-04-19", "lighthouse": "rock", "colony": null, "ice": null }
+  {
+   "name": "colony-calm",
+   "date": "2015-04-19"
+  },
+  {
+   "name": "colony-front",
+   "date": "2015-04-19",
+   "sunAzimuthDeg": 160
+  },
+  {
+   "name": "colony-rough",
+   "date": "2015-04-19",
+   "swellHeight": 2.5,
+   "swellPeriod": 11
+  },
+  {
+   "name": "colony-rough-front",
+   "date": "2015-04-19",
+   "swellHeight": 2.5,
+   "swellPeriod": 11,
+   "sunAzimuthDeg": 160
+  },
+  {
+   "name": "islands-near",
+   "date": "2015-04-19",
+   "islands": "karst",
+   "colony": null,
+   "ice": null
+  },
+  {
+   "name": "islands-near-broken",
+   "date": "2015-04-19",
+   "islands": "karst",
+   "colony": null,
+   "ice": null,
+   "weather": "broken"
+  },
+  {
+   "name": "skerries",
+   "date": "2015-04-19",
+   "islands": "skerries",
+   "colony": null,
+   "ice": null,
+   "sunAzimuthDeg": 160
+  },
+  {
+   "name": "iceberg",
+   "date": "2015-04-19",
+   "colony": null,
+   "ice": "bergs"
+  },
+  {
+   "name": "lighthouse-rock",
+   "date": "2015-04-19",
+   "lighthouse": "rock",
+   "colony": null,
+   "ice": null
+  }
  ]
 }

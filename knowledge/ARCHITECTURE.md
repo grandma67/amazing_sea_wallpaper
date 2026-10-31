@@ -230,6 +230,10 @@ Coast and surf:
   (the pass is only deeper, no white water). Basins could stand in.
 - Reef crest foam is a band timed with the surf cycle, not breaking waves (the surf model breaks
   them on a ~2 m strip of the steep face); against a low sun ahead it fades into the glare.
+- Icebergs get the contact reflection but no wash band or island foam (not `waterline`-tagged:
+  ice has its own look). Island spray bursts are a few-centimetre droplets, so at ~850 m they're
+  faint specks; the wash band carries the rough-sea look. A tagged prop's wash band shares its
+  material: all islands of a day get the same band (same open-sea waves).
 - Tidepools are runnels and puddles on the terrace (shader patches), not pools among rocks.
 - Stony beaches: shingle reads as a flat mottled colour on most 1080p views (a 2–5 cm pebble is
   under a pixel past ~10 m at eye height; the nearest ground is often 20–40 m); `framed` stands

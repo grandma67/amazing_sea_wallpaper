@@ -111,4 +111,6 @@ Every new random feature gets one. Always make the draw, then apply the force vi
     a forced `timeOfDay` the sun can't reach still wins (debugging), and so does
     `sunElevationDeg`: the heading of a midnight-sun day follows the forced elevation.
 - Spec files for each finished feature: `scenes/` (`examples`, `stony`, `tables`, `beach-states`,
-  `tides`, `shelter`, `reef`, `rock`, `tidal`, `climates`, `sun`); `debug.json` shows the debug views.
+  `tides`, `shelter`, `reef`, `rock`, `tidal`, `climates`, `sun`, `islands-water`: reflections and
+  white water at the colony stack, karst islands, skerries, an iceberg and a lighthouse rock, calm,
+  rough and front-lit); `debug.json` shows the debug views.

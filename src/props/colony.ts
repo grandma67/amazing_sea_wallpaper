@@ -1,4 +1,5 @@
 import {
+  Box3,
   BufferAttribute,
   Color,
   DoubleSide,
@@ -22,6 +23,7 @@ import { gull } from './birds'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { fbm3 } from './noise'
+import { outlineOfMesh, type WaterIsland } from './surf'
 import { rockGeometry, rockMaterial, type RockGrowth } from './rocks'
 
 // Seabird islands: an offshore rock where thousands of birds nest, with a
@@ -179,6 +181,9 @@ function island(ctx: PropContext, rng: Random, kind: ColonyKind, style: ColonySt
   mesh.scale.set(width / 2, height, (width / 2) * rng.range(0.6, 1.1))
   mesh.rotation.y = rng.range(0, Math.PI * 2)
   mesh.updateMatrixWorld()
+  // For the foam and white water round it (props/index.ts waterIslands).
+  const waterline: WaterIsland = { x: at.x, z: at.z, outline: outlineOfMesh(mesh), top: new Box3().setFromObject(mesh).max.y, depth: Math.max(0, -ctx.ground(at.x, at.z)) }
+  mesh.userData.waterline = waterline
   const objects: Object3D[] = [mesh]
   // Penguins crowd the gentle lower slopes.
   if (kind === 'penguin') {
