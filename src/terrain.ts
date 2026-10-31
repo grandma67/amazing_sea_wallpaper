@@ -17,8 +17,9 @@ import { createPolarGrid } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { LICHEN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
+import { seasonMonth } from './seasons'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
-import { flatSurface, type SaltMarsh, type TidalFlat } from './tidalFlat'
+import { flatSurface, marshLook, type SaltMarsh, type TidalFlat } from './tidalFlat'
 import { highWater, tideMarks } from './tides'
 
 export { hasBeach, hasLand, hasSurfZone, type CoastKind } from './coastKind'
@@ -533,10 +534,10 @@ float flatCreeks(vec2 sa, float r) {
   float wide = max(half_, minHalf);
   float depth = (0.4 + (flatCreekShape.z - 0.4) * t) * (half_ / wide);
   float cut = depth * inFlat * flatChannel(sa, flatCreekShape.x, wide, 0.37);
-  wide = max(1.2, minHalf);
+  wide = max(2.0, minHalf);
   float reach = smoothstep(-0.8 * marsh.y, -0.5 * marsh.y, s) * (1.0 - smoothstep(0.4 * flatShape.x, 0.6 * flatShape.x, s));
   float comes = smoothstep(0.35, 0.55, vnoise(vec2(s / 90.0 + 3.1, sa.y / flatCreekShape.w + 17.3) + noiseOffset));
-  cut = max(cut, 0.25 * (1.2 / wide) * reach * comes * flatChannel(sa, flatCreekShape.w, wide, 0.71));
+  cut = max(cut, 0.18 * (2.0 / wide) * reach * comes * flatChannel(sa, flatCreekShape.w, wide, 0.71));
   return cut;
 }
 
@@ -1067,6 +1068,11 @@ uniform float pixelAngle;
 // Rocky shores: the rock's colour and the lichens' (linear albedo).
 uniform vec3 rockColor;
 uniform vec3 lichenColor;
+// Tidal flats: the mud near the marsh; the salt marsh's sward and its
+// seasonal accent (rgb, share of the low marsh) (tidalFlat.ts).
+uniform vec3 flatMud;
+uniform vec3 marshColor;
+uniform vec4 marshAccent;
 // Debug views (debug.ts): index in TERRAIN_VIEWS (0: none), the grid's
 // density × and the beach lines (u of the high-tide and storm lines).
 uniform int terrainView;
@@ -1152,19 +1158,45 @@ void main() {
   float coral = reefCover(sa, q);
   // A rocky shore (rockShore.ts): bare rock instead of sand.
   float rockW = coastKind == COAST_ROCK_SHORE ? 1.0 : 0.0;
+  // A tidal flat (tidalFlat.ts): mud near the marsh grading to sand seaward
+  // (wandering), creeks cut into it.
+  float flatW = coastKind == COAST_TIDAL_FLAT ? 1.0 : 0.0;
+  float mudW = 0.0;
+  float creek = 0.0;
+  if (flatW > 0.0) {
+    mudW = (1.0 - smoothstep(0.03, 0.35, sa.x / flatShape.x + 0.2 * (fbm(q / 80.0) - 0.5))) * smoothstep(-1.0, 0.5, sa.x);
+    creek = flatCreeks(sa, 0.0);
+  }
+  // A salt marsh (flats and some beaches): from marsh.x inland over marsh.y,
+  // sparse clumps on mud at its seaward edge, a closed sward behind.
+  float um = -sa.x - marsh.x;
+  float marshBand = smoothstep(-0.3, 0.6, um) * (1.0 - smoothstep(marsh.y - 5.0, marsh.y + 20.0, um));
+  float marshW = 0.0;
+  if (marshBand > 0.0) {
+    // Pioneer clumps over the first ~8 m, then a closed sward with a few
+    // bare pans.
+    float clumps = fbm(q / 2.5) * 0.5 + fbm(q / 12.0) * 0.5;
+    marshW = marshBand * smoothstep(0.42, 0.52, clumps + 0.45 * smoothstep(1.0, 8.0, um) - 0.1 + 0.15 * smoothstep(0.62, 0.72, fbm(q / 40.0 + 2.0)) * -2.0);
+    marshW *= 1.0 - smoothstep(0.15, 0.3, creek);
+  }
 
-  // Wind ripples on dry sand: fine ridges perpendicular to an oblique wind.
-  float rippleFade = (1.0 - smoothstep(0.01, 0.06, footprint)) * (1.0 - stoneW) * (1.0 - coral) * (1.0 - rockW);
-  vec2 rippleDir = normalize(vec2(0.8, 0.6));
+  // Wind ripples on dry sand: fine ridges perpendicular to an oblique wind;
+  // on a flat, current ripples with crests along the shore, a little
+  // coarser and seen a little further, none on mud.
+  float rippleFade = (1.0 - smoothstep(mix(0.01, 0.02, flatW), mix(0.06, 0.12, flatW), footprint)) * (1.0 - stoneW) * (1.0 - coral) * (1.0 - rockW) * (1.0 - mudW) * (1.0 - marshW);
+  vec2 rippleDir = flatW > 0.0 ? normalize(shoreNormal + 0.3 * vec2(-shoreNormal.y, shoreNormal.x)) : normalize(vec2(0.8, 0.6));
   float warp = vnoise(q * 0.9) * 6.0 + vnoise(q * 3.1) * 1.5;
-  float ripple = sin(dot(q, rippleDir) * 28.0 + warp);
-  N = normalize(N + vec3(rippleDir.x, 0.0, rippleDir.y) * ripple * 0.05 * rippleFade);
+  float ripple = sin(dot(q, rippleDir) * mix(28.0, 45.0, flatW) + warp);
+  N = normalize(N + vec3(rippleDir.x, 0.0, rippleDir.y) * ripple * mix(0.05, 0.08, flatW) * rippleFade);
 
   // Albedo variation: patches, darker lines of shell/organic debris.
   float patches = fbm(q / 3.0);
   vec3 albedo = sandAlbedo * (0.82 + 0.3 * patches);
   albedo = mix(albedo, stoneAlbedo * (0.9 + 0.2 * patches), stoneW);
   albedo = mix(albedo, coralAlbedo(q), coral);
+  // Mud: a darker, smoother brown, darkest on the creek beds.
+  albedo = mix(albedo, flatMud * (0.85 + 0.3 * fbm(q / 4.0)), mudW);
+  albedo = mix(albedo, flatMud * 0.75, flatW * smoothstep(0.05, 0.3, creek));
   float wrack = 1.0 - smoothstep(0.0, 0.08, abs(h - tideSpring - runup * 1.25 - 0.1 * (vnoise(vec2(sa.y / 6.0, 2.0)) - 0.5)));
   albedo *= 1.0 - 0.35 * wrack * smoothstep(0.4, 0.7, vnoise(vec2(sa.y / 2.0, 5.0))) * (1.0 - rockW);
   float rockPools = 0.0;
@@ -1208,10 +1240,20 @@ void main() {
     albedo = rockC;
   }
 
+  // The marsh sward: the month's colour, mottled; the accent (sea lavender,
+  // red glasswort) in patches on the low marsh.
+  // Marsh soil is mud.
+  albedo = mix(albedo, flatMud * (0.85 + 0.3 * fbm(q / 4.0)), marshBand);
+  if (marshW > 0.0) {
+    vec3 sward = marshColor * (0.7 + 0.6 * fbm(q / 6.0)) * (0.85 + 0.3 * vnoise(q * 2.0));
+    float accent = marshAccent.w * smoothstep(0.5, 0.65, fbm(q / 7.0 + 3.0)) * (1.0 - smoothstep(0.1 * marsh.y, 0.6 * marsh.y, um));
+    albedo = mix(albedo, mix(sward, marshAccent.rgb * (0.8 + 0.4 * vnoise(q)), accent), marshW);
+  }
+
   // Vegetation behind the beach: patchy ground cover thickening inland, thin
   // on steep slopes and dune crests.
   float inland = -sa.x;
-  float coverStart = rockW > 0.0 ? rockBack.y + 1.0 : beachWidth * 0.75 + duneWidth * 0.3;
+  float coverStart = rockW > 0.0 ? rockBack.y + 1.0 : max(beachWidth * 0.75 + duneWidth * 0.3, marsh.x + marsh.y - 10.0);
   float cover = smoothstep(coverStart, coverStart + (rockW > 0.0 ? 8.0 : duneWidth + 30.0), inland);
   cover *= smoothstep(0.25, 0.65, fbm(q / 25.0) * 0.6 + fbm(q / 4.0) * 0.4 + cover * 0.25);
   cover *= smoothstep(0.75, 0.9, N.y) * groundCoverAmount;
@@ -1228,7 +1270,7 @@ void main() {
   // the water, draining higher up; on a low-tide terrace water stays ponded
   // in runnels along the shore and in puddles.
   float highMark = tideHigh + runup;
-  float exposed = (1.0 - smoothstep(0.8 * highMark, highMark, h)) * (1.0 - wet);
+  float exposed = (1.0 - smoothstep(0.8 * highMark, highMark, h)) * (1.0 - wet) * (1.0 - marshW);
   float drained = clamp(h / max(highMark, 0.01), 0.0, 1.0);
   float pools = 0.0;
   if (terrace.y > 0.0) {
@@ -1241,8 +1283,15 @@ void main() {
   // Water left standing in hollows of the bare reef flat.
   pools = max(pools, coral * exposed * smoothstep(0.58, 0.68, fbm(q / 5.0 + 23.0)));
   pools = max(pools, rockPools);
+  // On a flat the creeks keep draining water, and shallow sheets stand in
+  // the hollows.
+  if (flatW > 0.0) {
+    pools = max(pools, smoothstep(0.06, 0.14, creek) * (1.0 - smoothstep(highMark, highMark + 0.3, h)));
+    pools = max(pools, exposed * smoothstep(0.6, 0.68, fbm(q / 35.0 + 9.0) + 0.1 * (fbm(q / 4.0) - 0.5)) * (1.0 - 0.5 * mudW));
+  }
   albedo *= mix(1.0, 0.68, exposed * (1.0 - hard)) * mix(1.0, 0.6, pools);
-  float gloss = max(max(wet, pools), exposed * (1.0 - hard) * (0.5 - 0.4 * drained));
+  // Wet mud and flat sand hold a film of water: glossier than a beach.
+  float gloss = max(max(wet, pools), exposed * (1.0 - hard) * mix(0.5 - 0.4 * drained, 0.85 - 0.3 * drained, flatW));
 
   vec3 L = sunDirection;
   vec3 V = normalize(cameraPosition - vWorld);
@@ -1304,7 +1353,10 @@ void main() {
     } else if (terrainView == 2) {
       // Relief: rock gullies red, boulders green, bed bands blue; on beaches
       // cusps red, bars green, storm ridges blue.
-      if (coastKind == COAST_ROCK_SHORE) {
+      if (coastKind == COAST_TIDAL_FLAT) {
+        // Creeks red (cut depth, unsoftened), mud green, marsh blue.
+        dbg = vec3(0.15) + vec3(clamp(creek, 0.0, 0.8), 0.6 * mudW, 0.6 * marshW);
+      } else if (coastKind == COAST_ROCK_SHORE) {
         float b = rockBack.w > 0.0 ? boulderField(q, rockBack.w) / rockBack.w : 0.0;
         vec2 strike = vec2(cos(rockBeds.w), sin(rockBeds.w));
         float planes = dot(sa, vec2(-strike.y, strike.x)) * rockBeds.z;
@@ -1366,6 +1418,9 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       gridScale: { value: params.debug?.terrainGrid ?? 1 },
       debugLines: { value: coast.rock != null ? new Vector2(-1e5, -1e5) : new Vector2(beachLines(coast).highTide, beachLines(coast).stormLine) },
       lichenColor: { value: new Color(...LICHEN[params.biome.name]) },
+      flatMud: { value: new Color(...(coast.flat?.mud ?? [0.16, 0.14, 0.11])) },
+      marshColor: { value: new Color(...marshLook(seasonMonth(params)).color) },
+      marshAccent: { value: new Vector4(...marshLook(seasonMonth(params)).accent, marshLook(seasonMonth(params)).amount) },
       pixelAngle: { value: 0.001 },
       ...shadowUniforms()
     }

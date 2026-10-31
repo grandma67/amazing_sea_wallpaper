@@ -871,7 +871,8 @@ function flatCamera(coast: CoastParams, headingDeg: number, rng: Random, force?:
       break
     case 'framed':
       coast.seawardAzimuthDeg = headingDeg - side * (10 + 35 * angle)
-      coast.distanceToWater = 5 + 25 * near
+      // Deep enough in the marsh that the lens (ground from ~5–15 m) sees it.
+      coast.distanceToWater = Math.min(15 + 45 * near, Math.max(10, coast.marsh!.width - 10))
       break
   }
   // The distances above are in s; the wobble moves the shore at a = 0.

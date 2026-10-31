@@ -57,8 +57,8 @@ const CHANNEL_HEAD_DEPTH = 0.4
 const MEANDER = 0.25
 const MEANDER_LENGTH = 220
 /** Small creeks: half width (m) and depth (m). */
-const CREEK_HALF = 1.2
-const CREEK_DEPTH = 0.25
+const CREEK_HALF = 2
+const CREEK_DEPTH = 0.18
 
 /** The day's tidal flat and its marsh: every draw on `rng` (stream
  * 'tidal-flat'). `springRange`: the tide the shore is built for (tides.ts);
@@ -211,4 +211,40 @@ export function flatSurface(coast: FlatCoast, s: number, a: number, x: number, z
  * shore coords: s = −distanceToWater less the coast's wobble at a = 0. */
 export function flatGround(coast: FlatCoast & { distanceToWater: number }, wobble: number): number {
   return flatSurface(coast, -coast.distanceToWater - wobble, 0, 0, 0)
+}
+
+/** How the marsh looks in a month: the sward's colour, and an accent in
+ * patches (linear albedo; `amount` 0–1 of the low marsh). */
+export interface MarshLook {
+  color: RGB
+  accent: RGB
+  amount: number
+}
+
+const PURPLE: RGB = [0.13, 0.07, 0.17]
+const RED: RGB = [0.24, 0.045, 0.035]
+const RUST: RGB = [0.15, 0.065, 0.04]
+
+/** The marsh by northern-hemisphere month (seasons.ts seasonMonth): straw
+ * brown in winter, green from April, sea lavender and sea aster purple in
+ * July–August, Salicornia and Suaeda red on the low marsh in September and
+ * October (Panjin's red beach), browning in November. */
+export const MARSH_LOOK: readonly MarshLook[] = [
+  { color: [0.13, 0.11, 0.07], accent: RUST, amount: 0 }, // Jan
+  { color: [0.13, 0.11, 0.07], accent: RUST, amount: 0 },
+  { color: [0.11, 0.105, 0.06], accent: RUST, amount: 0 },
+  { color: [0.075, 0.1, 0.04], accent: RUST, amount: 0 },
+  { color: [0.06, 0.1, 0.03], accent: RUST, amount: 0 },
+  { color: [0.06, 0.1, 0.035], accent: PURPLE, amount: 0.1 }, // Jun
+  { color: [0.065, 0.095, 0.035], accent: PURPLE, amount: 0.35 },
+  { color: [0.07, 0.09, 0.035], accent: PURPLE, amount: 0.35 },
+  { color: [0.08, 0.09, 0.04], accent: RED, amount: 0.45 }, // Sep
+  { color: [0.1, 0.085, 0.045], accent: RED, amount: 0.5 },
+  { color: [0.12, 0.1, 0.06], accent: RUST, amount: 0.3 },
+  { color: [0.13, 0.11, 0.07], accent: RUST, amount: 0 } // Dec
+]
+
+/** The marsh's look in a northern-hemisphere month (1–12). */
+export function marshLook(month: number): MarshLook {
+  return MARSH_LOOK[(month - 1) % 12]
 }
