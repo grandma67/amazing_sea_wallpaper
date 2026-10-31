@@ -22,7 +22,7 @@ ARCHITECTURE.md and `arch/`. Status 2026-10-31: phases 0–8 done; 9, 11, 12 pla
 | 6 | Calm water (shelter mask) | calm water behind reefs and barriers | done (0.59); reefs use it, barriers later |
 | 7 | Reef-fronted tropical beaches | most island beaches sit behind a fringing reef | done (0.60); ~48% of tropical beach days, not ~60% (continental places have few reefs); crest at about spring low water; crest white water is its own band |
 | 8 | Rocky shore | ~36% of coast is rock, about half cliff-backed | done (0.62): 25.3% of days (38.7% of land days); [ROCK_SHORE.md](ROCK_SHORE.md); relief in the height function, softened with distance against grid aliasing |
-| 9 | Tidal flats and salt marsh | 21% of coast is mud | planned |
+| 9 | Tidal flats and salt marsh | 21% of coast is mud | in progress; [TIDAL_FLAT.md](TIDAL_FLAT.md); ~0.3% of days (the five places are 1.9% of days, not enough for ~3%) |
 | 10 | Landforms: barrier lagoon, spit, fjord | | later, own plan |
 | 11 | Climates: temperate, subtropical, polar | temperate oceanic and humid subtropical coasts | planned |
 | 12 | The real sun: polar night, midnight sun | | planned |
@@ -94,23 +94,15 @@ terrain height function so every reader agrees; the surf breaks on the platform 
 with spray bursts along it. Props follow the plan's table (no sand animals, rock haul-outs,
 wrack in gullies). Spec `coast: "rock-shore"`, `rockShore`.
 
-### 9. Tidal flats and salt marsh
+### 9. Tidal flats and salt marsh ([plans/TIDAL_FLAT.md](TIDAL_FLAT.md))
 
-- Coast kind `tidal-flat`, ~3% of days (the place's `coast` choice), only in macro- and
-  mesotidal places with flats: `wadden-north-sea`, `fundy`, `morecambe-bay`,
-  `mont-saint-michel`, `yellow-sea`; only when the tide (5) is below mid. So the tide is
-  drawn before the coast kind in `generateCoast` (it already is before the camera,
-  phase 5).
-- At mid or high tide the same day is a beach **with a salt marsh behind**: a feature of
-  its own on every beach day in those places. Spec field `saltMarsh`, a share in the tests
-  and COASTS.md, and a render (Wadden high tide, along-beach).
-- Terrain: a km-wide, near-flat profile (slope ~1:1000) with shallow meandering channels
-  (noise in `a`), sand ripples (reuse the wind-ripple normal, smaller), the sea a far line;
-  wet-flat reflections come from the existing wet-sand shading.
-- Salt-marsh band at the back: low green-brown grass tufts, instanced like vegetation.
-- Spec: `coast: "tidal-flat"`.
-- Renders: Wadden Sea at low tide (golden hour), Fundy red mud.
-- Docs: COASTS.md, ARCHITECTURE.md, changelog.
+Coast kind `tidal-flat` from the place's `coast` weights in wadden-north-sea, morecambe-bay,
+mont-saint-michel, yellow-sea (~0.5) and fundy (0.25), when the tide is below mid; at or above
+mid the same day is a beach with a salt marsh behind (`saltMarsh`). The five places are only
+1.94% of days, so flats are ~0.3% of days, not ~3%. Terrain: s = 0 the marsh edge at mean high
+water, a straight km-wide flat (1:2000–1:300) to spring low water, meandering creeks in the
+height, the sea a far line; the marsh a level platform at spring high water with a low cliff,
+seasonal colour and tufts. Spec `coast: "tidal-flat"`, `saltMarsh`.
 
 ### 10. Landforms: barrier lagoon, spit, fjord (later, own plan)
 
