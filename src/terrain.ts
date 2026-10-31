@@ -1080,7 +1080,13 @@ void main() {
   float rockPools = 0.0;
   if (rockW > 0.0) {
     float fine = 1.0 - smoothstep(0.05, 0.4, footprint);
-    vec3 rockC = rockColor * (0.72 + 0.5 * fbm(q / 2.5) + 0.25 * fine * (vnoise(q * 3.0) - 0.5));
+    vec3 rockC = rockColor * (0.72 + 0.5 * fbm(q / 2.5) + 0.4 * fine * (vnoise(q * 3.0) - 0.5) + 0.2 * fine * (vnoise(q * 11.0) - 0.5));
+    // Joints and cracks close up: a warped network of dark lines.
+    if (fine > 0.0) {
+      vec2 w = q / 1.6 + 0.6 * vec2(vnoise(q / 3.0), vnoise(q / 3.0 + 9.0));
+      float crack = (1.0 - smoothstep(0.0, 0.025, cellBorder(w))) * smoothstep(0.45, 0.7, vnoise(w * 0.8 + 3.0));
+      rockC *= 1.0 - 0.5 * crack * fine;
+    }
     // Faces and risers darker and bare.
     float steep = smoothstep(0.35, 0.85, 1.0 - N.y);
     rockC *= mix(1.0, 0.72, steep);

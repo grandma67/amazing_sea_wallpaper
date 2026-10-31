@@ -1,11 +1,82 @@
-{ "base": { "date": "2024-07-12", "eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "weather": "clear", "sunAzimuthDeg": 160, "place": "nova-scotia" },
-  "scenes": [
-    { "name": "platform", "rockShore": "platform" },
-    { "name": "platform-along", "rockShore": "platform", "composition": "along-beach" },
-    { "name": "platform-framed", "rockShore": "platform", "composition": "framed" },
-    { "name": "boulder", "rockShore": "boulder", "composition": "along-beach" },
-    { "name": "cliff", "rockShore": "cliff" },
-    { "name": "iceland-basalt", "place": "iceland", "rockShore": "platform", "composition": "along-beach", "sunAzimuthDeg": 20 },
-    { "name": "med-cliff", "place": "aegean", "rockShore": "cliff", "timeOfDay": "golden-hour", "sunAzimuthDeg": 30 },
-    { "name": "brittany-low", "place": "brittany", "rockShore": "platform", "tide": "low", "composition": "along-beach" }
-  ] }
+{
+ "base": {
+  "date": "2024-07-12",
+  "eclipse": null,
+  "storm": null,
+  "fog": null,
+  "timeOfDay": "daylight",
+  "weather": "clear",
+  "sunAzimuthDeg": 160,
+  "place": "nova-scotia"
+ },
+ "scenes": [
+  {
+   "name": "platform",
+   "rockShore": "platform"
+  },
+  {
+   "name": "platform-along",
+   "rockShore": "platform",
+   "composition": "along-beach"
+  },
+  {
+   "name": "platform-framed",
+   "rockShore": "platform",
+   "composition": "framed"
+  },
+  {
+   "name": "boulder",
+   "rockShore": "boulder",
+   "composition": "along-beach"
+  },
+  {
+   "name": "cliff",
+   "rockShore": "cliff"
+  },
+  {
+   "name": "iceland-basalt",
+   "place": "iceland",
+   "rockShore": "platform",
+   "composition": "along-beach",
+   "sunAzimuthDeg": 20
+  },
+  {
+   "name": "med-cliff",
+   "place": "aegean",
+   "rockShore": "cliff",
+   "timeOfDay": "golden-hour",
+   "sunAzimuthDeg": 30
+  },
+  {
+   "name": "brittany-low",
+   "place": "brittany",
+   "rockShore": "platform",
+   "tide": "low",
+   "composition": "along-beach"
+  },
+  {
+   "name": "peggys-cove",
+   "place": "nova-scotia",
+   "rockShore": "platform",
+   "composition": "along-beach",
+   "timeOfDay": "golden-hour",
+   "sunAzimuthDeg": 120
+  },
+  {
+   "name": "big-sur",
+   "place": "california",
+   "rockShore": "cliff",
+   "timeOfDay": "golden-hour",
+   "sunAzimuthDeg": 140
+  },
+  {
+   "name": "iceland-storm",
+   "place": "iceland",
+   "rockShore": "boulder",
+   "composition": "along-beach",
+   "weather": "overcast",
+   "swellHeight": 4,
+   "swellPeriod": 13
+  }
+ ]
+}
