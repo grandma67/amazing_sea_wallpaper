@@ -296,6 +296,8 @@ export function renderCloudyEnvironment(
     composers.push(composer)
   })
   composers.forEach(composer => composer.dispose())
+  copy.geometry.dispose()
+  copy.material.dispose()
   target.texture.generateMipmaps = generateMipmaps
   renderer.setRenderTarget(null)
   renderer.setSize(rendererSize.x, rendererSize.y, false)

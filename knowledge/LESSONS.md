@@ -320,6 +320,12 @@ tool gotchas: TOOLS.md.
 
 ## Page
 
+- Freeing a still: everything but the context can go once the frame is in the canvas
+  (`preserveDrawingBuffer` keeps it for Download). Dispose materials **before**
+  `renderer.dispose()`, or their programs are never released. A module-level texture or quad keeps
+  three's dispose listener and with it the old renderer alive: dispose it too. Heap differs by
+  ~40 MB between days, so a leak check compares a revisited day with its first visit
+  ([LEAKS.md](LEAKS.md)).
 - Splash boat: CSS waves from quadratic Béziers are parabolas, so a boat rides one exactly with
   quad-ease heave keyframes and linear pitch at the wave's period (middle wave: 7 s per 2 periods →
   3.5 s).

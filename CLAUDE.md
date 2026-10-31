@@ -5,6 +5,7 @@ Docs in `knowledge/` (read what the task needs):
   `arch/OCEAN.md`, `arch/COAST.md` (coordinates and heights, beaches, tides, reefs, stones),
   `arch/PROPS.md`: how each area works.
 - `LESSONS.md`: pitfalls by topic.
+- `LEAKS.md`: in-place day changes, freeing GPU resources, `npm run check:restart`.
 - `TOOLS.md`: which tool answers what, shared conventions, dev server, gotchas; `tools/PARAMS.md`
   (params, profile, test helpers), `tools/RENDER.md` (snapshot, diff, bench, mesh, contact sheet),
   `tools/DEBUG.md` (`params.debug` switches and views).

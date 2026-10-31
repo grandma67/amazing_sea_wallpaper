@@ -32,26 +32,10 @@ if (window.location.pathname.endsWith('/random')) {
   window.location.replace(`${window.location.pathname}/${window.location.search}`)
 }
 
-const query = new URLSearchParams(window.location.search)
-const today = localDateString(new Date())
-// A malformed spec renders nothing: say why instead.
-let spec: SceneSpec = {}
-let specError: Error | null = null
-try {
-  const scene = query.get('scene')
-  if (scene != null) spec = parseSceneSpec(scene)
-} catch (error) {
-  specError = error instanceof Error ? error : new Error(String(error))
-}
-const requested = spec.date ?? query.get('date')
-const allowFuture = query.get('future') === '1' || spec.date != null
-const date = resolveDate(requested, today, allowFuture)
-// Tomorrow's sea isn't out yet: fix the address bar to match today.
-if (requested != null && date !== requested) history.replaceState(null, '', linkFor(today))
-
-// Phones held upright get a portrait wallpaper: the same day's scene,
-// composed for a tall frame.
-const portraitQuery = query.get('portrait')
+// Page-wide: the first address's size, shape and options hold for every day
+// shown in this page (← → Today Random swap the day in place, see showDay).
+const pageQuery = new URLSearchParams(window.location.search)
+const portraitQuery = pageQuery.get('portrait')
 const portrait =
   portraitQuery != null ? portraitQuery === '1' : window.matchMedia('(orientation: portrait)').matches
 
@@ -79,12 +63,11 @@ function defaultResolution(): [number, number] | null {
 }
 
 const resolution = defaultResolution()
-const width = Number(query.get('w') ?? resolution?.[0] ?? 3840)
-const height = Number(query.get('h') ?? resolution?.[1] ?? 2160)
-const frames = Number(query.get('frames') ?? 64)
-const cacheOn = renderCacheEnabled(query)
+const width = Number(pageQuery.get('w') ?? resolution?.[0] ?? 3840)
+const height = Number(pageQuery.get('h') ?? resolution?.[1] ?? 2160)
+const frames = Number(pageQuery.get('frames') ?? 64)
+const cacheOn = renderCacheEnabled(pageQuery)
 const cacheReady = cacheOn ? startRenderCache() : Promise.resolve(false)
-const cachePath = renderCachePath({ date, width, height, frames, portrait, spec: query.get('scene') })
 
 interface Rendered {
   debug: Record<string, unknown>
@@ -93,37 +76,57 @@ interface Rendered {
 
 /** Can the canvas be handed to a worker and rendered there with WebGL 2? */
 function offscreenWebGL2(): boolean {
-  if (query.get('worker') === '0') return false
+  if (pageQuery.get('worker') === '0') return false
   if (typeof OffscreenCanvas === 'undefined' || !('transferControlToOffscreen' in HTMLCanvasElement.prototype))
     return false
   const gl = new OffscreenCanvas(1, 1).getContext('webgl2')
   gl?.getExtension('WEBGL_lose_context')?.loseContext()
   return gl != null
 }
+const useWorker = offscreenWebGL2()
 
-// Start the render worker now, so its code (most of the app) loads while
-// the day's scene is planned.
-const worker = offscreenWebGL2()
-  ? new Worker(new URL('./renderWorker.ts', import.meta.url), { type: 'module' })
-  : null
-// Its load errors can arrive before the render starts listening.
-const workerFailed =
-  worker == null
-    ? null
-    : new Promise<never>((_, reject) =>
-        worker.addEventListener('error', event => reject(new Error(event.message || 'render worker failed to start')), {
-          once: true
-        })
-      )
-workerFailed?.catch(() => {})
+/**
+ * One day on screen: its own canvas and, where the browser can, its own
+ * render worker, so the GPU work never blocks the page (and the splash
+ * animation). `dispose()` frees all of it (knowledge/LEAKS.md): the worker is
+ * terminated (its heap and WebGL context go with it), a main-thread render
+ * loses its context, the canvas leaves the page.
+ */
+interface View {
+  date: string
+  params: SceneParams
+  canvas: HTMLCanvasElement
+  ready: Promise<Rendered & { params: SceneParams }>
+  dispose(): void
+}
 
-/** Renders the wallpaper into the canvas: on a worker where the browser can,
- * so the GPU work never blocks the page (and the splash animation); otherwise
- * on the main thread. */
-async function startRender(params: SceneParams, canvas: HTMLCanvasElement): Promise<Rendered> {
-  if (worker == null) {
+/** A render worker, started before the day is planned so its code (most of
+ * the app) loads meanwhile; `failed` rejects on a load error. */
+function startWorker(): { worker: Worker; failed: Promise<never> } | null {
+  if (!useWorker) return null
+  const worker = new Worker(new URL('./renderWorker.ts', import.meta.url), { type: 'module' })
+  // Its load errors can arrive before the render starts listening.
+  const failed = new Promise<never>((_, reject) =>
+    worker.addEventListener('error', event => reject(new Error(event.message || 'render worker failed to start')), {
+      once: true
+    })
+  )
+  failed.catch(() => {})
+  return { worker, failed }
+}
+
+/** Renders the wallpaper into the canvas, on `job`'s worker or the main
+ * thread. `onDispose` gets what frees the main thread's WebGL context. */
+async function startRender(
+  params: SceneParams,
+  canvas: HTMLCanvasElement,
+  job: ReturnType<typeof startWorker>,
+  onDispose: (dispose: () => void) => void
+): Promise<Rendered> {
+  if (job == null) {
     const { renderScene } = await import('./scene')
-    const { debug } = await renderScene(params, width, height, canvas, frames)
+    const { debug, dispose } = await renderScene(params, width, height, canvas, frames)
+    onDispose(dispose)
     return {
       debug,
       toBlob: (mime, quality) =>
@@ -132,6 +135,7 @@ async function startRender(params: SceneParams, canvas: HTMLCanvasElement): Prom
         )
     }
   }
+  const { worker, failed } = job
   const send = (request: RenderRequest, transfer: Transferable[] = []): void => worker.postMessage(request, transfer)
   const blobs = new Map<number, (blob: Blob) => void>()
   const offscreen = canvas.transferControlToOffscreen()
@@ -150,7 +154,7 @@ async function startRender(params: SceneParams, canvas: HTMLCanvasElement): Prom
       [offscreen]
     )
   })
-  const debug = await Promise.race([rendered, workerFailed!])
+  const debug = await Promise.race([rendered, failed])
   let nextId = 0
   return {
     debug,
@@ -163,52 +167,83 @@ async function startRender(params: SceneParams, canvas: HTMLCanvasElement): Prom
   }
 }
 
-const params = generateSceneParams(date, width / height, spec)
-const canvas = document.getElementById('wallpaper') as HTMLCanvasElement
 const splash = document.getElementById('splash') as HTMLElement
 const status = document.getElementById('status') as HTMLElement
-const splashShownAt = performance.now()
+const info = document.getElementById('info') as HTMLElement
+const splashText = status.textContent
+let view: View | null = null
 
-const ready = (async () => {
-  // Let the "Rendering…" text paint before the GPU work blocks the thread.
-  await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)))
-  if (specError != null) throw specError
-  if (resolution == null) throw new Error('this browser does not support WebGL 2')
-  const cached = cacheOn ? await cachedRender(cachePath) : null
-  if (cached != null) worker?.terminate()
-  const rendered = cached != null ? await showCached(cached, canvas) : await startRender(params, canvas)
-  void hideSplash()
-  if (cached == null)
-    void cacheReady.then(async ok => ok && storeRender(cachePath, await rendered.toBlob('image/jpeg', 0.95)))
+/** Shows the day the address bar names, freeing the one shown before. */
+function showDay(): View {
+  const query = new URLSearchParams(window.location.search)
+  const today = localDateString(new Date())
+  // A malformed spec renders nothing: say why instead.
+  let spec: SceneSpec = {}
+  let specError: Error | null = null
+  try {
+    const scene = query.get('scene')
+    if (scene != null) spec = parseSceneSpec(scene)
+  } catch (error) {
+    specError = error instanceof Error ? error : new Error(String(error))
+  }
+  const requested = spec.date ?? query.get('date')
+  const allowFuture = query.get('future') === '1' || spec.date != null
+  const date = resolveDate(requested, today, allowFuture)
+  // Tomorrow's sea isn't out yet: fix the address bar to match today.
+  if (requested != null && date !== requested) history.replaceState(null, '', linkFor(today))
 
-  document.getElementById('title')!.textContent = params.title
-  document.getElementById('date')!.textContent = new Date(`${date}T12:00:00`).toLocaleDateString(
-    undefined,
-    { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-  )
-  ;(document.getElementById('prev') as HTMLAnchorElement).href = linkFor(shiftDate(date, -1))
-  const next = document.getElementById('next') as HTMLAnchorElement
-  if (date < today || allowFuture) next.href = linkFor(shiftDate(date, 1))
-  else next.setAttribute('aria-disabled', 'true')
-  const todayLink = document.getElementById('today') as HTMLAnchorElement
-  if (date !== today) todayLink.href = linkFor(today)
-  else todayLink.setAttribute('aria-disabled', 'true')
-  document.getElementById('download')!.addEventListener('click', () => {
-    void rendered.toBlob('image/jpeg', 0.95).then(blob => {
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `amazing-sea-${date}${width < height ? '-portrait' : ''}.jpg`
-      a.click()
-      URL.revokeObjectURL(a.href)
-    })
+  // The old day goes first, so two renders' memory is never held at once.
+  view?.dispose()
+  view = null
+  const job = startWorker()
+  const cachePath = renderCachePath({ date, width, height, frames, portrait, spec: query.get('scene') })
+  const params = generateSceneParams(date, width / height, spec)
+  const canvas = document.createElement('canvas')
+  canvas.id = 'wallpaper'
+  document.getElementById('wallpaper')?.remove()
+  document.body.prepend(canvas)
+  showSplash()
+  const splashShownAt = performance.now()
+
+  let disposed = false
+  let disposeContext: (() => void) | null = null
+  const ready = (async () => {
+    // Let the "Rendering…" text paint before the GPU work blocks the thread.
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)))
+    if (specError != null) throw specError
+    if (resolution == null) throw new Error('this browser does not support WebGL 2')
+    const cached = cacheOn ? await cachedRender(cachePath) : null
+    if (disposed) throw new Error('superseded')
+    if (cached != null) job?.worker.terminate()
+    const rendered =
+      cached != null
+        ? await showCached(cached, canvas)
+        : await startRender(params, canvas, job, dispose => (disposed ? dispose() : (disposeContext = dispose)))
+    if (disposed) throw new Error('superseded')
+    void hideSplash(splashShownAt)
+    if (cached == null)
+      void cacheReady.then(async ok => ok && !disposed && storeRender(cachePath, await rendered.toBlob('image/jpeg', 0.95)))
+    showInfo(date, today, allowFuture, params.title)
+    return { params, ...rendered }
+  })()
+  ready.catch((error: unknown) => {
+    if (!disposed) status.textContent = `Rendering failed: ${String(error)}`
   })
-  document.getElementById('info')!.hidden = false
-  toggleInfoOnTap()
-  return { params, ...rendered }
-})().catch((error: unknown) => {
-  status.textContent = `Rendering failed: ${String(error)}`
-  throw error
-})
+
+  return {
+    date,
+    params,
+    canvas,
+    ready,
+    dispose() {
+      disposed = true
+      job?.worker.terminate()
+      disposeContext?.()
+      disposeContext = null
+      canvas.remove()
+    }
+  }
+}
 
 /** A render from the cache, drawn into the canvas. Its download is the cached
  * JPEG itself (what a fresh render would give at quality 0.95). */
@@ -219,6 +254,76 @@ async function showCached(blob: Blob, canvas: HTMLCanvasElement): Promise<Render
   canvas.getContext('2d')!.drawImage(image, 0, 0)
   image.close()
   return { debug: { cached: true }, toBlob: async () => blob }
+}
+
+function showInfo(date: string, today: string, allowFuture: boolean, title: string): void {
+  document.getElementById('title')!.textContent = title
+  document.getElementById('date')!.textContent = new Date(`${date}T12:00:00`).toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+  setLink('prev', linkFor(shiftDate(date, -1)))
+  setLink('next', date < today || allowFuture ? linkFor(shiftDate(date, 1)) : null)
+  setLink('today', date !== today ? linkFor(today) : null)
+  info.hidden = false
+}
+
+function setLink(id: string, href: string | null): void {
+  const link = document.getElementById(id) as HTMLAnchorElement
+  if (href != null) {
+    link.href = href
+    link.removeAttribute('aria-disabled')
+  } else {
+    link.removeAttribute('href')
+    link.setAttribute('aria-disabled', 'true')
+  }
+}
+
+/** A random day before today (local time), from 2000 on; as random/index.html. */
+function randomLink(): string {
+  const dayMs = 86_400_000
+  const now = new Date()
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const first = Date.UTC(2000, 0, 1)
+  const day = new Date(first + Math.floor(Math.random() * Math.round((today - first) / dayMs)) * dayMs)
+  return linkFor(day.toISOString().slice(0, 10))
+}
+
+/** ← → Today Random swap the day in place instead of loading the page again;
+ * Back and Forward go through the days seen. Clicks that open a new tab or
+ * window keep the browser's own handling. */
+function navigateInPlace(): void {
+  info.addEventListener('click', event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    const link = (event.target as Element).closest('a')
+    if (link == null) return
+    const href = link.id === 'random' ? randomLink() : link.getAttribute('href') != null ? link.href : null
+    event.preventDefault()
+    if (href == null) return
+    history.pushState(null, '', href)
+    publish(showDay())
+  })
+  window.addEventListener('popstate', () => publish(showDay()))
+}
+
+function showSplash(): void {
+  status.textContent = splashText
+  splash.hidden = false
+  splash.classList.remove('done')
+  info.hidden = true
+}
+
+/** Fade the splash out, keeping it up long enough to not just flash by. */
+async function hideSplash(shownAt: number): Promise<void> {
+  const minimumMs = 1200
+  const remaining = minimumMs - (performance.now() - shownAt)
+  if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining))
+  splash.classList.add('done')
+  splash.addEventListener('transitionend', () => splash.classList.contains('done') && (splash.hidden = true), {
+    once: true
+  })
 }
 
 /**
@@ -238,19 +343,31 @@ function toggleInfoOnTap(): void {
   })
 }
 
-/** Fade the splash out, keeping it up long enough to not just flash by. */
-async function hideSplash(): Promise<void> {
-  const minimumMs = 1200
-  const remaining = minimumMs - (performance.now() - splashShownAt)
-  if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining))
-  splash.classList.add('done')
-  splash.addEventListener('transitionend', () => (splash.hidden = true), { once: true })
-}
+document.getElementById('download')!.addEventListener('click', () => {
+  const shown = view
+  if (shown == null) return
+  void shown.ready.then(rendered =>
+    rendered.toBlob('image/jpeg', 0.95).then(blob => {
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `amazing-sea-${shown.date}${width < height ? '-portrait' : ''}.jpg`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    })
+  ).catch(() => {}) // a failed render says so on the splash
+})
 
-// Hook for scripts/snapshot.mjs.
+// Hook for scripts/snapshot.mjs and scripts/restart.mjs: the day on screen.
 declare global {
   interface Window {
-    __sea: { ready: Promise<Rendered & { params: SceneParams }>; params: SceneParams }
+    __sea: { ready: Promise<Rendered & { params: SceneParams }>; params: SceneParams; view: View }
   }
 }
-window.__sea = { ready, params }
+function publish(shown: View): void {
+  view = shown
+  window.__sea = { ready: shown.ready, params: shown.params, view: shown }
+}
+
+toggleInfoOnTap()
+navigateInPlace()
+publish(showDay())

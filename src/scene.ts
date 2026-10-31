@@ -78,6 +78,7 @@ import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
 import { dustSkylight, dustTransmittance } from './seaHaze'
 import { bindCloudShadow, bindLandShadow, bindShadow, renderLandShadow } from './shadow'
 import { SkyDenoiseEffect } from './skyDenoise'
+import { GpuResources, trackUploads } from './dispose'
 import { createTerrain, hasLand } from './terrain'
 
 const DEG = Math.PI / 180
@@ -119,6 +120,10 @@ class GradeEffect extends Effect {
 export interface RenderResult {
   params: SceneParams
   debug: Record<string, unknown>
+  /** Releases the WebGL context (the canvas goes blank). Everything else the
+   * render made is freed before renderScene returns; the canvas keeps the
+   * picture (preserveDrawingBuffer). */
+  dispose(): void
 }
 
 /** Resolves once the GPU has finished the commands issued so far. Waiting for
@@ -189,6 +194,8 @@ export async function renderScene(
   renderer.setPixelRatio(1)
   renderer.setSize(width, height, false)
   renderer.toneMapping = NoToneMapping
+  const gpu = new GpuResources()
+  const uploads = trackUploads()
 
   // --- Atmosphere frame -----------------------------------------------------
   // World space is a local Y-up frame at sea level (X north, Z east), anchored
@@ -663,12 +670,14 @@ export async function renderScene(
         ...lampSprites(props)
       ]
       const reflection = renderPlanarReflection(renderer, scene, camera, width, height, hide)
+      gpu.add(reflection.target)
       ocean.material.uniforms.planarMap.value = reflection.target.texture
       ocean.material.uniforms.planarMatrix.value.copy(reflection.textureMatrix)
       ocean.material.uniforms.planarOn.value = 1
     }
     renderer.shadowMap.autoUpdate = false
     const land = renderLandShadow(renderer, scene, props, camera, lightDirectionWorld)
+    gpu.add(land.target)
     bindLandShadow(ocean.material.uniforms, land)
     bindLandShadow(terrain.material.uniforms, land)
   }
@@ -702,12 +711,9 @@ export async function renderScene(
   }
   camera.clearViewOffset()
 
-  generator.dispose({ textures: false })
   const gl = renderer.getContext()
   const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
-  return {
-    params,
-    debug: {
+  const debug = {
       gpu: debugInfo != null ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown',
       exposure,
       sceneLuminance,
@@ -721,6 +727,28 @@ export async function renderScene(
       // CPU time (ms) each prop kind took to build.
       propTimes: Object.fromEntries(Object.entries(props.userData.times as Record<string, number>).map(([k, ms]) => [k, Math.round(ms)])),
       vfovDeg: vfov / DEG
-    }
+  }
+
+  // The picture is in the canvas: free everything else (knowledge/LEAKS.md).
+  gpu.addTree(scene)
+  gpu.addTree(envScene)
+  gpu.add(composer, envTarget, sun, generator)
+  Object.values(textures).forEach(texture => gpu.addTexture(texture))
+  if (cloudAssets != null) Object.values(cloudAssets).forEach(texture => gpu.addTexture(texture))
+  gpu.dispose()
+  scene.clear()
+  envScene.clear()
+  uploads.stop()
+  // Anything else uploaded: shared quads, targets and LUTs the libraries and
+  // three itself keep (shadow depth materials, PMREM).
+  const swept = uploads.sweep()
+  // Then three's own caches (cube maps, render lists, binding states). The
+  // context stays, and with it the picture, until dispose() below.
+  renderer.dispose()
+  const gpuAfterRender = { ...renderer.info.memory, programs: renderer.info.programs?.length ?? 0 }
+  return {
+    params,
+    debug: { ...debug, gpuAfterRender, gpuSwept: swept },
+    dispose: () => renderer.forceContextLoss()
   }
 }

@@ -11,7 +11,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "snapshot": "node scripts/snapshot.mjs",
-    "test": "tsc --noEmit -p test && vitest run"
+    "test": "tsc --noEmit -p test && vitest run",
+    "check:restart": "node scripts/restart.mjs"
   },
   "dependencies": {
     "@takram/three-atmosphere": "^0.19.1",

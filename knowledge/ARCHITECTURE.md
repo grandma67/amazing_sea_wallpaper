@@ -165,7 +165,11 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 - `main.ts`: portrait/landscape, device-aware size, prev/next/today/random, download (Today greyed
   on today). A click/tap outside the bar toggles it (`data-ui` on `<html>`): phones start shown,
   PCs hidden (hover reveals); hidden on phones = no pointer events. `random/index.html`
-  redirects to a random past day. Prev/next reload the whole page.
+  redirects to a random past day (direct visits). ← → Today Random swap the day in place
+  (`showDay`, `history.pushState`; Back/Forward via `popstate`): size, shape and `?worker`/`?frames`
+  stay the first address's. Each day gets a new canvas and render worker; the old one is
+  terminated first. `renderScene` frees every GPU resource once the frame is in the canvas
+  (`src/dispose.ts`) and returns `dispose()` (context loss). Rules and check: [LEAKS.md](LEAKS.md).
 - **Render cache** (`public/sw.js`, `renderCache.ts`): the 10 most recently viewed renders (JPEG
   0.95, Cache Storage, LRU) keyed by build commit (`__BUILD_ID__`), date, size, frames, portrait,
   spec; a hit is drawn straight to the canvas (~60 ms) and the render worker stopped. The page

@@ -20,6 +20,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | A new mesh alone | `mesh.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Which pass, term or grid causes a look | `params.debug` switches and views | [tools/DEBUG.md](tools/DEBUG.md) |
+| Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
 
 ## Shared conventions
 
