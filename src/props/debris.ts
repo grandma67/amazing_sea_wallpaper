@@ -75,6 +75,7 @@ function drawDebris(params: SceneParams, rng: Random): DebrisSpec | null {
       spec.wrackAmount = rng.range(0.3, 1)
     }
   }
+  const climate = params.place.climate
   switch (params.biome.name) {
     case 'nordic':
       if (ocean === 'arctic') wood(0.9, 0.6, 1)
@@ -82,13 +83,29 @@ function drawDebris(params: SceneParams, rng: Random): DebrisSpec | null {
       wrack('kelp', 0.8)
       break
     case 'volcanic':
+      // Tropical lava coasts (Hawaii, Réunion, the Galápagos) wash up
+      // like the tropics': little weed, coconuts under the palms.
+      if (climate === 'tropical') {
+        wood(0.3, 0.1, 0.4)
+        wrack('seagrass', 0.25)
+        if (rng.chance(0.4)) spec.coconuts = rng.range(0.2, 0.8)
+        break
+      }
       if (ocean === 'pacific') wood(0.65, 0.4, 1)
       else if (ocean !== 'southern') wood(0.4, 0.2, 0.7)
-      wrack('kelp', 0.6)
+      wrack('kelp', climate === 'subtropical' ? 0.4 : 0.6)
       break
     case 'mediterranean':
       wood(0.35, 0.1, 0.35)
-      wrack('seagrass', 0.65)
+      // By climate (PLAN_BIOMES 11d): Posidonia banquettes in the
+      // Mediterranean and seagrass on the other dry-summer coasts, but kelp
+      // on the cold Pacific ones (California, Chile) and the temperate ones
+      // (Atlantic Portugal, the Yellow Sea); golden sargassum on the
+      // subtropical North Atlantic (Florida, the Carolinas), turtle grass
+      // and eelgrass on the other subtropical coasts.
+      if (climate === 'temperate' || (climate === 'mediterranean' && ocean === 'pacific')) wrack('kelp', 0.7)
+      else if (climate === 'subtropical' && ocean === 'atlantic' && params.latitudeDeg > 0) wrack('sargassum', 0.45)
+      else wrack('seagrass', climate === 'subtropical' ? 0.4 : 0.65)
       break
     case 'tropical':
       wood(0.3, 0.1, 0.4)

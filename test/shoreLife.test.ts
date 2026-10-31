@@ -17,14 +17,18 @@ describe('shore life', () => {
   it('puts ghost crabs on warm sand, out mostly at dusk and night', () => {
     const ghost = beaches.filter(p => life(p).crab === 'ghost')
     expect(ghost.length).toBeGreaterThan(50)
-    for (const p of ghost) expect(['tropical', 'desert', 'mediterranean']).toContain(p.biome.name)
+    for (const p of ghost) expect(['tropical', 'arid', 'subtropical', 'mediterranean', 'temperate']).toContain(p.place.climate)
+    // Atlantic ghost crabs on most subtropical sand beaches (PLAN_BIOMES 11d).
+    const florida = scenes({ place: 'florida-carolinas', coast: 'beach', beachMaterial: 'sand' }, 80)
+    expect(florida.filter(p => life(p).crab === 'ghost').length / florida.length).toBeGreaterThan(0.6)
+    for (const p of scenes({ place: 'scotland', coast: 'beach' }, 30)) expect(life(p).crab).not.toBe('ghost')
     // The same tropical beaches by night and at midday.
     const out = (timeOfDay: 'night' | 'midday'): number => {
       const some = scenes({ coast: 'beach', biome: 'tropical', timeOfDay, eclipse: null }, 80).filter(p => life(p).crab === 'ghost')
       return some.reduce((sum, p) => sum + life(p).crabs, 0) / some.length
     }
     expect(out('night')).toBeGreaterThan(out('midday') * 2)
-    for (const p of beaches) if (life(p).crab === 'hermit') expect(p.biome.name).toBe('tropical')
+    for (const p of beaches) if (life(p).crab === 'hermit') expect(p.place.climate).toBe('tropical')
     for (const ocean of ['southern', 'arctic'] as const) {
       for (const p of scenes({ coast: 'beach', ocean }, 30)) expect(life(p).crab).toBeNull()
     }

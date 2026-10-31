@@ -152,17 +152,25 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
     flowerAmount: 0
   }
 
-  // Crabs.
-  const ghostChance = stones ? 0 : { tropical: 0.85, desert: 0.7, mediterranean: 0.3, nordic: 0, volcanic: 0 }[biome]
+  // Crabs. Ghost crabs by climate (PLAN_BIOMES 11d): Ocypode quadrata on
+  // every subtropical sand beach from the Carolinas to Brazil, the tropics'
+  // on lava coasts' sand too (Hawaii, the Galápagos); O. cursor in the
+  // eastern Mediterranean.
+  const climate = params.place.climate
+  const warm = climate === 'tropical' || climate === 'arid'
+  const ghostChance = stones
+    ? 0
+    : { tropical: 0.85, arid: 0.7, subtropical: 0.75, mediterranean: 0.3, temperate: biome === 'mediterranean' ? 0.1 : 0, boreal: 0, polar: 0 }[climate] *
+      (biome === 'volcanic' && climate === 'tropical' ? 0.7 : 1)
   if (!southernOcean && ocean !== 'arctic') {
     if (rng.chance(ghostChance)) {
       life.crab = 'ghost'
       life.burrows = rng.int(8, 40)
       life.crabs = night ? rng.int(6, 18) : dusk ? rng.int(3, 9) : rng.int(0, 3)
-    } else if (biome === 'tropical' && rng.chance(0.6)) {
+    } else if (climate === 'tropical' && rng.chance(0.6)) {
       life.crab = 'hermit'
       life.crabs = rng.int(3, 12)
-    } else if (biome !== 'tropical' && biome !== 'desert' && rng.chance(0.45)) {
+    } else if (!warm && rng.chance(0.45)) {
       life.crab = 'shore'
       life.crabs = rng.int(2, 7)
     }

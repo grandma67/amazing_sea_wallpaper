@@ -27,11 +27,23 @@ describe('shore debris', () => {
   it('matches the wrack to the coast', () => {
     for (const p of beaches) {
       const { wrack, coconuts } = spec(p)!
-      if (wrack === 'sargassum') expect(`${p.biome.name}/${p.sea.ocean}`).toBe('tropical/atlantic')
-      if (wrack === 'kelp') expect(['nordic', 'volcanic', 'desert']).toContain(p.biome.name)
-      if (coconuts > 0) expect(p.biome.name).toBe('tropical')
+      if (wrack === 'sargassum') expect(p.sea.ocean).toBe('atlantic')
+      if (wrack === 'sargassum') expect(['tropical', 'subtropical']).toContain(p.place.climate)
+      if (wrack === 'kelp') expect(p.place.climate).not.toBe('tropical')
+      if (coconuts > 0) expect(p.place.climate).toBe('tropical')
     }
-    expect(share(scenes({ coast: 'beach', biome: 'mediterranean' }, 60), p => spec(p)!.wrack === 'seagrass')).toBeGreaterThan(0.5)
+    expect(share(scenes({ coast: 'beach', place: 'mediterranean-sea' }, 60), p => spec(p)!.wrack === 'seagrass')).toBeGreaterThan(0.5)
+  })
+
+  it('follows the climate (PLAN_BIOMES 11d)', () => {
+    const wrack = (place: string, kind: string, climate?: 'temperate' | 'subtropical') =>
+      share(scenes({ coast: 'beach', place, climate }, 80), p => spec(p)!.wrack === kind)
+    expect(wrack('florida-carolinas', 'sargassum')).toBeGreaterThan(0.3)
+    expect(wrack('east-australia', 'seagrass')).toBeGreaterThan(0.25)
+    expect(wrack('california', 'kelp')).toBeGreaterThan(0.5)
+    expect(wrack('yellow-sea', 'kelp', 'temperate')).toBeGreaterThan(0.5)
+    expect(share(scenes({ coast: 'beach', place: 'hawaii' }, 60), p => spec(p)!.coconuts > 0)).toBeGreaterThan(0.2)
+    expect(wrack('hawaii', 'kelp')).toBe(0)
   })
 
   it('builds finite logs and branches lying on the ground', () => {
