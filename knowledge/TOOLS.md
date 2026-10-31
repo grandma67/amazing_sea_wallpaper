@@ -41,6 +41,17 @@ node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'   # p
   node scripts/params.mjs --rendered --scene '{"place":"nova-scotia","composition":"shoreline"}' --fields view 2025-07-10
   node scripts/params.mjs --stats 'p => p.coast.composition + " " + Math.min(40, Math.round(p.view.nearest / 5) * 5)' --where 'p => p.coast.type === "beach"'
   ```
+- **Props and helpers on real days, no render:** `p.ctx` is the props' `PropContext` at 1080p
+  (the render camera and frustum, `ground`, `visible`, `inFrame`, `distance`, `rng`; no wave
+  field, so `seaLevel` is 0), built on first use. Expressions naming `src.X` or `props.X` get
+  `src/X.ts` and `src/props/X.ts` (all but the browser-only ones: main, workers, assets, clouds,
+  meshPreview, scene). Use these instead of throwaway test files to probe a creator, a
+  placement rule or a height helper. Creators build meshes (ms each): a spec or a few dates.
+  ```sh
+  node scripts/params.mjs --scene '{"place":"fundy","coast":"tidal-flat","tide":"high"}' --stats 'p => p.ctx.ground(0, 0) > p.coast.runup'
+  node scripts/params.mjs --scene '{"saltMarsh":true,"composition":"framed"}' --stats 'p => props.saltMarsh.createSaltMarsh(p.ctx).reduce((n, m) => n + m.count, 0) > 300' 2025-07-01..2025-07-20
+  node scripts/params.mjs --scene '{"coast":"tidal-flat"}' --stats 'p => src.terrain.worldToShore(p.coast, 0, 0).map(Math.round)' 2025-07-10
+  ```
 - **Which days did a change touch:** `--ref HEAD` (or any ref) generates every test day with that
   commit (temporary worktree) and with this tree, and counts the days that differ per top-level
   param (fields added since are listed, not counted). `--fields a.b` narrows it, `--list` prints

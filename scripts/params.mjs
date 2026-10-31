@@ -38,6 +38,14 @@
 //   pixel angle, nearest ground in frame; src/composition.ts frameView), to
 //   check before rendering whether a near-camera prop can be in view and how
 //   many pixels it gets.
+// And p.ctx: the props' PropContext at 1080p (src/props/context.ts; the
+//   render camera, frustum, ground, visible/inFrame, rng; no wave field), to
+//   run a creator or a placement test on real days without rendering:
+//   'p => props.saltMarsh.createSaltMarsh(p.ctx).reduce((n, m) => n + m.count, 0)'.
+//   Creators build meshes (ms each): use them on a few dates or a spec.
+// Expressions naming src.X or props.X get this tree's src/X.ts and
+//   src/props/X.ts modules (e.g. src.tidalFlat.flatCreeks, src.terrain.
+//   worldToShore). On --ref both sides see this tree's modules.
 // --ref REF compares with another commit (checked out into a temporary git
 //   worktree, as bench.mjs does): how many days changed and in which
 //   top-level params (or in --fields), for the changelog's "N of 1096 days
@@ -62,6 +70,9 @@
 //   node scripts/params.mjs --scene scenes/stony.json --fields title,view
 //   node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null'
 //   node scripts/params.mjs --stats 'p => p.coast.reef != null' --where 'p => p.placeData.reef > 0'
+//   node scripts/params.mjs --scene '{"place":"fundy","coast":"tidal-flat","tide":"high"}' --stats 'p => p.ctx.ground(0, 0) > p.coast.runup'
+//   node scripts/params.mjs --scene '{"saltMarsh":true}' --list --fields title --where 'p => props.saltMarsh.createSaltMarsh(p.ctx).length === 0' 2025-07-01..2025-07-31
+//   node scripts/params.mjs --scene '{"coast":"tidal-flat"}' --stats 'p => Math.round(src.tidalFlat.flatCreeks(p.coast, p.coast.flat.width / 2, 0) * 10) / 10' 
 
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -152,13 +163,15 @@ async function load(root) {
   // is written into the worktree while git removes it.
   const server = await createServer({ root, cacheDir: resolve('node_modules/.vite-params'), server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom', logLevel: 'error' })
   const mod = path => server.ssrLoadModule(path)
-  const [{ generateParams }, { parseSceneSpec }, { propChoices }, { frameView, generateSceneParams }, places] = await Promise.all([
+  const [{ generateParams }, { parseSceneSpec }, { propChoices }, { frameView, generateSceneParams }, places, { createCamera }, { PropContext }] = await Promise.all([
     mod('/src/params.ts'),
     mod('/src/sceneSpec.ts'),
     mod('/src/props/choices.ts'),
     mod('/src/composition.ts'),
     // Older refs may not have places.ts.
-    mod('/src/places.ts').catch(() => ({}))
+    mod('/src/places.ts').catch(() => ({})),
+    mod('/src/camera.ts'),
+    mod('/src/props/context.ts')
   ])
   const day = (date, spec) => {
     const p = rendered ? generateSceneParams(date, 16 / 9, spec) : generateParams(date, 0, 16 / 9, spec)
@@ -167,9 +180,22 @@ async function load(root) {
     Object.defineProperty(out, 'view', { get: () => frameView(p), enumerable: false })
     // Not enumerable either: it isn't a param, so --ref doesn't count it.
     Object.defineProperty(out, 'placeData', { get: () => places.PLACES?.find(pl => pl.id === p.place?.id), enumerable: false })
+    // The props' PropContext at 1080p (as test/days.ts viewOf): the render's
+    // camera and frustum, no wave field (seaLevel 0). Built once, on first use.
+    let ctx = null
+    Object.defineProperty(out, 'ctx', {
+      get: () => {
+        if (ctx == null) {
+          const { camera } = createCamera(p, p.camera.aspect * 1080, 1080)
+          ctx = new PropContext(p, camera, null, (camera.fov * Math.PI) / 180 / 1080)
+        }
+        return ctx
+      },
+      enumerable: false
+    })
     return out
   }
-  return { server, parseSceneSpec, day, places: places.PLACES ?? [] }
+  return { server, mod, parseSceneSpec, day, places: places.PLACES ?? [] }
 }
 
 /** A temporary worktree of `ref` (removed afterwards), as bench.mjs makes. */
@@ -300,6 +326,22 @@ function printExpect(places) {
 }
 
 const here = await load(process.cwd())
+// Expressions that name `src.X` or `props.X` get this tree's modules
+// (src/X.ts, src/props/X.ts) as globals, loaded up front (they're async to
+// load, expressions are not). Modules that need a browser are left out.
+if (/\b(src|props)\.\w/.test([where, stats, expect].join(' '))) {
+  const { readdir } = await import('node:fs/promises')
+  const browserOnly = new Set(['main', 'renderWorker', 'spectrumWorker', 'assets', 'clouds', 'meshPreview', 'scene'])
+  for (const [global, dir] of [['src', 'src'], ['props', 'src/props']]) {
+    const modules = {}
+    for (const file of (await readdir(dir)).filter(f => f.endsWith('.ts'))) {
+      const name = file.slice(0, -3)
+      if (browserOnly.has(name)) continue
+      modules[name] = await here.mod(`/${dir}/${file}`).catch(() => undefined)
+    }
+    globalThis[global] = modules
+  }
+}
 if (expect != null) {
   try {
     printExpect(here.places)
