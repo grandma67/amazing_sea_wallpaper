@@ -12,6 +12,7 @@ import {
 import { BEACH_MATERIALS, beachLines, isStony, stoneMean } from './beach'
 import { fbm, smoothstep, vnoise } from './cellNoise'
 import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
+import { TERRAIN_VIEWS } from './debug'
 import { createPolarGrid } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
@@ -987,7 +988,17 @@ uniform float pixelAngle;
 // Rocky shores: the rock's colour and the lichens' (linear albedo).
 uniform vec3 rockColor;
 uniform vec3 lichenColor;
+// Debug views (debug.ts): index in TERRAIN_VIEWS (0: none), the grid's
+// density × and the beach lines (u of the high-tide and storm lines).
+uniform int terrainView;
+uniform float gridScale;
+uniform vec2 debugLines;
 varying vec3 vWorld;
+
+// A line of width w (in the units of d) where d = 0.
+float dbgLine(float d, float w) {
+  return 1.0 - smoothstep(0.5 * w, w, abs(d));
+}
 
 void main() {
   vec2 p = vWorld.xz;
@@ -1195,6 +1206,59 @@ void main() {
     color = mix(color, vec3(0.85) / PI * (sunIrradiance * NoL + skyIrradiance), foam);
   }
 
+  if (terrainView > 0) {
+    vec3 dbg = vec3(0.55);
+    float r = length(p);
+    if (terrainView == 1) {
+      // Slope: grey by steepness; red where the height bends by more than
+      // ~3–10 pixels within ~2 grid cells (radially 2.2% of r, round
+      // 2π/1024): the mesh can't follow it, and in silhouette it zig-zags.
+      dbg = mix(vec3(0.62), vec3(0.2), smoothstep(0.1, 0.8, 1.0 - N.y));
+      vec2 radial = p / max(r, 1e-3);
+      vec2 around = vec2(-radial.y, radial.x);
+      float gr = 0.022 * r / gridScale;
+      float gt = 0.0061 * r / gridScale;
+      float bend = max(abs(terrainHeight(p + radial * gr) + terrainHeight(p - radial * gr) - 2.0 * h),
+        abs(terrainHeight(p + around * gt) + terrainHeight(p - around * gt) - 2.0 * h));
+      float pixel = max(length(toCamera) * pixelAngle, 1e-4);
+      dbg = mix(dbg, vec3(0.9, 0.05, 0.05), smoothstep(3.0, 10.0, bend / pixel));
+    } else if (terrainView == 2) {
+      // Relief: rock gullies red, boulders green, bed bands blue; on beaches
+      // cusps red, bars green, storm ridges blue.
+      if (coastKind == COAST_ROCK_SHORE) {
+        float b = rockBack.w > 0.0 ? boulderField(q, rockBack.w) / rockBack.w : 0.0;
+        vec2 strike = vec2(cos(rockBeds.w), sin(rockBeds.w));
+        float planes = dot(sa, vec2(-strike.y, strike.x)) * rockBeds.z;
+        float beds = rockBack.w > 0.0 ? 0.0 : fract((h + tideLevel - planes) / rockBeds.y);
+        dbg = vec3(0.15) + vec3(0.8 * rockGully(sa, r), 0.8 * b, 0.6 * beds);
+      } else {
+        float u = -sa.x;
+        dbg = vec3(0.15) + clamp(vec3(abs(cuspHeight(u, sa.y)) * 3.0, barHeight(seaDistance(sa.x), sa.y), ridgeHeight(u, sa.y)), 0.0, 0.8);
+      }
+    } else if (terrainView == 3) {
+      // Lines: today's still water cyan, run-up orange, today's high water
+      // green, spring high water yellow (heights); the high-tide line
+      // magenta and the storm line red (beachLines, distances inland).
+      float w = max(0.02, footprint * (1.5 - N.y));
+      float wu = max(0.05, 1.5 * footprint);
+      dbg = mix(dbg, vec3(0.0, 0.8, 0.9), dbgLine(h, w));
+      dbg = mix(dbg, vec3(0.95, 0.5, 0.05), dbgLine(h - runup, w));
+      dbg = mix(dbg, vec3(0.1, 0.8, 0.1), dbgLine(h - tideHigh, w));
+      dbg = mix(dbg, vec3(0.95, 0.9, 0.1), dbgLine(h - tideSpring, w));
+      dbg = mix(dbg, vec3(0.9, 0.1, 0.8), dbgLine(-sa.x - debugLines.x, wu));
+      dbg = mix(dbg, vec3(0.8, 0.05, 0.05), dbgLine(-sa.x - debugLines.y, wu));
+    } else {
+      // Shore frame: s blue and a orange every 10 m, s = 0 white, today's
+      // water on the bare profile (waterline) cyan.
+      float ws = max(0.1, 1.5 * footprint);
+      dbg = mix(dbg, vec3(0.1, 0.3, 0.9), dbgLine(sa.x - 10.0 * floor(sa.x / 10.0 + 0.5), ws));
+      dbg = mix(dbg, vec3(0.9, 0.5, 0.1), dbgLine(sa.y - 10.0 * floor(sa.y / 10.0 + 0.5), ws));
+      dbg = mix(dbg, vec3(1.0), dbgLine(sa.x, 2.0 * ws));
+      dbg = mix(dbg, vec3(0.0, 0.9, 0.9), dbgLine(sa.x - waterline, 2.0 * ws));
+    }
+    color = dbg / PI * (sunIrradiance * max(dot(N, L), 0.0) + skyIrradiance * (0.6 + 0.4 * N.y));
+  }
+
   gl_FragColor = vec4(color, 1.0);
 }
 `
@@ -1219,12 +1283,17 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       groundCover: { value: new Color(...params.biome.groundCover) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
       rockColor: { value: new Color(...(coast.rock?.color ?? [0.3, 0.3, 0.3])) },
+      terrainView: { value: Math.max(0, TERRAIN_VIEWS.indexOf(params.debug?.terrainView ?? 'none')) },
+      gridScale: { value: params.debug?.terrainGrid ?? 1 },
+      debugLines: { value: coast.rock != null ? new Vector2(-1e5, -1e5) : new Vector2(beachLines(coast).highTide, beachLines(coast).stormLine) },
       lichenColor: { value: new Color(...LICHEN[params.biome.name]) },
       pixelAngle: { value: 0.001 },
       ...shadowUniforms()
     }
   })
-  const mesh = new Mesh(createPolarGrid({ rings: 600, segments: 1024, outerRadius: 120_000 }), material)
+  // A denser grid for debugging aliasing (debug.terrainGrid).
+  const grid = params.debug?.terrainGrid ?? 1
+  const mesh = new Mesh(createPolarGrid({ rings: Math.round(600 * grid), segments: Math.round(1024 * grid), outerRadius: 120_000 }), material)
   mesh.frustumCulled = false
   mesh.visible = hasLand(coast)
   return mesh

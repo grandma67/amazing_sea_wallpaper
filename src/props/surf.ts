@@ -130,7 +130,7 @@ export function waterRocks(ctx: PropContext, rocks: InstancedMesh[]): WaterRock[
  * takes the waves as surf. */
 export function edgeRocks(ctx: PropContext): WaterRock[] {
   const { coast } = ctx.params
-  if (coast.rock == null) return []
+  if (coast.rock == null || ctx.params.overrides?.rockEdge === false) return []
   const out: WaterRock[] = []
   const [, camA] = worldToShore(coast, ctx.camera.position.x, ctx.camera.position.z)
   const at = (s: number, a: number): number => ctx.ground(...shoreToWorld(coast, s, a))

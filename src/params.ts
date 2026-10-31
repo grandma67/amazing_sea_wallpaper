@@ -7,6 +7,7 @@ import { beachShape, beachStateFor, breakerHeight, grainIn, sedimentFor, wavePer
 import { SAND_STYLES, biomeNamed, type Biome, type RGB, type SandStyle, type WaterStyle } from './biome'
 import type { CloudArrangement } from './cloudArrangement'
 import { hasBeach, hasLand } from './coastKind'
+import type { DebugParams } from './debug'
 import { contrailsFor, type Contrail } from './contrails'
 import { visibilityFor } from './seaHaze'
 import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type RollCloudParams, type ShelfCloudParams } from './skyEvents'
@@ -391,6 +392,10 @@ export interface SceneParams {
   /** What a scene spec forces the props to show (sceneSpec.ts); absent on
    * ordinary days. */
   overrides?: PropOverrides
+  /** Render-only switches and views for debugging, set by a spec's `params`
+   * patch (`{"params": {"debug": {…}}}`); the generator never reads them, so
+   * no draw changes (knowledge/TOOLS.md "Debug switches and views"). */
+  debug?: DebugParams
 
   camera: {
     /** Above sea level for open sea; above the ground on a beach. */

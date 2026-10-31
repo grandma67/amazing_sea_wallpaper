@@ -14,6 +14,11 @@
 // the "on" renders go first and each "off" render stands its camera at the
 // same height (params.camera.groundM). Heading and lens are the date's in
 // both; a composition re-roll (a bad framing) can still differ.
+// --keep-exposure: the exposure is metered from the sky and the weather, so a
+// sky, haze or weather change re-exposes the whole frame. With it, the "on"
+// renders go first and each "off" render uses the same exposure
+// (params.debug.exposure, from debug.exposure in the on render's .json).
+// Terrain and prop changes don't move the meter.
 //
 // Your change vs another commit (renders the specs with REF into OUT/off,
 // via snapshot.mjs --ref, and with this tree into OUT/on):
@@ -51,6 +56,8 @@ let dirB = option('b', null)
 const match = new RegExp(option('match', '.'))
 const threshold = Number(option('threshold', 4))
 const keepCamera = args.includes('--keep-camera') && args.splice(args.indexOf('--keep-camera'), 1).length > 0
+const keepExposure = args.includes('--keep-exposure') && args.splice(args.indexOf('--keep-exposure'), 1).length > 0
+const onFirst = keepCamera || keepExposure
 const render = ['w', 'h', 'frames', 'url'].flatMap(k => {
   const v = option(k, null)
   return v == null ? [] : [`--${k}`, v]
@@ -86,18 +93,22 @@ if (sceneArg != null) {
     process.stdout.write(run.stdout.split('\n').filter(l => /\.jpg|⚠|rror/.test(l)).map(l => `${l}\n`).join(''))
     if (run.status !== 0) throw new Error(`snapshot.mjs failed:\n${run.stderr}`)
   }
-  if (keepCamera) snapshot(dirB, 'on.json')
+  if (onFirst) snapshot(dirB, 'on.json')
   const offSpecs = await Promise.all(
     named.map(async s => {
       const spec = merge(s, off)
-      if (!keepCamera) return spec
+      if (!onFirst) return spec
       const { debug } = JSON.parse(await readFile(join(dirB, `${s.name}.json`), 'utf8'))
-      return merge(spec, { params: { camera: { groundM: debug.cameraGroundM } } })
+      const pinned = {
+        ...(keepCamera ? { camera: { groundM: debug.cameraGroundM } } : {}),
+        ...(keepExposure ? { debug: { exposure: debug.exposure } } : {})
+      }
+      return merge(spec, { params: pinned })
     })
   )
   await writeFile(join(outDir, 'off.json'), JSON.stringify(offSpecs))
   snapshot(dirA, 'off.json')
-  if (!keepCamera) snapshot(dirB, 'on.json')
+  if (!onFirst) snapshot(dirB, 'on.json')
 }
 if (dirA == null || dirB == null) throw new Error('give --scene SPECS --off PATCH, or --a DIR --b DIR')
 

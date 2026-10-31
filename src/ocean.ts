@@ -15,6 +15,7 @@ import {
   type Texture
 } from 'three'
 
+import { OCEAN_VIEWS } from './debug'
 import { createPolarGrid } from './grid'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { seabedAlbedo } from './beach'
@@ -234,6 +235,8 @@ uniform vec3 lampPositions[${MAX_LAMPS}];
 uniform vec3 lampIntensities[${MAX_LAMPS}];
 uniform int lampCount;
 uniform vec3 skyIrradiance;
+// Debug view (debug.ts): index in OCEAN_VIEWS, 0: none.
+uniform int oceanView;
 uniform vec3 deepColor;
 uniform vec3 scatterColor;
 uniform float whitecaps;
@@ -560,11 +563,13 @@ void main() {
   // coverage; the lace texture turns coverage into bubbles.
   float coverage = whitecaps * (1.0 - slick) * (1.0 - smoothstep(-0.1, 0.45, jacobian)) *
     smoothstep(0.3, 0.7, fbm(q * 0.2));
+  float dbgSteep = 0.0;
   if (hasSurfZone()) {
     // White water where the waves have broken (surfWave), from the break
     // point to the shore; it starts as the crest begins to spill.
     float sets = surfIncoming(sa);
-    float surfZone = smoothstep(0.85, 1.0, surfSteepness(depth, sets));
+    dbgSteep = surfSteepness(depth, sets);
+    float surfZone = smoothstep(0.85, 1.0, dbgSteep);
     // A spilling breaker: a turbulent roller of whitewater tumbling down the
     // steep front face, and a trail of foam left behind the crest that thins
     // out seaward. The roller is ragged along the crest where the wave
@@ -638,6 +643,23 @@ void main() {
   vec3 foamColor = vec3(0.85) * (sunIrradiance * max(NoL, 0.0) + skyIrradiance) / PI +
     0.25 * textureLod(envMap, vec3(R.x, max(R.y, 0.05), R.z), envMaxLod - 2.0).rgb;
   color = mix(color, foamColor, clamp(foam, 0.0, 0.95));
+
+  if (oceanView > 0) {
+    // Shelter blue → red; breaking: deep blue, steepening green, breaking
+    // red; depth: sand to blue over 15 m with a dark line every metre; foam
+    // coverage grey.
+    vec3 dbg;
+    if (oceanView == 1) {
+      dbg = mix(vec3(0.1, 0.2, 0.8), vec3(0.9, 0.2, 0.1), sheltered);
+    } else if (oceanView == 2) {
+      dbg = mix(vec3(0.1, 0.15, 0.5), mix(vec3(0.2, 0.8, 0.2), vec3(0.95, 0.1, 0.1), smoothstep(0.85, 1.0, dbgSteep)), smoothstep(0.3, 0.85, dbgSteep));
+    } else if (oceanView == 3) {
+      dbg = mix(vec3(0.9, 0.85, 0.5), vec3(0.05, 0.1, 0.5), smoothstep(0.0, 15.0, depth)) * (1.0 - 0.7 * (1.0 - smoothstep(0.0, 0.06, fract(depth))));
+    } else {
+      dbg = vec3(0.05 + 0.85 * clamp(coverage, 0.0, 1.0));
+    }
+    color = dbg / PI * (0.5 * sunIrradiance + skyIrradiance);
+  }
 
   gl_FragColor = vec4(min(color, vec3(60000.0)), 1.0);
 }
@@ -732,6 +754,7 @@ export function createOcean(
       waveHeight: { value: Math.max(0.05, surface.significantHeight) },
       rain: { value: params.storm?.rain ?? 0 },
       rockData: { value: Array.from({ length: MAX_ROCKS }, () => new Vector4()) },
+      oceanView: { value: Math.max(0, OCEAN_VIEWS.indexOf(params.debug?.oceanView ?? 'none')) },
       rockCount: { value: 0 },
       shipPose: { value: Array.from({ length: MAX_SHIPS }, () => new Vector4()) },
       shipHull: { value: Array.from({ length: MAX_SHIPS }, () => new Vector4()) },

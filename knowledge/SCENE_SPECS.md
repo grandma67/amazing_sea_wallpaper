@@ -20,7 +20,8 @@ Querying params (`params.mjs`) and rendering: [TOOLS.md](TOOLS.md).
   forces that kind.
 - Anything else: `params`, a deep patch over the finished `SceneParams`
   (`{"params": {"coast": {"distanceToWater": 6}}}`). Applied last, so the title and derived values
-  don't follow it.
+  don't follow it. `params.debug` holds render-only switches and false-colour views (TOOLS.md
+  "Debug switches and views"); it is checked field by field.
 - Unknown fields and bad values throw, naming the field.
 - Forced features are still placed normally (a crab needs sand near the camera in frame; a boat is
   skipped if there's no sea spot).
@@ -56,7 +57,7 @@ Allowed values are in `sceneSpec.ts`.
   `haulOut`.
 - **Camera:** `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`. `horizonFraction` = how far
   **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
-- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,vegetation,debris,shoreLife,mangroves,wildlife}`.
+- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,vegetation,debris,shoreLife,mangroves,wildlife}`.
   Off for `diff.mjs`: `false` (booleans and kinds), `[]` (`vegetation`), `null` (`debris`,
   `shoreLife`, `wildlife`).
 
@@ -99,4 +100,4 @@ Every new random feature gets one. Always make the draw, then apply the force vi
     shore at midday; 2024-03-23: sea cliffs at sunset; 2024-03-08: rock platform, morning
     (`scenes/rock.json` for forced kinds: Peggy's Cove, Big Sur, Iceland storm).
 - Spec files for each finished feature: `scenes/` (`examples`, `stony`, `tables`, `beach-states`,
-  `tides`, `shelter`, `reef`, `rock`).
+  `tides`, `shelter`, `reef`, `rock`); `debug.json` shows the debug views.

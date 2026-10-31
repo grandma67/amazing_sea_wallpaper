@@ -1,0 +1,104 @@
+{
+ "base": {
+  "date": "2024-07-12",
+  "eclipse": null,
+  "storm": null,
+  "fog": null,
+  "timeOfDay": "daylight",
+  "weather": "clear",
+  "sunAzimuthDeg": 160,
+  "islands": null,
+  "landform": null,
+  "lighthouse": null,
+  "colony": null,
+  "pinnipeds": null,
+  "place": "nova-scotia",
+  "composition": "along-beach"
+ },
+ "scenes": [
+  {
+   "name": "slope",
+   "params": {
+    "debug": {
+     "props": false,
+     "terrainView": "slope"
+    }
+   },
+   "rockShore": "platform"
+  },
+  {
+   "name": "relief",
+   "params": {
+    "debug": {
+     "props": false,
+     "terrainView": "relief"
+    }
+   },
+   "rockShore": "platform"
+  },
+  {
+   "name": "lines",
+   "params": {
+    "debug": {
+     "props": false,
+     "terrainView": "lines"
+    }
+   },
+   "rockShore": "platform"
+  },
+  {
+   "name": "shore",
+   "params": {
+    "debug": {
+     "props": false,
+     "terrainView": "shore"
+    }
+   },
+   "rockShore": "platform"
+  },
+  {
+   "name": "breaking",
+   "params": {
+    "debug": {
+     "props": false,
+     "oceanView": "breaking"
+    }
+   },
+   "rockShore": "platform"
+  },
+  {
+   "name": "depth",
+   "params": {
+    "debug": {
+     "props": false,
+     "oceanView": "depth"
+    }
+   },
+   "rockShore": "platform"
+  },
+  {
+   "name": "beach-lines",
+   "coast": "beach",
+   "params": {
+    "debug": {
+     "props": false,
+     "terrainView": "lines"
+    }
+   },
+   "composition": "along-beach"
+  },
+  {
+   "name": "markers",
+   "params": {
+    "debug": {
+     "markers": [
+      "camera-ground",
+      "edge-rocks",
+      "props:rocks"
+     ]
+    }
+   },
+   "rockShore": "platform"
+  }
+ ]
+}

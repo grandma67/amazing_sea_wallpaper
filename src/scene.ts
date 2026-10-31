@@ -56,6 +56,7 @@ import { createClouds, loadCloudAssets, primeCloudShadow, renderCloudyEnvironmen
 import { patchSkyContrails } from './contrails'
 import { patchSkyNoctilucent } from './noctilucent'
 import { eclipseSky } from './eclipse'
+import type { DebugPass } from './debug'
 import { meterScene } from './exposure'
 import { FogEffect } from './fog'
 import { LighthouseBeamEffect } from './lighthouse'
@@ -223,7 +224,10 @@ export async function renderScene(
   const generator = new PrecomputedTexturesGenerator(renderer, { combinedScattering: false })
   const atmosphere = precomputeAtmosphere(renderer, generator)
   // The clouds pass also draws the sea haze: dust days need it under a clear sky.
-  const cloudAssetsLoaded = params.weather.kind === 'clear' && params.weather.dust == null ? Promise.resolve(null) : loadCloudAssets()
+  // Passes a debug spec switches off (debug.ts): on unless false.
+  const pass = (name: DebugPass): boolean => params.debug?.passes?.[name] !== false
+  const cloudAssetsLoaded =
+    (params.weather.kind === 'clear' && params.weather.dust == null) || !pass('clouds') ? Promise.resolve(null) : loadCloudAssets()
 
   // --- Camera ---------------------------------------------------------------
   const { camera, dip } = createCamera(params, width, height)
@@ -464,7 +468,11 @@ export async function renderScene(
   whiteBalance.lerp(new Color(1.12, 1.0, 0.84).multiply(whiteBalance), gloom)
   // Night vision blends in from dusk: partly desaturated and blue at blue hour.
   const scotopic = night ? 1 : params.timeOfDay === 'blue-hour' ? 0.5 : 0
-  const exposure = (0.16 / Math.max(sceneLuminance, 1e-9)) * nightScale * 2 **
+  // A debug spec can fix it (diff.mjs --keep-exposure), so a sky or weather
+  // change doesn't re-expose the whole frame.
+  const exposure =
+    params.debug?.exposure ??
+    (0.16 / Math.max(sceneLuminance, 1e-9)) * nightScale * 2 **
       (evBias[params.timeOfDay] +
         eclipseBias +
         // Low suns light the clouds from below and the horizon stays bright.
@@ -482,6 +490,7 @@ export async function renderScene(
   aerialPerspective.sunDirection.copy(lightECEF)
   // In totality the air isn't sunlit: no haze glow over the distance.
   aerialPerspective.inscatter = !totality
+  if (!pass('aerial')) aerialPerspective.blendMode.opacity.value = 0
 
   const composer = new EffectComposer(renderer, {
     frameBufferType: HalfFloatType,
@@ -526,7 +535,7 @@ export async function renderScene(
         aerialPerspective.shadowLength = clouds.atmosphereShadowLength
     })
     composer.addPass(new EffectPass(camera, clouds, aerialPerspective))
-    composer.addPass(new EffectPass(camera, new SkyFillEffect(still!)))
+    if (pass('skyFill')) composer.addPass(new EffectPass(camera, new SkyFillEffect(still!)))
   } else {
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }
@@ -581,15 +590,17 @@ export async function renderScene(
     clouds != null ? new EffectPass(camera, new SkyDenoiseEffect(1 / clouds.resolution.scale)) : null
   if (skyDenoise != null) composer.addPass(skyDenoise)
   // Bloom and tone mapping only matter for the final frame.
+  const bloom = new BloomEffect({
+    mipmapBlur: true,
+    luminanceThreshold: 1.0,
+    luminanceSmoothing: 0.3,
+    intensity: 0.45,
+    radius: 0.75
+  })
+  if (!pass('bloom')) bloom.blendMode.opacity.value = 0
   const finish = new EffectPass(
     camera,
-    new BloomEffect({
-      mipmapBlur: true,
-      luminanceThreshold: 1.0,
-      luminanceSmoothing: 0.3,
-      intensity: 0.45,
-      radius: 0.75
-    }),
+    bloom,
     new VignetteEffect({ offset: 0.35, darkness: 0.35 }),
     new ToneMappingEffect({ mode: ToneMappingMode.AGX }),
     // AgX is neutral but flat; add a little punch.
@@ -621,6 +632,7 @@ export async function renderScene(
   {
     // Render the shadow map once with only the props, then let the custom
     // terrain and ocean shaders sample it.
+    if (!pass('shadows')) props.traverse(o => (o.castShadow = false))
     ocean.visible = false
     terrain.visible = false
     const scratch = new WebGLRenderTarget(4, 4)
@@ -639,7 +651,7 @@ export async function renderScene(
     }
 
     // Mirror image of land and props for the water (sky comes from the cube).
-    if (hasLand(params.coast) || scene.getObjectByName('props')!.children.length > 0) {
+    if (pass('reflection') && (hasLand(params.coast) || scene.getObjectByName('props')!.children.length > 0)) {
       const hide = [
         ocean,
         ...scene.children.filter(o => o.userData.sky === true),

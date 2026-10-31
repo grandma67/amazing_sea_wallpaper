@@ -7,6 +7,7 @@ import type { OceanName } from './oceans'
 import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
 import { ROCK_KINDS, type RockKind } from './rockShore'
 import type { TideStage } from './tides'
+import { DEBUG_MARKERS, DEBUG_PASSES, OCEAN_VIEWS, TERRAIN_VIEWS } from './debug'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
 import type { DebrisSpec } from './props/debris'
 import type { ShoreLife } from './props/shoreLife'
@@ -60,6 +61,8 @@ export interface PropOverrides {
   stones?: boolean
   /** false: no beachrock ledges (the reef's beachrock stays in the params). */
   beachrock?: boolean
+  /** false: no spray and foam along a rocky shore's edge (props/surf.ts edgeRocks). */
+  rockEdge?: boolean
   /** Which plants grow (the biome's own list otherwise); [] for none. */
   vegetation?: VegetationKind[]
   /** null: nothing washed up; fields replace the drawn ones. */
@@ -318,6 +321,7 @@ const SPEC = object({
     seaStacks: boolean,
     stones: boolean,
     beachrock: boolean,
+    rockEdge: boolean,
     vegetation: listOf(oneOf(...PLANTS)),
     debris: object(
       { driftwood: number, rootWads: boolean, wrack: oneOf(null, 'kelp', 'seagrass', 'sargassum'), wrackAmount: number, coconuts: number },
@@ -357,8 +361,42 @@ const SPEC = object({
   // Free-form; it's merged as it is.
   params: (value, path) => {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) fail(path, 'must be an object')
+    const debug = (value as { debug?: unknown }).debug
+    if (debug !== undefined) checkDebug(debug, `${path}.debug`)
   }
 })
+
+/** params.debug is checked: a typo there would quietly do nothing. */
+function checkDebug(value: unknown, path: string): void {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) fail(path, 'must be an object')
+  const d = value as Record<string, unknown>
+  const checks: Record<string, Check> = {
+    terrainGrid: (v, p) => {
+      if (typeof v !== 'number' || v < 0.25 || v > 4) fail(p, 'must be a number in 0.25–4')
+    },
+    props: boolean,
+    markers: (v, p) => {
+      if (!Array.isArray(v)) fail(p, 'must be a list')
+      for (const m of v as unknown[]) {
+        if (typeof m !== 'string' || !((DEBUG_MARKERS as readonly string[]).includes(m) || m.startsWith('props:'))) fail(p, `has ${JSON.stringify(m)}: use ${DEBUG_MARKERS.join(', ')} or props:KIND`)
+      }
+    },
+    passes: (v, p) => {
+      if (v === null || typeof v !== 'object' || Array.isArray(v)) fail(p, 'must be an object')
+      for (const [k, b] of Object.entries(v as object)) {
+        if (!(DEBUG_PASSES as readonly string[]).includes(k)) fail(`${p}.${k}`, `is not a pass: ${DEBUG_PASSES.join(', ')}`)
+        boolean(b, `${p}.${k}`)
+      }
+    },
+    exposure: number,
+    terrainView: oneOf(...TERRAIN_VIEWS),
+    oceanView: oneOf(...OCEAN_VIEWS)
+  }
+  for (const [k, v] of Object.entries(d)) {
+    if (checks[k] == null) fail(`${path}.${k}`, `is not a debug field: ${Object.keys(checks).join(', ')}`)
+    checks[k](v, `${path}.${k}`)
+  }
+}
 
 /** Check a parsed JSON value is a SceneSpec; throws naming the bad field. */
 export function parseSceneSpec(value: unknown): SceneSpec {

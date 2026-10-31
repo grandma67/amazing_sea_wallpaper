@@ -11,8 +11,13 @@ tool gotchas: TOOLS.md.
 - Placed but invisible: print the physics with a temporary `console.warn('DBG …')` at 640×360,
   1 frame, before tuning looks (ship spray: water rose only ±0.1 m on the hull, so no splash could
   trigger).
-- Shader debugging: force a visible output (`coverage = 1.0` over a region), move it step by step.
-- Find a cause by switching passes off one at a time (the sunset tree glow had four causes).
+- Shader debugging: force a visible output (`coverage = 1.0` over a region), move it step by step;
+  for terrain and sea first try the false-colour views (`params.debug.terrainView`, `oceanView`).
+- Find a cause by switching passes off one at a time (the sunset tree glow had four causes):
+  `params.debug.passes` with `diff.mjs --off`, no code edits.
+- Before an edit-render-revert loop, look for a switch: `params.debug` (TOOLS.md), a spec field
+  or a `params` patch. Never restore a file with `git checkout` mid-work: it drops every
+  uncommitted change in it.
 - Suspect float precision when a pattern depends on one direction only; isolate by changing one
   offset at a time (`params` patches of `weather.shapeOffset`, `weatherOffset`, `latitudeDeg`;
   `"clouds": [one genus]`).
