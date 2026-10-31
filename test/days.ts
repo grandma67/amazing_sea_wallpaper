@@ -2,9 +2,10 @@ import { expect } from 'vitest'
 
 import { createCamera } from '../src/camera'
 import { shiftDate } from '../src/dates'
-import { generateParams, type SceneParams } from '../src/params'
+import { generateParams, type Composition, type SceneParams } from '../src/params'
 import { PropContext } from '../src/props/context'
 import type { SceneSpec } from '../src/sceneSpec'
+import { terrainHeight } from '../src/terrain'
 
 /** Every day of three years: enough for the rare events to show up. */
 export const DAYS: string[] = Array.from({ length: 3 * 365 }, (_, i) => shiftDate('2024-01-01', i))
@@ -53,4 +54,29 @@ export function view(spec: SceneSpec, height = 1080, date?: string): PropContext
 export function viewOf(params: SceneParams, height = 1080): PropContext {
   const { camera } = createCamera(params, params.camera.aspect * height, height)
   return new PropContext(params, camera, null, (camera.fov * Math.PI) / 180 / height)
+}
+
+/** Every forced tide stage × composition of a coast spec: the camera stands
+ * above today's water (by `above(p)` m; default the still water) on finite
+ * ground, at its composition. A new coast kind or shore profile must pass it
+ * at the extremes, not only on the stage it was built for (a marsh built
+ * below the spring high water drowned the camera at high tide). Returns the
+ * scenes, for more checks. */
+export function expectDryCameras(
+  spec: SceneSpec,
+  { count = 6, compositions = ['shoreline', 'along-beach', 'framed', 'overlook'], above = () => 0 }: { count?: number; compositions?: readonly Composition[]; above?: (p: SceneParams) => number } = {}
+): SceneParams[] {
+  const out: SceneParams[] = []
+  for (const tide of ['low', 'mid', 'high'] as const) {
+    for (const composition of compositions) {
+      for (const p of scenes({ eclipse: null, ...spec, tide, composition }, count)) {
+        const ground = terrainHeight(p.coast, 0, 0)
+        const where = `${p.date} ${tide} ${composition} (${p.coast.type}, ${p.place.id})`
+        expect(Number.isFinite(ground), where).toBe(true)
+        expect(ground, `camera ground ${where}`).toBeGreaterThan(above(p))
+        out.push(p)
+      }
+    }
+  }
+  return out
 }

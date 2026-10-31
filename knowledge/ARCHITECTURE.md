@@ -155,6 +155,12 @@ heading and coast orientation together).
 ## Known issues
 
 Coast and surf:
+- Beach shoreline and along-beach cameras are placed at the drawn distance from the water in s,
+  but the coast's wobble at a = 0 (±25 m) shifts them (rocky shores and flats correct for it with
+  `wobbleAtCamera`): 12 of 433 beach days (2.8%) stand in the water, most at low tide on a terrace
+  (`params.mjs --rendered --stats 'p => p.ctx.ground(0, 0) < 0' --where 'p => p.coast.type ===
+  "beach"'`; found by `expectDryCameras`). Fixing it reframes about half of all beach days: ask
+  first.
 - Run-up doesn't depend on the beach state: on flat dissipative beaches the high-tide line lies
   ~35 m and the storm line (`beachLines`, 2.2 × run-up, capped at 2.3 × width) up to ~120 m inland
   (`profile.mjs` on Namibia 2024-06-11), so the wet band is very wide and storm-line debris sits

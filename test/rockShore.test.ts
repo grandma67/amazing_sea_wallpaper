@@ -6,7 +6,7 @@ import { Random } from '../src/random'
 import { bareRock, ROCK_KINDS, rockShoreFor, rockWaterline, scarpFoot, wobbleAtCamera } from '../src/rockShore'
 import { shoreToWorld, terrainHeight, terrainNormal } from '../src/terrain'
 import { placeNamed, PLACES } from '../src/places'
-import { allParams, expectShare, scene, scenes } from './days'
+import { allParams, expectDryCameras, expectShare, scene, scenes } from './days'
 
 const at = (coast: CoastParams, s: number, a = 0): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
 const base = { eclipse: null, coast: 'rock-shore' } as const
@@ -110,6 +110,11 @@ describe('rock shore days', () => {
       const n = terrainNormal(c, 0, 0)
       expect(Number.isFinite(n[0] + n[1] + n[2])).toBe(true)
     }
+  })
+
+  it('stands the camera above the water at every tide stage and composition', () => {
+    // Gully floors near the camera may hold a little water (-0.3 m).
+    for (const place of ['nova-scotia', 'brittany', 'california']) expectDryCameras({ ...base, place }, { count: 4, above: () => -0.3 })
   })
 
   it('makes overlook a cliff and a forced kind win', () => {

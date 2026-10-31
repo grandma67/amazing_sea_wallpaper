@@ -7,7 +7,7 @@ import { wobbleAtCamera } from '../src/rockShore'
 import { shoreToWorld, terrainHeight, terrainNormal } from '../src/terrain'
 import { bareFlat, flatCreeks, flatWaterline, tidalFlatFor } from '../src/tidalFlat'
 import { placeNamed, PLACES } from '../src/places'
-import { allParams, expectShare, scene, scenes } from './days'
+import { allParams, expectDryCameras, expectShare, scene, scenes } from './days'
 
 const at = (coast: CoastParams, s: number, a = 0): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
 const base = { eclipse: null, coast: 'tidal-flat' } as const
@@ -113,10 +113,9 @@ describe('tidal flat days', () => {
     }
   })
 
-  it('stands the camera above the water: on the flat, its edge or in the marsh', () => {
-    for (const p of [...flats, ...scenes({ ...base, place: 'fundy', tide: 'high' }, 10)]) {
+  it('stands the camera above the water and the run-up at every tide: on the flat, its edge or in the marsh', () => {
+    for (const p of [...places.flatMap(place => expectDryCameras({ ...base, place }, { count: 3, above: q => q.coast.runup }))]) {
       const c = p.coast
-      expect(terrainHeight(c, 0, 0)).toBeGreaterThan(c.runup)
       expect(['shoreline', 'along-beach', 'framed']).toContain(c.composition)
       const u = c.distanceToWater + wobbleAtCamera(c)
       if (c.composition !== 'shoreline') expect(u).toBeGreaterThan(0)

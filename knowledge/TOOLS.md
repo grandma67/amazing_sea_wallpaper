@@ -97,6 +97,13 @@ node scripts/profile.mjs --scene '{"place":"namibia","coast":"beach","swellHeigh
 `pixelAngle`) without WebGL: test what a creator places, how far and how many pixels, over specs
 and real days, before any render.
 
+`expectDryCameras(spec, { count, compositions, above })` forces every tide stage × composition of
+a coast spec and checks the camera stands on finite ground above today's water (by `above(p)`,
+e.g. the run-up). Run it for every new coast kind or shore profile: a profile built for one tide
+can drown the camera at another (rock and flat tests use it). Vitest hides `console.log` from
+passing tests: add `--silent=false` when probing in a test, or better, probe with `params.mjs`
+(`p.ctx`, `src.X`).
+
 ## Render: `scripts/snapshot.mjs`
 
 ```sh
