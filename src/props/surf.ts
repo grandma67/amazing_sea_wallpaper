@@ -123,6 +123,38 @@ export function waterRocks(ctx: PropContext, rocks: InstancedMesh[]): WaterRock[
   return out
 }
 
+/** A rocky shore's own face where the water meets it (the platform's
+ * scarp, a plunging cliff's foot, a boulder apron), as rocks every ~6 m
+ * along the shore in view: the waves burst against it and foam round it
+ * like against any rock. Only steep faces count: a gentle intertidal slope
+ * takes the waves as surf. */
+export function edgeRocks(ctx: PropContext): WaterRock[] {
+  const { coast } = ctx.params
+  if (coast.rock == null) return []
+  const out: WaterRock[] = []
+  const [, camA] = worldToShore(coast, ctx.camera.position.x, ctx.camera.position.z)
+  const at = (s: number, a: number): number => ctx.ground(...shoreToWorld(coast, s, a))
+  const spacing = 6
+  for (let a = camA - 450; a <= camA + 450; a += spacing) {
+    // The first water seaward of today's waterline less the relief.
+    let s0 = NaN
+    for (let s = coast.waterline - 30; s < coast.waterline + 80; s += 1) {
+      if (at(s, a) < 0) {
+        s0 = s
+        break
+      }
+    }
+    if (Number.isNaN(s0)) continue
+    const top = Math.max(at(s0 - 1, a), at(s0 - 2, a), at(s0 - 4, a))
+    const depth = -at(s0 + 4, a)
+    if (top < 0.1 || depth < 0.3 || (top + depth) / 5 < 0.35) continue
+    const [x, z] = shoreToWorld(coast, s0 - 0.5, a)
+    if (!ctx.visible(x, top, z, spacing)) continue
+    out.push({ x, z, radius: spacing / 2, top, depth })
+  }
+  return out
+}
+
 /**
  * What the waves do at a rock: `crest`, the height (m) the passing wave
  * crests reach above still water there (surf where the waves feel the
@@ -256,7 +288,7 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
   // is there now; one higher washes over it. Sea stacks offshore take the
   // open sea's waves.
   const q = new Vector3()
-  for (const rock of waterRocks(ctx, rocks)) {
+  for (const rock of [...waterRocks(ctx, rocks), ...edgeRocks(ctx)]) {
     const size = rock.radius
     if (!ctx.visible(rock.x, rock.top, rock.z, size * 3)) continue
     const [s, a] = worldToShore(coast, rock.x, rock.z)
