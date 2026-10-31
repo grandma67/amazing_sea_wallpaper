@@ -247,7 +247,9 @@ export interface FogParams {
   kind: 'advection' | 'sea-smoke'
   /** Visibility in the fog at sea level (m): contrast falls to 2% there. */
   visibility: number
-  /** Scale height of the fog layer (m): it thins out exponentially above. */
+  /** Height of the layer (m): advection fog is dense up to about here and
+   * clear within a few metres above (an inversion lid); sea smoke thins out
+   * exponentially with this scale height (fogLayer.ts). */
   height: number
   /** Horizontal distance where the fog starts (m): 0 = we're in it; else a
    * bank lying offshore. */
@@ -1804,11 +1806,8 @@ function buildParams(
   if (fog != null) {
     // Fog comes with light airs: the sea calms under it.
     if (spec.wind == null) windSpeed = Math.min(windSpeed, fog.kind === 'sea-smoke' ? 3 : 6)
-    // Inside the fog the sun is dimmed by the layer between it and us.
-    if (fog.start === 0) {
-      const sinEl = Math.max(0.05, Math.sin(sunElevationDeg * DEG))
-      weather.sunVisibility *= Math.exp(-((3.912 / fog.visibility) * fog.height) / sinEl)
-    }
+    // The sun's dimming by the layer above the eye is applied at render time
+    // (scene.ts fogSunTransmittance), where the eye's height is known.
   }
   const oceanSwell = swell(seed, windHeadingDeg, climate)
   oceanSwell.swellHeight = or(oceanSwell.swellHeight * (basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm), spec.swellHeight)

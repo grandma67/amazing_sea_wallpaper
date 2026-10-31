@@ -225,13 +225,7 @@ describe('fog', () => {
     }
   })
 
-  it('dims the sun by the fog layer between it and us', () => {
-    for (const p of foggy.filter(p => p.fog!.start === 0)) {
-      const { visibility, height } = p.fog!
-      const sinEl = Math.max(0.05, Math.sin((p.sunElevationDeg * Math.PI) / 180))
-      expect(p.weather.sunVisibility).toBeLessThanOrEqual(Math.exp(-((3.912 / visibility) * height) / sinEl) + 1e-12)
-    }
-  })
+  // The sun's dimming by the fog above the eye: test/fogLayer.test.ts.
 })
 
 describe('lighthouse', () => {

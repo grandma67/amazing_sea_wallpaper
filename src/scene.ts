@@ -59,6 +59,7 @@ import { eclipseSky } from './eclipse'
 import type { DebugPass } from './debug'
 import { meterScene } from './exposure'
 import { FogEffect } from './fog'
+import { fogSunTransmittance } from './fogLayer'
 import { LighthouseBeamEffect } from './lighthouse'
 import { createMoon, placeMoon } from './moon'
 import { createOcean, MAX_LAMPS, setOceanRocks, setOceanShips } from './ocean'
@@ -239,6 +240,10 @@ export async function renderScene(
   // --- Camera ---------------------------------------------------------------
   const { camera, dip } = createCamera(params, width, height)
   const vfov = camera.fov * DEG
+  // Fog overhead dims the sun by the layer above the eye: inside it, all of
+  // it; above an advection fog's top, almost none (fogLayer.ts).
+  const fogSun = fogSunTransmittance(params.fog, camera.position.y, params.sunElevationDeg)
+  const weather = { ...params.weather, sunVisibility: params.weather.sunVisibility * fogSun }
 
   // --- Props (CPU only) -------------------------------------------------------
   await atmosphere.issued
@@ -260,7 +265,7 @@ export async function renderScene(
     material.sunAngularRadius = SUN_ANGULAR_RADIUS * params.sunScale
     if (solarEclipse) eclipseSky(material, eclipse, moonECEF, REAL_MOON_ANGULAR_RADIUS * params.moonScale)
     // Under a closed overcast deck the sun disc can't be seen.
-    material.sun = withSun && !night && params.weather.sunVisibility > 0.1
+    material.sun = withSun && !night && weather.sunVisibility > 0.1
     material.moon = !night
     // takram keeps the moon's light fixed, so a disc drawn bigger is dimmer;
     // keep its surface brightness (a real moon is clearly seen by day).
@@ -351,7 +356,7 @@ export async function renderScene(
   // Clouds dim the direct light reaching the scene (a global stand-in for
   // per-pixel cloud shadows in the custom shaders).
   const sunIrradiance = getSunLightColor(textures.transmittanceTexture, cameraECEF, lightECEF, new Color())
-    .multiplyScalar(params.weather.sunVisibility)
+    .multiplyScalar(weather.sunVisibility)
     // In totality no sunlight reaches us at all.
     .multiplyScalar(totality ? 0 : 1)
   // Harmattan dust dims and reddens the sun; the skylight gets it back below.
@@ -471,7 +476,7 @@ export async function renderScene(
   // camera on auto exposure and white balance would.
   const storm = params.storm != null
   // Storms stay dark and moody: only a little of that lift.
-  const gloom = (night ? 0 : 1 - params.weather.sunVisibility) * (storm ? 0.35 : 1)
+  const gloom = (night ? 0 : 1 - weather.sunVisibility) * (storm ? 0.35 : 1)
   whiteBalance.lerp(new Color(1.12, 1.0, 0.84).multiply(whiteBalance), gloom)
   // Night vision blends in from dusk: partly desaturated and blue at blue hour.
   const scotopic = night ? 1 : params.timeOfDay === 'blue-hour' ? 0.5 : 0
@@ -508,7 +513,7 @@ export async function renderScene(
   const cells = stormCells(params.storm, camera.position)
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, params.weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells)
+      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells)
       : null
   // Accumulated frames only redraw what changes: the spray sprites.
   const spray: Object3D[] = []
@@ -580,7 +585,7 @@ export async function renderScene(
     // diffuse light inside it.
     const { fog } = params
     const sinEl = Math.max(0.05, Math.sin(Math.max(params.sunElevationDeg, 0) * DEG))
-    const beam = fog.start === 0 ? Math.exp(-((3.912 / fog.visibility) * fog.height) / sinEl) : 1
+    const beam = fogSun
     const above = sunIrradiance.clone().multiplyScalar(1 / Math.max(beam, 1e-12))
     const diffuse = skyIrradiance.clone().add(above.multiplyScalar((1 - beam) * sinEl * 0.7))
     composer.addPass(new EffectPass(camera, new FogEffect(fog, camera, lightDirectionWorld, sunIrradiance, diffuse), ...beams, grade))
@@ -626,7 +631,7 @@ export async function renderScene(
       envScene,
       envTarget,
       camera.position,
-      params.weather,
+      weather,
       textures,
       cloudAssets,
       worldToECEF,

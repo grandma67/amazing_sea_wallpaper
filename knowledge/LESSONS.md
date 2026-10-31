@@ -177,6 +177,12 @@ tool gotchas: TOOLS.md.
 - Camera-facing ribbons widened along one fixed vector vanish where a segment runs along it
   (lightning as dashes): widen across each segment (`dir × toCamera`).
 - Exponential fog with large scale height fills the sky; a fog *bank* needs tens of metres.
+- Exponential fog has no top: a camera 100 m over a 55 m-scale layer was still in 16% of the
+  sea-level density and saw nothing at all (2016-08-09: island and mountains in the title,
+  a pink blanket in the frame). Real sea fog stops at an inversion; give a layer a top and check
+  the high eyes (open sea and overlooks draw 40–160 m) as well as the beach.
+- Effects that depend on where the eye is (fog above or below it) belong in the render, where
+  the camera's ground is known; `params.ts` can't call `terrainHeight` (import cycle).
 - `Vector3.transformDirection` normalises: scale after transforming (contrails all landed 1 km
   away).
 

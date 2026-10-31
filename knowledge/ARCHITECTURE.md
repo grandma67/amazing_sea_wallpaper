@@ -270,6 +270,8 @@ Light:
 Sky:
 - Waterspouts: the fog rule never applies and they're far rarer than intended (1 in 3 years):
   [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md).
+- 2016-08-09: the title's mountain range (36 km, 1.6 km high, in frame) can't be seen even with
+  `fog: null`: lost in haze against a 3° sun. Not traced.
 - Backlit shelf cloud at sunset is a flat pink band (takram aerial perspective on the mesh;
   e.g. 2010-04-01).
 - 2026-02-13: sparkly dots in the air over the sea.

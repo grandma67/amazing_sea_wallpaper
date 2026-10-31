@@ -1,6 +1,7 @@
 import { BlendFunction, Effect, EffectAttribute } from 'postprocessing'
 import { Uniform, Vector3, Vector4, type PerspectiveCamera } from 'three'
 
+import { fogProfile, fogSigma } from './fogLayer'
 import { dirFromAzEl, type FogParams, type LighthouseParams } from './params'
 import type { LanternInfo } from './props/lighthouse'
 
@@ -62,7 +63,8 @@ export class LighthouseBeamEffect extends Effect {
       uniform float power;
       uniform float haze;
       uniform float fogSigma;
-      uniform float fogHeight;
+      uniform float fogBase;
+      uniform float fogFade;
       uniform float fogStart;
       uniform float tanDivergence;
 
@@ -70,9 +72,10 @@ export class LighthouseBeamEffect extends Effect {
         return (1.0 - g * g) / (4.0 * 3.14159265 * pow(1.0 + g * g - 2.0 * g * c, 1.5));
       }
       // Scattering coefficient of the air at p: sea haze, plus the fog layer
-      // (thinning with height, from where a bank starts).
+      // (fogLayer.ts: uniform up to its base, fading above; from where a
+      // bank starts).
       float sigmaAt(vec3 p) {
-        float fog = fogSigma * exp(-max(p.y, 0.0) / fogHeight) * step(fogStart, length(p.xz - eye.xz));
+        float fog = fogSigma * exp(-max(p.y - fogBase, 0.0) / fogFade) * step(fogStart, length(p.xz - eye.xz));
         return haze + fog;
       }
 
@@ -140,8 +143,9 @@ export class LighthouseBeamEffect extends Effect {
           ['power', new Uniform(power)],
           // Damp sea air: ~25 km visibility.
           ['haze', new Uniform(3.912 / 25_000)],
-          ['fogSigma', new Uniform(fog != null ? 3.912 / fog.visibility : 0)],
-          ['fogHeight', new Uniform(fog?.height ?? 1)],
+          ['fogSigma', new Uniform(fog != null ? fogSigma(fog) : 0)],
+          ['fogBase', new Uniform(fog != null ? fogProfile(fog).base : 0)],
+          ['fogFade', new Uniform(fog != null ? fogProfile(fog).fade : 1)],
           ['fogStart', new Uniform(fog?.start ?? 0)],
           ['tanDivergence', new Uniform(Math.tan(DIVERGENCE))]
         ])

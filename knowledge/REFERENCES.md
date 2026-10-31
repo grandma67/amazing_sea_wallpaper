@@ -41,6 +41,13 @@ Sources behind built features. Research for planned work lives with its plan: co
   round the solstice)
 - Morning Glory: Smith, LMU "The Morning Glory and related phenomena" (Burketown, late Sep–early
   Nov, from converging Cape York sea breezes)
+- Sea fog depth and its lid (read as search summaries, 2026-10-31): East Greenland coastal fog
+  ~100–400 m, later 75–250 m deep, often reaching the boundary-layer top (EGU 2017-9485, EGU
+  2019-3951); Yellow Sea fog ~80–200 m, its top tied to the inversion's thickness (IFDA 2019-8);
+  Taicang, China: a ~200 m surface inversion with fog 200 m deep at one station and 50 m at the
+  next (Pure Appl. Geophys., s00024-022-03119-4); English Channel fog 50–100 m judged from cliffs,
+  clear sky above. So advection fog is tens to a few hundred metres deep under an inversion lid
+  (`fogLayer.ts`; the drawn 30–120 m, banks 18–50 m, sit in the range)
 - Contrails: Irvine et al., EGU 2016 (most North Atlantic contrails last < 6 h, ~5% ≥ 24 h);
   Irvine, Hoskins & Shine, GRL 2012 (ice supersaturation by weather pattern)
 

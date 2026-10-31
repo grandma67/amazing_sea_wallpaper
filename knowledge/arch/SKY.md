@@ -59,8 +59,19 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   horizon for rays at or below it) × `hazeLight(weather)`. Covers sky, clouds and scene, so far
   clouds and islands fade into the horizon. Only on days with clouds (clear days have no clouds
   pass) and clear dust days.
-- **Fog** (`fog.ts`): screen-space exponential-height fog from depth (closed-form optical depth,
-  forward-scattering glow), before exposure. `pickFog` chooses it by climate on ~5% of days:
+- **Fog** (`fog.ts`, layer shape in `fogLayer.ts`): screen-space fog from depth (closed-form
+  optical depth per ray, `FOG_LAYER_GLSL` mirrored by `fogRayDepth`; forward-scattering glow),
+  before exposure. **Advection fog has a lid** (an inversion): density σ up to `base`, then
+  exp(−(y − base)/fade) above, with fade = max(2, 0.1 × height) and base + fade = `fog.height`, so
+  a column still holds σ × height. Its top billows (±12% of the height, swells of ~400 m and
+  billows of ~120 m, `billows`), and seen from above the slopes are shaded by the sun's cosine to
+  the tilted top (`facing`, 0.25–2 × the flat top): a camera above the top (open-sea and
+  overlook eyes at 40–160 m) sees a sea of fog with islands, mountains and a clear sky above it.
+  Sea smoke keeps the exponential (base 0, fade = height). The lighthouse beams use the same
+  profile. **The sun's dimming by the fog above the eye** (`fogSunTransmittance`) is applied in
+  `renderScene` from the camera's real height (it scales `weather.sunVisibility` there, for the
+  light, the sky's sun disc, the gloom grade and the clouds pass); `params.ts` no longer dims the
+  sun for fog, as the eye's ground isn't known there (`terrainHeight` would be an import cycle). `pickFog` chooses it by climate on ~5% of days:
   *advection fog* (warm moist air over cold water: California and Chile in summer, Namib and
   Atacama nearly all year, North Sea, Newfoundland, Arctic in spring/summer; light wind, likeliest
   at dawn), *fog bank* offshore, *sea smoke* (very cold air over warmer water, polar winters, calm

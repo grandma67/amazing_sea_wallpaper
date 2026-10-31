@@ -50,7 +50,8 @@ minutes (dep optimisation).
 ## Gotchas
 
 - Changing `vite.config.ts` restarts the dev server and can leave pages at `504 Outdated Optimize
-  Dep` (the render hangs until `--budget`). Fix: `npx vite --port 5176 --force` and pass
+  Dep` (the render hangs until `--budget`; in a browser the page stays blank, which looks like a
+  scene bug: check the console first). Seen again 2026-10-31 on a 5174 server (cause not traced). Fix: `npx vite --port 5176 --force` and pass
   `--url http://localhost:5176/` (snapshot, bench).
 - `reading 'hasFeature'` = two three.js copies. After the first `mesh.mjs` on a fresh server
   (deps re-optimised): restart with `npx vite --force`. When two vite servers share
