@@ -125,6 +125,9 @@ export interface SceneSpec {
   tidalRange?: number
   /** A fringing reef offshore (reef.ts): true on any beach (implies one), null: none. */
   reef?: boolean | null
+  /** A salt marsh behind the beach (tidalFlat.ts): true on any beach
+   * (implies one), false or null: none. */
+  saltMarsh?: boolean | null
   /** Beachrock ledges along the waterline: true implies a reef; null: none. */
   beachrock?: boolean | null
 
@@ -279,6 +282,7 @@ const SPEC = object({
   tide: oneOf('low', 'mid', 'high'),
   tidalRange: number,
   reef: oneOf(true, false, null),
+  saltMarsh: oneOf(true, false, null),
   beachrock: oneOf(true, false, null),
   weather: oneOf('clear', 'cirrus', 'few', 'scattered', 'broken', 'overcast'),
   clouds: (value, path) => {

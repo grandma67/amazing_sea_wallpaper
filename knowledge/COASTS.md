@@ -62,14 +62,15 @@ mediterranean 9%, arid 8%.
 
 | Coast | Share of days |
 |---|---|
-| `beach` | 40.0% |
-| `rock-shore` | 25.3% |
-| `open-sea` | 34.8% |
+| `beach` | 39.5% (0.3% of days with a salt marsh) |
+| `rock-shore` | 25.6% |
+| `tidal-flat` | 0.3% (2 of the 1095 test days; 87 of 29,220 days 1990–2069) |
+| `open-sea` | 34.7% |
 
 | Composition (land days) | Share |
 |---|---|
-| `along-beach` | 29.0% |
-| `shoreline` | 28.0% |
+| `along-beach` | 28.8% |
+| `shoreline` | 28.1% |
 | `overlook` | 28.0% (cliff tops on rocky shores, hillsides on beaches) |
 | `framed` | 15.1% |
 
@@ -94,7 +95,8 @@ PLAN_BIOMES 8, [plans/ROCK_SHORE.md](plans/ROCK_SHORE.md). Measured over 2024–
   Azores and Galápagos 60%; the Mediterranean Sea, Portugal, the Cape, the Pacific Northwest,
   Fundy, the Bristol Channel and the Baltic 40%; Atacama 35%, Baja 30%, Arctic Russia 25%,
   North Africa 20%, Namibia 15%; barrier and tidal-flat coasts (Florida, Wadden, PEI,
-  Morecambe Bay, Mont-Saint-Michel, Alaska's Arctic coast) 10%.
+  Morecambe Bay, Mont-Saint-Michel, Alaska's Arctic coast) 10%. The rock share stays when a
+  place also has flats (the beach gives way).
 - **Kinds:** platform 44%, cliff 36% (16% plunging, no platform), boulder 20%. Cliff ⇔ overlook.
 - **Shapes** (`rockShoreFor`): platforms 25–120 m and near level (0.3–0.7%) below a 2 m spring
   range, else 1–4° (steeper for bigger tides) and 30–200 m down to about spring low water, a
@@ -104,6 +106,29 @@ PLAN_BIOMES 8, [plans/ROCK_SHORE.md](plans/ROCK_SHORE.md). Measured over 2024–
 
 Other things in view, all days: islands 32% (rocky 13%, high 6%, cay 5%, skerries 4.5%,
 karst 3%); landform 31% (range 19%, stratovolcano 9%, shield 4%).
+
+### Tidal flats and salt marsh
+
+Plan and research: [plans/TIDAL_FLAT.md](plans/TIDAL_FLAT.md); how it works: arch/COAST.md
+"Tidal flats".
+
+- **Place weights** (`FLAT` in `places.ts`, share of land days): wadden-north-sea,
+  morecambe-bay, mont-saint-michel 50%, yellow-sea 45%, fundy 25%; nowhere else. These places
+  are 1.94% of days (`params.mjs --expect`), so the planned ~3% of days can't be reached.
+- **Tide:** a drawn flat shows only below mid tide (level < 0, ~half the days); at or above
+  mid the day is a beach with a salt marsh behind. Flats ≈ 0.29% of days, marsh beaches ≈
+  0.28% (80 years: 87 and 83 of 29,220 days).
+- **Shapes** (`tidalFlatFor`): s = 0 the marsh edge at mean high water (0.42 × spring range);
+  the flat straight to spring low water − 0.3 m at 1:2000–1:300 (steeper for bigger tides),
+  0.8–5 km wide (Wadden ~1:800 and 3 km, Fundy ~1:300 and 4 km); main channels every 250–700 m,
+  15–45 m wide and 0.8–2 m deep at the flat's end; small creeks every 50–120 m, 4 m wide,
+  0.18 m deep, on the upper flat; marsh 80–400 m wide, from 0.2–0.8 m above the flat's top to
+  the spring high water + 0.5 m. Run-up 0.08–0.2 m, no surf.
+- **Marsh beaches:** sand 10–30 m wide, then a marsh 80–400 m at spring high water + 0.4 m; surf
+  and run-up × 0.35 (the flooded flats take the swell).
+- **Mud:** grey-brown, Fundy red-brown, Mont-Saint-Michel pale grey tangue (`MUD`).
+- **Marsh colour by month** (`MARSH_LOOK`): straw Dec–Mar, green Apr–Aug, sea lavender purple
+  Jul–Aug, *Salicornia*/*Suaeda* red Sep–Oct, brown Nov.
 
 ### Beach material
 

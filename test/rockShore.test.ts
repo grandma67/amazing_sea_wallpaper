@@ -127,13 +127,13 @@ describe('rock shore shares', () => {
 
   it('are about 37% of land days, a quarter of all days, the rest beaches (params.mjs --expect)', () => {
     expectShare(land, p => p.coast.type === 'rock-shore', 0.366)
-    for (const p of land) expect(['beach', 'rock-shore']).toContain(p.coast.type)
+    for (const p of land) expect(['beach', 'rock-shore', 'tidal-flat']).toContain(p.coast.type)
   })
 
   it('follow the place: fjords and the North Atlantic most, the tropics and barrier coasts least', () => {
     for (const p of PLACES) {
       const rock = p.coast['rock-shore'] ?? 0
-      expect(rock + (p.coast.beach ?? 0)).toBeCloseTo(1)
+      expect(rock + (p.coast.beach ?? 0) + (p.coast['tidal-flat'] ?? 0)).toBeCloseTo(1)
       if (p.biome === 'tropical') expect(rock).toBeLessThanOrEqual(0.2)
     }
     for (const id of ['norway-west', 'scotland', 'nova-scotia', 'iceland', 'california', 'british-columbia']) expect(placeNamed(id).coast['rock-shore']).toBeGreaterThanOrEqual(0.5)

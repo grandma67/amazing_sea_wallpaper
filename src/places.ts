@@ -98,14 +98,15 @@ export interface Place {
   tide: readonly [number, number]
   /** Chance a beach day has a fringing reef offshore (reef.ts). */
   reef: number
-  /** What the shore is on land days (not the open sea): a beach or a rocky
-   * shore (rockShore.ts). */
+  /** What the shore is on land days (not the open sea): a beach, a rocky
+   * shore (rockShore.ts) or a tidal flat (tidalFlat.ts; a beach with a salt
+   * marsh when the tide is at or above mid). */
   coast: Weights<LandKind>
   /** The mud of a tidal flat near its marsh (linear albedo; tidalFlat.ts). */
   mud: RGB
 }
 
-export type LandKind = 'beach' | 'rock-shore'
+export type LandKind = 'beach' | 'rock-shore' | 'tidal-flat'
 
 const nest = (species: TurtleSpecies, months?: Months, weight = 1): Animal => ({ kind: 'turtle', species, months, weight })
 const monkey = (species: MonkeyKind, chance: number): Animal => ({ kind: 'monkey', species, chance })
@@ -375,6 +376,19 @@ const ROCK: Record<string, number> = {
   namibia: 0.15
 }
 
+// Tidal flats (PLAN_BIOMES 9; plans/TIDAL_FLAT.md): the share of land days
+// whose shore is a tidal flat, in meso- and macro-tidal places with flats
+// (the Wadden mainland coast, Morecambe Bay, the bay of Mont-Saint-Michel,
+// Korea's west coast; Fundy's Minas Basin among its cliffs). Only when the
+// tide is below mid; at or above it the day is a beach with a salt marsh.
+const FLAT: Record<string, number> = {
+  'wadden-north-sea': 0.5,
+  'morecambe-bay': 0.5,
+  'mont-saint-michel': 0.5,
+  'yellow-sea': 0.45,
+  fundy: 0.25
+}
+
 // Tidal-flat mud (PLAN_BIOMES 9; plans/TIDAL_FLAT.md), linear albedo: grey-
 // brown silt and clay, Fundy's red-brown from the Triassic red beds,
 // Mont-Saint-Michel's pale grey tangue (shell-rich silt).
@@ -530,14 +544,14 @@ function resolve(): Place[] {
       stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome],
       tide: TIDE[row.id] ?? TIDE[region] ?? DEFAULT_TIDE,
       reef: REEF[row.id] ?? REEF[region] ?? 0,
-      coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome]),
+      coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome], FLAT[row.id] ?? 0),
       mud: MUD[row.id] ?? DEFAULT_MUD
     }
   })
 }
 
-function landKinds(rock: number): Weights<LandKind> {
-  return { beach: 1 - rock, 'rock-shore': rock }
+function landKinds(rock: number, flat: number): Weights<LandKind> {
+  return flat > 0 ? { beach: 1 - rock - flat, 'rock-shore': rock, 'tidal-flat': flat } : { beach: 1 - rock, 'rock-shore': rock }
 }
 
 export const PLACES: readonly Place[] = resolve()

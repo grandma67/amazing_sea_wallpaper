@@ -42,7 +42,7 @@ Allowed values are in `sceneSpec.ts`.
   dates; `sand` (`white`, `golden`, `grey`, `black`, `pink`, `red`; any place); `beachMaterial`
   (`sand`, `mixed`, `shingle`, `cobble`; a stony one implies a beach, any place); `beachState`
   (`reflective`, `low-tide-terrace`, `transverse-bar-rip`, `rhythmic-bar`, `longshore-bar`,
-  `dissipative`: slopes, bars, rips and cusps; grain and swell stay the day's); `tide` (`low`,
+  `dissipative`: slopes, bars, rips and cusps; grain and swell stay the day's); `saltMarsh` (true: a marsh behind any beach, implies a beach; false or null: none); `tide` (`low`,
   `mid`, `high`: the stage; the mean range is still drawn); `tidalRange` (m, today's low to high
   water; the beach is rebuilt for it if above springs); `reef` (true: a fringing reef on any beach,
   implies a beach; null: none); `beachrock` (true: ledges along the waterline, implies a reef;

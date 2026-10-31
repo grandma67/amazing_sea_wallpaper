@@ -384,6 +384,8 @@ float beachHeightAt(vec2 p, vec2 sa) {
     (0.25 + 0.75 * fbm(q / 450.0)) * smoothstep(-0.2, 1.0, fbm(q / 1400.0 + 7.0));
   float bumps = 0.35 * (fbm(q / 7.0) - 0.5) * smoothstep(0.0, beachWidth, u);
   float land = beach + dunes + hills + bumps + ridgeHeight(u, sa.y);
+  // A salt marsh behind the beach stands above the spring high water.
+  if (marsh.y > 1.5) land += max(0.0, marsh.w - terrace.x - beach) * smoothstep(marsh.x - 6.0, marsh.x + 4.0, u);
 
   return mix(sea, land, smoothstep(-1.0, 1.0, u)) + cuspHeight(u, sa.y) + terraceStep(s) - tideLevel;
 }
@@ -927,7 +929,10 @@ function beachHeight(coast: CoastParams, x: number, z: number): number {
     (0.25 + 0.75 * fbm(qx / 450, qz / 450)) *
     smoothstep(-0.2, 1, fbm(qx / 1400 + 7, qz / 1400 + 7))
   const bumps = 0.35 * (fbm(qx / 7, qz / 7) - 0.5) * smoothstep(0, coast.beachWidth, u)
-  const land = beach + dunes + hills + bumps + ridgeHeight(coast, u, a)
+  let land = beach + dunes + hills + bumps + ridgeHeight(coast, u, a)
+  // A salt marsh behind the beach stands above the spring high water.
+  const marsh = coast.marsh
+  if (marsh != null && marsh.width > 1.5) land += Math.max(0, marsh.back - coast.terrace.height - beach) * smoothstep(marsh.start - 6, marsh.start + 4, u)
 
   const t = smoothstep(-1, 1, u)
   return sea + (land - sea) * t + cuspHeight(coast, u, a) + terraceStep(coast, s) - coast.tide.level

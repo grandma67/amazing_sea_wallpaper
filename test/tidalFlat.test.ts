@@ -6,7 +6,8 @@ import { Random } from '../src/random'
 import { wobbleAtCamera } from '../src/rockShore'
 import { shoreToWorld, terrainHeight, terrainNormal } from '../src/terrain'
 import { bareFlat, flatCreeks, flatWaterline, tidalFlatFor } from '../src/tidalFlat'
-import { scene, scenes } from './days'
+import { placeNamed, PLACES } from '../src/places'
+import { allParams, expectShare, scene, scenes } from './days'
 
 const at = (coast: CoastParams, s: number, a = 0): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
 const base = { eclipse: null, coast: 'tidal-flat' } as const
@@ -124,5 +125,51 @@ describe('tidal flat days', () => {
     }
     const out = scenes({ ...base, place: 'wadden-north-sea', tide: 'low', composition: 'shoreline' }, 10)
     for (const p of out) expect(p.coast.distanceToWater + wobbleAtCamera(p.coast)).toBeLessThan(0)
+  })
+})
+
+describe('tidal flat and salt marsh shares', () => {
+  it('come only from the five flat places, about half their land days split by the tide', () => {
+    for (const p of PLACES) expect((p.coast['tidal-flat'] ?? 0) > 0).toBe(places.includes(p.id))
+    for (const id of places) expect(placeNamed(id).coast['tidal-flat']).toBeGreaterThanOrEqual(0.25)
+    for (const p of allParams()) {
+      if (p.coast.type === 'tidal-flat' || (p.coast.marsh != null && p.coast.flat == null)) expect(places).toContain(p.place.id)
+    }
+    // 120 days in each flat place: land 65% × flat weight, below mid tide ~half.
+    for (const id of ['wadden-north-sea', 'mont-saint-michel']) {
+      const land = scenes({ place: id }, 160).filter(p => hasLand(p.coast))
+      const flatOrMarsh = land.filter(p => p.coast.marsh != null)
+      expectShare(land, p => p.coast.marsh != null, 0.5)
+      expectShare(flatOrMarsh, p => p.coast.type === 'tidal-flat', 0.5)
+    }
+  })
+
+  it('make a flat only below mid tide, and a beach with a marsh at or above it', () => {
+    for (const id of places) {
+      for (const p of scenes({ place: id }, 60)) {
+        if (p.coast.type === 'tidal-flat') expect(p.coast.tide.level).toBeLessThan(0)
+        if (p.coast.marsh != null && p.coast.flat == null) {
+          expect(p.coast.type).toBe('beach')
+          expect(p.coast.tide.level).toBeGreaterThanOrEqual(0)
+        }
+      }
+    }
+    // params.mjs --expect: ~0.29% of days are flats (the places are 1.9% of days).
+    expectShare(allParams(), p => p.coast.type === 'tidal-flat', 0.0029)
+  })
+
+  it('puts a marsh behind any beach on demand, none when asked, without moving other draws', () => {
+    for (const p of scenes({ eclipse: null, saltMarsh: true }, 15)) {
+      const c = p.coast
+      expect(c.type).toBe('beach')
+      expect(c.marsh!.start).toBe(c.beachWidth)
+      expect(c.beachWidth).toBeLessThanOrEqual(30)
+      expect(c.duneHeight).toBe(0)
+      expect(p.title).toMatch(/salt marsh/)
+    }
+    for (const p of scenes({ place: 'wadden-north-sea', coast: 'beach', saltMarsh: null }, 20)) expect(p.coast.marsh).toBeNull()
+    const plain = scene({ eclipse: null, place: 'wadden-north-sea', coast: 'beach', saltMarsh: null })
+    const marsh = scene({ eclipse: null, place: 'wadden-north-sea', coast: 'beach', saltMarsh: true })
+    expect([marsh.camera.headingDeg, marsh.coast.tide, marsh.coast.noiseOffset]).toEqual([plain.camera.headingDeg, plain.coast.tide, plain.coast.noiseOffset])
   })
 })

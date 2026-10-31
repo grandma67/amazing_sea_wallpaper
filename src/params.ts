@@ -585,15 +585,19 @@ function generateCoast(
   // place's weights choose a beach or a rocky shore (own stream).
   const landKind = choose(Random.derive(seed, 'coast-kind'), place.coast)
   const drawnType = Random.derive(seed, 'coast').chance(0.65) ? landKind : 'open-sea'
+  // A tidal flat shows only below mid tide; at or above mid the sea covers
+  // it up to the marsh, and the day is a beach with a salt marsh behind.
+  const flooded = drawnType === 'tidal-flat' && tide.level >= 0
   const type = or(
-    drawnType,
+    flooded ? 'beach' : drawnType,
     spec.coast ??
       (spec.rockShore != null
         ? 'rock-shore'
-        : spec.composition != null || isStony(spec.beachMaterial) || spec.reef === true || spec.beachrock === true
+        : spec.composition != null || isStony(spec.beachMaterial) || spec.reef === true || spec.beachrock === true || spec.saltMarsh === true
           ? 'beach'
           : undefined)
   )
+  const saltMarsh = type === 'beach' && forced(spec.saltMarsh, landKind === 'tidal-flat' && tide.level >= 0)
   rng.float() // keep attempt 0's stream identical to the original draw order
 
   // Look out to sea at an angle so the shoreline runs diagonally across the
@@ -684,6 +688,22 @@ function generateCoast(
   if (isStony(material)) {
     if (material !== 'mixed') coast.runup *= STONY_RUNUP
     Object.assign(coast, { material, stoneSize }, stonyShape(coast, material, mrng))
+  }
+  // A salt marsh behind the beach (own stream, once per date): no dunes, a
+  // narrow strip of sand, then the marsh where the dunes were; hills and
+  // plants start behind it.
+  if (saltMarsh) {
+    const srng = Random.derive(seed, 'salt-marsh')
+    const width = srng.range(80, 400)
+    coast.beachWidth = Math.min(coast.beachWidth, srng.range(10, 30))
+    coast.duneHeight = 0
+    coast.duneWidth = width
+    const land = tide.springRange / 2 + 0.4
+    coast.marsh = { start: coast.beachWidth, width, height: land, back: land }
+    // The flooded flats in front take most of the swell: wind chop and a
+    // small run-up.
+    coast.surfAmplitude *= 0.35
+    coast.runup = 0.15 + Math.max(0, coast.runup - 0.25) * 0.35
   }
   // A rocky shore (own stream, once per date): no beach, so none of its
   // terrace, bars, rips, cusps, ridges or reef; plants start on top of the
