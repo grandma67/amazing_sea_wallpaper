@@ -22,7 +22,10 @@
 // below, the along-shore coordinate a across. Land brown to green by height,
 // water light to dark blue by depth, contours every 0.5 m, the waterline
 // black, white where waves of the day's set height break (depth = break
-// depth), the camera red, a faint grid every 50 m. --res is metres per pixel
+// depth), the camera red, the view cone yellow (frame edges on the ground and
+// an arc where the ground first shows), a faint grid every 50 m. Also warns
+// when land that must stay dry (behind the beach, a marsh) lies below the
+// spring high water + run-up. --res is metres per pixel
 // (default 1).
 //
 // Examples:
@@ -89,8 +92,8 @@ const f = (x, d = 2) => (Math.abs(x) < 1e4 ? Number(x).toFixed(d) : String(x))
 
 const server = await createServer({ cacheDir: resolve('node_modules/.vite-params'), server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom', logLevel: 'error' })
 try {
-  const [{ generateSceneParams }, { parseSceneSpec }, terrain, { beachLines }, { shelterAt }, { lagoonSlope }] = await Promise.all(
-    ['/src/composition.ts', '/src/sceneSpec.ts', '/src/terrain.ts', '/src/beach.ts', '/src/shelter.ts', '/src/reef.ts'].map(p => server.ssrLoadModule(p))
+  const [{ generateSceneParams, frameView }, { parseSceneSpec }, terrain, { beachLines }, { shelterAt }, { lagoonSlope }, { tideMarks }, { createCamera }] = await Promise.all(
+    ['/src/composition.ts', '/src/sceneSpec.ts', '/src/terrain.ts', '/src/beach.ts', '/src/shelter.ts', '/src/reef.ts', '/src/tides.ts', '/src/camera.ts'].map(p => server.ssrLoadModule(p))
   )
   const { terrainHeight, shoreToWorld, worldToShore, surfBreakDepth, surfWave, surfReach, ripGap, reefGap, reefCrest, hasLand } = terrain
   await mkdir(outDir, { recursive: true })
@@ -127,7 +130,33 @@ try {
         `water ${f(c.waterline, 1)} m out` +
         (c.terrace.width > 0 ? ` · terrace ±${f(c.terrace.height, 1)} m over ${f(c.terrace.width, 0)} m` : '')
     )
-    console.log(`camera: ${f(-camS, 1)} m inland, a = ${f(camA, 0)} m, ${c.composition}, eye ${f(p.camera.heightM, 1)} m`)
+    const view = frameView(p)
+    console.log(
+      `camera: ${f(-camS, 1)} m inland, a = ${f(camA, 0)} m, ${c.composition}, eye ${f(p.camera.heightM, 1)} m, ` +
+        `${f(view.focalLengthMm, 0)} mm, ground in frame from ${f(view.nearest, 1)} m (yellow cone on the map)`
+    )
+    // Land that must stay dry (plants, a marsh, the back of the beach or
+    // platform): its share below today's spring high water + run-up, over
+    // ±100 m of shore round the camera. A marsh or berm under it floods.
+    {
+      const wet = tideMarks(c).spring + c.runup
+      const bands = [['behind the beach', -c.beachWidth - 60, -c.beachWidth - 5]]
+      // A flat's low marsh floods on spring tides (as real ones do): only
+      // its high marsh, the back third, must stay dry.
+      if (c.marsh != null)
+        bands.push(c.flat != null ? ['high marsh', -c.marsh.start - c.marsh.width + 5, -c.marsh.start - 0.67 * c.marsh.width] : ['marsh', -c.marsh.start - c.marsh.width + 5, -c.marsh.start - 3])
+      for (const [label, from, to] of bands) {
+        let below = 0
+        let n = 0
+        for (let s = from; s <= to; s += Math.max(1, (to - from) / 20))
+          for (let a = camA - 100; a <= camA + 100; a += 10) {
+            n++
+            if (at(s, a) < wet) below++
+          }
+        const share = below / Math.max(1, n)
+        console.log(`dry land ${label} (s ${f(from, 0)}…${f(to, 0)}): ${f(100 * share, 0)}% below spring high water + run-up (${f(wet)} m)${share > 0.1 ? '  ⚠ floods' : ''}`)
+      }
+    }
     const reach = surfReach(c)
     if (c.reef != null) {
       const r = c.reef
@@ -270,6 +299,30 @@ try {
         if (Math.hypot(sv - camS, av - camA) < 3 * res + 2) col = [0.9, 0.1, 0.1]
         rgb.set(col.map(v => Math.round(clamp01(v) * 255)), i * 3)
       }
+    // The view cone: the frame's left and right edges on the ground, and an
+    // arc where the ground first shows (view.nearest).
+    {
+      const { camera } = createCamera(p, p.camera.aspect * 1080, 1080)
+      const fwd = camera.getWorldDirection(camera.position.clone()).setY(0).normalize()
+      const half = Math.atan(Math.tan((camera.fov * Math.PI) / 360) * camera.aspect)
+      const plot = (x, z) => {
+        const [sv, av] = worldToShore(c, x, z)
+        const px = Math.round((av - a0) / res)
+        const py = Math.round((s1 - sv) / res)
+        if (px >= 0 && px < W && py >= 0 && py < H) rgb.set([240, 210, 30], (py * W + px) * 3)
+      }
+      const far = Math.hypot(s1 - s0, a1 - a0)
+      for (const edge of [-half, half]) {
+        const dx = fwd.x * Math.cos(edge) - fwd.z * Math.sin(edge)
+        const dz = fwd.x * Math.sin(edge) + fwd.z * Math.cos(edge)
+        for (let d = 0; d < far; d += res / 2) plot(dx * d, dz * d)
+      }
+      for (let t = -half; t <= half; t += res / Math.max(view.nearest, 1) / 2) {
+        const dx = fwd.x * Math.cos(t) - fwd.z * Math.sin(t)
+        const dz = fwd.x * Math.sin(t) + fwd.z * Math.cos(t)
+        plot(dx * view.nearest, dz * view.nearest)
+      }
+    }
     const file = join(outDir, `${name}.profile.png`)
     await writeFile(file, png(W, H, rgb))
     console.log(`map ${W}×${H} px (${res} m/px), s ${f(s1, 0)} → ${f(s0, 0)} m top to bottom, a ${f(a0, 0)} → ${f(a1, 0)} m: ${file}`)

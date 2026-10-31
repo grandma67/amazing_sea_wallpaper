@@ -77,8 +77,14 @@ width: a 2 m strip on a steep face won't read as a white line from afar); height
 camera, through the nearest rip channel and the nearest reef pass. Writes `NAME.profile.png` (out
 to the surf zone's end): sea at the top, a across, land brown→green by height, water light→dark
 blue by depth, 0.5 m contours, black waterline, white where the day's waves break, red camera,
-50 m grid. Use it for any terrain or depth feature before a render; compare every drawn number
-with the reached one.
+50 m grid, and the **view cone** in yellow (the frame's edges on the ground and an arc at
+`view.nearest`): what crosses the frame and from how near, so a creek or ridge 12 m beside the
+camera that a long lens stretches across the picture shows here, not after a render. It prints
+the lens and nearest ground, and **dry-land checks**: the share of land behind the beach (and of
+a marsh beach's marsh, or a flat's high marsh) below today's spring high water + run-up, with
+`⚠ floods` over 10%. On tidal flats it prints the flat, marsh and creeks drawn vs reached and maps
+the marsh to today's water at ≥ 4 m/px. Use it for any terrain or depth feature before a render;
+compare every drawn number with the reached one.
 
 ```sh
 node scripts/profile.mjs --scene scenes/beach-states.json --out $SP/profile
