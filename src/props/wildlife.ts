@@ -116,7 +116,8 @@ export function wildlifeFor(params: SceneParams, rng: Random): Wildlife | null {
 }
 
 function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
-  if (!hasBeach(params.coast)) return null
+  const rockShore = params.coast.rock != null
+  if (!hasBeach(params.coast) && !rockShore) return null
   const { animals, region: placeRegion } = placeNamed(params.place.id)
   const region = animals.length > 0 ? placeRegion : null
   const month = Number(params.date.slice(5, 7))
@@ -203,6 +204,11 @@ function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
     life.crocodiles = crocCount
   }
   if (hippoDraw < (animal(animals, 'hippo')?.chance ?? 0)) life.hippos = hippoCount
+  // A rocky shore has only the marine iguanas, which live on the lava.
+  if (rockShore) {
+    const iguanas = life.lizard === 'marine-iguana'
+    return { ...life, turtle: null, nesting: false, tracks: 0, hatchlings: 0, basking: 0, monkey: null, monkeys: 0, lizard: iguanas ? life.lizard : null, lizards: iguanas ? life.lizards : 0, crocodile: null, crocodiles: 0, hippos: 0 }
+  }
   return life
 }
 
@@ -870,9 +876,13 @@ export function createWildlife(ctx: PropContext): Mesh[] {
     const pieces: Piece[] = []
     // Marine iguanas heap together near the water, facing the sun; the others
     // keep to the wrack line (monitors) or the top of the beach.
+    // On a rocky shore: on the platform a few metres above today's water.
+    const rocky = coast.rock != null
     const zone: [number, number] =
       kind === 'marine-iguana'
-        ? [0.5, highTide + 2]
+        ? rocky
+          ? [3 - coast.waterline, 20 - coast.waterline]
+          : [0.5, highTide + 2]
         : kind === 'monitor'
           ? [highTide - 1, highTide + 1]
           : [stormLine, Math.max(stormLine + 1, coast.beachWidth)]
@@ -881,7 +891,8 @@ export function createWildlife(ctx: PropContext): Mesh[] {
     const spread = kind === 'marine-iguana' ? 2.5 : 6
     for (let i = 0; at != null && i < life.lizards * 6 && pieces.length < life.lizards; i++) {
       const yaw = kind === 'marine-iguana' ? sunYaw + rng.normal(0, 0.4) : rng.range(0, Math.PI * 2)
-      place(pieces, rng.int(0, 2), Math.max(0.3, u0 + rng.normal(0, spread * 0.4)), a0 + rng.normal(0, spread), yaw, 0.6)
+      const u = u0 + rng.normal(0, spread * 0.4)
+      place(pieces, rng.int(0, 2), rocky ? u : Math.max(0.3, u), a0 + rng.normal(0, spread), yaw, 0.6)
     }
     build(geometries, pieces)
   }

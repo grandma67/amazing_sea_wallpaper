@@ -454,7 +454,7 @@ float rockHeightAt(vec2 p, vec2 sa) {
   float gully = rockGully(sa, length(p));
   // The platform's ragged edge wanders ±25% and is cut back in gullies.
   float width = rockShape.x > 0.0
-    ? max(0.0, rockShape.x * (1.0 + 0.25 * (vnoise(vec2(sa.y / 40.0, 41.3) + noiseOffset) * 2.0 - 1.0)) - 8.0 * gully)
+    ? max(0.0, rockShape.x * (1.0 + 0.25 * (vnoise(vec2(sa.y / 40.0, 41.3) + noiseOffset) * 2.0 - 1.0)) - 8.0 * gully * (1.0 - smoothstep(50.0, 150.0, length(p))))
     : 0.0;
   float h = bareRock(s, width, length(p));
   float back = rockBack.y;
@@ -468,8 +468,11 @@ float rockHeightAt(vec2 p, vec2 sa) {
     // (2.2% of the distance) softens with distance, or it zig-zags.
     float r = length(p);
     float n = rockBeds.x * 2.0 * (fbm(q / 18.0) - 0.5);
-    float sharp = 0.22 * (1.0 - abs(vnoise(q / 6.0) * 2.0 - 1.0)) +
-      0.08 * (1.0 - abs(vnoise(q / 2.3 + 5.0) * 2.0 - 1.0)) * (1.0 - smoothstep(40.0, 120.0, r)) - 0.2;
+    // Ridged noise with a rounded crease (a knife edge zig-zags across
+    // the grid in silhouette).
+    float k1 = vnoise(q / 6.0) * 2.0 - 1.0;
+    float k2 = vnoise(q / 2.3 + 5.0) * 2.0 - 1.0;
+    float sharp = 0.22 * (1.0 - sqrt(k1 * k1 + 0.02)) + 0.08 * (1.0 - sqrt(k2 * k2 + 0.02)) * (1.0 - smoothstep(40.0, 120.0, r)) - 0.2;
     float rock;
     if (rockBack.w > 0.0) {
       rock = h + 0.3 * n + sharp + (boulderField(q, rockBack.w) - 0.35 * rockBack.w) * (1.0 - smoothstep(80.0, 250.0, r));
@@ -482,7 +485,7 @@ float rockHeightAt(vec2 p, vec2 sa) {
       // Risers widen with distance and on steep faces (scarp, cliff), so
       // each step spans a few grid cells.
       float steep = abs(bareRock(s + 0.5, width, r) - bareRock(s - 0.5, width, r));
-      float riser = min(1.0, 0.15 + 0.008 * r + 0.05 * r * steep / rockBeds.y);
+      float riser = min(1.0, 0.3 + 0.008 * r + 0.05 * r * steep / rockBeds.y);
       rock = (floor(layer) + smoothstep(1.0 - riser, 1.0, fract(layer)) + 0.5 - 0.5 * riser + 0.01) * rockBeds.y + planes + sharp;
       rock -= rockJoints.z * gully * (0.4 + 0.6 * smoothstep(0.0, max(width, 20.0), s)) * (1.0 - smoothstep(150.0, 400.0, r));
     }
@@ -1168,14 +1171,15 @@ void main() {
     // Widen the highlight where a pixel covers a lot of sand, so thin distant
     // wet strips shimmer softly instead of sparkling.
     // Damp sand is a rougher reflector than a film of water.
-    float alpha = clamp(mix(0.25, 0.08, max(wet, pools)) + footprint * 0.4, 0.08, 0.6);
+    // Wet rock is rough: a dull sheen, not a mirror (its pools are).
+    float alpha = clamp(mix(0.25, mix(0.08, 0.35, rockW * (1.0 - pools)), max(wet, pools)) + footprint * 0.4, 0.08, 0.6);
     float a2 = alpha * alpha;
     float d = NoH * NoH * (a2 - 1.0) + 1.0;
     float NoLw = max(dot(Nw, L), 0.0) * shadow;
     float k = alpha * 0.5;
     float G = NoLw / (NoLw * (1.0 - k) + k) * NoV / (NoV * (1.0 - k) + k);
     float spec = a2 / (PI * d * d) * F * G / (4.0 * NoV);
-    color += gloss * (reflected * F + sunIrradiance * min(spec, 0.6));
+    color += gloss * mix(1.0, 0.4, rockW * (1.0 - pools)) * (reflected * F + sunIrradiance * min(spec, 0.6));
 
     // Lacy foam left by the last wave at the edge of the swash.
     float edge = 1.0 - smoothstep(0.0, 0.08, abs(h - wetLine * 0.55 - 0.03 * (vnoise(q * 0.4) - 0.5)));

@@ -96,7 +96,7 @@ export function rockShoreFor(springRange: number, colors: readonly RGB[], rng: R
   const kind = force.kind ?? (force.overlook === true ? 'cliff' : force.overlook === false && drawn === 'cliff' ? 'platform' : drawn)
   const hw = springRange / 2
   const common = {
-    dip: Math.tan(((2 + 18 * u[8]) * Math.PI) / 180),
+    dip: Math.tan(((1 + 7 * u[8]) * Math.PI) / 180),
     strike: u[9] * Math.PI,
     jointSpacing: 6 + 14 * u[10],
     jointAngle: ((u[11] - 0.5) * 50 * Math.PI) / 180
@@ -308,11 +308,11 @@ export function boulderField(x: number, z: number, size: number): number {
 }
 
 /** The platform's ragged edge at a (mirrors rockHeightAt's width). */
-export function rockEdge(coast: RockCoast, a: number, gully: number): number {
+export function rockEdge(coast: RockCoast, a: number, gully: number, distance = 0): number {
   const rock = coast.rock!
   if (rock.width <= 0) return 0
   const [ox, oz] = coast.noiseOffset
-  return Math.max(0, rock.width * (1 + 0.25 * (vnoise(a / 40 + ox, 41.3 + oz) * 2 - 1)) - 8 * gully)
+  return Math.max(0, rock.width * (1 + 0.25 * (vnoise(a / 40 + ox, 41.3 + oz) * 2 - 1)) - 8 * gully * (1 - smoothstep(50, 150, distance)))
 }
 
 /** A rocky shore's height at shore coords (s, a), world (x, z) (mirrors
@@ -325,7 +325,7 @@ export function rockSurface(coast: RockCoast, s: number, a: number, x: number, z
   const qz = z + oz
   const dist = Math.hypot(x, z)
   const gully = rockGully(coast, s, a, dist)
-  const width = rockEdge(coast, a, gully)
+  const width = rockEdge(coast, a, gully, dist)
   let h = bareRock(rock, coast.nearshoreSlope, coast.seabedDepth, s, width, dist)
   const back = rock.backWidth
   h += coast.hillHeight * smoothstep(back + 20, back + 520, u) * (0.25 + 0.75 * fbm(qx / 450, qz / 450)) * smoothstep(-0.2, 1, fbm(qx / 1400 + 7, qz / 1400 + 7))
@@ -334,10 +334,9 @@ export function rockSurface(coast: RockCoast, s: number, a: number, x: number, z
   const band = smoothstep(rock.boulder > 0 ? -back - 2 : -back - 25, -back + 1, s) * (1 - smoothstep(footS + 20, footS + 50, s))
   if (band > 0) {
     const n = rock.relief * 2 * (fbm(qx / 18, qz / 18) - 0.5)
-    const sharp =
-      0.22 * (1 - Math.abs(vnoise(qx / 6, qz / 6) * 2 - 1)) +
-      0.08 * (1 - Math.abs(vnoise(qx / 2.3 + 5, qz / 2.3 + 5) * 2 - 1)) * (1 - smoothstep(40, 120, dist)) -
-      0.2
+    const k1 = vnoise(qx / 6, qz / 6) * 2 - 1
+    const k2 = vnoise(qx / 2.3 + 5, qz / 2.3 + 5) * 2 - 1
+    const sharp = 0.22 * (1 - Math.sqrt(k1 * k1 + 0.02)) + 0.08 * (1 - Math.sqrt(k2 * k2 + 0.02)) * (1 - smoothstep(40, 120, dist)) - 0.2
     let r: number
     if (rock.boulder > 0) {
       r = h + 0.3 * n + sharp + (boulderField(qx, qz, rock.boulder) - 0.35 * rock.boulder) * (1 - smoothstep(80, 250, dist))
@@ -348,7 +347,7 @@ export function rockSurface(coast: RockCoast, s: number, a: number, x: number, z
       const steep = Math.abs(
         bareRock(rock, coast.nearshoreSlope, coast.seabedDepth, s + 0.5, width, dist) - bareRock(rock, coast.nearshoreSlope, coast.seabedDepth, s - 0.5, width, dist)
       )
-      const riser = Math.min(1, 0.15 + 0.008 * dist + (0.05 * dist * steep) / rock.bedding)
+      const riser = Math.min(1, 0.3 + 0.008 * dist + (0.05 * dist * steep) / rock.bedding)
       r = (Math.floor(layer) + smoothstep(1 - riser, 1, f) + 0.5 - 0.5 * riser + 0.01) * rock.bedding + planes + sharp
       r -= rock.gully * gully * (0.4 + 0.6 * smoothstep(0, Math.max(width, 20), s)) * (1 - smoothstep(150, 400, dist))
     }

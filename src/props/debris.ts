@@ -60,7 +60,10 @@ export function debrisFor(params: SceneParams, rng: Random): DebrisSpec | null {
 }
 
 function drawDebris(params: SceneParams, rng: Random): DebrisSpec | null {
-  if (!hasBeach(params.coast)) return null
+  // A rocky shore keeps wood and weed at the back of its platform or the
+  // top of its boulders; a plunging cliff has nowhere to keep them.
+  const rock = params.coast.rock
+  if (!hasBeach(params.coast) && (rock == null || (rock.kind === 'cliff' && rock.width === 0))) return null
   const ocean = params.sea.ocean
   const spec: DebrisSpec = { driftwood: 0, rootWads: false, wrack: null, wrackAmount: 0, coconuts: 0 }
   const wood = (chance: number, min: number, max: number): void => {
@@ -99,6 +102,7 @@ function drawDebris(params: SceneParams, rng: Random): DebrisSpec | null {
       break
   }
   spec.rootWads = spec.driftwood > 0 && rng.chance(ocean === 'arctic' || ocean === 'pacific' ? 0.8 : 0.4)
+  if (rock != null) spec.coconuts = 0
   return spec
 }
 
@@ -333,7 +337,12 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
   const camera = ctx.camera.position
   const seed = rng.int(0, 1e6)
 
-  const { highTide, stormLine } = beachLines(coast)
+  // On a rocky shore the strand is the back of the platform (u < 0: on it),
+  // jammed against the back face.
+  const lines = coast.rock != null ? { highTide: -3, stormLine: -1.5 } : beachLines(coast)
+  const { highTide, stormLine } = lines
+  /** How far inland the beach's debris may lie. */
+  const back = coast.rock != null ? -0.3 : coast.beachWidth
   /** The storm ridge on a stony beach, where the storms leave wood and weed. */
   const ridge = isStony(coast.material) ? coast.ridges[0] : undefined
   // Turning +X (a log's length) by -azimuth about Y lays it along the shore.
@@ -408,7 +417,7 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
     for (let p = 0, tries = 0; p < piles && tries < piles * 8; tries++) {
       const a = rng.normal(0, 160)
       // On the crest and its back slope, or the back of a sand beach.
-      const u = ridge != null ? ridge.distance + rng.range(-0.3, 1) * ridge.width : rng.range(stormLine, Math.max(stormLine + 2, coast.beachWidth * 0.95))
+      const u = ridge != null ? ridge.distance + rng.range(-0.3, 1) * ridge.width : rng.range(stormLine, coast.rock != null ? Math.max(stormLine + 1, back) : Math.max(stormLine + 2, back * 0.95))
       const [px, pz] = shoreToWorld(coast, -u, a)
       if (!ctx.visible(px, ctx.ground(px, pz), pz, 4)) continue
       p++
@@ -422,7 +431,7 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
     // Sticks and branches up and down the beach, more on the wrack line.
     const sticks = Math.round(10 + spec.driftwood * 60)
     for (let i = 0; i < sticks; i++) {
-      const u = rng.chance(0.5) ? highTide + rng.normal(0, 1) : rng.range(highTide, coast.beachWidth)
+      const u = rng.chance(0.5) ? highTide + rng.normal(0, 1) : rng.range(highTide, back)
       place(pieces, LOGS + rng.int(0, BRANCHES - 1), u, rng.normal(0, 90), rng.range(0, Math.PI * 2), 2, rng.range(0.7, 1.3), 0.02, rng.range(0.85, 1.1))
     }
     build(logs, pieces, material(0.92))
@@ -457,7 +466,7 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
     const nuts = [0, 1].map(() => ballGeometry(rng, COCONUT, rng.range(0.1, 0.14)))
     const pieces: Piece[] = []
     for (let i = 0; i < Math.round(4 + spec.coconuts * 20); i++) {
-      const u = rng.chance(0.6) ? highTide + rng.normal(0, 1) : rng.range(highTide, coast.beachWidth * 1.1)
+      const u = rng.chance(0.6) ? highTide + rng.normal(0, 1) : rng.range(highTide, back * 1.1)
       place(pieces, rng.int(0, 1), u, rng.normal(0, 60), rng.range(0, Math.PI * 2), 0.2, rng.range(0.85, 1.15), 0.03, rng.range(0.7, 1.2))
     }
     build(nuts, pieces, material(0.8))

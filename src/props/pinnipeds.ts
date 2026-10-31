@@ -314,6 +314,37 @@ function onBeach(ctx: PropContext, rng: Random, count: number, room: number): { 
   return null
 }
 
+/** A herd hauled out on a rocky shore: on fairly level rock just above the
+ * swash, within ~40 m of today's water (the platform's seaward part, the
+ * foot of the boulders), not up on a cliff; null if none in view. */
+function onRockShore(ctx: PropContext, rng: Random, count: number, room: number): { spots: Vector3[]; centre: Vector3; radius: number } | null {
+  const { coast } = ctx.params
+  const low = coast.runup + 0.2
+  const high = coast.runup + 4
+  const dry = (x: number, z: number, y: number): boolean => y >= low && y <= high && terrainNormal(coast, x, z, room)[1] > 0.8
+  for (let i = 0; i < 300; i++) {
+    const a0 = rng.normal(0, 120 * (1 + i / 100))
+    const s0 = coast.waterline - rng.range(3, 40)
+    const [x0, z0] = shoreToWorld(coast, s0, a0)
+    const y0 = ctx.ground(x0, z0)
+    const d = ctx.distance(x0, z0)
+    if (!dry(x0, z0, y0) || d < 25 || d > 300 || !ctx.inFrame(x0, y0, z0)) continue
+    const length = Math.sqrt(count) * room * rng.range(2.5, 4)
+    const spots: Vector3[] = []
+    for (let k = 0; k < count * 20 && spots.length < count; k++) {
+      const [x, z] = shoreToWorld(coast, s0 + rng.normal(0, 6), a0 + rng.normal(0, length / 3))
+      const y = ctx.ground(x, z)
+      if (!dry(x, z, y)) continue
+      const p = new Vector3(x, y, z)
+      if (spots.some(s => s.distanceToSquared(p) < room * room)) continue
+      spots.push(p)
+    }
+    if (spots.length < Math.min(4, count)) continue
+    return { spots, centre: new Vector3(x0, 0, z0), radius: length / 2 }
+  }
+  return null
+}
+
 /**
  * The day's seals or sea lions. On the beach if the day says so and there is
  * room in view; otherwise on a rock: `island` is the seabird colony's island
@@ -352,7 +383,13 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
 
   // The beach; or the seabird island if it has room low down (sheer gannet
   // cliffs may not), else a skerry of their own.
-  const beach = pinnipeds.site === 'beach' ? onBeach(ctx, ctx.rng('pinnipeds/beach'), count, room) : null
+  // On a rocky shore, its own rock near the water.
+  const beach =
+    pinnipeds.site === 'beach'
+      ? onBeach(ctx, ctx.rng('pinnipeds/beach'), count, room)
+      : ctx.params.coast.rock != null
+        ? onRockShore(ctx, ctx.rng('pinnipeds/rock-shore'), count, room)
+        : null
   let spots: Vector3[]
   let centre: Vector3
   let radius: number
@@ -381,7 +418,7 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
   const storm = stormy(ctx.params)
   if (storm) spots = []
   // Lying along the slope of a steep stony beach or ridge, not level.
-  const tilt = beach != null && isStony(ctx.params.coast.material)
+  const tilt = beach != null && (isStony(ctx.params.coast.material) || ctx.params.coast.rock != null)
   const up = new Vector3(0, 1, 0)
   for (const spot of spots) {
     const k = rng.weighted(poses.map(([, w], i) => [i, w] as const))

@@ -9,6 +9,13 @@ near the camera (a 10 cm crab is a speck at 20 m; turtles and monkeys within ~40
 three years (see the table at the end, `node scripts/animals.mjs`); placement can still
 miss the frame, so a chosen animal isn't always seen.
 
+Rocky shores (PLAN_BIOMES 8, about a quarter of all days) have no sand: no turtles, ghost,
+hermit or shore crabs, shells, sand flowers or beach animals (monkeys, crocodiles, hippos,
+monitors, green and spiny-tailed iguanas). Marine iguanas stay (on the platform near the
+water); seals haul out on the rock by the water instead of a beach; seabird colonies and
+everything at sea or in the air are as on beaches. So beach animals appear on fewer days
+than before 0.62.
+
 ## Rules
 
 ### In the air and at sea
@@ -106,19 +113,19 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 
 | Animal | All days | nordic | mediterranean | volcanic | desert | tropical | atlantic | pacific | indian | arctic | southern |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Crabs: ghost | 17% | – | 12% | – | 44% | 50% | 14% | 20% | 39% | – | – |
-| Crabs: hermit | 1% | – | – | – | – | 5% | – | 2% | 3% | – | – |
-| Crabs: shore | 14% | 17% | 20% | 27% | – | – | 23% | 17% | 5% | – | – |
+| Crabs: ghost | 13% | – | 8% | – | 24% | 41% | 10% | 15% | 30% | – | – |
+| Crabs: hermit | 1% | – | – | – | – | 4% | – | 2% | 3% | – | – |
+| Crabs: shore | 7% | 8% | 13% | 16% | – | – | 13% | 9% | 3% | – | – |
 | Crocodile: american | 0.6% | – | – | – | – | 3% | 0.6% | 1% | – | – | – |
 | Crocodile: saltwater | 0.5% | – | – | – | – | 2% | – | 1% | – | – | – |
-| Crocodile: west-african | 0.3% | – | – | – | – | 1% | 0.8% | – | – | – | – |
+| Crocodile: west-african | 0.2% | – | – | – | – | 0.8% | 0.6% | – | – | – | – |
 | Gulls: flying | 57% | 57% | 60% | 53% | 66% | 56% | 58% | 56% | 60% | 60% | 46% |
 | Gulls: resting | 3% | 3% | 5% | 5% | 2% | 2% | 3% | 4% | 3% | 3% | 6% |
 | Hippos: hippo | 0.2% | – | – | – | – | 0.8% | 0.6% | – | – | – | – |
 | Lizards: green-iguana | 0.5% | – | – | – | – | 2% | 0.6% | 1% | – | – | – |
 | Lizards: marine-iguana | 0.5% | – | – | 4% | – | – | – | 2% | – | – | – |
-| Lizards: monitor | 0.6% | – | – | – | – | 3% | – | 0.8% | 3% | – | – |
-| Lizards: spiny-tailed | 0.2% | – | – | – | 2% | – | – | – | 1% | – | – |
+| Lizards: monitor | 0.5% | – | – | – | – | 2% | – | 0.8% | 1% | – | – |
+| Lizards: spiny-tailed | 0.1% | – | – | – | 1% | – | – | – | 0.6% | – | – |
 | Marine: dolphin | 13% | 11% | 11% | 11% | 15% | 17% | 15% | 15% | 16% | – | 8% |
 | Marine: humpback | 11% | 13% | 10% | 10% | 12% | 8% | 11% | 8% | 7% | 19% | 19% |
 | Marine: orca | 3% | 6% | 3% | 4% | – | – | 1% | 2% | – | 10% | 21% |
@@ -126,13 +133,13 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 | Migratory birds: duck | 7% | 12% | 7% | 8% | – | – | 9% | 6% | 0.6% | 10% | 8% |
 | Migratory birds: flamingo | 7% | – | 11% | – | 15% | 16% | 7% | 7% | 15% | – | – |
 | Migratory birds: goose | 8% | 11% | 11% | 16% | – | – | 10% | 8% | 2% | 10% | 8% |
-| Monkeys: capuchin | 0.5% | – | – | – | – | 2% | – | 2% | – | – | – |
-| Monkeys: macaque | 0.9% | – | – | – | – | 4% | – | 2% | 0.6% | – | – |
+| Monkeys: capuchin | 0.4% | – | – | – | – | 2% | – | 1% | – | – | – |
+| Monkeys: macaque | 0.8% | – | – | – | – | 3% | – | 2% | 0.6% | – | – |
 | Monkeys: vervet | 0.2% | – | – | – | – | 0.8% | – | – | 1% | – | – |
-| Sea turtle: green | 3% | – | – | 5% | 10% | 7% | – | 4% | 14% | – | – |
+| Sea turtle: green | 2% | – | – | 2% | 4% | 5% | – | 2% | 9% | – | – |
 | Sea turtle: hawksbill | 0.4% | – | – | – | – | 2% | – | 0.5% | 1% | – | – |
-| Sea turtle: loggerhead | 0.3% | – | 2% | – | – | – | 0.8% | – | – | – | – |
-| Sea turtle: olive-ridley | 1% | – | – | – | – | 5% | 0.6% | 2% | 1% | – | – |
+| Sea turtle: loggerhead | 0.1% | – | 0.6% | – | – | – | 0.3% | – | – | – | – |
+| Sea turtle: olive-ridley | 1% | – | – | – | – | 4% | 0.3% | 2% | 1% | – | – |
 | Seabird colony: gannet (island) | 4% | 4% | 11% | 2% | – | – | 6% | 3% | 1% | 4% | – |
 | Seabird colony: gannet (mainland) | 0.8% | 2% | 1% | – | – | – | 0.3% | 0.8% | – | 3% | – |
 | Seabird colony: penguin (island) | 0.2% | 0.2% | – | 0.7% | – | – | – | – | – | – | 4% |
@@ -141,14 +148,13 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 | Seabird colony: puffin (mainland) | 0.8% | 2% | – | 1% | – | – | 0.8% | 0.8% | 0.6% | 1% | – |
 | Seabird colony: tropical (island) | 5% | – | – | – | 27% | 15% | 3% | 7% | 16% | – | – |
 | Seabird colony: tropical (mainland) | 0.5% | – | – | – | 2% | 1% | 0.8% | 0.5% | – | – | – |
-| Seals: elephant-seal (beach) | 0.6% | 0.7% | 0.6% | 2% | – | – | – | 0.3% | – | – | 13% |
-| Seals: elephant-seal (rock) | 0.3% | 0.5% | – | 0.7% | – | – | – | – | – | – | 6% |
-| Seals: fur-seal (beach) | 0.2% | 0.2% | – | – | 1% | – | 0.3% | – | – | – | 2% |
-| Seals: fur-seal (rock) | 0.6% | – | – | 0.7% | 7% | – | 1% | 0.3% | – | – | 2% |
-| Seals: sea-lion (beach) | 0.8% | 0.5% | 1% | 1% | 2% | 0.4% | – | 2% | – | – | – |
-| Seals: sea-lion (rock) | 2% | 0.9% | 7% | 4% | 4% | 0.8% | – | 6% | 1% | – | – |
-| Seals: seal (beach) | 2% | 4% | 0.6% | 2% | – | – | 2% | 2% | – | 4% | – |
-| Seals: seal (rock) | 6% | 12% | 0.6% | 6% | – | – | 6% | 4% | – | 15% | – |
-| Starfish: starfish | 10% | 15% | 16% | 10% | – | – | 10% | 14% | 0.6% | 11% | 6% |
+| Seals: elephant-seal (beach) | 0.3% | 0.2% | 0.6% | 0.7% | – | – | – | 0.3% | – | – | 4% |
+| Seals: elephant-seal (rock) | 0.6% | 0.9% | – | 2% | – | – | – | – | – | – | 15% |
+| Seals: fur-seal (rock) | 0.8% | 0.2% | – | 0.7% | 9% | – | 2% | 0.3% | – | – | 4% |
+| Seals: sea-lion (beach) | 0.4% | 0.2% | 0.6% | 0.7% | – | 0.4% | – | 1% | – | – | – |
+| Seals: sea-lion (rock) | 3% | 1% | 7% | 5% | 6% | 0.8% | – | 8% | 1% | – | – |
+| Seals: seal (beach) | 0.8% | 1% | 0.6% | 1% | – | – | 1% | 0.3% | – | 2% | – |
+| Seals: seal (rock) | 7% | 14% | 0.6% | 7% | – | – | 7% | 5% | – | 17% | – |
+| Starfish: starfish | 6% | 8% | 11% | 6% | – | – | 5% | 8% | 0.6% | 7% | 2% |
 
 Days per biome: nordic 442, mediterranean 167, volcanic 146, desert 82, tropical 258; per ocean: atlantic 355, pacific 371, indian 154, arctic 167, southern 48.

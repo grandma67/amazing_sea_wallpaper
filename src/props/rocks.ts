@@ -32,7 +32,9 @@ import { fbm3 } from './noise'
 
 /** Chance of boulders along the shore: the biome's, more on cobble (60% of
  * the boulder-free days get them), half on shingle. */
-export function rockChanceFor(biomeChance: number, material: BeachMaterial | undefined): number {
+export function rockChanceFor(biomeChance: number, material: BeachMaterial | undefined, rockShore = false): number {
+  // A rocky shore sheds boulders onto its platform and the cliff's foot.
+  if (rockShore) return 0.9
   if (material === 'cobble') return 1 - (1 - biomeChance) * 0.4
   if (material === 'shingle') return biomeChance * 0.5
   return biomeChance
@@ -238,7 +240,7 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
   const { coast, biome } = params
   if (!hasLand(coast)) return []
   const rng = ctx.rng('rocks')
-  const hasRocks = forced(params.overrides?.rocks, rng.chance(rockChanceFor(biome.rockChance, coast.material)))
+  const hasRocks = forced(params.overrides?.rocks, rng.chance(rockChanceFor(biome.rockChance, coast.material, coast.rock != null)))
   const hasStacks = forced(params.overrides?.seaStacks, rng.chance(biome.seaStackChance))
   if (!hasRocks && !hasStacks) return []
 
@@ -270,8 +272,10 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
 
   const [camS, camA] = [-coast.distanceToWater, 0]
   if (hasRocks) {
-    // Clusters along the waterline, from the surf zone up the beach.
-    const clusters = rng.int(3, 9)
+    // Clusters along the waterline, from the surf zone up the beach; on a
+    // rocky shore more, fallen from the back face onto the platform.
+    const rocky = coast.rock
+    const clusters = rng.int(3, 9) * (rocky != null ? 2 : 1)
     for (let c = 0; c < clusters; c++) {
       const ca = camA + rng.normal(0, 260)
       // Down to today's water when the tide is out.
@@ -324,7 +328,8 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
 
   if (instances.length === 0) return []
 
-  const color = rng.pick(biome.rockColors)
+  const picked = rng.pick(biome.rockColors)
+  const color = coast.rock?.color ?? picked
   const growthSpec = GROWTH[biome.name]
   const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null, tideMarks(coast).spring)
   const meshes: InstancedMesh[] = []
