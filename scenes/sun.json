@@ -1,0 +1,9 @@
+{
+  "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few" },
+  "scenes": [
+    { "name": "tromso-polar-night-noon", "date": "2025-12-10", "place": "norway-north", "coast": "beach", "composition": "shoreline" },
+    { "name": "svalbard-december", "date": "2025-12-21", "place": "svalbard", "coast": "beach", "composition": "along-beach" },
+    { "name": "svalbard-june-midnight", "date": "2025-06-21", "place": "svalbard", "coast": "beach", "composition": "shoreline", "sunElevationDeg": 12, "sunAzimuthDeg": 8, "evening": true },
+    { "name": "tromso-midnight-sun", "date": "2025-06-21", "place": "norway-north", "coast": "beach", "composition": "shoreline", "timeOfDay": "golden-hour", "sunElevationDeg": 4.6, "sunAzimuthDeg": 6, "evening": true }
+  ]
+}

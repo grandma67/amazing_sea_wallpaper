@@ -68,7 +68,8 @@ describe('cloud species over the real days', () => {
     expect(fractus.length).toBeGreaterThan(10)
     for (const p of fractus) {
       expect(['scattered', 'broken']).toContain(p.weather.kind)
-      expect(p.ocean.windSpeed).toBeGreaterThan(5)
+      // Pack ice calms the sea (× 0.4), not the air the clouds are torn in.
+      expect(p.ocean.windSpeed / ((p.sea.ice?.packIce ?? 0) > 0 ? 0.4 : 1)).toBeGreaterThan(5)
     }
   })
 

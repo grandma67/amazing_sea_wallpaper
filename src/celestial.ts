@@ -115,3 +115,57 @@ export function eclipseOfType(type: EclipseType, pick: () => number): EclipsePar
   if (type === 'lunar-partial') return lunarEclipse(false, 0.3 + 0.6 * pick(), 0, pick)
   return solarEclipse(type, pick)
 }
+
+// The real sun (PLAN_BIOMES 12). Each day the sun swings between its lower
+// culmination (midnight) and upper one (noon): at latitude φ with the sun's
+// declination δ, noon is 90° − |φ − δ| up and midnight φ + δ − 90° (north;
+// mirrored south). Above the Arctic Circle the noon sun stays below the
+// horizon in winter (polar night: civil twilight's glow at noon while it is
+// above −6°, then night) and the midnight sun stays above it in summer.
+
+const DEG = Math.PI / 180
+const OBLIQUITY = 23.44
+
+/** Latitudes (|°|) at or above which the day's time-of-day draw follows the
+ * real sun; below it every category stays possible (days never change). */
+export const REAL_SUN_LATITUDE = 63
+
+/** The sun's declination (degrees) on `date` (YYYY-MM-DD), within ~0.2°:
+ * the ecliptic longitude from the day of the year with the orbit's
+ * eccentricity (perihelion ~3 Jan). */
+export function solarDeclinationDeg(date: string): number {
+  const d = new Date(`${date}T12:00:00Z`)
+  const day = (d.getTime() - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86_400_000
+  const year = 360 / 365.24
+  const longitude = year * (day + 10) + (360 / Math.PI) * 0.0167 * Math.sin(year * (day - 2) * DEG)
+  return Math.asin(Math.sin(-OBLIQUITY * DEG) * Math.cos(longitude * DEG)) / DEG
+}
+
+export interface SunLimits {
+  /** The noon sun's elevation (degrees). */
+  max: number
+  /** The midnight sun's elevation (degrees). */
+  min: number
+}
+
+/** The day's highest and lowest solar elevation at a signed latitude. */
+export function sunLimits(latitudeDeg: number, date: string): SunLimits {
+  const dec = solarDeclinationDeg(date)
+  return { max: 90 - Math.abs(latitudeDeg - dec), min: Math.abs(latitudeDeg + dec) - 90 }
+}
+
+/** The sun's compass azimuth (degrees from north, clockwise) when it stands
+ * `elevationDeg` up on `date` at a signed latitude: in the afternoon and
+ * evening (west of the meridian) or the morning (east). An elevation out of
+ * the day's range takes the nearest culmination. */
+export function sunAzimuthDeg(latitudeDeg: number, date: string, elevationDeg: number, evening: boolean): number {
+  const phi = latitudeDeg * DEG
+  const dec = solarDeclinationDeg(date) * DEG
+  const el = elevationDeg * DEG
+  const cosH = (Math.sin(el) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec))
+  const hour = Math.acos(Math.max(-1, Math.min(1, cosH))) * (evening ? 1 : -1)
+  // Horizontal coordinates from the hour angle (west positive).
+  const east = -Math.cos(dec) * Math.sin(hour)
+  const north = Math.sin(dec) * Math.cos(phi) - Math.cos(dec) * Math.sin(phi) * Math.cos(hour)
+  return ((Math.atan2(east, north) / DEG) % 360 + 360) % 360
+}

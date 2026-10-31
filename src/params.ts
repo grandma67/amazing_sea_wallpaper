@@ -1,6 +1,6 @@
 import { MoonPhase } from 'astronomy-engine'
 
-import { eclipseOfType, eclipseOn, moonlight as phaseLight, type EclipseParams } from './celestial'
+import { eclipseOfType, eclipseOn, moonlight as phaseLight, REAL_SUN_LATITUDE, sunAzimuthDeg, sunLimits, type EclipseParams, type SunLimits } from './celestial'
 
 import { beachName, isStony, materialChances, STONE_SIZES, STONY_RUNUP, stonyShape, type BeachMaterial, type Ridge } from './beach'
 import { beachShape, beachStateFor, breakerHeight, grainIn, sedimentFor, wavePeriod, type Bar, type BeachState, type Cusps, type Rips } from './beachState'
@@ -462,6 +462,39 @@ const SUN_ELEVATION: Record<TimeOfDay, [number, number]> = {
   daylight: [10, 32],
   midday: [35, 70],
   night: [-30, -16]
+}
+
+const TIME_WEIGHTS: readonly (readonly [TimeOfDay, number])[] = [
+  ['golden-hour', 30],
+  ['sun-on-horizon', 12],
+  ['blue-hour', 10],
+  ['daylight', 23],
+  ['midday', 15],
+  ['night', 10]
+]
+
+/** The part of a time of day's elevation range the day's sun reaches, or
+ * null when it never gets there (by less than 0.2°). */
+function reachable(timeOfDay: TimeOfDay, sun: SunLimits): [number, number] | null {
+  const [lo, hi] = SUN_ELEVATION[timeOfDay]
+  const from = Math.max(lo, sun.min)
+  const to = Math.min(hi, sun.max)
+  return to - from >= 0.2 ? [from, to] : null
+}
+
+/** Time-of-day weights: the categories the real sun allows (impossible ones
+ * get 0, the rest keep their weights), or all of them below 63° or if none
+ * fits. One draw either way. */
+export function timeWeights(sun: SunLimits | null): (readonly [TimeOfDay, number])[] {
+  if (sun == null) return [...TIME_WEIGHTS]
+  const weights = TIME_WEIGHTS.map(([t, w]) => [t, reachable(t, sun) == null ? 0 : w] as const)
+  return weights.some(([, w]) => w > 0) ? weights : [...TIME_WEIGHTS]
+}
+
+/** The elevation range to draw the sun in: the category's, cut to what the
+ * day's sun reaches (a forced impossible category keeps its own). */
+export function sunRange(timeOfDay: TimeOfDay, sun: SunLimits | null): [number, number] {
+  return (sun == null ? null : reachable(timeOfDay, sun)) ?? SUN_ELEVATION[timeOfDay]
 }
 
 /** The real sun's and moon's angular radii (radians; takram's defaults). */
@@ -1458,23 +1491,13 @@ function buildParams(
   // Real eclipses on their dates, and the sky's own choices (daytime moon,
   // moon up or down at night), on their own streams.
   const erng = Random.derive(seed, 'eclipse')
-  const eclipse =
+  const drawnEclipse =
     spec.eclipse === undefined
       ? eclipseOn(date, () => erng.float())
       : spec.eclipse === null
         ? null
         : eclipseOfType(spec.eclipse, () => erng.float())
-  const solarEclipse = eclipse != null && eclipse.type.startsWith('solar')
-  const lunarEclipse = eclipse != null && eclipse.type.startsWith('lunar')
   const skyRng = Random.derive(seed, 'moon-sky')
-
-  // Real moon phase for the date (noon UTC); new for a forced solar eclipse,
-  // full for a lunar one.
-  const moonPhaseDeg =
-    spec.moonPhaseDeg ??
-    (spec.eclipse != null ? (solarEclipse ? 0 : 180) : MoonPhase(new Date(`${date}T12:00:00Z`)))
-  const elongation = moonPhaseDeg <= 180 ? moonPhaseDeg : 360 - moonPhaseDeg
-  const moonIllumination = (1 - Math.cos(elongation * DEG)) / 2
 
   // The place comes first, before the sky, so the sky can depend on it
   // (PLAN_BIOMES 1a). Biome, ocean, climate and latitude follow from it, on
@@ -1486,6 +1509,26 @@ function buildParams(
   const { basin } = choice
   const climate = choose(Random.derive(seed, 'climate'), place.climate, spec.climate)
   const latitudeDeg = latitudeIn(place, orng)
+  // The real sun at the place (PLAN_BIOMES 12): from 63° the time of day
+  // only offers what the sun does that day (polar night, white nights, the
+  // midnight sun); below it every category stays (`realSun` null).
+  const realSun: SunLimits | null = Math.abs(latitudeDeg) >= REAL_SUN_LATITUDE ? sunLimits(latitudeDeg, date) : null
+  // A solar eclipse can't be seen where the sun never rises (polar night);
+  // a lunar one can. A spec's eclipse still wins.
+  const eclipse =
+    drawnEclipse != null && spec.eclipse === undefined && drawnEclipse.type.startsWith('solar') && realSun != null && realSun.max < SUN_ELEVATION['sun-on-horizon'][0]
+      ? null
+      : drawnEclipse
+  const solarEclipse = eclipse != null && eclipse.type.startsWith('solar')
+  const lunarEclipse = eclipse != null && eclipse.type.startsWith('lunar')
+
+  // Real moon phase for the date (noon UTC); new for a forced solar eclipse,
+  // full for a lunar one.
+  const moonPhaseDeg =
+    spec.moonPhaseDeg ??
+    (spec.eclipse != null ? (solarEclipse ? 0 : 180) : MoonPhase(new Date(`${date}T12:00:00Z`)))
+  const elongation = moonPhaseDeg <= 180 ? moonPhaseDeg : 360 - moonPhaseDeg
+  const moonIllumination = (1 - Math.cos(elongation * DEG)) / 2
   const polar = basin.water == null ? null : basin.name === 'arctic' ? 'arctic' : 'southern'
   // The biome in the day's climate (PLAN_BIOMES 11b): sands, plants and
   // greens follow the climate, the rest the biome.
@@ -1493,17 +1536,7 @@ function buildParams(
   const monsoon = or(choice.monsoon, spec.monsoon)
   const ice = spec.ice === undefined ? choice.ice : forceIce(seed, spec.ice, basin.name, choice.ice)
 
-  let timeOfDay = or(
-    rng.weighted<TimeOfDay>([
-      ['golden-hour', 30],
-      ['sun-on-horizon', 12],
-      ['blue-hour', 10],
-      ['daylight', 23],
-      ['midday', 15],
-      ['night', 10]
-    ]),
-    spec.timeOfDay
-  )
+  let timeOfDay = or(rng.weighted<TimeOfDay>(timeWeights(realSun)), spec.timeOfDay)
   // An eclipse day shows the eclipse: by day with the sun in the frame, or
   // at night with the moon in it.
   if (solarEclipse) timeOfDay = timeOfDay === 'golden-hour' ? 'golden-hour' : 'daylight'
@@ -1561,7 +1594,7 @@ function buildParams(
   // Camera heading, then the sun relative to it. Low suns are usually framed
   // in or near the view for glitter paths; high suns can be anywhere.
   let headingDeg = rng.range(0, 360)
-  const [elMin, elMax] = SUN_ELEVATION[timeOfDay]
+  const [elMin, elMax] = sunRange(timeOfDay, realSun)
   let sunElevationDeg = rng.range(elMin, elMax)
   const lowSun = timeOfDay !== 'midday' && timeOfDay !== 'daylight'
   const drawnSunAz = lowSun && rng.chance(0.7) ? rng.normal(0, 18 * framing) : rng.range(-180, 180)
@@ -1573,6 +1606,12 @@ function buildParams(
   }
   relSunAz = or(relSunAz, spec.sunAzimuthDeg)
   sunElevationDeg = or(sunElevationDeg, spec.sunElevationDeg)
+  // Under the midnight sun the camera turns so the sun stands at its real
+  // compass bearing (low in the north round midnight): the framing
+  // (relSunAz) stays, the heading follows. Other days keep a random compass.
+  if (realSun != null && realSun.min > SUN_ELEVATION['sun-on-horizon'][0]) {
+    headingDeg = sunAzimuthDeg(latitudeDeg, date, sunElevationDeg, isEvening) - relSunAz
+  }
   let sunDirection = dirFromAzEl(headingDeg + relSunAz, sunElevationDeg)
 
   // Place the moon at the physically correct angular distance from the sun
@@ -1788,6 +1827,16 @@ function buildParams(
     daylight: isEvening ? 'Afternoon' : 'Morning',
     midday: 'Midday',
     night: nightSky === 'starlit' ? 'Starry night' : 'Moonlit night'
+  }
+  // The polar sun names itself (PLAN_BIOMES 12): noon twilight and night
+  // in the polar night, the low sun of a midnight-sun day.
+  const horizon = SUN_ELEVATION['sun-on-horizon'][0]
+  if (realSun != null && realSun.max < horizon && sunElevationDeg <= realSun.max) {
+    timeLabel['blue-hour'] = 'Polar night twilight'
+    timeLabel.night = `Polar night${nightSky === 'starlit' ? ', starlit' : ''}`
+  }
+  if (realSun != null && realSun.min > horizon && sunElevationDeg < realSun.min + (realSun.max - realSun.min) / 4) {
+    timeLabel[timeOfDay] = 'Midnight sun'
   }
   const colony = pickColony(seed, basin.name, climate, latitudeDeg < 0, coast.type, spec.colony, spec.colonySite)
   const pinnipeds = pickPinnipeds(seed, basin.name, biome, climate, latitudeDeg, coast.type, spec.pinnipeds, spec.haulOut)
