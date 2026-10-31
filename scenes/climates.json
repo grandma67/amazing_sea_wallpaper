@@ -1,0 +1,114 @@
+{
+  "base": {
+    "date": "2025-06-20",
+    "eclipse": null,
+    "storm": null,
+    "fog": null,
+    "timeOfDay": "daylight",
+    "weather": "few",
+    "sunAzimuthDeg": 150
+  },
+  "scenes": [
+    {
+      "name": "florida-shoreline",
+      "place": "florida-carolinas",
+      "coast": "beach",
+      "beachMaterial": "sand",
+      "composition": "shoreline"
+    },
+    {
+      "name": "florida-along",
+      "place": "florida-carolinas",
+      "coast": "beach",
+      "beachMaterial": "sand",
+      "composition": "along-beach",
+      "timeOfDay": "golden-hour",
+      "sunAzimuthDeg": 40
+    },
+    {
+      "name": "florida-framed",
+      "place": "florida-carolinas",
+      "coast": "beach",
+      "beachMaterial": "sand",
+      "composition": "framed",
+      "date": "2025-05-02"
+    },
+    {
+      "name": "east-australia-framed",
+      "place": "east-australia",
+      "coast": "beach",
+      "beachMaterial": "sand",
+      "composition": "framed",
+      "date": "2025-01-15"
+    },
+    {
+      "name": "south-japan-overlook",
+      "place": "south-japan",
+      "coast": "rock-shore",
+      "rockShore": "cliff",
+      "composition": "overlook",
+      "date": "2025-08-01"
+    },
+    {
+      "name": "cornwall-shoreline",
+      "place": "cornwall-wales",
+      "coast": "beach",
+      "composition": "shoreline"
+    },
+    {
+      "name": "scotland-along",
+      "place": "scotland",
+      "coast": "beach",
+      "beachMaterial": "sand",
+      "sand": "white",
+      "composition": "along-beach",
+      "weather": "scattered"
+    },
+    {
+      "name": "maine-framed",
+      "place": "maine",
+      "coast": "beach",
+      "composition": "framed",
+      "date": "2025-09-10"
+    },
+    {
+      "name": "oregon-overlook",
+      "place": "pacific-northwest",
+      "coast": "rock-shore",
+      "rockShore": "cliff",
+      "composition": "overlook"
+    },
+    {
+      "name": "greenland-shoreline",
+      "place": "greenland",
+      "ocean": "atlantic",
+      "coast": "beach",
+      "composition": "shoreline",
+      "date": "2025-07-20"
+    },
+    {
+      "name": "greenland-along",
+      "place": "greenland",
+      "ocean": "atlantic",
+      "coast": "beach",
+      "composition": "along-beach",
+      "date": "2025-07-20",
+      "timeOfDay": "golden-hour",
+      "sunAzimuthDeg": 20
+    },
+    {
+      "name": "hawaii-framed",
+      "place": "hawaii",
+      "coast": "beach",
+      "composition": "framed"
+    },
+    {
+      "name": "iceland-overlook",
+      "place": "iceland",
+      "coast": "rock-shore",
+      "rockShore": "cliff",
+      "composition": "overlook",
+      "weather": "broken"
+    }
+  ]
+}

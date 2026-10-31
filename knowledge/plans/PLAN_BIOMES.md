@@ -24,7 +24,7 @@ ARCHITECTURE.md and `arch/`. Status 2026-10-31: phases 0–8 done; 9, 11, 12 pla
 | 8 | Rocky shore | ~36% of coast is rock, about half cliff-backed | done (0.62): 25.3% of days (38.7% of land days); [ROCK_SHORE.md](ROCK_SHORE.md); relief in the height function, softened with distance against grid aliasing |
 | 9 | Tidal flats and salt marsh | 21% of coast is mud | done (0.64); [TIDAL_FLAT.md](TIDAL_FLAT.md); ~0.3% of days (the five places are 1.9% of days, not enough for ~3%) |
 | 10 | Landforms: barrier lagoon, spit, fjord | | later, own plan |
-| 11 | Climates: temperate, subtropical, polar | temperate oceanic and humid subtropical coasts | planned |
+| 11 | Climates: temperate, subtropical, polar | temperate oceanic and humid subtropical coasts | done (0.66–0.71): `climateBiome`, cloud leanings, wrack, crabs, seals, colonies and birds by climate; flat places get no mountains or high islands |
 | 12 | The real sun: polar night, midnight sun | | planned |
 | 13 | Weather extras: offshore wind, snow and ice foot, glowing surf, sea-breeze Cu | | later, own plan |
 | 14 | Animals: sea otters, walrus, polar bears, waders… | | later |

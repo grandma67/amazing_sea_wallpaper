@@ -35,14 +35,16 @@ Shares are over 2024–2026 (`node scripts/params.mjs --stats 'p => p.weather.ki
 
 | Condition | Biomes / rule | Effect |
 |---|---|---|
-| **Cool** | nordic, volcanic | Sc ×2 (scattered, broken); St ×2 (overcast); allows Sc castellanus |
-| **Tropical** | tropical | Cu ×2 (scattered); congestus ×2 (broken); humilis on most `few` days |
-| **Warm summer** | mediterranean, tropical; Jun–Sep (Dec–Mar on the Southern Ocean) | allows Ac castellanus / floccus on mornings |
+| **Cool** | polar, boreal, temperate climates (`cloudLeaning`, PLAN_BIOMES 11c) | Sc ×2 (scattered, broken); St ×2 (overcast); allows Sc castellanus |
+| **Tropical** | tropical climate, and a subtropical summer | Cu ×2 (scattered); congestus ×2 (broken); humilis on most `few` days; streets 40% |
+| **Warm summer** | mediterranean, subtropical, tropical climates; Jun–Sep (Dec–Mar south) | allows Ac castellanus / floccus on mornings |
+| **Subtropical summer storms** | subtropical climate, summer | thunderstorm chance 0.14 instead of 0.07 (`stormChance`) |
 | **Morning** | sun up, before noon | humilis on `few` days; Ac turrets (with warm summer) |
 | **Windy** | wind ≥ 8 m/s | fractus under cumulus |
-| — | desert | no climate leaning: the base weights |
+| — | mediterranean and arid climates | no climate leaning: the base weights |
 
-No biome forbids a genus outright. Biomes change the odds, and only the species listed
+Leanings follow the day's climate, not the biome (until phase 11 every volcanic coast, Hawaii
+included, leaned cool). No climate forbids a genus outright. Climates change the odds, and only the species listed
 above need a particular climate.
 
 ## Supported clouds (20 entries in `CLOUD_GENERA`)
@@ -59,7 +61,7 @@ Base and thickness are each layer's `altitude` and `height` in metres.
 | `cumulus-congestus` | 800 / 3200 | broken | everywhere, ×2 tropical; forced by waterspouts; titled "towering cumulus" |
 | `cumulonimbus` (calvus) | 600 / 9500 | storm only | any coast; 50% of storms |
 | `cumulonimbus-capillatus` | 600 / 9500 | storm only | other 50% (stream `'storm-anvil'`); adds a Ci spissatus anvil deck |
-| `stratocumulus` | 650 / 500 | scattered, broken, overcast | everywhere; ×2 nordic and volcanic (marine Sc over cool water) |
+| `stratocumulus` | 650 / 500 | scattered, broken, overcast | everywhere; ×2 in polar, boreal and temperate climates (marine Sc over cool water) |
 | `stratocumulus-castellanus` | 650 / 950 | broken, overcast | nordic and volcanic only, wind ≥ 6 m/s, 35%; titled "turreted clouds" |
 | `stratus` | 350 / 450 | overcast | everywhere; ×2 nordic and volcanic |
 | `stratus-fractus` (scud) | 300 / 250 | overcast under Ns (60%); storms (60%) | any coast; sparse dark scraps |

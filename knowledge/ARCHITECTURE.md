@@ -75,7 +75,8 @@ Playwright (headless snapshots), Vitest.
   `'x'` = `Random.derive(seed, 'x')`. A decision can only read what's above it.
   1. Eclipse (`'eclipse'`), moon phase; `'moon-sky'` stream made.
   2. Place (main, first draw; one float even when a spec restricts it) → ocean, monsoon, ice and
-     latitude (`'ocean'`), climate (`'climate'`), biome with `plantsFor` (no draw).
+     latitude (`'ocean'`), climate (`'climate'`), biome = `placeBiome(place, climate)`
+     (`climateBiome`: the climate's sands, plants and greens) with `plantsFor` (no draw).
   3. Time of day, evening (main).
   4. Weather kind and coverage (`'weather'`, `generateWeather`); eclipse fix-up; marine layer
      (`'marine-layer'`, deck on `'marine-layer-deck'`); dust (`'dust'`); rainbow day
@@ -153,6 +154,14 @@ rolling onto the beach as surf, turtle heads at sea, a real compass sun on every
 heading and coast orientation together).
 
 ## Known issues
+
+Places and climate:
+- Landforms and islands are still chosen by biome (`pickLandform`, `ISLANDS`): nordic places
+  without volcanoes (Greenland, Norway) draw one on ~6% of their landform days, and subtropical
+  places have the Mediterranean's volcano odds; only flat places (`mountains: false`) opt out.
+  A per-place landform table belongs to phase 10.
+- Live oak, slash pine, cabbage palm and saw palmetto reuse the `broadleaf`, `stone-pine`, `palm`
+  and `bush` meshes (coconut-like crowns, a generic oak).
 
 Coast and surf:
 - Beach shoreline and along-beach cameras are placed at the drawn distance from the water in s,

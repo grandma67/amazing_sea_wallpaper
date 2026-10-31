@@ -206,6 +206,12 @@ tool gotchas: TOOLS.md.
 
 ## Coast and terrain
 
+- A biome-keyed table is wrong for some of its places: the `mediterranean` preset is also
+  Florida, Taiwan and Natal, `volcanic` is Hawaii and Kamchatka. Key what follows the weather
+  (plants, clouds, fog, wrack, crabs, seals) by the day's `place.climate`, what follows the rock
+  by the biome, and what a single place differs in by a place field (`mountains`). A contact sheet
+  of one place per climate finds the leftovers (Florida's mountains and high islands, phase 11).
+
 - Sharp relief in the height function zig-zags across the polar terrain grid wherever it is in
   silhouette: steep faces, stair risers, gully walls, ragged edges. Widen or fade each by the
   distance from the camera (it is at the origin, so the TS mirror can do the same) and by the

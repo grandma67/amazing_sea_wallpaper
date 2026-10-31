@@ -8,10 +8,12 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
 
 ## Plants
 
-- **Plant pools** (`plantsFor` in `places.ts`): the place's `plants` (biome default, region or
-  `PLACE_PLANTS`). On polar water (Arctic, Southern Ocean) they're filtered to tundra: grass and
-  bush, plus birch in the Arctic below `HIGH_ARCTIC_DEG` (74°). A place's own pool skips the
-  filter: Tierra del Fuego has southern beech (`broadleaf`) and no conifers, South Georgia only
+- **Plant pools** (`plantsFor` in `places.ts`): the place's own `plants` (region or
+  `PLACE_PLANTS`), else its biome's in the day's climate (`climateBiome` in `biome.ts`, PLAN_BIOMES
+  11b: subtropical palm, live oak, palmetto, sea oats; temperate broadleaf woods; volcanic coasts
+  by climate). On polar water (Arctic, Southern Ocean) or in a polar climate they're filtered to
+  tundra: grass and bush, plus birch in the Arctic below `HIGH_ARCTIC_DEG` (74°). A place's own
+  pool skips the filter: Tierra del Fuego has southern beech (`broadleaf`) and no conifers, South Georgia only
   tussock grass. `place.windBent` kinds lean 20–35° downwind (the day's wind) and are 25% shorter,
   hero trees included (`vegetation.ts`).
 - **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes folded

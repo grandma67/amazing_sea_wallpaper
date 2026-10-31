@@ -10,7 +10,9 @@ Which coasts the wallpaper draws and how often, and the research behind them. St
 
 1. **Place** (`places.ts`, the first main-stream draw; PLAN_BIOMES 1a): a real stretch of
    coast, weighted by √ of its region's coastline length (REGIONS.md §1). It fixes the
-   **biome** (water, sand colours, rocks, plants) and the latitude range.
+   **biome** (water, sand colours, rocks, plants) and the latitude range; the day's
+   **climate** (own stream) patches the biome's sands, plants and greens (`climateBiome`,
+   PLAN_BIOMES 11) and names it in the title.
 2. **Ocean** (`pickOcean`, `oceans.ts`, own stream): from the place's weights; sets swell,
    wind, polar water and ice. Climate (own stream) and latitude (within the place's range,
    signed) follow.
@@ -43,6 +45,24 @@ Which coasts the wallpaper draws and how often, and the research behind them. St
 | `nordic` | 40.4% | Arctic Canada, Norway, Greenland, Britain, Atlantic Canada, BC, Alaska, Baltic, Patagonia, NZ South | grey 50%, golden 50%, red 0.2% | 85% | 20% |
 | `volcanic` | 13.3% | Hawaii, Japan, Iceland, Canaries, Réunion | black 70%, grey 30%, red (Hawaii 4%) | 95% | 45% |
 | `desert` | 7.5% | Arabia, Namibia, Sahara coast, Atacama | golden 57%, white 43%, red (Red Sea, Oman 3%) | 40% | 20% |
+
+### Climate by biome (PLAN_BIOMES 11)
+
+The biome is the place's look preset; the climate is drawn per day from the place's weights
+(`params.mjs --expect`, tested in `test/climate.test.ts`) and changes the land, sea, sky and
+animals:
+
+| Biome | Climates (share of the biome's days) | What the climate changes |
+|---|---|---|
+| `nordic` | temperate 42%, polar 39%, boreal 19% | temperate: marram and broadleaf woods, golden over grey sand, big swell ×2, haar ×1.4; polar: tundra on any water, grey gravel sand; boreal: conifer and birch (the preset) |
+| `mediterranean` | mediterranean 53%, subtropical 42%, temperate 5% | subtropical: sea oats, saw palmetto, cabbage palm, live oak on pale quartz sand (white 60%), fewer boulders, summer storms ×2 and congestus, fog ×0.4, sargassum (N Atlantic) or seagrass, ghost crabs 75%, no seals in the north; temperate (Atlantic Portugal, Yellow Sea): maritime pine and oak, kelp |
+| `volcanic` | tropical 28%, subtropical 20%, temperate 18%, boreal 18%, polar 16% | tropical: palms, coconuts, seagrass, boobies, Galápagos sea lions and Hawaiian monk seals; boreal: moss, crowberry, stone birch; polar: tundra |
+| `tropical`, `desert` | tropical; arid | – (title "desert" for arid) |
+
+Places own pools win on top: the Hebrides' and west Ireland's shell sand (white 30%, 15%;
+machair behind), Tierra del Fuego's southern beech. Flat places (`mountains: false`: Florida,
+the Wadden, Baltic, Bahamas, Maldives, the Gulf, Arctic plains) have no mountains, volcanoes or
+high islands.
 
 ### Ocean by biome
 

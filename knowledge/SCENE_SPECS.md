@@ -34,7 +34,8 @@ Allowed values are in `sceneSpec.ts`.
   `moonPhaseDeg`, `dayMoon`, `nightSky`, `eclipse`.
 - **Place:** `place` (a place or region id from `places.ts`, e.g. `"scotland"`,
   `"atlantic-canada"`); `biome`, `ocean`, `climate` (restrict the place draw to places that have
-  them and force the choice; a combination no place has throws); `monsoon`, `ice`.
+  them and force the choice; a combination no place has throws; the climate also changes the
+  land, sea, sky and animals: `scenes/climates.json` has one spec per new look); `monsoon`, `ice`.
 - **Coast:** `coast` (`beach`, `open-sea`, `rock-shore`, `tidal-flat`: a flat at the day's tide, force `tide` too), `composition`; `rockShore` (`platform`,
   `boulder`, `cliff`: a rocky shore of that kind, implies one; on a rock shore `overlook` means a
   cliff and any other composition not a cliff); `swellHeight` (m offshore) and `swellPeriod` (s; wavelength

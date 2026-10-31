@@ -46,6 +46,12 @@ Sources behind built features. Research for planned work lives with its plan: co
 
 ## Shore and animals
 
+- Climates (PLAN_BIOMES 11): FNAI "Coastal Strand" (Florida: sea oats foredune, saw palmetto and
+  cabbage palm strand, live oak maritime hammock; sea grape in the southeast); JNCC machair
+  habitat account and Scottish Geology Trust guides (Hebridean shell sand, ~40–50% carbonate on
+  the beach, up to ~80% in the machair; marram dune between); SEASAT and GEOSAT altimeter wave
+  climatologies (significant wave height lowest in the doldrums, rising to the westerlies)
+
 - Rocky shores: Coastal Wiki "Rocky shore morphology" (Sunamura platform types, gradients 1–5°,
   widths, rocky share 36.5%, about half the coast cliff-backed)
 
