@@ -4,7 +4,8 @@
 loading the page again. Each day is a `View`: its own canvas and render worker. Everything a day
 makes must be freed, in two stages:
 
-1. **When the frame is in the canvas** (end of `renderScene`, `scene.ts`): every geometry,
+1. **When the frame is in the canvas** (end of `renderScene`, `scene.ts`; after a fence wait for the
+   last frame, see LESSONS.md "Page"): every geometry,
    material, texture and render target is disposed (`GpuResources` in `src/dispose.ts`: the scene
    and environment trees, composer, env cube, reflection and land-shadow targets, precomputed
    atmosphere, cloud textures), then a sweep (`trackUploads`) disposes whatever else three uploaded

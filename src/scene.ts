@@ -737,6 +737,11 @@ export async function renderScene(
       vfovDeg: vfov / DEG
   }
 
+  // Let the last frame finish first: Chrome still queries the programs after
+  // the GPU runs it, and a program deleted before then logs 'GL_INVALID_VALUE:
+  // glGetProgramiv: Program object expected' once per program (~48 warnings).
+  await gpuIdle(gl as WebGL2RenderingContext)
+
   // The picture is in the canvas: free everything else (knowledge/LEAKS.md).
   gpu.addTree(scene)
   gpu.addTree(envScene)
