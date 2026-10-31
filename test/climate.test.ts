@@ -2,13 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import { hasLand } from '../src/coastKind'
 import { biomeNamed, climateBiome } from '../src/biome'
-import { climateTitle } from '../src/places'
+import { climateTitle, PLACES, plantsFor, type Climate } from '../src/places'
 import { cloudLeaning, pinnipedTable, stormChance, type SceneParams } from '../src/params'
-import { migratoryFor } from '../src/props/migratory'
-import { Random } from '../src/random'
 import type { SceneSpec } from '../src/sceneSpec'
 import { monthInSeason } from '../src/seasons'
-import { allParams, DAYS, expectShare, scene, scenes as scenesOf, share } from './days'
+import { allParams, DAYS, expectShare, propsOf, scene, scenes as scenesOf, share } from './days'
 
 // PLAN_BIOMES 11: the climate is the place's own choice (1a); the biome stays
 // the look preset.
@@ -88,6 +86,27 @@ describe('climate', () => {
       for (const p of scenesOf({ place: 'hawaii' }, 10)) expect(kinds(p)).toContain('palm')
     })
 
+    it('grows only what the climate allows on every place × climate × water', () => {
+      // Palms and pandanus need frost-free winters; conifers and birch don't
+      // line tropical beaches. Checked on the tables, not sampled days.
+      const frost = ['polar', 'boreal', 'temperate']
+      for (const place of PLACES) {
+        for (const climate of Object.keys(place.climate) as Climate[]) {
+          for (const ocean of Object.keys(place.ocean)) {
+            const polar = ocean === 'arctic' ? 'arctic' : ocean === 'southern' ? 'southern' : null
+            const latitude = (place.latitude[0] + place.latitude[1]) / 2
+            const kinds = plantsFor(place, climate, polar, latitude).map(([k]) => k)
+            const where = `${place.id} ${climate} ${ocean}`
+            if (frost.includes(climate)) expect(kinds, where).not.toContain('palm')
+            if (frost.includes(climate)) expect(kinds, where).not.toContain('pandanus')
+            if (climate === 'tropical') expect(kinds, where).not.toContain('conifer')
+            if (climate === 'tropical') expect(kinds, where).not.toContain('birch')
+            if (climate === 'polar' || polar != null) expect(kinds.every(k => ['grass', 'bush', 'birch', 'broadleaf'].includes(k)), where).toBe(true)
+          }
+        }
+      }
+    })
+
     it('whitens the Hebrides with shell sand sometimes', () => {
       expectShare(scenesOf({ place: 'scotland', coast: 'beach', beachMaterial: 'sand' }, 200), p => p.coast.sand.name === 'white', 0.3)
     })
@@ -153,7 +172,7 @@ describe('climate', () => {
 
     it('sends geese to cool and subtropical coasts, flamingos to warm ones', () => {
       for (const p of days) {
-        const kind = migratoryFor(p, Random.derive(p.seed, 'props/migratory'))
+        const kind = propsOf(p).migratory
         if (kind === 'goose' || kind === 'duck') expect(['tropical', 'arid']).not.toContain(p.place.climate)
         if (kind === 'flamingo') expect(['tropical', 'arid', 'mediterranean', 'subtropical']).toContain(p.place.climate)
       }

@@ -3,6 +3,7 @@ import { expect } from 'vitest'
 import { createCamera } from '../src/camera'
 import { shiftDate } from '../src/dates'
 import { generateParams, type Composition, type SceneParams } from '../src/params'
+import { propChoices, type PropChoices } from '../src/props/choices'
 import { PropContext } from '../src/props/context'
 import type { SceneSpec } from '../src/sceneSpec'
 import { terrainHeight } from '../src/terrain'
@@ -15,6 +16,16 @@ let cache: SceneParams[] | null = null
 export function allParams(): SceneParams[] {
   cache ??= DAYS.map(d => generateParams(d))
   return cache
+}
+
+const choices = new WeakMap<SceneParams, PropChoices>()
+/** What the props choose on a day (`propChoices`, src/props/choices.ts), on
+ * the render's own streams (`'props/<kind>'`): the tests' `p.props` of
+ * params.mjs. Cached per params. */
+export function propsOf(p: SceneParams): PropChoices {
+  let c = choices.get(p)
+  if (c == null) choices.set(p, (c = propChoices(p)))
+  return c
 }
 
 export function share(list: SceneParams[], test: (p: SceneParams) => boolean): number {

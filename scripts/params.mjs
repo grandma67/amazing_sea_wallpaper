@@ -7,6 +7,7 @@
 //   node scripts/params.mjs --list [--where EXPR] [--fields a.b,c] [--limit 40]
 //   node scripts/params.mjs --ref REF [--fields a.b,c] [--list] [--scene SPEC] [DATE...]
 //   node scripts/params.mjs --ref REF --stats 'p => …' [--where EXPR]
+//   node scripts/params.mjs --ref REF --changed 'p => …' [--where EXPR]
 //   node scripts/params.mjs --expect 'pl => …'
 //   node scripts/params.mjs --help
 //
@@ -49,7 +50,14 @@
 // --ref REF compares with another commit (checked out into a temporary git
 //   worktree, as bench.mjs does): how many days changed and in which
 //   top-level params (or in --fields), for the changelog's "N of 1096 days
-//   change" line. --list prints each changed day with before → after.
+//   change" line. --list prints each changed day with before → after (the
+//   first --limit, default 20; it says how many it left out). --fields
+//   NARROWS THE COMPARISON to those fields (a day changed elsewhere isn't
+//   counted), it doesn't only pick what is printed. --where keeps the days
+//   whose new params pass: 'p => Math.abs(p.latitudeDeg) < 63' with "0
+//   changed" proves a change stayed above 63°. --changed 'p => …' counts a
+//   value over the changed days only (now's params), e.g. which places or
+//   climates a change touched: --changed 'p => p.place.climate'.
 //   With --stats: the shares before and now side by side, and the change in
 //   points (⚠ at 5 or more), so a shifted distribution shows before any
 //   render. --where runs on each side's own params; a field the ref doesn't
@@ -106,6 +114,7 @@ const where = option('where', null)
 const stats = option('stats', null)
 const ref = option('ref', null)
 const expect = option('expect', null)
+const changedArg = option('changed', null)
 const list = flag('list')
 const rendered = flag('rendered')
 const limit = Number(option('limit', ref != null ? 20 : 1e9))
@@ -259,6 +268,7 @@ function printDays(days) {
   if (list || days.length > 1) {
     console.log(`${days.length} days`)
     for (const p of days.slice(0, limit)) console.log([p.date, ...fields.map(f => JSON.stringify(get(p, f)))].join('  '))
+    if (days.length > limit) console.log(`… ${days.length - limit} more days not shown (--limit ${limit})`)
   } else {
     for (const p of days) console.log(p.date, JSON.stringify(Object.fromEntries(fields.map(f => [f, get(p, f)])), null, 1))
   }
@@ -296,6 +306,17 @@ function printChanges(pairs, sha) {
   for (const [k, n] of [...counts].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]))
     console.log(`${String(n).padStart(6)}  ${((100 * n) / Math.max(1, pairs.length)).toFixed(1).padStart(5)}%  ${k}`)
   if (fresh.length > 0 && fieldsArg == null) console.log(`  new fields (not counted): ${fresh.join(', ')}`)
+  if (changedArg != null) {
+    const of = fn(changedArg)
+    const counts = new Map()
+    for (const { now } of changed) {
+      const values = [of(now)].flat()
+      for (const v of values) counts.set(JSON.stringify(v), (counts.get(JSON.stringify(v)) ?? 0) + 1)
+    }
+    console.log(`changed days by ${changedArg}:`)
+    for (const [v, n] of [...counts].sort((a, b) => b[1] - a[1]))
+      console.log(`${String(n).padStart(6)}  ${((100 * n) / Math.max(1, changed.length)).toFixed(1).padStart(5)}%  ${v}`)
+  }
   if (!list) return
   const short = v => {
     const s = JSON.stringify(v) ?? 'undefined'
@@ -307,6 +328,7 @@ function printChanges(pairs, sha) {
     for (const [path, a, b] of all.slice(0, 8)) console.log(`    ${path}: ${short(a)} → ${short(b)}`)
     if (all.length > 8) console.log(`    … ${all.length - 8} more`)
   }
+  if (changed.length > limit) console.log(`… ${changed.length - limit} more changed days not shown (--limit ${limit})`)
 }
 
 /** Weighted over the place table: numbers averaged, the rest counted. */
@@ -329,7 +351,7 @@ const here = await load(process.cwd())
 // Expressions that name `src.X` or `props.X` get this tree's modules
 // (src/X.ts, src/props/X.ts) as globals, loaded up front (they're async to
 // load, expressions are not). Modules that need a browser are left out.
-if (/\b(src|props)\.\w/.test([where, stats, expect].join(' '))) {
+if (/\b(src|props)\.\w/.test([where, stats, expect, changedArg].join(' '))) {
   const { readdir } = await import('node:fs/promises')
   const browserOnly = new Set(['main', 'renderWorker', 'spectrumWorker', 'assets', 'clouds', 'meshPreview', 'scene'])
   for (const [global, dir] of [['src', 'src'], ['props', 'src/props']]) {

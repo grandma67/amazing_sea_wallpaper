@@ -54,10 +54,20 @@ node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'   # p
   ```
 - **Which days did a change touch:** `--ref HEAD` (or any ref) generates every test day with that
   commit (temporary worktree) and with this tree, and counts the days that differ per top-level
-  param (fields added since are listed, not counted). `--fields a.b` narrows it, `--list` prints
-  each changed day's leaf values before → after, `--limit N`. Use it for the changelog's "N of
-  1096 days change" and to catch cascades (a new draw on the wrong stream shows as `camera` or
-  `ocean` changing on every day).
+  param (fields added since are listed, not counted). `--list` prints each changed day's leaf
+  values before → after (first `--limit N`, default 20; it says how many it left out). Use it
+  for the changelog's "N of 1096 days change" and to catch cascades (a new draw on the wrong
+  stream shows as `camera` or `ocean` changing on every day).
+  - ⚠ `--fields a.b` **narrows the comparison** to those fields (other changes aren't counted),
+    it doesn't only choose what's printed: `--fields latitudeDeg` reports "0 changed".
+  - **Where did it change:** `--changed 'p => …'` counts a value over the changed days (new
+    params); `--where` keeps only days whose new params pass. One call each instead of
+    listing dates and re-querying them:
+    ```sh
+    node scripts/params.mjs --ref HEAD --changed 'p => Math.abs(p.latitudeDeg) >= 63'   # all true?
+    node scripts/params.mjs --ref HEAD --changed 'p => p.place.climate'                  # which climates
+    node scripts/params.mjs --ref HEAD --where 'p => Math.abs(p.latitudeDeg) < 63'       # expect 0 changed
+    ```
 - **Did the shares move:** `--ref HEAD --stats 'p => …' --where …` prints each value's share at
   the ref and now side by side, with the change in points (⚠ at ≥ 5). Run it on every choice a
   change touches before rendering. `--where` runs on each side's own params.
@@ -213,9 +223,18 @@ no draw or other param changes (`test/debug.test.ts`), and a misspelt field thro
 `bench.mjs --ref HEAD~3` checks out the ref in a temp worktree on port 5175 and renders the same
 dates (or `--scene`) both ways, best of `--runs 3`. Prints times (`⚠ >10% slower`; `noisy` when a
 scene's runs differ by > 10%: the machine was busy, rerun) and the pixel diff (~50 s, 4 default
-dates). With `--scene` the ref run drops spec fields it doesn't know. Use it for the 10% rule and
+dates). The pixel diff prints first and the timing table **last** (`| tail -20` keeps it); both
+are saved in `OUT/summary.txt`, so a cut-off log never means a re-run. With `--scene` the ref run drops spec fields it doesn't know. Use it for the 10% rule and
 for speed work, where the image must stay identical. It clears `out/bench` first; its first HEAD
 render can come out wrong (no haze): re-run before blaming the change.
+
+## Tests: props without a render
+
+`propsOf(p)` (`test/days.ts`) is the tests' `p.props` of `params.mjs`: what the props choose
+(`propChoices`, `src/props/choices.ts`) on the render's streams (`'props/<kind>'`), cached per
+params. Use it instead of deriving `Random.derive(p.seed, 'props/…')` by hand. Table checks over
+every place × climate × ocean (`test/climate.test.ts` "grows only what the climate allows")
+catch a wrong combination without sampling days; add one when a table gains a key.
 
 ## Animals table
 

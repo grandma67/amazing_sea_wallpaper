@@ -11,14 +11,15 @@
 // (refServer.mjs),
 // renders the same dates or specs with both (this tree on 5174, which must
 // be running), --runs times each (default 3; the fastest counts: the first render of a
-// kind compiles shaders), and prints the times side by side and a pixel diff
-// (diff.mjs). Default dates: a clear, a cloudy, a storm and a night day.
+// kind compiles shaders), and prints a pixel diff (diff.mjs), then the times
+// side by side LAST (so `| tail` keeps them), also saved with the diff lines in
+// OUT/summary.txt. Default dates: a clear, a cloudy, a storm and a night day.
 // Run it with nothing else using the GPU; under `caffeinate -i` on battery.
 // A scene whose runs differ by more than 10% is marked "noisy": the machine
 // was busy, so its change isn't a result (add --runs or close things).
 
 import { spawnSync } from 'node:child_process'
-import { mkdir, rm } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
 import { serveRef, shortSha } from './refServer.mjs'
@@ -76,7 +77,11 @@ try {
     old.close()
   }
   const after = render(url, join(out, 'after'))
-  console.log(`\n${'name'.padEnd(24)} ${sha.padStart(8)}   now   change`)
+  // Pixels first, times last: the table is what a `| tail` should keep.
+  const diff = spawnSync('node', ['scripts/diff.mjs', '--a', join(out, 'before'), '--b', join(out, 'after'), '--out', out], { encoding: 'utf8' })
+  const diffText = diff.stdout + diff.stderr
+  process.stdout.write(diffText)
+  const table = [`${'name'.padEnd(24)} ${sha.padStart(8)}   now   change`]
   let sumA = 0
   let sumB = 0
   for (const [name, b] of before) {
@@ -86,11 +91,12 @@ try {
     sumB += b
     const change = ((a / b - 1) * 100).toFixed(0)
     const noisy = (spread.get(name) ?? 1) > 1.1 ? `  (noisy: runs differ ${(((spread.get(name) ?? 1) - 1) * 100).toFixed(0)}%)` : ''
-    console.log(`${name.padEnd(24)} ${b.toFixed(1).padStart(7)}s ${a.toFixed(1).padStart(5)}s  ${change.padStart(4)}%${a / b > 1.1 ? '  ⚠ >10% slower' : ''}${noisy}`)
+    table.push(`${name.padEnd(24)} ${b.toFixed(1).padStart(7)}s ${a.toFixed(1).padStart(5)}s  ${change.padStart(4)}%${a / b > 1.1 ? '  ⚠ >10% slower' : ''}${noisy}`)
   }
-  console.log(`${'total'.padEnd(24)} ${sumB.toFixed(1).padStart(7)}s ${sumA.toFixed(1).padStart(5)}s  ${((sumA / sumB - 1) * 100).toFixed(0).padStart(4)}%\n`)
-  const diff = spawnSync('node', ['scripts/diff.mjs', '--a', join(out, 'before'), '--b', join(out, 'after'), '--out', out], { encoding: 'utf8' })
-  process.stdout.write(diff.stdout + diff.stderr)
+  table.push(`${'total'.padEnd(24)} ${sumB.toFixed(1).padStart(7)}s ${sumA.toFixed(1).padStart(5)}s  ${((sumA / sumB - 1) * 100).toFixed(0).padStart(4)}%`)
+  const pixels = diffText.split('\n').filter(line => /changed, box|invisible|identical/.test(line))
+  await writeFile(join(out, 'summary.txt'), [`bench ${sha} vs now`, '', ...pixels, '', ...table, ''].join('\n'))
+  console.log(`\n${table.join('\n')}\n(summary: ${join(out, 'summary.txt')})`)
 } catch (error) {
   console.error(error.message)
   process.exitCode = 1
