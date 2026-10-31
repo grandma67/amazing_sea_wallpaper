@@ -96,4 +96,14 @@ describe('places', () => {
       expect(generateParams(date).place).toEqual(generateParams(date).place)
     }
   })
+
+  it('puts no mountains, volcanoes or high islands by flat coasts', () => {
+    for (const place of ['florida-carolinas', 'wadden-north-sea', 'maldives', 'bahamas-bermuda']) {
+      expect(placeNamed(place).mountains).toBe(false)
+      for (const p of scenes({ place }, 30)) expect(p.landform, place).toBeNull()
+      for (const p of scenes({ place }, 30)) expect(['cay', 'skerries', undefined]).toContain(p.islands?.kind)
+    }
+    expect(scenes({ place: 'florida-carolinas', landform: 'range' }, 3).every(p => p.landform?.kind === 'range')).toBe(true)
+    expect(scenes({ place: 'iceland' }, 60).some(p => p.landform != null)).toBe(true)
+  })
 })

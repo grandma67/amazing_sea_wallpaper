@@ -1153,6 +1153,7 @@ function pickFog(
 function pickLandform(
   seed: string,
   biome: Biome,
+  mountains: boolean,
   ocean: OceanName,
   timeOfDay: TimeOfDay,
   headingDeg: number,
@@ -1161,7 +1162,8 @@ function pickLandform(
 ): LandformParams | null {
   const rng = Random.derive(seed, 'landform')
   const chance: Record<Biome['name'], number> = { volcanic: 0.55, nordic: 0.4, mediterranean: 0.25, tropical: 0.2, desert: 0.2 }
-  if (!forced(force, rng.chance(chance[biome.name]))) return null
+  // Flat places (places.ts FLAT_LAND) have none.
+  if (!forced(force, rng.chance(chance[biome.name]) && mountains)) return null
   const volcanoChance: Record<Biome['name'], number> = { volcanic: 0.85, nordic: 0.15, mediterranean: 0.3, tropical: 0.45, desert: 0.1 }
   const drawnVolcano = rng.chance(volcanoChance[biome.name])
   const kind = forcedKind(force, drawnVolcano ? (rng.chance(0.75) ? 'strato' : 'shield') : 'range')
@@ -1225,11 +1227,14 @@ function islandSize(rng: Random, kind: IslandKind): { distance: number; width: n
   }
 }
 
-function pickIslands(seed: string, biome: Biome, force?: Force<IslandKind>): IslandParams | null {
+function pickIslands(seed: string, biome: Biome, mountains: boolean, force?: Force<IslandKind>): IslandParams | null {
   const rng = Random.derive(seed, 'islands')
   const table = ISLANDS[biome.name]
-  if (!forced(force, rng.chance(table.chance))) return null
-  const kind = forcedKind(force, rng.weighted(table.kinds))
+  // Flat places (places.ts FLAT_LAND) have only low islands offshore: cays
+  // and skerries (the Baltic's), no rocky or high ones (Florida).
+  const kinds = mountains ? table.kinds : table.kinds.filter(([k]) => k === 'cay' || k === 'skerries')
+  if (!forced(force, rng.chance(table.chance) && kinds.length > 0)) return null
+  const kind = forcedKind(force, kinds.length > 0 ? rng.weighted(kinds) : rng.weighted(table.kinds))
   // Skerries come in groups round a centre; karst towers in a scatter;
   // the big ones alone or in pairs.
   const count = kind === 'skerries' ? rng.int(3, 8) : kind === 'karst' ? rng.int(2, 6) : kind === 'cay' ? rng.int(1, 3) : rng.int(1, 2)
@@ -1787,8 +1792,8 @@ function buildParams(
   const colony = pickColony(seed, basin.name, climate, latitudeDeg < 0, coast.type, spec.colony, spec.colonySite)
   const pinnipeds = pickPinnipeds(seed, basin.name, biome, climate, latitudeDeg, coast.type, spec.pinnipeds, spec.haulOut)
   const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog, spec.lighthouse)
-  const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
-  const islands = pickIslands(seed, biome, spec.islands)
+  const landform = pickLandform(seed, biome, place.mountains, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
+  const islands = pickIslands(seed, biome, place.mountains, spec.islands)
   if (storm != null) storm.shelf = shelfCloudFor(storm, Random.derive(seed, 'shelf-cloud'), spec.shelfCloud)
   // The shelf is the storm's low cloud there: scud at the same height would
   // hide it.

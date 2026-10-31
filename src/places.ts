@@ -107,6 +107,9 @@ export interface Place {
   coast: Weights<LandKind>
   /** The mud of a tidal flat near its marsh (linear albedo; tidalFlat.ts). */
   mud: RGB
+  /** Mountains or volcanoes can stand behind the coast (pickLandform); not
+   * on flat barrier, delta and coral coasts. */
+  mountains: boolean
 }
 
 export type LandKind = 'beach' | 'rock-shore' | 'tidal-flat'
@@ -406,6 +409,24 @@ const MUD: Record<string, RGB> = {
   'yellow-sea': [0.17, 0.14, 0.1]
 }
 
+// Flat hinterlands: no mountain range or volcano in view (the barrier islands
+// of Florida and the Carolinas, the Wadden and Baltic lowlands, coral
+// platforms, the Persian Gulf and Libyan coasts, the Arctic coastal plains).
+const FLAT_LAND = new Set([
+  'florida-carolinas',
+  'wadden-north-sea',
+  'baltic',
+  'pei',
+  'mont-saint-michel',
+  'bahamas-bermuda',
+  'maldives',
+  'yucatan-belize',
+  'persian-gulf',
+  'north-africa-levant',
+  'alaska-north',
+  'arctic-russia'
+])
+
 /** Every place, from REGIONS.md §1. Animals listed on a row replace the
  * region's. */
 const ROWS: readonly PlaceRow[] = [
@@ -552,7 +573,8 @@ function resolve(): Place[] {
       tide: TIDE[row.id] ?? TIDE[region] ?? DEFAULT_TIDE,
       reef: REEF[row.id] ?? REEF[region] ?? 0,
       coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome], FLAT[row.id] ?? 0),
-      mud: MUD[row.id] ?? DEFAULT_MUD
+      mud: MUD[row.id] ?? DEFAULT_MUD,
+      mountains: !FLAT_LAND.has(row.id)
     }
   })
 }
