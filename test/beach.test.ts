@@ -97,7 +97,7 @@ describe('beach material', () => {
   })
 
   it('names stony beaches in the title', () => {
-    expect(scene({ place: 'nova-scotia', beachMaterial: 'cobble' }).title).toContain('nordic cobble beach')
+    expect(scene({ place: 'nova-scotia', climate: 'temperate', beachMaterial: 'cobble' }).title).toContain('temperate cobble beach')
     expect(scene({ place: 'western-med', beachMaterial: 'shingle' }).title).toContain('mediterranean shingle beach')
     expect(scene({ place: 'scotland', beachMaterial: 'mixed' }).title).toContain('sand and gravel beach')
     expect(scene({ place: 'maldives', coast: 'beach', beachMaterial: 'sand', sand: 'white' }).title).toContain('white sand beach')

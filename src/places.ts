@@ -557,6 +557,14 @@ function landKinds(rock: number, flat: number): Weights<LandKind> {
 export const PLACES: readonly Place[] = resolve()
 export const REGION_IDS: readonly string[] = [...new Set(PLACES.map(p => p.region))]
 
+/** The coast's word in titles (decision 2): the climate ("temperate
+ * shingle beach", "subtropical beach"), except where the biome says more:
+ * volcanic coasts keep their name, arid ones are deserts. */
+export function climateTitle(biome: Biome['name'], climate: Climate): string {
+  if (biome === 'volcanic') return 'volcanic'
+  return climate === 'arid' ? 'desert' : climate
+}
+
 /** The place called `id`. */
 export function placeNamed(id: string): Place {
   const place = PLACES.find(p => p.id === id)

@@ -16,7 +16,7 @@ import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
-import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
+import { choose, climateTitle, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
 import { Random } from './random'
 import { monthInSeason, season, seasonMonth } from './seasons'
 import { reefFor, reefShelter, type Reef } from './reef'
@@ -1753,14 +1753,15 @@ function buildParams(
     }
   }
 
+  const climateWord = climateTitle(biome.name, climate)
   const titleParts = [
     timeLabel[timeOfDay],
     hasBeach(coast)
-      ? `${biome.name} ${beachName(coast.material, coast.sand.name)}`
+      ? `${climateWord} ${beachName(coast.material, coast.sand.name)}`
       : coast.rock != null
-        ? `${biome.name} ${ROCK_NAMES[coast.rock.kind]}`
+        ? `${climateWord} ${ROCK_NAMES[coast.rock.kind]}`
         : coast.flat != null
-          ? `${biome.name} tidal flats`
+          ? `${climateWord} tidal flats`
           : seaName(oceanState.windSpeed),
     basin.label
   ]
