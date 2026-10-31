@@ -15,6 +15,7 @@ import { createMarineLife } from './marine'
 import { createMigratoryBirds } from './migratory'
 import { createPinnipeds } from './pinnipeds'
 import { createRocks } from './rocks'
+import { createSaltMarsh } from './saltMarsh'
 import { createShips } from './ships'
 import { createShoreLife } from './shoreLife'
 import { createStones } from './stones'
@@ -64,6 +65,7 @@ export function createProps(ctx: PropContext): Group {
   add('pinnipeds', () => createPinnipeds(ctx, island))
   add('lighthouse', () => createLighthouse(ctx, island))
   add('vegetation', () => createVegetation(ctx))
+  add('salt-marsh', () => createSaltMarsh(ctx))
   add('mangroves', () => createMangroves(ctx))
   // For their wakes and the hull cut out of the sea (ocean.ts setOceanShips).
   group.userData.ships = add('ships', () => createShips(ctx)).flatMap(o => o.userData.wake ?? [])

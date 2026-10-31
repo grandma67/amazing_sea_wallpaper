@@ -56,6 +56,8 @@ export interface PropOverrides {
   /** true: some of every class of boat; a list: one of each kind named. */
   ships?: boolean | ShipKind[]
   rocks?: boolean
+  /** Salt-marsh tufts (props/saltMarsh.ts); false: none. */
+  saltMarsh?: boolean
   seaStacks?: boolean
   /** false: stony beaches drawn by the terrain shader alone, no mesh stones. */
   stones?: boolean
@@ -322,6 +324,7 @@ const SPEC = object({
     ships: (value, path) =>
       typeof value === 'boolean' ? undefined : listOf(oneOf('sloop', 'catamaran', 'dhow', 'motor-yacht', 'trawler', 'container-ship', 'tanker', 'dinghy', 'expedition-ship', 'icebreaker'))(value, path),
     rocks: boolean,
+    saltMarsh: boolean,
     seaStacks: boolean,
     stones: boolean,
     beachrock: boolean,

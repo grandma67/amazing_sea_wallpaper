@@ -5,6 +5,7 @@ import { debrisFor } from './debris'
 import { mangroveFor } from './mangroves'
 import { marineFor } from './marine'
 import { migratoryFor } from './migratory'
+import { saltMarshFor } from './saltMarsh'
 import { shoreLifeFor } from './shoreLife'
 import { wildlifeFor } from './wildlife'
 
@@ -23,7 +24,8 @@ export function propChoices(params: SceneParams) {
     wildlife: wildlifeFor(params, rng('wildlife')),
     shoreLife: shoreLifeFor(params, rng('shore-life')),
     debris: debrisFor(params, rng('debris')),
-    mangroves: mangroveFor(params, rng('mangroves'))
+    mangroves: mangroveFor(params, rng('mangroves')),
+    saltMarsh: saltMarshFor(params, rng('salt-marsh'))
   }
 }
 

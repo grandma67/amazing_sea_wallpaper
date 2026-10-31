@@ -1275,7 +1275,8 @@ void main() {
   // the water, draining higher up; on a low-tide terrace water stays ponded
   // in runnels along the shore and in puddles.
   float highMark = tideHigh + runup;
-  float exposed = (1.0 - smoothstep(0.8 * highMark, highMark, h)) * (1.0 - wet) * (1.0 - marshW);
+  // Marsh mud between the clumps is damp but matte (roots, algal film).
+  float exposed = (1.0 - smoothstep(0.8 * highMark, highMark, h)) * (1.0 - wet) * (1.0 - marshW) * (1.0 - 0.8 * marshBand);
   float drained = clamp(h / max(highMark, 0.01), 0.0, 1.0);
   float pools = 0.0;
   if (terrace.y > 0.0) {
@@ -1292,7 +1293,7 @@ void main() {
   // the hollows.
   if (flatW > 0.0) {
     pools = max(pools, smoothstep(0.06, 0.14, creek) * (1.0 - smoothstep(highMark, highMark + 0.3, h)));
-    pools = max(pools, exposed * smoothstep(0.6, 0.68, fbm(q / 35.0 + 9.0) + 0.1 * (fbm(q / 4.0) - 0.5)) * (1.0 - 0.5 * mudW));
+    pools = max(pools, exposed * smoothstep(0.6, 0.68, fbm(q / 35.0 + 9.0) + 0.1 * (fbm(q / 4.0) - 0.5)) * (1.0 - 0.5 * mudW) * smoothstep(0.0, 3.0, sa.x));
   }
   albedo *= mix(1.0, 0.68, exposed * (1.0 - hard)) * mix(1.0, 0.6, pools);
   // Wet mud and flat sand hold a film of water: glossier than a beach.

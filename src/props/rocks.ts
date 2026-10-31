@@ -240,8 +240,11 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
   const { coast, biome } = params
   if (!hasLand(coast)) return []
   const rng = ctx.rng('rocks')
-  const hasRocks = forced(params.overrides?.rocks, rng.chance(rockChanceFor(biome.rockChance, coast.material, coast.rock != null)))
-  const hasStacks = forced(params.overrides?.seaStacks, rng.chance(biome.seaStackChance))
+  // No boulders or stacks on a tidal flat or a marsh-backed beach: soft
+  // sediment coasts (the draws stay, so the other streams don't move).
+  const soft = coast.flat != null || coast.marsh != null
+  const hasRocks = forced(params.overrides?.rocks, rng.chance(rockChanceFor(biome.rockChance, coast.material, coast.rock != null)) && !soft)
+  const hasStacks = forced(params.overrides?.seaStacks, rng.chance(biome.seaStackChance) && !soft)
   if (!hasRocks && !hasStacks) return []
 
   const instances: RockInstance[] = []
