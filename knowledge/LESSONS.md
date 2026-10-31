@@ -5,6 +5,13 @@ tool gotchas: TOOLS.md.
 
 ## Debugging approach
 
+- Before investigating a look, grep ARCHITECTURE.md "Known issues" for the symptom ("dark",
+  "zig-zag", "flat blue"): phase 9 spent two renders proving near-black land on broken-cloud days
+  was older than the phase, while an entry for the same symptom already existed.
+- Probe a creator, a placement rule or a height helper with `params.mjs` (`p.ctx`, `src.X`,
+  `props.X`) on a spec or real days, not with throwaway test files; read the view cone on the
+  `profile.mjs` map before blaming shading for a band or ridge across the frame.
+
 - "Not showing" is usually placement, light or size: check `--props`, backlight and pixel size
   before debugging shaders. Small things at real scale vanish (10 cm crab: ~70 px at 5 m at 4K, a
   speck at 20 m).

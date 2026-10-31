@@ -182,8 +182,6 @@ Coast and surf:
 - Reef crest foam is a band timed with the surf cycle, not breaking waves (the surf model breaks
   them on a ~2 m strip of the steep face); against a low sun ahead it fades into the glare.
 - Tidepools are runnels and puddles on the terrace (shader patches), not pools among rocks.
-- `place: "western-med"`, 2024-05-08, along-beach daylight front-lit: the whole beach renders dark
-  blue (same at a6ac87a, before tides).
 - Stony beaches: shingle reads as a flat mottled colour on most 1080p views (a 2–5 cm pebble is
   under a pixel past ~10 m at eye height; the nearest ground is often 20–40 m); `framed` stands
   15–60 m inland behind the plants, so it never has stones in the foreground. Iceland (volcanic
@@ -211,8 +209,13 @@ Tidal flats and salt marsh (PLAN_BIOMES 9):
   further out (only surf and run-up are damped; no shelter mask).
 - Driftwood logs can be heaped on a marsh beach's marsh (debris storm line), even in treeless bays.
 - Seals on sandbanks and waders on the flats (phase 14) are missing.
-- `weather: "broken"` days render land near-black (marsh, beach and sand alike); seen at
-  0bf8187 before this phase too (Mont-Saint-Michel 2025-07-10 along-beach).
+
+Light:
+- **Dark land** (symptoms: "beach renders dark blue", "land near-black", "marsh black"): on
+  `weather: "broken"` days land is lit almost only by the sky (marsh, beach and sand alike;
+  Mont-Saint-Michel 2025-07-10 along-beach, same at 0bf8187), and `place: "western-med"`,
+  2024-05-08, along-beach daylight front-lit renders the whole beach dark blue (same at a6ac87a,
+  before tides). Probably one cause (cloud shadow or sky irradiance on the terrain); not traced.
 
 Sky:
 - Waterspouts: the fog rule never applies and they're far rarer than intended (1 in 3 years):

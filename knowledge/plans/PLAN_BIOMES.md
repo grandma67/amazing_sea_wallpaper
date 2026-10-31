@@ -65,7 +65,11 @@ and a link here. Stopping after 12 leaves a complete result.
   profile's pieces and how they join (heights and slopes at each join), what `distanceToWater`,
   `waterline` and `beachLines` mean afterwards, and which readers in arch/COAST.md "Coordinates
   and heights" and "A new seabed or shore profile" change. Check drawn vs reached numbers in
-  `profile.mjs` (a forced spec can sketch it) before any shader work.
+  `profile.mjs` (a forced spec can sketch it) before any shader work. Add a **forced extremes**
+  table: for low, mid and high tide (springs) × each composition, where the camera stands, what
+  must stay dry (marsh, berm, plants) and its height against the spring high water + run-up; then
+  `expectDryCameras` in the tests and the `profile.mjs` dry-land check (phase 9's marsh, drawn for
+  mid tide, drowned the camera at spring high water and again when the beach width was capped).
 - **Research per phase:** 1–2 searches for the phase's numbers before code, recorded with their
   source in REGIONS.md or COASTS.md. Cite only what was read (phase 7 had to take a figure out).
 - **Props are their own step:** a new prop (salt-marsh tufts, tidepool life) gets its own
