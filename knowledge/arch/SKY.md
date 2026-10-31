@@ -3,6 +3,12 @@
 How the sky code works. What is drawn where and how often: [CLOUDS.md](../CLOUDS.md). Pitfalls:
 LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky objects".
 
+- **The real sun** (`celestial.ts`, PLAN_BIOMES 12): `solarDeclinationDeg(date)`, `sunLimits(lat,
+  date)` (noon 90° − |φ − δ|, midnight |φ + δ| − 90°) and `sunAzimuthDeg` (compass bearing for an
+  elevation, morning or evening). From `REAL_SUN_LATITUDE` (63°) the time-of-day weights and the
+  elevation follow them (`timeWeights`, `sunRange` in `params.ts`); midnight-sun days face the
+  real bearing; polar-night days lose solar eclipses. Titles: "Polar night", "Polar night
+  twilight", "Midnight sun". Renders: `scenes/sun.json`.
 - `scene.ts`: atmosphere, env cube, post. `exposure.ts` meters a 32² sky cube (auto exposure).
 - **Clouds** (`clouds.ts`, `cloudTypes.ts`): WMO genera and species (each has its `genus`);
   `pickFormations` draws one per étage, `pickSpecies` (own stream) refines and adds fractus,

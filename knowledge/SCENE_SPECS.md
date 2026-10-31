@@ -103,5 +103,13 @@ Every new random feature gets one. Always make the draw, then apply the force vi
   - Tidal flats (`scenes/tidal.json`): Wadden low tide golden hour (2025-07-10 shoreline), Fundy
     red mud (2025-08-12 framed), Wadden high tide marsh beach (2025-07-13 along-beach, eye 1.7 m),
     Yellow Sea red marsh (2025-09-25 framed). Real flat days are rare (~3 a year): force them.
+  - Climates (`scenes/climates.json`): one spec per new look and composition (Florida, the Gold
+    Coast, south Japan; Cornwall, the Hebrides' white shell sand, Maine, Oregon; Greenland
+    tundra; Hawaii; Iceland).
+  - The polar sun (`scenes/sun.json`): Tromsø polar-night twilight noon (2025-12-10,
+    `norway-north` drew 70.7°), Svalbard polar night (2025-12-21), midnight sun on Svalbard and
+    at Tromsø (2025-06-21, `sunElevationDeg` just above the day's minimum, `evening`). From 63°
+    a forced `timeOfDay` the sun can't reach still wins (debugging), and so does
+    `sunElevationDeg`: the heading of a midnight-sun day follows the forced elevation.
 - Spec files for each finished feature: `scenes/` (`examples`, `stony`, `tables`, `beach-states`,
-  `tides`, `shelter`, `reef`, `rock`, `tidal`); `debug.json` shows the debug views.
+  `tides`, `shelter`, `reef`, `rock`, `tidal`, `climates`, `sun`); `debug.json` shows the debug views.

@@ -73,15 +73,20 @@ Playwright (headless snapshots), Vitest.
 - **Draw order in `buildParams`** (read this before adding a decision, then open only that part
   of `params.ts`). *main* = the main `rng` (its draws after the sky are pinned with `keep()`);
   `'x'` = `Random.derive(seed, 'x')`. A decision can only read what's above it.
-  1. Eclipse (`'eclipse'`), moon phase; `'moon-sky'` stream made.
+  1. Eclipse drawn (`'eclipse'`); `'moon-sky'` stream made.
   2. Place (main, first draw; one float even when a spec restricts it) → ocean, monsoon, ice and
      latitude (`'ocean'`), climate (`'climate'`), biome = `placeBiome(place, climate)`
      (`climateBiome`: the climate's sands, plants and greens) with `plantsFor` (no draw).
-  3. Time of day, evening (main).
+     At |latitude| ≥ 63° the day's real sun (`sunLimits`, no draw): a solar eclipse is dropped
+     in the polar night; then the eclipse type and moon phase.
+  3. Time of day (main; one draw over `timeWeights(realSun)`: categories the sun can't reach
+     get 0 from 63°), evening (main).
   4. Weather kind and coverage (`'weather'`, `generateWeather`); eclipse fix-up; marine layer
      (`'marine-layer'`, deck on `'marine-layer-deck'`); dust (`'dust'`); rainbow day
      (`'rainbow'`).
-  5. Heading, sun elevation and azimuth (main; eclipse and rainbow override), moon direction
+  5. Heading, sun elevation (main, within `sunRange`: the day's real range from 63°) and
+     azimuth (main; eclipse and rainbow override; on midnight-sun days the heading becomes the
+     sun's real compass bearing − `relSunAz`), moon direction
      (main, `'moon-framing'`), day moon and night sky (`'moon-sky'`).
   6. Camera height, focal length (main, `keep`), wind speed and heading (main, `keep`).
   7. Storm (`'storm'`, `'storm-weather'`: overrides weather and wind); water (`'water'`); wind
@@ -151,7 +156,9 @@ Playwright (headless snapshots), Vitest.
 Breaking-wave lips, ambient occlusion under trees, low-power mode for phones, wind-blown sand and
 leaves, lamp reflections on wet sand, lit windows on cruise ships, ship roll resonance, wakes
 rolling onto the beach as surf, turtle heads at sea, a real compass sun on every day (ties framing,
-heading and coast orientation together).
+heading and coast orientation together; midnight-sun days already have it, PLAN_BIOMES 12), the
+real sun's elevation range below 63° (mid-latitude winters still get a 35–70° "midday": at 50° the
+December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
 

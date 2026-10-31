@@ -69,6 +69,11 @@ tool gotchas: TOOLS.md.
 
 ## Seasons
 
+- The real sun at 76–80° (Svalbard) never gets above −6° in December: the plan's "blue-hour
+  glow at noon" exists only nearer the Arctic Circle (Tromsø's 69–71°). Check `sunLimits`
+  before writing a render spec for a polar look. Below 63° the time of day is still a free
+  category (the 35–70° midday also in mid-latitude winters).
+
 - A month table needs the hemisphere, not the ocean: `ocean === 'southern'` only flipped the
   Southern Ocean, so Chile, SW Australia and the Cape bloomed in July. Read months through
   `seasons.ts` (`monthInSeason`); keep calendar months only for data already local (turtle nesting
