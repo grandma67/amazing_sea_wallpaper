@@ -211,6 +211,10 @@ uniform float envMaxLod;
 uniform sampler2D planarMap;
 uniform mat4 planarMatrix;
 uniform float planarOn;
+// Depth of the mirror image and the mirror camera's (oblique) inverse
+// projection: how far each reflected ray travels (reflection.ts).
+uniform sampler2D planarDepth;
+uniform mat4 planarProjInv;
 // Rocks cutting the surface (props/surf.ts waterRocks): x, z, waterline
 // radius, and whether the waves break on them (waveOnRock), 0..1.
 uniform vec4 rockData[${MAX_ROCKS}];
@@ -497,11 +501,27 @@ void main() {
   }
   // Land, rocks, trees and boats mirrored in the water (reflection.ts), over
   // the sky reflection, shifted by the waves and blurred by roughness.
+  // A wave's tilt turns the reflected ray, which drifts off by an amount that
+  // grows with how far it travels past the water, t: seen from the mirror
+  // camera (D + t away) that's an angle ∝ t / (D + t). So the image is sharp
+  // where an object meets the water and blurs up its face (contact
+  // hardening); far land and anything missing the mirror get the full blur.
+  // The target is cleared to transparent black, so its mips hold
+  // premultiplied colour: blend it as such.
   if (planarOn > 0.5) {
     vec4 projected = planarMatrix * vec4(vWorld.x, 0.0, vWorld.z, 1.0);
-    vec2 uv = projected.xy / projected.w + N.xz * 0.04;
-    vec4 planar = textureLod(planarMap, uv, clamp(log2(alpha * 300.0), 0.0, 6.0));
-    reflected = mix(reflected, planar.rgb, clamp(planar.a, 0.0, 1.0));
+    vec2 base = projected.xy / projected.w;
+    float hitDepth = textureLod(planarDepth, base, 0.0).r;
+    float k = 1.0;
+    if (hitDepth < 1.0) {
+      vec4 view = planarProjInv * vec4(base * 2.0 - 1.0, hitDepth * 2.0 - 1.0, 1.0);
+      float L = length(view.xyz / view.w);
+      float D = length(vWorld - cameraPosition);
+      k = clamp(1.0 - D / max(L, D), 0.0, 1.0);
+    }
+    vec2 uv = base + N.xz * 0.04 * k;
+    vec4 planar = textureLod(planarMap, uv, clamp(log2(alpha * 300.0 * k + 1e-3), 0.0, 6.0));
+    reflected = reflected * (1.0 - clamp(planar.a, 0.0, 1.0)) + planar.rgb;
   }
   float F = fresnel(NoV);
 
@@ -738,6 +758,8 @@ export function createOcean(
       planarMap: { value: null as Texture | null },
       planarMatrix: { value: new Matrix4() },
       planarOn: { value: 0 },
+      planarDepth: { value: null as Texture | null },
+      planarProjInv: { value: new Matrix4() },
       envMaxLod: { value: 8 },
       sunDirection: { value: new Vector3(...params.sunDirection) },
       sunIrradiance: { value: new Color(0, 0, 0) },

@@ -124,6 +124,9 @@ tool gotchas: TOOLS.md.
   (console: "Mismatch between texture format and sampler type"). Start it on an allocated depth
   texture with `compareFunction` (`shadow.ts` `noShadowMap`). Headless snapshots don't echo GL
   errors from the worker; run with `?worker=0` and check `gl.getError()` after draws to find one.
+- A render target cleared to (0,0,0,0) holds premultiplied colour in its mips: blending it with
+  `mix(x, rgb, a)` weights the content by a² and leaves a bright fringe at every edge. Use
+  `x · (1 − a) + rgb`.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
   bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN terrain.
 
@@ -222,6 +225,10 @@ tool gotchas: TOOLS.md.
 - A reef's waves break on a ~2 m strip of its steep face in the surf model, so there's no white
   line from afar: the crest needs its own band of white water. The surf zone ends 150–350 m from
   the water; anything breaking further out (a reef 400 m off) needs `surfReach`.
+- A planar reflection blurred evenly lets go of the waterline: past an object's foot the mirror
+  target is transparent, so any blur fades the image right where it should touch. Real blur grows
+  with the reflected ray's length t past the water (∝ t / (D + t)): read the mirror's depth and
+  scale the mip and the wave shift by it.
 
 ## Coast and terrain
 

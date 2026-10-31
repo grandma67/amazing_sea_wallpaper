@@ -678,6 +678,8 @@ export async function renderScene(
       gpu.add(reflection.target)
       ocean.material.uniforms.planarMap.value = reflection.target.texture
       ocean.material.uniforms.planarMatrix.value.copy(reflection.textureMatrix)
+      ocean.material.uniforms.planarDepth.value = reflection.target.depthTexture
+      ocean.material.uniforms.planarProjInv.value.copy(reflection.projectionInverse)
       ocean.material.uniforms.planarOn.value = 1
     }
     renderer.shadowMap.autoUpdate = false

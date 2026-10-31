@@ -41,5 +41,12 @@ surf".
   (≥ 0.35 rise over 5 m) meets today's water, a 3 m "rock" at the face, so the scarp, a cliff's
   foot or a boulder apron gets the same bursts, collars and lee trails. The surf breaks on the
   scarp by depth already.
+- **Reflections** (`reflection.ts`, ocean.ts "Land, rocks, trees and boats mirrored"): the scene
+  rendered from a camera mirrored in y = 0 (oblique clip at the water) into a half-res target
+  cleared to (0,0,0,0), with a depth texture. Blended **premultiplied** (`reflected · (1 − a) +
+  rgb`: the mips hold a·colour). Blur and wave shift scale with **k = t / (D + t)**, t the reflected
+  ray's length past the water (from the depth, unprojected with the oblique `planarProjInv`; not
+  `perspectiveDepthToViewZ`): sharp where an object meets the water, the full roughness blur
+  (`log2(α·300)` mips) far up its face and on far land; rays that hit nothing keep k = 1.
 - **Ships in the ocean shader:** `setOceanShips` (8 nearest) cuts the hull out of the sea and adds
   the Kelvin wake, foam and slick (PROPS.md "Ships").

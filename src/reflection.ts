@@ -1,5 +1,7 @@
 import {
   Color,
+  DepthTexture,
+  FloatType,
   HalfFloatType,
   LinearFilter,
   LinearMipmapLinearFilter,
@@ -25,6 +27,10 @@ export interface PlanarReflection {
   target: WebGLRenderTarget
   /** World position → reflection texture coordinates (projective). */
   textureMatrix: Matrix4
+  /** Inverse of the mirror camera's (oblique) projection: unprojects the
+   * target's depth texture to view space, whose length is how far the
+   * mirrored ray travels to what it hits. */
+  projectionInverse: Matrix4
 }
 
 export function renderPlanarReflection(
@@ -84,6 +90,9 @@ export function renderPlanarReflection(
     minFilter: LinearMipmapLinearFilter,
     magFilter: LinearFilter
   })
+  // Depth of what each mirrored ray hits: the ocean blurs the reflection by
+  // how far the ray travels past the water (sharp where an object meets it).
+  renderTarget.depthTexture = new DepthTexture(renderTarget.width, renderTarget.height, FloatType)
 
   const visibility = hide.map(o => o.visible)
   hide.forEach(o => (o.visible = false))
@@ -97,5 +106,5 @@ export function renderPlanarReflection(
   renderer.setClearColor(clearColor, clearAlpha)
   hide.forEach((o, i) => (o.visible = visibility[i]))
 
-  return { target: renderTarget, textureMatrix }
+  return { target: renderTarget, textureMatrix, projectionInverse: mirror.projectionMatrixInverse.clone() }
 }
