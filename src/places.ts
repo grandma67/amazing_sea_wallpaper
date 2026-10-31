@@ -101,6 +101,8 @@ export interface Place {
   /** What the shore is on land days (not the open sea): a beach or a rocky
    * shore (rockShore.ts). */
   coast: Weights<LandKind>
+  /** The mud of a tidal flat near its marsh (linear albedo; tidalFlat.ts). */
+  mud: RGB
 }
 
 export type LandKind = 'beach' | 'rock-shore'
@@ -373,6 +375,16 @@ const ROCK: Record<string, number> = {
   namibia: 0.15
 }
 
+// Tidal-flat mud (PLAN_BIOMES 9; plans/TIDAL_FLAT.md), linear albedo: grey-
+// brown silt and clay, Fundy's red-brown from the Triassic red beds,
+// Mont-Saint-Michel's pale grey tangue (shell-rich silt).
+const DEFAULT_MUD: RGB = [0.16, 0.14, 0.11]
+const MUD: Record<string, RGB> = {
+  fundy: [0.22, 0.11, 0.07],
+  'mont-saint-michel': [0.19, 0.18, 0.16],
+  'yellow-sea': [0.17, 0.14, 0.1]
+}
+
 /** Every place, from REGIONS.md §1. Animals listed on a row replace the
  * region's. */
 const ROWS: readonly PlaceRow[] = [
@@ -518,7 +530,8 @@ function resolve(): Place[] {
       stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome],
       tide: TIDE[row.id] ?? TIDE[region] ?? DEFAULT_TIDE,
       reef: REEF[row.id] ?? REEF[region] ?? 0,
-      coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome])
+      coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome]),
+      mud: MUD[row.id] ?? DEFAULT_MUD
     }
   })
 }

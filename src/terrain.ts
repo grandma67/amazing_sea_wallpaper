@@ -18,6 +18,7 @@ import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { LICHEN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
+import { flatSurface, type SaltMarsh, type TidalFlat } from './tidalFlat'
 import { highWater, tideMarks } from './tides'
 
 export { hasBeach, hasLand, hasSurfZone, type CoastKind } from './coastKind'
@@ -79,6 +80,13 @@ uniform vec4 rockShape;
 uniform vec4 rockBack;
 uniform vec4 rockBeds;
 uniform vec3 rockJoints;
+// Tidal flat (tidalFlat.ts): width, height at the marsh edge's foot and at
+// the seaward end above mean sea; channel spacing, width and depth at the
+// seaward end, creek spacing. Salt marsh: start (u), width, heights at its
+// edge and its back.
+uniform vec4 flatShape;
+uniform vec4 flatCreekShape;
+uniform vec4 marsh;
 #define REEF_RAMP ${REEF_RAMP.toFixed(1)}
 #define REEF_DROP ${REEF_DROP.toFixed(2)}
 #define ROCK_MIN_FACE ${ROCK_MIN_FACE.toFixed(3)}
@@ -495,10 +503,62 @@ float rockHeightAt(vec2 p, vec2 sa) {
   return h - tideLevel;
 }
 
+// The bare tidal-flat profile (tidalFlat.ts bareFlat): marsh, its edge (a
+// low cliff, at least 3% of r wide), the flat, the subtidal bed.
+float bareFlat(float s, float r) {
+  float run = max(0.6, ROCK_MIN_FACE * r);
+  if (s <= -run) return marsh.z + (marsh.w - marsh.z) * smoothstep(0.0, 1.0, (-s - run) / marsh.y);
+  if (s < 0.0) return flatShape.y + (marsh.z - flatShape.y) * smoothstep(0.0, 1.0, -s / run);
+  if (s <= flatShape.x) return flatShape.y + (flatShape.z - flatShape.y) * s / flatShape.x;
+  float range = max(1.0, seabedDepth + flatShape.z);
+  return flatShape.z - range * (1.0 - exp(max(-(s - flatShape.x) * nearshoreSlope / range, -10.0)));
+}
+
+// Meandering channels every spacing m along the shore, 0..1 (1 on the floor).
+float flatChannel(vec2 sa, float spacing, float half_, float key) {
+  float m = 0.25 * spacing * (vnoise(vec2(sa.x / 220.0, sa.y / (2.0 * spacing) + key) + noiseOffset) * 2.0 - 1.0);
+  float w = (sa.y + m) / spacing + key;
+  float k = min(1.0, abs(fract(w) - 0.5) * spacing / half_);
+  return 1.0 - k * k;
+}
+
+// The creeks' cut (m): main channels widening and deepening seaward, small
+// creeks on the upper flat; widened and shallowed alike with distance.
+float flatCreeks(vec2 sa, float r) {
+  float s = sa.x;
+  float minHalf = 0.02 * r;
+  float t = smoothstep(-0.6 * marsh.y, flatShape.x, s);
+  float inFlat = smoothstep(-0.7 * marsh.y, -0.4 * marsh.y, s);
+  float half_ = 1.5 + (flatCreekShape.y - 3.0) * 0.5 * t;
+  float wide = max(half_, minHalf);
+  float depth = (0.4 + (flatCreekShape.z - 0.4) * t) * (half_ / wide);
+  float cut = depth * inFlat * flatChannel(sa, flatCreekShape.x, wide, 0.37);
+  wide = max(1.2, minHalf);
+  float reach = smoothstep(-0.8 * marsh.y, -0.5 * marsh.y, s) * (1.0 - smoothstep(0.4 * flatShape.x, 0.6 * flatShape.x, s));
+  float comes = smoothstep(0.35, 0.55, vnoise(vec2(s / 90.0 + 3.1, sa.y / flatCreekShape.w + 17.3) + noiseOffset));
+  cut = max(cut, 0.25 * (1.2 / wide) * reach * comes * flatChannel(sa, flatCreekShape.w, wide, 0.71));
+  return cut;
+}
+
+// A tidal flat (tidalFlat.ts flatSurface): the bare profile, hills behind
+// the marsh, hummocks, creeks.
+float flatHeightAt(vec2 p, vec2 sa) {
+  float u = -sa.x;
+  vec2 q = p + noiseOffset;
+  float r = length(p);
+  float h = bareFlat(sa.x, r);
+  float back = marsh.y;
+  h += hillHeight * smoothstep(back + 30.0, back + 530.0, u) * (0.25 + 0.75 * fbm(q / 450.0)) *
+    smoothstep(-0.2, 1.0, fbm(q / 1400.0 + 7.0));
+  h += (fbm(q / 30.0) - 0.5) * (0.06 + 0.14 * smoothstep(0.0, 4.0, u));
+  h -= flatCreeks(sa, r) * (1.0 - smoothstep(back - 10.0, back, u));
+  return h - tideLevel;
+}
+
 float terrainHeightAt(vec2 p, vec2 sa) {
   if (coastKind == COAST_OPEN_SEA) return -200.0;
   if (coastKind == COAST_ROCK_SHORE) return rockHeightAt(p, sa);
-  // Tidal flats use the beach profile until they get their own (PLAN_BIOMES 9).
+  if (coastKind == COAST_TIDAL_FLAT) return flatHeightAt(p, sa);
   return beachHeightAt(p, sa);
 }
 
@@ -715,8 +775,9 @@ export function terrainHeight(coast: CoastParams, x: number, z: number): number 
       return -200
     case 'rock-shore':
       return rockHeight(coast, x, z)
-    case 'beach':
     case 'tidal-flat':
+      return flatHeight(coast, x, z)
+    case 'beach':
       return beachHeight(coast, x, z)
   }
 }
@@ -877,6 +938,12 @@ function rockHeight(coast: CoastParams, x: number, z: number): number {
   return rockSurface(coast, s, a, x, z)
 }
 
+/** A tidal flat's height (tidalFlat.ts flatSurface, mirrors flatHeightAt). */
+function flatHeight(coast: CoastParams, x: number, z: number): number {
+  const [s, a] = worldToShore(coast, x, z)
+  return flatSurface(coast, s, a, x, z)
+}
+
 /** Seaward distance from the terrace's low-water edge (mirrors seaDistance). */
 export function seaDistance(coast: Pick<CoastParams, 'terrace'>, s: number): number {
   return s - Math.min(Math.max(s, 0), coast.terrace.width)
@@ -920,7 +987,19 @@ export function terrainUniforms(coast: CoastParams): Record<string, { value: unk
       value: coast.reef != null ? new Vector4(coast.reef.distance, coast.reef.flatWidth, reefFrame(coast).lagoon, reefFrame(coast).crest) : new Vector4()
     },
     reefPass: { value: new Vector3(coast.reef?.passSpacing ?? 1000, coast.reef?.passWidth ?? 0, coast.reef != null ? lagoonSlope(coast) : 0) },
-    ...rockUniforms(coast.rock)
+    ...rockUniforms(coast.rock),
+    ...flatUniforms(coast.flat, coast.marsh)
+  }
+}
+
+/** Uniform values for the tidal flat and salt marsh (harmless when none). */
+function flatUniforms(flat: TidalFlat | null, marsh: SaltMarsh | null): Record<string, { value: unknown }> {
+  const f = flat ?? { width: 1000, top: 0, low: -1, channelSpacing: 300, channelWidth: 10, channelDepth: 1, creekSpacing: 60 }
+  const m = marsh ?? { start: -1e5, width: 0, height: 0, back: 0 }
+  return {
+    flatShape: { value: new Vector4(f.width, f.top, f.low, 0) },
+    flatCreekShape: { value: new Vector4(f.channelSpacing, f.channelWidth, f.channelDepth, f.creekSpacing) },
+    marsh: { value: new Vector4(m.start, Math.max(m.width, 1), m.height, m.back) }
   }
 }
 

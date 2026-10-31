@@ -109,7 +109,7 @@ export interface SceneSpec {
   climate?: Climate
   monsoon?: boolean
   ice?: Force<'pack' | 'bergs'>
-  coast?: 'beach' | 'open-sea' | 'rock-shore'
+  coast?: 'beach' | 'open-sea' | 'rock-shore' | 'tidal-flat'
   /** A rocky shore of this kind (rockShore.ts); implies a rock shore. */
   rockShore?: RockKind
   /** Implies a beach (on a rock shore: overlook is the cliff top). */
@@ -270,7 +270,7 @@ const SPEC = object({
   climate: oneOf(...CLIMATES),
   monsoon: boolean,
   ice: force('pack', 'bergs'),
-  coast: oneOf('beach', 'open-sea', 'rock-shore'),
+  coast: oneOf('beach', 'open-sea', 'rock-shore', 'tidal-flat'),
   rockShore: oneOf(...ROCK_KINDS),
   composition: oneOf('shoreline', 'along-beach', 'framed', 'overlook'),
   sand: oneOf(...Object.keys(SAND_STYLES)),

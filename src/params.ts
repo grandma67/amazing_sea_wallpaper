@@ -20,6 +20,7 @@ import { choose, latitudeIn, pickPlace, plantsFor, type Climate, type Place } fr
 import { Random } from './random'
 import { monthInSeason, season, seasonMonth } from './seasons'
 import { reefFor, reefShelter, type Reef } from './reef'
+import { flatGround, flatWaterline, tidalFlatFor, type SaltMarsh, type TidalFlat } from './tidalFlat'
 import { ROCK_NAMES, rockGround, rockShoreFor, rockWaterline, wobbleAtCamera, type RockShore } from './rockShore'
 import type { Shelter } from './shelter'
 import { MICRO_TIDE, relativeTideRange, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
@@ -43,8 +44,7 @@ export type TimeOfDay =
 export type Composition = 'shoreline' | 'along-beach' | 'framed' | 'overlook'
 
 export interface CoastParams {
-  /** tidal-flat is not drawn yet (PLAN_BIOMES phase 9); ask hasLand /
-   * hasBeach / hasSurfZone (coastKind.ts), not the type. */
+  /** Ask hasLand / hasBeach / hasSurfZone (coastKind.ts), not the type. */
   type: 'open-sea' | 'beach' | 'rock-shore' | 'tidal-flat'
   /** shoreline: at the water looking out; along-beach: the beach recedes into
    * the distance; framed: just inside the tree line looking out past plants;
@@ -105,6 +105,10 @@ export interface CoastParams {
   reef: Reef | null
   /** The rocky shore's shape on rock-shore days (rockShore.ts); null otherwise. */
   rock: RockShore | null
+  /** The tidal flat on tidal-flat days (tidalFlat.ts); null otherwise. */
+  flat: TidalFlat | null
+  /** A salt marsh behind a tidal flat or a beach (tidalFlat.ts); null: none. */
+  marsh: SaltMarsh | null
   noiseOffset: [number, number]
 }
 
@@ -635,6 +639,8 @@ function generateCoast(
     shelter: null,
     reef: null,
     rock: null,
+    flat: null,
+    marsh: null,
     noiseOffset: [rng.range(-5000, 5000), rng.range(-5000, 5000)]
   }
 
@@ -699,10 +705,37 @@ function generateCoast(
       duneHeight: 0
     })
   }
+  // A tidal flat (own stream, once per date): km of sand and mud to a far
+  // line of sea, a salt marsh behind; the swell dies over the shallows, so
+  // no beach state, bars or surf, and a small run-up.
+  if (type === 'tidal-flat') {
+    const frng = Random.derive(seed, 'tidal-flat')
+    const { flat, marsh, nearshoreSlope } = tidalFlatFor(tide.springRange, place.mud, frng)
+    Object.assign(coast, {
+      flat,
+      marsh,
+      nearshoreSlope,
+      terrace: { height: 0, width: 0 },
+      bars: [],
+      rips: null,
+      cusps: null,
+      ridges: [],
+      reef: null,
+      shelter: null,
+      runup: 0.08 + 0.12 * frng.float(),
+      beachWidth: marsh.width + 5,
+      duneHeight: 0
+    })
+  }
   // The camera stands by today's water (shoreline, along the beach) or on
   // the land (framed, overlook): the drawn distances are from the water.
   if (hasLand({ type })) {
-    coast.waterline = coast.rock != null ? rockWaterline(coast.rock, coast.nearshoreSlope, coast.seabedDepth, tide.level) : waterlineAt(coast, tide.level)
+    coast.waterline =
+      coast.rock != null
+        ? rockWaterline(coast.rock, coast.nearshoreSlope, coast.seabedDepth, tide.level)
+        : coast.flat != null
+          ? flatWaterline(coast.flat, coast.marsh!, coast.nearshoreSlope, coast.seabedDepth, tide.level)
+          : waterlineAt(coast, tide.level)
     coast.distanceToWater -= coast.waterline
   }
 
@@ -723,6 +756,8 @@ function generateCoast(
   const crng = Random.derive(seed, `composition${suffix}`)
   if (coast.rock != null) {
     eyeHeight = rockCamera(coast, coast.rock, headingDeg, eyeHeight!, Random.derive(seed, `rock-camera${suffix}`), spec.composition)
+  } else if (coast.flat != null) {
+    eyeHeight = flatCamera(coast, headingDeg, Random.derive(seed, `flat-camera${suffix}`), spec.composition)
   } else if (hasLand({ type })) {
     coast.composition = or(
       crng.weighted<Composition>([
@@ -808,6 +843,43 @@ function rockCamera(coast: CoastParams, rock: RockShore, headingDeg: number, eye
     offFace()
   }
   return eyeHeight
+}
+
+/** Where the camera stands on a tidal flat: out on the flat looking to sea
+ * (shoreline), on the marsh edge looking along it (along-beach), or in the
+ * marsh behind it (framed; an overlook stands there too, there is no high
+ * ground). Always above today's water. */
+function flatCamera(coast: CoastParams, headingDeg: number, rng: Random, force?: Composition): number {
+  const drawn = rng.weighted<Composition>([
+    ['shoreline', 4],
+    ['along-beach', 3],
+    ['framed', 3]
+  ])
+  const side = rng.chance(0.5) ? 1 : -1
+  const angle = rng.float()
+  const near = rng.float()
+  const eye = rng.range(1.5, 2.1)
+  coast.composition = force === 'overlook' ? 'framed' : (force ?? drawn)
+  switch (coast.composition) {
+    case 'shoreline':
+      // Out on the flat, but well short of today's water.
+      coast.distanceToWater = -Math.min(15 + 135 * near, Math.max(0, coast.waterline - 40))
+      break
+    case 'along-beach':
+      coast.seawardAzimuthDeg = headingDeg - side * (62 + 22 * angle)
+      coast.distanceToWater = 2 + 6 * near
+      break
+    case 'framed':
+      coast.seawardAzimuthDeg = headingDeg - side * (10 + 35 * angle)
+      coast.distanceToWater = 5 + 25 * near
+      break
+  }
+  // The distances above are in s; the wobble moves the shore at a = 0.
+  const wobble = wobbleAtCamera(coast)
+  coast.distanceToWater -= wobble
+  // Out of the creeks and the water: step inland until dry.
+  for (let i = 0; i < 80 && flatGround(coast, wobble) < coast.runup + 0.15; i++) coast.distanceToWater += 3
+  return eye
 }
 
 function generateWeather(seed: string, timeOfDay: TimeOfDay, force?: WeatherKind): WeatherParams {
@@ -1666,10 +1738,13 @@ function buildParams(
       ? `${biome.name} ${beachName(coast.material, coast.sand.name)}`
       : coast.rock != null
         ? `${biome.name} ${ROCK_NAMES[coast.rock.kind]}`
-        : seaName(oceanState.windSpeed),
+        : coast.flat != null
+          ? `${biome.name} tidal flats`
+          : seaName(oceanState.windSpeed),
     basin.label
   ]
   if (coast.reef != null) titleParts.push('coral reef')
+  if (coast.marsh != null && coast.flat == null) titleParts.push('salt marsh')
   if (landform != null) {
     titleParts.push(
       landform.kind === 'range'

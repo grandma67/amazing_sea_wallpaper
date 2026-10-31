@@ -43,7 +43,7 @@ const option = (name, fallback) => {
 }
 const sceneArg = option('scene', null)
 const outDir = resolve(option('out', 'out/profile'))
-const res = Number(option('res', 1))
+const resArg = Number(option('res', 1))
 const unknown = args.find(a => a.startsWith('--'))
 if (unknown != null) throw new Error(`unknown option ${unknown}`)
 const dateArg = args[0]
@@ -158,6 +158,29 @@ try {
           (r.boulder > 0 ? `, boulders ${f(r.boulder)} m` : '')
       )
       console.log(`camera ground ${f(at(camS, camA))} m above today's sea`)
+    } else if (c.flat != null) {
+      // Drawn vs reached, above mean sea, medians over 400 m of shore (creeks
+      // scatter single cuts); the creeks' deepest cut along that shore.
+      const fl = c.flat
+      const m = c.marsh
+      const med = s => {
+        const hs = []
+        for (let a = camA - 200; a <= camA + 200; a += 4) hs.push(at(s, a) + level)
+        return hs.sort((x, y) => x - y)[hs.length >> 1]
+      }
+      const deepest = s => {
+        let lo = Infinity
+        for (let a = camA - fl.channelSpacing; a <= camA + fl.channelSpacing; a += 1) lo = Math.min(lo, at(s, a) + level)
+        return med(s) - lo
+      }
+      console.log(
+        `flat: ${f(fl.width, 0)} m at 1:${f(fl.width / (fl.top - fl.low), 0)} · top ${f(med(3))} (drawn ${f(fl.top)}) · low ${f(med(fl.width * 0.95))} at 0.95 W (drawn ${f(fl.low + 0.05 * (fl.top - fl.low))}) · ` +
+          `marsh ${f(m.width, 0)} m at ${f(med(-10))} (drawn ${f(m.height)}) · channels every ${f(fl.channelSpacing, 0)} m, ${f(fl.channelWidth, 0)} m × ${f(fl.channelDepth)} m at W ` +
+          `(cut ${f(deepest(fl.width * 0.9))} reached at 0.9 W, ${f(deepest(fl.width * 0.3))} at 0.3 W) · creeks every ${f(fl.creekSpacing, 0)} m · mud ${fl.mud.map(v => f(v)).join('/')}`
+      )
+      console.log(`camera ground ${f(at(camS, camA))} m above today's sea`)
+    } else if (c.marsh != null) {
+      console.log(`salt marsh: from ${f(c.marsh.start, 0)} m in, ${f(c.marsh.width, 0)} m wide`)
     } else if (c.shelter != null) {
       console.log(`shelter: ${f(c.shelter.strength)} · line ${c.shelter.line == null ? 'none' : `${f(c.shelter.line, 0)} m`} · ${c.shelter.basins.length} basins · blur ${f(c.shelter.blur, 0)} m`)
     }
@@ -192,6 +215,10 @@ try {
     // Around today's water (the tide moves it across a terrace).
     const w = Math.round(Math.max(0, c.waterline) / 10) * 10
     const ss = [-40, -30, -20, -15, -10, -5, -2, 0, 2, 5, 10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 150, 200, 250, 300, 400].map(s => s + w)
+    if (c.flat != null) {
+      ss.length = 0
+      for (const t of [-1.1, -0.5, -0.05, 0, 0.002, 0.1, 0.25, 0.5, 0.75, 0.95, 1]) ss.push(Math.round(t < 0 ? t * c.marsh.width : t * c.flat.width))
+    }
     if (c.rock != null) {
       const r = c.rock
       for (const s of [-r.backWidth - 5, -r.backWidth / 2, 0, r.width / 2, r.width, r.width + r.scarp / r.scarpSlope]) ss.push(Math.round(s))
@@ -208,10 +235,15 @@ try {
 
     // Top-down map: rows from the sea (top) to the land, columns along the shore.
     // Down to just behind the camera (overlooks stand up to ~600 m inland).
-    const s0 = Math.max(-650, Math.min(-80, camS - 40))
-    const s1 = Math.max(260, ...c.bars.map(b => b.distance * 1.6), breakDepth / c.nearshoreSlope + 60, reach + 100) + Math.max(0, c.waterline)
-    const a0 = camA - 400
-    const a1 = camA + 400
+    // A tidal flat: the marsh to today's water, ±1 km, at least 4 m/px.
+    const flatMap = c.flat != null
+    const res = flatMap ? Math.max(resArg, 4) : resArg
+    const s0 = flatMap ? -c.marsh.width - 60 : Math.max(-650, Math.min(-80, camS - 40))
+    const s1 = flatMap
+      ? Math.max(c.waterline, 0) + 150
+      : Math.max(260, ...c.bars.map(b => b.distance * 1.6), breakDepth / c.nearshoreSlope + 60, reach + 100) + Math.max(0, c.waterline)
+    const a0 = camA - (flatMap ? 1000 : 400)
+    const a1 = camA + (flatMap ? 1000 : 400)
     const W = Math.round((a1 - a0) / res)
     const H = Math.round((s1 - s0) / res)
     const heights = new Float32Array(W * H)

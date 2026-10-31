@@ -305,7 +305,12 @@ export function stoneMean(colors: readonly RGB[]): RGB {
 /** Colour of the shallow seabed seen through the water (ocean.ts
  * sandAlbedo): stones off shingle and cobble beaches, half and half off
  * mixed ones. */
-export function seabedAlbedo(coast: Pick<CoastParams, 'material' | 'stoneColors' | 'sand' | 'rock'>): RGB {
+export function seabedAlbedo(coast: Pick<CoastParams, 'material' | 'stoneColors' | 'sand' | 'rock' | 'flat'>): RGB {
+  // A flooded tidal flat: sand seaward, the mud nearer shore (half and half).
+  if (coast.flat != null) {
+    const [m, sand] = [coast.flat.mud, coast.sand.albedo]
+    return [(m[0] + sand[0]) / 2, (m[1] + sand[1]) / 2, (m[2] + sand[2]) / 2]
+  }
   // Rock under water is mostly covered in weed: darker than the bare rock.
   if (coast.rock != null) return [coast.rock.color[0] * 0.5, coast.rock.color[1] * 0.55, coast.rock.color[2] * 0.45]
   if (!isStony(coast.material)) return coast.sand.albedo

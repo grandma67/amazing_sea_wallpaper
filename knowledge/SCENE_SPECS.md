@@ -35,7 +35,7 @@ Allowed values are in `sceneSpec.ts`.
 - **Place:** `place` (a place or region id from `places.ts`, e.g. `"scotland"`,
   `"atlantic-canada"`); `biome`, `ocean`, `climate` (restrict the place draw to places that have
   them and force the choice; a combination no place has throws); `monsoon`, `ice`.
-- **Coast:** `coast` (`beach`, `open-sea`, `rock-shore`), `composition`; `rockShore` (`platform`,
+- **Coast:** `coast` (`beach`, `open-sea`, `rock-shore`, `tidal-flat`: a flat at the day's tide, force `tide` too), `composition`; `rockShore` (`platform`,
   `boulder`, `cliff`: a rocky shore of that kind, implies one; on a rock shore `overlook` means a
   cliff and any other composition not a cliff); `swellHeight` (m offshore) and `swellPeriod` (s; wavelength
   capped at 320 m ≈ 14 s): open sea, surf and beach state follow, so force waves instead of hunting
