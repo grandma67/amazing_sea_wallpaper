@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { hasLand } from '../src/coastKind'
 import { biomeNamed, climateBiome } from '../src/biome'
 import { climateTitle } from '../src/places'
-import { cloudLeaning, stormChance, type SceneParams } from '../src/params'
+import { cloudLeaning, pinnipedTable, stormChance, type SceneParams } from '../src/params'
+import { migratoryFor } from '../src/props/migratory'
+import { Random } from '../src/random'
 import type { SceneSpec } from '../src/sceneSpec'
 import { monthInSeason } from '../src/seasons'
 import { allParams, DAYS, expectShare, scene, scenes as scenesOf, share } from './days'
@@ -121,6 +123,40 @@ describe('climate', () => {
       expect(share(temperate, big)).toBeGreaterThan(share(subtropical, big) + 0.05)
       const fog = (p: SceneParams) => p.fog?.kind === 'advection'
       expect(share(temperate, fog)).toBeGreaterThan(2 * share(subtropical, fog))
+    })
+  })
+
+  describe('animals (11e)', () => {
+    it('keeps seals where they live in each climate', () => {
+      expect(pinnipedTable('mediterranean', 'mediterranean', 'pacific', 35)?.[0][0]).toBe('sea-lion') // California
+      expect(pinnipedTable('mediterranean', 'subtropical', 'atlantic', 28)).toBeUndefined() // Florida
+      expect(pinnipedTable('mediterranean', 'subtropical', 'pacific', 30)).toBeUndefined() // south Japan
+      expect(pinnipedTable('mediterranean', 'subtropical', 'pacific', -30)).toEqual([['fur-seal', 1]]) // NSW
+      expect(pinnipedTable('mediterranean', 'subtropical', 'indian', -29)).toBeUndefined() // Natal
+      expect(pinnipedTable('volcanic', 'tropical', 'pacific', 0)).toEqual([['sea-lion', 1]]) // Galápagos
+      expect(pinnipedTable('volcanic', 'tropical', 'pacific', 20)).toEqual([['seal', 1]]) // Hawaiian monk seal
+      expect(pinnipedTable('tropical', 'tropical', 'pacific', 10)).toBeUndefined() // the Philippines
+      expect(pinnipedTable('volcanic', 'subtropical', 'atlantic', 28)).toBeUndefined() // the Canaries
+      for (const p of days.filter(p => p.pinnipeds != null)) {
+        expect(pinnipedTable(p.biome.name, p.place.climate, p.sea.ocean, p.latitudeDeg), p.place.id).toBeDefined()
+      }
+    })
+
+    it('puts puffins only in the cool north and boobies on warm coasts', () => {
+      for (const p of days.filter(p => p.colony?.kind === 'puffin')) {
+        expect(p.latitudeDeg).toBeGreaterThan(0)
+        expect(['polar', 'boreal', 'temperate']).toContain(p.place.climate)
+      }
+      for (const p of scenesOf({ place: 'galapagos', colony: true }, 10)) expect(p.colony?.kind).toBe('tropical')
+      for (const p of scenesOf({ place: 'new-zealand-south', colony: true, ocean: 'pacific' }, 10)) expect(p.colony?.kind).toBe('gannet')
+    })
+
+    it('sends geese to cool and subtropical coasts, flamingos to warm ones', () => {
+      for (const p of days) {
+        const kind = migratoryFor(p, Random.derive(p.seed, 'props/migratory'))
+        if (kind === 'goose' || kind === 'duck') expect(['tropical', 'arid']).not.toContain(p.place.climate)
+        if (kind === 'flamingo') expect(['tropical', 'arid', 'mediterranean', 'subtropical']).toContain(p.place.climate)
+      }
     })
   })
 })

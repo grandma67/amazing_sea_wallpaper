@@ -287,7 +287,8 @@ describe('pinnipeds', () => {
     const where: Record<string, string[]> = {
       seal: ['nordic/atlantic', 'nordic/pacific', 'nordic/arctic', 'mediterranean/pacific', 'volcanic/pacific', 'volcanic/atlantic'],
       'sea-lion': ['nordic/pacific', 'mediterranean/pacific', 'mediterranean/indian', 'desert/pacific', 'volcanic/pacific', 'tropical/pacific'],
-      'fur-seal': ['nordic/southern', 'desert/atlantic', 'desert/pacific', 'volcanic/southern'],
+      // Subtropical fur seals: NSW and Uruguay (mediterranean biome), northern New Zealand (volcanic).
+      'fur-seal': ['nordic/southern', 'desert/atlantic', 'desert/pacific', 'volcanic/southern', 'mediterranean/pacific', 'mediterranean/atlantic', 'volcanic/pacific'],
       'elephant-seal': ['nordic/southern', 'mediterranean/pacific', 'volcanic/southern']
     }
     expect(hauled.length).toBeGreaterThan(0)

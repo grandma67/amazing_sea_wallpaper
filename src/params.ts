@@ -1258,7 +1258,8 @@ const MAINLAND_COLONY: Record<ColonyKind, number> = { gannet: 0.3, puffin: 0.35,
 function pickColony(
   seed: string,
   ocean: OceanName,
-  biome: Biome,
+  climate: Climate,
+  south: boolean,
   coastType: CoastParams['type'],
   force?: Force<ColonyKind>,
   forceSite?: ColonySite
@@ -1270,9 +1271,12 @@ function pickColony(
   let kind: ColonyKind
   if (typeof force === 'string') kind = force
   else if (ocean === 'southern') kind = 'penguin'
-  else if (biome.name === 'tropical' || biome.name === 'desert') kind = 'tropical'
+  // By climate (PLAN_BIOMES 11e): boobies and frigatebirds on tropical and
+  // desert coasts (the Galápagos, Hawaii too); puffins only in the cool
+  // north; gannets elsewhere (Australasian and Cape gannets in the south).
+  else if (climate === 'tropical' || climate === 'arid') kind = 'tropical'
   else {
-    const northern = ocean === 'arctic' || biome.name === 'nordic' || biome.name === 'volcanic'
+    const northern = !south && (ocean === 'arctic' || climate === 'polar' || climate === 'boreal' || climate === 'temperate')
     kind = northern && rng.chance(0.5) ? 'puffin' : 'gannet'
   }
   // The open sea has no mainland in view.
@@ -1317,10 +1321,27 @@ const PINNIPEDS: Record<Biome['name'], Partial<Record<OceanName, readonly (reado
 /** How often each kind hauls out on the beach rather than on rocks. */
 const BEACH_HAUL_OUT: Record<PinnipedKind, number> = { seal: 0.35, 'sea-lion': 0.5, 'fur-seal': 0.4, 'elephant-seal': 0.85 }
 
+/** The seals of a coast in its climate (PLAN_BIOMES 11e), or none: the
+ * biome × ocean table, except where the climate says otherwise. */
+export function pinnipedTable(biome: Biome['name'], climate: Climate, ocean: OceanName, latitudeDeg: number): readonly (readonly [PinnipedKind, number])[] | undefined {
+  // Galápagos sea lions on the equator, Hawaiian monk seals; no seals on
+  // other tropical shores.
+  if (climate === 'tropical') return biome === 'volcanic' && ocean === 'pacific' ? [[Math.abs(latitudeDeg) < 5 ? 'sea-lion' : 'seal', 1]] : undefined
+  // Subtropical coasts: fur seals only in the south (NSW's Australian fur
+  // seals, Uruguay's South American fur seals, northern New Zealand's), none
+  // in Florida, south Japan, Taiwan, Natal or the Canaries.
+  if (climate === 'subtropical') return latitudeDeg < 0 && ocean !== 'indian' ? [['fur-seal', 1]] : undefined
+  // Spotted seals in the Yellow Sea; none on Atlantic Portugal.
+  if (biome === 'mediterranean' && climate === 'temperate') return ocean === 'pacific' ? [['seal', 1]] : undefined
+  return PINNIPEDS[biome][ocean]
+}
+
 function pickPinnipeds(
   seed: string,
   ocean: OceanName,
   biome: Biome,
+  climate: Climate,
+  latitudeDeg: number,
   coastType: CoastParams['type'],
   force?: Force<PinnipedKind>,
   forceSite?: HaulOut
@@ -1333,9 +1354,9 @@ function pickPinnipeds(
     site: !hasBeach({ type: coastType }) ? 'rock' : or<HaulOut>(beach < BEACH_HAUL_OUT[kind] ? 'beach' : 'rock', forceSite)
   })
   if (typeof force === 'string') return site(force)
-  const table = PINNIPEDS[biome.name][ocean]
-  // Tropical sea lions are confined to one archipelago: rarer.
-  const chance = biome.name === 'tropical' ? 0.06 : 0.2
+  const table = pinnipedTable(biome.name, climate, ocean, latitudeDeg)
+  // Tropical seals are confined to a few islands: rarer.
+  const chance = climate === 'tropical' ? 0.06 : 0.2
   // Forced onto a coast that has none: harbour seals.
   if (table == null) return force === true ? site('seal') : null
   if (!forced(force, rng.chance(chance))) return null
@@ -1763,8 +1784,8 @@ function buildParams(
     midday: 'Midday',
     night: nightSky === 'starlit' ? 'Starry night' : 'Moonlit night'
   }
-  const colony = pickColony(seed, basin.name, biome, coast.type, spec.colony, spec.colonySite)
-  const pinnipeds = pickPinnipeds(seed, basin.name, biome, coast.type, spec.pinnipeds, spec.haulOut)
+  const colony = pickColony(seed, basin.name, climate, latitudeDeg < 0, coast.type, spec.colony, spec.colonySite)
+  const pinnipeds = pickPinnipeds(seed, basin.name, biome, climate, latitudeDeg, coast.type, spec.pinnipeds, spec.haulOut)
   const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog, spec.lighthouse)
   const landform = pickLandform(seed, biome, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
   const islands = pickIslands(seed, biome, spec.islands)

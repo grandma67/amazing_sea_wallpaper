@@ -170,9 +170,13 @@ function migrating(params: SceneParams): boolean {
 export function migratoryFor(params: SceneParams, rng: Random): Species | null {
   const force = params.overrides?.migratory
   if (force === undefined && (params.storm != null || params.timeOfDay === 'night')) return null
-  const biome = params.biome.name
-  const warm = biome === 'tropical' || biome === 'desert' || biome === 'mediterranean'
-  const cool = biome === 'nordic' || biome === 'volcanic' || biome === 'mediterranean'
+  // By climate (PLAN_BIOMES 11e): geese and ducks winter as far south as
+  // the subtropics (Florida, the Gulf, south China); flamingos from the
+  // Mediterranean and subtropics (Florida's returning flocks) to the tropics
+  // and deserts.
+  const climate = params.place.climate
+  const warm = climate === 'tropical' || climate === 'arid' || climate === 'mediterranean' || climate === 'subtropical'
+  const cool = climate !== 'tropical' && climate !== 'arid'
   const polar = params.sea.ocean === 'arctic' || params.sea.ocean === 'southern'
   const season = migrating(params) ? 1 : 0.25
   const species = rng.weighted<Species | null>([

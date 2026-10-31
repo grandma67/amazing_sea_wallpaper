@@ -27,12 +27,12 @@ than before 0.62.
 | Humpback whales (blow, back, flukes, breach) | Every ocean (they migrate) | " | None in storms | " | " |
 | Orcas | Cool coasts only (never tropical or desert) | " | None in storms | " | " |
 | Swordfish (leaping) | Warm and temperate open water | " | None in storms | " | " |
-| Geese (skeins in a V or line, high) | Cool coasts (nordic, volcanic, Mediterranean) | Spring (Mar–May) and autumn (Sep–Nov) migration; ¼ as often otherwise; not at night | None in storms | Weighted against "none" 6: goose 2, duck 2 (cool), flamingo 1.5 (warm, not polar) | `props/migratory.ts` |
-| Sea ducks (eiders, scoters: lines low over the waves) | Cool coasts | As geese | None in storms | " | " |
-| Flamingos (wading in the shallows, or flying in pink lines) | Warm coasts (tropical, desert, Mediterranean), not polar seas | Any month; not at night | None in storms | " | " |
-| Seabird colony: gannets (white rock, guano) | Temperate coasts: nordic, Mediterranean, volcanic | Any | **Storm:** the birds sit on their ledges, none circling | 15% of days have a colony; on a beach some are mainland cliffs | `props/colony.ts`, `pickColony` in `params.ts` |
-| Seabird colony: puffins and guillemots | Northern coasts (Arctic, nordic, volcanic): half of them | Any | As gannets | " | " |
-| Seabird colony: boobies and frigatebirds | Tropical and desert coasts | Any | As gannets | " | " |
+| Geese (skeins in a V or line, high) | Every climate but tropical and arid (they winter as far south as Florida and south China) | Spring (Mar–May) and autumn (Sep–Nov) migration; ¼ as often otherwise; not at night | None in storms | Weighted against "none" 6: goose 2, duck 2 (cool), flamingo 1.5 (warm, not polar); by the day's climate (phase 11e) | `props/migratory.ts` |
+| Sea ducks (eiders, scoters: lines low over the waves) | As geese | As geese | None in storms | " | " |
+| Flamingos (wading in the shallows, or flying in pink lines) | Tropical, arid, mediterranean and subtropical climates, not polar seas | Any month; not at night | None in storms | " | " |
+| Seabird colony: gannets (white rock, guano) | Every climate but tropical and arid, and puffin coasts half the time (Australasian and Cape gannets in the south) | Any | **Storm:** the birds sit on their ledges, none circling | 15% of days have a colony; on a beach some are mainland cliffs | `props/colony.ts`, `pickColony` in `params.ts` |
+| Seabird colony: puffins and guillemots | Northern hemisphere, Arctic water or a polar, boreal or temperate climate: half of them | Any | As gannets | " | " |
+| Seabird colony: boobies and frigatebirds | Tropical and arid climates (the Galápagos and Hawaii too) | Any | As gannets | " | " |
 | Seabird colony: penguins | Southern Ocean | Any | As gannets | " | " |
 
 ### Seals and sea lions
@@ -41,7 +41,12 @@ than before 0.62.
 (6% on tropical coasts, where sea lions live only in the Galápagos), hauled out on a skerry,
 the seabird island, or the beach (most often elephant seals).
 
-Kinds by biome and ocean (relative weights, `PINNIPEDS`):
+Kinds by biome and ocean (relative weights, `PINNIPEDS`), except where the climate says
+otherwise (`pinnipedTable`, phase 11e): tropical coasts only the Galápagos' sea lions and
+Hawaii's monk seals (as harbour seals); subtropical coasts fur seals in the south (NSW,
+Uruguay, northern New Zealand; not Natal) and none in the north (Florida, south Japan, Taiwan,
+the Canaries); temperate mediterranean-biome coasts spotted seals in the Yellow Sea, none on
+Atlantic Portugal.
 
 | Biome | Atlantic | Pacific | Indian | Arctic | Southern |
 |---|---|---|---|---|---|
@@ -96,9 +101,9 @@ Oman–Yemen, Persian Gulf; the Galápagos and Hawaii are places. Other pools:
 | Nile crocodiles | East Africa | As above | As above | 10% |
 | West African crocodiles | West Africa | As above | As above | 12% |
 | Hippos (a pod of 2–7) | West Africa (Loango, Bijagós); rarely East Africa | On the beach from dusk to dawn (sunset, evening golden hour, blue hour, night); in the water by day, backs and heads awash | **Storm:** in the water | 15%, 4% |
-| Ghost crabs, burrows and sand fans | Tropical 85%, desert 70%, Mediterranean 30% (not Southern Ocean or Arctic; not on shingle or cobble) | Most at night (6–18), some at dusk, few by day | **Storm:** in their burrows (burrows still show) | as listed |
-| Hermit crabs | Tropical wrack lines | Any | **Storm:** hidden | 60% where no ghost crabs |
-| Shore crabs | Cooler coasts, at the water's edge (and among cobbles) | Any | **Storm:** hidden | 45% where no ghost crabs |
+| Ghost crabs, burrows and sand fans | By climate: tropical 85% (60% on lava-coast sand), arid 70%, subtropical 75%, mediterranean 30%, temperate mediterranean-biome 10% (not Southern Ocean or Arctic; not on shingle or cobble) | Most at night (6–18), some at dusk, few by day | **Storm:** in their burrows (burrows still show) | as listed |
+| Hermit crabs | Tropical-climate wrack lines | Any | **Storm:** hidden | 60% where no ghost crabs |
+| Shore crabs | Every climate but tropical and arid, at the water's edge (and among cobbles) | Any | **Storm:** hidden | 45% where no ghost crabs |
 | Starfish | Nordic, Mediterranean, Pacific volcanic beaches | Any | – | 30% |
 
 Planned animals (sea otters, walrus, polar bears, waders, herons, tidepool life, blacktip
@@ -113,9 +118,9 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 
 | Animal | All days | nordic | mediterranean | volcanic | desert | tropical | atlantic | pacific | indian | arctic | southern |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Crabs: ghost | 13% | – | 8% | – | 24% | 41% | 10% | 15% | 30% | – | – |
-| Crabs: hermit | 1% | – | – | – | – | 4% | – | 2% | 3% | – | – |
-| Crabs: shore | 7% | 8% | 13% | 16% | – | – | 13% | 9% | 3% | – | – |
+| Crabs: ghost | 14% | – | 13% | 7% | 24% | 41% | 13% | 16% | 31% | – | – |
+| Crabs: hermit | 1% | – | – | 2% | – | 4% | 0.6% | 2% | 3% | – | – |
+| Crabs: shore | 6% | 8% | 10% | 8% | – | – | 11% | 7% | 0.6% | – | – |
 | Crocodile: american | 0.6% | – | – | – | – | 3% | 0.6% | 1% | – | – | – |
 | Crocodile: saltwater | 0.5% | – | – | – | – | 2% | – | 1% | – | – | – |
 | Crocodile: west-african | 0.2% | – | – | – | – | 0.8% | 0.6% | – | – | – | – |
@@ -130,9 +135,9 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 | Marine: humpback | 11% | 13% | 10% | 10% | 12% | 8% | 11% | 8% | 7% | 19% | 19% |
 | Marine: orca | 3% | 6% | 3% | 4% | – | – | 1% | 2% | – | 10% | 21% |
 | Marine: swordfish | 5% | 2% | 8% | 2% | 7% | 8% | 4% | 6% | 8% | – | – |
-| Migratory birds: duck | 7% | 12% | 7% | 8% | – | – | 9% | 6% | 0.6% | 10% | 8% |
-| Migratory birds: flamingo | 7% | – | 11% | – | 15% | 16% | 7% | 7% | 15% | – | – |
-| Migratory birds: goose | 8% | 11% | 11% | 16% | – | – | 10% | 8% | 2% | 10% | 8% |
+| Migratory birds: duck | 6% | 12% | 7% | 5% | – | – | 9% | 5% | – | 10% | 8% |
+| Migratory birds: flamingo | 8% | – | 10% | 10% | 15% | 16% | 8% | 8% | 16% | – | – |
+| Migratory birds: goose | 7% | 11% | 11% | 10% | – | – | 9% | 7% | 0.6% | 10% | 8% |
 | Monkeys: capuchin | 0.4% | – | – | – | – | 2% | – | 1% | – | – | – |
 | Monkeys: macaque | 0.8% | – | – | – | – | 3% | – | 2% | 0.6% | – | – |
 | Monkeys: vervet | 0.2% | – | – | – | – | 0.8% | – | – | 1% | – | – |
@@ -140,21 +145,21 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 | Sea turtle: hawksbill | 0.4% | – | – | – | – | 2% | – | 0.5% | 1% | – | – |
 | Sea turtle: loggerhead | 0.1% | – | 0.6% | – | – | – | 0.3% | – | – | – | – |
 | Sea turtle: olive-ridley | 1% | – | – | – | – | 4% | 0.3% | 2% | 1% | – | – |
-| Seabird colony: gannet (island) | 4% | 4% | 11% | 2% | – | – | 6% | 3% | 1% | 4% | – |
+| Seabird colony: gannet (island) | 4% | 5% | 11% | 2% | – | – | 6% | 4% | 0.6% | 4% | – |
 | Seabird colony: gannet (mainland) | 0.8% | 2% | 1% | – | – | – | 0.3% | 0.8% | – | 3% | – |
 | Seabird colony: penguin (island) | 0.2% | 0.2% | – | 0.7% | – | – | – | – | – | – | 4% |
 | Seabird colony: penguin (mainland) | 0.2% | 0.2% | – | 0.7% | – | – | – | – | – | – | 4% |
-| Seabird colony: puffin (island) | 3% | 6% | – | 3% | – | – | 3% | 3% | 0.6% | 6% | – |
-| Seabird colony: puffin (mainland) | 0.8% | 2% | – | 1% | – | – | 0.8% | 0.8% | 0.6% | 1% | – |
-| Seabird colony: tropical (island) | 5% | – | – | – | 27% | 15% | 3% | 7% | 16% | – | – |
-| Seabird colony: tropical (mainland) | 0.5% | – | – | – | 2% | 1% | 0.8% | 0.5% | – | – | – |
-| Seals: elephant-seal (beach) | 0.3% | 0.2% | 0.6% | 0.7% | – | – | – | 0.3% | – | – | 4% |
+| Seabird colony: puffin (island) | 2% | 6% | – | 0.7% | – | – | 3% | 2% | – | 6% | – |
+| Seabird colony: puffin (mainland) | 0.6% | 2% | – | – | – | – | 0.8% | 0.5% | – | 1% | – |
+| Seabird colony: tropical (island) | 6% | – | – | 3% | 27% | 15% | 3% | 8% | 17% | – | – |
+| Seabird colony: tropical (mainland) | 0.5% | – | – | 0.7% | 2% | 1% | 0.8% | 0.5% | 0.6% | – | – |
+| Seals: elephant-seal (beach) | 0.2% | 0.2% | – | 0.7% | – | – | – | – | – | – | 4% |
 | Seals: elephant-seal (rock) | 0.6% | 0.9% | – | 2% | – | – | – | – | – | – | 15% |
-| Seals: fur-seal (rock) | 0.8% | 0.2% | – | 0.7% | 9% | – | 2% | 0.3% | – | – | 4% |
-| Seals: sea-lion (beach) | 0.4% | 0.2% | 0.6% | 0.7% | – | 0.4% | – | 1% | – | – | – |
-| Seals: sea-lion (rock) | 3% | 1% | 7% | 5% | 6% | 0.8% | – | 8% | 1% | – | – |
-| Seals: seal (beach) | 0.8% | 1% | 0.6% | 1% | – | – | 1% | 0.3% | – | 2% | – |
-| Seals: seal (rock) | 7% | 14% | 0.6% | 7% | – | – | 7% | 5% | – | 17% | – |
+| Seals: fur-seal (rock) | 1% | 0.2% | 2% | 0.7% | 9% | – | 2% | 0.8% | – | – | 4% |
+| Seals: sea-lion (beach) | 0.1% | 0.2% | – | – | – | – | – | 0.3% | – | – | – |
+| Seals: sea-lion (rock) | 2% | 1% | 3% | 3% | 6% | – | – | 5% | 0.6% | – | – |
+| Seals: seal (beach) | 0.7% | 1% | 1% | – | – | – | 0.6% | 0.5% | – | 2% | – |
+| Seals: seal (rock) | 6% | 14% | 0.6% | 3% | – | – | 6% | 5% | – | 17% | – |
 | Starfish: starfish | 6% | 8% | 11% | 6% | – | – | 5% | 8% | 0.6% | 7% | 2% |
 
 Days per biome: nordic 442, mediterranean 167, volcanic 146, desert 82, tropical 258; per ocean: atlantic 355, pacific 371, indian 154, arctic 167, southern 48.
