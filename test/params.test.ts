@@ -261,10 +261,10 @@ describe('lighthouse', () => {
     }
   })
 
-  it('stands on a point only on a beach coast; granite only on rocks', () => {
+  it('stands on a point only on land; granite only on rocks', () => {
     for (const p of lit) {
       const l = p.lighthouse!
-      if (l.site === 'point') expect(p.coast.type).toBe('beach')
+      if (l.site === 'point') expect(p.coast.type).not.toBe('open-sea')
       if (l.paint === 'granite') expect(l.site).toBe('rock')
       expect(l.height).toBeGreaterThan(10)
       expect(p.title).toContain('lighthouse')

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { hasBeach } from '../src/coastKind'
 import { Random } from '../src/random'
 import { restingGull } from '../src/props/birds'
 import { shoreLifeFor } from '../src/props/shoreLife'
@@ -41,7 +42,7 @@ describe('beach wildlife', () => {
     for (const p of days) {
       const l = life(p)
       if (l == null) {
-        expect(p.coast.type).toBe('open-sea')
+        expect(hasBeach(p.coast)).toBe(false)
         continue
       }
       const dark = p.timeOfDay === 'night' || p.timeOfDay === 'blue-hour'

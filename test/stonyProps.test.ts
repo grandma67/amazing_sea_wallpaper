@@ -27,7 +27,7 @@ describe('stony beach props', () => {
   const stony = beaches.filter(p => allStones(p.coast.material))
 
   it('has no ghost crabs or sand dollars on shingle and cobble, and fewer shells', () => {
-    expect(stony.length).toBeGreaterThan(100)
+    expect(stony.length).toBeGreaterThan(60)
     for (const p of stony) {
       expect(life(p).crab).not.toBe('ghost')
       expect(life(p).burrows).toBe(0)

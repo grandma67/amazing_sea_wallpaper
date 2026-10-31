@@ -34,7 +34,7 @@ describe('mangroves', () => {
     const tropical = days.filter(p => p.coast.type === 'beach' && p.biome.name === 'tropical')
     const rate = share(tropical, p => stand(p) != null)
     expect(rate).toBeGreaterThan(0.08)
-    expect(rate).toBeLessThan(0.4)
+    expect(rate).toBeLessThan(0.45)
   })
 
   it('can be forced, but not onto the open sea', () => {

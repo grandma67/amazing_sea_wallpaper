@@ -76,7 +76,7 @@ describe('stone cells', () => {
     }
     expect(stoneUniforms(scene({ coast: 'open-sea' }).coast).stoneMaterial.value).toBe(0)
     expect(seabedAlbedo(cobble)).toEqual(stoneMean(cobble.stoneColors))
-    const sand = scene({ beachMaterial: 'sand' }).coast
+    const sand = scene({ coast: 'beach', beachMaterial: 'sand' }).coast
     expect(seabedAlbedo(sand)).toEqual(sand.sand.albedo)
   })
 })

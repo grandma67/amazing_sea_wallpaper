@@ -17,7 +17,8 @@ import type { Random } from './random'
 // - choose many: `animals`, `plants` (pools; each feature's own rules pick
 //   from them on the day);
 // - `tide`: the mean tidal range, a span the day's beach draws in (tides.ts);
-// - `reef`: the chance a beach day has a fringing reef offshore (reef.ts).
+// - `reef`: the chance a beach day has a fringing reef offshore (reef.ts);
+// - `coast`: the land kinds' weights, beach or rocky shore (rockShore.ts).
 // A region is a group of places sharing defaults and a spec name; it's never
 // drawn on its own. A place with no region is its own region. Defaults merge
 // biome → region → place.
@@ -97,7 +98,12 @@ export interface Place {
   tide: readonly [number, number]
   /** Chance a beach day has a fringing reef offshore (reef.ts). */
   reef: number
+  /** What the shore is on land days (not the open sea): a beach or a rocky
+   * shore (rockShore.ts). */
+  coast: Weights<LandKind>
 }
+
+export type LandKind = 'beach' | 'rock-shore'
 
 const nest = (species: TurtleSpecies, months?: Months, weight = 1): Animal => ({ kind: 'turtle', species, months, weight })
 const monkey = (species: MonkeyKind, chance: number): Animal => ({ kind: 'monkey', species, chance })
@@ -304,6 +310,69 @@ const REEF: Record<string, number> = {
   'western-australia-desert': 0.1
 }
 
+// Rocky shores (PLAN_BIOMES 8; plans/ROCK_SHORE.md): the share of land days
+// whose shore is rock, by place or region, else by biome. About a third of
+// the world's coast is rock and half is cliff-backed (Coastal Wiki); glaciated
+// and fjord coasts, the North Atlantic and North Pacific most; barrier-island,
+// tidal-flat and sandy coasts least.
+const ROCK_BY_BIOME: Record<Biome['name'], number> = { nordic: 0.45, volcanic: 0.45, mediterranean: 0.3, desert: 0.2, tropical: 0.15 }
+const ROCK: Record<string, number> = {
+  // Fjords, skerries and glaciated rock.
+  'norway-west': 0.55,
+  'norway-north': 0.55,
+  greenland: 0.55,
+  svalbard: 0.55,
+  'british-columbia': 0.55,
+  'se-alaska': 0.55,
+  'gulf-alaska': 0.55,
+  'patagonia-fjords': 0.55,
+  'tierra-del-fuego': 0.55,
+  'south-georgia': 0.55,
+  'new-zealand-south': 0.55,
+  tasmania: 0.55,
+  // North Atlantic granite and slate: Newfoundland, Peggy's Cove, Maine,
+  // Scotland, the west of Ireland, Cornwall, Brittany, Iceland.
+  newfoundland: 0.55,
+  'nova-scotia': 0.55,
+  maine: 0.55,
+  scotland: 0.55,
+  ireland: 0.55,
+  'cornwall-wales': 0.55,
+  brittany: 0.55,
+  'iceland-faroe': 0.55,
+  iceland: 0.55,
+  // Big Sur, the Chilean coast, the Kurils; lava coasts.
+  california: 0.55,
+  'central-chile': 0.55,
+  'kamchatka-kurils-aleutians': 0.55,
+  hawaii: 0.55,
+  canaries: 0.55,
+  'azores-madeira': 0.6,
+  galapagos: 0.6,
+  // Limestone and flysch: the Mediterranean's rocky half, the Algarve, the Cape.
+  'mediterranean-sea': 0.4,
+  'portugal-morocco': 0.4,
+  cape: 0.4,
+  'pacific-northwest': 0.4,
+  fundy: 0.4,
+  'bristol-channel': 0.4,
+  // Skerry archipelagos in Sweden and Finland, sand in the south.
+  baltic: 0.4,
+  'atacama-peru': 0.35,
+  'baja-sonora': 0.3,
+  // Low permafrost bluffs and gravel.
+  'arctic-russia': 0.25,
+  // Barrier islands, tidal flats and sand.
+  'north-africa-levant': 0.2,
+  'florida-carolinas': 0.1,
+  'wadden-north-sea': 0.1,
+  pei: 0.1,
+  'morecambe-bay': 0.1,
+  'mont-saint-michel': 0.1,
+  'alaska-north': 0.1,
+  namibia: 0.15
+}
+
 /** Every place, from REGIONS.md §1. Animals listed on a row replace the
  * region's. */
 const ROWS: readonly PlaceRow[] = [
@@ -448,9 +517,14 @@ function resolve(): Place[] {
       sand: row.sand ?? PLACE_SAND[row.id] ?? defaults.sand ?? biomeNamed(row.biome).sands,
       stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome],
       tide: TIDE[row.id] ?? TIDE[region] ?? DEFAULT_TIDE,
-      reef: REEF[row.id] ?? REEF[region] ?? 0
+      reef: REEF[row.id] ?? REEF[region] ?? 0,
+      coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome])
     }
   })
+}
+
+function landKinds(rock: number): Weights<LandKind> {
+  return { beach: 1 - rock, 'rock-shore': rock }
 }
 
 export const PLACES: readonly Place[] = resolve()

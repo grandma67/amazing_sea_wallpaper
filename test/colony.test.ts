@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { hasBeach, hasLand } from '../src/coastKind'
 import type { ColonyKind, PinnipedKind } from '../src/params'
 import { allParams, scenes, share } from './days'
 
@@ -8,9 +9,9 @@ describe('colonies on the mainland', () => {
   const colonies = days.filter(p => p.colony != null)
   const hauled = days.filter(p => p.pinnipeds != null)
 
-  it('are only on beach coasts: the open sea has islands and rocks', () => {
-    for (const p of colonies) if (p.coast.type !== 'beach') expect(p.colony!.site).toBe('island')
-    for (const p of hauled) if (p.coast.type !== 'beach') expect(p.pinnipeds!.site).toBe('rock')
+  it('are only on land: the open sea has islands and rocks; seals haul out on beaches only on beaches', () => {
+    for (const p of colonies) if (!hasLand(p.coast)) expect(p.colony!.site).toBe('island')
+    for (const p of hauled) if (!hasBeach(p.coast)) expect(p.pinnipeds!.site).toBe('rock')
   })
 
   it('happen at roughly the rate set for each kind', () => {

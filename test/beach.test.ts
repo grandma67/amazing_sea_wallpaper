@@ -100,7 +100,7 @@ describe('beach material', () => {
     expect(scene({ place: 'nova-scotia', beachMaterial: 'cobble' }).title).toContain('nordic cobble beach')
     expect(scene({ place: 'western-med', beachMaterial: 'shingle' }).title).toContain('mediterranean shingle beach')
     expect(scene({ place: 'scotland', beachMaterial: 'mixed' }).title).toContain('sand and gravel beach')
-    expect(scene({ place: 'maldives', beachMaterial: 'sand', sand: 'white' }).title).toContain('white sand beach')
+    expect(scene({ place: 'maldives', coast: 'beach', beachMaterial: 'sand', sand: 'white' }).title).toContain('white sand beach')
   })
 
   it('forces a material on any place, and a stony one implies a beach', () => {

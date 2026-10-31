@@ -5,7 +5,8 @@ import type { CoastParams } from '../src/params'
 import { Random } from '../src/random'
 import { bareRock, ROCK_KINDS, rockShoreFor, rockWaterline, scarpFoot, wobbleAtCamera } from '../src/rockShore'
 import { shoreToWorld, terrainHeight, terrainNormal } from '../src/terrain'
-import { scene, scenes } from './days'
+import { placeNamed, PLACES } from '../src/places'
+import { allParams, expectShare, scene, scenes } from './days'
 
 const at = (coast: CoastParams, s: number, a = 0): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
 const base = { eclipse: null, coast: 'rock-shore' } as const
@@ -118,5 +119,34 @@ describe('rock shore days', () => {
       expect(p.coast.type).toBe('rock-shore')
       expect(p.coast.rock!.kind).toBe('boulder')
     }
+  })
+})
+
+describe('rock shore shares', () => {
+  const land = allParams().filter(p => hasLand(p.coast))
+
+  it('are about 37% of land days, a quarter of all days, the rest beaches (params.mjs --expect)', () => {
+    expectShare(land, p => p.coast.type === 'rock-shore', 0.366)
+    for (const p of land) expect(['beach', 'rock-shore']).toContain(p.coast.type)
+  })
+
+  it('follow the place: fjords and the North Atlantic most, the tropics and barrier coasts least', () => {
+    for (const p of PLACES) {
+      const rock = p.coast['rock-shore'] ?? 0
+      expect(rock + (p.coast.beach ?? 0)).toBeCloseTo(1)
+      if (p.biome === 'tropical') expect(rock).toBeLessThanOrEqual(0.2)
+    }
+    for (const id of ['norway-west', 'scotland', 'nova-scotia', 'iceland', 'california', 'british-columbia']) expect(placeNamed(id).coast['rock-shore']).toBeGreaterThanOrEqual(0.5)
+    for (const id of ['florida-carolinas', 'wadden-north-sea', 'pei']) expect(placeNamed(id).coast['rock-shore']).toBeLessThanOrEqual(0.1)
+    const tropical = land.filter(p => p.biome.name === 'tropical')
+    expectShare(tropical, p => p.coast.type === 'rock-shore', 0.15)
+    const nordic = land.filter(p => ['norway', 'britain-ireland', 'atlantic-canada'].includes(p.place.region) && !['pei', 'fundy', 'bristol-channel', 'morecambe-bay'].includes(p.place.id))
+    expectShare(nordic, p => p.coast.type === 'rock-shore', 0.55)
+  })
+
+  it('make cliffs a third, each kind with its compositions', () => {
+    const rocky = land.filter(p => p.coast.rock != null)
+    expectShare(rocky, p => p.coast.rock!.kind === 'cliff', 0.33)
+    for (const p of rocky) expect(p.coast.composition === 'overlook').toBe(p.coast.rock!.kind === 'cliff')
   })
 })

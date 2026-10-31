@@ -572,8 +572,10 @@ function generateCoast(
   // Retries (see composition.ts) re-roll only the coast and composition.
   const suffix = attempt > 0 ? `#${attempt}` : ''
   const rng = Random.derive(seed, `coast${suffix}`)
-  // Beach or open sea is decided once per date; retries keep it.
-  const drawnType = Random.derive(seed, 'coast').chance(0.65) ? 'beach' : 'open-sea'
+  // Land or open sea is decided once per date; retries keep it. On land the
+  // place's weights choose a beach or a rocky shore (own stream).
+  const landKind = choose(Random.derive(seed, 'coast-kind'), place.coast)
+  const drawnType = Random.derive(seed, 'coast').chance(0.65) ? landKind : 'open-sea'
   const type = or(
     drawnType,
     spec.coast ??
@@ -1198,7 +1200,8 @@ function pickPinnipeds(
   const beach = Random.derive(seed, 'pinnipeds/site').float()
   const site = (kind: PinnipedKind): PinnipedParams => ({
     kind,
-    site: !hasLand({ type: coastType }) ? 'rock' : or<HaulOut>(beach < BEACH_HAUL_OUT[kind] ? 'beach' : 'rock', forceSite)
+    // Beach haul-outs need a beach; rocky shores and the open sea have rocks.
+    site: !hasBeach({ type: coastType }) ? 'rock' : or<HaulOut>(beach < BEACH_HAUL_OUT[kind] ? 'beach' : 'rock', forceSite)
   })
   if (typeof force === 'string') return site(force)
   const table = PINNIPEDS[biome.name][ocean]
