@@ -121,6 +121,35 @@ Playwright (headless snapshots), Vitest.
   mangroves) on its own stream, for `scripts/params.mjs` (`p.props`), `scripts/animals.mjs` and
   tests.
 
+### Biome, climate or place: what keys each table
+
+The biome is a look preset shared by places that differ (`mediterranean` is also Florida, Taiwan
+and Natal; `volcanic` is Hawaii and Kamchatka). Key a table by what it follows (LESSONS.md "Coast
+and terrain"): **rock** → biome; **weather** (plants, clouds, fog, haze, wrack, animals) → the
+day's `place.climate`; **one place's difference** → a place field (`places.ts`). Before a phase
+that touches one of these, read this list; when adding a biome-keyed table, add it here. Find
+them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '" src`.
+
+| Table / check | File | Keyed by | Status |
+|---|---|---|---|
+| `rockColors`, `seaStackChance`, `STONE_COLORS`, `MATERIAL_CHANCES`, `ROCK_BY_BIOME`, coral grain | `biome.ts`, `beach.ts`, `places.ts`, `beachState.ts` | biome (rock), place overrides | right |
+| sands, plants, ground cover, foliage, boulder chance | `biome.ts` `climateBiome` | biome × climate, place pools on top | phase 11 |
+| cloud leanings, storm chance, big swell | `params.ts` `cloudLeaning`, `stormChance`, `BIG_SWELL` | climate | phase 11 |
+| advection fog | `params.ts` `pickFog` | biome × ocean × `CLIMATE_FOG` | phase 11 (partly) |
+| wrack, coconuts | `props/debris.ts` | biome, then climate on mediterranean and volcanic | phase 11 |
+| ghost, hermit, shore crabs | `props/shoreLife.ts` | climate | phase 11 |
+| seals, colonies, migratory birds | `params.ts` `pinnipedTable`, `pickColony`; `props/migratory.ts` | climate (seals: biome × ocean table under it) | phase 11 |
+| landform chance, volcano chance, snow line | `params.ts` `pickLandform` | biome; flat places opt out (`mountains`) | **leftover**: volcanoes on Greenland and Norway, subtropical places get the Mediterranean's odds (phase 10: per place) |
+| island kinds | `params.ts` `ISLANDS` | biome; flat places only low ones | **leftover**: phase 10 |
+| beach flowers | `props/shoreLife.ts` `FLOWERS` | biome × ocean × month | **leftover**: Florida and Natal can bloom Mediterranean sea daffodil and horned poppy (should follow climate) |
+| shells, starfish | `props/shoreLife.ts` `SHELLS` | biome × ocean | leftover (minor) |
+| mangroves | `props/mangroves.ts` `CHANCE` | biome × ocean | **leftover**: Florida's and south Brazil's mangroves missing (subtropical) |
+| waterspout season | `props/waterspout.ts` | biome | **leftover**: the Florida Keys (subtropical summer) get the Mediterranean's season |
+| visibility, summer haze, dust season | `seaHaze.ts` | biome | leftover: humid subtropical summers get the Mediterranean's dry haze |
+| rock growth, lichen colour | `props/rocks.ts` `GROWTH`, `rockShore.ts` `LICHEN` | biome | leftover (moisture follows climate) |
+| landform vegetation tint | `props/landforms.ts` | biome (own table) | leftover: should read `biome.foliage` like islands |
+| lighthouse chance, contrail traffic, warm-water ships, orcas, Morning Glory, noctilucent | `params.ts`, `contrails.ts`, `props/ships.ts`, `props/marine.ts`, `skyEvents.ts`, `noctilucent.ts` | biome / ocean / latitude | right enough (geography, not weather) |
+
 ## Frame and post
 
 - `camera.ts`; `composition.ts` (ray-grid coverage, re-rolls bad framings; `frameView`: eye

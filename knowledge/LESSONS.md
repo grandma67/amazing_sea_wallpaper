@@ -45,6 +45,9 @@ tool gotchas: TOOLS.md.
 
 ## Randomness, params and tests
 
+- Long outputs: put the summary last (`bench.mjs` timing table, `params.mjs` "… N more not
+  shown") and save it to a file; a `| tail` that cuts the table off costs a full re-run.
+
 - Tests that need a rare event on **real days** ("at least one waterspout in three years") break
   when the main stream changes (places, 1a, broke four). Check rules on real days, but get the
   event from a spec over every date (`scenes({ place: 'caribbean', … }, DAYS.length)`), and
@@ -216,6 +219,12 @@ tool gotchas: TOOLS.md.
   (plants, clouds, fog, wrack, crabs, seals) by the day's `place.climate`, what follows the rock
   by the biome, and what a single place differs in by a place field (`mountains`). A contact sheet
   of one place per climate finds the leftovers (Florida's mountains and high islands, phase 11).
+  Better, before building: read ARCHITECTURE.md "Biome, climate or place" and ask `params.mjs`
+  about each table on the odd places (`--scene '{"place":"florida-carolinas"}' --stats 'p =>
+  p.props.shoreLife?.flowers'` showed Mediterranean sea daffodils on 77% of Florida's autumn
+  beaches).
+- Plans carry physical claims ("Svalbard noon blue-hour glow"): check them with the code's own
+  functions (`sunLimits`, `params.mjs`) before writing specs or tests from them.
 
 - Sharp relief in the height function zig-zags across the polar terrain grid wherever it is in
   silhouette: steep faces, stair risers, gully walls, ragged edges. Widen or fade each by the

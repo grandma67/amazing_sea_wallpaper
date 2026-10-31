@@ -29,7 +29,9 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Define "done": which views (shoreline, along-beach, framed, overlook, open sea) on which coasts (beach, rock-shore: platform, boulder, cliff top; tidal-flat, salt-marsh beach), what distance, how often, and whether it must read at wallpaper size or may be realistic and subtle. Ask if it's unclear and it matters (life-size crabs and shells show only within ~20 m).
 - Near-camera features: read how near the ground in frame is on real days (`params.mjs` `p.view`) and count placements in a test (`view()` in `test/days.ts`) before rendering. Plan numbers (radii, counts, budgets) are estimates until then.
 - TODO lists: read all open items first, then ask every build-changing question (visibility, places, kinds) in one batch.
-- Research briefly (1–2 searches; cite only what you read), then encode the result as a data table by biome, ocean, month and time of day (e.g. `FLOWERS` in `props/shoreLife.ts`, `debrisFor()` in `props/debris.ts`). Test the table.
+- A biome-keyed table? Read ARCHITECTURE.md "Biome, climate or place" first: key it by what it follows (rock → biome, weather → `place.climate`, one place → a place field) and add it to that list.
+- Check a plan's physical claims with the code's own functions (`sunLimits`, `params.mjs`) before writing specs or tests from them.
+- Research briefly (1–2 searches; cite only what you read), then encode the result as a data table by place or climate (biome only for rock), ocean, month and time of day (e.g. `FLOWERS` in `props/shoreLife.ts`, `debrisFor()` in `props/debris.ts`). Test the table.
 - Terrain, shore and water-level features: read `arch/COAST.md` "Coordinates and heights" first (s = 0 is the land, not the water; who measures from the shore; the readers of "A new seabed or shore profile") and write the geometry down before code, with a forced-extremes table (each tide stage × composition: camera and dry land); test it with `expectDryCameras` (`test/days.ts`).
 
 ## 2. Structure
@@ -55,13 +57,13 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 
 ## 4. Tests and finishing
 - `test/<feature>.test.ts` covering:
-  - the choice table over `allParams()` (real days): only where intended, roughly as often (`expectShare` in `test/days.ts`, not `toBeCloseTo`), season respected;
+  - the choice table over `allParams()` (real days): only where intended, roughly as often (`expectShare` in `test/days.ts`, not `toBeCloseTo`), season respected; prop choices via `propsOf(p)`; a table keyed by place, climate or ocean also checked over every key combination (no sampling);
   - feature rules via specs: `scene(spec, date?)` and `scenes(spec, count)` in `test/days.ts` (e.g. `scenes({ lighthouse: true, timeOfDay: 'night', fog: null })`). Add `eclipse: null` when forcing time of day or sky (real eclipse days override);
   - meshes: deterministic, finite positions and normals, base near y = 0, within the triangle budget;
   - `params.ts` changes: determinism and title.
 - Run `npm test` (typecheck + Vitest, ~6 s) and `npx tsc --noEmit` before committing.
 - Say "done" only for what a render or `diff.mjs` showed; otherwise say "placed, not checked".
 - After new animals or changed chances: run `node scripts/animals.mjs` and paste its table into ANIMALS.md (update the rules there too).
-- Count the days a change touches with `node scripts/params.mjs --ref HEAD` (before committing; `--list` shows each day's changed values) for the changelog row.
+- Count the days a change touches with `node scripts/params.mjs --ref HEAD` (before committing; `--list` shows each day's changed values; `--changed 'p => p.place.id'` says where; `--fields` narrows the comparison, not just the print) for the changelog row.
 - Update docs: changelog.md, ARCHITECTURE.md and the `arch/` doc (how it works, known issues), LESSONS.md, REFERENCES.md, the topic doc (ANIMALS, CLOUDS, COASTS), SCENE_SPECS.md (new fields), and TODO.md status if used.
 - Never commit TODO.md. One commit per feature, with a descriptive message.

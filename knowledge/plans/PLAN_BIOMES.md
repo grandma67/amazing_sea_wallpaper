@@ -72,6 +72,10 @@ and a link here. Stopping after 12 leaves a complete result.
   mid tide, drowned the camera at spring high water and again when the beach width was capped).
 - **Research per phase:** 1–2 searches for the phase's numbers before code, recorded with their
   source in REGIONS.md or COASTS.md. Cite only what was read (phase 7 had to take a figure out).
+  Check this plan's own physical claims with the code before building on them (phase 12's
+  "Svalbard noon blue-hour glow" is impossible at 78°: the noon sun is −11°).
+- **Biome-keyed tables:** before a phase, read ARCHITECTURE.md "Biome, climate or place" and
+  probe its leftovers on the phase's places (phase 11 found Florida's mountains only in renders).
 - **Props are their own step:** a new prop (salt-marsh tufts, tidepool life) gets its own
   checklist line and commit after the terrain and water work.
 - **Shares:** test targets from `params.mjs --expect`; after the first passing test, `params.mjs
