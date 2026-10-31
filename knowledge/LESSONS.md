@@ -22,7 +22,7 @@ tool gotchas: TOOLS.md.
   for terrain and sea first try the false-colour views (`params.debug.terrainView`, `oceanView`).
 - Find a cause by switching passes off one at a time (the sunset tree glow had four causes):
   `params.debug.passes` with `diff.mjs --off`, no code edits.
-- Before an edit-render-revert loop, look for a switch: `params.debug` (TOOLS.md), a spec field
+- Before an edit-render-revert loop, look for a switch: `params.debug` (tools/DEBUG.md), a spec field
   or a `params` patch. Never restore a file with `git checkout` mid-work: it drops every
   uncommitted change in it.
 - Suspect float precision when a pattern depends on one direction only; isolate by changing one

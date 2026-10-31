@@ -1,20 +1,13 @@
-// How often each animal is chosen, over the three test years (the same days
-// as test/days.ts), as markdown tables for ANIMALS.md:
+// How often each animal is chosen over the test days, as the markdown table
+// for ANIMALS.md: of all days, then per biome and per ocean. Counts choices
+// (params.ts, props/choices.ts), not what lands in frame.
 //
 //   node scripts/animals.mjs
-//
-// Counts what the generator and the props choose (params.ts, and
-// src/props/choices.ts on the render's own random streams), not what lands
-// in the frame: small animals far from the camera may be chosen and not
-// seen. Percentages are of all days, then of each biome's and ocean's days.
 
 import { createServer } from 'vite'
 
-const shift = (date, days) => {
-  const d = new Date(`${date}T12:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
-}
+import { TEST_DAYS } from './lib.mjs'
+
 
 /** Every animal a day can have, as "group: kind" labels. */
 function animals(p) {
@@ -41,8 +34,7 @@ const server = await createServer({ server: { middlewareMode: true, hmr: false }
 try {
   const { generateParams } = await server.ssrLoadModule('/src/params.ts')
   const { propChoices } = await server.ssrLoadModule('/src/props/choices.ts')
-  const days = Array.from({ length: 3 * 365 }, (_, i) => shift('2024-01-01', i))
-    .map(date => generateParams(date))
+  const days = TEST_DAYS.map(date => generateParams(date))
     .map(p => ({ ...p, props: propChoices(p) }))
   const biomes = ['nordic', 'mediterranean', 'volcanic', 'desert', 'tropical']
   const oceans = ['atlantic', 'pacific', 'indian', 'arctic', 'southern']

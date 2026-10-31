@@ -1,65 +1,40 @@
-// Render wallpapers for one or more dates in headless Chrome and save them.
+// Render dates or scene specs in headless Chrome; saves NAME.jpg and NAME.json
+// (params + debug). Needs a dev server at --url. Guide: knowledge/tools/RENDER.md.
 //
-//   node scripts/snapshot.mjs [--url http://localhost:5174/] [--out out]
-//        [--w 3840 --h 2160] [--quality 0.92] [--frames 64]
-//        [--angle metal|swiftshader] [--channel chrome|chromium] DATE [DATE...]
-//   node scripts/snapshot.mjs [options] --scene specs.json
+//   node scripts/snapshot.mjs [OPTIONS] DATE... | --scene SPEC
 //
-// DATE can be YYYY-MM-DD, "today", or a range "2026-10-01..2026-10-07".
-// --scene takes a JSON file (or inline JSON) holding a scene spec or a list
-// of them (src/sceneSpec.ts): each is rendered and saved as <name>.jpg, or
-// <date>.jpg when it has no name. A file can also share fields among its
-// scenes: { "base": { "date": …, "camera": {…} }, "scenes": [{ "name": "a", … }] }
-// (each scene merged deeply over the base).
-// Expects a server (vite dev or preview) to be running at --url.
-//
-// Checking a feature without reading whole images:
-//   --props islands,rocks   print where those props landed (count, in frame,
-//                           nearest distance, pixel box; "all" for every kind),
-//                           each one's CPU build time and the three slowest
-//   --crop islands,rocks    also save <name>.<kind>.jpg: the frame cropped to
-//                           that prop's box, padded
-//   --budget 600            give up after this many seconds in all (default
-//                           900), so a hung render can't stall a session
-//
-// Another commit, without stashing your changes:
-//   --ref HEAD              render with that commit instead of --url (a
-//                           temporary worktree served on 5177, refServer.mjs),
-//                           e.g. "was this already broken before my change?".
-//                           Implies --drop-unknown.
-//   --drop-unknown          leave out spec fields the served commit doesn't
-//                           know (a new feature's own field, e.g. "reef"),
-//                           checked with that commit's sceneSpec.ts and
-//                           printed, instead of failing; bench.mjs passes it
-//                           for the "before" run
+// DATE: YYYY-MM-DD, FROM..TO or "today" (default). SPEC: JSON file or inline;
+//   one spec, a list, or { base, scenes } (scenes merged deeply over base).
+//   Saved as the spec's name, else its date, else scene-N.
+// --out DIR (out)  --w 3840 --h 2160  --frames N (page default 64)  --quality 0.92
+// --url http://localhost:5174/  --angle metal|swiftshader  --channel chrome|chromium
+// --props KINDS|all   per prop: placed, in frame, nearest m, pixel box, CPU build
+//                     time; then the three slowest kinds
+// --crop KINDS|all    also save NAME.KIND.jpg cropped to that prop's box
+// --budget S (900)    exit after S seconds in all; --timeout MS per page (30 min)
+// --ref REF           render that commit (worktree on port 5177); implies --drop-unknown
+// --drop-unknown      leave out (and name) spec fields the served commit rejects
+// DEBUG=1             print each render's debug (exposure, luminance, …)
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
 import { snapshotWarnings } from './checks.mjs'
+import { expandDates, parseArgs, readSpecs } from './lib.mjs'
 import { serveRef } from './refServer.mjs'
 
-const args = process.argv.slice(2)
-const option = (name, fallback) => {
-  const i = args.indexOf(`--${name}`)
-  if (i === -1) return fallback
-  const [, value] = args.splice(i, 2)
-  return value
-}
+const { args, option, flag } = parseArgs()
 let baseUrl = option('url', 'http://localhost:5174/')
 const ref = option('ref', null)
-const dropFlag = args.indexOf('--drop-unknown')
-if (dropFlag !== -1) args.splice(dropFlag, 1)
-const dropUnknown = dropFlag !== -1 || ref != null
+const dropUnknown = flag('drop-unknown') || ref != null
 const outDir = option('out', 'out')
 const width = Number(option('w', 3840))
 const height = Number(option('h', 2160))
 const quality = Number(option('quality', 0.92))
 const frames = option('frames', null)
 const channel = option('channel', process.env.CI ? undefined : 'chrome')
-// 'metal' uses the Mac's GPU; 'swiftshader' is software WebGL (CI runners
-// have no GPU).
+// 'metal' uses the Mac's GPU; 'swiftshader' is software WebGL (CI has no GPU).
 const angle = option('angle', process.env.CI ? 'swiftshader' : 'metal')
 const timeoutMs = Number(option('timeout', 30 * 60_000))
 const sceneArg = option('scene', null)
@@ -72,42 +47,10 @@ setTimeout(() => {
   process.exit(2)
 }, budget * 1000).unref()
 
-function expandDates(specs) {
-  const dates = []
-  for (const spec of specs) {
-    if (spec === 'today') {
-      dates.push(new Date().toISOString().slice(0, 10))
-    } else if (spec.includes('..')) {
-      const [from, to] = spec.split('..')
-      for (let d = new Date(`${from}T12:00:00Z`); d <= new Date(`${to}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 1)) {
-        dates.push(d.toISOString().slice(0, 10))
-      }
-    } else {
-      dates.push(spec)
-    }
-  }
-  return dates
-}
-
 /** One render: a date, or a scene spec. */
 async function jobs() {
   if (sceneArg == null) return expandDates(args.length > 0 ? args : ['today']).map(date => ({ date, name: date }))
-  const text = /^\s*[[{]/.test(sceneArg) ? sceneArg : await readFile(sceneArg, 'utf8')
-  const parsed = JSON.parse(text)
-  // { "base": {…}, "scenes": [{…}, …] }: each scene is the base with its own
-  // fields merged in (objects merge, the rest replaces).
-  const merge = (a, b) => {
-    if (b === null || typeof b !== 'object' || Array.isArray(b) || a == null || typeof a !== 'object' || Array.isArray(a)) return b
-    const out = { ...a }
-    for (const [k, v] of Object.entries(b)) out[k] = merge(a[k], v)
-    return out
-  }
-  const specs =
-    !Array.isArray(parsed) && Array.isArray(parsed.scenes)
-      ? parsed.scenes.map(scene => merge(parsed.base ?? {}, scene))
-      : Array.isArray(parsed)
-        ? parsed
-        : [parsed]
+  const { specs } = await readSpecs(sceneArg)
   const used = new Set()
   return specs.map((spec, i) => {
     let name = spec.name ?? spec.date ?? `scene-${i + 1}`

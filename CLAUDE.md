@@ -5,7 +5,9 @@ Docs in `knowledge/` (read what the task needs):
   `arch/OCEAN.md`, `arch/COAST.md` (coordinates and heights, beaches, tides, reefs, stones),
   `arch/PROPS.md`: how each area works.
 - `LESSONS.md`: pitfalls by topic.
-- `TOOLS.md`: `params.mjs` queries, profile, snapshot, diff, mesh preview, contact sheet, bench, tool gotchas.
+- `TOOLS.md`: which tool answers what, shared conventions, dev server, gotchas; `tools/PARAMS.md`
+  (params, profile, test helpers), `tools/RENDER.md` (snapshot, diff, bench, mesh, contact sheet),
+  `tools/DEBUG.md` (`params.debug` switches and views).
 - `SCENE_SPECS.md`: spec fields, writing specs that show a feature, fixed dates.
 - `ANIMALS.md`, `CLOUDS.md`, `COASTS.md`: what appears where and how often.
 - `REGIONS.md`: research behind places, grain, tides; `REFERENCES.md`: sources.
@@ -43,12 +45,12 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Materials: `vertexColors`; `DoubleSide` for thin parts; `castShadow`/`receiveShadow`; `frustumCulled = false` on instanced meshes. Plants get no direct specular.
 - Storm-aware props: `stormy(params)` (`props/context.ts`). Animals in water: `ctx.waterSpot(rng, depth, maxDistance)`.
 
-## 3. Check it (details: TOOLS.md, SCENE_SPECS.md)
+## 3. Check it (details: TOOLS.md and `tools/`, SCENE_SPECS.md)
 - Numbers before renders. Use scene specs, not hunted dates; ask `params.mjs` for frequencies and "is it there at all?". Changed a choice or its inputs? `params.mjs --ref HEAD --stats 'p => …'` (⚠ at ≥ 5 points). Test targets: `params.mjs --expect 'pl => …'` (no sampling).
 - Terrain and water-depth features (bars, cusps, tides, reefs, flats): `profile.mjs` (numbers, cross-shore profile, top-down depth map with the break line); compare drawn and reached numbers; force waves with `swellHeight`/`swellPeriod`. Diff terrain changes with `diff.mjs --keep-camera`.
 - A spec file's base forces `timeOfDay` and `weather` (the date's own may be night); don't force `camera.heightM` (compositions set their own). `--props KIND` also prints CPU build time. Preview new meshes alone with `scripts/mesh.mjs`; render the beach only for placement and light.
 - After any shader edit, render `--w 320 --h 180 --frames 1` first (GLSL errors and reserved words like `flat` show only at render time).
-- Debugging a look: first grep ARCHITECTURE.md "Known issues" for the symptom. Probe creators and helpers with `params.mjs` (`p.ctx`, `src.X`, `props.X`), not throwaway tests; `profile.mjs` maps the view cone and warns when dry land floods. Then switches and false-colour views in `params.debug` (TOOLS.md "Debug switches and views": grid density, props off, markers, passes, fixed exposure, terrain and sea views) before editing code to test a guess.
+- Debugging a look: first grep ARCHITECTURE.md "Known issues" for the symptom. Probe creators and helpers with `params.mjs` (`p.ctx`, `src.X`, `props.X`), not throwaway tests; `profile.mjs` maps the view cone and warns when dry land floods. Then switches and false-colour views in `params.debug` (`tools/DEBUG.md`: grid density, props off, markers, passes, fixed exposure, terrain and sea views) before editing code to test a guess.
 - Prove visibility with `scripts/diff.mjs` before the first full render (`⚠ invisible` = fix before looking): props with `--off '{"props":{"<kind>":false}}'`; sky, light, haze and weather features with their spec field off (`'{"dust":null}'`) on a clear **and** a cloudy sky (clear days skip the clouds pass, so haze and cloud-lit effects can vanish there). Read a contact sheet, not single frames.
 - "Was this already broken?": `snapshot.mjs --ref HEAD` (or `diff.mjs --scene … --ref HEAD`) renders the last commit without stashing.
 - Check front-lit first, then backlit. Act on snapshot ⚠ warnings before reading images.

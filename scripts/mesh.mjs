@@ -1,29 +1,20 @@
-// Render one mesh on its own, from four sides (tools/mesh.html), to judge
-// shape and colour in a second instead of a whole beach render.
+// One mesh alone (tools/mesh.html): side, front, 3/4 above, and at --eye m
+// off, on sand-coloured ground with a 1 m ruler (10 cm bars). Prints size (m)
+// and triangles; saves OUT/FUNCTION-N.jpg. Needs the dev server.
 //
-//   node scripts/mesh.mjs [--url http://localhost:5174/] [--out out/mesh]
-//        [--seed S] [--eye 20] [--w 1600 --h 1000] CALL [CALL...]
+//   node scripts/mesh.mjs [--out out/mesh] [--seed S] [--eye 20] [--w 1600 --h 1000]
+//        [--url http://localhost:5174/] 'MODULE#FUNCTION(ARGS)'...
 //
-// CALL is MODULE#FUNCTION(ARGS): a builder under src/ and its arguments as
-// JSON, with $rng for a seeded Random. Quote it for the shell:
-//   node scripts/mesh.mjs 'props/wildlife#hippoGeometry($rng, 0)' \
-//                         'props/wildlife#crocodileGeometry($rng, "nile", 0.4)'
-// Each saves <out>/<FUNCTION>-<n>.jpg: side, front, 3/4 from above (top
-// row), and at eye height --eye metres off (bottom right), on sand-coloured
-// ground with a 1 m ruler (10 cm bars); prints size (m) and triangles.
-// Needs the dev server (the page imports the builder through Vite).
+// MODULE is under src/; ARGS are JSON, $rng a seeded Random:
+//   node scripts/mesh.mjs 'props/wildlife#hippoGeometry($rng, 0)'
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
-const args = process.argv.slice(2)
-const option = (name, fallback) => {
-  const i = args.indexOf(`--${name}`)
-  if (i === -1) return fallback
-  const [, value] = args.splice(i, 2)
-  return value
-}
+import { parseArgs } from './lib.mjs'
+
+const { args, option } = parseArgs()
 const baseUrl = option('url', 'http://localhost:5174/')
 const outDir = option('out', 'out/mesh')
 const seed = option('seed', 'preview')

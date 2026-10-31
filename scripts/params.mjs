@@ -1,107 +1,45 @@
-// Ask the scene generator questions without rendering: what a date or a spec
-// gives, and how often something happens over the days. Computing params is
-// cheap (three years of days in ~1 s); a render is not.
+// Ask the scene generator without rendering (~1.5 s for all test days).
+// Guide: knowledge/tools/PARAMS.md.
 //
-//   node scripts/params.mjs [--scene SPEC] [--fields a.b,c] DATE [DATE...]
-//   node scripts/params.mjs --stats 'p => p.weather.formations' [--where EXPR]
-//   node scripts/params.mjs --list [--where EXPR] [--fields a.b,c] [--limit 40]
-//   node scripts/params.mjs --ref REF [--fields a.b,c] [--list] [--scene SPEC] [DATE...]
-//   node scripts/params.mjs --ref REF --stats 'p => …' [--where EXPR]
-//   node scripts/params.mjs --ref REF --changed 'p => …' [--where EXPR]
-//   node scripts/params.mjs --expect 'pl => …'
-//   node scripts/params.mjs --help
+//   node scripts/params.mjs [OPTIONS] [DATE...]
 //
-// DATE is YYYY-MM-DD or a range FROM..TO. Without dates, --stats and --list
-// run over the test days (three years from 2024-01-01, test/days.ts).
-// --scene SPEC (a JSON file or inline JSON, as for snapshot.mjs) is applied
-//   to every day: '{"storm":"squall"}' asks "what do storms look like?".
-//   A file with { "base": {…}, "scenes": [{ "name": …, … }] } (snapshot.mjs's
-//   format) runs each scene in turn under its name. A spec's own "date" is
-//   used when no DATE is given; DATEs given replace it.
-// --fields picks what to print (dotted paths; default: title).
-// --where 'p => …' keeps the days for which it is true.
-// --stats 'p => …' counts the values it returns (each element of an array,
-//   so 'p => p.weather.formations' counts layers), with the share of days.
-// --list prints one line per day: date, then the fields.
-// Each day also has p.props: what the props choose (src/props/choices.ts:
-//   gulls, marine, migratory, wildlife, shoreLife, debris, mangroves), on the
-//   render's own random streams. Placement can still miss the frame.
-// And p.placeData: the day's place as places.ts resolves it (weight, tide,
-//   reef chance, material and sand chances, pools), for expressions such as
-//   'p => p.placeData.reef > 0.5'.
-// --expect 'pl => …' asks the place table instead of the days: over every
-//   place weighted by its share of days, a number is averaged ("the share
-//   of days you should get") and anything else is counted as a weighted
-//   share; null leaves the place out (a filter). E.g. the expected reef
-//   share on tropical beach days: 'pl => pl.biome === "tropical" ? pl.reef : null'.
-//   No sampling noise, and no days to generate.
-// And p.view: what the camera sees of the ground at 1080p (eye height, lens,
-//   pixel angle, nearest ground in frame; src/composition.ts frameView), to
-//   check before rendering whether a near-camera prop can be in view and how
-//   many pixels it gets.
-// And p.ctx: the props' PropContext at 1080p (src/props/context.ts; the
-//   render camera, frustum, ground, visible/inFrame, rng; no wave field), to
-//   run a creator or a placement test on real days without rendering:
-//   'p => props.saltMarsh.createSaltMarsh(p.ctx).reduce((n, m) => n + m.count, 0)'.
-//   Creators build meshes (ms each): use them on a few dates or a spec.
-// Expressions naming src.X or props.X get this tree's src/X.ts and
-//   src/props/X.ts modules (e.g. src.tidalFlat.flatCreeks, src.terrain.
-//   worldToShore). On --ref both sides see this tree's modules.
-// --ref REF compares with another commit (checked out into a temporary git
-//   worktree, as bench.mjs does): how many days changed and in which
-//   top-level params (or in --fields), for the changelog's "N of 1096 days
-//   change" line. --list prints each changed day with before → after (the
-//   first --limit, default 20; it says how many it left out). --fields
-//   NARROWS THE COMPARISON to those fields (a day changed elsewhere isn't
-//   counted), it doesn't only pick what is printed. --where keeps the days
-//   whose new params pass: 'p => Math.abs(p.latitudeDeg) < 63' with "0
-//   changed" proves a change stayed above 63°. --changed 'p => …' counts a
-//   value over the changed days only (now's params), e.g. which places or
-//   climates a change touched: --changed 'p => p.place.climate'.
-//   With --stats: the shares before and now side by side, and the change in
-//   points (⚠ at 5 or more), so a shifted distribution shows before any
-//   render. --where runs on each side's own params; a field the ref doesn't
-//   have reads as undefined there.
-// --rendered uses the params the page renders (generateSceneParams: a bad
-//   framing re-rolls the coast) instead of the first attempt; slower.
+// DATE: YYYY-MM-DD or FROM..TO. None: the test days (1095 from 2024-01-01),
+//   or a spec's own "date".
+// --scene SPEC     JSON file or inline; applied to every day. A { base, scenes }
+//                  file runs each scene under its name. DATEs replace a spec's date.
+// --fields a.b,c   what to print (default title). With --ref: ALSO NARROWS the
+//                  comparison to those fields.
+// --where EXPR     keep days where 'p => …' is true (with --ref: each side's own).
+// --stats EXPR     count the values 'p => …' returns (each array element), with shares.
+// --list           one line per day (with --ref: each changed day, before → after).
+// --limit N        lines listed (default all; 20 with --ref).
+// --expect EXPR    over the place table, weighted by share of days: numbers
+//                  averaged, the rest counted, null skips the place. No sampling.
+// --ref REF        compare with a commit (temporary worktree): days changed per
+//                  top-level param; with --stats, shares side by side (⚠ ≥ 5 pts).
+// --changed EXPR   with --ref: count 'p => …' over the changed days (now's params).
+// --rendered       the params the page renders (generateSceneParams re-rolls a
+//                  bad framing); slower.
 //
-// Examples:
+// In expressions, besides SceneParams: p.props (props/choices.ts on the
+// render's streams), p.placeData (places.ts Place), p.view (composition.ts
+// frameView at 1080p), p.ctx (PropContext at 1080p, no wave field), and
+// src.X / props.X (src/X.ts, src/props/X.ts; on --ref both sides see this tree's).
+//
+//   node scripts/params.mjs --stats 'p => p.weather.formations' --where 'p => p.sea.ocean === "southern"'
 //   node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-06
-//   node scripts/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
-//   node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
-//   node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile' --where 'p => p.props.wildlife != null'
-//   node scripts/params.mjs --rendered --scene '{"beachMaterial":"cobble","composition":"shoreline"}' --fields view 2025-07-10
-//   node scripts/params.mjs --stats 'p => p.coast.composition + " " + Math.round(p.view.nearest / 5) * 5' --where 'p => p.coast.type === "beach"'
-//   node scripts/params.mjs --ref HEAD~1                    # which days did my change touch?
-//   node scripts/params.mjs --ref HEAD --fields coast.sand.name --list --limit 10
-//   node scripts/params.mjs --ref HEAD --stats 'p => p.coast.state' --where 'p => p.coast.type === "beach"'
-//   node scripts/params.mjs --scene scenes/stony.json --fields title,view
 //   node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null'
-//   node scripts/params.mjs --stats 'p => p.coast.reef != null' --where 'p => p.placeData.reef > 0'
-//   node scripts/params.mjs --scene '{"place":"fundy","coast":"tidal-flat","tide":"high"}' --stats 'p => p.ctx.ground(0, 0) > p.coast.runup'
-//   node scripts/params.mjs --scene '{"saltMarsh":true}' --list --fields title --where 'p => props.saltMarsh.createSaltMarsh(p.ctx).length === 0' 2025-07-01..2025-07-31
-//   node scripts/params.mjs --scene '{"coast":"tidal-flat"}' --stats 'p => Math.round(src.tidalFlat.flatCreeks(p.coast, p.coast.flat.width / 2, 0) * 10) / 10' 
+//   node scripts/params.mjs --ref HEAD --changed 'p => p.place.climate'
+//   node scripts/params.mjs --scene '{"saltMarsh":true}' --stats 'p => props.saltMarsh.createSaltMarsh(p.ctx).length' 2025-07-01..2025-07-10
 
-import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { readFile, rm, symlink } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 
-const args = process.argv.slice(2)
-const option = (name, fallback) => {
-  const i = args.indexOf(`--${name}`)
-  if (i === -1) return fallback
-  const [, value] = args.splice(i, 2)
-  return value
-}
-const flag = name => {
-  const i = args.indexOf(`--${name}`)
-  if (i === -1) return false
-  args.splice(i, 1)
-  return true
-}
+import { expandDates, parseArgs, readSpecs, TEST_DAYS, worktree } from './lib.mjs'
+
+const { args, option, flag, rejectUnknown } = parseArgs()
 if (flag('help') || flag('h')) {
   const self = await readFile(fileURLToPath(import.meta.url), 'utf8')
   console.log(self.slice(0, self.indexOf('\nimport ')).replace(/^\/\/ ?/gm, ''))
@@ -118,39 +56,15 @@ const changedArg = option('changed', null)
 const list = flag('list')
 const rendered = flag('rendered')
 const limit = Number(option('limit', ref != null ? 20 : 1e9))
-const unknown = args.find(a => a.startsWith('--'))
-if (unknown != null) throw new Error(`unknown option ${unknown} (see --help)`)
+rejectUnknown()
 
-const shift = (date, days) => {
-  const d = new Date(`${date}T12:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
-}
-const TEST_DAYS = Array.from({ length: 3 * 365 }, (_, i) => shift('2024-01-01', i))
-const given = args.flatMap(a => {
-  if (!a.includes('..')) return [a]
-  const [from, to] = a.split('..')
-  const out = []
-  for (let d = from; d <= to; d = shift(d, 1)) out.push(d)
-  return out
-})
+const given = expandDates(args)
 
-/** The specs to run: one, or each scene of a { base, scenes } file merged
- * over the base (objects merge, the rest replaces), as snapshot.mjs does. */
+/** The specs to run: one (unnamed), or each scene of a list or scenes file. */
 async function specs() {
   if (sceneArg == null) return [{ name: null, spec: {} }]
-  const parsed = JSON.parse(/^\s*[[{]/.test(sceneArg) ? sceneArg : await readFile(sceneArg, 'utf8'))
-  const merge = (a, b) => {
-    if (b === null || typeof b !== 'object' || Array.isArray(b) || a == null || typeof a !== 'object' || Array.isArray(a)) return b
-    const out = { ...a }
-    for (const [k, v] of Object.entries(b)) out[k] = merge(a[k], v)
-    return out
-  }
-  if (!Array.isArray(parsed.scenes)) return [{ name: null, spec: parsed }]
-  return parsed.scenes.map((scene, i) => {
-    const spec = merge(parsed.base ?? {}, scene)
-    return { name: spec.name ?? `scene-${i + 1}`, spec }
-  })
+  const { specs, multi } = await readSpecs(sceneArg)
+  return specs.map((spec, i) => ({ name: multi ? (spec.name ?? `scene-${i + 1}`) : null, spec }))
 }
 
 /** Given DATEs win over a spec's own date; without either, the test days. */
@@ -205,23 +119,6 @@ async function load(root) {
     return out
   }
   return { server, mod, parseSceneSpec, day, places: places.PLACES ?? [] }
-}
-
-/** A temporary worktree of `ref` (removed afterwards), as bench.mjs makes. */
-async function worktree() {
-  const git = (...a) => spawnSync('git', a, { encoding: 'utf8' })
-  const sha = git('rev-parse', '--short', ref).stdout.trim()
-  if (sha === '') throw new Error(`unknown ref ${ref}`)
-  const tree = resolve(`/private/tmp/claude-params-${sha}`)
-  const registered = git('worktree', 'list', '--porcelain').stdout.includes(`worktree ${tree}\n`)
-  if (!registered) {
-    // A leftover folder that isn't a worktree any more.
-    if (existsSync(tree)) await rm(tree, { recursive: true, force: true })
-    const r = git('worktree', 'add', '--detach', tree, ref)
-    if (r.status !== 0) throw new Error(r.stderr)
-    await symlink(resolve('node_modules'), join(tree, 'node_modules'))
-  }
-  return { sha, tree, remove: () => git('worktree', 'remove', '--force', tree) }
 }
 
 function countStats(days) {
@@ -372,7 +269,7 @@ if (expect != null) {
   }
   process.exit(0)
 }
-const old = ref != null ? await worktree() : null
+const old = ref != null ? worktree(ref, 'params') : null
 const there = old != null ? await load(old.tree) : null
 try {
   for (const { name, spec: raw } of await specs()) {

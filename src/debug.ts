@@ -1,7 +1,7 @@
 // Render-only switches and views for debugging (SceneParams.debug), set by a
 // scene spec's `params` patch: {"params": {"debug": {"terrainView": "slope"}}}.
 // The generator never reads them, so no draw and no other param changes.
-// How to use them: knowledge/TOOLS.md "Debug switches and views". No imports:
+// How to use them: knowledge/tools/DEBUG.md. No imports:
 // params.ts and sceneSpec.ts both use it.
 
 /** Render-only debugging (SceneParams.debug). */

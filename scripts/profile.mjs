@@ -1,70 +1,36 @@
-// The shape of the coast without rendering: the beach and seabed numbers, a
-// cross-shore profile, and a top-down map of heights and depths, all from the
-// TypeScript mirror of the terrain shader (terrain.ts terrainHeight). Bars,
-// rip channels, cusps, storm ridges and where the waves break show here in a
-// second; check geometry with it before a render round.
+// The coast's shape without rendering, from the TS mirror of the terrain
+// shader (terrain.ts terrainHeight): numbers, cross-shore heights and a
+// top-down map. ~0.6 s/scene. Guide: knowledge/tools/PARAMS.md.
 //
-//   node scripts/profile.mjs [--scene SPEC] [--out DIR] [--res M] [DATE]
+//   node scripts/profile.mjs [--scene SPEC] [--out out/profile] [--res M] [DATE]
 //
-// SPEC is a JSON file or inline JSON (as for snapshot.mjs); a { base, scenes }
-// file gives one profile and map per scene. DATE overrides the spec's date
-// (default: the spec's, else today's test start 2024-01-01). The params are the
-// ones the page renders (generateSceneParams).
-//
-// Prints: state, grain, slopes, width, bars, rips, cusps, ridges, run-up,
-// beach lines and the break depth; a reef's numbers (drawn and reached
-// lagoon depth, crest, passes, shelter) and the surf zone's reach; where
-// waves break along the camera's cut (bands of s, so a 2 m strip on a steep
-// reef face shows before any render); then heights along s (m seaward of the
-// waterline; negative is land) at the camera's along-shore position, at the
-// nearest rip channel and at the nearest reef pass.
-// Writes OUT/NAME.profile.png (default out/profile): sea at the top, land
-// below, the along-shore coordinate a across. Land brown to green by height,
-// water light to dark blue by depth, contours every 0.5 m, the waterline
-// black, white where waves of the day's set height break (depth = break
-// depth), the camera red, the view cone yellow (frame edges on the ground and
-// an arc where the ground first shows), a faint grid every 50 m. Also warns
-// when land that must stay dry (behind the beach, a marsh) lies below the
-// spring high water + run-up. --res is metres per pixel
-// (default 1).
-//
-// Examples:
-//   node scripts/profile.mjs --scene '{"place":"east-australia","beachState":"transverse-bar-rip","coast":"beach"}' 2024-01-15
-//   node scripts/profile.mjs --scene scenes/beach-states.json --out $SP/profile
+// SPEC: JSON file or inline; a { base, scenes } file or a list gives one
+// profile per scene. DATE overrides the spec's (default 2024-01-01). Uses the
+// params the page renders (generateSceneParams). --res: metres per pixel (1;
+// tidal flats at least 4).
+// Prints beach numbers, reef / rock / flat drawn vs reached, dry-land checks
+// (⚠ floods), where a full wave breaks along the camera's cut, heights along s
+// at the camera, nearest rip and reef pass. Writes OUT/NAME.profile.png.
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { crc32, deflateSync } from 'node:zlib'
 import { createServer } from 'vite'
 
-const args = process.argv.slice(2)
-const option = (name, fallback) => {
-  const i = args.indexOf(`--${name}`)
-  if (i === -1) return fallback
-  const [, value] = args.splice(i, 2)
-  return value
-}
+import { parseArgs, readSpecs } from './lib.mjs'
+
+const { args, option, rejectUnknown } = parseArgs()
 const sceneArg = option('scene', null)
 const outDir = resolve(option('out', 'out/profile'))
 const resArg = Number(option('res', 1))
-const unknown = args.find(a => a.startsWith('--'))
-if (unknown != null) throw new Error(`unknown option ${unknown}`)
+rejectUnknown()
 const dateArg = args[0]
 
-const merge = (a, b) => {
-  if (b === null || typeof b !== 'object' || Array.isArray(b) || a == null || typeof a !== 'object' || Array.isArray(a)) return b
-  const out = { ...a }
-  for (const [k, v] of Object.entries(b)) out[k] = merge(a[k], v)
-  return out
-}
 async function specs() {
   if (sceneArg == null) return [{ name: dateArg ?? '2024-01-01', spec: {} }]
-  const parsed = JSON.parse(/^\s*[[{]/.test(sceneArg) ? sceneArg : await readFile(sceneArg, 'utf8'))
-  if (!Array.isArray(parsed.scenes)) return [{ name: parsed.name ?? dateArg ?? parsed.date ?? 'profile', spec: parsed }]
-  return parsed.scenes.map((scene, i) => {
-    const spec = merge(parsed.base ?? {}, scene)
-    return { name: spec.name ?? `scene-${i + 1}`, spec }
-  })
+  const { specs, multi } = await readSpecs(sceneArg)
+  if (!multi) return [{ name: specs[0].name ?? dateArg ?? specs[0].date ?? 'profile', spec: specs[0] }]
+  return specs.map((spec, i) => ({ name: spec.name ?? `scene-${i + 1}`, spec }))
 }
 
 /** A PNG from RGB rows, with node's zlib only. */

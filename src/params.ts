@@ -398,7 +398,7 @@ export interface SceneParams {
   overrides?: PropOverrides
   /** Render-only switches and views for debugging, set by a spec's `params`
    * patch (`{"params": {"debug": {…}}}`); the generator never reads them, so
-   * no draw changes (knowledge/TOOLS.md "Debug switches and views"). */
+   * no draw changes (knowledge/tools/DEBUG.md). */
   debug?: DebugParams
 
   camera: {

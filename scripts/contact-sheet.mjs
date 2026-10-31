@@ -1,29 +1,20 @@
-// Build a contact sheet (grid of thumbnails with titles) from rendered images.
+// One image of many renders: a grid of thumbnails titled from NAME.json.
 //
-//   node scripts/contact-sheet.mjs [--dir out] [--cols 4] [--width 2400]
-//        [--match REGEX] [--compare DIR_B] [--region top|bottom|centre|X0,Y0,X1,Y1]
-//        [--out FILE]
+//   node scripts/contact-sheet.mjs [--dir out] [--cols 4] [--width 2400] [--match REGEX]
+//        [--compare DIR_B] [--region top|bottom|centre|X0,Y0,X1,Y1] [--out FILE]
 //
-// Reads the .jpg images in --dir (titled from NAME.json when there is one:
-// dates, or scene spec names) and writes contact-sheet.jpg there.
-// --match keeps only names matching a regex (e.g. '\.islands$' for the crops
-// snapshot.mjs --crop saves). --compare puts each image beside the one of the
-// same name in DIR_B (before | after), one pair per row. --region shows only
-// part of every image, as fractions of its width and height (top = the upper
-// half, where sky features are): bigger thumbnails of what you're checking.
-// A single matching image fills the sheet, so --match NAME --region X0,Y0,X1,Y1
-// zooms into one render (a 0.45 × 0.16 region of a 1080p frame comes out ~2.7×).
+// Writes DIR/contact-sheet.jpg. --compare: before | after pairs by name.
+// --region: only that part of each image (fractions). One matching image fills
+// the sheet, so --match '^NAME$' --region … zooms into one render.
 
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
 
-const args = process.argv.slice(2)
-const option = (name, fallback) => {
-  const i = args.indexOf(`--${name}`)
-  return i === -1 ? fallback : args[i + 1]
-}
+import { parseArgs } from './lib.mjs'
+
+const { option } = parseArgs()
 const dir = resolve(option('dir', 'out'))
 const colsArg = option('cols', null)
 const width = Number(option('width', 2400))

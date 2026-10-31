@@ -1,52 +1,28 @@
-// Did a change show up, and where? Compares renders pixel by pixel instead of
-// reading images: the share of pixels that changed, the box round them, and
-// how much they changed; and saves NAME.diff.jpg (before | after, cropped to
-// that box, over the difference ×8).
+// Did a change show up, and where? Pixel diff of two renders per name: share
+// changed, the box holding 98% of it, mean/max Δ, brighter/darker; saves
+// OUT/NAME.diff.jpg (off | on, cropped, over the difference ×8). "⚠ invisible"
+// = under 0.01% changed. Guide: knowledge/tools/RENDER.md.
 //
-// A feature on vs off (renders both with snapshot.mjs):
-//   node scripts/diff.mjs --scene specs.json --off '{"contrails":null}' --out $SP/contrails
-//        [--w 1920 --h 1080 --frames 16]
-// Every spec is rendered as written (into OUT/on) and with --off merged in
-// (into OUT/off); --off is merged deeply, so '{"props":{"debris":null}}'
-// keeps the spec's other props.
-// --keep-camera: a terrain change (bars, cusps, tides) also moves the camera,
-// which stands on the ground, and then most of the frame differs. With it,
-// the "on" renders go first and each "off" render stands its camera at the
-// same height (params.camera.groundM). Heading and lens are the date's in
-// both; a composition re-roll (a bad framing) can still differ.
-// --keep-exposure: the exposure is metered from the sky and the weather, so a
-// sky, haze or weather change re-exposes the whole frame. With it, the "on"
-// renders go first and each "off" render uses the same exposure
-// (params.debug.exposure, from debug.exposure in the on render's .json).
-// Terrain and prop changes don't move the meter.
+//   node scripts/diff.mjs --scene SPEC --off PATCH [--out out/diff]   feature on vs off
+//   node scripts/diff.mjs --scene SPEC --ref HEAD [--off PATCH]       REF (off) vs this tree (on)
+//   node scripts/diff.mjs --a DIR --b DIR [--match REGEX]             two folders, same names
 //
-// Your change vs another commit (renders the specs with REF into OUT/off,
-// via snapshot.mjs --ref, and with this tree into OUT/on):
-//   node scripts/diff.mjs --scene specs.json --ref HEAD --out $SP/change
-// --off is optional here and patches only the REF side (e.g. to drop a spec
-// field that commit doesn't know).
-//
-// Two folders of renders already made (same names), e.g. before/after a code
-// change, or a speed change that should leave the image alone:
-//   node scripts/diff.mjs --a $SP/before --b $SP/after [--match REGEX]
-//
-// A pixel counts as changed when its luminance moves by more than --threshold
-// (0–255, default 4: above JPEG noise; two renders of the same code on the
-// same GPU are identical). "invisible" means < 0.01% of the frame changed:
-// the feature isn't placed, is out of frame, is hidden, or is too faint.
+// --off is merged deeply into each spec (with --ref it patches only the ref side).
+// --w --h --frames --url   passed to snapshot.mjs (renders go to OUT/off, OUT/on)
+// --keep-camera     "on" first, then each "off" stands at its ground height
+//                   (camera.groundM): for terrain changes, which move the camera
+// --keep-exposure   "on" first, then each "off" uses its exposure (debug.exposure):
+//                   for sky, weather, haze and sun changes, which re-meter the frame
+// --threshold N     luminance change that counts, 0–255 (default 4, above JPEG noise)
 
 import { spawnSync } from 'node:child_process'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { chromium } from 'playwright'
 
-const args = process.argv.slice(2)
-const option = (name, fallback) => {
-  const i = args.indexOf(`--${name}`)
-  if (i === -1) return fallback
-  const [, value] = args.splice(i, 2)
-  return value
-}
+import { merge, parseArgs, readJson, readSpecs } from './lib.mjs'
+
+const { option, flag } = parseArgs()
 const sceneArg = option('scene', null)
 const offArg = option('off', null)
 const refArg = option('ref', null)
@@ -55,32 +31,17 @@ let dirA = option('a', null)
 let dirB = option('b', null)
 const match = new RegExp(option('match', '.'))
 const threshold = Number(option('threshold', 4))
-const keepCamera = args.includes('--keep-camera') && args.splice(args.indexOf('--keep-camera'), 1).length > 0
-const keepExposure = args.includes('--keep-exposure') && args.splice(args.indexOf('--keep-exposure'), 1).length > 0
+const keepCamera = flag('keep-camera')
+const keepExposure = flag('keep-exposure')
 const onFirst = keepCamera || keepExposure
 const render = ['w', 'h', 'frames', 'url'].flatMap(k => {
   const v = option(k, null)
   return v == null ? [] : [`--${k}`, v]
 })
 
-/** Objects merge, everything else replaces (as a spec's `params` patch). */
-const merge = (a, b) => {
-  if (b === null || typeof b !== 'object' || Array.isArray(b) || a == null || typeof a !== 'object' || Array.isArray(a)) return b
-  const out = { ...a }
-  for (const [k, v] of Object.entries(b)) out[k] = merge(a[k], v)
-  return out
-}
-const readJson = async arg => JSON.parse(/^\s*[[{]/.test(arg) ? arg : await readFile(arg, 'utf8'))
-
 if (sceneArg != null) {
   if (offArg == null && refArg == null) throw new Error('--scene needs --off (the patch that turns the feature off) or --ref (a commit to compare with)')
-  const parsed = await readJson(sceneArg)
-  const specs =
-    !Array.isArray(parsed) && Array.isArray(parsed.scenes)
-      ? parsed.scenes.map(scene => merge(parsed.base ?? {}, scene))
-      : Array.isArray(parsed)
-        ? parsed
-        : [parsed]
+  const { specs } = await readSpecs(sceneArg)
   const off = offArg != null ? await readJson(offArg) : {}
   dirA = join(outDir, 'off')
   dirB = join(outDir, 'on')

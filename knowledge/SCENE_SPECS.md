@@ -2,7 +2,7 @@
 
 Force what's needed in JSON instead of hunting dates; the rest comes from the date.
 `src/sceneSpec.ts` validates it. Browser: `?scene=<JSON>`; scripts: `--scene <JSON or file>`.
-Querying params (`params.mjs`) and rendering: [TOOLS.md](TOOLS.md).
+Querying params (`params.mjs`) and rendering: [TOOLS.md](TOOLS.md), [tools/](tools/PARAMS.md).
 
 ```json
 { "name": "arctic-driftwood", "date": "2024-02-12", "timeOfDay": "golden-hour",
@@ -20,8 +20,7 @@ Querying params (`params.mjs`) and rendering: [TOOLS.md](TOOLS.md).
   forces that kind.
 - Anything else: `params`, a deep patch over the finished `SceneParams`
   (`{"params": {"coast": {"distanceToWater": 6}}}`). Applied last, so the title and derived values
-  don't follow it. `params.debug` holds render-only switches and false-colour views (TOOLS.md
-  "Debug switches and views"); it is checked field by field.
+  don't follow it. `params.debug` holds render-only switches and false-colour views (tools/DEBUG.md); it is checked field by field.
 - Unknown fields and bad values throw, naming the field.
 - Forced features are still placed normally (a crab needs sand near the camera in frame; a boat is
   skipped if there's no sea spot).
@@ -76,7 +75,7 @@ Allowed values are in `sceneSpec.ts`.
   1.6 m put framed and overlook cameras inside the grass). Pick the composition and check how near
   the ground in frame is (`params.mjs --fields view`).
 - **One forced date is one framing:** the 2025-07-10 shorelines see the ground from ~21 m, while
-  real days range from ~5 m to 40 m+ (TOOLS.md "What the camera sees"). For near-camera features
+  real days range from ~5 m to 40 m+ (tools/PARAMS.md "What the camera sees"). For near-camera features
   pick dates whose `view.nearest` fits, or check the real-day spread with `--stats`.
 
 ## Adding a spec field

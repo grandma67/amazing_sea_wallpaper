@@ -1,36 +1,22 @@
-// Render time and pixels, now vs another commit: the CLAUDE.md rule "a
-// feature that adds more than ~10% needs a reason", and "a speed change must
-// leave the image alone", checked in one command.
+// Render time and pixels, this tree vs a commit: the 10% rule, and "a speed
+// change must leave the image alone". Guide: knowledge/tools/RENDER.md.
 //
-//   node scripts/bench.mjs [--ref HEAD~1] [--w 1920 --h 1080 --frames 16]
-//        [--scene specs.json | DATE...] [--out out/bench] [--runs 2]
-//        [--url http://localhost:5174/]   (this tree's server, if not 5174)
+//   node scripts/bench.mjs [--ref HEAD] [--scene SPEC | DATE...] [--runs 3]
+//        [--w 1920 --h 1080 --frames 16] [--out out/bench] [--url http://localhost:5174/]
 //
-// Checks out --ref (default HEAD, i.e. the last commit, against your working
-// tree) into a temporary git worktree, serves it with vite on port 5175
-// (refServer.mjs),
-// renders the same dates or specs with both (this tree on 5174, which must
-// be running), --runs times each (default 3; the fastest counts: the first render of a
-// kind compiles shaders), and prints a pixel diff (diff.mjs), then the times
-// side by side LAST (so `| tail` keeps them), also saved with the diff lines in
-// OUT/summary.txt. Default dates: a clear, a cloudy, a storm and a night day.
-// Run it with nothing else using the GPU; under `caffeinate -i` on battery.
-// A scene whose runs differ by more than 10% is marked "noisy": the machine
-// was busy, so its change isn't a result (add --runs or close things).
+// Needs this tree's dev server; serves REF on 5175. Clears OUT, renders both
+// --runs times (fastest counts), prints the pixel diff (diff.mjs), then the
+// times LAST (⚠ >10% slower; "noisy" if runs differ > 10%), also in
+// OUT/summary.txt. Default dates: clear, cloudy, storm, night.
 
 import { spawnSync } from 'node:child_process'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
-import { serveRef, shortSha } from './refServer.mjs'
+import { parseArgs, shortSha } from './lib.mjs'
+import { serveRef } from './refServer.mjs'
 
-const args = process.argv.slice(2)
-const option = (name, fallback) => {
-  const i = args.indexOf(`--${name}`)
-  if (i === -1) return fallback
-  const [, value] = args.splice(i, 2)
-  return value
-}
+const { args, option } = parseArgs()
 const ref = option('ref', 'HEAD')
 const out = resolve(option('out', 'out/bench'))
 const runs = Number(option('runs', 3))
