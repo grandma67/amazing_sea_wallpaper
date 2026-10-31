@@ -1,6 +1,6 @@
 # Night sky: stars, shooting stars, Milky Way, planets, aurora
 
-Plan (2026-10-31, not started). Research and numbers: [STARS.md](../STARS.md). Current code:
+Plan (2026-10-31, not started; decisions recorded 2026-11-01, see the end). Research and numbers: [STARS.md](../STARS.md). Current code:
 [arch/SKY.md](../arch/SKY.md) "Moon and eclipses", `scene.ts` (stars block), `params.ts`
 (`nightSky`, `moonlight`).
 
@@ -141,17 +141,15 @@ Each phase: own random stream, spec field, off switch, test file, `diff.mjs` pro
   unless asked.
 - **Twinkling, star trails, stacked meteor composites:** not a single still photo; leave out.
 
-## Questions before building
+## Decisions (2026-11-01, user: follow the recommendations)
 
-1. **Meteor frequency:** "best frame of the night" (Perseid peak ~85%, ordinary dark night
-   ~5–10%) or a single random exposure (meteors almost never)? Recommended: best frame.
-2. **Real moon position** (phase 1): use the real moon for the date (moves the moon on most days,
-   may lose some moon framing) or keep today's placement bounded to the ecliptic? Recommended:
-   bounded, keep the framing.
-3. **Milky Way source:** a real panorama (CC BY 4.0, needs a credit on the page) or procedural?
-   Recommended: real panorama.
-4. **Order:** phases 1 → 2 → 3 → 4 give the biggest change to nights; 5 (planets) reaches the
-   most days through blue hour. Fine to swap 4 and 5.
+1. **Meteor frequency:** the "best frame of the night" model (clear Perseid peak ~85%, ordinary
+   dark night ~5–10%), not a single random exposure.
+2. **Moon position** (phase 1): keep today's placement and moon framing, bounded to within 5° of
+   the ecliptic; not the real moon for the date.
+3. **Milky Way source:** a real all-sky panorama (e.g. ESO/S. Brunier, CC BY 4.0, credited on
+   the page), not procedural.
+4. **Order:** phases 1 → 2 → 3 → 4 → 5 → 6 as listed.
 
 ## Seen, not part of this plan
 
