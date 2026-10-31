@@ -104,7 +104,8 @@ function cottage(b: MeshBuilder, at: Vector3, size: number, roof: RGB): void {
 
 /** Tower, gallery and dome (vertex coloured), and the lantern glazing as
  * its own mesh so it can glow. Base at the origin. */
-function tower(light: LighthouseParams, kind: LighthouseParams['site'], seed: number): { body: MeshBuilder; lantern: MeshBuilder; lampHeight: number } {
+/** The tower (body: shaft, gallery, dome) and its glazing, base on y = 0. */
+export function tower(light: LighthouseParams, kind: LighthouseParams['site'], seed: number): { body: MeshBuilder; lantern: MeshBuilder; lampHeight: number } {
   const H = light.height
   const rock = light.paint === 'granite' || kind === 'rock'
   // Wave-swept rock towers are stout with a flared, concave foot (Smeaton's
@@ -116,7 +117,12 @@ function tower(light: LighthouseParams, kind: LighthouseParams['site'], seed: nu
   // Odd band counts: white at the foot and under the gallery.
   const bands = H > 25 ? 7 : 5
   const body = new MeshBuilder()
-  const radius = (t: number): number => (rock ? Rt + (R0 - Rt) * (1 - t) ** 2.2 : R0 + (Rt - R0) * t)
+  // t is clamped: the path's last point can round a hair above the shaft
+  // top, and a negative base to the 2.2 is NaN (a NaN ring on 3 of 1095 days).
+  const radius = (t: number): number => {
+    const u = Math.min(1, Math.max(0, t))
+    return rock ? Rt + (R0 - Rt) * (1 - u) ** 2.2 : R0 + (Rt - R0) * u
+  }
   // A plinth below the base hides the gap to an uneven rock.
   const plinth = 6
   const path = Array.from({ length: 121 }, (_, i) => new Vector3(0, -plinth + ((shaft + plinth) * i) / 120, 0))

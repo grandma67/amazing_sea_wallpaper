@@ -332,6 +332,12 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- Clamp before a fractional power: `(1 - t) ** 2.2` is NaN for t a hair above 1, and a path
+  built as `start + (length * i) / n` can end there (the rock lighthouse's top shaft ring, 0.83).
+  three then logs `computeBoundingSphere(): Computed radius is NaN`; find the mesh by hooking
+  `console.error` in an init script (`?worker=0`): its second argument is the geometry (vertex
+  count, first non-finite index → which ring or part).
+
 - Preview alone first (`scripts/mesh.mjs`): the front view caught open tube ends (crocodile jaws)
   that beach renders hid.
 - `MeshBuilder.tube` returns rings: close ends with `MeshBuilder.cap`. Its frame flips with path

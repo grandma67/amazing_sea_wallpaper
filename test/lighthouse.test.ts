@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { beamDirections } from '../src/lighthouse'
 import type { LighthouseParams } from '../src/params'
+import { tower } from '../src/props/lighthouse'
+import { allParams } from './days'
 
 const light = (flashes: number, groups: number, beamAzimuthDeg = 0): LighthouseParams => ({
   site: 'rock',
@@ -46,5 +48,23 @@ describe('beamDirections', () => {
 
   it('never returns more beams than the shader takes', () => {
     expect(beamDirections(light(4, 4), null).length).toBeLessThanOrEqual(12)
+  })
+})
+
+describe('tower', () => {
+  // A rock tower's flared foot used (1 - t) ** 2.2 with t a hair above 1 at
+  // the shaft top: a NaN ring on 3 of 1095 days (2024-06-05).
+  it('is finite on every lighthouse day, both sites', () => {
+    const lights = allParams().flatMap(p => (p.lighthouse != null ? [p.lighthouse] : []))
+    expect(lights.length).toBeGreaterThan(50)
+    for (const light of lights) {
+      for (const kind of ['rock', 'point'] as const) {
+        const { body, lantern } = tower(light, kind, light.seed)
+        for (const g of [body.build(), lantern.build()]) {
+          expect((g.attributes.position.array as Float32Array).every(Number.isFinite), `${light.height} m ${kind}`).toBe(true)
+          expect((g.attributes.normal.array as Float32Array).every(Number.isFinite)).toBe(true)
+        }
+      }
+    }
   })
 })
