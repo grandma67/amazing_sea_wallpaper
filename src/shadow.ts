@@ -106,6 +106,32 @@ float lightReaching(vec3 world) {
 }
 `
 
+/**
+ * Stand-in for a shadow map not rendered yet (or never: no sun, no land
+ * map). A sampler2DShadow must always see a depth texture with comparison
+ * on: three.js r186 falls back to its own `emptyShadowTexture` for null, but
+ * never uploads it, so it binds a plain RGBA texture and the GPU drops the
+ * whole draw ("Mismatch between texture format and sampler type"). That hid
+ * the terrain from the sea's reflection, which is drawn before the land
+ * shadow exists. The shaders skip the map while its "On" flag is 0, so its
+ * contents don't matter. Each material gets its own (disposed with it, or
+ * when the real map replaces it).
+ */
+function noShadowMap(): DepthTexture {
+  const texture = new DepthTexture(1, 1, FloatType)
+  texture.compareFunction = LessEqualCompare
+  texture.userData.noShadow = true
+  texture.needsUpdate = true
+  return texture
+}
+
+/** Point a shadow sampler at `map`, freeing its stand-in. */
+function setShadowMap(uniform: { value: unknown }, map: Texture): void {
+  const old = uniform.value as Texture | null
+  if (old !== map && old?.userData.noShadow === true) old.dispose()
+  uniform.value = map
+}
+
 export function shadowUniforms(): Record<string, { value: unknown }> {
   return {
     cloudShadowMap: { value: null as Texture | null },
@@ -114,11 +140,11 @@ export function shadowUniforms(): Record<string, { value: unknown }> {
     cloudShadowCascades: { value: 0 },
     cloudShadowNear: { value: 0 },
     cloudShadowFar: { value: 1 },
-    sunShadowMap: { value: null as Texture | null },
+    sunShadowMap: { value: noShadowMap() as Texture },
     sunShadowMatrix: { value: new Matrix4() },
     sunShadowTexel: { value: new Vector2(1, 1) },
     sunShadowOn: { value: 0 },
-    landShadowMap: { value: null as Texture | null },
+    landShadowMap: { value: noShadowMap() as Texture },
     landShadowMatrix: { value: new Matrix4() },
     landShadowTexel: { value: new Vector2(1, 1) },
     landShadowOn: { value: 0 }
@@ -149,7 +175,7 @@ export function bindShadow(
 ): void {
   const map = light.shadow.map
   if (map?.depthTexture == null) return
-  uniforms.sunShadowMap.value = map.depthTexture
+  setShadowMap(uniforms.sunShadowMap, map.depthTexture)
   ;(uniforms.sunShadowMatrix.value as Matrix4).copy(light.shadow.matrix)
   ;(uniforms.sunShadowTexel.value as Vector2).set(1 / map.width, 1 / map.height)
   uniforms.sunShadowOn.value = 1
@@ -243,7 +269,7 @@ function isCaster(o: Object3D, props: Object3D): boolean {
 }
 
 export function bindLandShadow(uniforms: Record<string, { value: unknown }>, shadow: LandShadow): void {
-  uniforms.landShadowMap.value = shadow.target.depthTexture
+  setShadowMap(uniforms.landShadowMap, shadow.target.depthTexture!)
   ;(uniforms.landShadowMatrix.value as Matrix4).copy(shadow.matrix)
   ;(uniforms.landShadowTexel.value as Vector2).copy(shadow.texel)
   uniforms.landShadowOn.value = 1

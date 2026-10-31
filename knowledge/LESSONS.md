@@ -119,6 +119,11 @@ tool gotchas: TOOLS.md.
   `active`, `common`, `partition`, `fixed`, `long`, `short`. `smoothstep(e0, e1, x)` with e0 ≥ e1
   is undefined (works on one GPU, not another): write `1.0 - smoothstep(e1, e0, x)`. Both show
   only at render time.
+- Never leave a `sampler2DShadow` uniform `null`: three.js r186's fallback (`emptyShadowTexture`)
+  is never uploaded, so it binds a plain RGBA texture and the GPU silently drops the whole draw
+  (console: "Mismatch between texture format and sampler type"). Start it on an allocated depth
+  texture with `compareFunction` (`shadow.ts` `noShadowMap`). Headless snapshots don't echo GL
+  errors from the worker; run with `?worker=0` and check `gl.getError()` after draws to find one.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
   bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN terrain.
 
