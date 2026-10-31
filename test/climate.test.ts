@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { hasLand } from '../src/coastKind'
+import { biomeNamed, climateBiome } from '../src/biome'
 import { climateTitle } from '../src/places'
-import { allParams, expectShare, scene } from './days'
+import { allParams, expectShare, scene, scenes as scenesOf } from './days'
 
 // PLAN_BIOMES 11: the climate is the place's own choice (1a); the biome stays
 // the look preset.
@@ -35,5 +36,55 @@ describe('climate', () => {
       expect(p.title, p.date).toContain(climateTitle(p.biome.name, p.place.climate))
       expect(p.title).not.toMatch(/\bnordic\b/)
     }
+  })
+
+  describe('land (11b)', () => {
+    const kinds = (p: { biome: { vegetation: readonly (readonly [string, number])[] } }) => p.biome.vegetation.map(([k]) => k)
+
+    it('patches only what the climate changes', () => {
+      const med = biomeNamed('mediterranean')
+      const florida = climateBiome(med, 'subtropical')
+      expect(florida.name).toBe('mediterranean')
+      expect(florida.rockColors).toBe(med.rockColors)
+      expect(florida.water).toBe(med.water)
+      expect(climateBiome(med, 'mediterranean')).toBe(med)
+      expect(climateBiome(biomeNamed('tropical'), 'tropical')).toBe(biomeNamed('tropical'))
+    })
+
+    it('gives subtropical coasts live oak, palmetto, cabbage palm and pale sand, no olives or cypress', () => {
+      const days = scenesOf({ place: 'florida-carolinas', coast: 'beach', beachMaterial: 'sand' })
+      for (const p of days) {
+        expect(kinds(p)).toEqual(expect.arrayContaining(['palm', 'broadleaf', 'bush', 'grass']))
+        expect(kinds(p)).not.toContain('olive')
+        expect(kinds(p)).not.toContain('cypress')
+        expect(['white', 'golden']).toContain(p.coast.sand.name)
+      }
+      expectShare(days, p => p.coast.sand.name === 'white', 0.6)
+      // The Mediterranean itself keeps its olives and stone pines.
+      for (const p of scenesOf({ place: 'aegean' }, 10)) expect(kinds(p)).toContain('olive')
+    })
+
+    it('gives temperate nordic coasts broadleaf woods, boreal ones conifer and birch', () => {
+      for (const p of scenesOf({ place: 'cornwall-wales' }, 10)) expect(kinds(p)).toContain('broadleaf')
+      for (const p of scenesOf({ place: 'baltic', climate: 'boreal' }, 10)) {
+        expect(kinds(p)).toContain('conifer')
+        expect(kinds(p)).not.toContain('broadleaf')
+      }
+    })
+
+    it('makes a polar climate tundra on any water, and keeps palms off Iceland and Kamchatka', () => {
+      for (const p of scenesOf({ place: 'greenland', ocean: 'atlantic' }, 20)) {
+        expect(kinds(p).every(k => k === 'grass' || k === 'bush' || k === 'birch'), p.date).toBe(true)
+      }
+      for (const p of scenesOf({ place: 'norway-north', ocean: 'atlantic', climate: 'polar' }, 10)) expect(kinds(p)).not.toContain('conifer')
+      for (const p of days.filter(p => p.biome.name === 'volcanic' && p.place.climate !== 'tropical' && p.place.climate !== 'subtropical')) {
+        expect(kinds(p), p.place.id).not.toContain('palm')
+      }
+      for (const p of scenesOf({ place: 'hawaii' }, 10)) expect(kinds(p)).toContain('palm')
+    })
+
+    it('whitens the Hebrides with shell sand sometimes', () => {
+      expectShare(scenesOf({ place: 'scotland', coast: 'beach', beachMaterial: 'sand' }, 200), p => p.coast.sand.name === 'white', 0.3)
+    })
   })
 })

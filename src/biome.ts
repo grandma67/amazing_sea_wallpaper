@@ -215,3 +215,131 @@ export const BIOMES: readonly (readonly [Biome, number])[] = [
 export function biomeNamed(name: Biome['name']): Biome {
   return BIOMES.find(([b]) => b.name === name)![0]
 }
+
+/** A place's climate (places.ts); declared here so the looks below can be
+ * keyed by it without an import cycle. */
+export type Climate = 'polar' | 'boreal' | 'temperate' | 'mediterranean' | 'subtropical' | 'tropical' | 'arid'
+
+// Climates (PLAN_BIOMES 11b). The biome is a constant of the place, the look
+// preset; the climate, drawn per day from the place's weights, patches the
+// fields that follow the weather rather than the rock. Per field:
+// - water: keep (the basin's own water wins on polar seas anyway);
+// - sands: subtropical pale quartz (Florida, the Gold Coast, south Brazil);
+//   temperate nordic golden over grey; polar grey gravel; else keep;
+// - rockColors, seaStackChance: keep (geology);
+// - rockChance: subtropical barrier and sand coasts have fewer boulders;
+// - groundCover, foliage: humid climates greener, tundra browner;
+// - vegetation: what grows there (below); the polar tundra filter is
+//   plantsFor's (places.ts), for the polar climate as for polar water.
+// Places' own pools (places.ts PLACE_SAND, PLACE_PLANTS) override on top.
+// Kinds stand in for species: `broadleaf` = oak, beech, live oak, pohutukawa;
+// `bush` = gorse, saw palmetto, sea grape; `grass` = marram, sea oats;
+// `palm` = cabbage (sabal) and Canary palms; `stone-pine` = maritime and
+// slash pine. Florida's zones run sea oats on the foredune, a saw palmetto
+// and cabbage palm strand behind, then live oak hammock (FNAI coastal strand).
+const CLIMATE_LOOKS: Partial<Record<Biome['name'], Partial<Record<Climate, Partial<Biome>>>>> = {
+  nordic: {
+    // Marram dunes and machair in front of mixed oak, beech and pine.
+    temperate: {
+      sands: { golden: 2, grey: 1 },
+      groundCover: [0.08, 0.13, 0.05],
+      vegetation: [
+        ['grass', 6],
+        ['broadleaf', 3],
+        ['conifer', 1.5],
+        ['bush', 2]
+      ],
+      foliage: [0.05, 0.1, 0.04]
+    },
+    polar: {
+      sands: { grey: 2, golden: 1 },
+      groundCover: [0.1, 0.1, 0.06],
+      groundCoverAmount: 0.7
+    }
+  },
+  mediterranean: {
+    subtropical: {
+      sands: { white: 3, golden: 2 },
+      rockChance: 0.45,
+      groundCover: [0.07, 0.11, 0.04],
+      groundCoverAmount: 0.85,
+      vegetation: [
+        ['grass', 4],
+        ['bush', 4],
+        ['palm', 3],
+        ['broadleaf', 3],
+        ['stone-pine', 1]
+      ],
+      foliage: [0.05, 0.11, 0.035]
+    },
+    // Atlantic Portugal's maritime pine and Korea's oak and pine.
+    temperate: {
+      groundCover: [0.09, 0.12, 0.05],
+      vegetation: [
+        ['grass', 4],
+        ['bush', 3],
+        ['stone-pine', 2],
+        ['broadleaf', 3],
+        ['conifer', 1]
+      ],
+      foliage: [0.05, 0.1, 0.04]
+    }
+  },
+  // One preset from Hawaii to Kamchatka: the climate decides what grows.
+  volcanic: {
+    tropical: {
+      groundCover: [0.045, 0.08, 0.03],
+      groundCoverAmount: 0.85,
+      vegetation: [
+        ['palm', 5],
+        ['broadleaf', 2],
+        ['bush', 3],
+        ['grass', 2],
+        ['pandanus', 1]
+      ],
+      foliage: [0.06, 0.16, 0.04]
+    },
+    // Canaries, Azores, Madeira, northern New Zealand.
+    subtropical: {
+      vegetation: [
+        ['bush', 3],
+        ['grass', 3],
+        ['broadleaf', 2],
+        ['palm', 1]
+      ]
+    },
+    // Japan, the New Zealand subantarctic's lower slopes.
+    temperate: {
+      vegetation: [
+        ['grass', 4],
+        ['broadleaf', 3],
+        ['conifer', 2],
+        ['bush', 2]
+      ],
+      foliage: [0.05, 0.11, 0.04]
+    },
+    // Iceland and Kamchatka: moss, grass, crowberry, stone birch.
+    boreal: {
+      vegetation: [
+        ['grass', 6],
+        ['bush', 3],
+        ['birch', 1]
+      ],
+      foliage: [0.04, 0.08, 0.04]
+    },
+    polar: {
+      vegetation: [
+        ['grass', 4],
+        ['bush', 2]
+      ],
+      groundCover: [0.1, 0.1, 0.06]
+    }
+  }
+}
+
+/** The biome as it looks in a climate: the fields the climate changes
+ * patched in, the rest the biome's. */
+export function climateBiome(biome: Biome, climate: Climate): Biome {
+  const patch = CLIMATE_LOOKS[biome.name]?.[climate]
+  return patch == null ? biome : { ...biome, ...patch }
+}

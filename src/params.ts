@@ -16,7 +16,7 @@ import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
-import { choose, climateTitle, latitudeIn, pickPlace, plantsFor, type Climate, type Place } from './places'
+import { choose, climateTitle, latitudeIn, pickPlace, placeBiome, plantsFor, sandChances, type Climate, type Place } from './places'
 import { Random } from './random'
 import { monthInSeason, season, seasonMonth } from './seasons'
 import { reefFor, reefShelter, type Reef } from './reef'
@@ -553,9 +553,9 @@ function swell(
 /** The day's sand colour: the place's chances on its own stream, or the
  * forced one. The coast stream still makes the one draw the colour used to
  * take, so the draws after it (sandbars, eye height) stay where they were. */
-function sandColour(coastRng: Random, seed: string, place: Place, force?: SandStyle['name']): SandStyle {
+function sandColour(coastRng: Random, seed: string, place: Place, climate: Climate, force?: SandStyle['name']): SandStyle {
   coastRng.float()
-  return SAND_STYLES[choose(Random.derive(seed, 'sand-colour'), place.sand, force)]
+  return SAND_STYLES[choose(Random.derive(seed, 'sand-colour'), sandChances(place, climate), force)]
 }
 
 /** Makes a draw and drops it, so a stream's later draws stay where they
@@ -635,7 +635,7 @@ function generateCoast(
     surfAmplitude,
     surfWavelength: rng.range(18, 40),
     surfPhase: rng.range(0, Math.PI * 2),
-    sand: sandColour(rng, seed, place, spec.sand),
+    sand: sandColour(rng, seed, place, climate, spec.sand),
     material: 'sand',
     stoneColors: place.stones,
     ridges: [],
@@ -1430,7 +1430,9 @@ function buildParams(
   const climate = choose(Random.derive(seed, 'climate'), place.climate, spec.climate)
   const latitudeDeg = latitudeIn(place, orng)
   const polar = basin.water == null ? null : basin.name === 'arctic' ? 'arctic' : 'southern'
-  const biome: Biome = { ...biomeNamed(place.biome), vegetation: plantsFor(place, polar, latitudeDeg) }
+  // The biome in the day's climate (PLAN_BIOMES 11b): sands, plants and
+  // greens follow the climate, the rest the biome.
+  const biome: Biome = { ...placeBiome(place, climate), vegetation: plantsFor(place, climate, polar, latitudeDeg) }
   const monsoon = or(choice.monsoon, spec.monsoon)
   const ice = spec.ice === undefined ? choice.ice : forceIce(seed, spec.ice, basin.name, choice.ice)
 

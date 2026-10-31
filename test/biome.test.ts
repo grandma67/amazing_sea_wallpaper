@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
 import { SAND_STYLES } from '../src/biome'
-import { HIGH_ARCTIC_DEG, PLACES, placeNamed } from '../src/places'
+import { HIGH_ARCTIC_DEG, PLACES, sandChances, type Climate } from '../src/places'
+
+const climates = (place: (typeof PLACES)[number]) => Object.keys(place.climate) as Climate[]
+const everySand = PLACES.flatMap(place => climates(place).map(climate => ({ place, sand: sandChances(place, climate) })))
 import { allParams, expectShare, scene, scenes, share } from './days'
 
 const RED_PLACES = ['pei', 'fundy', 'hawaii', 'oman-yemen', 'red-sea']
 
 describe('sand colour', () => {
   it('gives every place valid chances', () => {
-    for (const place of PLACES) {
-      const entries = Object.entries(place.sand)
+    for (const { sand } of everySand) {
+      const entries = Object.entries(sand)
       expect(entries.length).toBeGreaterThan(0)
       for (const [name, weight] of entries) {
         expect(Object.keys(SAND_STYLES)).toContain(name)
@@ -19,9 +22,9 @@ describe('sand colour', () => {
   })
 
   it('is pink only on tropical coasts and red only in the listed places', () => {
-    for (const place of PLACES) {
-      if ((place.sand.pink ?? 0) > 0) expect(place.biome).toBe('tropical')
-      if ((place.sand.red ?? 0) > 0) expect(RED_PLACES).toContain(place.id)
+    for (const { place, sand } of everySand) {
+      if ((sand.pink ?? 0) > 0) expect(place.biome).toBe('tropical')
+      if ((sand.red ?? 0) > 0) expect(RED_PLACES).toContain(place.id)
     }
     for (const p of allParams()) {
       if (p.coast.sand.name === 'pink') expect(p.biome.name).toBe('tropical')
@@ -43,7 +46,7 @@ describe('sand colour', () => {
     expect(share(beaches('nova-scotia'), red)).toBe(0)
     expectShare(beaches('bahamas-bermuda'), pink, 0.25)
     expectShare(beaches('indonesia'), pink, 0.03)
-    expect(placeNamed('philippines').sand.pink).toBe(1)
+    expect(sandChances(PLACES.find(p => p.id === 'philippines')!, 'tropical').pink).toBe(1)
   })
 
   it('is forced by the spec on any place, keeping the rest of the day', () => {

@@ -1,5 +1,5 @@
 import { FUNDY_STONES, STONE_COLORS, type BeachMaterial } from './beach'
-import { biomeNamed, type Biome, type RGB, type SandStyle, type VegetationKind } from './biome'
+import { biomeNamed, climateBiome, type Biome, type Climate, type RGB, type SandStyle, type VegetationKind } from './biome'
 import type { OceanName } from './oceans'
 import type { CrocodileKind, LizardKind, MonkeyKind, TurtleSpecies } from './props/wildlife'
 import type { Random } from './random'
@@ -28,7 +28,7 @@ import type { Random } from './random'
 // Result: nordic ≈ 42%, tropical 23%, mediterranean 14%, volcanic 13%,
 // desert 9% of days.
 
-export type Climate = 'polar' | 'boreal' | 'temperate' | 'mediterranean' | 'subtropical' | 'tropical' | 'arid'
+export type { Climate }
 export const CLIMATES: readonly Climate[] = ['polar', 'boreal', 'temperate', 'mediterranean', 'subtropical', 'tropical', 'arid']
 
 export type Weights<K extends string> = Partial<Record<K, number>>
@@ -84,12 +84,15 @@ export interface Place {
   ocean: Weights<OceanName>
   climate: Weights<Climate>
   animals: readonly Animal[]
-  plants: Plants
+  /** The place's own plant pool; unset: the biome's in the day's climate
+   * (plantsFor). */
+  plants?: Plants
   /** Beach material chances; unset: the biome's (or polar) defaults
    * (beach.ts materialChances). */
   material?: Weights<BeachMaterial>
-  /** Sand colour chances (the biome's unless the place differs). */
-  sand: Weights<SandName>
+  /** The place's own sand colour chances; unset: the biome's in the day's
+   * climate (sandChances). */
+  sand?: Weights<SandName>
   /** Plants that grow leaning downwind (flag trees). */
   windBent: readonly VegetationKind[]
   /** Stone colours (linear albedo). */
@@ -227,6 +230,10 @@ const PLACE_SAND: Record<string, Weights<SandName>> = {
   // Red sandstone: nearly every PEI beach, the Fundy shore's red mud and sand.
   pei: { red: 60, golden: 25, grey: 15 },
   fundy: { red: 40, grey: 35, golden: 25 },
+  // Shell sand (up to ~50% carbonate on the beach, more in the machair
+  // behind): the white beaches of the Hebrides and the west of Ireland.
+  scotland: { golden: 45, white: 30, grey: 25 },
+  ireland: { golden: 55, grey: 30, white: 15 },
   // Maui's Kaihalulu (red cinder).
   hawaii: { black: 64, grey: 32, red: 4 },
   // Iron-red sand under the Hajar and Red Sea hills.
@@ -537,10 +544,10 @@ function resolve(): Place[] {
       ocean: row.ocean,
       climate: row.climate,
       animals: row.animals ?? PLACE_ANIMALS[row.id] ?? defaults.animals ?? [],
-      plants: row.plants ?? PLACE_PLANTS[row.id] ?? defaults.plants ?? biomeNamed(row.biome).vegetation,
+      plants: row.plants ?? PLACE_PLANTS[row.id] ?? defaults.plants,
       windBent: WIND_BENT[row.id] ?? [],
       material: row.material ?? PLACE_MATERIAL[row.id] ?? defaults.material,
-      sand: row.sand ?? PLACE_SAND[row.id] ?? defaults.sand ?? biomeNamed(row.biome).sands,
+      sand: row.sand ?? PLACE_SAND[row.id] ?? defaults.sand,
       stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome],
       tide: TIDE[row.id] ?? TIDE[region] ?? DEFAULT_TIDE,
       reef: REEF[row.id] ?? REEF[region] ?? 0,
@@ -577,13 +584,27 @@ export function placeNamed(id: string): Place {
  * Canadian Arctic, north Greenland). */
 export const HIGH_ARCTIC_DEG = 74
 
-/** The day's plant pool. On polar water, tundra: grass and shrubs, and birch
- * in the low Arctic; a place's own pool (PLACE_PLANTS) is already what grows
- * there. */
-export function plantsFor(place: Place, polar: 'arctic' | 'southern' | null, latitudeDeg: number): Plants {
-  if (polar == null || place.id in PLACE_PLANTS) return place.plants
-  const hardy: VegetationKind[] = polar === 'arctic' && Math.abs(latitudeDeg) < HIGH_ARCTIC_DEG ? ['grass', 'bush', 'birch'] : ['grass', 'bush']
-  const plants = place.plants.filter(([kind]) => hardy.includes(kind))
+/** The place's biome as it looks in `climate` (biome.ts climateBiome). */
+export function placeBiome(place: Place, climate: Climate): Biome {
+  return climateBiome(biomeNamed(place.biome), climate)
+}
+
+/** The day's sand colour chances: the place's own, else its biome's in the
+ * climate (pale quartz on subtropical coasts). */
+export function sandChances(place: Place, climate: Climate): Weights<SandName> {
+  return place.sand ?? placeBiome(place, climate).sands
+}
+
+/** The day's plant pool: the place's own (already what grows there), else
+ * its biome's in the climate. On polar water or in a polar climate, tundra:
+ * grass and shrubs, and birch in the low Arctic. */
+export function plantsFor(place: Place, climate: Climate, polar: 'arctic' | 'southern' | null, latitudeDeg: number): Plants {
+  if (place.plants != null) return place.plants
+  const pool = placeBiome(place, climate).vegetation
+  if (polar == null && climate !== 'polar') return pool
+  const arctic = polar === 'arctic' || (polar == null && latitudeDeg > 0)
+  const hardy: VegetationKind[] = arctic && Math.abs(latitudeDeg) < HIGH_ARCTIC_DEG ? ['grass', 'bush', 'birch'] : ['grass', 'bush']
+  const plants = pool.filter(([kind]) => hardy.includes(kind))
   return plants.length > 0 ? plants : [['grass', 1]]
 }
 

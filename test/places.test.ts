@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { generateParams } from '../src/params'
-import { CLIMATES, PLACES, placeNamed, placesFor, REGION_IDS } from '../src/places'
+import { CLIMATES, PLACES, placeNamed, placesFor, plantsFor, REGION_IDS, type Climate } from '../src/places'
 import { OCEANS } from '../src/oceans'
 import { allParams, scene, scenes, share } from './days'
 
@@ -39,7 +39,7 @@ describe('places', () => {
       expect(p.latitude[0]).toBeLessThanOrEqual(p.latitude[1])
       expect(Math.abs(p.latitude[0])).toBeLessThanOrEqual(90)
       expect(REGION_IDS).toContain(p.region)
-      expect(p.plants.length).toBeGreaterThan(0)
+      for (const [climate] of climates) expect(plantsFor(p, climate as Climate, null, 45).length).toBeGreaterThan(0)
     }
     expect(new Set(PLACES.map(p => p.id)).size).toBe(PLACES.length)
   })
