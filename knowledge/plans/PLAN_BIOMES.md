@@ -4,7 +4,7 @@ Brings the wallpaper's coasts closer to the world's: real places, stony beaches,
 reef-fronted tropical beaches, tides, beach shapes that follow the waves, more sand colours, calm
 lagoons, missing climates, the real sun for the place and date, and (later) coastal weather and
 the animals these open up. Research: COASTS.md, REGIONS.md. How the built parts work:
-ARCHITECTURE.md and `arch/`. Status 2026-10-30: phases 0–7 done; 8, 9, 11, 12 planned; 10, 13,
+ARCHITECTURE.md and `arch/`. Status 2026-10-31: phases 0–8 done; 9, 11, 12 planned; 10, 13,
 14 later.
 
 ## Status
@@ -21,7 +21,7 @@ ARCHITECTURE.md and `arch/`. Status 2026-10-30: phases 0–7 done; 8, 9, 11, 12 
 | 5 | Tides | micro to mega ranges, springs and neaps | done (0.57); s = 0 is the foot of the high-tide beach with a berm; terrace above 2 m spring range; micro-tidal stay wave-dominated; tidepools are runnels on the terrace |
 | 6 | Calm water (shelter mask) | calm water behind reefs and barriers | done (0.59); reefs use it, barriers later |
 | 7 | Reef-fronted tropical beaches | most island beaches sit behind a fringing reef | done (0.60); ~48% of tropical beach days, not ~60% (continental places have few reefs); crest at about spring low water; crest white water is its own band |
-| 8 | Rocky shore | ~36% of coast is rock, about half cliff-backed | planned: [ROCK_SHORE.md](ROCK_SHORE.md) |
+| 8 | Rocky shore | ~36% of coast is rock, about half cliff-backed | done (0.62): 25.3% of days (38.7% of land days); [ROCK_SHORE.md](ROCK_SHORE.md); relief in the height function, softened with distance against grid aliasing |
 | 9 | Tidal flats and salt marsh | 21% of coast is mud | planned |
 | 10 | Landforms: barrier lagoon, spit, fjord | | later, own plan |
 | 11 | Climates: temperate, subtropical, polar | temperate oceanic and humid subtropical coasts | planned |

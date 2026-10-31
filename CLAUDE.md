@@ -26,7 +26,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 
 ## 1. Before code
 - Read the relevant `arch/` doc (for a new decision in `params.ts`, ARCHITECTURE.md "Draw order in `buildParams`" first), LESSONS.md (relevant sections) and the closest module: `props/rocks.ts` / `props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
-- Define "done": which views (shoreline, along-beach, framed, overlook, open sea), what distance, how often, and whether it must read at wallpaper size or may be realistic and subtle. Ask if it's unclear and it matters (life-size crabs and shells show only within ~20 m).
+- Define "done": which views (shoreline, along-beach, framed, overlook, open sea) on which coasts (beach, rock-shore: platform, boulder, cliff top), what distance, how often, and whether it must read at wallpaper size or may be realistic and subtle. Ask if it's unclear and it matters (life-size crabs and shells show only within ~20 m).
 - Near-camera features: read how near the ground in frame is on real days (`params.mjs` `p.view`) and count placements in a test (`view()` in `test/days.ts`) before rendering. Plan numbers (radii, counts, budgets) are estimates until then.
 - TODO lists: read all open items first, then ask every build-changing question (visibility, places, kinds) in one batch.
 - Research briefly (1–2 searches; cite only what you read), then encode the result as a data table by biome, ocean, month and time of day (e.g. `FLOWERS` in `props/shoreLife.ts`, `debrisFor()` in `props/debris.ts`). Test the table.

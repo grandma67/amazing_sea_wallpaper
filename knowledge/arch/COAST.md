@@ -57,8 +57,8 @@ research numbers: REGIONS.md §2–3. Pitfalls: LESSONS.md "Coast and terrain".
   profile (`surfCycle`, mirrored in `props/surf.ts`). `biome.ts`/`oceans.ts`: palettes, plants,
   sea state, ice.
 - **Coast kinds** (`coastKind.ts`, re-exported by `terrain.ts`): `coast.type` is `open-sea`,
-  `beach`, `rock-shore` or `tidal-flat` (the last two not drawn yet: PLAN_BIOMES 8, 9; they use
-  the beach profile until then). Code asks `hasLand` (terrain drawn, camera on land, compositions,
+  `beach`, `rock-shore` or `tidal-flat` (not drawn yet, PLAN_BIOMES 9; it uses the beach profile
+  until then). Code asks `hasLand` (terrain drawn, camera on land, compositions,
   rocks, plants, lighthouse on a point), `hasBeach` (sand: debris, shore life, beach animals,
   mangroves, flamingos wading, "… sand beach" title) or `hasSurfZone` (surf height and foam, surf
   props), never `type === …`. The shader gets an `int coastKind` uniform (index in `COAST_KINDS`,
@@ -69,6 +69,45 @@ research numbers: REGIONS.md §2–3. Pitfalls: LESSONS.md "Coast and terrain".
   `places.ts`, else the biome's `sands`) on stream `'sand-colour'`, then forced by `spec.sand`.
   The coast stream keeps a placeholder draw where the colour used to be, so sandbars and eye
   height didn't move.
+
+## Rocky shores (`rockShore.ts`, PLAN_BIOMES 8)
+
+Plan and research: [plans/ROCK_SHORE.md](../plans/ROCK_SHORE.md); shares: COASTS.md "Rocky shores".
+
+- **The draw:** land days choose `beach` or `rock-shore` from the place's `coast` weights on
+  `'coast-kind'`; `rockShoreFor(springRange, rockColors, rng, force)` draws everything on
+  `'rock-shore'` (kind, 14 floats, colour), then forces the kind (`spec.rockShore`; `overlook`
+  means a cliff, another composition not one). The same stream then draws the nearshore slope
+  (0.03–0.06). Rock days set `terrace` to none, drop bars, rips, cusps, ridges, reef and
+  shelter, `beachWidth` = backWidth + 4 (plants start on top), `duneHeight` 0; `material`
+  stays `sand` (unused).
+- **Land frame:** s = 0 is the back of the platform (the back face's foot), at `top` above mean
+  sea. Bare profile (`bareRock`, GLSL `bareRock`): plateau | back face (smoothstep: rounded
+  crest and foot) | platform from `top` to `edge` over `width` (ragged: ±25% along `a`, cut back
+  8 m where a gully meets it) | scarp down `scarp` | seabed at the nearshore slope toward
+  −seabedDepth. `rockWaterline` inverts it for `coast.waterline`.
+- **Relief** (`rockHeightAt` GLSL, `rockSurface` TS, in `rockShore.ts` so `params.ts` can use
+  it without a cycle): in the rock band, the surface `h + n` (n: fbm relief at 18 m) is
+  quantised to beds of `bedding` m that dip at `dip` across `strike`, with risers of 30% of a
+  step; rounded ridged noise; gullies along two joint sets (`rockGully`); or, on boulder shores,
+  Voronoi boulders (`boulderField`, lumpy, flat-topped, half buried). Hills and bumps behind.
+- **No zig-zags:** the terrain is the same polar grid (2.2% of r radially, 6 mrad round), so
+  detail is softened by the distance r from the camera (at the origin, so the TS mirror does the
+  same): steep faces are at least `ROCK_MIN_FACE` (3%) × r wide, risers widen with r and on
+  steep bare slopes, gully walls widen and gullies, edge cut-backs, boulders and fine ridges fade
+  out (40–400 m). Probed with a 2× grid: the remaining teeth halve, so they are grid aliasing.
+- **Camera** (`rockCamera` in `params.ts`, stream `'rock-camera'`): shoreline at the drawn
+  distance from today's water; along-shore 6–30 m from it; framed 3–15 m behind the back face's
+  top; overlook (every cliff) 2–10 m behind the cliff's crest, eye 1.5–2.1 m, plants starting
+  just behind. Distances are corrected for the wobble at a = 0 (`wobbleAtCamera`), the camera
+  is moved off the back face, then stepped inland 3 m at a time until the ground
+  (`rockGround`) is above the run-up.
+- **Shading** (terrain fragment shader, `rockW`): the rock's colour mottled with grain and a
+  patchy joint-crack network up close, darker on faces; weed, mussels and barnacles below the
+  spring high water; black lichen in the splash zone; lichen crusts (`LICHEN` by biome) higher;
+  cobbles on gully floors; pools in hollows and gullies between today's sea and the spring high
+  water (mirror-flat); wet rock a dull sheen; ground cover from 1 m behind the top over 8 m.
+  `seabedAlbedo` gives the ocean a weedy rock colour.
 
 ## Beach material and shape
 

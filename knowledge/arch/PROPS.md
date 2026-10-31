@@ -45,6 +45,13 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
 
 ## On the beach
 
+Rocky shores (PLAN_BIOMES 8) have no beach: shore life, mangroves, stones and every wildlife
+but marine iguanas are off (`hasBeach`). Rocks: chance 0.9, twice the clusters, the rock's own
+colour (`coast.rock.color`). Debris: driftwood and wrack jammed at the back of the platform
+(u −3 … −0.3), none under a plunging cliff, no coconuts. Seals: `onRockShore` (level rock
+0.2–4 m above the swash, 3–40 m in from today's water), tilted to the rock. Iguanas: on the
+platform 3–20 m in from today's water. Vegetation starts on top of the back face.
+
 - **Shore debris** (`debris.ts`, `debrisFor()` by biome and ocean): wrack (kelp, Posidonia mats and
   fibre balls, sargassum, sticks) on the high-tide line at ~1.1× run-up height, plus a fainter
   older line; logs on the storm line above ~2.2× and up to the back of the beach (`logGeometry`:

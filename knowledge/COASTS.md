@@ -14,8 +14,9 @@ Which coasts the wallpaper draws and how often, and the research behind them. St
 2. **Ocean** (`pickOcean`, `oceans.ts`, own stream): from the place's weights; sets swell,
    wind, polar water and ice. Climate (own stream) and latitude (within the place's range,
    signed) follow.
-3. **Coast type** (`generateCoast`, `params.ts`): `beach` 65% / `open-sea` 35%, once per
-   date.
+3. **Coast type** (`generateCoast`, `params.ts`): land 65% / `open-sea` 35%, once per
+   date; on land the place's `coast` weights choose `beach` or `rock-shore` (stream
+   `'coast-kind'`, PLAN_BIOMES 8), then the rocky shore's kind (stream `'rock-shore'`).
 4. **Shape** (same function): dunes, hills, sand colour (the place's `sand` chances, stream
    `'sand-colour'`), composition (beach days only).
 5. **Beach material** (`beach.ts`, stream `'beach-material'`, PLAN_BIOMES 2): sand, mixed,
@@ -61,15 +62,45 @@ mediterranean 9%, arid 8%.
 
 | Coast | Share of days |
 |---|---|
-| `beach` | 65.2% |
+| `beach` | 40.0% |
+| `rock-shore` | 25.3% |
 | `open-sea` | 34.8% |
 
-| Composition (beach days) | Share |
+| Composition (land days) | Share |
 |---|---|
-| `along-beach` | 31.2% |
-| `shoreline` | 30.1% |
-| `overlook` | 21.7% |
-| `framed` | 17.1% |
+| `along-beach` | 29.0% |
+| `shoreline` | 28.0% |
+| `overlook` | 28.0% (cliff tops on rocky shores, hillsides on beaches) |
+| `framed` | 15.1% |
+
+### Rocky shores
+
+PLAN_BIOMES 8, [plans/ROCK_SHORE.md](plans/ROCK_SHORE.md). Measured over 2024–2026: 277 of
+1096 days (25.3% of all, 38.7% of land days; `params.mjs --expect` gives 36.6%).
+
+| Biome | Rocky share of its land days |
+|---|---|
+| nordic | 51% |
+| volcanic | 45% |
+| desert | 36% |
+| mediterranean | 33% |
+| tropical | 19% |
+
+- **Place weights** (`ROCK` in `places.ts`, else `ROCK_BY_BIOME`: nordic and volcanic 45%,
+  mediterranean 30%, desert 20%, tropical 15%): fjord, North Atlantic and North Pacific coasts
+  55% (Norway, Greenland, Svalbard, BC, Alaska's south, Patagonia, Tierra del Fuego, South
+  Georgia, NZ South Island, Tasmania, Newfoundland, Nova Scotia, Maine, Scotland, Ireland,
+  Cornwall, Brittany, Iceland, California, Central Chile, Kamchatka, Hawaii, the Canaries),
+  Azores and Galápagos 60%; the Mediterranean Sea, Portugal, the Cape, the Pacific Northwest,
+  Fundy, the Bristol Channel and the Baltic 40%; Atacama 35%, Baja 30%, Arctic Russia 25%,
+  North Africa 20%, Namibia 15%; barrier and tidal-flat coasts (Florida, Wadden, PEI,
+  Morecambe Bay, Mont-Saint-Michel, Alaska's Arctic coast) 10%.
+- **Kinds:** platform 44%, cliff 36% (16% plunging, no platform), boulder 20%. Cliff ⇔ overlook.
+- **Shapes** (`rockShoreFor`): platforms 25–120 m and near level (0.3–0.7%) below a 2 m spring
+  range, else 1–4° (steeper for bigger tides) and 30–200 m down to about spring low water, a
+  2–6 m scarp, a 2–12 m back cliff; boulder aprons at 1:3–1:5 with 0.8–2.2 m boulders, 2–6 m up;
+  cliffs 15–70 m, 5–25 m platform or plunging. Beds 0.25–0.7 m (cliffs 1–3 m) dipping 1–8°,
+  joints 6–20 m apart, gullies 0.4–1.5 m deep.
 
 Other things in view, all days: islands 32% (rocky 13%, high 6%, cay 5%, skerries 4.5%,
 karst 3%); landform 31% (range 19%, stratovolcano 9%, shield 4%).

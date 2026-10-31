@@ -46,6 +46,9 @@ Sources behind built features. Research for planned work lives with its plan: co
 
 ## Shore and animals
 
+- Rocky shores: Coastal Wiki "Rocky shore morphology" (Sunamura platform types, gradients 1–5°,
+  widths, rocky share 36.5%, about half the coast cliff-backed)
+
 - Driftwood: Hakai Magazine "Iceland's Sinking Driftwood Supply"; Eggertsson, Jökull 1993
   (Siberian origin, larch with roots, Transpolar Drift); Wikipedia "Beach wrack"; Deidun et al.
   (Posidonia banquettes, Malta)

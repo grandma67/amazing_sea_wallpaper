@@ -95,5 +95,8 @@ Every new random feature gets one. Always make the draw, then apply the force vi
   - 2024-02-26: tropical golden hour (indonesia);
   - 2024-09-06: Mediterranean waterspout season (western-med, open sea);
   - 2024-04-24: storm + shelf cloud (norway-west).
+  - 2024-03-21: nordic boulder shore at golden hour, seals; 2024-03-25: mediterranean boulder
+    shore at midday; 2024-03-23: sea cliffs at sunset; 2024-03-08: rock platform, morning
+    (`scenes/rock.json` for forced kinds: Peggy's Cove, Big Sur, Iceland storm).
 - Spec files for each finished feature: `scenes/` (`examples`, `stony`, `tables`, `beach-states`,
   `tides`, `shelter`, `reef`, `rock`).

@@ -36,6 +36,10 @@ surf".
   `waveOnRock()` compares the crest there (0.7 × surf height, or half the open sea's Hs) with the
   rock top → `breaks`. `ocean.ts setOceanRocks()` (nearest 48, `rockData`): collar foam, a lee
   trail, and for breaking rocks white water surging after each crest (cycle 0.2–0.85); spray
-  bursts only when a crest is at a breaking rock (cycle 0.2–0.38).
+  bursts only when a crest is at a breaking rock (cycle 0.2–0.38). On rocky shores
+  `edgeRocks()` adds the shore itself: every 6 m along the shore in view, where a steep face
+  (≥ 0.35 rise over 5 m) meets today's water, a 3 m "rock" at the face, so the scarp, a cliff's
+  foot or a boulder apron gets the same bursts, collars and lee trails. The surf breaks on the
+  scarp by depth already.
 - **Ships in the ocean shader:** `setOceanShips` (8 nearest) cuts the hull out of the sea and adds
   the Kelvin wake, foam and slick (PROPS.md "Ships").

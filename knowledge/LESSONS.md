@@ -194,6 +194,18 @@ tool gotchas: TOOLS.md.
 
 ## Coast and terrain
 
+- Sharp relief in the height function zig-zags across the polar terrain grid wherever it is in
+  silhouette: steep faces, stair risers, gully walls, ragged edges. Widen or fade each by the
+  distance from the camera (it is at the origin, so the TS mirror can do the same) and by the
+  bare slope; test a suspect by rendering once with a 2× grid (teeth halve = grid aliasing).
+  Find the feature by its period: a saw every ~1 m on rock was beds dipping 20° (a new ledge
+  every bedding / dip), not the ridged noise or the risers it was first blamed on.
+- A camera placed at `distanceToWater` is not at s = −distanceToWater: the coast's wobble at
+  a = 0 (up to ±25 m) shifts it, enough to put a cliff-top camera on the cliff face. Correct by
+  the wobble (`wobbleAtCamera`) and check the ground there (`rockGround`) before rendering.
+- Wet ground shaded like wet sand (a near-mirror film) turns a gently sloping intertidal rock
+  platform white: wet rock is a dull sheen; only pools are mirrors.
+
 - Tides move the water off s = 0: every "distance from the shore" in shaders and props (surf zone,
   shore foam, surf crests, pebbles between camera and water) must measure from `coast.waterline`,
   or a low tide 350 m out loses its surf and foam.

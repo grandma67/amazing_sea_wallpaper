@@ -10,7 +10,7 @@ How each area works (read the one you touch):
 |---|---|
 | [arch/SKY.md](arch/SKY.md) | atmosphere, clouds, storms, moon and eclipses, coastal weather, haze, fog, light reaching sea and sand |
 | [arch/OCEAN.md](arch/OCEAN.md) | spectrum, surf, calm water (shelter), rocks in the sea |
-| [arch/COAST.md](arch/COAST.md) | **coordinates and heights**, coast kinds, sand, beach material, beach state, tides, reefs, bars/rips/cusps, stones |
+| [arch/COAST.md](arch/COAST.md) | **coordinates and heights**, coast kinds, rocky shores, sand, beach material, beach state, tides, reefs, bars/rips/cusps, stones |
 | [arch/PROPS.md](arch/PROPS.md) | plants, mangroves, islands, lighthouse, debris, shore life, wildlife, pinnipeds, storms and animals, ships and their lights |
 
 What appears where and how often: [COASTS.md](COASTS.md), [CLOUDS.md](CLOUDS.md),
@@ -86,7 +86,8 @@ Playwright (headless snapshots), Vitest.
   7. Storm (`'storm'`, `'storm-weather'`: overrides weather and wind); water (`'water'`); wind
      × basin, marine-layer wind cap; formations (`'formations'`, `'cloud-species'`);
      waterspout (`'waterspout'`); arrangement; fog (`'fog'`: calms the wind).
-  8. Swell (`'swell'`); tide (`'tide'`); coast (`generateCoast`: `'coast'`, `'sand-colour'`,
+  8. Swell (`'swell'`); tide (`'tide'`); coast (`generateCoast`: `'coast'`, `'coast-kind'`,
+     `'rock-shore'` and `'rock-camera'` on rock days, `'sand-colour'`,
      `'beach-material'` (material, grain, stone size, beach state and shape), `'reef'`,
      `'hills'`, `'composition'`).
   9. Colony, pinnipeds, lighthouse, landform, islands (`pick*`, own streams); shelf cloud,
@@ -182,6 +183,18 @@ Coast and surf:
   15–60 m inland behind the plants, so it never has stones in the foreground. Iceland (volcanic
   biome) gets the volcanic default plants, including palms; its basalt cobbles render brown
   (palette mean pulled up by the red scoria entry and exposure).
+
+Rocky shores (PLAN_BIOMES 8):
+- A faint saw can remain along a platform's scarp seen along the shore at 60–150 m (grid
+  aliasing; a 2× grid halves it).
+- A cliff's rounded crest near the camera is smooth and bare: in low light it reads as sand.
+- A low platform at a cliff's foot is topped by big waves, which then wash over it as foam: no
+  burst against the cliff behind (`edgeRocks` takes only the first face at the water).
+- Midday boulder shores render up to ~20% slower than the same day as a beach (a 3×3 cell search
+  in every height sample; bench noisy); rocky days overall +8%.
+- Seabird mainland colonies and point lighthouses use their beach placement on rocky shores
+  (not checked in renders).
+- No shadows from the cliff or ledges on the terrain itself (lighting by normal only).
 
 Sky:
 - Waterspouts: the fog rule never applies and they're far rarer than intended (1 in 3 years):

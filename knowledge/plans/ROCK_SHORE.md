@@ -5,7 +5,11 @@ About a third of the world's coast is rock without a beach, and about half is ba
 of the coastline). Until now every land day was a beach. This phase makes ~38% of land days
 (≈ 25% of all days) a rocky shore: a wave-cut platform, a boulder shore or a cliff top.
 
-Status 2026-10-31: planned. Summary and link in PLAN_BIOMES.md.
+Status 2026-10-31: done (0.62; steps 1–7 below, one commit each). Summary and link in
+PLAN_BIOMES.md; how it works: arch/COAST.md "Rocky shores"; known issues: ARCHITECTURE.md.
+Changed from the plan while building: beds dip 1–8° (not 2–20°: a ledge every metre read as a
+saw), the back face is a smoothstep (rounded crest), overlook cameras stand 2–10 m (not 4–25 m)
+behind the crest, no denser grid was needed (detail softens with distance instead).
 
 ## Real shapes (research)
 
