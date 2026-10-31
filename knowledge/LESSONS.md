@@ -241,6 +241,18 @@ tool gotchas: TOOLS.md.
 - Scanning cells in a circle round the camera costs mostly cells out of frame: walk coarse blocks
   with a tight frustum test, nearest first, and stop at the budget.
 
+- A flat km wide and a few metres high: with a 80 mm lens a small creek beside the camera, crossing
+  the view at ~47°, reads as a band or a ridge across the whole frame; its banks need to be gentle
+  (0.18 m over 2 m, not 0.25 m over 1.2 m) and its water mirror-flat. Probe with
+  `terrainView: "relief"` and the creek function on a grid before blaming the shading.
+- A marsh drawn as a sward on a beach profile sits wherever the beach's land is: capping the
+  beach width dropped it below the spring high water and flooded it. Put salt-marsh height in the
+  profile (spring high water + a few decimetres), not in the beach's own parameters.
+- Accent colours sprinkled per instance (every third tuft purple) look fake; real ones grow in
+  patches. Drive the props' accents from the same noise the terrain paints them with.
+- Tight lenses see the ground from 10–15 m: a framed camera 5–30 m into a marsh looked past it to
+  the flat. Check `p.view.nearest` against where the feature starts.
+
 ## Placement
 
 - Place by trying spots until enough is in view: sampling shore coords round the camera fails in

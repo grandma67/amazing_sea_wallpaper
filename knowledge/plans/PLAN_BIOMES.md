@@ -22,7 +22,7 @@ ARCHITECTURE.md and `arch/`. Status 2026-10-31: phases 0–8 done; 9, 11, 12 pla
 | 6 | Calm water (shelter mask) | calm water behind reefs and barriers | done (0.59); reefs use it, barriers later |
 | 7 | Reef-fronted tropical beaches | most island beaches sit behind a fringing reef | done (0.60); ~48% of tropical beach days, not ~60% (continental places have few reefs); crest at about spring low water; crest white water is its own band |
 | 8 | Rocky shore | ~36% of coast is rock, about half cliff-backed | done (0.62): 25.3% of days (38.7% of land days); [ROCK_SHORE.md](ROCK_SHORE.md); relief in the height function, softened with distance against grid aliasing |
-| 9 | Tidal flats and salt marsh | 21% of coast is mud | in progress; [TIDAL_FLAT.md](TIDAL_FLAT.md); ~0.3% of days (the five places are 1.9% of days, not enough for ~3%) |
+| 9 | Tidal flats and salt marsh | 21% of coast is mud | done (0.64); [TIDAL_FLAT.md](TIDAL_FLAT.md); ~0.3% of days (the five places are 1.9% of days, not enough for ~3%) |
 | 10 | Landforms: barrier lagoon, spit, fjord | | later, own plan |
 | 11 | Climates: temperate, subtropical, polar | temperate oceanic and humid subtropical coasts | planned |
 | 12 | The real sun: polar night, midnight sun | | planned |

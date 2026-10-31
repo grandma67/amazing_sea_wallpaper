@@ -5,6 +5,13 @@ sea leaves twice a day, with a salt marsh at the back (the Wadden Sea, Fundy's M
 Morecambe Bay, the bay of Mont-Saint-Michel, Korea's west coast). Until now these places had
 beaches only.
 
+Status 2026-10-31: done (0.64; steps 1–6, one commit each). How it works: arch/COAST.md "Tidal
+flats and salt marsh"; known issues: ARCHITECTURE.md. Changed from the plan while building: the
+marsh rises to spring high water + 0.5 m at its back (forced high tides drowned it), marsh beaches
+put the marsh height in the beach profile (capping the sand dropped it under water) and damp surf
+and run-up × 0.35, framed cameras stand 15–60 m into the marsh (the lens sees from ~13 m), small
+creeks are 4 m × 0.18 m (steeper ones read as ridges), creeks widen to ≥ 2% of r far off.
+
 ## Real shapes (research)
 
 - **Where:** tidal flats form where the relative tide range (mean spring range / yearly mean

@@ -95,3 +95,9 @@ Sources behind built features. Research for planned work lives with its plan: co
   50–75% height loss in COASTS.md); reef zones (lagoon, back reef, flat, crest, fore reef), both
   linked in COASTS.md; the 10–30% re-formed height (strength 0.7–0.9) is the plan's (phase 6); Vousdoukas, Velegrakis & Plomaritis 2007 (beachrock:
   intertidal, micro-tidal warm coasts, seaward-dipping slabs in steps)
+- Tidal flats and salt marsh (`tidalFlat.ts`, plans/TIDAL_FLAT.md): Coastal Wiki "Tidal flat"
+  (flats where relative tide range > 15, after Mangor 2004); Wadden Sea Quality Status Report on
+  salt marshes (marsh from below mean high water to the highest water, flooding frequency by
+  zone, via search summary). Leads only, from search summaries: Nature Communications 2025 (flat
+  width and slope vs sediment and tide range, 2,538 Chinese transects), a LiDAR study of creek
+  size by zone on Chinese flats

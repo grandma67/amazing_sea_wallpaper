@@ -30,7 +30,7 @@ research numbers: REGIONS.md §2–3. Pitfalls: LESSONS.md "Coast and terrain".
   stones' size grading and mixed cover (`stoneHighTide`); cusps (`cuspReach`, u from s = 0);
   ridges; debris, shore life, wildlife, pinnipeds, colonies (`beachLines`); vegetation and flowers
   (`tideMarks`); mangroves (mean sea = height + level); `profile.mjs`.
-- **A new seabed or shore profile** (reef, rock platform, tidal flat) has readers beyond the
+- **A new seabed or shore profile** (reef, rock platform, tidal flat: all three done) has readers beyond the
   height function (found one by one in phase 7):
   1. `TERRAIN_GLSL` and the TS `beachHeight` (and `test/terrain.test.ts`);
   2. `waterlineAt` (`tides.ts`): today's water is found on the bare profile, so a new shoreface
@@ -57,8 +57,7 @@ research numbers: REGIONS.md §2–3. Pitfalls: LESSONS.md "Coast and terrain".
   profile (`surfCycle`, mirrored in `props/surf.ts`). `biome.ts`/`oceans.ts`: palettes, plants,
   sea state, ice.
 - **Coast kinds** (`coastKind.ts`, re-exported by `terrain.ts`): `coast.type` is `open-sea`,
-  `beach`, `rock-shore` or `tidal-flat` (not drawn yet, PLAN_BIOMES 9; it uses the beach profile
-  until then). Code asks `hasLand` (terrain drawn, camera on land, compositions,
+  `beach`, `rock-shore` or `tidal-flat`. Code asks `hasLand` (terrain drawn, camera on land, compositions,
   rocks, plants, lighthouse on a point), `hasBeach` (sand: debris, shore life, beach animals,
   mangroves, flamingos wading, "… sand beach" title) or `hasSurfZone` (surf height and foam, surf
   props), never `type === …`. The shader gets an `int coastKind` uniform (index in `COAST_KINDS`,
@@ -108,6 +107,46 @@ Plan and research: [plans/ROCK_SHORE.md](../plans/ROCK_SHORE.md); shares: COASTS
   cobbles on gully floors; pools in hollows and gullies between today's sea and the spring high
   water (mirror-flat); wet rock a dull sheen; ground cover from 1 m behind the top over 8 m.
   `seabedAlbedo` gives the ocean a weedy rock colour.
+
+## Tidal flats and salt marsh (`tidalFlat.ts`, PLAN_BIOMES 9)
+
+Plan and research: [plans/TIDAL_FLAT.md](../plans/TIDAL_FLAT.md); shares: COASTS.md "Tidal flats
+and salt marsh".
+
+- **The draw:** the place's `coast` weights include `tidal-flat` in five places (`FLAT`). The tide
+  is drawn first: a flat with the level ≥ 0 (mid tide or above) becomes a `beach` with a salt
+  marsh. `tidalFlatFor(springRange, place.mud, rng)` draws everything on `'tidal-flat'` (9 floats:
+  flat, marsh, nearshore slope 0.002–0.006), then the run-up (0.08–0.2 m). Flat days set no
+  terrace, bars, rips, cusps, ridges, reef or shelter; `beachWidth` = marsh width + 5,
+  `duneHeight` 0; `hasSurfZone` is false, so no surf, foam or surf props.
+- **Land frame:** s = 0 is the marsh edge's foot at `top` = 0.42 × spring range (mean high
+  water). Bare profile (`bareFlat`, GLSL `bareFlat`): land | marsh from `height` (its edge,
+  0.2–0.8 m above `top`, ≤ spring high water + 0.2) rising by a smoothstep to `back` (spring high
+  water + 0.5, only surges reach it) over 80–400 m | the edge, a smoothstep over ≥ 0.6 m (3% of
+  r far off) | the flat, straight to `low` = spring low water − 0.3 at s = width (0.8–5 km) |
+  the subtidal bed (exp toward −seabedDepth). `flatWaterline` inverts it.
+- **Creeks** (`flatCreeks`, in the height): main channels every 250–700 m, from 3 m × 0.4 m in the
+  marsh to `channelWidth` × `channelDepth` (15–45 m × 0.8–2 m) at the flat's end; small creeks
+  every 50–120 m, 4 m × 0.18 m, from inside the marsh to 0.6 W, coming and going. Both meander
+  (noise in s over 220 m, varying across channels). Far off they widen to ≥ 2% of r and shallow
+  by the same factor (same cross-section) against grid aliasing; the shader's water mask uses the
+  unsoftened cut, so far channels still hold water.
+- **Camera** (`flatCamera`, stream `'flat-camera'`): shoreline on the flat 15–150 m out (never
+  within 40 m of today's water), along-beach on the marsh edge (2–8 m in), framed 15–60 m into the
+  marsh (overlook becomes framed: no high ground); corrected by the wobble, then stepped inland
+  until dry.
+- **Shading** (`flatW`, `marshBand`, `marshW` in the terrain fragment shader): mud (`flatMud`)
+  over the upper third grading to sand, darkest on creek beds; current ripples (crests along the
+  shore, ~14 cm) near the camera, none on mud; below today's high water a wetter, glossier film
+  than a beach's; creeks below today's high water + 0.3 hold mirror-flat water, shallow sheets in
+  hollows on the flat. The marsh: mud soil, sparse clumps over its first ~8 m, then a closed
+  sward in `marshColor` with `marshAccent` patches on the low marsh (`marshLook(seasonMonth)`),
+  matte between clumps; ground cover starts behind it. `seabedAlbedo` is half mud, half sand.
+- **Marsh beaches** (stream `'salt-marsh'`): `coast.marsh` = { start: beachWidth (capped 10–30 m),
+  width 80–400 m, height = back = spring high water + 0.4 }; dunes off, `duneWidth` = the marsh
+  (hills start behind it); `beachHeightAt` raises the land to `marsh.w` over the marsh (GLSL and
+  TS); surf amplitude and run-up × 0.35. Plants start behind the marsh (`vegetation.ts`).
+- Debug: `terrainView: "relief"` on a flat shows creeks red, mud green, marsh blue.
 
 ## Beach material and shape
 

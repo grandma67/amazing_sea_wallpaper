@@ -19,6 +19,13 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to 5 cm,
   buttress roots). Built once into the still scene but instanced hundreds of times: < 100k
   triangles per species (tested). In-mesh randomness from `hash()`. Plants get no direct specular.
+- **Salt-marsh tufts** (`props/saltMarsh.ts`, PLAN_BIOMES 9): `saltMarshFor()` on every day with
+  `coast.marsh` (stream `'salt-marsh'`), colours from `marshLook`. `createSaltMarsh()` samples the
+  ground inside the view cone out to 45 m (evenly by area), keeps points in the marsh band, off
+  creeks and above the run-up, sparser over the first 8 m; up to 2,500 instances of 4 grass-tuft
+  (10–16 blades, 0.15–0.35 m) and 4 glasswort variants (upright stems on the low marsh). Accents
+  (purple, red) follow the terrain's accent patches (the same `fbm`). ~1,900 in frame, ~8 ms,
+  < 150k triangles. Boulders and sea stacks are off on flats and marsh beaches (`rocks.ts`).
 - **Mangroves** (`props/mangroves.ts`): `mangroveFor()` picks a stand by biome, ocean and shelter
   (`SHELTERED_SURF`, surf < 0.35 m, or a reef offshore); `createMangroves()` finds the waterline in
   frame, runs the stand 80–300 m along shore, trees where ground is within ±0.9 m of sea level,

@@ -57,7 +57,7 @@ Allowed values are in `sceneSpec.ts`.
   `haulOut`.
 - **Camera:** `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`. `horizonFraction` = how far
   **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
-- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,vegetation,debris,shoreLife,mangroves,wildlife}`.
+- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,debris,shoreLife,mangroves,wildlife}`.
   Off for `diff.mjs`: `false` (booleans and kinds), `[]` (`vegetation`), `null` (`debris`,
   `shoreLife`, `wildlife`).
 
@@ -99,5 +99,8 @@ Every new random feature gets one. Always make the draw, then apply the force vi
   - 2024-03-21: nordic boulder shore at golden hour, seals; 2024-03-25: mediterranean boulder
     shore at midday; 2024-03-23: sea cliffs at sunset; 2024-03-08: rock platform, morning
     (`scenes/rock.json` for forced kinds: Peggy's Cove, Big Sur, Iceland storm).
+  - Tidal flats (`scenes/tidal.json`): Wadden low tide golden hour (2025-07-10 shoreline), Fundy
+    red mud (2025-08-12 framed), Wadden high tide marsh beach (2025-07-13 along-beach, eye 1.7 m),
+    Yellow Sea red marsh (2025-09-25 framed). Real flat days are rare (~3 a year): force them.
 - Spec files for each finished feature: `scenes/` (`examples`, `stony`, `tables`, `beach-states`,
-  `tides`, `shelter`, `reef`, `rock`); `debug.json` shows the debug views.
+  `tides`, `shelter`, `reef`, `rock`, `tidal`); `debug.json` shows the debug views.

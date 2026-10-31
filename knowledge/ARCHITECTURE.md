@@ -196,6 +196,18 @@ Rocky shores (PLAN_BIOMES 8):
   (not checked in renders).
 - No shadows from the cliff or ledges on the terrain itself (lighting by normal only).
 
+Tidal flats and salt marsh (PLAN_BIOMES 9):
+- Only ~0.3% of days (the five places are 1.94% of days). More flat places (Severn, Gulf of
+  Khambhat, Argentine gulfs, Gulf of Carpentaria) would raise it.
+- Behind Wadden marshes stand sea dikes, not hills; the place's plants put conifers and birch
+  behind (northern pool), and Mont-Saint-Michel can draw skerries and conifer islands.
+- At high tide the flooded flat in front of a marsh beach keeps the open sea's swell displacement
+  further out (only surf and run-up are damped; no shelter mask).
+- Driftwood logs can be heaped on a marsh beach's marsh (debris storm line), even in treeless bays.
+- Seals on sandbanks and waders on the flats (phase 14) are missing.
+- `weather: "broken"` days render land near-black (marsh, beach and sand alike); seen at
+  0bf8187 before this phase too (Mont-Saint-Michel 2025-07-10 along-beach).
+
 Sky:
 - Waterspouts: the fog rule never applies and they're far rarer than intended (1 in 3 years):
   [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md).
