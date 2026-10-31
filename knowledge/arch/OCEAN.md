@@ -56,5 +56,11 @@ surf".
   ray's length past the water (from the depth, unprojected with the oblique `planarProjInv`; not
   `perspectiveDepthToViewZ`): sharp where an object meets the water, the full roughness blur
   (`log2(α·300)` mips) far up its face and on far land; rays that hit nothing keep k = 1.
+  The blur is isotropic (one `textureLod`). Real reflections on a wavy sea streak vertically
+  (≈ 1/sin(grazing) taller than wide), but anisotropic streaking was tried on paper and skipped
+  (10-31): renders of `scenes/islands-water.json` (colony calm/rough, karst islands, iceberg) already
+  read as vertical columns under each object, and `textureGrad` alone only blurs more both ways
+  without anisotropic filtering, so it would need 3–5 vertical taps per sea pixel for slightly
+  crisper column sides. Revisit for rough seas with near objects, if a render shows round smudges.
 - **Ships in the ocean shader:** `setOceanShips` (8 nearest) cuts the hull out of the sea and adds
   the Kelvin wake, foam and slick (PROPS.md "Ships").
