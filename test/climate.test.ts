@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { hasLand } from '../src/coastKind'
 import { biomeNamed, climateBiome } from '../src/biome'
 import { climateTitle } from '../src/places'
-import { allParams, expectShare, scene, scenes as scenesOf } from './days'
+import { cloudLeaning, stormChance, type SceneParams } from '../src/params'
+import type { SceneSpec } from '../src/sceneSpec'
+import { monthInSeason } from '../src/seasons'
+import { allParams, DAYS, expectShare, scene, scenes as scenesOf, share } from './days'
 
 // PLAN_BIOMES 11: the climate is the place's own choice (1a); the biome stays
 // the look preset.
@@ -85,6 +88,39 @@ describe('climate', () => {
 
     it('whitens the Hebrides with shell sand sometimes', () => {
       expectShare(scenesOf({ place: 'scotland', coast: 'beach', beachMaterial: 'sand' }, 200), p => p.coast.sand.name === 'white', 0.3)
+    })
+  })
+
+  describe('sea and sky (11c)', () => {
+    // Every real date with the place forced: the same days, only the climate differs.
+    const year = (spec: SceneSpec) => DAYS.map(d => scene({ eclipse: null, ...spec }, d))
+
+    it('leans the clouds by climate', () => {
+      expect(cloudLeaning('temperate', false)).toEqual({ cool: true, tropical: false })
+      expect(cloudLeaning('polar', true).cool).toBe(true)
+      expect(cloudLeaning('subtropical', true)).toEqual({ cool: false, tropical: true })
+      expect(cloudLeaning('subtropical', false).tropical).toBe(false)
+      expect(cloudLeaning('tropical', false).tropical).toBe(true)
+      expect(cloudLeaning('mediterranean', true)).toEqual({ cool: false, tropical: false })
+    })
+
+    it('doubles thunderstorms in a subtropical summer', () => {
+      expect(stormChance('subtropical', true)).toBe(0.14)
+      expect(stormChance('subtropical', false)).toBe(0.07)
+      expect(stormChance('temperate', true)).toBe(0.07)
+      const florida = year({ place: 'florida-carolinas' })
+      const summer = florida.filter(p => monthInSeason(p, 6, 9))
+      const rest = florida.filter(p => !monthInSeason(p, 6, 9))
+      expect(share(summer, p => p.storm != null)).toBeGreaterThan(1.4 * share(rest, p => p.storm != null))
+    })
+
+    it('raises big swell on temperate coasts and haar there, less fog on subtropical ones', () => {
+      const temperate = year({ place: 'yellow-sea', climate: 'temperate', coast: 'beach' })
+      const subtropical = year({ place: 'yellow-sea', climate: 'subtropical', coast: 'beach' })
+      const big = (p: SceneParams) => p.ocean.swellHeight > 1
+      expect(share(temperate, big)).toBeGreaterThan(share(subtropical, big) + 0.05)
+      const fog = (p: SceneParams) => p.fog?.kind === 'advection'
+      expect(share(temperate, fog)).toBeGreaterThan(2 * share(subtropical, fog))
     })
   })
 })

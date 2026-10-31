@@ -83,12 +83,12 @@ describe('cloud species over the real days', () => {
     const ac = days.filter(p => has(p, 'altocumulus-castellanus') || has(p, 'altocumulus-floccus'))
     expect(ac.length).toBeGreaterThan(5)
     for (const p of ac) {
-      expect(['mediterranean', 'tropical']).toContain(p.biome.name)
+      expect(['mediterranean', 'subtropical', 'tropical']).toContain(p.place.climate)
       expect(monthInSeason(p, 6, 9)).toBe(true)
       expect(morning(p)).toBe(true)
     }
     for (const p of days.filter(q => has(q, 'stratocumulus-castellanus'))) {
-      expect(['nordic', 'volcanic']).toContain(p.biome.name)
+      expect(['polar', 'boreal', 'temperate']).toContain(p.place.climate)
       expect(['broken', 'overcast']).toContain(p.weather.kind)
     }
   })

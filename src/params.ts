@@ -529,9 +529,15 @@ function normalize(v: [number, number, number]): [number, number, number] {
   return [v[0] / l, v[1] / l, v[2] / l]
 }
 
+/** Swell by climate (PLAN_BIOMES 11c): wave heights rise from the doldrums
+ * to the westerlies (SEASAT and GEOSAT altimetry), so temperate and boreal
+ * coasts, in the storm belts, see a big (1–2 m) swell twice as often. */
+const BIG_SWELL: Partial<Record<Climate, number>> = { temperate: 2, boreal: 2 }
+
 function swell(
   seed: string,
-  windHeadingDeg: number
+  windHeadingDeg: number,
+  climate: Climate
 ): Pick<
   SceneParams['ocean'],
   'seaDevelopment' | 'spreadScale' | 'swellHeadingDeg' | 'swellWavelength' | 'swellHeight'
@@ -545,7 +551,7 @@ function swell(
     swellHeight: rng.weighted<() => number>([
       [() => rng.range(0.1, 0.4), 3],
       [() => rng.range(0.4, 1.0), 3],
-      [() => rng.range(1.0, 2.0), 1]
+      [() => rng.range(1.0, 2.0), BIG_SWELL[climate] ?? 1]
     ])()
   }
 }
@@ -937,12 +943,23 @@ function generateWeather(seed: string, timeOfDay: TimeOfDay, force?: WeatherKind
   }
 }
 
+/** Cloud leanings by climate (PLAN_BIOMES 11c; CLOUDS.md): stratocumulus
+ * and stratus twice as often in cool climates (polar, boreal, temperate);
+ * cumulus and congestus twice as often in the tropics and in a subtropical
+ * summer, when the humid air builds towers like the tropics'. */
+export function cloudLeaning(climate: Climate, summer: boolean): { cool: boolean; tropical: boolean } {
+  return {
+    cool: climate === 'polar' || climate === 'boreal' || climate === 'temperate',
+    tropical: climate === 'tropical' || (climate === 'subtropical' && summer)
+  }
+}
+
 /** Which clouds make up the sky; its own streams, and it depends on the
  * coast, the season, the wind and the time of day. */
 function addFormations(
   seed: string,
   weather: WeatherParams,
-  biome: Biome,
+  climate: Climate,
   context: { summer: boolean; windSpeed: number; morning: boolean },
   clouds?: CloudGenus[]
 ): void {
@@ -955,11 +972,11 @@ function addFormations(
   }
   if (clouds != null) weather.formations = clouds
   else {
-    const climate = { cool: biome.name === 'nordic' || biome.name === 'volcanic', tropical: biome.name === 'tropical' }
-    const genera = pickFormations(frng, kind, climate)
+    const leaning = cloudLeaning(climate, context.summer)
+    const genera = pickFormations(frng, kind, leaning)
     const species = pickSpecies(Random.derive(seed, 'cloud-species'), genera, kind, {
-      ...climate,
-      warmSummer: context.summer && (biome.name === 'mediterranean' || biome.name === 'tropical'),
+      ...leaning,
+      warmSummer: context.summer && (climate === 'mediterranean' || climate === 'subtropical' || climate === 'tropical'),
       windSpeed: context.windSpeed,
       morning: context.morning
     })
@@ -1031,15 +1048,23 @@ export function horizontalHalfFovDeg(focalLengthMm: number, aspect: number): num
   return (aspect >= 1 ? longHalf : Math.atan(Math.tan(longHalf) * aspect)) / DEG
 }
 
+/** Thunderstorm chance per day; a subtropical summer has twice the storms
+ * (Florida's afternoon thunderstorms, the East Asian and Brazilian summer
+ * monsoon fronts). */
+export function stormChance(climate: Climate, summer: boolean): number {
+  return climate === 'subtropical' && summer ? 0.14 : 0.07
+}
+
 function generateStorm(
   seed: string,
+  chance: number,
   timeOfDay: TimeOfDay,
   headingDeg: number,
   halfFovDeg: number,
   force?: Force<'thunderstorm' | 'squall'>
 ): StormParams | null {
   const rng = Random.derive(seed, 'storm')
-  if (!forced(force, timeOfDay !== 'night' && rng.chance(0.07))) return null
+  if (!forced(force, timeOfDay !== 'night' && rng.chance(chance))) return null
   // Keep strikes and shafts inside the frame (a little narrower than the lens).
   const halfFov = Math.min(30, halfFovDeg * 0.8)
   const curtains = Array.from({ length: rng.int(1, 4) }, () => ({
@@ -1067,9 +1092,15 @@ function fogSeason(month: number, summer: boolean): number {
   return warm === summer ? 1 : 0.35
 }
 
+/** Fog by climate (PLAN_BIOMES 11c), on top of the coast's table: haar on
+ * temperate coasts (the North Sea, Scotland, Maine, Nova Scotia), less on
+ * warm subtropical water (no cold current under the air). */
+const CLIMATE_FOG: Partial<Record<Climate, number>> = { temperate: 1.4, subtropical: 0.4 }
+
 function pickFog(
   seed: string,
   biome: Biome,
+  climate: Climate,
   ocean: OceanName,
   month: number,
   timeOfDay: TimeOfDay,
@@ -1094,7 +1125,7 @@ function pickFog(
   const hour: Record<TimeOfDay, number> = { 'golden-hour': 1.2, 'sun-on-horizon': 1.3, 'blue-hour': 1.3, night: 1.1, daylight: 0.8, midday: 0.4 }
   // The breeze that brings sea fog in must be light: stronger winds lift it.
   const breeze = windSpeed < 6 ? 1 : (11 - windSpeed) / 5
-  const advectionChance = (advection[biome.name]?.[ocean] ?? (biome.name === 'tropical' ? 0.01 : 0.03)) * hour[timeOfDay] * breeze
+  const advectionChance = (advection[biome.name]?.[ocean] ?? (biome.name === 'tropical' ? 0.01 : 0.03)) * (CLIMATE_FOG[climate] ?? 1) * hour[timeOfDay] * breeze
   // Sea smoke needs a calm sea and a clear, cold sky.
   const smokeChance = smoke * (windSpeed < 5 ? 1 : 0) * (weather.kind === 'clear' || weather.kind === 'few' || weather.kind === 'cirrus' ? 1 : 0.3)
   const draw = rng.float()
@@ -1642,10 +1673,12 @@ function buildParams(
     ) * windByWeather[weather.kind]
   const windHeadingDeg = keep('windHeading', rng.range(0, 360))
 
+  // Jun–Sep north of the equator, Dec–Mar south of it.
+  const summer = monthInSeason({ date, latitudeDeg }, 6, 9)
   const storm =
     (eclipse != null || weather.marineLayer || weather.dust != null) && spec.storm === undefined
       ? null
-      : generateStorm(seed, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.storm)
+      : generateStorm(seed, stormChance(climate, summer), timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.storm)
   if (storm != null) {
     const srng = Random.derive(seed, 'storm-weather')
     weather.kind = 'storm'
@@ -1670,10 +1703,9 @@ function buildParams(
   addFormations(
     seed,
     weather,
-    biome,
+    climate,
     {
-      // Jun–Sep north of the equator, Dec–Mar south of it.
-      summer: monthInSeason({ date, latitudeDeg }, 6, 9),
+      summer,
       windSpeed,
       morning: !isEvening && (timeOfDay === 'golden-hour' || timeOfDay === 'daylight' || timeOfDay === 'sun-on-horizon')
     },
@@ -1699,11 +1731,11 @@ function buildParams(
   if (waterspout != null && weather.kind !== 'storm' && spec.clouds == null && !weather.formations.includes('cumulus-congestus')) {
     weather.formations = ['cumulus-congestus', ...weather.formations.filter(g => CLOUD_GENERA[g].etage !== 'low')]
   }
-  weather.arrangement = pickArrangement(seed, weather, biome.name === 'tropical', windSpeed, windHeadingDeg, spec.cloudArrangement)
+  weather.arrangement = pickArrangement(seed, weather, climate === 'tropical', windSpeed, windHeadingDeg, spec.cloudArrangement)
   const fog =
     (rainbowDay || eclipse != null) && spec.fog === undefined
       ? null
-      : pickFog(seed, biome, basin.name, seasonMonth({ date, latitudeDeg }), timeOfDay, weather, windSpeed, spec.fog)
+      : pickFog(seed, biome, climate, basin.name, seasonMonth({ date, latitudeDeg }), timeOfDay, weather, windSpeed, spec.fog)
   if (fog != null) {
     // Fog comes with light airs: the sea calms under it.
     if (spec.wind == null) windSpeed = Math.min(windSpeed, fog.kind === 'sea-smoke' ? 3 : 6)
@@ -1713,7 +1745,7 @@ function buildParams(
       weather.sunVisibility *= Math.exp(-((3.912 / fog.visibility) * fog.height) / sinEl)
     }
   }
-  const oceanSwell = swell(seed, windHeadingDeg)
+  const oceanSwell = swell(seed, windHeadingDeg, climate)
   oceanSwell.swellHeight = or(oceanSwell.swellHeight * (basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm), spec.swellHeight)
   // Deep-water wavelength from a forced period: L = g T² / 2π.
   const forcedLength = spec.swellPeriod == null ? undefined : (9.81 * spec.swellPeriod ** 2) / (2 * Math.PI)
