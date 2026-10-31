@@ -12,7 +12,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
-import { parseArgs } from './lib.mjs'
+import { parseArgs, watchPage } from './lib.mjs'
 
 const { args, option } = parseArgs()
 const baseUrl = option('url', 'http://localhost:5174/')
@@ -33,10 +33,7 @@ setTimeout(() => {
 await mkdir(outDir, { recursive: true })
 const browser = await chromium.launch({ channel: 'chrome', args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=metal'] })
 const page = await browser.newPage({ viewport: { width: Number(width), height: Number(height) } })
-page.on('console', msg => {
-  if (msg.type() === 'error' || msg.type() === 'warning') console.log(`[browser ${msg.type()}]`, msg.text())
-})
-page.on('pageerror', error => console.log('[page error]', error.message))
+const messages = await watchPage(page)
 
 const used = new Map()
 for (const call of args) {
@@ -52,6 +49,7 @@ for (const call of args) {
     const file = join(outDir, `${name}-${n}.jpg`)
     await writeFile(file, await page.locator('canvas').screenshot({ type: 'jpeg', quality: 90 }))
     console.log(`${file}  size ${info.size.join(' × ')} m  ${info.triangles} tris  ${call}`)
+    for (const m of messages.gl()) console.log(`  ⚠ GL: ${m}`)
   } catch (error) {
     console.log(`✗ ${call}: ${error.message.split('\n')[0]}`)
   }

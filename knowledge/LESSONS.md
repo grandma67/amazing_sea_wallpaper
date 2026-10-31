@@ -360,7 +360,8 @@ tool gotchas: TOOLS.md.
   program after the GPU runs the frame, and one deleted before then logs `GL_INVALID_VALUE:
   glGetProgramiv: Program object expected` (one per program, ~48; a 100 ms wait also hid it, one
   task did not). These are GPU-process messages: Playwright's `console` event misses them, a CDP
-  session with `Log.enable` (`Log.entryAdded`) sees them, from the worker too.
+  session with `Log.enable` (`Log.entryAdded`) sees them, from the worker too (`watchPage` in
+  `scripts/lib.mjs`; snapshot ⚠ `GL:`). It needs a heavy last frame to show (4K, default frames).
 - Splash boat: CSS waves from quadratic Béziers are parabolas, so a boat rides one exactly with
   quad-ease heave keyframes and linear pitch at the wave's period (middle wave: 7 s per 2 periods →
   3.5 s).

@@ -1,12 +1,14 @@
 // Warnings printed after each snapshot, for the mistakes that cost the most
-// render rounds: checking a pale feature against the glare of a low sun, and
-// a prop that was placed but landed out of frame.
+// render rounds: checking a pale feature against the glare of a low sun, a
+// prop that was placed but landed out of frame, and GL messages (always a bug
+// here, often invisible in the picture).
 
 const DEG = Math.PI / 180
 
-/** Warnings for one render, from its params (with debug.props). */
-export function snapshotWarnings(params, props = []) {
-  const warnings = []
+/** Warnings for one render, from its params (with debug.props) and its GL
+ * messages (`watchPage(…).gl()` in lib.mjs). */
+export function snapshotWarnings(params, props = [], gl = []) {
+  const warnings = gl.map(m => `GL: ${m} (knowledge/LESSONS.md "Page")`)
   const [x, y, z] = params.sunDirection
   const elevation = Math.asin(Math.max(-1, Math.min(1, y))) / DEG
   const azimuth = Math.atan2(x, -z) / DEG

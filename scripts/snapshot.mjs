@@ -21,7 +21,7 @@ import { join } from 'node:path'
 import { chromium } from 'playwright'
 
 import { snapshotWarnings } from './checks.mjs'
-import { expandDates, parseArgs, readSpecs } from './lib.mjs'
+import { expandDates, parseArgs, readSpecs, watchPage } from './lib.mjs'
 import { serveRef } from './refServer.mjs'
 
 const { args, option, flag } = parseArgs()
@@ -76,20 +76,18 @@ const browser = await chromium.launch({
 })
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
 page.setDefaultTimeout(timeoutMs)
-page.on('console', msg => {
-  if (msg.type() !== 'error' && msg.type() !== 'warning') return
-  const text = msg.text()
-  // three.js logs a failed shader with its whole source: keep the errors and
-  // the numbered lines it quotes round them.
-  if (/Shader Error|VALIDATE_STATUS false/.test(text) && text.length > 2000) {
+// GL messages (worker and GPU process too) become ⚠ warnings per render.
+const messages = await watchPage(page, {
+  format: msg => {
+    const text = msg.text()
+    // three.js logs a failed shader with its whole source: keep the errors and
+    // the numbered lines it quotes round them.
+    if (!/Shader Error|VALIDATE_STATUS false/.test(text) || text.length <= 2000) return `[browser ${msg.type()}] ${text}`
     const lines = text.split('\n')
     const keep = lines.filter(l => /ERROR:|^\s*>?\s*\d+:/.test(l)).slice(0, 40)
-    console.log(`[browser ${msg.type()}] ${lines[0]}\n${keep.join('\n')}`)
-    return
+    return `[browser ${msg.type()}] ${lines[0]}\n${keep.join('\n')}`
   }
-  console.log(`[browser ${msg.type()}]`, text)
 })
-page.on('pageerror', error => console.log('[page error]', error.message))
 
 /** The spec without the fields the served commit's parser rejects as
  * unknown (its own src/sceneSpec.ts, loaded from the dev server). */
@@ -126,6 +124,7 @@ for (const { date, spec: asked, name } of todo) {
   url.searchParams.set('w', String(width))
   url.searchParams.set('h', String(height))
   if (frames != null) url.searchParams.set('frames', frames)
+  messages.gl() // not this render's
   await page.goto(url.toString())
   await page.waitForFunction(() => window.__sea != null)
   const { dataUrl, params } = await page.evaluate(async quality => {
@@ -147,7 +146,10 @@ for (const { date, spec: asked, name } of todo) {
   await writeFile(join(outDir, `${name}.json`), JSON.stringify({ ...params, spec }, null, 2))
   console.log(`${file}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${params.title}`)
   if (process.env.DEBUG) console.log(JSON.stringify(params.debug))
-  for (const warning of snapshotWarnings(params, propKinds.filter(k => k !== 'all'))) console.log(`  ⚠ ${warning}`)
+  // GPU-process messages arrive a few ms after the frame.
+  await page.waitForTimeout(100)
+  const warnings = snapshotWarnings(params, propKinds.filter(k => k !== 'all'), messages.gl())
+  for (const warning of warnings) console.log(`  ⚠ ${warning}`)
   const props = params.debug?.props ?? {}
   const times = params.debug?.propTimes ?? {}
   const built = kind => (times[kind] != null ? `, built in ${times[kind]} ms` : '')

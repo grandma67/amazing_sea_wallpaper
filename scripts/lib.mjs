@@ -1,4 +1,5 @@
-// Shared by the scripts: argument parsing, scene specs, dates, git worktrees.
+// Shared by the scripts: argument parsing, scene specs, dates, git worktrees,
+// browser messages.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, rmSync, symlinkSync } from 'node:fs'
@@ -102,4 +103,43 @@ export function worktree(ref, tag) {
     rmSync(tree, { recursive: true, force: true })
   }
   return { sha, tree, remove }
+}
+
+/** A WebGL or GPU-process GL message ("WebGL: INVALID_…", "[.WebGL-0x…] GL_…"). */
+const GL_MESSAGE = /WebGL|\bGL_[A-Z_]+\b/
+
+/**
+ * Prints a page's errors and warnings, and collects its GL messages. Playwright's
+ * `console` event misses the render worker's WebGL warnings and every GPU-process
+ * message ("[.WebGL-0x…] GL_INVALID_VALUE: …"); only a CDP session with
+ * `Log.enable` gets them all (page and workers), so GL messages are taken from
+ * there alone and everything else from `console`. `gl()` returns the GL messages
+ * since its last call, grouped ("48× …", addresses masked), and empties the list.
+ * `format(msg)` may rewrite a console line (null = skip it).
+ */
+export async function watchPage(page, { format } = {}) {
+  let gl = new Map()
+  page.on('console', msg => {
+    const type = msg.type()
+    if (type !== 'error' && type !== 'warning') return
+    const text = msg.text()
+    if (GL_MESSAGE.test(text)) return
+    const line = format != null ? format(msg) : `[browser ${type}] ${text}`
+    if (line != null) console.log(line)
+  })
+  page.on('pageerror', error => console.log('[page error]', error.message))
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Log.enable')
+  cdp.on('Log.entryAdded', ({ entry }) => {
+    if (!GL_MESSAGE.test(entry.text)) return
+    const key = entry.text.replace(/0x[0-9a-f]+/gi, '0x…').trim()
+    gl.set(key, (gl.get(key) ?? 0) + 1)
+  })
+  return {
+    gl() {
+      const out = [...gl].map(([text, n]) => `${n}× ${text}`)
+      gl = new Map()
+      return out
+    }
+  }
 }

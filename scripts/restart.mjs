@@ -9,12 +9,13 @@
 // geometries, textures, programs all 0), at most one live WebGL context (main) or render
 // worker (worker), heap after gc(). Then every old view and canvas must be collected (WeakRefs)
 // and a day seen again (←, Back, Forward) must take no more than 2 MB of heap over its first visit.
+// Any GL message (page, worker or GPU process; `watchPage` in lib.mjs) fails too.
 // `main` (?worker=0) renders on the page, so its heap and contexts are visible here; `worker`
 // checks the workers are terminated. Prints JSON: `ok` and `failures` first; exit 1 on failure.
 
 import { chromium } from 'playwright'
 
-import { parseArgs } from './lib.mjs'
+import { parseArgs, watchPage } from './lib.mjs'
 
 const { option, rejectUnknown } = parseArgs()
 const baseUrl = option('url', 'http://localhost:5174/')
@@ -143,8 +144,7 @@ let ok = true
 for (const worker of mode === 'both' ? [false, true] : [mode === 'worker']) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
   page.setDefaultTimeout(10 * 60_000)
-  page.on('pageerror', error => console.log('[page error]', error.message))
-  page.on('console', msg => msg.type() === 'error' && console.log('[browser error]', msg.text()))
+  const messages = await watchPage(page)
   await page.addInitScript(instrument)
   const url = new URL(baseUrl)
   for (const [k, v] of Object.entries({ date: start, ...size, worker: worker ? '1' : '0' })) url.searchParams.set(k, v)
@@ -152,6 +152,10 @@ for (const worker of mode === 'both' ? [false, true] : [mode === 'worker']) {
   await page.goto(url.toString())
   await page.waitForFunction(() => window.__sea != null)
   const result = await page.evaluate(inPage, { steps, worker })
+  // Any GL message (page, worker or GPU process) over all the day changes fails.
+  await page.waitForTimeout(200)
+  for (const m of messages.gl()) result.failures.push(`GL: ${m}`)
+  result.ok = result.failures.length === 0
   console.log(JSON.stringify({ mode: worker ? 'worker' : 'main', seconds: Math.round((Date.now() - started) / 1000), ...result }, null, 2))
   ok &&= result.ok
   await page.close()

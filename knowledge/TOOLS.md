@@ -34,6 +34,10 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
   stashing. Ports: bench 5175, snapshot/diff 5177 (`refServer.mjs`); params needs no server.
   Spec fields the ref doesn't know are dropped and named.
 - Long outputs put the summary last (bench's table, params' "… N more not shown").
+- **Browser messages**: every script that opens a page uses `watchPage(page)` (`lib.mjs`): page
+  errors, console errors and warnings, and GL messages grouped per render (`48× [.WebGL-0x…]
+  GL_…`). snapshot (so diff and bench) turns GL messages into ⚠ warnings, mesh prints them,
+  restart fails on them. A new script that opens a page uses it too.
 
 ## Dev server
 
@@ -48,6 +52,15 @@ a wait loop at ~10 s and treat longer as a fault. The first render after a start
 minutes (dep optimisation).
 
 ## Gotchas
+
+- The browser's DevTools console shows more than Playwright's `console` event: the render
+  worker's WebGL warnings and every GPU-process message (`[.WebGL-0x…] GL_INVALID_…`) come only
+  through a CDP session with `Log.enable` (`watchPage` does this). A user-visible console message
+  that a script can't reproduce: first check the script can see that kind of message (a known
+  example of it), before changing render conditions.
+- Timing races (GPU work still queued at cleanup) may need a heavy last frame to show: the
+  glGetProgramiv warnings (0.81) showed at 4K with the page's default frames, not at 1080p ×
+  16 frames. Try `--w 3840 --h 2160` without `--frames` before calling one gone.
 
 - Changing `vite.config.ts` restarts the dev server and can leave pages at `504 Outdated Optimize
   Dep` (the render hangs until `--budget`; in a browser the page stays blank, which looks like a

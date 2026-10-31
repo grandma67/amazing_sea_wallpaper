@@ -195,6 +195,12 @@ December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
 
+Page:
+- `restart.mjs` (and some page loads) log `THREE.BufferGeometry.computeBoundingSphere(): Computed
+  radius is NaN` and `computeBoundingBox(): … NaN values` twice during its day changes: some
+  geometry has NaN positions on one of the days it visits (2024-06-01 onward, plus Random and
+  Today). Not traced yet (seen 10-31; the old restart printed console errors too, so not new).
+
 Places and climate:
 - Landforms and islands are still chosen by biome (`pickLandform`, `ISLANDS`): nordic places
   without volcanoes (Greenland, Norway) draw one on ~6% of their landform days, and subtropical

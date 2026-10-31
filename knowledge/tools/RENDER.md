@@ -17,16 +17,18 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   `--w 320 --h 180 --frames 1` first (GLSL errors show only at render time).
 - Saves `NAME.jpg` and `NAME.json` (params, spec and `debug`: exposure, scene luminance,
   irradiance, nightScale, `cameraGroundM`, `props`, `propTimes`). `DEBUG=1` also prints `debug`.
-  Otherwise a temporary `console.warn('DBG …')` (snapshot echoes browser warnings), removed
-  before committing.
+  Otherwise a temporary `console.warn('DBG …')` (snapshot echoes page and worker console errors
+  and warnings; GL messages become ⚠ warnings, see below), removed before committing.
 - `--props KINDS|all`: per prop, pieces placed, in frame, nearest distance and pixel box, its CPU
   build time, and the three slowest kinds (e.g. rocks ~275 ms, vegetation ~320 ms on a Nova
   Scotia beach). Use it for a new prop's cost (`bench.mjs` only times the whole render). Kinds are
   the creators in `props/index.ts` (`rocks`, `islands`, `shore-life`, `colony`, `ships`, …).
 - `--crop KINDS` saves `NAME.KIND.jpg`; read the crop, not the frame.
 - ⚠ warnings (`scripts/checks.mjs`): backlit (low sun within 60° of the view: pale features
-  vanish; check front-lit with `"sunAzimuthDeg": 160`), prop not placed or none in frame. Act on
-  them before reading images.
+  vanish; check front-lit with `"sunAzimuthDeg": 160`), prop not placed or none in frame, and
+  `GL: N× …` (any WebGL or GPU-process GL message during that render, page or worker: always a
+  bug, often invisible in the picture; `watchPage` in `lib.mjs`). Act on them before reading
+  images.
 - `--ref HEAD`: "was this already broken?" (implies `--drop-unknown`, so a new feature's scene
   file works as it is).
 - `--budget SECONDS` (default 900) kills hung renders.

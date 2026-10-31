@@ -28,7 +28,8 @@ first; the header lists every check. In short: the day expected in the address b
 title; one canvas; splash hidden, bar shown; nothing left on the GPU after each render; at most one
 live context (main) or render worker (worker); every old view and canvas collected (WeakRefs);
 a day seen again takes ≤ 2 MB more heap than on its first visit (heap varies ~40–80 MB by day, so
-it compares the same day, not one day with the next).
+it compares the same day, not one day with the next); no GL message (page, worker or GPU process)
+over all the day changes.
 
 ## When it fails
 
