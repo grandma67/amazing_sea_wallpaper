@@ -54,7 +54,17 @@ research numbers: REGIONS.md §2–3. Pitfalls: LESSONS.md "Coast and terrain".
 ## Terrain and coast kinds
 
 - `terrain.ts`: shared GLSL/TS height function (coast, dunes, hills, bars), sand shading, surf
-  profile (`surfCycle`, mirrored in `props/surf.ts`). `biome.ts`/`oceans.ts`: palettes, plants,
+  profile (`surfCycle`, mirrored in `props/surf.ts`).
+- **Terrain mesh** (`createTerrain(params, camera)`, `grid.ts`): a polar grid round the camera
+  (0.25 m to 120 km, rings spaced geometrically) covering only the ground in view: `viewWedge`
+  takes the azimuths of the frame's border rays (the camera stands at x = z = 0, so a ray's ground
+  point has the ray's azimuth) plus 3° each side, and `squareGrid` spends the old full circle's
+  614k vertices (600 × 1024) on that wedge with near-square cells (Δr / r = the angle between
+  segments): 0.33% of r each way with an 87 mm lens, ~0.6% at 18 mm, against the full circle's
+  2.2% × 0.6% slivers. The camera is fixed for the still and the terrain casts no shadow map and
+  isn't in the env cube; the planar reflection mirrors only in height, so it sees the same
+  azimuths. The vertex shader ignores the model matrix: the wedge's angles are baked into the
+  positions. `biome.ts`/`oceans.ts`: palettes, plants,
   sea state, ice.
 - **Coast kinds** (`coastKind.ts`, re-exported by `terrain.ts`): `coast.type` is `open-sea`,
   `beach`, `rock-shore` or `tidal-flat`. Code asks `hasLand` (terrain drawn, camera on land, compositions,
@@ -90,7 +100,7 @@ Plan and research: [plans/ROCK_SHORE.md](../plans/ROCK_SHORE.md); shares: COASTS
   quantised to beds of `bedding` m that dip at `dip` across `strike`, with risers of 30% of a
   step; rounded ridged noise; gullies along two joint sets (`rockGully`); or, on boulder shores,
   Voronoi boulders (`boulderField`, lumpy, flat-topped, half buried). Hills and bumps behind.
-- **No zig-zags:** the terrain is the same polar grid (2.2% of r radially, 6 mrad round), so
+- **No zig-zags:** the terrain is the polar view wedge (cells ~0.3–0.6% of r each way), so
   detail is softened by the distance r from the camera (at the origin, so the TS mirror does the
   same): steep faces are at least `ROCK_MIN_FACE` (3%) × r wide, risers widen with r and on
   steep bare slopes, gully walls widen and gullies, edge cut-backs, boulders and fine ridges fade

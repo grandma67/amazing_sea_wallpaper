@@ -8,7 +8,7 @@ rock platform and a beach. Tools: [TOOLS.md](../TOOLS.md).
 
 | Field | Does | Use it for |
 |---|---|---|
-| `terrainGrid: 2` | terrain grid × 2 (rings and segments; 0.25–4) | is it grid aliasing? `diff --off '{"params":{"debug":{"terrainGrid":2}}}'`: teeth that change are the grid's |
+| `terrainGrid: 2` | terrain grid cells × 2 denser each way (4× the vertices over the same view wedge; 0.25–4) | is it grid aliasing? `diff --off '{"params":{"debug":{"terrainGrid":2}}}'`: teeth that change are the grid's |
 | `props: false` | no props (markers still drawn) | terrain and sea alone; with `clouds: []`, `weather: "clear"`, `islands`/`landform`/`lighthouse`/`colony`/`pinnipeds: null` a terrain-only render |
 | `markers: [...]` | a post (~6 px wide, ≥ 1 m) at each point, a colour per source in list order (red, cyan, yellow, green, magenta, white) | where things stand: `camera-ground`, `edge-rocks`, `water-rocks`, `props:KIND` (each piece of a prop kind, e.g. `props:pinnipeds`) |
 | `passes: {name: false}` | switches off `clouds`, `aerial` (aerial perspective), `skyFill`, `bloom`, `reflection` (planar), `shadows` (props cast none) | which pass causes a glow, rim or dark band: one `diff --off` per pass |

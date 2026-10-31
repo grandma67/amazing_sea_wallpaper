@@ -238,8 +238,9 @@ Coast and surf:
   (palette mean pulled up by the red scoria entry and exposure).
 
 Rocky shores (PLAN_BIOMES 8):
-- A faint saw can remain along a platform's scarp seen along the shore at 60–150 m (grid
-  aliasing; a 2× grid halves it).
+- Near bed risers on a platform seen along the shore (10–40 m) can show a row of small dark
+  notches (grid aliasing: a 2× grid halves them; there before the view-wedge grid too, then fewer
+  and bigger). The far scarp and cliff saws were fixed by the view-wedge grid (0.76).
 - A cliff's rounded crest near the camera is smooth and bare: in low light it reads as sand.
 - A low platform at a cliff's foot is topped by big waves, which then wash over it as foam: no
   burst against the cliff behind (`edgeRocks` takes only the first face at the water).

@@ -226,6 +226,12 @@ tool gotchas: TOOLS.md.
 - Plans carry physical claims ("Svalbard noon blue-hour glow"): check them with the code's own
   functions (`sunLimits`, `params.mjs`) before writing specs or tests from them.
 
+- A regular row of identical teeth along a far cliff or scarp ("copy-paste" shore) was the
+  terrain grid, not the rock: the full-circle grid's cells were 2.2% of r deep but 0.6% wide, so
+  a steep face seen at a slant crossed one long cell per tooth. Square cells fixed it, paid for by
+  covering only the view (the camera sees ~8–27% of the circle): same vertices, same speed. Probe
+  with `terrainGrid: 2` and with each height term off (`dip`, `gully`, `relief`) before blaming
+  the geology.
 - Sharp relief in the height function zig-zags across the polar terrain grid wherever it is in
   silhouette: steep faces, stair risers, gully walls, ragged edges. Widen or fade each by the
   distance from the camera (it is at the origin, so the TS mirror can do the same) and by the

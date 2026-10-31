@@ -186,8 +186,8 @@ export function scarpFoot(rock: RockShore): { s: number; height: number } {
   return { s: rock.width + rock.scarp / rock.scarpSlope, height: rock.edge - rock.scarp }
 }
 
-/** Steep faces are at least this × the distance from the camera wide: the
- * terrain grid's spacing is 2.2% of it radially (terrain.ts). */
+/** Steep faces are at least this × the distance from the camera wide: a few
+ * terrain grid cells (each ~0.3–0.6% of it, terrain.ts createTerrain). */
 export const ROCK_MIN_FACE = 0.03
 
 /** The bare rocky profile at s (m above mean sea; no ledges, gullies, hills

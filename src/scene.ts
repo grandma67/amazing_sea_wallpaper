@@ -246,7 +246,7 @@ export async function renderScene(
   // Ocean and terrain first: three draws opaque meshes in material-creation
   // order, and equal-depth pixels (sand under props) depend on it.
   const ocean = createOcean(params, surface, renderer.capabilities.getMaxAnisotropy())
-  const terrain = createTerrain(params)
+  const terrain = createTerrain(params, camera)
   const props = createProps(new PropContext(params, camera, surface, vfov / height))
   const [textures, cloudAssets] = await Promise.all([atmosphere.textures, cloudAssetsLoaded])
 

@@ -6,6 +6,7 @@ import {
   Vector3,
   Vector4,
   type BufferGeometry,
+  type Camera,
   type Texture
 } from 'three'
 
@@ -13,7 +14,7 @@ import { BEACH_MATERIALS, beachLines, isStony, stoneMean } from './beach'
 import { fbm, smoothstep, vnoise } from './cellNoise'
 import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
 import { TERRAIN_VIEWS } from './debug'
-import { createPolarGrid } from './grid'
+import { createPolarGrid, ringStep, squareGrid, viewWedge } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { LICHEN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
@@ -477,7 +478,8 @@ float rockHeightAt(vec2 p, vec2 sa) {
   float band = smoothstep(rockBack.w > 0.0 ? -back - 2.0 : -back - 25.0, -back + 1.0, s) * (1.0 - smoothstep(footS + 20.0, footS + 50.0, s));
   if (band > 0.0) {
     // The camera is at the origin: detail finer than the terrain grid
-    // (2.2% of the distance) softens with distance, or it zig-zags.
+    // (a fraction of a percent of the distance) softens with distance, or
+    // it zig-zags.
     float r = length(p);
     float n = rockBeds.x * 2.0 * (fbm(q / 18.0) - 0.5);
     // Ridged noise with a rounded crease (a knife edge zig-zags across
@@ -1079,9 +1081,10 @@ uniform vec3 flatMud;
 uniform vec3 marshColor;
 uniform vec4 marshAccent;
 // Debug views (debug.ts): index in TERRAIN_VIEWS (0: none), the grid's
-// density × and the beach lines (u of the high-tide and storm lines).
+// cell (Δr / r, radians between segments) and the beach lines (u of the
+// high-tide and storm lines).
 uniform int terrainView;
-uniform float gridScale;
+uniform vec2 gridStep;
 uniform vec2 debugLines;
 varying vec3 vWorld;
 
@@ -1345,13 +1348,13 @@ void main() {
     float r = length(p);
     if (terrainView == 1) {
       // Slope: grey by steepness; red where the height bends by more than
-      // ~3–10 pixels within ~2 grid cells (radially 2.2% of r, round
-      // 2π/1024): the mesh can't follow it, and in silhouette it zig-zags.
+      // ~3–10 pixels within ~2 grid cells (gridStep × r each way): the
+      // mesh can't follow it, and in silhouette it zig-zags.
       dbg = mix(vec3(0.62), vec3(0.2), smoothstep(0.1, 0.8, 1.0 - N.y));
       vec2 radial = p / max(r, 1e-3);
       vec2 around = vec2(-radial.y, radial.x);
-      float gr = 0.022 * r / gridScale;
-      float gt = 0.0061 * r / gridScale;
+      float gr = gridStep.x * r;
+      float gt = gridStep.y * r;
       float bend = max(abs(terrainHeight(p + radial * gr) + terrainHeight(p - radial * gr) - 2.0 * h),
         abs(terrainHeight(p + around * gt) + terrainHeight(p - around * gt) - 2.0 * h));
       float pixel = max(length(toCamera) * pixelAngle, 1e-4);
@@ -1400,7 +1403,21 @@ void main() {
 }
 `
 
-export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderMaterial> {
+/** The terrain grid's vertex budget (the old full circle's 600 rings × 1024
+ * segments), its radii (m) and the margin round the frame (radians). */
+const TERRAIN_GRID_VERTICES = 600 * 1024
+const TERRAIN_INNER_RADIUS = 0.25
+const TERRAIN_OUTER_RADIUS = 120_000
+const TERRAIN_WEDGE_MARGIN = (3 * Math.PI) / 180
+
+export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferGeometry, ShaderMaterial> {
+  // The grid covers only the ground in view (the camera is fixed for the
+  // still), so its vertices make near-square cells there: a steep face
+  // seen at a slant spans several cells instead of zig-zagging across one
+  // long cell. debug.terrainGrid scales the cells' density each way.
+  const density = params.debug?.terrainGrid ?? 1
+  const wedge = viewWedge(camera, TERRAIN_WEDGE_MARGIN)
+  const { rings, segments } = squareGrid(TERRAIN_GRID_VERTICES * density * density, wedge.span, TERRAIN_INNER_RADIUS, TERRAIN_OUTER_RADIUS)
   const { coast } = params
   const material = new ShaderMaterial({
     vertexShader,
@@ -1421,7 +1438,7 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       groundCoverAmount: { value: params.biome.groundCoverAmount },
       rockColor: { value: new Color(...(coast.rock?.color ?? [0.3, 0.3, 0.3])) },
       terrainView: { value: Math.max(0, TERRAIN_VIEWS.indexOf(params.debug?.terrainView ?? 'none')) },
-      gridScale: { value: params.debug?.terrainGrid ?? 1 },
+      gridStep: { value: new Vector2(ringStep(rings, TERRAIN_INNER_RADIUS, TERRAIN_OUTER_RADIUS), wedge.span / segments) },
       debugLines: { value: coast.rock != null ? new Vector2(-1e5, -1e5) : new Vector2(beachLines(coast).highTide, beachLines(coast).stormLine) },
       lichenColor: { value: new Color(...LICHEN[params.biome.name]) },
       flatMud: { value: new Color(...(coast.flat?.mud ?? [0.16, 0.14, 0.11])) },
@@ -1431,9 +1448,8 @@ export function createTerrain(params: SceneParams): Mesh<BufferGeometry, ShaderM
       ...shadowUniforms()
     }
   })
-  // A denser grid for debugging aliasing (debug.terrainGrid).
-  const grid = params.debug?.terrainGrid ?? 1
-  const mesh = new Mesh(createPolarGrid({ rings: Math.round(600 * grid), segments: Math.round(1024 * grid), outerRadius: 120_000 }), material)
+  const grid = createPolarGrid({ rings, segments, innerRadius: TERRAIN_INNER_RADIUS, outerRadius: TERRAIN_OUTER_RADIUS, ...wedge })
+  const mesh = new Mesh(grid, material)
   mesh.frustumCulled = false
   mesh.visible = hasLand(coast)
   return mesh
