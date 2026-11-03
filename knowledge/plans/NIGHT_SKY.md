@@ -114,6 +114,11 @@ the map's 6.5–11.5 stars are glow at 0.35°/texel.
 
 ### 4. Shooting stars (`src/meteors.ts`)
 
+**Done 2026-11-03** (changelog 0.87, `test/meteors.test.ts`). What differed: our frames hold
+less sky than the 15% assumed (median ~7% by solid angle), but they look low, where meteors are
+denser per steradian; with that weighting a clear Perseid peak gives ~60–80% and an ordinary
+dark night ~3% (plan: 85%, 5–10%). Real days: 0.3% (clear dark nights are rare). No trains.
+
 - **Table:** STARS.md §5 showers keyed by solar longitude (peak, width, ZHR, radiant, speed, r),
   plus sporadics by hour (dawn 2–3× evening) and hemisphere.
 - **Choice** `meteorsFor(params, rng)`, stream `'meteors'`: the "best frame of the session" model

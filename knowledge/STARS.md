@@ -274,7 +274,12 @@ broken, and moonlit 2026-08-28:
   diffuse light, no direct light). A real moonless sky is airglow (greenish/neutral, brighter
   toward the horizon), not a blue Rayleigh sky. Clouds under it read as dark silhouettes, which
   is right with no light domes.
-- **Missing:** ~~Milky Way, airglow, zodiacal light~~ (phase 3, below), planets, meteors,
+- **Meteors** (built 2026-11-03, `meteors.ts`): frame share by solid angle × meteor density at
+  each elevation (`meteorDensity`, ~(1/sin el)^0.6, nothing below ~5°): median ~0.1 of an
+  observer's count. Camera limit +2.5 dark, −0.8 per magnitude of brighter sky (full moon
+  ~−0.3: ×3–10 fewer). Shares: clear dark Perseid peak 0.6–0.8 by framing, ordinary dark night
+  ~0.03, real days 0.3%.
+- **Missing:** ~~Milky Way, airglow, zodiacal light, meteors~~ (phases 3–4), planets,
   aurora, faint stars below ~6.5 as points.
 - **Night glow** (built 2026-11-03, `nightGlow.ts`): units S10 (1 S10 = a 10th-magnitude star
   per square degree = 27.78 mag/arcsec² ≈ 1.10 nW m⁻² sr⁻¹ in V). Dark zenith ≈ 220 S10 =

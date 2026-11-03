@@ -152,6 +152,9 @@ tool gotchas: TOOLS.md.
   sky features (contrails, meteors, noctilucent detail) still stay out of the cube.
 - `new Texture(imageBitmap)` never uploads until `needsUpdate = true`: the Milky Way read black
   (`diff.mjs` said ⚠ invisible even ×30) until it was set. `loadImageTexture` callers set it.
+- A hand-written projector for a pitched camera: test that the horizon ahead lands at NDC
+  y = 1 − 2 × horizonFraction before trusting it. Applying the pitch instead of undoing it
+  put meteors 10–20° too high (off the top of the frame).
 - "Is it in frame?" for a sky object needs the vertical field and the horizon's place, not only
   the azimuth: three "core in frame" nights had it 20° above the top edge.
 - A noise-free render has no sky noise: a star 10% above the sky still "shows" in the numbers.

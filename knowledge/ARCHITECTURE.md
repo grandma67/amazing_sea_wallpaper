@@ -102,7 +102,8 @@ Playwright (headless snapshots), Vitest.
   10. Moon scale, horizon, roll, time, choppiness (main, `keep`).
   11. After `params` exists (read it whole): noctilucent, nacreous, roll cloud, contrails,
       visibility (`'visibility'`, reads `weather.dust`), night glow (`'night-glow'`, sun below
-      the horizon only; reads the place's `bortle`).
+      the horizon only; reads the place's `bortle`), meteors (`'meteors'`, night only; adds the
+      shower's name to the title).
 
   Props decide later, at render, on `ctx.rng(kind)` (`props/choices.ts`).
 - **Seasons** (`seasons.ts`): seasonal tables are written in northern-hemisphere months;

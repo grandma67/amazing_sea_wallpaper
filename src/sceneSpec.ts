@@ -1,5 +1,6 @@
 import { BEACH_MATERIALS, type BeachMaterial } from './beach'
 import { BEACH_STATES, type BeachState } from './beachState'
+import { SHOWERS } from './meteors'
 import type { EclipseType } from './celestial'
 import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './biome'
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
@@ -159,6 +160,9 @@ export interface SceneSpec {
   zodiacalLight?: boolean | null
   /** Bortle class 1–4 instead of the place's (light pollution). */
   skyDarkness?: 1 | 2 | 3 | 4
+  /** Shooting stars (meteors.ts): null/false none, true at least one, a
+   * shower id (`"perseids"`) one of it, a number that many (≤ 3). */
+  meteors?: boolean | string | number | null
   storm?: Force<'thunderstorm' | 'squall'>
   rainbow?: boolean
   fog?: Force<'advection' | 'bank' | 'sea-smoke'>
@@ -309,6 +313,7 @@ const SPEC = object({
   airglow: oneOf(true, false, null),
   zodiacalLight: oneOf(true, false, null),
   skyDarkness: oneOf(1, 2, 3, 4),
+  meteors: (value, path) => (typeof value === 'number' ? number(value, path) : oneOf(true, false, null, ...SHOWERS.map(s => s.id))(value, path)),
   storm: force('thunderstorm', 'squall'),
   rainbow: boolean,
   fog: force('advection', 'bank', 'sea-smoke'),

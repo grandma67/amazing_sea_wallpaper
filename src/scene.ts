@@ -58,6 +58,7 @@ import { moonlight as phaseLight } from './celestial'
 import { createClouds, loadCloudAssets, loadImageTexture, primeCloudShadow, renderCloudyEnvironment } from './clouds'
 import { patchSkyContrails } from './contrails'
 import { patchSkyNoctilucent } from './noctilucent'
+import { patchSkyMeteors } from './meteors'
 import { glowScale, patchSkyNightGlow, type GlowFrame } from './nightGlow'
 import { eclipseSky } from './eclipse'
 import type { DebugPass } from './debug'
@@ -312,6 +313,8 @@ export async function renderScene(
   const skyMaterial = makeSky(true)
   patchSkyNoctilucent(skyMaterial, params.noctilucent, params.nacreous)
   patchSkyContrails(skyMaterial, params.contrails, worldToECEF, AtmosphereParameters.DEFAULT.bottomRadius, METER_TO_LENGTH_UNIT)
+  // Shooting stars in the stars' units (meteors.ts); too thin for the cube.
+  if (pass('meteors')) patchSkyMeteors(skyMaterial, params.meteors, worldToECEF, starScale(params.nightSky, elongationDeg(params)), vfov)
   const sky = skyMesh(skyMaterial)
   sky.userData.sky = true
   scene.add(sky)

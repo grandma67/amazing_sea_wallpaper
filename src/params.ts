@@ -13,6 +13,7 @@ import { visibilityFor } from './seaHaze'
 import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type RollCloudParams, type ShelfCloudParams } from './skyEvents'
 import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParams } from './noctilucent'
 import { nightGlowFor, type NightGlowParams } from './nightGlow'
+import { meteorsFor, SHOWERS, type Meteor } from './meteors'
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
@@ -392,6 +393,8 @@ export interface SceneParams {
   /** The night sky's own light: Milky Way, airglow, zodiacal light, light
    * pollution (nightGlow.ts); null with the sun up. */
   nightGlow: NightGlowParams | null
+  /** Shooting stars in the session's best frame (meteors.ts). */
+  meteors: Meteor[]
   /** How far one sees through the sea haze (km; seaHaze.ts). Fog is separate. */
   visibilityKm: number
   /** Aircraft trails high in the sky (contrails.ts). */
@@ -1994,6 +1997,7 @@ function buildParams(
     noctilucent: null,
     nacreous: null,
     nightGlow: null,
+    meteors: [],
     rollCloud: null,
     lighthouse,
     ...(spec.props != null ? { overrides: spec.props } : {}),
@@ -2045,6 +2049,11 @@ function buildParams(
   params.contrails = contrailsFor(params, Random.derive(seed, 'contrails'), spec.contrails)
   params.visibilityKm = visibilityFor(params, Random.derive(seed, 'visibility'), spec.visibilityKm)
   params.nightGlow = nightGlowFor(params, Random.derive(seed, 'night-glow'), spec)
+  params.meteors = meteorsFor(params, Random.derive(seed, 'meteors'), params.nightGlow?.bortle ?? place.bortle, spec.meteors)
+  if (params.meteors.length > 0) {
+    const shower = SHOWERS.find(s => s.id === params.meteors[0].shower)
+    params.title += ` · ${shower != null ? shower.name : 'shooting star'}`
+  }
   return { params, draws }
 }
 

@@ -61,6 +61,14 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   coast). × `glowScale` (render units per S10 for the night's light, `renderPerLux`). Starlit
   nights: replaces the Bruneton stand-in (`glowReplace`); otherwise added. Ground rays keep the
   sky's own ground.
+- **Meteors** (`meteors.ts`, NIGHT_SKY phase 4): `meteorsFor` (stream `'meteors'`, night only,
+  after the night glow for its Bortle class) from `meteorRates` (showers by solar longitude and
+  sporadics by local hour, × camera limit, × `frameShare`, × 4 h) and the weather's clear share;
+  paths from `meteorPath` (through a point in the frame's sky, along the great circle away from
+  the radiant, trimmed to the frame; `project`/`unproject` mirror camera.ts's yaw and pitch, no
+  dip or roll). `patchSkyMeteors`: main sky only, segment on the sphere in ECEF, Gaussian across
+  (1.3 × the stars' core σ), `meteorProfile` along, × transmittance, in the stars' units
+  (`starScale` × flux × duration / exposure ÷ length).
 - **Marine layer** (`coastalWeather.ts`, PLAN_BIOMES 3): `marineLayerFor` on stream
   `'marine-layer'` from `MARINE_LAYER` (place × local month) on morning golden hour, sunrise and
   daylight. After the eclipse fix-up the day turns overcast (coverage 0.75–0.82) with one stratus
