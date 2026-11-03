@@ -158,6 +158,9 @@ to 5.5–7° down and needs a clear sky: a −4 Venus in bright twilight near th
 
 ### 6. Aurora
 
+**In progress** on branch `night-sky-aurora-wip` (rebased on 0.89). What's left before it
+can merge: [night_fixes.md](night_fixes.md).
+
 - Research first (STARS.md §8 lists what's missing): rate of auroral nights by geomagnetic
   latitude, Kp distribution in a declining solar cycle.
 - `place.geomagLat` for northern and southern places; `auroraFor(params, rng)` (stream
