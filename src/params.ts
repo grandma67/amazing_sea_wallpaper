@@ -12,6 +12,7 @@ import { contrailsFor, type Contrail } from './contrails'
 import { visibilityFor } from './seaHaze'
 import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type RollCloudParams, type ShelfCloudParams } from './skyEvents'
 import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParams } from './noctilucent'
+import { nightGlowFor, type NightGlowParams } from './nightGlow'
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
@@ -388,6 +389,9 @@ export interface SceneParams {
   noctilucent: NoctilucentParams | null
   /** Nacreous (mother-of-pearl) clouds in polar winter twilight. */
   nacreous: NacreousParams | null
+  /** The night sky's own light: Milky Way, airglow, zodiacal light, light
+   * pollution (nightGlow.ts); null with the sun up. */
+  nightGlow: NightGlowParams | null
   /** How far one sees through the sea haze (km; seaHaze.ts). Fog is separate. */
   visibilityKm: number
   /** Aircraft trails high in the sky (contrails.ts). */
@@ -1989,6 +1993,7 @@ function buildParams(
     visibilityKm: 0,
     noctilucent: null,
     nacreous: null,
+    nightGlow: null,
     rollCloud: null,
     lighthouse,
     ...(spec.props != null ? { overrides: spec.props } : {}),
@@ -2039,6 +2044,7 @@ function buildParams(
   if (params.rollCloud != null) params.title += ' · Morning Glory'
   params.contrails = contrailsFor(params, Random.derive(seed, 'contrails'), spec.contrails)
   params.visibilityKm = visibilityFor(params, Random.derive(seed, 'visibility'), spec.visibilityKm)
+  params.nightGlow = nightGlowFor(params, Random.derive(seed, 'night-glow'), spec)
   return { params, draws }
 }
 

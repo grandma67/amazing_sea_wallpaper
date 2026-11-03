@@ -101,7 +101,8 @@ Playwright (headless snapshots), Vitest.
      lenticular; rainbow geometry; title.
   10. Moon scale, horizon, roll, time, choppiness (main, `keep`).
   11. After `params` exists (read it whole): noctilucent, nacreous, roll cloud, contrails,
-      visibility (`'visibility'`, reads `weather.dust`).
+      visibility (`'visibility'`, reads `weather.dust`), night glow (`'night-glow'`, sun below
+      the horizon only; reads the place's `bortle`).
 
   Props decide later, at render, on `ctx.rng(kind)` (`props/choices.ts`).
 - **Seasons** (`seasons.ts`): seasonal tables are written in northern-hemisphere months;
@@ -149,6 +150,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | visibility, summer haze, dust season | `seaHaze.ts` | biome | leftover: humid subtropical summers get the Mediterranean's dry haze |
 | rock growth, lichen colour | `props/rocks.ts` `GROWTH`, `rockShore.ts` `LICHEN` | biome | leftover (moisture follows climate) |
 | landform vegetation tint | `props/landforms.ts` | biome (own table) | leftover: should read `biome.foliage` like islands |
+| night-sky darkness (Bortle) | `places.ts` `BORTLE` | place (default 2) | right |
 | lighthouse chance, contrail traffic, warm-water ships, orcas, Morning Glory, noctilucent | `params.ts`, `contrails.ts`, `props/ships.ts`, `props/marine.ts`, `skyEvents.ts`, `noctilucent.ts` | biome / ocean / latitude | right enough (geography, not weather) |
 
 ## Frame and post
@@ -195,6 +197,9 @@ real sun's elevation range below 63° (mid-latitude winters still get a 35–70�
 December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
+
+- Light pollution (`nightGlow.ts`): the domes' warm colour is lost to the scotopic grade
+  (`GradeEffect` turns dim light blue), and low clouds aren't lit from below by the towns.
 
 Places and climate:
 - Landforms and islands are still chosen by biome (`pickLandform`, `ISLANDS`): nordic places

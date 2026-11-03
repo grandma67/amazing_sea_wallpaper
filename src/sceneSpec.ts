@@ -153,6 +153,12 @@ export interface SceneSpec {
   nacreous?: boolean | null
   /** Aircraft trails: null/false none, true at least one, a number that many (≤ 5). */
   contrails?: boolean | number | null
+  /** The night sky's glow (nightGlow.ts): false/null takes each away. */
+  milkyWay?: boolean | null
+  airglow?: boolean | null
+  zodiacalLight?: boolean | null
+  /** Bortle class 1–4 instead of the place's (light pollution). */
+  skyDarkness?: 1 | 2 | 3 | 4
   storm?: Force<'thunderstorm' | 'squall'>
   rainbow?: boolean
   fog?: Force<'advection' | 'bank' | 'sea-smoke'>
@@ -222,7 +228,7 @@ type Check = (value: unknown, path: string) => void
 const fail = (path: string, message: string): never => {
   throw new Error(`scene spec: ${path} ${message}`)
 }
-const oneOf = (...options: readonly (string | boolean | null)[]): Check => (value, path) => {
+const oneOf = (...options: readonly (string | number | boolean | null)[]): Check => (value, path) => {
   if (!options.includes(value as string)) fail(path, `must be one of ${options.map(o => JSON.stringify(o)).join(', ')}; got ${JSON.stringify(value)}`)
 }
 const force = (...kinds: string[]): Check => oneOf(true, false, null, ...kinds)
@@ -299,6 +305,10 @@ const SPEC = object({
   noctilucent: oneOf(true, false, null),
   nacreous: oneOf(true, false, null),
   contrails: (value, path) => (typeof value === 'number' ? number(value, path) : oneOf(true, false, null)(value, path)),
+  milkyWay: oneOf(true, false, null),
+  airglow: oneOf(true, false, null),
+  zodiacalLight: oneOf(true, false, null),
+  skyDarkness: oneOf(1, 2, 3, 4),
   storm: force('thunderstorm', 'squall'),
   rainbow: boolean,
   fog: force('advection', 'bank', 'sea-smoke'),

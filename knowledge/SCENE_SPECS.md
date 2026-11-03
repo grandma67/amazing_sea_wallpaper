@@ -50,7 +50,8 @@ Allowed values are in `sceneSpec.ts`.
 - **Sky:** `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
   `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud`,
   `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
-  `nacreous`, `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place; null:
+  `nacreous`, `milkyWay`, `airglow`, `zodiacalLight` (false/null: off), `skyDarkness` (Bortle
+  1–4 instead of the place's), `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place; null:
   none), `dust` (`"harmattan"` or true: ochre dust haze, 2–10 km, any place; null: none), `wind`,
   `visibilityKm`.
 - **Features:** `lighthouse`, `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`,

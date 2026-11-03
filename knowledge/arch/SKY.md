@@ -49,6 +49,18 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   to a horizon glow with corona and stars, no direct sun, sky light ×~0.01, no aerial-perspective
   inscatter, dim environment on props. Simplification: the scene has no real location, so
   off-path days show the eclipse as if on the path (partials at a random 30–85%).
+- **Night glow** (`nightGlow.ts`, NIGHT_SKY phase 3): `nightGlowFor` (stream `'night-glow'`,
+  whenever the sun is down) draws the airglow (zenith S10 by the solar cycle × a nightly spread,
+  red share, bands) and takes the place's Bortle class (`places.ts` `BORTLE`). `patchSkyNightGlow`
+  patches the main sky **and the env-cube sky** (smooth terms; the sea reflects them), after the
+  other patches so its line runs first: Milky Way (`milkyway.png`, galactic, log2 S10 over
+  [−2, 12]; ECEF → world → ECI (sky clock) → galactic), zodiacal light (Leinert table resampled
+  every 5°, a half-float texture; the real sun's ecliptic longitude via the sky clock), airglow
+  (van Rhijn shells at 95 and 250 km, bands fading overhead), all × transmittance; + (1 − T) ×
+  (airglow + 120) in-scatter; + light pollution (zenith by class, domes inland and ±75° along the
+  coast). × `glowScale` (render units per S10 for the night's light, `renderPerLux`). Starlit
+  nights: replaces the Bruneton stand-in (`glowReplace`); otherwise added. Ground rays keep the
+  sky's own ground.
 - **Marine layer** (`coastalWeather.ts`, PLAN_BIOMES 3): `marineLayerFor` on stream
   `'marine-layer'` from `MARINE_LAYER` (place × local month) on morning golden hour, sunrise and
   daylight. After the eclipse fix-up the day turns overcast (coverage 0.75–0.82) with one stratus

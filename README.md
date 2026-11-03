@@ -63,4 +63,7 @@ and daily at 00:05 UTC with fresh `latest*.jpg`. Enable it under
 - Atmosphere, clouds, star data and blue-noise texture in `public/assets/`:
   [takram-design-engineering/three-geospatial](https://github.com/takram-design-engineering/three-geospatial)
   (MIT). Star data: Yale Bright Star Catalog.
+- Milky Way (`public/assets/milkyway.png`, built by `scripts/milkyway.mjs`):
+  [NASA/Goddard Space Flight Center Scientific Visualization Studio](https://svs.gsfc.nasa.gov/4851),
+  Deep Star Maps 2020; Gaia DR2 data: ESA/Gaia/DPAC.
 - Moon phase: [astronomy-engine](https://github.com/cosinekitty/astronomy) (MIT).

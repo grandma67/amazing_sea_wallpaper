@@ -83,6 +83,16 @@ Renders: wide crescent nights show stars graded by size; a 15° telephoto starli
 
 ### 3. Milky Way, airglow, zodiacal light (`src/nightGlow.ts`, sky-shader patch)
 
+**Done 2026-11-03** (changelog 0.86, `test/nightGlow.test.ts`). What differed: the map is NASA
+SVS Deep Star Maps 2020 (galactic, linear EXR, a layer without the Hipparcos/Tycho stars), not
+ESO's 8-bit panorama; the catalogue stars are masked out of the bright-star layer and the rest
+blurred in. Calibrated on Masana et al. 2021 (Burns's "2,000 first-magnitude stars" came out 3×
+too bright); the brightest clouds are ~3.6× a dark sky, a little above the 1–3× guess. Airglow
+by the solar cycle (no per-place darkness: that's the Bortle class). Light domes also along the
+coast (along-beach frames look along it). Not done: low clouds lit orange from below; the
+domes' warm colour is lost to the scotopic grade (`GradeEffect`). `stars8.bin` still not built:
+the map's 6.5–11.5 stars are glow at 0.35°/texel.
+
 - **Milky Way:** an all-sky panorama in galactic coordinates (ESO/S. Brunier, CC BY 4.0; or
   Gaia; ~1024×512, ~0.35°/texel), turned galactic → ECI → world, scaled so the brightest star
   clouds are ~1–3× the dark-sky background. Real dust lanes are why it reads as real; a

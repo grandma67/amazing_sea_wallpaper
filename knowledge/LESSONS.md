@@ -147,6 +147,13 @@ tool gotchas: TOOLS.md.
   bright and, in the 256² reflection cube, made glitter paths and blobs on the sea and wet rock.
   takram's `StarsMaterial` writes sky + star (opaque), so it hid any sky patch (eclipse
   darkening) under each star: draw stars additively.
+- The night glow is patched into the env cube's sky too, against the "main sky only" rule: it is
+  smooth (0.35°/texel and coarser), so 256² faces hold it, and the sea must reflect it. Sharp
+  sky features (contrails, meteors, noctilucent detail) still stay out of the cube.
+- `new Texture(imageBitmap)` never uploads until `needsUpdate = true`: the Milky Way read black
+  (`diff.mjs` said ⚠ invisible even ×30) until it was set. `loadImageTexture` callers set it.
+- "Is it in frame?" for a sky object needs the vertical field and the horizon's place, not only
+  the azimuth: three "core in frame" nights had it 20° above the top edge.
 - A noise-free render has no sky noise: a star 10% above the sky still "shows" in the numbers.
   How many stars a moonlit frame shows is set by the exposure and the 8-bit display, not by a
   threshold.

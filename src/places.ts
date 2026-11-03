@@ -110,6 +110,8 @@ export interface Place {
   /** Mountains or volcanoes can stand behind the coast (pickLandform); not
    * on flat barrier, delta and coral coasts. */
   mountains: boolean
+  /** Night-sky darkness, Bortle class (nightGlow.ts). */
+  bortle: 1 | 2 | 3 | 4
 }
 
 export type LandKind = 'beach' | 'rock-shore' | 'tidal-flat'
@@ -409,6 +411,27 @@ const MUD: Record<string, RGB> = {
   'yellow-sea': [0.17, 0.14, 0.1]
 }
 
+// Night-sky darkness on the Bortle scale (NIGHT_SKY phase 3, STARS.md §9),
+// for a wild beach of the place, not its towns: 1 the polar and desert
+// coasts and remote islands, 2 (the default) thinly settled coasts, 3 coasts
+// with towns along them (light domes on the horizon), 4 the densely lit
+// shores (the North Sea, the Mediterranean, Florida, east Asia, the Gulf).
+// From the world atlas of artificial sky brightness's broad pattern
+// (general; not read place by place).
+const BORTLE: Record<string, 1 | 2 | 3 | 4> = {
+  'arctic-canada': 1, greenland: 1, 'arctic-russia': 1, svalbard: 1, 'alaska-north': 1, 'se-alaska': 1, 'gulf-alaska': 1,
+  'russian-far-east': 1, 'kamchatka-kurils-aleutians': 1, 'new-zealand-south': 1, 'patagonia-fjords': 1, 'tierra-del-fuego': 1,
+  'south-georgia': 1, falklands: 1, 'south-shetland': 1, 'south-sandwich': 1, 'kerguelen-heard': 1, 'nz-subantarctic': 1,
+  galapagos: 1, 'horn-of-africa': 1, 'western-australia-desert': 1, 'nw-australia': 1, 'north-australia': 1,
+  'sahara-atlantic': 1, namibia: 1,
+  'cornwall-wales': 3, brittany: 3, baltic: 3, maine: 3, pei: 3, 'pacific-northwest': 3, 'east-australia': 3, 'south-brazil': 3,
+  'central-chile': 3, cape: 3, natal: 3, india: 3, 'sri-lanka': 3, 'mainland-se-asia': 3, indonesia: 3, philippines: 3,
+  antilles: 3, 'yucatan-belize': 3, canaries: 3, 'reunion-mauritius': 3, 'red-sea': 3, 'northeast-brazil': 3, 'west-africa': 3,
+  'lesser-antilles-volcanic': 3, japan: 3, 'portugal-morocco': 3, 'sumatra-java-south': 3, aegean: 3, california: 3,
+  'wadden-north-sea': 4, 'bristol-channel': 4, 'morecambe-bay': 4, 'mont-saint-michel': 4, 'western-med': 4, adriatic: 4,
+  'north-africa-levant': 4, 'florida-carolinas': 4, 'south-japan': 4, 'taiwan-south-china': 4, 'yellow-sea': 4, 'persian-gulf': 4
+}
+
 // Flat hinterlands: no mountain range or volcano in view (the barrier islands
 // of Florida and the Carolinas, the Wadden and Baltic lowlands, coral
 // platforms, the Persian Gulf and Libyan coasts, the Arctic coastal plains).
@@ -574,7 +597,8 @@ function resolve(): Place[] {
       reef: REEF[row.id] ?? REEF[region] ?? 0,
       coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome], FLAT[row.id] ?? 0),
       mud: MUD[row.id] ?? DEFAULT_MUD,
-      mountains: !FLAT_LAND.has(row.id)
+      mountains: !FLAT_LAND.has(row.id),
+      bortle: BORTLE[row.id] ?? BORTLE[region] ?? 2
     }
   })
 }

@@ -77,7 +77,7 @@ function repeat2D(texture: Texture, mipmaps: boolean): Texture {
 /** Loads an image as a texture. Unlike TextureLoader this needs no DOM, so it
  * also works on the render worker; the bitmap is decoded the way TextureLoader
  * would upload it (flipped, no premultiplied alpha or colour conversion). */
-async function loadImageTexture(url: string): Promise<Texture> {
+export async function loadImageTexture(url: string): Promise<Texture> {
   const loader = new ImageBitmapLoader().setOptions({
     imageOrientation: 'flipY',
     premultiplyAlpha: 'none',

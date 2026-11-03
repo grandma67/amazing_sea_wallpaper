@@ -50,6 +50,10 @@ Sources behind built features. Research for planned work lives with its plan: co
   (`fogLayer.ts`; the drawn 30–120 m, banks 18–50 m, sit in the range)
 - Contrails: Irvine et al., EGU 2016 (most North Atlantic contrails last < 6 h, ~5% ≥ 24 h);
   Irvine, Hoskins & Shine, GRL 2012 (ice supersaturation by weather pattern)
+- Night sky (NIGHT_SKY phases 1–3; full list in STARS.md "Sources"): NASA SVS Deep Star Maps
+  2020 (Milky Way map); Masana et al. 2021 (integrated starlight and the night-sky budget at
+  40° N); Leinert et al. 1998 Table 17 (zodiacal light); Wikipedia "Sky brightness" (S10, the
+  dark-sky budget)
 
 ## Shore and animals
 

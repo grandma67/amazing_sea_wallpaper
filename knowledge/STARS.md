@@ -274,12 +274,28 @@ broken, and moonlit 2026-08-28:
   diffuse light, no direct light). A real moonless sky is airglow (greenish/neutral, brighter
   toward the horizon), not a blue Rayleigh sky. Clouds under it read as dark silhouettes, which
   is right with no light domes.
-- **Missing:** Milky Way, planets, meteors, airglow, zodiacal light, aurora, faint stars below
-  ~6.5.
+- **Missing:** ~~Milky Way, airglow, zodiacal light~~ (phase 3, below), planets, meteors,
+  aurora, faint stars below ~6.5 as points.
+- **Night glow** (built 2026-11-03, `nightGlow.ts`): units S10 (1 S10 = a 10th-magnitude star
+  per square degree = 27.78 mag/arcsec² ≈ 1.10 nW m⁻² sr⁻¹ in V). Dark zenith ≈ 220 S10 =
+  airglow 145 (up to ~270 at solar maximum) + zodiacal 60 + scattered starlight 15 (Wikipedia);
+  at 40° N averaged over a year: airglow 165, zodiacal 95, integrated starlight 75 nW m⁻² sr⁻¹
+  (Masana et al. 2021, Table 4). Zodiacal light: Leinert et al. 1998 Table 17 (S10): ecliptic
+  pole 77, 90° from the sun on the ecliptic 259, 30° 2,480, gegenschein 230 vs 179 at 150°.
+  Milky Way: the SVS map scaled so the zenith at 40° N makes 68 S10 with the catalogue: Sgr
+  star cloud ~1,050 S10 (20.2 mag/arcsec²), Scutum ~630, Cygnus ~170, poles 6–9. Two Masana
+  pixels at l = 45° (57 and 99 S10, 0.15° wide, in the Aquila dust) come out ~2× in our 0.35°
+  texels. The core is in frame on ~3% of Namibia's nights (it must be up, low and ahead: real
+  photographers aim for it).
 - Share of days (test days, `params.mjs`): night 10.3% (moonlit 7.1%, starlit 3.2%); clear,
   few or cirrus nights 4.9%; blue hour 11.3%; nights at |latitude| ≥ 60°: 3.5%.
 
 ## Sources
+
+- NASA SVS, "Deep Star Maps 2020" (Milky Way background and Hipparcos/Tycho layers, galactic, plate carrée) — https://svs.gsfc.nasa.gov/4851
+- Masana et al. (2021), "A multi-band map of the natural night sky brightness including Gaia and Hipparcos integrated starlight" — https://arxiv.org/abs/2101.01500 (Table 4 via the HTML version)
+- Leinert et al. (1998), "The 1997 reference of diffuse night sky brightness", Table 17 (zodiacal light, S10), as transcribed in skyscapes — https://skyscapes.readthedocs.io/en/latest/_modules/skyscapes/background/leinert.html
+- Wikipedia, "Sky brightness" (S10, the dark-sky budget) — https://en.wikipedia.org/wiki/Sky_brightness
 
 - IMO, "The 2026 meteor shower calendar is here" — https://www.imo.net/the-2026-meteor-shower-calendar-is-here/ ; calendar PDF https://www.imo.net/files/meteor-shower/cal2026.pdf
 - Sterngucker, "Meteor Shower Calendar 2026/2027" (IMO-based) — https://www.sterngucker.de/en/shooting-stars/meteor-shower-calendar/

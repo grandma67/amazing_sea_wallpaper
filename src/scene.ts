@@ -29,7 +29,9 @@ import {
   AmbientLight,
   DirectionalLight,
   HalfFloatType,
+  LinearFilter,
   LinearMipmapLinearFilter,
+  Matrix3,
   Matrix4,
   Mesh,
   NoToneMapping,
@@ -37,7 +39,9 @@ import {
   PCFShadowMap,
   PlaneGeometry,
   Points,
+  RepeatWrapping,
   Scene,
+  Texture,
   Uniform,
   Vector3,
   Vector4,
@@ -51,9 +55,10 @@ import { assetUrl } from './assets'
 import type { RGB } from './biome'
 import { createCamera } from './camera'
 import { moonlight as phaseLight } from './celestial'
-import { createClouds, loadCloudAssets, primeCloudShadow, renderCloudyEnvironment } from './clouds'
+import { createClouds, loadCloudAssets, loadImageTexture, primeCloudShadow, renderCloudyEnvironment } from './clouds'
 import { patchSkyContrails } from './contrails'
 import { patchSkyNoctilucent } from './noctilucent'
+import { glowScale, patchSkyNightGlow, type GlowFrame } from './nightGlow'
 import { eclipseSky } from './eclipse'
 import type { DebugPass } from './debug'
 import { meterScene } from './exposure'
@@ -71,7 +76,7 @@ import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './p
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
-import { skyRotation } from './skyClock'
+import { apply, ECLIPTIC_POLE, skyRotation, sunECI } from './skyClock'
 import { elongationDeg, renderPerLux, starScale, STARLIT_LUX } from './starLight'
 import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
@@ -240,6 +245,20 @@ export async function renderScene(
   const pass = (name: DebugPass): boolean => params.debug?.passes?.[name] !== false
   const cloudAssetsLoaded =
     (params.weather.kind === 'clear' && params.weather.dust == null) || !pass('clouds') ? Promise.resolve(null) : loadCloudAssets()
+  // The night sky's glow (nightGlow.ts) needs the Milky Way map.
+  const glow = pass('glow') ? params.nightGlow : null
+  const milkyWayLoaded =
+    glow?.milkyWay === true
+      ? loadImageTexture(assetUrl('milkyway.png')).then(t => {
+          // Galactic longitude wraps; sampled at full size (0.35°/texel).
+          t.wrapS = RepeatWrapping
+          t.generateMipmaps = false
+          t.minFilter = LinearFilter
+          // A texture made from an image uploads only when told to.
+          t.needsUpdate = true
+          return t
+        })
+      : Promise.resolve(null)
 
   // --- Camera ---------------------------------------------------------------
   const { camera, dip } = createCamera(params, width, height)
@@ -257,7 +276,10 @@ export async function renderScene(
   const ocean = createOcean(params, surface, renderer.capabilities.getMaxAnisotropy())
   const terrain = createTerrain(params, camera)
   const props = createProps(new PropContext(params, camera, surface, vfov / height))
-  const [textures, cloudAssets] = await Promise.all([atmosphere.textures, cloudAssetsLoaded])
+  const [textures, cloudAssets, milkyWayMap] = await Promise.all([atmosphere.textures, cloudAssetsLoaded, milkyWayLoaded])
+  // The sky clock turns the catalogue so the real sun for the date lands on
+  // the scene's sun (NIGHT_SKY phase 1); the glow and planets follow it.
+  const eciToWorld = skyRotation(params).matrix
 
   // --- Sky ------------------------------------------------------------------
   const makeSky = (withSun: boolean): SkyMaterial => {
@@ -297,7 +319,25 @@ export async function renderScene(
   // Environment map of the sky (without the sun disc; the ocean shader adds
   // sun glitter analytically) for water reflections.
   const envScene = new Scene()
-  envScene.add(skyMesh(makeSky(false)))
+  const envSkyMaterial = makeSky(false)
+  envScene.add(skyMesh(envSkyMaterial))
+
+  // The night's own light, on the sky and its reflection (smooth enough for
+  // the cube). Patched last: it runs first, under the other sky patches. On a
+  // starlit night it is the sky; otherwise it adds to the scattered light.
+  if (glow != null) {
+    const az = (params.coast.seawardAzimuthDeg * Math.PI) / 180
+    const frame: GlowFrame = {
+      eciToWorld,
+      worldToECEF: new Matrix3().setFromMatrix4(worldToECEF),
+      eclipticPole: apply(eciToWorld, ECLIPTIC_POLE),
+      realSun: apply(eciToWorld, sunECI(params.date)),
+      inland: hasLand(params.coast) ? [-Math.sin(az), 0, Math.cos(az)] : null
+    }
+    const scale = glowScale(params.nightSky, elongationDeg(params))
+    const map = milkyWayMap ?? new Texture()
+    for (const material of [skyMaterial, envSkyMaterial]) patchSkyNightGlow(material, glow, frame, map, scale, night && !moonlit)
+  }
 
   // Stars at night and late twilight: the real bright-star catalogue, turned
   // to the sky of this date and drawn behind the clouds.
@@ -306,10 +346,8 @@ export async function renderScene(
   if ((night || params.sunElevationDeg < 0 || totality) && pass('stars')) {
     const data = await new ArrayBufferLoader().loadAsync(assetUrl('stars.bin'))
     const geometry = new StarsGeometry(data)
-    // The sky clock turns the catalogue so the real sun for the date lands
-    // on the scene's sun (NIGHT_SKY phase 1).
-    const r = skyRotation(params).matrix
-    const eciToWorld = new Matrix4().set(r[0], r[1], r[2], 0, r[3], r[4], r[5], 0, r[6], r[7], r[8], 0, 0, 0, 0, 1)
+    const r = eciToWorld
+    const starRotation = new Matrix4().set(r[0], r[1], r[2], 0, r[3], r[4], r[5], 0, r[6], r[7], r[8], 0, 0, 0, 0, 1)
     const scale = starScale(params.nightSky, elongationDeg(params))
     for (const target of [scene, envScene]) {
       // The reflection cube's faces are 90° and ENV_SIZE texels tall.
@@ -320,7 +358,7 @@ export async function renderScene(
       material.worldToECEFMatrix.copy(worldToECEF)
       material.sunDirection.copy(lightECEF)
       const stars = new Points(geometry, material)
-      stars.setRotationFromMatrix(eciToWorld)
+      stars.setRotationFromMatrix(starRotation)
       stars.frustumCulled = false
       stars.renderOrder = -0.5
       stars.userData.sky = true
