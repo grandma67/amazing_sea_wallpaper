@@ -1,6 +1,6 @@
 # Night sky: stars, shooting stars, Milky Way, planets, aurora
 
-Plan (2026-10-31, not started; decisions recorded 2026-11-01, see the end). Research and numbers: [STARS.md](../STARS.md). Current code:
+Plan (2026-10-31; decisions recorded 2026-11-01, see the end; phase 1 done 2026-11-03). Research and numbers: [STARS.md](../STARS.md). Current code:
 [arch/SKY.md](../arch/SKY.md) "Moon and eclipses", `scene.ts` (stars block), `params.ts`
 (`nightSky`, `moonlight`).
 
@@ -32,6 +32,13 @@ Each phase: own random stream, spec field, off switch, test file, `diff.mjs` pro
 (SKY.md, STARS.md §10, changelog, SCENE_SPECS, REFERENCES).
 
 ### 1. Sky clock: stars, sun and moon agree (foundation)
+
+**Done 2026-11-03** (changelog 0.84, `test/skyClock.test.ts`). What differed from the plan:
+the moon on the ecliptic left the night moon above the frame on 38% of moonlit nights (the
+night's sun range stopped at −30°), so at night each moon candidate also draws a sun depth down
+to the midnight sun's (`'moon-hour'`): 95% in the 4–18° window again. Clamped elevations: 9.6%
+of days, kept (pole exact). Both sides of the sun allowed (a waxing moon may stand in the
+morning sky): the scene's clock is free.
 
 - `src/skyClock.ts`: `skyRotation(params)` → ECI→world matrix. Take the real sun direction for
   the date (`getSunDirectionECI`, takram) and find the hour angle that gives the scene's sun

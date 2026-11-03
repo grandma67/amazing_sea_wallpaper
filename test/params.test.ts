@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { sunLimits } from '../src/celestial'
 import { CLOUD_GENERA } from '../src/cloudTypes'
 import { dirFromAzEl, generateParams, horizontalHalfFovDeg, type TimeOfDay } from '../src/params'
 import { allParams, scenes, share } from './days'
@@ -64,7 +65,10 @@ describe('generateParams', () => {
     // just put out of sight.
     for (const p of days.filter(p => p.eclipse == null && p.nightSky !== 'starlit')) {
       const [lo, hi] = SUN_ELEVATION[p.timeOfDay]
-      expect(p.sunElevationDeg).toBeGreaterThanOrEqual(lo)
+      // At night the hour follows the moon (NIGHT_SKY phase 1): down to the
+      // midnight sun's depth.
+      const deepest = p.timeOfDay === 'night' ? Math.min(lo, sunLimits(p.latitudeDeg, p.date).min) : lo
+      expect(p.sunElevationDeg).toBeGreaterThanOrEqual(deepest - 1e-9)
       expect(p.sunElevationDeg).toBeLessThanOrEqual(hi)
       expect(Math.hypot(...p.sunDirection)).toBeCloseTo(1)
       expect(Math.hypot(...p.moonDirection)).toBeCloseTo(1)

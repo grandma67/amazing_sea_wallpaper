@@ -18,6 +18,7 @@ import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, climateTitle, latitudeIn, pickPlace, placeBiome, plantsFor, sandChances, type Climate, type Place } from './places'
 import { Random } from './random'
+import { apply, ECLIPTIC_POLE, eclipticOffset, skyRotation } from './skyClock'
 import { monthInSeason, season, seasonMonth } from './seasons'
 import { reefFor, reefShelter, type Reef } from './reef'
 import { flatGround, flatWaterline, tidalFlatFor, type SaltMarsh, type TidalFlat } from './tidalFlat'
@@ -1617,16 +1618,33 @@ function buildParams(
   let sunDirection = dirFromAzEl(headingDeg + relSunAz, sunElevationDeg)
 
   // Place the moon at the physically correct angular distance from the sun
-  // (its elongation), so the lit side and phase are consistent with the sky.
-  let moonDirection = offsetDirection(sunDirection, elongation * DEG, rng.range(0, 2 * Math.PI))
+  // (its elongation), so the lit side and phase are consistent with the sky,
+  // and within 5° of the ecliptic, which the sky clock turns into the scene
+  // (NIGHT_SKY phase 1). Either side of the sun: the scene's clock is free.
+  const eclipticPoleFor = (sun: [number, number, number]) =>
+    apply(skyRotation({ date, latitudeDeg, sunDirection: sun, evening: isEvening }).matrix, ECLIPTIC_POLE)
+  const eclipticPole = eclipticPoleFor(sunDirection)
+  const moonAt = (spin: number, sun = sunDirection, pole = eclipticPole) =>
+    eclipticOffset(sun, pole, elongation * DEG, spin / (2 * Math.PI))
+  let moonDirection = moonAt(rng.range(0, 2 * Math.PI))
   if (timeOfDay === 'night' || (timeOfDay === 'blue-hour' && rng.chance(0.6))) {
     // Prefer a moon placement high enough to see and roughly in front of the
     // camera; try candidate spins and keep the best.
     const view = dirFromAzEl(headingDeg, 0)
     let best = moonDirection
     let bestScore = -Infinity
+    // At night the hour is free too (a photographer waits for the moon to
+    // sink): each candidate also tries a sun depth anywhere in the real
+    // night, down to the midnight sun's (nothing reads the sun's depth
+    // below −16° but the sky clock), so the sky turns with the moon on the
+    // ecliptic. Own stream.
+    const hourRng = Random.derive(seed, 'moon-hour')
+    const deepest = Math.min(elMin, sunLimits(latitudeDeg, date).min)
+    let bestSunEl = sunElevationDeg
     for (let i = 0; i < 48; i++) {
-      const candidate = offsetDirection(sunDirection, elongation * DEG, rng.range(0, 2 * Math.PI))
+      const sunEl = timeOfDay === 'night' ? or(hourRng.range(deepest, elMax), spec.sunElevationDeg) : sunElevationDeg
+      const sun = sunEl === sunElevationDeg ? sunDirection : dirFromAzEl(headingDeg + relSunAz, sunEl)
+      const candidate = moonAt(rng.range(0, 2 * Math.PI), sun, sun === sunDirection ? eclipticPole : eclipticPoleFor(sun))
       const el = elevationOf(candidate)
       const facing = candidate[0] * view[0] + candidate[2] * view[2]
       // At night the moon is the subject: keep it low enough to share the
@@ -1636,9 +1654,14 @@ function buildParams(
       if (score > bestScore) {
         bestScore = score
         best = candidate
+        bestSunEl = sunEl
       }
     }
     moonDirection = best
+    if (bestSunEl !== sunElevationDeg) {
+      sunElevationDeg = bestSunEl
+      sunDirection = dirFromAzEl(headingDeg + relSunAz, sunElevationDeg)
+    }
     if (timeOfDay === 'night') {
       // Turn toward the moon so its glitter path runs across the water.
       const moonAzDeg = Math.atan2(moonDirection[0], -moonDirection[2]) / DEG
@@ -1656,7 +1679,7 @@ function buildParams(
     const view = dirFromAzEl(headingDeg, 0)
     let bestScore = -Infinity
     for (let i = 0; i < 48; i++) {
-      const candidate = offsetDirection(sunDirection, elongation * DEG, skyRng.range(0, 2 * Math.PI))
+      const candidate = moonAt(skyRng.range(0, 2 * Math.PI))
       const el = elevationOf(candidate)
       const facing = candidate[0] * view[0] + candidate[2] * view[2]
       // Low enough for most lenses to take it in above the horizon.

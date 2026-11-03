@@ -86,8 +86,9 @@ Playwright (headless snapshots), Vitest.
      (`'rainbow'`).
   5. Heading, sun elevation (main, within `sunRange`: the day's real range from 63°) and
      azimuth (main; eclipse and rainbow override; on midnight-sun days the heading becomes the
-     sun's real compass bearing − `relSunAz`), moon direction
-     (main, `'moon-framing'`), day moon and night sky (`'moon-sky'`).
+     sun's real compass bearing − `relSunAz`), moon direction within 5° of the ecliptic
+     (`skyClock.ts`; main, at night the sun depth from `'moon-hour'`, then `'moon-framing'`), day
+     moon and night sky (`'moon-sky'`).
   6. Camera height, focal length (main, `keep`), wind speed and heading (main, `keep`).
   7. Storm (`'storm'`, `'storm-weather'`: overrides weather and wind); water (`'water'`); wind
      × basin, marine-layer wind cap; formations (`'formations'`, `'cloud-species'`);

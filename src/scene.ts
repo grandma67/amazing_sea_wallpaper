@@ -2,7 +2,6 @@ import {
   AerialPerspectiveEffect,
   AtmosphereParameters,
   METER_TO_LENGTH_UNIT,
-  getECIToECEFRotationMatrix,
   getSunLightColor,
   PrecomputedTexturesGenerator,
   type PrecomputedTextures,
@@ -72,6 +71,7 @@ import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './p
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
+import { skyRotation } from './skyClock'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
@@ -301,10 +301,10 @@ export async function renderScene(
   if (night || starryTwilight) {
     const data = await new ArrayBufferLoader().loadAsync(assetUrl('stars.bin'))
     const geometry = new StarsGeometry(data)
-    const eciToWorld = new Matrix4()
-      .extractRotation(worldToECEF)
-      .transpose()
-      .multiply(getECIToECEFRotationMatrix(new Date(`${params.date}T00:00:00Z`).getTime() + params.ocean.time * 1000))
+    // The sky clock turns the catalogue so the real sun for the date lands
+    // on the scene's sun (NIGHT_SKY phase 1).
+    const r = skyRotation(params).matrix
+    const eciToWorld = new Matrix4().set(r[0], r[1], r[2], 0, r[3], r[4], r[5], 0, r[6], r[7], r[8], 0, 0, 0, 0, 1)
     for (const target of [scene, envScene]) {
       const material = new StarsMaterial({ ...textures })
       material.worldToECEFMatrix.copy(worldToECEF)

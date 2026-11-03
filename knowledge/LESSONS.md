@@ -137,6 +137,10 @@ tool gotchas: TOOLS.md.
   `envScene`'s; make the patch throw if it stops matching. Units km (`ATMOSPHERE.bottom_radius`),
   positions ECEF from earth's centre. Drawn under volumetric clouds and behind geometry for free.
   The clouds' weather-map lookup is patched the same way (`cloudArrangement.ts`).
+- Bounding a best-of-N placement by physics (the moon to the ecliptic) can starve its framing
+  search: count the framing window with `params.mjs --ref HEAD --stats` before rendering (the
+  night moon fell from 97% to 62% in 4–18°). Free a choice the scene doesn't pin instead (the
+  hour of night, on its own stream).
 - The sky draws sun and moon independently (no occlusion) and keeps the moon's total light fixed:
   scale `lunarRadianceScale` by `moonScale²` or a bigger disc is dimmer.
 - A night moon disc is ~10⁴ (thousands × white): earthshine and the eclipse umbra must be tiny

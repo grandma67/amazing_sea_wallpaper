@@ -256,11 +256,11 @@ broken, and moonlit 2026-08-28:
 
 - **Stars:** BSC5 via takram `StarsMaterial`, 1-pixel points, intensity `4000 × nightScale^−1.2`
   (an empirical boost), not in the sea reflection. Sparse next to a real dark-sky photo.
-- **The sky turns at the wrong time:** stars are rotated for `date 00:00 UTC + ocean.time`
-  (0–2.8 h) at longitude 0, while the sun's direction is chosen by time of day and heading. So
-  the star sky isn't tied to the sun: blue-hour skies show the midnight sky, and the sun isn't
-  where it should be among the stars. Needed before planets, zodiacal light, Milky Way season or
-  radiants can be right.
+- **The sky turns at the wrong time** (fixed 2026-11-03, sky clock, `skyClock.ts`): stars were
+  rotated for `date 00:00 UTC + ocean.time` at longitude 0, not tied to the sun. Now the real
+  sun for the date lands on the scene's sun; the moon stays within 5° of the ecliptic. 9.6% of
+  days have a sun elevation the latitude can't reach that day (mostly high-latitude winter
+  middays; 11 nights where the sun never sinks to −16°): the pole stays exact, the sun is off.
 - **Starlit sky colour:** a Bruneton "day" sky lit by a fake sun overhead (`starlight =
   [0.2, 0.96, 0.2]`), graded down. A real moonless sky is airglow (greenish/neutral, brighter
   toward the horizon), not a blue Rayleigh sky. Clouds under it read as dark silhouettes, which

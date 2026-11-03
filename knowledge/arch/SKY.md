@@ -31,7 +31,11 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   (24–35 mm, more sky, sun/moon low ahead; clear or cirrus, total under clear). The moon by day is
   framed with the sun on ~35% of days with the moon > 15% lit. `scene.ts`: night exposure ×
   max(moonlight, 0.06)^0.5 (starlit 0.5, lit by a dim overhead light standing in for starlight
-  and airglow), stars boosted as the night darkens (not in the reflection cube); moon disc at
+  and airglow), stars boosted as the night darkens (not in the reflection cube) and turned by the
+  sky clock (`skyClock.ts` `skyRotation`: the real sun for the date's J2000 direction is put on
+  the scene's sun via the hour angle for its elevation at the latitude, then a turn about the
+  vertical; impossible elevations clamp the hour angle, keeping the pole exact; the moon stays
+  within 5° of the ecliptic, `eclipticOffset`, on either side of the sun); moon disc at
   constant surface brightness, earthshine on crescents, umbra with copper glow (`moon.ts`); lunar
   eclipses dim the moonlight. `eclipse.ts`: the moon covers the sun; in totality the sky darkens
   to a horizon glow with corona and stars, no direct sun, sky light ×~0.01, no aerial-perspective
