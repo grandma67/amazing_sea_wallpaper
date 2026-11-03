@@ -147,6 +147,13 @@ tool gotchas: TOOLS.md.
   bright and, in the 256² reflection cube, made glitter paths and blobs on the sea and wet rock.
   takram's `StarsMaterial` writes sky + star (opaque), so it hid any sky patch (eclipse
   darkening) under each star: draw stars additively.
+- Night frames used an eye's night vision (85% of every dim pixel to blue-grey): it hid every
+  night colour a photo shows (aurora green, town orange, the Milky Way's warm core). A camera has
+  no rods: use its night white balance (~4000 K) instead (`whiteBalance.ts`). Without the grey,
+  each night source's own colour matters: give it the colour a camera records, in luminance
+  terms (the red 630 nm airglow line at 5–35% of the luminance turned dark skies brown; it is a
+  few %). Sample real pixels (a canvas `getImageData`, `scratchpad` script) before reasoning
+  about a tint; turn sources off one at a time (`passes.glow`, `milkyWay: false`).
 - The night glow is patched into the env cube's sky too, against the "main sky only" rule: it is
   smooth (0.35°/texel and coarser), so 256² faces hold it, and the sea must reflect it. Sharp
   sky features (contrails, meteors, noctilucent detail) still stay out of the cube.

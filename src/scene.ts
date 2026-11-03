@@ -90,38 +90,32 @@ import { bindCloudShadow, bindLandShadow, bindShadow, renderLandShadow } from '.
 import { SkyDenoiseEffect } from './skyDenoise'
 import { GpuResources, trackUploads } from './dispose'
 import { createTerrain, hasLand } from './terrain'
+import { NIGHT_WHITE_BALANCE_K, whiteBalanceGains } from './whiteBalance'
 
 const DEG = Math.PI / 180
 /** Reflection cube map size (texels per face). */
 const ENV_SIZE = 256
 const REAL_MOON_ANGULAR_RADIUS = 0.0045
 
-/** Exposure and night-time colour grading, applied before bloom/tone mapping. */
+/** Exposure and the camera's white balance, applied before bloom/tone
+ * mapping. A camera has no rods: night frames keep their colours
+ * (whiteBalance.ts). */
 class GradeEffect extends Effect {
-  constructor(exposure: number, night: number, whiteBalance: Color) {
+  constructor(exposure: number, whiteBalance: Color) {
     super(
       'GradeEffect',
       /* glsl */ `
       uniform float exposure;
-      uniform float night;
       uniform vec3 whiteBalance;
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
         // Clamp extreme highlights (the sun disc) so bloom doesn't ring.
         vec3 c = min(inputColor.rgb * exposure * whiteBalance, vec3(40.0));
-        // Scotopic vision: desaturate and shift toward blue in moonlight.
-        float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
-        vec3 nightColor = lum * vec3(0.33, 0.62, 1.4);
-        // Mesopic: what is far brighter than the night sky (lamps on boats,
-        // ~1000× it) is seen by the cones, in colour.
-        float rods = night * (1.0 - smoothstep(4.0, 40.0, lum));
-        c = mix(c, mix(c, nightColor, 0.85), rods);
         outputColor = vec4(c, inputColor.a);
       }`,
       {
         blendFunction: BlendFunction.SET,
         uniforms: new Map<string, Uniform>([
           ['exposure', new Uniform(exposure)],
-          ['night', new Uniform(night)],
           ['whiteBalance', new Uniform(whiteBalance)]
         ])
       }
@@ -544,9 +538,14 @@ export async function renderScene(
   // A dark sky in totality, metered off its bright horizon.
   const eclipseBias = totality ? -1.6 : 0
   // Twilight under the Bruneton sky skews magenta; cool it toward the blue a
-  // camera set to daylight white balance would record.
+  // camera set to daylight white balance would record. Night frames are shot
+  // at a night white balance (~4000 K): blue sky, colours kept.
   const whiteBalance =
-    params.timeOfDay === 'blue-hour' ? new Color(0.6, 0.85, 1.25) : new Color(1, 1, 1)
+    params.timeOfDay === 'blue-hour'
+      ? new Color(0.6, 0.85, 1.25)
+      : night
+        ? new Color(...whiteBalanceGains(NIGHT_WHITE_BALANCE_K))
+        : new Color(1, 1, 1)
   // The meter only sees the clear sky, but a thick deck hides the sun and
   // turns the light grey: open up and neutralise the blue skylight, as a
   // camera on auto exposure and white balance would.
@@ -554,8 +553,6 @@ export async function renderScene(
   // Storms stay dark and moody: only a little of that lift.
   const gloom = (night ? 0 : 1 - weather.sunVisibility) * (storm ? 0.35 : 1)
   whiteBalance.lerp(new Color(1.12, 1.0, 0.84).multiply(whiteBalance), gloom)
-  // Night vision blends in from dusk: partly desaturated and blue at blue hour.
-  const scotopic = night ? 1 : params.timeOfDay === 'blue-hour' ? 0.5 : 0
   // A debug spec can fix it (diff.mjs --keep-exposure), so a sky or weather
   // change doesn't re-expose the whole frame.
   const exposure =
@@ -650,7 +647,7 @@ export async function renderScene(
     ;(u.lampIntensities.value as Vector3[])[i].set(...colour).multiplyScalar(irradiance)
   })
   u.lampCount.value = lamps.length + bright.length
-  const grade = new GradeEffect(exposure, scotopic, whiteBalance)
+  const grade = new GradeEffect(exposure, whiteBalance)
   // A lit lighthouse's beams in the haze, in the scene's radiance units: a
   // fixed lamp, so they stand out more the darker the sky.
   let lantern: LanternInfo | null = null
@@ -814,6 +811,7 @@ export async function renderScene(
       exposure,
       sceneLuminance,
       skyZenith: metered.zenith,
+      whiteBalance: whiteBalance.toArray(),
       nightScale,
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),

@@ -187,6 +187,10 @@ to 5.5–7° down and needs a clear sky: a −4 Venus in bright twilight near th
 3. **Milky Way source:** a real all-sky panorama (e.g. ESO/S. Brunier, CC BY 4.0, credited on
    the page), not procedural.
 4. **Order:** phases 1 → 2 → 3 → 4 → 5 → 6 as listed.
+5. **Night colour** (2026-11-04, user: option C): night frames are a camera's at a night white
+   balance (~4000 K, `whiteBalance.ts`), not an eye's night vision. The scotopic grade (85% of
+   every dim pixel pushed to blue-grey; 50% at blue hour) is gone. Done in changelog 0.89; the
+   aurora (phase 6) continues on top of it.
 
 ## Seen, not part of this plan
 

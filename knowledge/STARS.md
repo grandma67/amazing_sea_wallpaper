@@ -286,6 +286,10 @@ broken, and moonlit 2026-08-28:
   brighter than mag 1 (Mercury often, low in twilight, mostly hidden by it).
 - **Missing:** ~~Milky Way, airglow, zodiacal light, meteors, planets~~ (phases 3–5),
   aurora, faint stars below ~6.5 as points.
+- **Night colour** (2026-11-04): a camera at ~4000 K, not night vision (ARCHITECTURE.md
+  "Frame and post"). The airglow's camera colour: ~75% warm continuum (sodium, OH, O₂) + ~25%
+  green line, the red line a few % of the luminance; raw dark-sky photos run ~R/G 0.85, B/G 0.6
+  (general), teal-blue at 4000 K.
 - **Night glow** (built 2026-11-03, `nightGlow.ts`): units S10 (1 S10 = a 10th-magnitude star
   per square degree = 27.78 mag/arcsec² ≈ 1.10 nW m⁻² sr⁻¹ in V). Dark zenith ≈ 220 S10 =
   airglow 145 (up to ~270 at solar maximum) + zodiacal 60 + scattered starlight 15 (Wikipedia);

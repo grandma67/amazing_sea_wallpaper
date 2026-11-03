@@ -174,11 +174,18 @@ const unit = (c: [number, number, number]): [number, number, number] => {
   const l = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
   return [c[0] / l, c[1] / l, c[2] / l]
 }
-/** Green line with the sodium and OH continuum a camera records; the red
- * oxygen line; the sun (zodiacal light is sunlight, slightly reddened); a
- * sodium-and-LED town glow. */
+const mix = (a: [number, number, number], b: [number, number, number], t: number): [number, number, number] => [
+  a[0] * (1 - t) + b[0] * t,
+  a[1] * (1 - t) + b[1] * t,
+  a[2] * (1 - t) + b[2] * t
+]
+/** The low airglow layer as a camera records it: a warm continuum (sodium,
+ * OH and O₂ bands; brownish in raw daylight-balanced photos, blue-grey at a
+ * night white balance) carrying ~75% of the light, and the green oxygen line
+ * on top (measured raw: R/G ~0.85, B/G ~0.6; teal-blue at ~4000 K). Then the red oxygen line; the sun (zodiacal light is sunlight,
+ * slightly reddened); a sodium-and-LED town glow. */
 export const GLOW_COLOURS = {
-  green: unit([0.55, 1.0, 0.35]),
+  green: unit(mix(unit([0.82, 0.78, 0.565]), unit([0.25, 1.0, 0.15]), 0.25)),
   red: unit([1.0, 0.08, 0.05]),
   zodiacal: unit([1.0, 0.93, 0.82]),
   town: unit([1.0, 0.66, 0.36])
@@ -202,8 +209,10 @@ export function nightGlowFor(
   return {
     bortle: force.skyDarkness ?? placeNamed(params.place.id).bortle,
     airglowS10: airglowZenith(params.date) * spread,
-    // The red line follows the solar cycle more than the green.
-    redShare: Math.min(0.35, (0.05 + 0.15 * activity) * red),
+    // The red line follows the solar cycle more than the green. Its share of
+    // the luminance is small: ~50–100 R against ~250 R of green and the
+    // continuum, at 630 nm where luminance weighs ~0.27 of 555 nm.
+    redShare: Math.min(0.1, (0.01 + 0.04 * activity) * red),
     bands,
     dome,
     milkyWay: off(force.milkyWay),

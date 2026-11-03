@@ -157,6 +157,13 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 
 ## Frame and post
 
+- **Night colour** (`whiteBalance.ts`, `GradeEffect` in `scene.ts`): frames are a camera's. By
+  day the render's white is daylight; blue hour has its cool balance (0.6, 0.85, 1.25); night
+  frames are shot at 4000 K (`whiteBalanceGains`, Planckian locus → linear Rec. 709 gains,
+  luminance kept: ≈ (0.67, 1.02, 1.77)). No night-vision grey: the moonlit sky is blue because
+  the balance makes moonlight (sunlight) blue; the starlit sky teal-blue (airglow); the Milky Way,
+  stars, lamps and aurora keep their colours. `debug.whiteBalance` reports it.
+
 - `camera.ts`; `composition.ts` (ray-grid coverage, re-rolls bad framings; `frameView`: eye
   height, pixel angle and nearest ground in frame, for `params.mjs` `p.view`); `reflection.ts`
   (planar reflection).
@@ -200,8 +207,9 @@ December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
 
-- Light pollution (`nightGlow.ts`): the domes' warm colour is lost to the scotopic grade
-  (`GradeEffect` turns dim light blue), and low clouds aren't lit from below by the towns.
+- Light pollution (`nightGlow.ts`): low clouds aren't lit from below by the towns. At the
+  night white balance (4000 K) the domes come out only mildly warm (sodium ~2100 K stays
+  orange; the LED share pulls them neutral).
 
 Places and climate:
 - Landforms and islands are still chosen by biome (`pickLandform`, `ISLANDS`): nordic places

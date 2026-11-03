@@ -125,5 +125,5 @@ platform 3–20 m in from today's water. Vegetation starts on top of the back fa
   20 m, anchor all-round, trawling green over white, deck/work lamps) at Annex I intensities
   (0.9–94 cd). Only lights whose sector faces the camera are added, as additive sprites ≥ 2.5 px
   with radiance × area = intensity, in scene units via metered luminance / `skyLuminance()`. The
-  ocean mirrors the 12 brightest as GGX point lights (hidden from the planar mirror). The night
-  grade is mesopic: pixels far above sky level keep their colour.
+  ocean mirrors the 12 brightest as GGX point lights (hidden from the planar mirror). Night frames
+  are a camera's (no night-vision grey, `whiteBalance.ts`): the lamps keep their colours.
