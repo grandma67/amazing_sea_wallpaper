@@ -20,6 +20,8 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | A new mesh alone | `mesh.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Which pass, term or grid causes a look | `params.debug` switches and views | [tools/DEBUG.md](tools/DEBUG.md) |
+| How bright or what colour is X in the render (raw, cd/m², mag/″², final RGB) | `params.debug.probe` | [tools/DEBUG.md](tools/DEBUG.md) |
+| Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
 
 ## Shared conventions
@@ -71,6 +73,11 @@ minutes (dep optimisation).
   `node_modules/.vite` (a worktree symlinking `node_modules`): stop 5174,
   `rm -rf node_modules/.vite`, start again. `refServer.mjs` gives its worktree its own `cacheDir`.
 - macOS has no `timeout`; don't wrap commands in one (snapshot has `--budget`).
+- Each `params.mjs` call costs a few seconds (it builds the modules): a shell loop over seeds or
+  places timed out. Ask once over a date range with `--list --where 'p => …'` or `--stats`.
+- No PDF tools here (`pdftotext`, poppler, pypdf missing; inflating the streams by hand fails on
+  TeX's custom font encodings). For a paper's table, look for a transcription (a library's
+  source, an HTML version: arXiv `/html/ID`) and say where the numbers came from.
 - Vitest hides `console.log` from passing tests: `--silent=false`, or `process.stderr.write(…)` in
   a throwaway probe test (deleted afterwards). Better: probe with `params.mjs` (`p.ctx`, `src.X`).
 - `sips --cropOffset` silently returns the whole image here, and there's no PIL: crop with

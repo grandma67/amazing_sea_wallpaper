@@ -24,6 +24,8 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   Scotia beach). Use it for a new prop's cost (`bench.mjs` only times the whole render). Kinds are
   the creators in `props/index.ts` (`rocks`, `islands`, `shore-life`, `colony`, `ships`, …).
 - `--crop KINDS` saves `NAME.KIND.jpg`; read the crop, not the frame.
+- `params.debug.probe` in the spec: one line per point (raw, cd/m², mag/″², exposed, final RGB;
+  tools/DEBUG.md). Numbers instead of judging brightness or tint from the JPEG.
 - ⚠ warnings (`scripts/checks.mjs`): backlit (low sun within 60° of the view: pale features
   vanish; check front-lit with `"sunAzimuthDeg": 160`), prop not placed or none in frame, and
   `GL: N× …` (any WebGL or GPU-process GL message during that render, page or worker: always a

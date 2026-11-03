@@ -415,7 +415,22 @@ function checkDebug(value: unknown, path: string): void {
     },
     exposure: number,
     terrainView: oneOf(...TERRAIN_VIEWS),
-    oceanView: oneOf(...OCEAN_VIEWS)
+    oceanView: oneOf(...OCEAN_VIEWS),
+    probe: (v, p) => {
+      if (!Array.isArray(v)) fail(p, 'must be a list of [x, y] fractions or {az, el}')
+      ;(v as unknown[]).forEach((e, i) => {
+        const at = `${p}[${i}]`
+        if (Array.isArray(e)) {
+          if (e.length !== 2 || !e.every(x => typeof x === 'number' && x >= 0 && x <= 1)) fail(at, 'must be [x, y] with each in 0–1')
+        } else if (e !== null && typeof e === 'object') {
+          const o = e as Record<string, unknown>
+          if (typeof o.az !== 'number' || typeof o.el !== 'number' || Object.keys(o).length !== 2) fail(at, 'must be {az, el} in degrees')
+        } else fail(at, 'must be [x, y] or {az, el}')
+      })
+    },
+    probeHalf: (v, p) => {
+      if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 20) fail(p, 'must be an integer 0–20')
+    }
   }
   for (const [k, v] of Object.entries(d)) {
     if (checks[k] == null) fail(`${path}.${k}`, `is not a debug field: ${Object.keys(checks).join(', ')}`)

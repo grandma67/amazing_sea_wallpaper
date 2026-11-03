@@ -1,6 +1,7 @@
 import { PerspectiveCamera } from 'three'
 
 import { EARTH_RADIUS, type SceneParams } from './params'
+import { cameraPitch } from './skyFrame'
 import { hasLand, terrainHeight } from './terrain'
 
 const DEG = Math.PI / 180
@@ -23,8 +24,8 @@ export function createCamera(params: SceneParams, width: number, height: number)
   const h = ground + params.camera.heightM
   camera.position.set(0, h, 0)
   const dip = Math.acos(EARTH_RADIUS / (EARTH_RADIUS + h))
-  const ndcY = 1 - 2 * params.camera.horizonFraction
-  const pitch = -dip - Math.atan(ndcY * Math.tan(vfov / 2))
+  // The same pitch skyFrame.ts projects sky directions with.
+  const pitch = cameraPitch(params, dip)
   camera.rotation.order = 'YXZ'
   camera.rotation.set(pitch, -params.camera.headingDeg * DEG, params.camera.rollDeg * DEG)
   camera.updateMatrixWorld()

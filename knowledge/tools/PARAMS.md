@@ -68,6 +68,21 @@ node scripts/params.mjs --scene '{"saltMarsh":true,"composition":"framed"}' --st
 node scripts/params.mjs --scene '{"coast":"tidal-flat"}' --stats 'p => src.terrain.worldToShore(p.coast, 0, 0).map(Math.round)' 2025-07-10
 ```
 
+### Sky directions in the frame: `src.skyFrame`
+
+`skyFrame.ts` projects world directions exactly as the render camera does (lens, yaw, pitch,
+roll; the horizon's dip if given), with no WebGL: `project(p, dir)` → NDC (±1 at the edges),
+`pixelOf(p, dir, w, h)`, `inSky(p, dir, margin, minElDeg)`, `unproject(p, nx, ny)`,
+`dirFromAzEl`, `azEl`. Use it for anything placed in the sky (and in code, from `params.ts`):
+
+```sh
+# Is the galactic centre in frame tonight, and where?
+node scripts/params.mjs --scene S --stats 'p => { const d = src.skyClock.apply(src.skyClock.skyRotation(p).matrix, src.meteors.radec(266.4, -28.9)); return src.skyFrame.pixelOf(p, d, 1920, 1080)?.map(Math.round) ?? "out" }'
+```
+
+Checking only the azimuth missed the vertical field: three "core in frame" nights had it 20°
+above the top edge.
+
 ### Which days did a change touch: `--ref`
 
 `--ref HEAD` generates every test day with that commit and with this tree and counts the days

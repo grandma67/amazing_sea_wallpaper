@@ -4,7 +4,6 @@ import {
   cameraLimit,
   frameShare,
   meteorRates,
-  project,
   radec,
   showerZhr,
   SHOWERS,
@@ -13,12 +12,12 @@ import {
   sporadicRate
 } from '../src/meteors'
 import { apply, skyRotation } from '../src/skyClock'
+import { project } from '../src/skyFrame'
 import { allParams, scene, scenes } from './days'
 
 // NIGHT_SKY phase 4: shooting stars.
 
 type Vec3 = [number, number, number]
-const DEG = Math.PI / 180
 const dot = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
 const DARK = { timeOfDay: 'night', nightSky: 'starlit', weather: 'clear', eclipse: null, fog: null, storm: null } as const
@@ -42,15 +41,6 @@ describe('meteors', () => {
     const cost = 2.2 ** (2.5 - full)
     expect(cost).toBeGreaterThan(3)
     expect(cost).toBeLessThan(10)
-  })
-
-  it('projects the horizon where the composition puts it', () => {
-    for (const p of allParams().slice(0, 60)) {
-      const h = p.camera.headingDeg * DEG
-      const ndc = project(p, [Math.sin(h), 0, -Math.cos(h)])!
-      expect(ndc[0]).toBeCloseTo(0, 6)
-      expect(ndc[1]).toBeCloseTo(1 - 2 * p.camera.horizonFraction, 6)
-    }
   })
 
   it('shows a meteor on most clear Perseid peaks and few ordinary nights', () => {

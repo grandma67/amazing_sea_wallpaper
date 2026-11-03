@@ -32,15 +32,17 @@ What the aurora does today: [NIGHT_SKY.md](NIGHT_SKY.md) phase 6 (on the branch)
 
 ## How to work (read first)
 
-- **Numbers before renders.** Port the shader's ray march to a small JS script (same layers,
-  footprint, profiles, colours; camera on a sphere, pole = +x) and print the brightness of rays
-  at the frame's elevations (2–30°) and a few azimuths, in units of the dark zenith sky (render
-  units: dark zenith ≈ 0.065 on starlit nights). This found the side-on arc and band-width
-  problems; renders alone took 8 rounds. Keep the script in the scratchpad, not the repo.
+- **Numbers before renders.** Write a TypeScript mirror of the shader's ray march in
+  `aurora.ts` (same layers, footprint, profiles, colours; the project's rule, LESSONS.md
+  "Debugging approach"), test it, and print the brightness of rays at the frame's elevations
+  (2–30°) and a few azimuths against the local sky. A throwaway JS port of it found the side-on
+  arc and band-width problems in one run; renders alone took 8 rounds.
+- **Measure renders with the probe** (`params.debug.probe`, tools/DEBUG.md): an arc and the sky
+  beside it (`{az, el}`), raw cd/m² and final RGB. Where the display stands in the frame:
+  `src.skyFrame` (`project`, `pixelOf`).
 - Render with `snapshot.mjs --w 1920 --h 1080 --frames 16 --scene scenes/aurora.json`; after a
   GLSL edit, `--w 320 --h 180 --frames 1` first (`patch` is a reserved word; LESSONS.md
-  "Shaders"). Sample real pixels when judging a colour (a canvas `getImageData` script), not the
-  thumbnail.
+  "Shaders"). Judge colours by the probe's final RGB, not the thumbnail.
 - Prove each fix with `diff.mjs --scene scenes/aurora.json --ref HEAD` and a crop
   (`contact-sheet.mjs --match '^NAME$' --region …`). At most ~3 render rounds per fix; past that,
   go back to the JS port.

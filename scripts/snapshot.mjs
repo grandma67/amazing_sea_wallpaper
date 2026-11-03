@@ -15,6 +15,7 @@
 // --ref REF           render that commit (worktree on port 5177); implies --drop-unknown
 // --drop-unknown      leave out (and name) spec fields the served commit rejects
 // DEBUG=1             print each render's debug (exposure, luminance, …)
+//                     params.debug.probe (tools/DEBUG.md) prints one line per point
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -146,6 +147,20 @@ for (const { date, spec: asked, name } of todo) {
   await writeFile(join(outDir, `${name}.json`), JSON.stringify({ ...params, spec }, null, 2))
   console.log(`${file}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${params.title}`)
   if (process.env.DEBUG) console.log(JSON.stringify(params.debug))
+  // The pixel probe (params.debug.probe): one line per point.
+  for (const r of params.debug?.probe ?? []) {
+    const at = Array.isArray(r.at) ? `[${r.at.join(', ')}]` : `az ${r.at.az} el ${r.at.el}`
+    if (r.pixel == null) {
+      console.log(`  probe ${at}: out of frame`)
+      continue
+    }
+    const e = v => v.map(x => x.toExponential(2)).join(' ')
+    const mag = r.magArcsec2 != null ? `, ${r.magArcsec2} mag/″²` : ''
+    console.log(
+      `  probe ${at} px ${r.pixel.join(',')}: raw ${e(r.raw.mean)} (peak ${e(r.raw.peak)}), ${r.cdm2.toExponential(2)} cd/m²${mag}; ` +
+        `exposed ${r.exposed.mean.map(x => x.toFixed(3)).join(' ')}; final ${r.final.mean.join(',')} (peak ${r.final.peak.join(',')})${r.clipped ? ' ⚠ clipped' : ''}`
+    )
+  }
   // GPU-process messages arrive a few ms after the frame.
   await page.waitForTimeout(100)
   const warnings = snapshotWarnings(params, propKinds.filter(k => k !== 'all'), messages.gl())

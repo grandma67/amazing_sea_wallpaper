@@ -12,6 +12,18 @@ tool gotchas: TOOLS.md.
   `props.X`) on a spec or real days, not with throwaway test files; read the view cone on the
   `profile.mjs` map before blaming shading for a band or ridge across the frame.
 
+- Brightness questions ("why can't I see X?", "why is the sky brown?") are numbers: probe the
+  pixel and the sky beside it (`params.debug.probe`) before rendering again. The NIGHT_SKY work
+  rendered ×20 and ×30 boosts and sampled JPEGs by hand for answers one probe gives: a texture
+  that never uploaded, a Venus physically lost in the twilight glow, a red line turning the sky
+  brown.
+- A sky-shader feature gets a TypeScript mirror of its brightness (as `psfWeight` mirrors the
+  stars' shader, `zodiacalS10` the zodiacal table): compute what a frame sees (ray brightness at
+  the frame's elevations vs the local sky) before the first render. The aurora took 8 render
+  rounds; the mirror, written at round 6, found both problems (arcs seen side-on are ~0.3× their
+  overhead column; the oval band was too narrow) in one run.
+- Where things land in the sky: `skyFrame.ts`, never a hand-written projector (one had the
+  pitch backwards and put meteors off the top of the frame).
 - "Not showing" is usually placement, light or size: check `--props`, backlight and pixel size
   before debugging shaders. Small things at real scale vanish (10 cm crab: ~70 px at 5 m at 4K, a
   speck at 20 m).

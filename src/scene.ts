@@ -79,7 +79,7 @@ import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
 import { apply, ECLIPTIC_POLE, skyRotation, sunECI } from './skyClock'
-import { elongationDeg, renderPerLux, starScale, STARLIT_LUX } from './starLight'
+import { darkZenithLuminance, elongationDeg, renderPerLux, starScale, STARLIT_LUX } from './starLight'
 import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
@@ -91,6 +91,8 @@ import { SkyDenoiseEffect } from './skyDenoise'
 import { GpuResources, trackUploads } from './dispose'
 import { createTerrain, hasLand } from './terrain'
 import { NIGHT_WHITE_BALANCE_K, whiteBalanceGains } from './whiteBalance'
+import { probeResult, ProbePass, readCanvas, type ProbeBox } from './probe'
+import { dirFromAzEl as skyDir, pixelOf } from './skyFrame'
 
 const DEG = Math.PI / 180
 /** Reflection cube map size (texels per face). */
@@ -705,6 +707,21 @@ export async function renderScene(
     new HueSaturationEffect({ saturation: 0.15 - 0.3 * gloom }),
     new BrightnessContrastEffect({ contrast: 0.08 })
   )
+  // The pixel probe reads the exposed image just before bloom and tone
+  // mapping, on the last frame (probe.ts, debug.probe).
+  const probes = params.debug?.probe ?? []
+  const probeBoxes: (ProbeBox | null)[] = probes.map(at => {
+    const half = params.debug?.probeHalf ?? 2
+    const px: [number, number] | null = Array.isArray(at)
+      ? [at[0] * (width - 1), at[1] * (height - 1)]
+      : // The render's own aspect (createCamera), not the composed one.
+        pixelOf({ camera: { ...params.camera, aspect: width / height } }, skyDir(params.camera.headingDeg + at.az, at.el), width, height, dip)
+    if (px == null) return null
+    const clampPx = (v: number, n: number): number => Math.min(n - 1 - half, Math.max(half, v))
+    return { pixel: [clampPx(px[0], width), clampPx(px[1], height)], half }
+  })
+  const probePass = probes.length > 0 ? new ProbePass(probeBoxes, height) : null
+  if (probePass != null) composer.addPass(probePass)
   composer.addPass(finish)
 
   // --- Render once ------------------------------------------------------------
@@ -794,6 +811,7 @@ export async function renderScene(
     }
     const last = i === frames - 1
     finish.enabled = last
+    if (probePass != null) probePass.enabled = last
     if (skyDenoise != null) skyDenoise.enabled = last
     composer.render(1 / 60)
     if (!last) {
@@ -805,6 +823,18 @@ export async function renderScene(
   camera.clearViewOffset()
 
   const gl = renderer.getContext()
+  const probe =
+    probePass == null
+      ? undefined
+      : probes.map((at, k) => {
+          const box = probeBoxes[k]
+          return probeResult(at, box?.pixel ?? null, probePass.results[k] ?? null, box == null ? null : readCanvas(gl, box, height), {
+            exposure,
+            whiteBalance: whiteBalance.toArray() as [number, number, number],
+            cdPerUnit: 1 / renderPerLux(params.nightSky, elongationDeg(params)),
+            darkZenithCd: darkZenithLuminance()
+          })
+        })
   const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
   const debug = {
       gpu: debugInfo != null ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown',
@@ -812,6 +842,7 @@ export async function renderScene(
       sceneLuminance,
       skyZenith: metered.zenith,
       whiteBalance: whiteBalance.toArray(),
+      ...(probe != null ? { probe } : {}),
       nightScale,
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),

@@ -14,6 +14,7 @@ rock platform and a beach. Tools: [TOOLS.md](../TOOLS.md).
 | `passes: {name: false}` | switches off `clouds`, `aerial` (aerial perspective), `skyFill`, `bloom`, `reflection` (planar), `shadows` (props cast none), `stars` (the star catalogue), `glow` (Milky Way, airglow, zodiacal light, light pollution), `meteors` | which pass causes a glow, rim or dark band: one `diff --off` per pass |
 | `exposure: N` | fixed exposure (the metered one is `debug.exposure` in each render's `.json`) | comparing renders whose sky or weather differs (`diff.mjs --keep-exposure` sets it) |
 | `terrainView` | false colour on the terrain, lit by the scene's light: `slope` (grey by steepness, red where the height bends by 3–10 px within ~2 grid cells: aliasing candidates; less red with `terrainGrid: 2`), `relief` (rock: gullies red, boulders green, bed bands blue; beach: cusps red, bars green, storm ridges blue), `lines` (today's still water cyan, run-up orange, today's high water green, spring high water yellow, beach high-tide line magenta, storm line red), `shore` (s blue and a orange every 10 m, s = 0 white, `waterline` cyan) | which height term made a feature; whether lines sit where props and wet bands assume; the shore frame (wobble, curvature) round the camera |
+| `probe: [...]` | reads the render at points `[x, y]` (fractions of the image, y down) or sky directions `{az, el}` (degrees, az from the view, + right): **raw** radiance (render units, before exposure and white balance), its luminance in **cd/m²** and **mag/arcsec²**, **exposed** (after exposure and white balance, before bloom and tone mapping), **final** 8-bit; mean and peak of a 5×5 box (`probeHalf`: 0–20); `⚠ clipped` past the grade's clamp (40). `snapshot.mjs` prints one line per point; the `.json` has them under `debug.probe` (`src/probe.ts`) | "how bright is X against the sky behind it?" in numbers: a star or planet's peak vs the sky beside it, an aurora arc vs the sky between arcs, a colour's real RGB. Instead of reading JPEGs or boosting a term ×20 to find it |
 | `oceanView` | false colour on the sea: `shelter` (blue → red), `breaking` (deep blue, steepening green, breaking red), `depth` (sand → blue over 15 m, a line every metre), `foam` (coverage, grey) | calm water, break lines, depth under the camera's view |
 
 - **Bisect a height term without code:** patch it off in `params.coast` and diff, e.g.
@@ -22,3 +23,22 @@ rock platform and a beach. Tools: [TOOLS.md](../TOOLS.md).
   feature is its cause. Read the feature's period first (a saw every ~1 m on rock was the beds'
   bedding / dip).
 - Check a patch landed before rendering: `params.mjs --scene S --fields debug,coast.rock`.
+
+## The pixel probe: brightness in numbers
+
+```sh
+node scripts/snapshot.mjs --out $SP/p --w 1920 --h 1080 --frames 16 \
+  --scene '{"date":"2024-02-12","params":{"debug":{"probe":[{"az":0,"el":12},{"az":2,"el":12},[0.5,0.1]],"probeHalf":0}}}'
+#  probe az 0 el 12 px 960,301: raw … (peak …), 2.3e+1 cd/m², 9.24 mag/″²; exposed …; final 97,81,129 (peak …)
+```
+
+- Sky directions go through `skyFrame.ts` with the render's own aspect and the horizon's dip:
+  the same pixel the render camera draws them at (`test/skyFrame.test.ts`). A planet, moon or
+  radiant: get its direction with `params.mjs` (`src.skyFrame.azEl(dir)`), subtract the
+  heading, probe it and a point a degree beside it.
+- Units: raw is what the sky shader and the lights output (one render unit ≈ 75,700 cd/m² by
+  day; at night the units of the moon or the starlit stand-in, `starLight.ts` `renderPerLux`);
+  cd/m² and mag/arcsec² convert back. Checks: a daylight sky under broken cloud reads ~2,000–3,000
+  cd/m²; a Bortle-2 night zenith ~21.6 mag/arcsec².
+- Exposed values: ~0.1–0.2 is a mid sky; final 8-bit after AgX, saturation and contrast.
+- A point (star, planet, meteor): set `probeHalf: 0` and probe its pixel; the peak is what shows.

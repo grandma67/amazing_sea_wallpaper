@@ -27,6 +27,13 @@ export interface DebugParams {
   /** False colour on the sea: 'shelter', 'breaking', 'depth' (1 m bands),
    * 'foam' (coverage). */
   oceanView?: OceanView
+  /** Read the render at these points (fractions of the image, x right, y
+   * down) or sky directions ({az: from the view, deg; el: deg}): raw
+   * radiance, cd/m², mag/arcsec², exposed and final colour, in
+   * `debug.probe` (probe.ts). */
+  probe?: ([number, number] | { az: number; el: number })[]
+  /** Half size of each probe's box (px): 0 a single pixel, default 2 (5×5). */
+  probeHalf?: number
 }
 
 export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'stars', 'glow', 'meteors'] as const

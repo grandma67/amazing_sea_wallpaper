@@ -65,8 +65,7 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   after the night glow for its Bortle class) from `meteorRates` (showers by solar longitude and
   sporadics by local hour, × camera limit, × `frameShare`, × 4 h) and the weather's clear share;
   paths from `meteorPath` (through a point in the frame's sky, along the great circle away from
-  the radiant, trimmed to the frame; `project`/`unproject` mirror camera.ts's yaw and pitch, no
-  dip or roll). `patchSkyMeteors`: main sky only, segment on the sphere in ECEF, Gaussian across
+  the radiant, trimmed to the frame with `skyFrame.ts`, the render camera's own projection). `patchSkyMeteors`: main sky only, segment on the sphere in ECEF, Gaussian across
   (1.3 × the stars' core σ), `meteorProfile` along, × transmittance, in the stars' units
   (`starScale` × flux × duration / exposure ÷ length).
 - **Planets** (`planets.ts`, NIGHT_SKY phase 5): `planetsIn` = astronomy-engine J2000 directions

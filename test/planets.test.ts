@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { project } from '../src/meteors'
+import { project } from '../src/skyFrame'
 import { extinction, planetsECI, planetStarData, PLANET_MAGNITUDES } from '../src/planets'
 import { sunECI } from '../src/skyClock'
 import { allParams, DAYS, scene } from './days'

@@ -5,6 +5,7 @@ import type { SkyMaterial } from '@takram/three-atmosphere'
 import type { SceneParams } from './params'
 import type { Random } from './random'
 import { apply, skyRotation, sunECI } from './skyClock'
+import { frameFov, inSky, unproject } from './skyFrame'
 import { PSF } from './starLight'
 
 // Shooting stars (NIGHT_SKY phase 4, STARS.md §5).
@@ -127,35 +128,6 @@ export function cameraLimit(skyMag: number): number {
 /** Clear share of the sky by weather. */
 const CLEAR: Record<string, number> = { clear: 1, cirrus: 0.7, few: 0.9, scattered: 0.6, broken: 0.3, overcast: 0, storm: 0 }
 
-/** The frame's field (radians): horizontal and vertical. */
-export function frameFov(params: Pick<SceneParams, 'camera'>): { h: number; v: number } {
-  const longHalf = Math.atan(18 / params.camera.focalLengthMm)
-  const a = params.camera.aspect
-  return a >= 1 ? { h: 2 * longHalf, v: 2 * Math.atan(Math.tan(longHalf) / a) } : { h: 2 * Math.atan(Math.tan(longHalf) * a), v: 2 * longHalf }
-}
-
-/** Normalised device coordinates of a world direction (null behind the
- * camera); the composition's yaw and pitch, no roll or dip. */
-export function project(params: Pick<SceneParams, 'camera'>, d: Vec3): [number, number] | null {
-  const { h, v } = frameFov(params)
-  const pitch = -Math.atan((1 - 2 * params.camera.horizonFraction) * Math.tan(v / 2))
-  const yaw = params.camera.headingDeg * DEG
-  // Undo the yaw (about y), then the pitch (about x).
-  const x1 = d[0] * Math.cos(yaw) + d[2] * Math.sin(yaw)
-  const z1 = -d[0] * Math.sin(yaw) + d[2] * Math.cos(yaw)
-  const y2 = d[1] * Math.cos(pitch) + z1 * Math.sin(pitch)
-  const z2 = -d[1] * Math.sin(pitch) + z1 * Math.cos(pitch)
-  if (z2 >= -1e-6) return null
-  return [x1 / -z2 / Math.tan(h / 2), y2 / -z2 / Math.tan(v / 2)]
-}
-
-/** Is a direction inside the frame's sky (inner `margin` of NDC), above
- * `minElevationDeg`? */
-export function inSky(params: Pick<SceneParams, 'camera'>, d: Vec3, margin = 0.9, minElevationDeg = 4): boolean {
-  const ndc = project(params, d)
-  return ndc != null && Math.abs(ndc[0]) < margin && Math.abs(ndc[1]) < margin && d[1] > Math.sin(minElevationDeg * DEG)
-}
-
 /** Meteors per steradian at an elevation, relative to the sky an observer
  * counts (the ZHR's): low down the ~100 km layer is seen obliquely, so far
  * more of it fits in a steradian; distance (~2.5–3 mag at 10–20°) and the
@@ -178,7 +150,7 @@ export function frameShare(params: Pick<SceneParams, 'camera'>): number {
     for (let j = 0; j < ny; j++) {
       const x = -1 + (2 * (i + 0.5)) / nx
       const y = -1 + (2 * (j + 0.5)) / ny
-      const d = unproject(params, x, y, h, v)
+      const d = unproject(params, x, y)
       if (d[1] <= 0) continue
       // A pixel's solid angle falls off as cos³ from the axis.
       const tx = x * Math.tan(h / 2)
@@ -285,12 +257,11 @@ export function meteorsFor(params: SceneParams, rng: Random, bortle: number, for
  * radiant along the great circle (sporadics: any direction), 5–30° long
  * and shorter near the radiant, trimmed to the frame. */
 export function meteorPath(params: SceneParams, rng: Random, radiant: Vec3 | null): [Vec3, Vec3] | null {
-  const { h, v } = frameFov(params)
   for (let attempt = 0; attempt < 40; attempt++) {
     // A point in the frame's sky.
     const nx = rng.range(-0.8, 0.8)
     const ny = rng.range(1 - 2 * params.camera.horizonFraction + 0.15, 0.85)
-    const mid = unproject(params, nx, ny, h, v)
+    const mid = unproject(params, nx, ny)
     if (!inSky(params, mid, 0.9)) continue
     let dir: Vec3
     let fromRadiant = 90
@@ -320,21 +291,6 @@ export function meteorPath(params: SceneParams, rng: Random, radiant: Vec3 | nul
     }
   }
   return null
-}
-
-/** World direction at NDC (nx, ny): inverse of `project`. */
-function unproject(params: Pick<SceneParams, 'camera'>, nx: number, ny: number, h: number, v: number): Vec3 {
-  const pitch = -Math.atan((1 - 2 * params.camera.horizonFraction) * Math.tan(v / 2))
-  const yaw = params.camera.headingDeg * DEG
-  const x1 = nx * Math.tan(h / 2)
-  const y2 = ny * Math.tan(v / 2)
-  const z2 = -1
-  // Undo the pitch, then the yaw.
-  const y = y2 * Math.cos(pitch) - z2 * Math.sin(pitch)
-  const z1 = y2 * Math.sin(pitch) + z2 * Math.cos(pitch)
-  const x = x1 * Math.cos(yaw) - z1 * Math.sin(yaw)
-  const z = x1 * Math.sin(yaw) + z1 * Math.cos(yaw)
-  return normalize([x, y, z])
 }
 
 /** Rotate `p` by `angle` along the great circle with tangent `t`. */

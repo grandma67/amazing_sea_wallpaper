@@ -164,7 +164,18 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   the balance makes moonlight (sunlight) blue; the starlit sky teal-blue (airglow); the Milky Way,
   stars, lamps and aurora keep their colours. `debug.whiteBalance` reports it.
 
-- `camera.ts`; `composition.ts` (ray-grid coverage, re-rolls bad framings; `frameView`: eye
+- **Post pipeline, in order** (`scene.ts`): scene (sky shader + its patches, stars, planets,
+  moon, terrain, sea, props) → clouds + aerial perspective → sky fill → fog, lighthouse beams and
+  **grade** (exposure × white balance, clamp 40) → rain → accumulate (cloudy days) → sky denoise
+  → [probe] → bloom, vignette, AgX, saturation, contrast. Anything a feature adds goes through
+  all of it: test colour and brightness with the probe (tools/DEBUG.md), not the shader output.
+- **Exposure** is metered from the reflection cube's sky (`exposure.ts` `meterScene` over the
+  env scene: 32² cube), not the frame. So everything patched into the env sky (night glow,
+  aurora) moves the whole frame's exposure; stars and the aurora are hidden while metering (a
+  photographer exposes for the scene, not for a display out of frame). Then × `nightScale`,
+  `evBias` by time of day, eclipse and gloom terms; `params.debug.exposure` fixes it.
+- `camera.ts` (pitch from `skyFrame.ts` `cameraPitch`, the same projection the choices use);
+  `composition.ts` (ray-grid coverage, re-rolls bad framings; `frameView`: eye
   height, pixel angle and nearest ground in frame, for `params.mjs` `p.view`); `reflection.ts`
   (planar reflection).
 - `accumulate.ts` + `stillScene.ts`: render the scene once, redraw only clouds/spray per frame
