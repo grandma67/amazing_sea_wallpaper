@@ -86,7 +86,8 @@ Playwright (headless snapshots), Vitest.
      (`'rainbow'`).
   5. Heading, sun elevation (main, within `sunRange`: the day's real range from 63°) and
      azimuth (main; eclipse and rainbow override; on midnight-sun days the heading becomes the
-     sun's real compass bearing − `relSunAz`), moon direction within 5° of the ecliptic
+     sun's real compass bearing − `relSunAz`), Venus framing at blue hour (`'planet-framing'`: the sun's
+     bearing and depth; NIGHT_SKY phase 5), moon direction within 5° of the ecliptic
      (`skyClock.ts`; main, at night the sun depth from `'moon-hour'`, then `'moon-framing'`), day
      moon and night sky (`'moon-sky'`).
   6. Camera height, focal length (main, `keep`), wind speed and heading (main, `keep`).
@@ -102,8 +103,8 @@ Playwright (headless snapshots), Vitest.
   10. Moon scale, horizon, roll, time, choppiness (main, `keep`).
   11. After `params` exists (read it whole): noctilucent, nacreous, roll cloud, contrails,
       visibility (`'visibility'`, reads `weather.dust`), night glow (`'night-glow'`, sun below
-      the horizon only; reads the place's `bortle`), meteors (`'meteors'`, night only; adds the
-      shower's name to the title).
+      the horizon only; reads the place's `bortle`), planets (no draw; sun down), meteors
+      (`'meteors'`, night only; adds the shower's name to the title).
 
   Props decide later, at render, on `ctx.rng(kind)` (`props/choices.ts`).
 - **Seasons** (`seasons.ts`): seasonal tables are written in northern-hemisphere months;

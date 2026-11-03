@@ -279,7 +279,12 @@ broken, and moonlit 2026-08-28:
   observer's count. Camera limit +2.5 dark, −0.8 per magnitude of brighter sky (full moon
   ~−0.3: ×3–10 fewer). Shares: clear dark Perseid peak 0.6–0.8 by framing, ordinary dark night
   ~0.03, real days 0.3%.
-- **Missing:** ~~Milky Way, airglow, zodiacal light, meteors~~ (phases 3–4), planets,
+- **Planets** (built 2026-11-03, `planets.ts`): visibility at blue hour is physical: with
+  the sun 4° down, Venus at −3.9, 18–25° from the sun and 7–21° up peaks at ~1.1–2× the sky in
+  a 1080p pixel of a 21 mm lens (extinction ~0.5, the glow round the sun ~5× the zenith), so
+  framing waits for the sun 5.5–7° down. ~23% of twilight and night frames hold a planet
+  brighter than mag 1 (Mercury often, low in twilight, mostly hidden by it).
+- **Missing:** ~~Milky Way, airglow, zodiacal light, meteors, planets~~ (phases 3–5),
   aurora, faint stars below ~6.5 as points.
 - **Night glow** (built 2026-11-03, `nightGlow.ts`): units S10 (1 S10 = a 10th-magnitude star
   per square degree = 27.78 mag/arcsec² ≈ 1.10 nW m⁻² sr⁻¹ in V). Dark zenith ≈ 220 S10 =

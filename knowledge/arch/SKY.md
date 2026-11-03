@@ -69,6 +69,13 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   dip or roll). `patchSkyMeteors`: main sky only, segment on the sphere in ECEF, Gaussian across
   (1.3 × the stars' core σ), `meteorProfile` along, × transmittance, in the stars' units
   (`starScale` × flux × duration / exposure ÷ length).
+- **Planets** (`planets.ts`, NIGHT_SKY phase 5): `planetsIn` = astronomy-engine J2000 directions
+  and magnitudes at noon UTC, turned by `skyRotation`; `params.planets` whenever the sun is
+  down (spec `planets: false` none). Drawn by a second `createStarsMaterial` (main scene only,
+  world-frame records from `planetStarData`, `magnitudeRange` −6…+4). Brighter than
+  `GLITTER_MAGNITUDE` (−2.5) and up: an ocean lamp at 10⁷ m with intensity = irradiance ×
+  `extinction` × r² (slots taken from the ships' 12). Venus framing in `params.ts` step 5
+  (`'planet-framing'`, before the midnight-sun heading and the moon).
 - **Marine layer** (`coastalWeather.ts`, PLAN_BIOMES 3): `marineLayerFor` on stream
   `'marine-layer'` from `MARINE_LAYER` (place × local month) on morning golden hour, sunrise and
   daylight. After the eclipse fix-up the day turns overcast (coverage 0.75–0.82) with one stratus

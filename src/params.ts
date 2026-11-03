@@ -13,7 +13,8 @@ import { visibilityFor } from './seaHaze'
 import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type RollCloudParams, type ShelfCloudParams } from './skyEvents'
 import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParams } from './noctilucent'
 import { nightGlowFor, type NightGlowParams } from './nightGlow'
-import { meteorsFor, SHOWERS, type Meteor } from './meteors'
+import { inSky, meteorsFor, SHOWERS, type Meteor } from './meteors'
+import { planetsFor, planetsIn, type Planet } from './planets'
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
@@ -395,6 +396,8 @@ export interface SceneParams {
   nightGlow: NightGlowParams | null
   /** Shooting stars in the session's best frame (meteors.ts). */
   meteors: Meteor[]
+  /** The planets with the sun down (planets.ts). */
+  planets: Planet[]
   /** How far one sees through the sea haze (km; seaHaze.ts). Fog is separate. */
   visibilityKm: number
   /** Aircraft trails high in the sky (contrails.ts). */
@@ -1616,6 +1619,33 @@ function buildParams(
   }
   relSunAz = or(relSunAz, spec.sunAzimuthDeg)
   sunElevationDeg = or(sunElevationDeg, spec.sunElevationDeg)
+  // Blue hour: some days frame Venus, the evening or morning star (NIGHT_SKY
+  // phase 5). Its bearing from the sun is the sky clock's, whatever the
+  // compass, so the sun's bearing from the view moves to put Venus ahead.
+  // Own stream.
+  const planetRng = Random.derive(seed, 'planet-framing')
+  const [venusChance, venusOffset, venusDusk] = [planetRng.float(), planetRng.normal(0, 5 * framing), planetRng.float()]
+  let venusFramed = false
+  const wantVenus = spec.planets === 'venus' || (spec.planets === undefined && venusChance < 0.4)
+  const venusSky = ['clear', 'few', 'cirrus'].includes(weather.kind)
+  if (timeOfDay === 'blue-hour' && wantVenus && venusSky && !solarEclipse && !rainbowDay && spec.sunAzimuthDeg === undefined) {
+    // Photographed late in blue hour (sun 5.5–7° down): earlier, Venus is
+    // lost in the glow round the sun (a 21 mm pixel at −4° barely shows it).
+    const [lo, hi] = [Math.max(elMin, -7), Math.min(elMax, -5.5)]
+    const venusSunEl = spec.sunElevationDeg ?? (lo < hi ? lo + (hi - lo) * venusDusk : sunElevationDeg)
+    const sun = dirFromAzEl(headingDeg + relSunAz, venusSunEl)
+    const venus = planetsIn({ date, latitudeDeg, sunDirection: sun, evening: isEvening }).find(p => p.id === 'venus')!
+    const venusEl = elevationOf(venus.direction)
+    // Only a Venus that shows: clear of the sun's glow and of the haze low
+    // down (18° from the sun and 7° up it is lost in a −4° twilight).
+    const fromSun = Math.acos(Math.max(-1, Math.min(1, venus.direction[0] * sun[0] + venus.direction[1] * sun[1] + venus.direction[2] * sun[2]))) / DEG
+    if (venusEl > 8 && venusEl < 35 && fromSun > 25) {
+      const az = (d: [number, number, number]) => Math.atan2(d[0], -d[2]) / DEG
+      relSunAz = az(sun) - az(venus.direction) + venusOffset
+      sunElevationDeg = venusSunEl
+      venusFramed = true
+    }
+  }
   // Under the midnight sun the camera turns so the sun stands at its real
   // compass bearing (low in the north round midnight): the framing
   // (relSunAz) stays, the heading follows. Other days keep a random compass.
@@ -1998,6 +2028,7 @@ function buildParams(
     nacreous: null,
     nightGlow: null,
     meteors: [],
+    planets: [],
     rollCloud: null,
     lighthouse,
     ...(spec.props != null ? { overrides: spec.props } : {}),
@@ -2049,6 +2080,9 @@ function buildParams(
   params.contrails = contrailsFor(params, Random.derive(seed, 'contrails'), spec.contrails)
   params.visibilityKm = visibilityFor(params, Random.derive(seed, 'visibility'), spec.visibilityKm)
   params.nightGlow = nightGlowFor(params, Random.derive(seed, 'night-glow'), spec)
+  params.planets = planetsFor(params, spec.planets === false || spec.planets === null)
+  const venus = params.planets.find(p => p.id === 'venus')
+  if (venusFramed && venus != null && params.fog == null && inSky(params, venus.direction, 0.95, 2)) params.title += ' · Venus'
   params.meteors = meteorsFor(params, Random.derive(seed, 'meteors'), params.nightGlow?.bortle ?? place.bortle, spec.meteors)
   if (params.meteors.length > 0) {
     const shower = SHOWERS.find(s => s.id === params.meteors[0].shower)

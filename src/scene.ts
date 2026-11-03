@@ -59,6 +59,7 @@ import { createClouds, loadCloudAssets, loadImageTexture, primeCloudShadow, rend
 import { patchSkyContrails } from './contrails'
 import { patchSkyNoctilucent } from './noctilucent'
 import { patchSkyMeteors } from './meteors'
+import { extinction, GLITTER_MAGNITUDE, planetStarData, PLANET_MAGNITUDES, PLANETS } from './planets'
 import { glowScale, patchSkyNightGlow, type GlowFrame } from './nightGlow'
 import { eclipseSky } from './eclipse'
 import type { DebugPass } from './debug'
@@ -369,6 +370,22 @@ export async function renderScene(
     }
   }
 
+  // Planets (planets.ts): stars of their own, already in the world frame.
+  // Main sky only: Venus and Jupiter reach the sea as a glint (below).
+  const planets = pass('stars') ? params.planets : []
+  if (planets.length > 0) {
+    const geometry = new StarsGeometry(planetStarData(planets, PLANET_MAGNITUDES))
+    const material = createStarsMaterial({ ...textures }, starScale(params.nightSky, elongationDeg(params)), height, height / 1080)
+    material.magnitudeRange.set(...PLANET_MAGNITUDES)
+    material.worldToECEFMatrix.copy(worldToECEF)
+    material.sunDirection.copy(lightECEF)
+    const points = new Points(geometry, material)
+    points.frustumCulled = false
+    points.renderOrder = -0.5
+    points.userData.sky = true
+    scene.add(points)
+  }
+
   const moonAngularRadius = REAL_MOON_ANGULAR_RADIUS * params.moonScale
   if (moonlit) {
     const moonDir = new Vector3(...params.moonDirection)
@@ -614,12 +631,25 @@ export async function renderScene(
   // Ships' lamps: candela into scene units by what the metered sky really is.
   const perCdM2 = sceneLuminance / skyLuminance(params)
   setLampBrightness(props, perCdM2)
-  const lamps = lampsForOcean(props, camera.position, MAX_LAMPS)
+  // Venus and Jupiter glitter on the sea like a lamp at infinity: a far
+  // point (10,000 km: within ~0.1° of the same direction over the whole
+  // sea) whose I / r² is the planet's irradiance through the air.
+  const bright = planets.filter(p => p.magnitude < GLITTER_MAGNITUDE && p.direction[1] > 0)
+  const lamps = lampsForOcean(props, camera.position, MAX_LAMPS - bright.length)
   lamps.forEach((lamp, i) => {
     ;(u.lampPositions.value as Vector3[])[i].copy(lamp.position)
     ;(u.lampIntensities.value as Vector3[])[i].copy(lamp.intensity).multiplyScalar(perCdM2)
   })
-  u.lampCount.value = lamps.length
+  const far = 1e7
+  const scaleNow = starScale(params.nightSky, elongationDeg(params))
+  bright.forEach((planet, k) => {
+    const i = lamps.length + k
+    const colour = PLANETS.find(q => q.id === planet.id)!.colour
+    const irradiance = scaleNow * 10 ** (-0.4 * planet.magnitude) * extinction(Math.asin(planet.direction[1])) * far * far
+    ;(u.lampPositions.value as Vector3[])[i].copy(camera.position).addScaledVector(new Vector3(...planet.direction), far)
+    ;(u.lampIntensities.value as Vector3[])[i].set(...colour).multiplyScalar(irradiance)
+  })
+  u.lampCount.value = lamps.length + bright.length
   const grade = new GradeEffect(exposure, scotopic, whiteBalance)
   // A lit lighthouse's beams in the haze, in the scene's radiance units: a
   // fixed lamp, so they stand out more the darker the sky.

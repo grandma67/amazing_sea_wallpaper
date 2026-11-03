@@ -52,7 +52,8 @@ Allowed values are in `sceneSpec.ts`.
   `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
   `nacreous`, `milkyWay`, `airglow`, `zodiacalLight` (false/null: off), `skyDarkness` (Bortle
   1–4 instead of the place's), `meteors` (true, a shower id like `"perseids"`, a count ≤ 3,
-  null), `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place; null:
+  null), `planets` (`false`/`null`: none; `"venus"`: frame Venus at blue hour when it's well
+  placed), `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place; null:
   none), `dust` (`"harmattan"` or true: ochre dust haze, 2–10 km, any place; null: none), `wind`,
   `visibilityKm`.
 - **Features:** `lighthouse`, `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`,

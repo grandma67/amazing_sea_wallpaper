@@ -141,6 +141,12 @@ dark night ~3% (plan: 85%, 5–10%). Real days: 0.3% (clear dark nights are rare
 
 ### 5. Planets
 
+**Done 2026-11-03** (changelog 0.88, `test/planets.test.ts`). What differed: astronomy-engine
+already gives positions and magnitudes (no Standish code). The glint reuses the ocean's lamp
+loop (a lamp at 10,000 km) instead of a second sun-glint term. Framing Venus also sinks the sun
+to 5.5–7° down and needs a clear sky: a −4 Venus in bright twilight near the sun barely beats a
+1080p pixel's sky. Real days: 2 titles in three years (blue hour × clear × Venus well placed).
+
 - `src/planets.ts`: Standish low-precision elements → ECI directions; magnitudes from distance and
   phase (Venus, Jupiter, Mars, Saturn; Mercury optional). Drawn as stars (phase 2 PSF) through
   the phase-1 rotation. Tests against a few known dates (e.g. greatest elongations).

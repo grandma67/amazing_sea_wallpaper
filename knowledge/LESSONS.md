@@ -155,6 +155,11 @@ tool gotchas: TOOLS.md.
 - A hand-written projector for a pitched camera: test that the horizon ahead lands at NDC
   y = 1 − 2 × horizonFraction before trusting it. Applying the pitch instead of undoing it
   put meteors 10–20° too high (off the top of the frame).
+- A point light in the sky at a photo's real pixel size is faint against bright twilight:
+  check its peak against the sky there (not the zenith), with extinction and the lens's pixel,
+  before deciding the drawing is broken. Diff a point with a `params` patch that only removes
+  it (`{"params":{"planets":[]}}`): switching the feature off in the spec also undid its framing
+  and re-rendered the whole scene.
 - "Is it in frame?" for a sky object needs the vertical field and the horizon's place, not only
   the azimuth: three "core in frame" nights had it 20° above the top edge.
 - A noise-free render has no sky noise: a star 10% above the sky still "shows" in the numbers.
