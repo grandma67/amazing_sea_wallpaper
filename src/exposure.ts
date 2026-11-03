@@ -16,12 +16,19 @@ import {
 const SIZE = 32
 const SEA_REFLECTANCE = 0.12
 
+export interface Metered {
+  /** What the camera's meter reads (render units, cd/m² / ~75,700). */
+  luminance: number
+  /** The clear sky's luminance straight up (render units). */
+  zenith: number
+}
+
 export function meterScene(
   renderer: WebGLRenderer,
   skyScene: Scene,
   camera: PerspectiveCamera,
   horizonDip: number
-): number {
+): Metered {
   const target = new WebGLCubeRenderTarget(SIZE, { type: FloatType })
   const cubeCamera = new CubeCamera(0.1, 400_000, target)
   cubeCamera.position.copy(camera.position)
@@ -38,6 +45,8 @@ export function meterScene(
   let upperSum = 0
   let upperWeight = 0
   let seaWeight = 0
+  let zenithSum = 0
+  let zenithCount = 0
 
   const faces = cubeCamera.children as PerspectiveCamera[]
   for (let face = 0; face < 6; face++) {
@@ -61,6 +70,10 @@ export function meterScene(
         const lum = 0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]
         if (!Number.isFinite(lum)) continue
 
+        if (direction.y > 0.998) {
+          zenithSum += lum
+          zenithCount++
+        }
         if (direction.y > 0) {
           upperSum += lum * weight
           upperWeight += weight
@@ -84,5 +97,8 @@ export function meterScene(
   const upperAverage = upperWeight > 0 ? upperSum / upperWeight : 0
   const total = skySum + seaWeight * upperAverage * SEA_REFLECTANCE
   const weight = skyWeight + seaWeight
-  return weight > 0 ? total / weight : upperAverage
+  return {
+    luminance: weight > 0 ? total / weight : upperAverage,
+    zenith: zenithCount > 0 ? zenithSum / zenithCount : 0
+  }
 }

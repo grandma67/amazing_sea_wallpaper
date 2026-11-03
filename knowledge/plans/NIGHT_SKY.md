@@ -59,6 +59,15 @@ morning sky): the scene's clock is free.
 
 ### 2. Photometric stars and a real moonless sky
 
+**Done 2026-11-03** (changelog 0.85, `test/stars.test.ts`, `starLight.ts`, `stars.ts`). What
+differed: a noise-free render has no sky noise, so the contrast limit (10% of the sky in the
+peak pixel) reaches past the catalogue (~6.5) on every night, even under a full moon (~9 at
+1080p, 50° lens); what the exposure and the display show decides how many stars a moonlit frame
+shows. The starlit sky is still the overhead stand-in's Bruneton sky (now calibrated to 21.6
+mag/arcsec²); its airglow colour is phase 3. `stars8.bin` not built (wait for phase 3).
+Renders: wide crescent nights show stars graded by size; a 15° telephoto starlit frame shows
+~60 (the catalogue's whole share of that patch).
+
 - Star radiance from magnitude in the sky's units (so contrast with the sky decides what shows,
   STARS.md §1); remove the `nightScale^−1.2` boost. Moon and twilight then hide faint stars on
   their own. Calibrate once: a Bortle-2 zenith (~21.6 mag/arcsec²) against a mag-0 star.

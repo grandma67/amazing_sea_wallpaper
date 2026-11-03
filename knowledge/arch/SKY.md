@@ -30,8 +30,16 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   `moonlight`, `eclipse`, `sunScale` (sun and moon 3× on solar eclipse days), and frames eclipses
   (24–35 mm, more sky, sun/moon low ahead; clear or cirrus, total under clear). The moon by day is
   framed with the sun on ~35% of days with the moon > 15% lit. `scene.ts`: night exposure ×
-  max(moonlight, 0.06)^0.5 (starlit 0.5, lit by a dim overhead light standing in for starlight
-  and airglow), stars boosted as the night darkens (not in the reflection cube) and turned by the
+  max(moonlight, 0.06)^0.5 (starlit 0.5: a stand-in sun overhead draws the sky only; the ground
+  gets the night's 0.002 lux as diffuse sky light and props an ambient light, no direct light).
+  **Stars** (`starLight.ts`, `stars.ts`, NIGHT_SKY phase 2) carry their real light whenever the
+  sun is down: irradiance `starScale × 10^(−0.4 m)` in render units (one unit ≈ 75,700 lux; the
+  light drawn at the sun's strength is the sun, the moon at its phase, or on starlit nights a
+  stand-in whose zenith, `STARLIT_ZENITH`, is taken as 21.6 mag/arcsec²), × the air's
+  transmittance, spread over a lens point spread (Gaussian core σ 0.6 px at 1080p, 4% halo for
+  stars brighter than 2.5; `psfWeight` mirrors the GLSL), ÷ the pixel's solid angle (cos³ off
+  axis), added to the sky (additive, so sky patches stay under them); the same in the
+  reflection cube (per texel, no spread). Stars are turned by the
   sky clock (`skyClock.ts` `skyRotation`: the real sun for the date's J2000 direction is put on
   the scene's sun via the hour angle for its elevation at the latitude, then a turn about the
   vertical; impossible elevations clamp the hour angle, keeping the pole exact; the moon stays

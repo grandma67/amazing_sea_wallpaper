@@ -7,8 +7,7 @@ import {
   type PrecomputedTextures,
   SkyLightProbe,
   SkyMaterial,
-  StarsGeometry,
-  StarsMaterial
+  StarsGeometry
 } from '@takram/three-atmosphere'
 import { ArrayBufferLoader, Ellipsoid, Geodetic, radians } from '@takram/three-geospatial'
 import {
@@ -27,6 +26,7 @@ import {
 import {
   Color,
   CubeCamera,
+  AmbientLight,
   DirectionalLight,
   HalfFloatType,
   LinearMipmapLinearFilter,
@@ -72,6 +72,8 @@ import { setGlowBrightness } from './props/storm'
 import { setSprayLighting } from './props/surf'
 import { renderPlanarReflection } from './reflection'
 import { skyRotation } from './skyClock'
+import { elongationDeg, renderPerLux, starScale, STARLIT_LUX } from './starLight'
+import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
@@ -83,6 +85,8 @@ import { GpuResources, trackUploads } from './dispose'
 import { createTerrain, hasLand } from './terrain'
 
 const DEG = Math.PI / 180
+/** Reflection cube map size (texels per face). */
+const ENV_SIZE = 256
 const REAL_MOON_ANGULAR_RADIUS = 0.0045
 
 /** Exposure and night-time colour grading, applied before bloom/tone mapping. */
@@ -297,26 +301,24 @@ export async function renderScene(
 
   // Stars at night and late twilight: the real bright-star catalogue, turned
   // to the sky of this date and drawn behind the clouds.
-  const starryTwilight = (params.timeOfDay === 'blue-hour' && params.sunElevationDeg < -4) || totality
-  if (night || starryTwilight) {
+  // Each star carries its real light in the sky's units (starLight.ts), so
+  // twilight, the moon and the night's darkness decide which ones show.
+  if ((night || params.sunElevationDeg < 0 || totality) && pass('stars')) {
     const data = await new ArrayBufferLoader().loadAsync(assetUrl('stars.bin'))
     const geometry = new StarsGeometry(data)
     // The sky clock turns the catalogue so the real sun for the date lands
     // on the scene's sun (NIGHT_SKY phase 1).
     const r = skyRotation(params).matrix
     const eciToWorld = new Matrix4().set(r[0], r[1], r[2], 0, r[3], r[4], r[5], 0, r[6], r[7], r[8], 0, 0, 0, 0, 1)
+    const scale = starScale(params.nightSky, elongationDeg(params))
     for (const target of [scene, envScene]) {
-      const material = new StarsMaterial({ ...textures })
+      // The reflection cube's faces are 90° and ENV_SIZE texels tall.
+      const material =
+        target === scene
+          ? createStarsMaterial({ ...textures }, scale, height, height / 1080)
+          : createStarsMaterial({ ...textures }, scale, ENV_SIZE, 1)
       material.worldToECEFMatrix.copy(worldToECEF)
       material.sunDirection.copy(lightECEF)
-      // At night the sky is rendered at "daylight" scale and graded down
-      // afterwards (see above), so the stars need the same boost.
-      // Darker nights show more of them (not in the sea's reflection: one
-      // star fills a texel of the small reflection cube).
-      const boost = target === scene ? nightScale ** -1.2 : 1
-      // In totality only the brightest stars and planets come out.
-      material.intensity = night ? 4000 * boost : totality ? 2.5 : 6
-      material.pointSize = Math.max(1, height / 1080)
       const stars = new Points(geometry, material)
       stars.setRotationFromMatrix(eciToWorld)
       stars.frustumCulled = false
@@ -343,7 +345,7 @@ export async function renderScene(
     }
   }
 
-  const envTarget = new WebGLCubeRenderTarget(256, {
+  const envTarget = new WebGLCubeRenderTarget(ENV_SIZE, {
     type: HalfFloatType,
     generateMipmaps: true,
     minFilter: LinearMipmapLinearFilter
@@ -374,6 +376,19 @@ export async function renderScene(
   // ...only the dark sky and the glow round the horizon (eclipse.ts).
   if (totality) skyIrradiance.multiply(new Color(0.012, 0.009, 0.007))
   skyIrradiance.setRGB(...dustSkylight(skyIrradiance.toArray() as RGB, sunClear.toArray() as RGB, sunIrradiance.toArray() as RGB, params.sunElevationDeg, params.weather))
+  // A starlit night has no direct light: airglow and starlight come from the
+  // whole sky (~0.002 lux, STARS.md §1), diffuse and shadowless. The stand-in
+  // sun overhead only draws the sky; the ground gets the night's light as sky
+  // light, in the sky's units (starLight.ts). Props see the sky cube too, so
+  // they get the rest as an ambient light.
+  let starlitAmbient: Color | null = null
+  if (night && !moonlit) {
+    sunIrradiance.setScalar(0)
+    const lux = STARLIT_LUX * renderPerLux('starlit', 0) * weather.sunVisibility
+    const probe = 0.2126 * skyIrradiance.r + 0.7152 * skyIrradiance.g + 0.0722 * skyIrradiance.b
+    starlitAmbient = skyIrradiance.clone().multiplyScalar(Math.max(lux - probe, 0) / probe)
+    skyIrradiance.multiplyScalar(lux / probe)
+  }
 
   const elongation =
     Math.acos(Math.max(-1, Math.min(1, new Vector3(...params.moonDirection).dot(new Vector3(...params.sunDirection))))) / DEG
@@ -446,6 +461,7 @@ export async function renderScene(
   sun.shadow.bias = -0.0002
   sun.shadow.normalBias = 0.03
   scene.add(sun, sun.target)
+  if (starlitAmbient != null) scene.add(new AmbientLight(starlitAmbient, 1))
   setOceanRocks(ocean, props.userData.waterRocks ?? [], camera.position)
   setOceanIslands(ocean, props.userData.waterIslands ?? [], camera.position)
   setOceanShips(ocean, props.userData.ships ?? [], camera.position)
@@ -456,7 +472,8 @@ export async function renderScene(
   // Meter the sky without the (artificially boosted) stars.
   const starFields = envScene.children.filter(o => o instanceof Points)
   starFields.forEach(o => (o.visible = false))
-  const sceneLuminance = meterScene(renderer, envScene, camera, dip)
+  const metered = meterScene(renderer, envScene, camera, dip)
+  const sceneLuminance = metered.luminance
   starFields.forEach(o => (o.visible = true))
   const evBias: Record<SceneParams['timeOfDay'], number> = {
     'golden-hour': 0,
@@ -725,6 +742,7 @@ export async function renderScene(
       gpu: debugInfo != null ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown',
       exposure,
       sceneLuminance,
+      skyZenith: metered.zenith,
       nightScale,
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),

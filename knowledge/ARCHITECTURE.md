@@ -280,6 +280,10 @@ Sky:
 - Backlit shelf cloud at sunset is a flat pink band (takram aerial perspective on the mesh;
   e.g. 2010-04-01).
 - 2026-02-13: sparkly dots in the air over the sea.
+- Night sky units (NIGHT_SKY phase 2, until phase 3): the drawn sky has no natural background
+  (airglow), so under a thin crescent the sky is darker than a real one and stars stand out too
+  much, and twilight below ~−13° is darker than airglow; a lunar eclipse dims the moonlight but
+  not the drawn sky, so its stars stay hidden. Starlit skies are still Rayleigh blue.
 
 Props:
 - 2026-05-01: a sailboat drawn as a bare, steeply tilted mast.

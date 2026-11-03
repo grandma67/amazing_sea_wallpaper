@@ -141,6 +141,15 @@ tool gotchas: TOOLS.md.
   search: count the framing window with `params.mjs --ref HEAD --stats` before rendering (the
   night moon fell from 97% to 62% in 4–18°). Free a choice the scene doesn't pin instead (the
   hour of night, on its own stream).
+- Anything drawn in the sky (stars, later planets and meteors) goes in the sky's own units: one
+  render unit is ~75,700 lux, and the light drawn at the sun's strength may stand for the moon
+  or a stand-in (`starLight.ts` `renderPerLux`). Hand-tuned intensities were 10⁴–10⁵× too
+  bright and, in the 256² reflection cube, made glitter paths and blobs on the sea and wet rock.
+  takram's `StarsMaterial` writes sky + star (opaque), so it hid any sky patch (eclipse
+  darkening) under each star: draw stars additively.
+- A noise-free render has no sky noise: a star 10% above the sky still "shows" in the numbers.
+  How many stars a moonlit frame shows is set by the exposure and the 8-bit display, not by a
+  threshold.
 - The sky draws sun and moon independently (no occlusion) and keeps the moon's total light fixed:
   scale `lunarRadianceScale` by `moonScale²` or a bigger disc is dimmer.
 - A night moon disc is ~10⁴ (thousands × white): earthshine and the eclipse umbra must be tiny

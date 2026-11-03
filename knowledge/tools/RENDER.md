@@ -15,7 +15,7 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   1080p (~2–3 s/day) is enough for geometry and lighting; grainy clouds are expected. 2560×1440
   for small features; placement only: `--w 640 --h 360 --frames 1`; after a shader edit:
   `--w 320 --h 180 --frames 1` first (GLSL errors show only at render time).
-- Saves `NAME.jpg` and `NAME.json` (params, spec and `debug`: exposure, scene luminance,
+- Saves `NAME.jpg` and `NAME.json` (params, spec and `debug`: exposure, scene luminance, `skyZenith` (clear-sky zenith, render units),
   irradiance, nightScale, `cameraGroundM`, `props`, `propTimes`). `DEBUG=1` also prints `debug`.
   Otherwise a temporary `console.warn('DBG …')` (snapshot echoes page and worker console errors
   and warnings; GL messages become ⚠ warnings, see below), removed before committing.

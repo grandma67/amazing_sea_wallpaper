@@ -256,13 +256,22 @@ broken, and moonlit 2026-08-28:
 
 - **Stars:** BSC5 via takram `StarsMaterial`, 1-pixel points, intensity `4000 × nightScale^−1.2`
   (an empirical boost), not in the sea reflection. Sparse next to a real dark-sky photo.
+  **Fixed 2026-11-03** (phase 2, `starLight.ts`, `stars.ts`): real light from magnitude in the
+  sky's units (one render unit ≈ 75,700 lux; the old boost was 10⁴–10⁵× too bright, so every
+  catalogue star saturated, even at blue hour), a lens point spread (core σ 0.6 px + halo), and
+  flux-correct stars in the reflection cube. Measured takram zenith (render units → cd/m² ×
+  75,700): sun 0° 2.1e-3, −2° 7.4e-4, −4° 1.4e-4, −6° 1.4e-5 (~1 cd/m²), −8° 6.4e-7, −10° 7.5e-8
+  (~19.3 mag/arcsec²), −12° 1.4e-8, −18° 2.0e-10 (darker than airglow below ~−13°: phase 3).
+  The starlit stand-in sky's zenith is 0.065. Limiting magnitude with 10% contrast at 1080p and
+  50° lens: civil end (−6°) ~3, −8° > 3, −10° past the catalogue.
 - **The sky turns at the wrong time** (fixed 2026-11-03, sky clock, `skyClock.ts`): stars were
   rotated for `date 00:00 UTC + ocean.time` at longitude 0, not tied to the sun. Now the real
   sun for the date lands on the scene's sun; the moon stays within 5° of the ecliptic. 9.6% of
   days have a sun elevation the latitude can't reach that day (mostly high-latitude winter
   middays; 11 nights where the sun never sinks to −16°): the pole stays exact, the sun is off.
 - **Starlit sky colour:** a Bruneton "day" sky lit by a fake sun overhead (`starlight =
-  [0.2, 0.96, 0.2]`), graded down. A real moonless sky is airglow (greenish/neutral, brighter
+  [0.2, 0.96, 0.2]`), graded down (since phase 2 only the sky: the ground gets 0.002 lux of
+  diffuse light, no direct light). A real moonless sky is airglow (greenish/neutral, brighter
   toward the horizon), not a blue Rayleigh sky. Clouds under it read as dark silhouettes, which
   is right with no light domes.
 - **Missing:** Milky Way, planets, meteors, airglow, zodiacal light, aurora, faint stars below
