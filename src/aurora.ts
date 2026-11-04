@@ -176,6 +176,10 @@ export interface AuroraParams {
    * green. */
   red: number
   fringe: number
+  /** The field's dip below the horizon (deg; dipole: tan I = 2 tan
+   * latitude). Rays and curtains follow field lines: higher up they lie
+   * equatorward, (h − 110 km) / tan I. */
+  dipDeg: number
   /** Storm-time diffuse red glow (630 nm, ~250 km) over the oval and ~3°
    * equatorward of it: its column's luminance (kR of green-equivalent). */
   redGlowKR: number
@@ -336,10 +340,16 @@ export function auroraFor(input: AuroraInput, rng: Random, framing: number, forc
     red,
     fringe,
     redGlowKR,
+    dipDeg: dipFor(observerLat),
     seed,
     foldKm,
     frameTurnDeg
   }
+}
+
+/** Dip of a dipole field at a geomagnetic latitude (deg): tan I = 2 tan λ. */
+export function dipFor(latDeg: number): number {
+  return Math.atan(2 * Math.tan(Math.max(1, latDeg) * DEG)) / DEG
 }
 
 function wrap(deg: number): number {
@@ -500,18 +510,24 @@ export function auroraRay(a: AuroraParams, azDeg: number, elDeg: number, jitter 
   const r = EARTH_KM + 0.002
   const out: Vec3 = [0, 0, 0]
   const [G, R, F] = [AURORA_COLOURS.green, AURORA_COLOURS.red, AURORA_COLOURS.fringe]
+  const lean = 1 / Math.tan(a.dipDeg * DEG)
   for (let i = 0; i < AURORA_LAYERS; i++) {
     const h = BOTTOM_KM + (i + jitter) * DH
     const shell = EARTH_KM + h
     const bq = r * dir[2]
     const t = -bq + Math.sqrt(Math.max(bq * bq - r * r + shell * shell, 0))
     const p: Vec3 = [dir[0] * t, dir[1] * t, r + dir[2] * t]
-    const [x, y] = [p[0], p[1]]
+    // Sample the curtains at the foot (110 km) of this point's field line:
+    // higher up it lies equatorward of its foot.
+    const x = p[0] + (h - 110) * lean
+    const y = p[1]
     const n = Math.hypot(...p)
     const sinEl = Math.max((dir[0] * p[0] + dir[1] * p[1] + dir[2] * p[2]) / n, 0.02)
     const path = DH / sinEl
     const dy = Math.abs(dir[1]) * path
-    const step = Math.abs(dir[0]) * path + (FOLD_SLOPE * a.foldKm[0] / a.foldKm[1]) * dy
+    // Between layers the foot moves across by the ray's own step and the
+    // field's lean.
+    const step = Math.abs(dir[0] * path + DH * lean) + (FOLD_SLOPE * a.foldKm[0] / a.foldKm[1]) * dy
     const width = Math.max(ARC_KM, step)
     const soft = Math.max(width, 2 * step)
     const redWidth = Math.max(RED_KM, step)
@@ -577,7 +593,7 @@ uniform vec4 auroraB; // the oval's equatorward and poleward edges (km poleward 
 uniform vec4 auroraC; // fold amplitude (km), fold wavelength (km), seed (integer), strength (kR)
 uniform vec4 auroraD; // the arcs' positions (km poleward of the camera)
 uniform vec4 auroraE; // the arcs' strengths (0: none)
-uniform vec4 auroraF; // red glow (column ÷ strength), 0, 0, 0
+uniform vec4 auroraF; // red glow (column ÷ strength), the field's lean (1 / tan dip), 0, 0
 uniform float auroraPatchy;
 
 ${hashGlsl('au')}
@@ -650,7 +666,8 @@ vec3 aurora(vec3 radiance, const vec3 transmittance, const vec3 cameraPosition, 
     float t = -bq + sqrt(max(bq * bq - dot(cameraPosition, cameraPosition) + shell * shell, 0.0));
     vec3 p = cameraPosition + rayDirection * t;
     vec3 v = p - cameraPosition;
-    float x = dot(v, pole);
+    // At the foot (110 km) of this point's field line (aurora.ts auroraRay).
+    float x = dot(v, pole) + (h - 110.0) * auroraF.y;
     float y = dot(v, east);
     // The slant path through this layer. Neighbouring layers' samples land
     // that far apart along the arcs and across them, the folds' drift
@@ -659,7 +676,7 @@ vec3 aurora(vec3 radiance, const vec3 transmittance, const vec3 cameraPosition, 
     float sinEl = max(dot(rayDirection, normalize(p)), 0.02);
     float path = dh / sinEl;
     float dy = abs(dot(rayDirection, east)) * path;
-    float step = abs(dot(rayDirection, pole)) * path + ${f(FOLD_SLOPE)} * auroraC.x / auroraC.y * dy;
+    float step = abs(dot(rayDirection, pole) * path + dh * auroraF.y) + ${f(FOLD_SLOPE)} * auroraC.x / auroraC.y * dy;
     float width = max(${f(ARC_KM)}, step);
     // The fringe lives in one layer's height: on a sheet as sharp as the
     // step it lands on or off by chance (grain); give it a softer one.
@@ -708,7 +725,7 @@ export function patchSkyAurora(material: SkyMaterial, a: AuroraParams, worldToEC
     auroraC: new Uniform(new Vector4(a.foldKm[0], a.foldKm[1], seedInt(a.seed), a.strengthKR)),
     auroraD: new Uniform(new Vector4(arc(0)[0], arc(1)[0], arc(2)[0], arc(3)[0])),
     auroraE: new Uniform(new Vector4(arc(0)[1], arc(1)[1], arc(2)[1], arc(3)[1])),
-    auroraF: new Uniform(new Vector4(a.redGlowKR / a.strengthKR, 0, 0, 0)),
+    auroraF: new Uniform(new Vector4(a.redGlowKR / a.strengthKR, 1 / Math.tan(a.dipDeg * DEG), 0, 0)),
     auroraPatchy: new Uniform(a.patchy)
   })
   const source = material.fragmentShader

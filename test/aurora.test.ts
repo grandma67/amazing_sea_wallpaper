@@ -6,6 +6,7 @@ import {
   auroraCdToward,
   auroraLux,
   auroraRay,
+  dipFor,
   elevationOf,
   geomagnetic,
   kpFor,
@@ -217,8 +218,9 @@ describe('aurora', () => {
     for (const c of maine.above) expect(c[0]).toBeGreaterThan(2 * c[1])
     const quiet = look({ place: 'norway-north', aurora: true }, '2026-01-20')
     expect(quiet.body[1] / quiet.body[0]).toBeGreaterThan(2)
-    // Quiet: the sky well above stays green-grey (airglow's colour), no red wash.
-    expect(quiet.above[2][1]).toBeGreaterThan(quiet.above[2][0])
+    // Quiet: only a hint of red well above (the tops lean toward the camera
+    // along the field), no red wash.
+    expect(lum(quiet.above[2])).toBeLessThan(0.08 * lum(quiet.body))
   })
 
   it('stands as arcs over a dark sky, not as a wash', () => {
@@ -263,6 +265,30 @@ describe('aurora', () => {
       const m = mirrorLine(p, { az, el: [6, 30], step: 0.04 }, (dir, j) => auroraCdToward(a, dir, j))
       expect(m.stats.periodDeg == null || m.stats.ripple < 0.003, `az ${az}: ${m.stats.summary}`).toBe(true)
       expect(m.grain, `az ${az}`).toBeLessThan(0.12)
+    }
+  })
+
+  it('leans rays along the magnetic field', () => {
+    // Dipole dip: ~77° at 65°, ~73° at 55° geomagnetic.
+    expect(dipFor(65)).toBeCloseTo(76.9, 0)
+    expect(dipFor(55)).toBeCloseTo(70.7, 0)
+    // A ray (its foot on the brightest arc, 400 km along it) seen in a
+    // poleward frame: going up the field line it leans toward the camera,
+    // so it stands taller and fans out toward the frame's edge (the rays
+    // converge on the point opposite the magnetic zenith, below the horizon).
+    const p = scene({ ...DARK, place: 'maine', aurora: 'strong' }, '2026-03-20')
+    const a = p.aurora!
+    const lean = 1 / Math.tan((a.dipDeg * Math.PI) / 180)
+    const at = (y: number, h: number, k: number): [number, number] => {
+      const x = a.arcs[0][0] - (h - 110) * lean * k
+      const az = (Math.atan2(-y, x) * 180) / Math.PI
+      return project(p, dirFromAzEl(a.poleAzimuthDeg + az, elevationOf(Math.hypot(x, y), h)))!
+    }
+    for (const y of [-400, 400]) {
+      const [foot, top, vertical] = [at(y, 110, 1), at(y, 250, 1), at(y, 250, 0)]
+      expect(top[1]).toBeGreaterThan(vertical[1])
+      expect(Math.abs(top[0] - foot[0])).toBeGreaterThan(Math.abs(vertical[0] - foot[0]))
+      expect(Math.sign(top[0] - foot[0])).toBe(Math.sign(foot[0] - at(0, 110, 1)[0]))
     }
   })
 

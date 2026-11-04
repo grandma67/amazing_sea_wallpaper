@@ -187,6 +187,9 @@ How it looks (the five fixes that took it from a green wash to arcs; render spec
    underside (240 km, 35 below, 60 above). Storms add a **diffuse red glow** (0.8–3% of the
    column at Kp 5–9, 250 km, over the oval and ~3° equatorward) and a **type-B lower border**
    (magenta, 3–8%, brightest arc only, Kp ≥ 5 on a draw, always when forced 'strong').
+6. **Rays along the field** (0.94): curtains follow dipole field lines (tan I = 2 tan λ, ~71–77°),
+   sampled at each point's field-line foot (110 km): in a poleward frame rays lean toward the
+   camera, stand taller and fan out toward the frame's edges.
 5. **No stripes.** Rays fade to their mean once the layers' samples step more than half their
    period along the arc; sheets are widened to the step across them (folds' drift included);
    profiles are averaged over each layer (erf), not point-sampled; one layer offset per pixel

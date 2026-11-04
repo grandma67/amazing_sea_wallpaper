@@ -257,6 +257,11 @@ showers, moon, clouds, radiant height and hour (decision in the plan).
   the green line is quenched at low altitude and N₂ first-positive (red) with N₂⁺ (blue) shows
   (Hallinan et al. 1998; Vallance Jones; via search summaries, *general*). Seen 5–10° up the air
   takes the blue: it reads crimson.
+- **Rays follow the magnetic field:** dipole dip tan I = 2 tan(magnetic latitude), ~77° at 65°,
+  ~71° at 55° *(general)*. Up a field line is equatorward (northern hemisphere: B points down and
+  poleward), so the magnetic zenith, where a corona converges, is ~13–19° on the equator's side
+  of the zenith; looking poleward, rays converge toward the opposite point below the horizon and
+  fan out upward.
 - **Sunlit tops (not drawn):** curtains above the earth's shadow (~140 km at sun −12°, ~257 km
   at −16°, ~330 km at −18°) scatter N₂⁺ 427.8 nm sunlight: blue-violet ray tops. Our night is
   the sun 16–30° down, so at most the tops of tall storm rays near −16°; skipped.

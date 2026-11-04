@@ -85,7 +85,7 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   and `frameTurnDeg` (sun and moon turned so the display stands ahead). Aurora nights shoot
   14–24 mm with more sky (`'aurora-framing'`). `patchSkyAurora` patches the main sky and the env
   cube (the sea mirrors it) before the night glow, so it adds to the night sky: 28 layers
-  92–320 km, each sampling the folded sheets (widened to the samples' step), rays (faded to
+  92–320 km, each sampling at its field line's foot (x + (h − 110)·cot dip, `auroraF.y`) the folded sheets (widened to the samples' step), rays (faded to
   their mean past half their period; red on its own 60 km sheet, the border on the brightest
   arc's soft sheet only), the diffuse glow inside the oval, the storm red glow
   (`redGlowShape`: 450–150 km equatorward of the oval to its poleward edge, fading poleward), with each emission
