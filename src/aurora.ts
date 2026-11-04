@@ -112,13 +112,27 @@ const STORM_SHARE = 1 / 3
  * mostly 0–2; general). */
 export const QUIET: Record<number, number> = { 1: 0.38, 2: 0.3, 3: 0.21, 4: 0.11 }
 
+/** The season of storms (Russell–McPherron and the equinoctial effect):
+ * disturbed days (Ap > 25) are about twice as common near the equinoxes as
+ * near the solstices, bigger storms more so (Australian Space Weather
+ * Service, Ap 1932–2014). A factor with mean 1 over the year: 1 + A cos(4π
+ * (day − 20 March) / 365), A = 1/3 at Kp 5 (2:1) to 1/2 at Kp 9 (3:1); the
+ * same in both hemispheres. */
+export function stormSeason(date: string, kp: number): number {
+  const [y, m, d] = date.split('-').map(Number)
+  const days = (Date.UTC(y, m - 1, d) - Date.UTC(y, 2, 20)) / 86400000
+  const amplitude = 1 / 3 + (Math.min(9, Math.max(5, kp)) - 5) * (1 / 24)
+  return 1 + amplitude * Math.cos((4 * Math.PI * days) / 365.25)
+}
+
 /** Kp during tonight's session from a uniform draw; storms scale with the
- * solar cycle (×0.5 at minimum, ×1.5 at maximum). Kp 0–1 → 1. */
-export function kpFor(u: number, activity: number): number {
+ * solar cycle (×0.5 at minimum, ×1.5 at maximum) and the season
+ * (`stormSeason`; without a date, the year's mean). Kp 0–1 → 1. */
+export function kpFor(u: number, activity: number, date?: string): number {
   const k = (0.5 + activity) * STORM_SHARE
   let acc = 0
   for (const kp of [9, 8, 7, 6, 5]) {
-    acc += (STORM_DAYS[kp] / CYCLE_DAYS) * k
+    acc += (STORM_DAYS[kp] / CYCLE_DAYS) * k * (date == null ? 1 : stormSeason(date, kp))
     if (u < acc) return kp
   }
   const rest = (u - acc) / (1 - acc)
@@ -253,7 +267,7 @@ export function auroraFor(input: AuroraInput, rng: Random, framing: number, forc
   // The day's latitude within the place shifts the geomagnetic one by as much.
   const g = geomagnetic(site[0], site[1])
   const observerLat = g.lat + cgmCorrection(site[1]) + (Math.abs(input.latitudeDeg) - Math.abs(site[0]))
-  let kp = kpFor(uKp, solarActivity(input.date))
+  let kp = kpFor(uKp, solarActivity(input.date), input.date)
   const reachKp = (lat: number): number => Math.ceil((67 + ARC_REACH * 0.5 - lat) / 2)
   if (force === 'strong') kp = Math.max(kp, Math.min(9, reachKp(observerLat) + 2), 6)
   else if (force === true) kp = Math.max(kp, Math.min(9, reachKp(observerLat)))

@@ -65,7 +65,9 @@ Sources behind built features. Research for planned work lives with its plan: co
   et al., mid-latitude aurora of 10–12 May 2024 over Irkutsk, I630/I557.7 up to 15–30, 630 nm
   > 25 kR (seminar.pgia.ru/archive/2024/1_02_Beletsky.pdf; read as a search summary); type-B
   red lower border, green quenching and N₂ 1PG: Hallinan et al. 1998 and Vallance Jones
-  (earthref.org/ERR/21966, nature.com/articles/141200a0; search summaries only); takram three-atmosphere
+  (earthref.org/ERR/21966, nature.com/articles/141200a0; search summaries only); storm season
+  (0.95): Australian Space Weather Service, "Seasonal variation" (sws.bom.gov.au/Educational/3/1/5:
+  Ap > 25 ~2× near the equinoxes, 1932–2014); takram three-atmosphere
   defaults for the mirrors' transmittance (Rayleigh, Mie, ozone)
 
 ## Shore and animals

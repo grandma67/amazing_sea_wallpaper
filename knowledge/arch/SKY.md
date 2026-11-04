@@ -77,7 +77,7 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   (`'planet-framing'`, before the midnight-sun heading and the moon).
 - **Aurora** (`aurora.ts`, NIGHT_SKY phase 6): `auroraFor` (stream `'aurora'`, step 5) takes the
   place's geomagnetic latitude (`AURORA_SITES`, dipole pole, −2.5° over Europe), a session Kp
-  (`kpFor`: NOAA storm days × solar cycle) and the oval (`ovalEdge` 67 − 2 Kp, `ovalWidth` 7 + 1.5
+  (`kpFor`: NOAA storm days × solar cycle × `stormSeason`, the equinox peak) and the oval (`ovalEdge` 67 − 2 Kp, `ovalWidth` 7 + 1.5
   Kp, low arcs `ARC_REACH` 4° beyond): under it `overhead`, beyond it `arc`. It returns up to four
   arcs as km poleward of the camera (the first where the frame looks, its base 8–18° up),
   strength (kR column of the brightest arc), red and type-B border luminance shares, the storm

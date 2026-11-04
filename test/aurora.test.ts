@@ -12,6 +12,7 @@ import {
   kpFor,
   ovalEdge,
   ovalWidth,
+  stormSeason,
   type AuroraParams
 } from '../src/aurora'
 import { shiftDate } from '../src/dates'
@@ -60,6 +61,26 @@ describe('aurora', () => {
     expect(storm(max) / storm(min)).toBeCloseTo(3, 1)
     // Quiet sessions are mostly Kp 1–2.
     expect(min[1] + min[2]).toBeGreaterThan(0.6)
+  })
+
+  it('has more storms near the equinoxes, the yearly mean kept', () => {
+    // Disturbed days ~2× as common near the equinoxes as the solstices,
+    // bigger storms more so (Ap 1932–2014).
+    expect(stormSeason('2025-03-20', 5) / stormSeason('2025-06-20', 5)).toBeCloseTo(2, 1)
+    expect(stormSeason('2025-09-21', 9) / stormSeason('2025-12-21', 9)).toBeGreaterThan(2.8)
+    for (const kp of [5, 7, 9]) {
+      let sum = 0
+      for (let d = 0; d < 365; d++) sum += stormSeason(shiftDate('2025-01-01', d), kp)
+      expect(sum / 365).toBeCloseTo(1, 2)
+    }
+    const storms = (date: string): number => {
+      let n = 0
+      for (let i = 0; i < 4000; i++) if (kpFor((i + 0.5) / 4000, 1, date) >= 5) n++
+      return n / 4000
+    }
+    expect(storms('2025-03-20') / storms('2025-12-21')).toBeGreaterThan(1.8)
+    // Quiet nights' Kp is untouched.
+    expect(kpFor(0.9, 1, '2025-03-20')).toBe(kpFor(0.9, 1, '2025-12-21'))
   })
 
   it('puts places at their geomagnetic latitudes and the oval where NOAA has it', () => {

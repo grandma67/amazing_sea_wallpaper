@@ -236,6 +236,11 @@ showers, moon, clouds, radiant height and hour (decision in the plan).
   G2 360, G3 130, G4 60, G5 4 of ~4,018. A storm day holds its level for ~⅓ of its 3-hour
   intervals *(general)*; quiet sessions mostly Kp 1–2 *(general)*. Storms scale ×0.5–1.5 with
   the cycle (`aurora.ts` `kpFor`).
+- **Season:** disturbed days (Ap > 25) are ~2× as common near the equinoxes (March/April,
+  September/October) as near the solstices, and bigger storms are more concentrated still
+  (Australian Space Weather Service, Ap 1932–2014; Russell–McPherron effect and the
+  equinoctial effect); intense storms peak about a month after the September equinox (cycles
+  23–24, arXiv 2404.09234, search summary). `stormSeason`: 2:1 at Kp 5 to 3:1 at Kp 9.
 - **Brightness** (IBC, visual classes: RSRS newsletter 1971, WMO cloud atlas): I ≈ Milky Way,
   II thin moonlit cirrus, III moonlit cumulus, IV full moonlight; in green-line terms ~1, 10,
   100, 1000 kR *(general)*. 1 R of 557.7 nm ≈ 1.93e-7 cd/m², so a dark zenith is ~0.9 kR of

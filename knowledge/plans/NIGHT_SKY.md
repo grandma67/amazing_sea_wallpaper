@@ -163,8 +163,9 @@ geomagnetic latitude per place (dipole pole, `AURORA_SITES`, −2.5° over Europ
 coordinates), session Kp from NOAA's storm-day counts (÷3 for a session) and long-term quiet
 shares, oval from 67 − 2·Kp, widening as it grows (poleward edge ~74° quiet, ~70° at Kp 9), low
 arcs to 4° beyond either edge. Shares on clear dark winter nights near maximum: Tromsø ~60%,
-Iceland ~70%, north Scotland ~20%, Maine and the Wadden Sea ~4%; ~9% of real nights. Fog,
-storms and overcast hide it.
+Iceland ~70%, north Scotland ~20%, Maine and the Wadden Sea ~4–6%; ~9% of real nights. Fog,
+storms and overcast hide it. Storms follow the equinoxes (0.95, `stormSeason`: ~2× the
+solstices at Kp 5, ~3× at Kp 9; year mean kept): around the equinoxes Scotland ~32%, Maine ~13%.
 
 How it looks (the five fixes that took it from a green wash to arcs; render specs in
 `scenes/aurora.json`):
