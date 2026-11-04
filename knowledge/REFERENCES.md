@@ -54,6 +54,13 @@ Sources behind built features. Research for planned work lives with its plan: co
   2020 (Milky Way map); Masana et al. 2021 (integrated starlight and the night-sky budget at
   40° N); Leinert et al. 1998 Table 17 (zodiacal light); Wikipedia "Sky brightness" (S10, the
   dark-sky budget)
+- Aurora (NIGHT_SKY phase 6; numbers in STARS.md §8): NOAA SWPC space weather scales (storm days
+  per cycle, Kp vs the latitude reached); Chinese Journal of Geophysics 2017 vol. 60(1) 1–11,
+  dayside arcs: I557.7/I630.0 rises from ~0.2 to ~9 as I557.7 rises 0.1–10 kR
+  (html.rhhz.net/geophy_en/html/20170101.htm); IBC classes: RSRS Newsletter 1971 no. 119
+  (dittonpark-archive.rl.ac.uk) and the WMO International Cloud Atlas "polar aurora,
+  brightness" (cloudatlas.wmo.int); interleaved gradient noise: Jimenez, "Next generation
+  post-processing in Call of Duty: Advanced Warfare" (SIGGRAPH 2014)
 
 ## Shore and animals
 

@@ -232,8 +232,22 @@ showers, moon, clouds, radiant height and hour (decision in the plan).
   and red-only arcs (SAR arcs) can show far equatorward. High Kp doesn't guarantee a display.
 - Needs darkness (none in the midnight-sun months) and gaps in the cloud. Reflected in calm
   water, it is the classic Arctic coast photo.
-- Still to research before building (one or two searches): how often a clear dark night shows
-  aurora by geomagnetic latitude, and the Kp distribution over a solar cycle (NOAA SWPC).
+- **Kp over a cycle** (NOAA space weather scales): days per 11-year cycle reaching G1 (Kp 5) 900,
+  G2 360, G3 130, G4 60, G5 4 of ~4,018. A storm day holds its level for ~⅓ of its 3-hour
+  intervals *(general)*; quiet sessions mostly Kp 1–2 *(general)*. Storms scale ×0.5–1.5 with
+  the cycle (`aurora.ts` `kpFor`).
+- **Brightness** (IBC, visual classes: RSRS newsletter 1971, WMO cloud atlas): I ≈ Milky Way,
+  II thin moonlit cirrus, III moonlit cumulus, IV full moonlight; in green-line terms ~1, 10,
+  100, 1000 kR *(general)*. 1 R of 557.7 nm ≈ 1.93e-7 cd/m², so a dark zenith is ~0.9 kR of
+  green-equivalent luminance. Seen across from 300–500 km an arc gives about its overhead column;
+  low in the sky the airglow is ~2.5× the zenith and the air takes ~1.3 mag, so a 10 kR arc is
+  ~2× the sky beside it.
+- **Red vs green:** I630/I557.7 falls as the green brightens (dayside arcs: ~5 at 0.1 kR green,
+  ~0.1 at 10 kR; Chinese J. Geophys. 2017). Night arcs ~0.1–0.3, so with V(630) ≈ 0.265 of
+  V(557.7) red is only **3–7% of the luminance**: green curtains with red tops. Type-A and SAR
+  arcs seen equatorward in big storms: ratio > 1, red-dominated.
+- **Light on the ground:** a Kp 9 display as drawn gives ~1e-3 lux (integrated over the sky),
+  under a starlit night's 0.002 and far under a quarter moon's 0.01.
 
 ## 9. Other night things
 

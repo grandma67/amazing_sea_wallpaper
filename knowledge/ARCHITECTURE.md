@@ -89,8 +89,10 @@ Playwright (headless snapshots), Vitest.
      sun's real compass bearing − `relSunAz`), Venus framing at blue hour (`'planet-framing'`: the sun's
      bearing and depth; NIGHT_SKY phase 5), moon direction within 5° of the ecliptic
      (`skyClock.ts`; main, at night the sun depth from `'moon-hour'`, then `'moon-framing'`), day
-     moon and night sky (`'moon-sky'`).
-  6. Camera height, focal length (main, `keep`), wind speed and heading (main, `keep`).
+     moon and night sky (`'moon-sky'`); aurora (`'aurora'`: Kp, display, arcs; a low display is
+     framed by turning sun and moon about the vertical, NIGHT_SKY phase 6).
+  6. Camera height, focal length (main, `keep`; aurora nights 14–24 mm from `'aurora-framing'`),
+     wind speed and heading (main, `keep`).
   7. Storm (`'storm'`, `'storm-weather'`: overrides weather and wind); water (`'water'`); wind
      × basin, marine-layer wind cap; formations (`'formations'`, `'cloud-species'`);
      waterspout (`'waterspout'`); arrangement; fog (`'fog'`: calms the wind).
@@ -100,11 +102,13 @@ Playwright (headless snapshots), Vitest.
      `'hills'`, `'composition'`).
   9. Colony, pinnipeds, lighthouse, landform, islands (`pick*`, own streams); shelf cloud,
      lenticular; rainbow geometry; title.
-  10. Moon scale, horizon, roll, time, choppiness (main, `keep`).
+  10. Moon scale, horizon (aurora nights at least 0.6–0.68 from `'aurora-framing'`), roll, time,
+      choppiness (main, `keep`).
   11. After `params` exists (read it whole): noctilucent, nacreous, roll cloud, contrails,
       visibility (`'visibility'`, reads `weather.dust`), night glow (`'night-glow'`, sun below
-      the horizon only; reads the place's `bortle`), planets (no draw; sun down), meteors
-      (`'meteors'`, night only; adds the shower's name to the title).
+      the horizon only; reads the place's `bortle`), aurora dropped by fog, storm or overcast
+      unless forced (adds "Northern/Southern lights" to the title), planets (no draw; sun down),
+      meteors (`'meteors'`, night only; adds the shower's name to the title).
 
   Props decide later, at render, on `ctx.rng(kind)` (`props/choices.ts`).
 - **Seasons** (`seasons.ts`): seasonal tables are written in northern-hemisphere months;
@@ -153,6 +157,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | rock growth, lichen colour | `props/rocks.ts` `GROWTH`, `rockShore.ts` `LICHEN` | biome | leftover (moisture follows climate) |
 | landform vegetation tint | `props/landforms.ts` | biome (own table) | leftover: should read `biome.foliage` like islands |
 | night-sky darkness (Bortle) | `places.ts` `BORTLE` | place (default 2) | right |
+| aurora sites (geomagnetic latitude) | `aurora.ts` `AURORA_SITES` | place (a coast point; none = never) | right |
 | lighthouse chance, contrail traffic, warm-water ships, orcas, Morning Glory, noctilucent | `params.ts`, `contrails.ts`, `props/ships.ts`, `props/marine.ts`, `skyEvents.ts`, `noctilucent.ts` | biome / ocean / latitude | right enough (geography, not weather) |
 
 ## Frame and post
@@ -221,6 +226,11 @@ December noon is 17° up; changes many winter days, ask first).
 - Light pollution (`nightGlow.ts`): low clouds aren't lit from below by the towns. At the
   night white balance (4000 K) the domes come out only mildly warm (sodium ~2100 K stays
   orange; the LED share pulls them neutral).
+- Aurora (`aurora.ts`): clouds aren't lit by it (in a gap only the sky behind them is green);
+  the airglow's wave crests (`nightGlow.ts` bands) show more on aurora nights (+1.5 EV and a
+  wider, higher frame) as faint slanted stripes low in the sky: they are the airglow's, not the
+  aurora's (`passes.aurora: false` keeps them). A single-layer feature in the march (the 5 km
+  N₂⁺ fringe) leaves ~3% grain at the arcs' lower edge on Kp ≥ 5 nights.
 
 Places and climate:
 - Landforms and islands are still chosen by biome (`pickLandform`, `ISLANDS`): nordic places

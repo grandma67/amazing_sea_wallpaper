@@ -53,7 +53,9 @@ Allowed values are in `sceneSpec.ts`.
   `nacreous`, `milkyWay`, `airglow`, `zodiacalLight` (false/null: off), `skyDarkness` (Bortle
   1–4 instead of the place's), `meteors` (true, a shower id like `"perseids"`, a count ≤ 3,
   null), `planets` (`false`/`null`: none; `"venus"`: frame Venus at blue hour when it's well
-  placed), `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place; null:
+  placed), `aurora` (true: a display at night on a coast the oval can reach, Kp raised to reach
+  it; `"strong"`: a big storm, Kp ≥ 6; false/null: none; a spec's aurora survives fog, storm and
+  overcast, the drawn one doesn't; render set `scenes/aurora.json`), `rainbow`, `fog`, `marineLayer` (true: overcast stratus/Sc deck on any place; null:
   none), `dust` (`"harmattan"` or true: ochre dust haze, 2–10 km, any place; null: none), `wind`,
   `visibilityKm`.
 - **Features:** `lighthouse`, `landform`, `islands`, `colony`, `colonySite`, `pinnipeds`,

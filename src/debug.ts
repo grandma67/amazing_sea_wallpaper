@@ -36,7 +36,7 @@ export interface DebugParams {
   probeHalf?: number
 }
 
-export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'stars', 'glow', 'meteors'] as const
+export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'stars', 'glow', 'meteors', 'aurora'] as const
 export type DebugPass = (typeof DEBUG_PASSES)[number]
 export const TERRAIN_VIEWS = ['none', 'slope', 'relief', 'lines', 'shore'] as const
 export type TerrainView = (typeof TERRAIN_VIEWS)[number]

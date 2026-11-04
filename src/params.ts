@@ -16,6 +16,7 @@ import { nightGlowFor, type NightGlowParams } from './nightGlow'
 import { meteorsFor, SHOWERS, type Meteor } from './meteors'
 import { inSky } from './skyFrame'
 import { planetsFor, planetsIn, type Planet } from './planets'
+import { auroraFor, type AuroraParams } from './aurora'
 import { waterspoutFor, type WaterspoutParams } from './props/waterspout'
 import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cloudTypes'
 import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
@@ -399,6 +400,8 @@ export interface SceneParams {
   meteors: Meteor[]
   /** The planets with the sun down (planets.ts). */
   planets: Planet[]
+  /** Northern or southern lights tonight (aurora.ts). */
+  aurora: AuroraParams | null
   /** How far one sees through the sea haze (km; seaHaze.ts). Fog is separate. */
   visibilityKm: number
   /** Aircraft trails high in the sky (contrails.ts). */
@@ -1706,6 +1709,25 @@ function buildParams(
       headingDeg = moonAzDeg + Random.derive(seed, 'moon-framing').normal(0, 14 * framing)
     }
   }
+  // Aurora (NIGHT_SKY phase 6, own stream): the day's Kp against the
+  // place's geomagnetic latitude. A low arc is framed by turning the sky
+  // (sun and moon about the vertical) so it stands ahead: the camera stays.
+  const northAzimuthDeg = (() => {
+    const pole = apply(skyRotation({ date, latitudeDeg, sunDirection, evening: isEvening }).matrix, [0, 0, 1])
+    return Math.atan2(pole[0], -pole[2]) / DEG
+  })()
+  let aurora = auroraFor(
+    { date, placeId: place.id, latitudeDeg, night: timeOfDay === 'night' && !lunarEclipse, weatherKind: weather.kind, northAzimuthDeg, headingDeg },
+    Random.derive(seed, 'aurora'),
+    framing,
+    spec.aurora
+  )
+  if (aurora != null && aurora.frameTurnDeg !== 0) {
+    const turn = (d: [number, number, number]) => dirFromAzEl(Math.atan2(d[0], -d[2]) / DEG + aurora!.frameTurnDeg, elevationOf(d))
+    relSunAz += aurora.frameTurnDeg
+    sunDirection = turn(sunDirection)
+    moonDirection = turn(moonDirection)
+  }
   // The sun and the moon by day: a moon well clear of the sun, in the frame
   // with the sea.
   const dayMoon =
@@ -1774,8 +1796,13 @@ function buildParams(
   // A rainbow spans 84°: go wide to get most of the arc in.
   // An eclipse needs a lens long enough to show it and wide enough to keep
   // it in the frame with the sea.
+  // Aurora photographers shoot wide (14–24 mm) with plenty of sky (the
+  // horizon 60–68% down): the display stands 8–40° up (own stream).
+  const auroraFrame = Random.derive(seed, 'aurora-framing')
+  const [auroraLens, auroraHorizon] = [auroraFrame.range(14, 24), auroraFrame.range(0.6, 0.68)]
+  const auroraNight = aurora != null && eclipse == null
   const focalLengthMm = or(
-    eclipse != null ? erng.range(24, 35) : rainbowDay ? Math.min(drawnFocalLength, rainbowRng.range(14, 22)) : drawnFocalLength,
+    eclipse != null ? erng.range(24, 35) : auroraNight ? Math.min(drawnFocalLength, auroraLens) : rainbowDay ? Math.min(drawnFocalLength, rainbowRng.range(14, 22)) : drawnFocalLength,
     spec.camera?.focalLengthMm
   )
 
@@ -2030,6 +2057,7 @@ function buildParams(
     nightGlow: null,
     meteors: [],
     planets: [],
+    aurora: null,
     rollCloud: null,
     lighthouse,
     ...(spec.props != null ? { overrides: spec.props } : {}),
@@ -2037,7 +2065,7 @@ function buildParams(
       heightM: spec.camera?.heightM ?? eyeHeight ?? heightM,
       headingDeg,
       horizonFraction: or(
-        ((drawn: number) => (eclipse != null ? erng.range(0.56, 0.66) : drawn))(
+        ((drawn: number) => (eclipse != null ? erng.range(0.56, 0.66) : auroraNight ? Math.max(drawn, auroraHorizon) : drawn))(
           keep(
             'horizon',
             rng.weighted<() => number>([
@@ -2081,6 +2109,10 @@ function buildParams(
   params.contrails = contrailsFor(params, Random.derive(seed, 'contrails'), spec.contrails)
   params.visibilityKm = visibilityFor(params, Random.derive(seed, 'visibility'), spec.visibilityKm)
   params.nightGlow = nightGlowFor(params, Random.derive(seed, 'night-glow'), spec)
+  // Fog and storms are chosen after the aurora: they hide it.
+  if (aurora != null && spec.aurora == null && (fog != null || storm != null || weather.kind === 'overcast')) aurora = null
+  params.aurora = aurora
+  if (aurora != null) params.title += latitudeDeg < 0 ? ' · Southern lights' : ' · Northern lights'
   params.planets = planetsFor(params, spec.planets === false || spec.planets === null)
   const venus = params.planets.find(p => p.id === 'venus')
   if (venusFramed && venus != null && params.fog == null && inSky(params, venus.direction, 0.95, 2)) params.title += ' · Venus'

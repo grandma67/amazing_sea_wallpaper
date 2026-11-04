@@ -75,6 +75,21 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   `GLITTER_MAGNITUDE` (−2.5) and up: an ocean lamp at 10⁷ m with intensity = irradiance ×
   `extinction` × r² (slots taken from the ships' 12). Venus framing in `params.ts` step 5
   (`'planet-framing'`, before the midnight-sun heading and the moon).
+- **Aurora** (`aurora.ts`, NIGHT_SKY phase 6): `auroraFor` (stream `'aurora'`, step 5) takes the
+  place's geomagnetic latitude (`AURORA_SITES`, dipole pole, −2.5° over Europe), a session Kp
+  (`kpFor`: NOAA storm days × solar cycle) and the oval (`ovalEdge` 67 − 2 Kp, `ovalWidth` 7 + 1.5
+  Kp, low arcs `ARC_REACH` 4° beyond): under it `overhead`, beyond it `arc`. It returns up to four
+  arcs as km poleward of the camera (the first where the frame looks, its base 8–18° up),
+  strength (kR column of the brightest arc), red and fringe luminance shares, patchiness, folds
+  and `frameTurnDeg` (sun and moon turned so the display stands ahead). Aurora nights shoot
+  14–24 mm with more sky (`'aurora-framing'`). `patchSkyAurora` patches the main sky and the env
+  cube (the sea mirrors it) before the night glow, so it adds to the night sky: 28 layers
+  92–320 km, each sampling the folded sheets (widened to the samples' step), rays (faded to
+  their mean past half their period), the diffuse glow inside the oval, with each emission
+  profile averaged over the layer (erf); one layer offset per pixel (interleaved gradient
+  noise); × transmittance, in kR × `auroraScale`. **`auroraRay` is the same march in
+  TypeScript**: change both together; tests and `auroraLux` (the ground light, the march
+  integrated over the sky, an ambient + sky irradiance) use it. Metered without it; +1.5 EV.
 - **Marine layer** (`coastalWeather.ts`, PLAN_BIOMES 3): `marineLayerFor` on stream
   `'marine-layer'` from `MARINE_LAYER` (place × local month) on morning golden hour, sunrise and
   daylight. After the eclipse fix-up the day turns overcast (coverage 0.75–0.82) with one stratus

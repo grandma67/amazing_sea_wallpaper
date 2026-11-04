@@ -163,6 +163,9 @@ export interface SceneSpec {
   /** Shooting stars (meteors.ts): null/false none, true at least one, a
    * shower id (`"perseids"`) one of it, a number that many (≤ 3). */
   meteors?: boolean | string | number | null
+  /** Northern or southern lights: true a display (at night, on a coast the
+   * oval can reach), "strong" a big storm, false/null none. */
+  aurora?: boolean | 'strong' | null
   /** Planets: false/null none; "venus" frames Venus at blue hour when it's up. */
   planets?: false | null | 'venus'
   storm?: Force<'thunderstorm' | 'squall'>
@@ -316,6 +319,7 @@ const SPEC = object({
   zodiacalLight: oneOf(true, false, null),
   skyDarkness: oneOf(1, 2, 3, 4),
   planets: oneOf(false, null, 'venus'),
+  aurora: oneOf(true, false, null, 'strong'),
   meteors: (value, path) => (typeof value === 'number' ? number(value, path) : oneOf(true, false, null, ...SHOWERS.map(s => s.id))(value, path)),
   storm: force('thunderstorm', 'squall'),
   rainbow: boolean,

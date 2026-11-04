@@ -1,0 +1,8 @@
+{ "base": { "timeOfDay": "night", "weather": "clear", "eclipse": null, "fog": null, "storm": null, "aurora": true },
+  "scenes": [
+    { "name": "1-tromso-quiet", "date": "2026-01-20", "place": "norway-north", "nightSky": "starlit" },
+    { "name": "2-tromso-calm-sea", "date": "2026-01-20", "place": "norway-north", "nightSky": "starlit", "aurora": "strong", "swellHeight": 0.3, "wind": 1 },
+    { "name": "3-iceland-moonlit", "date": "2026-02-01", "place": "iceland", "nightSky": "moonlit" },
+    { "name": "4-scotland-storm", "date": "2026-02-18", "place": "scotland", "nightSky": "starlit", "aurora": "strong" },
+    { "name": "5-maine-big-storm", "date": "2026-03-20", "place": "maine", "nightSky": "starlit", "aurora": "strong" }
+  ] }

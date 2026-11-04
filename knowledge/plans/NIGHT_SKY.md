@@ -158,20 +158,41 @@ to 5.5–7° down and needs a clear sky: a −4 Venus in bright twilight near th
 
 ### 6. Aurora
 
-**In progress** on branch `night-sky-aurora-wip` (rebased on 0.89). What's left before it
-can merge: [night_fixes.md](night_fixes.md).
+**Done 2026-11-04 (changelog 0.91, `src/aurora.ts`, `test/aurora.test.ts`).** Where and when:
+geomagnetic latitude per place (dipole pole, `AURORA_SITES`, −2.5° over Europe for corrected
+coordinates), session Kp from NOAA's storm-day counts (÷3 for a session) and long-term quiet
+shares, oval from 67 − 2·Kp, widening as it grows (poleward edge ~74° quiet, ~70° at Kp 9), low
+arcs to 4° beyond either edge. Shares on clear dark winter nights near maximum: Tromsø ~60%,
+Iceland ~70%, north Scotland ~20%, Maine and the Wadden Sea ~4%; ~9% of real nights. Fog,
+storms and overcast hide it.
 
-- Research first (STARS.md §8 lists what's missing): rate of auroral nights by geomagnetic
-  latitude, Kp distribution in a declining solar cycle.
-- `place.geomagLat` for northern and southern places; `auroraFor(params, rng)` (stream
-  `'aurora'`): Kp drawn per day, oval edge from Kp, display needs dark sky (sun < −10°), and
-  clear or broken cloud.
-- Render: sky-shader raymarch through a 100–300 km shell (16–32 steps, night pixels only):
-  curtains as folded bands along the oval with vertical rays, green low, red high, rare purple
-  fringe; overhead under the oval, a low arc poleward farther south. **In the env cube too**
-  (reflections are the point). A green-tinted ambient light on the scene, strength from the
-  display.
-- Spec field `aurora: true | 'strong' | null`; title "Northern lights" / "Southern lights".
+How it looks (the five fixes that took it from a green wash to arcs; render specs in
+`scenes/aurora.json`):
+
+1. **Arcs where the frame looks.** Under the oval the brightest arc stands 250–450 km off (its
+   110 km base 8–18° up), on its own draws; quiet displays 1–2 continuous arcs, active ones 3–4,
+   broken and folded. Aurora nights shoot wide (14–24 mm) with the horizon 60–68% down (stream
+   `'aurora-framing'`): the frame reaches ~35° up.
+2. **Brightness from the photo, not the column.** A photographed display is the session's peak
+   (substorm onset): quiet arcs ~10 kR (IBC II), storms 30–100 kR. Seen across from 300–500 km an
+   arc gives about its overhead column; the sky there is ~2.5× the zenith and the air takes ~1.3
+   mag, so a quiet arc is ~2× the sky beside it (probe).
+3. **A faint diffuse glow** (1.2% of the arc's column) on its own thin profile (112 ± 10 km): on
+   the old shell-wide profile its long low paths outshone the arcs.
+4. **Colours as luminance shares.** Red = 0.265·r / (1 + 0.265·r) with r = I630/I557.7 ~0.1–0.3
+   (a few % of the luminance); r 1.5–2.5 only for equatorward arcs at Kp ≥ 7 (type A, SAR). The
+   N₂⁺ fringe 1–4%, Kp ≥ 5 only.
+5. **No stripes.** Rays fade to their mean once the layers' samples step more than half their
+   period along the arc; sheets are widened to the step across them (folds' drift included);
+   profiles are averaged over each layer (erf), not point-sampled; one layer offset per pixel
+   (interleaved gradient noise). Grain ≤ ~3% s.d. at the arcs' lower edge.
+
+Light on the ground: the march integrated over the sky (`auroraLux`, RGB), ~1e-4 lux quiet to
+~1e-3 at Kp 9 (under a starlit night's 0.002). The sea mirrors the arcs through the env cube;
+the blur on a "glassy" sea is the sea's own (Jupiter's reflection blurs the same).
+
+Left: clouds aren't lit by the aurora (only the sky behind them is); the airglow's wave crests
+show more on aurora nights (+1.5 EV, more sky; ARCHITECTURE.md known issues).
 
 ### Later or not at all
 

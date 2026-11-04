@@ -36,7 +36,8 @@ describe('scene specs', () => {
         expect(q.coast.type).toBe(p.coast.type)
         expect(q.coast.composition).toBe(p.coast.composition)
         expect(q.ocean.windHeadingDeg).toBe(p.ocean.windHeadingDeg)
-        expect(q.camera.focalLengthMm).toBe(p.camera.focalLengthMm)
+        // An aurora brought by the night widens the lens (params.ts).
+        if (q.aurora == null && p.aurora == null) expect(q.camera.focalLengthMm).toBe(p.camera.focalLengthMm)
       }
     }
   })

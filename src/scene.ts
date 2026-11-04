@@ -59,6 +59,7 @@ import { createClouds, loadCloudAssets, loadImageTexture, primeCloudShadow, rend
 import { patchSkyContrails } from './contrails'
 import { patchSkyNoctilucent } from './noctilucent'
 import { patchSkyMeteors } from './meteors'
+import { auroraLux, auroraScale, patchSkyAurora } from './aurora'
 import { extinction, GLITTER_MAGNITUDE, planetStarData, PLANET_MAGNITUDES, PLANETS } from './planets'
 import { glowScale, patchSkyNightGlow, type GlowFrame } from './nightGlow'
 import { eclipseSky } from './eclipse'
@@ -325,6 +326,13 @@ export async function renderScene(
   // The night's own light, on the sky and its reflection (smooth enough for
   // the cube). Patched last: it runs first, under the other sky patches. On a
   // starlit night it is the sky; otherwise it adds to the scattered light.
+  // Northern lights on both skies (the sea mirrors them), before the glow's
+  // patch so they add to the night sky it draws.
+  const aurora = pass('aurora') ? params.aurora : null
+  if (aurora != null) {
+    const scale = auroraScale(renderPerLux(params.nightSky, elongationDeg(params)))
+    for (const material of [skyMaterial, envSkyMaterial]) patchSkyAurora(material, aurora, worldToECEF, scale)
+  }
   if (glow != null) {
     const az = (params.coast.seawardAzimuthDeg * Math.PI) / 180
     const frame: GlowFrame = {
@@ -516,6 +524,14 @@ export async function renderScene(
   sun.shadow.normalBias = 0.03
   scene.add(sun, sun.target)
   if (starlitAmbient != null) scene.add(new AmbientLight(starlitAmbient, 1))
+  // The aurora's own light on the ground: the display as drawn, integrated
+  // over the sky (aurora.ts auroraLux), through the gaps in the cloud.
+  if (aurora != null) {
+    const auroraLight = new Color(...auroraLux(aurora)).multiplyScalar(renderPerLux(params.nightSky, elongation) * weather.sunVisibility)
+    tu.skyIrradiance.value.add(auroraLight)
+    u.skyIrradiance.value.add(auroraLight)
+    scene.add(new AmbientLight(auroraLight, 1))
+  }
   setOceanRocks(ocean, props.userData.waterRocks ?? [], camera.position)
   setOceanIslands(ocean, props.userData.waterIslands ?? [], camera.position)
   setOceanShips(ocean, props.userData.ships ?? [], camera.position)
@@ -526,7 +542,13 @@ export async function renderScene(
   // Meter the sky without the (artificially boosted) stars.
   const starFields = envScene.children.filter(o => o instanceof Points)
   starFields.forEach(o => (o.visible = false))
+  // Nor the aurora: a photographer exposes for the scene, not for a display
+  // overhead out of frame.
+  const auroraUniform = envSkyMaterial.uniforms.auroraA?.value as Vector4 | undefined
+  const auroraScaleValue = auroraUniform?.w ?? 0
+  if (auroraUniform != null) auroraUniform.w = 0
   const metered = meterScene(renderer, envScene, camera, dip)
+  if (auroraUniform != null) auroraUniform.w = auroraScaleValue
   const sceneLuminance = metered.luminance
   starFields.forEach(o => (o.visible = true))
   const evBias: Record<SceneParams['timeOfDay'], number> = {
@@ -539,6 +561,9 @@ export async function renderScene(
   }
   // A dark sky in totality, metered off its bright horizon.
   const eclipseBias = totality ? -1.6 : 0
+  // An aurora photographer exposes for the aurora (10–25 s at high ISO):
+  // ~1.5 stops more than a plain night frame.
+  const auroraBias = aurora != null ? 1.5 : 0
   // Twilight under the Bruneton sky skews magenta; cool it toward the blue a
   // camera set to daylight white balance would record. Night frames are shot
   // at a night white balance (~4000 K): blue sky, colours kept.
@@ -562,6 +587,7 @@ export async function renderScene(
     (0.16 / Math.max(sceneLuminance, 1e-9)) * nightScale * 2 **
       (evBias[params.timeOfDay] +
         eclipseBias +
+        auroraBias +
         // Low suns light the clouds from below and the horizon stays bright.
         1.1 * gloom * Math.min(Math.max(params.sunElevationDeg / 15, 0), 1))
   // Lightning's glow on the cloud base, mirrored by the sea.

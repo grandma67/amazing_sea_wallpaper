@@ -21,7 +21,15 @@ tool gotchas: TOOLS.md.
   stars' shader, `zodiacalS10` the zodiacal table): compute what a frame sees (ray brightness at
   the frame's elevations vs the local sky) before the first render. The aurora took 8 render
   rounds; the mirror, written at round 6, found both problems (arcs seen side-on are ~0.3× their
-  overhead column; the oval band was too narrow) in one run.
+  overhead column; the oval band was too narrow) in one run. With `aurora.ts` `auroraRay` as the
+  real mirror (tests and the ground light use it), the five fixes took 3 rounds.
+- A stripe or band in a sky feature: switch that feature's pass off on the same frame before
+  fixing its sampling (`passes.aurora: false`). The aurora's last "bands" were the airglow's
+  wave crests, made visible by the aurora nights' +1.5 EV.
+- A brightness quoted for a sky object is a column or a visual class, not what a frame sees:
+  seen across from far away, an aurora arc gives about its overhead column (a 25 km sheet), and
+  low in the sky the air takes ~1.3 mag while the airglow is ~2.5× the zenith. Compare with the
+  sky at the same elevation; a photographed display is the session's peak, not its average.
 - Where things land in the sky: `skyFrame.ts`, never a hand-written projector (one had the
   pitch backwards and put meteors off the top of the frame).
 - "Not showing" is usually placement, light or size: check `--props`, backlight and pixel size
@@ -139,6 +147,14 @@ tool gotchas: TOOLS.md.
 - A render target cleared to (0,0,0,0) holds premultiplied colour in its mips: blending it with
   `mix(x, rgb, a)` weights the content by a² and leaves a bright fringe at every edge. Use
   `x · (1 − a) + rgb`.
+- A layered ray march (aurora: 28 layers) aliases into stripes along whatever it point-samples
+  between layers: fine noise along the ray (fade it to its mean once the samples step past half
+  its period), a sheet thinner than the samples' step (widen it to the step, including how far
+  it moves itself between samples, e.g. its folds), a profile thinner than the layers (average
+  it over the layer: erf for a Gaussian). Then one layer offset per pixel turns what's left
+  into grain. Check each in the TS mirror (a column of pixels averaged over the offset: no
+  wiggles; spread between offsets: grain) before rendering. A `fract(sin(dot(gl_FragCoord…)))`
+  hash loses precision at 1e5 in float32; use interleaved gradient noise.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
   bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN terrain.
 
@@ -164,7 +180,8 @@ tool gotchas: TOOLS.md.
   no rods: use its night white balance (~4000 K) instead (`whiteBalance.ts`). Without the grey,
   each night source's own colour matters: give it the colour a camera records, in luminance
   terms (the red 630 nm airglow line at 5–35% of the luminance turned dark skies brown; it is a
-  few %). Sample real pixels (a canvas `getImageData`, `scratchpad` script) before reasoning
+  few %; the aurora's red line, `redShare(I630/I557.7)`, is 3–7%, not the 10–90% "share of
+  light" it was drawn with, which made the arcs pink). Sample real pixels (a canvas `getImageData`, `scratchpad` script) before reasoning
   about a tint; turn sources off one at a time (`passes.glow`, `milkyWay: false`).
 - The night glow is patched into the env cube's sky too, against the "main sky only" rule: it is
   smooth (0.35°/texel and coarser), so 256² faces hold it, and the sea must reflect it. Sharp
