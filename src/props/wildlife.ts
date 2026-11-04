@@ -9,6 +9,7 @@ import {
   Vector3
 } from 'three'
 
+import { lizardAwake } from '../animalSeasons'
 import { beachLines } from '../beach'
 import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
@@ -193,7 +194,8 @@ function drawWildlife(params: SceneParams, rng: Random): Wildlife | null {
     life.monkeys = monkeyCount
   }
   const lizard = animal(animals, 'lizard')
-  if (lizard != null && day && !storm && lizardDraw < lizard.chance) {
+  // Spiny-tailed lizards sleep the winter in their burrows.
+  if (lizard != null && day && !storm && lizardDraw < lizard.chance && lizardAwake(lizard.species, params)) {
     life.lizard = lizard.species
     life.lizards = lizard.species === 'marine-iguana' ? colonySize : lizardCount
   }

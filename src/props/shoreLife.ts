@@ -8,6 +8,7 @@ import {
   type BufferGeometry
 } from 'three'
 
+import { ghostCrabSeason, shoreCrabsOut } from '../animalSeasons'
 import { beachLines, isStony, type BeachMaterial } from '../beach'
 import type { Biome, RGB } from '../biome'
 import type { OceanName } from '../oceans'
@@ -165,14 +166,18 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
   if (!southernOcean && ocean !== 'arctic') {
     if (rng.chance(ghostChance)) {
       life.crab = 'ghost'
-      life.burrows = rng.int(8, 40)
-      life.crabs = night ? rng.int(6, 18) : dusk ? rng.int(3, 9) : rng.int(0, 3)
+      // Out of season they stay shut in their burrows (animalSeasons.ts).
+      const season = ghostCrabSeason(params)
+      life.burrows = Math.round(rng.int(8, 40) * season.burrows)
+      life.crabs = Math.round((night ? rng.int(6, 18) : dusk ? rng.int(3, 9) : rng.int(0, 3)) * season.out)
     } else if (climate === 'tropical' && rng.chance(0.6)) {
       life.crab = 'hermit'
       life.crabs = rng.int(3, 12)
     } else if (!warm && rng.chance(0.45)) {
       life.crab = 'shore'
-      life.crabs = rng.int(2, 7)
+      // In winter they've moved to deeper water (the draw is made anyway).
+      const crabs = rng.int(2, 7)
+      life.crabs = shoreCrabsOut(params) ? crabs : 0
     }
   }
   // In a storm crabs stay down their burrows or under the wrack.

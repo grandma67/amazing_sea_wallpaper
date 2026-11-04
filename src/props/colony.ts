@@ -14,6 +14,7 @@ import {
   type Object3D
 } from 'three'
 
+import { colonyInSeason } from '../animalSeasons'
 import { beachLines } from '../beach'
 import type { RGB } from '../biome'
 import type { ColonyKind } from '../params'
@@ -280,8 +281,9 @@ export function createColony(ctx: PropContext): Object3D[] {
   // densest close to it.
   const poses = [gull(0.25, 0.35, style.darkBirds), gull(0.6, 0.2, style.darkBirds), gull(-0.15, -0.1, style.darkBirds)]
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: DoubleSide })
-  // In a storm they sit tight on their ledges and burrows: none up.
-  const count = stormy(ctx.params) ? 0 : rng.int(...style.flying)
+  // In a storm they sit tight on their ledges and burrows: none up. Out of
+  // season they're away at sea (animalSeasons.ts): the rock stays white.
+  const count = stormy(ctx.params) || !colonyInSeason(kind, ctx.params) ? 0 : rng.int(...style.flying)
   const top = height * 0.7
   const placed: Matrix4[][] = poses.map(() => [])
   for (let i = 0; i < count; i++) {

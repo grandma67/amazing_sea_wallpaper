@@ -1,6 +1,7 @@
 import { Vector3, type BufferGeometry } from 'three'
 
 import type { RGB } from '../biome'
+import type { PlantSeason } from '../phenology'
 import type { Random } from '../random'
 import { MeshBuilder } from './builder'
 import { fbm3 } from './noise'
@@ -17,6 +18,8 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
   a[2] + (b[2] - a[2]) * t
 ]
 const UP = new Vector3(0, 1, 0)
+/** Bare winter twigs: grey-brown. */
+const TWIG: RGB = [0.085, 0.07, 0.06]
 
 /** A repeatable pseudo-random number in [0, 1) from two values. */
 function hash(x: number, y: number): number {
@@ -258,6 +261,8 @@ interface Foliage {
   /** Squash clusters vertically (acacia's flat layers). */
   flatten: number
   colors: RGB[]
+  /** Autumn colours and leaf fall (phenology.ts); none: summer leaves. */
+  season?: PlantSeason
 }
 
 /**
@@ -277,7 +282,27 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
 
   const side = new Vector3()
   const normal = new Vector3()
+  // Deciduous or not, and how early it turns, per tree (hashed from its
+  // shape, not drawn).
+  const key = hash(tips[0].p.x * 13.1 + tips.length, tips[0].p.z * 7.7 + tips[0].p.y)
+  const season = f.season != null && key < f.season.deciduous ? f.season : undefined
+  const early = (hash(key * 91.3, 3.3) - 0.5) * 0.3
   for (const tip of tips) {
+    // Leafless twigs: as the leaves fall, the fine twigs they hid show, a
+    // few per tip (hashed: no draws).
+    if (season != null && season.on < 1) {
+      const n = Math.round((1 - season.on) * 3)
+      for (let j = 0; j < n; j++) {
+        const h1 = hash(tip.p.x * 17.1 + j, tip.p.z * 9.3 + tip.p.y)
+        const h2 = hash(tip.p.y * 5.7 + j, tip.p.x * 3.1)
+        const h3 = hash(j * 7.7 + tip.p.z, h1)
+        const dir = tip.d.clone().multiplyScalar(0.8).add(new Vector3(h1 - 0.5, h2 - 0.3, h3 - 0.5).multiplyScalar(1.4)).normalize()
+        const length = f.cluster * (0.5 + 0.6 * h3)
+        const bend = new Vector3(h2 - 0.5, 0.3, h1 - 0.5).multiplyScalar(length * 0.25)
+        const path = [tip.p.clone(), tip.p.clone().addScaledVector(dir, length * 0.5).add(bend), tip.p.clone().addScaledVector(dir, length)]
+        b.tube(path, t => 0.007 * (1 - t) + 0.002, () => TWIG, 3)
+      }
+    }
     const outward = tip.p.clone().sub(center).setY(0).normalize()
     for (let k = 0; k < f.perTip; k++) {
       const offset = new Vector3(rng.normal(), rng.normal() * (1 - f.flatten), rng.normal()).multiplyScalar(f.cluster * 0.5)
@@ -298,7 +323,20 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
       const depth = Math.min(1, base.distanceTo(center) / (radius + 1e-3))
       const height = (base.y - bottom) / (top - bottom + 1e-3)
       const shade = (0.35 + 0.65 * depth ** 1.5) * (0.75 + 0.45 * height) * rng.range(0.85, 1.15)
-      const color = scale(f.colors[rng.int(0, f.colors.length - 1)], shade)
+      let color = scale(f.colors[rng.int(0, f.colors.length - 1)], shade)
+      // The season (after every draw, so the tree keeps its shape): leaves
+      // fall and turn by hash, the top and outside of the crown first.
+      if (season != null) {
+        const exposed = 0.5 * height + 0.5 * depth
+        if (hash(base.x * 31.7 + k * 0.37, base.z * 17.3 + base.y * 5.1) * 0.8 + (1 - exposed) * 0.2 >= season.on + early * 0.5) continue
+        if (hash(base.y * 23.9 + k, base.x * 11.3 - base.z * 3.7) * 0.7 + (1 - exposed) * 0.3 < season.turned + early) {
+          const autumn = season.autumn[Math.floor(hash(base.z * 5.3 + k, base.x * 2.1) * season.autumn.length)]
+          color = scale(autumn, shade * (0.8 + 0.4 * hash(k, base.y)))
+        } else if (season.fresh > 0) {
+          // New leaves: a paler yellow-green for their first weeks.
+          color = mix(color, scale([0.12, 0.2, 0.03], shade), 0.5 * season.fresh)
+        }
+      }
       const tipColor = scale(color, 1.12)
 
       blade(b, f.shape, base, dir, normal, side, length, width, color, tipColor)
@@ -405,7 +443,7 @@ function palette(rng: Random, foliage: RGB, shift: RGB, k: number): RGB[] {
 }
 
 /** Broad, spreading crown: oak, holm oak, tropical almond. */
-export function broadleaf(rng: Random, foliage: RGB): BufferGeometry {
+export function broadleaf(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const height = rng.range(4, 6.5)
   const tips = growTree(
@@ -436,7 +474,8 @@ export function broadleaf(rng: Random, foliage: RGB): BufferGeometry {
     width: 0.55,
     facing: 0.6,
     flatten: 0.2,
-    colors: palette(rng, foliage, [0.05, 0.12, 0.03], 0.4)
+    colors: palette(rng, foliage, [0.05, 0.12, 0.03], 0.4),
+    season
   })
   return b.build()
 }
@@ -483,7 +522,7 @@ export function olive(rng: Random, foliage: RGB): BufferGeometry {
 }
 
 /** Birch: slender white trunk, fine drooping twigs, small light leaves. */
-export function birch(rng: Random, foliage: RGB): BufferGeometry {
+export function birch(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const tips = growTree(
     b,
@@ -513,7 +552,8 @@ export function birch(rng: Random, foliage: RGB): BufferGeometry {
     width: 0.75,
     facing: 0.35,
     flatten: 0,
-    colors: palette(rng, scale(foliage, 1.4), [0.1, 0.16, 0.03], 0.5)
+    colors: palette(rng, scale(foliage, 1.4), [0.1, 0.16, 0.03], 0.5),
+    season
   })
   return b.build()
 }
@@ -593,7 +633,7 @@ export function stonePine(rng: Random, foliage: RGB): BufferGeometry {
 }
 
 /** Shrub: several stems from the ground, branching into a dense leafy mound. */
-export function bush(rng: Random, foliage: RGB): BufferGeometry {
+export function bush(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const bark = furrowed([0.14, 0.11, 0.08], rng.int(0, 1e6))
   const colors = palette(rng, scale(foliage, 1.1), [0.1, 0.12, 0.04], 0.5)
@@ -632,7 +672,8 @@ export function bush(rng: Random, foliage: RGB): BufferGeometry {
     width: 0.55,
     facing: 0.65,
     flatten: 0.2,
-    colors
+    colors,
+    season
   })
   return b.build()
 }

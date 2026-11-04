@@ -18,6 +18,7 @@ import { createPolarGrid, ringStep, squareGrid, viewWedge } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { LICHEN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
+import { groundCoverTint, phenologyFor } from './phenology'
 import { seasonMonth } from './seasons'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { flatSurface, marshLook, type SaltMarsh, type TidalFlat } from './tidalFlat'
@@ -1434,7 +1435,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       runup: { value: coast.runup },
       tideHigh: { value: tideMarks(coast).high },
       tideSpring: { value: tideMarks(coast).spring },
-      groundCover: { value: new Color(...params.biome.groundCover) },
+      groundCover: { value: new Color(...groundCoverTint(params.biome.groundCover, phenologyFor(params))) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
       rockColor: { value: new Color(...(coast.rock?.color ?? [0.3, 0.3, 0.3])) },
       terrainView: { value: Math.max(0, TERRAIN_VIEWS.indexOf(params.debug?.terrainView ?? 'none')) },

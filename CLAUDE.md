@@ -11,9 +11,11 @@ Docs in `knowledge/` (read what the task needs):
   `tools/DEBUG.md` (`params.debug` switches and views).
 - `SCENE_SPECS.md`: spec fields, writing specs that show a feature, fixed dates.
 - `ANIMALS.md`, `CLOUDS.md`, `COASTS.md`: what appears where and how often.
+- `SEASONS.md`: seasons by climate and hemisphere (leaves, grass, colonies, whales, seals,
+  winter sleep, waterfowl): research and numbers.
 - `STARS.md`: the night sky (stars, meteors, Milky Way, planets, airglow, aurora): research and numbers.
 - `REGIONS.md`: research behind places, grain, tides; `REFERENCES.md`: sources.
-- `plans/`: open plans (biomes, phone app, waterspout fix, night sky).
+- `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons).
 
 Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5173 is other projects).
 

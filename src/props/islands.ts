@@ -12,6 +12,7 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
+import { canopyTint, phenologyFor } from '../phenology'
 import type { IslandKind, IslandParams } from '../params'
 import { Random } from '../random'
 import { MeshBuilder } from './builder'
@@ -288,7 +289,7 @@ export function createIslands(ctx: PropContext, avoid: Object3D | null): Object3
   const palette: Palette = {
     rock: rng.pick(biome.rockColors),
     // Bare in the polar seas and on desert coasts; dark forest elsewhere.
-    vegetation: polar || biome.name === 'desert' ? null : biome.foliage,
+    vegetation: polar || biome.name === 'desert' ? null : canopyTint(biome.foliage, phenologyFor(ctx.params), biome.vegetation),
     sand: params.kind === 'cay' ? [0.7, 0.66, 0.56] : ctx.params.coast.sand.albedo,
     snow: polar && params.kind !== 'cay'
   }

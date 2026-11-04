@@ -123,7 +123,15 @@ Playwright (headless snapshots), Vitest.
   (`addFormations`), polar nacreous winter, noctilucent season, Mediterranean summer haze and
   migratory passage. Not used by tables already in local months for one region: turtle nesting
   per place, waterspouts, the Morning Glory, polar ship seasons (by ocean), Arctic ice (north
-  only).
+  only). `seasonDay(day)` is the day of the year in the same terms (south + 182).
+- **Plants and animals by season** (0.98; research SEASONS.md, plan plans/SEASONS_PLAN.md):
+  `phenology.ts` `phenologyFor(params)` (no draws: date, climate, hemisphere) gives deciduous
+  leaves `on`/`turned`/`fresh` and grass `dry` by climate (`LEAF_DAYS`, `DRY_DAYS`);
+  `plantSeason(kind, phen)` feeds the tree and grass builders (`deciduousShare`,
+  `autumnColors`, `AUTUMN_RED` places), `canopyTint` the distant woods (landforms, islands),
+  `groundCoverTint` the terrain. Leaves turn and fall by `hash()` after the builder's draws, so
+  trees keep their shape. `animalSeasons.ts`: colonies, humpbacks, seal haul-outs, crab and
+  lizard dormancy, waterfowl, Arctic gulls (ANIMALS.md "Seasons").
 - **Scene specs** (`sceneSpec.ts`, SCENE_SPECS.md): typed, validated JSON.
   `generateParams(date, attempt, aspect, spec)` applies it at each decision but still makes
   every draw. Forcing the time of day changes how many main-stream draws the sky makes, so later
@@ -154,6 +162,8 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | seals, colonies, migratory birds | `params.ts` `pinnipedTable`, `pickColony`; `props/migratory.ts` | climate (seals: biome × ocean table under it) | phase 11 |
 | landform chance, volcano chance, snow line | `params.ts` `pickLandform` | biome; flat places opt out (`mountains`) | **leftover**: volcanoes on Greenland and Norway, subtropical places get the Mediterranean's odds (phase 10: per place) |
 | island kinds | `params.ts` `ISLANDS` | biome; flat places only low ones | **leftover**: phase 10 |
+| leaf colour and fall, grass dryness, deciduous share | `phenology.ts` | climate × hemisphere; `AUTUMN_RED` and the deciduous lenga by place | right |
+| colony birds, humpbacks, haul-outs, crab and lizard dormancy, waterfowl, gulls by season | `animalSeasons.ts` | climate × season (colonies, seals by kind) | right |
 | beach flowers | `props/shoreLife.ts` `FLOWERS` | biome × ocean × month | **leftover**: Florida and Natal can bloom Mediterranean sea daffodil and horned poppy (should follow climate) |
 | shells, starfish | `props/shoreLife.ts` `SHELLS` | biome × ocean | leftover (minor) |
 | mangroves | `props/mangroves.ts` `CHANCE` | biome × ocean | **leftover**: Florida's and south Brazil's mangroves missing (subtropical) |
@@ -227,6 +237,12 @@ real sun's elevation range below 63° (mid-latitude winters still get a 35–70�
 December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
+
+- Seasons (0.98): no snow cover in polar and boreal winters yet (PLAN_BIOMES 13, SEASONS_PLAN
+  phase 5), so winter tundra shows as brown grass; the mountains' snow line ignores the season;
+  no leaf litter under bare trees; no larch (conifers stay green); tropical wet and dry seasons
+  aren't modelled (only the tropical almond's red). The distant woods' autumn tint
+  (`canopyTint` on landforms and islands) was tested in numbers, not checked in a render.
 
 - Light pollution (`nightGlow.ts`): low clouds aren't lit from below by the towns. At the
   night white balance (4000 K) the domes come out only mildly warm (sodium ~2100 K stays

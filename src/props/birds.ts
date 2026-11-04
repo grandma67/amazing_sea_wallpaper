@@ -10,6 +10,7 @@ import {
   type BufferGeometry
 } from 'three'
 
+import { gullSeason } from '../animalSeasons'
 import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
@@ -128,7 +129,8 @@ function restingGulls(ctx: PropContext, rng: Random, dark: boolean): InstancedMe
 
 /** Gulls today: flying, resting (in a storm) or none. */
 export function gullsFor(params: SceneParams, rng: Random): 'flying' | 'resting' | null {
-  if (!forced(params.overrides?.birds, rng.chance(0.6))) return null
+  // Fewer in the Arctic winter, when most have flown south.
+  if (!forced(params.overrides?.birds, rng.chance(0.6 * gullSeason(params)))) return null
   return stormy(params) ? 'resting' : 'flying'
 }
 

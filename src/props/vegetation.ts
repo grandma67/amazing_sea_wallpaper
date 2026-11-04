@@ -10,6 +10,7 @@ import {
 } from 'three'
 
 import type { RGB, VegetationKind } from '../biome'
+import { phenologyFor, plantSeason, type PlantSeason } from '../phenology'
 import { placeNamed } from '../places'
 import type { Random } from '../random'
 import { hasLand, shoreToWorld, terrainNormal } from '../terrain'
@@ -24,7 +25,7 @@ import { acacia, birch, broadleaf, bush, conifer, cypress, olive, pandanus, ston
 // the land behind the beach. Geometry is built at a nominal size with its
 // base at the origin; instances scale and rotate it.
 
-type Builder = (rng: Random, foliage: RGB) => BufferGeometry
+type Builder = (rng: Random, foliage: RGB, season?: PlantSeason) => BufferGeometry
 
 const scale = (c: RGB, k: number): RGB => [c[0] * k, c[1] * k, c[2] * k]
 const mix = (a: RGB, b: RGB, t: number): RGB => [
@@ -113,7 +114,7 @@ export function palm(rng: Random, foliage: RGB): BufferGeometry {
   return b.build()
 }
 
-function grass(rng: Random, foliage: RGB): BufferGeometry {
+function grass(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const blades = rng.int(14, 26)
   const straw: RGB = [0.32, 0.28, 0.14]
@@ -124,7 +125,9 @@ function grass(rng: Random, foliage: RGB): BufferGeometry {
     const base = out.clone().multiplyScalar(rng.range(0, 0.2))
     const height = rng.range(0.4, 0.95)
     const bendAmount = rng.range(0.1, 0.5)
-    const color = mix(scale(foliage, 1.6), straw, rng.float() * 0.8)
+    // Dry season or winter: more of the blades straw (phenology.ts).
+    const t = rng.float() * 0.8
+    const color = mix(scale(foliage, 1.6), straw, t + (1 - t) * (season?.dry ?? 0) * 0.9)
     let prevL = -1
     let prevR = -1
     for (let k = 0; k <= 4; k++) {
@@ -345,6 +348,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       ? drawnKinds
       : forcedKinds.map(kind => [kind, biome.vegetation.find(([k]) => k === kind)?.[1] ?? 3] as const)
   const lushness = rng.range(0.4, 1.2)
+  const phenology = phenologyFor(params)
   const material = new MeshStandardMaterial({
     vertexColors: true,
     roughness: 0.85,
@@ -479,7 +483,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     for (let v = 0; v < spec.variants; v++) {
       const indices = placed.map((_, i) => i).filter(i => i % spec.variants === v)
       if (indices.length === 0) continue
-      const mesh = new InstancedMesh(spec.build(rng, biome.foliage), bent.material, indices.length)
+      const mesh = new InstancedMesh(spec.build(rng, biome.foliage, plantSeason(kind, phenology)), bent.material, indices.length)
       mesh.customDepthMaterial = bent.depth
       indices.forEach((i, j) => {
         mesh.setMatrixAt(j, m.copy(placed[i]))

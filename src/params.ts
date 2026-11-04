@@ -24,6 +24,7 @@ import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, climateTitle, latitudeIn, pickPlace, placeBiome, plantsFor, sandChances, type Climate, type Place } from './places'
 import { Random } from './random'
 import { apply, ECLIPTIC_POLE, eclipticOffset, skyRotation } from './skyClock'
+import { haulOutSeason } from './animalSeasons'
 import { monthInSeason, season, seasonMonth } from './seasons'
 import { reefFor, reefShelter, type Reef } from './reef'
 import { flatGround, flatWaterline, tidalFlatFor, type SaltMarsh, type TidalFlat } from './tidalFlat'
@@ -1393,6 +1394,7 @@ export function pinnipedTable(biome: Biome['name'], climate: Climate, ocean: Oce
 
 function pickPinnipeds(
   seed: string,
+  date: string,
   ocean: OceanName,
   biome: Biome,
   climate: Climate,
@@ -1415,7 +1417,10 @@ function pickPinnipeds(
   // Forced onto a coast that has none: harbour seals.
   if (table == null) return force === true ? site('seal') : null
   if (!forced(force, rng.chance(chance))) return null
-  return site(rng.weighted(table))
+  const kind = rng.weighted(table)
+  // Out of season most are at sea (animalSeasons.ts), on their own stream.
+  const ashore = Random.derive(seed, 'pinnipeds/season').float() < haulOutSeason(kind, { date, latitudeDeg })
+  return ashore || force === true ? site(kind) : null
 }
 
 /** How likely a lighthouse is on each coast. */
@@ -1926,7 +1931,7 @@ function buildParams(
     timeLabel[timeOfDay] = 'Midnight sun'
   }
   const colony = pickColony(seed, basin.name, climate, latitudeDeg < 0, coast.type, spec.colony, spec.colonySite)
-  const pinnipeds = pickPinnipeds(seed, basin.name, biome, climate, latitudeDeg, coast.type, spec.pinnipeds, spec.haulOut)
+  const pinnipeds = pickPinnipeds(seed, date, basin.name, biome, climate, latitudeDeg, coast.type, spec.pinnipeds, spec.haulOut)
   const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog, spec.lighthouse)
   const landform = pickLandform(seed, biome, place.mountains, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
   const islands = pickIslands(seed, biome, place.mountains, spec.islands)

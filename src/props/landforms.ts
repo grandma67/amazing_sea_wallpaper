@@ -10,6 +10,7 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
+import { canopyTint, phenologyFor } from '../phenology'
 import { dirFromAzEl, EARTH_RADIUS, type LandformParams } from '../params'
 import { Random } from '../random'
 import { MeshBuilder } from './builder'
@@ -47,7 +48,7 @@ function palette(ctx: PropContext, rng: Random): Palette {
   const polar = ctx.params.sea.ocean === 'arctic' || ctx.params.sea.ocean === 'southern'
   return {
     rock: rng.pick(biome.rockColors),
-    vegetation: polar ? null : vegetation[biome.name],
+    vegetation: polar || vegetation[biome.name] == null ? null : canopyTint(vegetation[biome.name]!, phenologyFor(ctx.params), biome.vegetation),
     snow: [0.8, 0.82, 0.86]
   }
 }

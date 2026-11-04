@@ -72,6 +72,17 @@ Sources behind built features. Research for planned work lives with its plan: co
 
 ## Shore and animals
 
+- Seasons (0.98; SEASONS.md has the links): Woodland Trust Nature's Calendar autumn analyses
+  (UK oak first tint ~2 Oct, full tint ~4 Nov, bare ~1 Dec); the Swedish citizen-science
+  autumn colour study (EGU 2014, 2017: birch and poplar turn later further north); phys.org 2021
+  (Europe's yellow vs North America's red autumns); Popular Science on tundra autumn colour;
+  NParks Singapore and World Agroforestry on the tropical almond's twice-yearly red leaf drop;
+  Volaire & Norton (Annals of Botany 2006) and PMC2803600 on Mediterranean grass summer
+  dormancy; Shetland, Isle of May and Scottish Seabird Centre (Bass Rock) colony dates; the IWC
+  Whale Watching Handbook (humpback migration); NAMMCO harbour seal haul-out surveys; California
+  State Parks, Año Nuevo (elephant seal seasons); Animal Diversity Web (*Ocypode quadrata*
+  hibernating Oct–Apr); SF Zoo *Uromastyx* fact sheet (2–5 months' winter dormancy).
+
 - Climates (PLAN_BIOMES 11): FNAI "Coastal Strand" (Florida: sea oats foredune, saw palmetto and
   cabbage palm strand, live oak maritime hammock; sea grape in the southeast); JNCC machair
   habitat account and Scottish Geology Trust guides (Hebridean shell sand, ~40–50% carbonate on

@@ -16,6 +16,13 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   pool skips the filter: Tierra del Fuego has southern beech (`broadleaf`) and no conifers, South Georgia only
   tussock grass. `place.windBent` kinds lean 20–35° downwind (the day's wind) and are 25% shorter,
   hero trees included (`vegetation.ts`).
+- **Seasons** (`phenology.ts`, 0.98): `createVegetation` passes `plantSeason(kind, phen)` to
+  each builder. Deciduous trees (by `deciduousShare`, hashed per tree from its shape) skip
+  leaves with 1 − `on` and colour them from `autumnColors` with `turned` (hashed per leaf, top
+  and outside of the crown first, each tree a little early or late), all after the builder's
+  draws; as the leaves go, 0–3 fine twigs per tip show (`TWIG`). Spring's `fresh` leaves are
+  paler. `grass()` turns more blades straw with `dry`. Colony birds, crabs, lizards, humpbacks,
+  waterfowl and gulls read `animalSeasons.ts`.
 - **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes folded
   on the midrib (oval oak/almond, ovate birch, lance olive, needles stone pine, rounded shrubs,
   pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to 5 cm,

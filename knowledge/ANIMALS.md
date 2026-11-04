@@ -1,7 +1,8 @@
 # Animals
 
 Every animal the wallpaper can show: where (biome, ocean, region), when (month, time of
-day) and in what weather, and how often. Animals are at real size, so small ones show only
+day) and in what weather, and how often. Seasons (0.98, `src/animalSeasons.ts`, research in
+SEASONS.md §3) are in the "Seasons" section below and override the rows. Animals are at real size, so small ones show only
 near the camera (a 10 cm crab is a speck at 20 m; turtles and monkeys within ~40 m).
 
 "Storm" below means a thunderstorm or squall, or a storm sky (`stormy()` in
@@ -27,7 +28,7 @@ than before 0.62.
 | Humpback whales (blow, back, flukes, breach) | Every ocean (they migrate) | " | None in storms | " | " |
 | Orcas | Cool coasts only (never tropical or desert) | " | None in storms | " | " |
 | Swordfish (leaping) | Warm and temperate open water | " | None in storms | " | " |
-| Geese (skeins in a V or line, high) | Every climate but tropical and arid (they winter as far south as Florida and south China) | Spring (Mar–May) and autumn (Sep–Nov) migration; ¼ as often otherwise; not at night | None in storms | Weighted against "none" 6: goose 2, duck 2 (cool), flamingo 1.5 (warm, not polar); by the day's climate (phase 11e) | `props/migratory.ts` |
+| Geese (skeins in a V or line, high) | Every climate but tropical and arid (they winter as far south as Florida and south China) | By climate and month (Seasons below); not at night | None in storms | Weighted against "none" 6: goose 2, duck 2 (cool), flamingo 1.5 (warm, not polar); by the day's climate (phase 11e) | `props/migratory.ts` |
 | Sea ducks (eiders, scoters: lines low over the waves) | As geese | As geese | None in storms | " | " |
 | Flamingos (wading in the shallows, or flying in pink lines) | Tropical, arid, mediterranean and subtropical climates, not polar seas | Any month; not at night | None in storms | " | " |
 | Seabird colony: gannets (white rock, guano) | Every climate but tropical and arid, and puffin coasts half the time (Australasian and Cape gannets in the south) | Any | **Storm:** the birds sit on their ledges, none circling | 15% of days have a colony; on a beach some are mainland cliffs | `props/colony.ts`, `pickColony` in `params.ts` |
@@ -106,6 +107,24 @@ Oman–Yemen, Persian Gulf; the Galápagos and Hawaii are places. Other pools:
 | Shore crabs | Every climate but tropical and arid, at the water's edge (and among cobbles) | Any | **Storm:** hidden | 45% where no ghost crabs |
 | Starfish | Nordic, Mediterranean, Pacific volcanic beaches | Any | – | 30% |
 
+### Seasons (`src/animalSeasons.ts`)
+
+Months are the day's own season (south of the equator six months on).
+
+| Animal | In season | Out of season |
+|---|---|---|
+| Puffin colony birds | Apr–mid Aug (day 85–227) | the island or cliffs stay, no birds in the air |
+| Gannet colony birds | late Feb–Oct (day 50–304), southern gannetries in the austral summer | as puffins |
+| Tropical and penguin colonies | all year | – |
+| Humpbacks | polar, boreal, temperate: May–Nov; tropical, subtropical, arid: Dec–Apr; Mediterranean-climate coasts: passage Mar–May, Sep–Dec (half as often otherwise); Oman all year | weight × 0.1 |
+| Harbour seals hauled out | Jun–Aug | Dec–Feb half as often, spring and autumn × 0.8 (stream `'pinnipeds/season'`) |
+| Southern elephant seals | local Sep–Apr | local May–Aug × 0.1 (at sea) |
+| Ghost crabs out (not tropical or arid) | May–Oct | Dec–Feb none out, burrows × 0.3; Nov, Mar, Apr half |
+| Shore crabs | Mar–Nov | Dec–Feb none (deeper water) |
+| Spiny-tailed lizards | Mar–Oct | Nov–Feb brumating |
+| Geese, sea ducks | polar: May–Sep (passage May, Sep; breeding × 0.6); boreal: passage Apr–May, Sep–Oct, summer × 0.3, ducks × 0.5 otherwise; temperate: passage Mar–May, Sep–Nov, winter × 0.6, summer × 0.15; Mediterranean and subtropical: winter Nov–Feb × 0.6, Mar, Apr, Oct × 0.8 | none (weight 0) |
+| Gulls | – | polar climate Nov–Mar × ⅓ |
+
 Planned animals (sea otters, walrus, polar bears, waders, herons, tidepool life, blacktip
 sharks): PLAN_BIOMES.md phase 14.
 
@@ -118,26 +137,25 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 
 | Animal | All days | nordic | mediterranean | volcanic | desert | tropical | atlantic | pacific | indian | arctic | southern |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Crabs: ghost | 14% | – | 13% | 7% | 24% | 41% | 13% | 16% | 31% | – | – |
+| Crabs: ghost | 14% | – | 10% | 7% | 24% | 41% | 13% | 16% | 31% | – | – |
 | Crabs: hermit | 1% | – | – | 2% | – | 4% | 0.6% | 2% | 3% | – | – |
-| Crabs: shore | 6% | 8% | 10% | 8% | – | – | 11% | 7% | 0.6% | – | – |
+| Crabs: shore | 4% | 6% | 7% | 6% | – | – | 8% | 5% | 0.6% | – | – |
 | Crocodile: american | 0.6% | – | – | – | – | 3% | 0.6% | 1% | – | – | – |
 | Crocodile: saltwater | 0.5% | – | – | – | – | 2% | – | 1% | – | – | – |
 | Crocodile: west-african | 0.2% | – | – | – | – | 0.8% | 0.6% | – | – | – | – |
-| Gulls: flying | 57% | 57% | 60% | 53% | 66% | 56% | 58% | 56% | 60% | 60% | 46% |
+| Gulls: flying | 54% | 49% | 60% | 51% | 66% | 56% | 56% | 56% | 60% | 43% | 38% |
 | Gulls: resting | 3% | 3% | 5% | 5% | 2% | 2% | 3% | 4% | 3% | 3% | 6% |
 | Hippos: hippo | 0.2% | – | – | – | – | 0.8% | 0.6% | – | – | – | – |
 | Lizards: green-iguana | 0.5% | – | – | – | – | 2% | 0.6% | 1% | – | – | – |
 | Lizards: marine-iguana | 0.5% | – | – | 4% | – | – | – | 2% | – | – | – |
 | Lizards: monitor | 0.5% | – | – | – | – | 2% | – | 0.8% | 1% | – | – |
-| Lizards: spiny-tailed | 0.1% | – | – | – | 1% | – | – | – | 0.6% | – | – |
-| Marine: dolphin | 13% | 11% | 11% | 11% | 15% | 17% | 15% | 15% | 16% | – | 8% |
-| Marine: humpback | 11% | 13% | 10% | 10% | 12% | 8% | 11% | 8% | 7% | 19% | 19% |
-| Marine: orca | 3% | 6% | 3% | 4% | – | – | 1% | 2% | – | 10% | 21% |
-| Marine: swordfish | 5% | 2% | 8% | 2% | 7% | 8% | 4% | 6% | 8% | – | – |
-| Migratory birds: duck | 6% | 12% | 7% | 5% | – | – | 9% | 5% | – | 10% | 8% |
-| Migratory birds: flamingo | 8% | – | 10% | 10% | 15% | 16% | 8% | 8% | 16% | – | – |
-| Migratory birds: goose | 7% | 11% | 11% | 10% | – | – | 9% | 7% | 0.6% | 10% | 8% |
+| Marine: dolphin | 15% | 13% | 14% | 13% | 20% | 19% | 19% | 17% | 18% | – | 13% |
+| Marine: humpback | 6% | 7% | 6% | 7% | 2% | 5% | 5% | 5% | 5% | 12% | 10% |
+| Marine: orca | 5% | 9% | 3% | 5% | – | – | 1% | 2% | – | 17% | 25% |
+| Marine: swordfish | 6% | 3% | 9% | 3% | 12% | 8% | 6% | 8% | 10% | – | – |
+| Migratory birds: duck | 6% | 10% | 5% | 8% | – | – | 8% | 6% | – | 4% | 10% |
+| Migratory birds: flamingo | 8% | – | 11% | 10% | 15% | 16% | 9% | 8% | 16% | – | – |
+| Migratory birds: goose | 4% | 7% | 6% | 5% | – | – | 5% | 5% | – | 4% | 6% |
 | Monkeys: capuchin | 0.4% | – | – | – | – | 2% | – | 1% | – | – | – |
 | Monkeys: macaque | 0.8% | – | – | – | – | 3% | – | 2% | 0.6% | – | – |
 | Monkeys: vervet | 0.2% | – | – | – | – | 0.8% | – | – | 1% | – | – |
@@ -153,13 +171,12 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 | Seabird colony: puffin (mainland) | 0.6% | 2% | – | – | – | – | 0.8% | 0.5% | – | 1% | – |
 | Seabird colony: tropical (island) | 6% | – | – | 3% | 27% | 15% | 3% | 8% | 17% | – | – |
 | Seabird colony: tropical (mainland) | 0.5% | – | – | 0.7% | 2% | 1% | 0.8% | 0.5% | 0.6% | – | – |
-| Seals: elephant-seal (beach) | 0.2% | 0.2% | – | 0.7% | – | – | – | – | – | – | 4% |
-| Seals: elephant-seal (rock) | 0.6% | 0.9% | – | 2% | – | – | – | – | – | – | 15% |
+| Seals: elephant-seal (rock) | 0.5% | 0.7% | – | 2% | – | – | – | – | – | – | 13% |
 | Seals: fur-seal (rock) | 1% | 0.2% | 2% | 0.7% | 9% | – | 2% | 0.8% | – | – | 4% |
 | Seals: sea-lion (beach) | 0.1% | 0.2% | – | – | – | – | – | 0.3% | – | – | – |
 | Seals: sea-lion (rock) | 2% | 1% | 3% | 3% | 6% | – | – | 5% | 0.6% | – | – |
-| Seals: seal (beach) | 0.7% | 1% | 1% | – | – | – | 0.6% | 0.5% | – | 2% | – |
-| Seals: seal (rock) | 6% | 14% | 0.6% | 3% | – | – | 6% | 5% | – | 17% | – |
+| Seals: seal (beach) | 0.5% | 0.9% | 0.6% | – | – | – | 0.6% | 0.3% | – | 1% | – |
+| Seals: seal (rock) | 5% | 11% | 0.6% | 3% | – | – | 4% | 4% | – | 13% | – |
 | Starfish: starfish | 6% | 8% | 11% | 6% | – | – | 5% | 8% | 0.6% | 7% | 2% |
 
 Days per biome: nordic 442, mediterranean 167, volcanic 146, desert 82, tropical 258; per ocean: atlantic 355, pacific 371, indian 154, arctic 167, southern 48.

@@ -14,7 +14,7 @@ import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { forced, forcedKind, type MigratorySpecies } from '../sceneSpec'
-import { monthInSeason } from '../seasons'
+import { waterfowlSeason } from '../animalSeasons'
 import { hasBeach } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
@@ -161,11 +161,6 @@ function wadingFlamingo(feeding: boolean, oneLeg: boolean): BufferGeometry {
   return b.build()
 }
 
-/** Spring or autumn passage, in the day's own hemisphere. */
-function migrating(params: SceneParams): boolean {
-  return monthInSeason(params, 3, 5) || monthInSeason(params, 9, 11)
-}
-
 /** Which migratory flock passes today, or null. */
 export function migratoryFor(params: SceneParams, rng: Random): Species | null {
   const force = params.overrides?.migratory
@@ -178,11 +173,13 @@ export function migratoryFor(params: SceneParams, rng: Random): Species | null {
   const warm = climate === 'tropical' || climate === 'arid' || climate === 'mediterranean' || climate === 'subtropical'
   const cool = climate !== 'tropical' && climate !== 'arid'
   const polar = params.sea.ocean === 'arctic' || params.sea.ocean === 'southern'
-  const season = migrating(params) ? 1 : 0.25
+  // Passage, breeding and wintering flocks by climate and month
+  // (animalSeasons.ts).
+  const season = waterfowlSeason(params)
   const species = rng.weighted<Species | null>([
     [null, 6],
-    ['goose', cool ? 2 * season : 0],
-    ['duck', cool ? 2 * season : 0],
+    ['goose', cool ? 2 * season.goose : 0],
+    ['duck', cool ? 2 * season.duck : 0],
     ['flamingo', warm && !polar ? 1.5 : 0]
   ])
   if (!forced(force, species != null)) return null

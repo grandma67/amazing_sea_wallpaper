@@ -68,6 +68,9 @@ export interface PropOverrides {
   rockEdge?: boolean
   /** Which plants grow (the biome's own list otherwise); [] for none. */
   vegetation?: VegetationKind[]
+  /** false: plants and ground keep their summer look whatever the date
+   * (phenology.ts: autumn leaves, bare trees, dry grass). */
+  phenology?: boolean
   /** null: nothing washed up; fields replace the drawn ones. */
   debris?: Partial<DebrisSpec> | null
   /** null: no crabs, shells or flowers; fields replace the drawn ones. */
@@ -352,6 +355,7 @@ const SPEC = object({
     beachrock: boolean,
     rockEdge: boolean,
     vegetation: listOf(oneOf(...PLANTS)),
+    phenology: boolean,
     debris: object(
       { driftwood: number, rootWads: boolean, wrack: oneOf(null, 'kelp', 'seagrass', 'sargassum'), wrackAmount: number, coconuts: number },
       true

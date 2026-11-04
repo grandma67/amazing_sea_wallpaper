@@ -33,3 +33,14 @@ export function season(day: Day): Season {
 export function monthInSeason(day: Day, from: number, to: number): boolean {
   return inMonths(seasonMonth(day), [from, to])
 }
+
+/** The day of the year (1–365) with the day's season, in northern-hemisphere
+ * days: the calendar day north of the equator, half a year on south of it
+ * (1 July in Tasmania is 1 January's season). 29 February counts as 28. */
+export function seasonDay(day: Day): number {
+  const [y, m, d] = day.date.split('-').map(Number)
+  const doy = Math.min(365, Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 1)) / 86_400_000) + 1 - (m > 2 && isLeap(y) ? 1 : 0))
+  return day.latitudeDeg < 0 ? ((doy - 1 + 182) % 365) + 1 : doy
+}
+
+const isLeap = (y: number): boolean => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0

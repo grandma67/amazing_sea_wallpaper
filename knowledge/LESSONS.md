@@ -110,6 +110,14 @@ tool gotchas: TOOLS.md.
   per place). Tests that pin "a northern beach" pin a northern `place`, since a biome/ocean spec
   can draw a southern place.
 
+- Seasonal looks on a procedural mesh: decide them **after** the builder's draws, by `hash()` of
+  the piece's position (skip a leaf, recolour it), never by skipping or adding draws, so the
+  same tree just loses its leaves (`test/phenology.test.ts` checks the next draw is the same).
+  Likewise a choice that zeroes a count in a season still makes the draw (shore crabs in
+  winter): a skipped draw moves every draw after it (shells).
+- The `southern` hemisphere shift is half a year: 2 July south is day 365, 3 July day 1
+  (`seasonDay`), not 2 July.
+
 ## Light and exposure
 
 - Auto exposure re-normalises: scaling the whole scene does nothing; change `exposure` (e.g.

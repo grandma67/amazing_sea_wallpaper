@@ -1,5 +1,6 @@
 import { DoubleSide, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3, type BufferGeometry, type Object3D } from 'three'
 
+import { humpbackSeason } from '../animalSeasons'
 import type { RGB } from '../biome'
 import type { OceanName } from '../oceans'
 import type { SceneParams } from '../params'
@@ -370,6 +371,9 @@ export function marineFor(params: SceneParams, rng: Random): Species | null {
   let table = SPECIES_BY_OCEAN[params.sea.ocean]
   // Orcas on warm-water coasts are rare; keep them to cooler ones.
   if (params.biome.name === 'tropical' || params.biome.name === 'desert') table = table.filter(([s]) => s !== 'orca')
+  // Humpbacks migrate: summer feeding grounds, winter breeding grounds.
+  const humpbacks = humpbackSeason(params)
+  if (humpbacks < 1) table = table.map(([s, w]) => [s, s === 'humpback' ? w * humpbacks : w] as const)
   return forcedKind(force, rng.weighted(table))
 }
 
