@@ -93,6 +93,9 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   noise); × transmittance, in kR × `auroraScale`. **`auroraRay` is the same march in
   TypeScript**: change both together; tests and `auroraLux` (the ground light, the march
   integrated over the sky, an ambient + sky irradiance) use it. Metered without it; +1.5 EV.
+  `patchCloudsAurora` adds the display to takram's clouds pass as a second light (direction of
+  the brightest arc, irradiance from `auroraCloudLight`, 3-step optical depth toward it,
+  takram's multiple-scattering phase; pass `auroraClouds`).
 - **CPU mirrors of sky shaders** (`skyMirror.ts`): `auroraRay` and `nightGlowS10` (with
   `airglowPattern`, term by term) compute what the shader draws toward a world direction, in the
   same frame (world +x north, +z east: takram's north-up-east anchor; the aurora's along-arc axis

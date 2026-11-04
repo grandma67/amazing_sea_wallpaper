@@ -202,7 +202,11 @@ tool gotchas: TOOLS.md.
 - A plan's geometric claim can be backwards: the aurora handoff had rays converging on the pole's
   side and the frame's edges leaning in; up a northern field line is equatorward, and projecting
   one field line with `skyFrame.project` showed the edges lean out. Project a test segment before
-  writing the test from a plan's words. Sample real pixels (a canvas `getImageData`, `scratchpad` script) before reasoning
+  writing the test from a plan's words.
+- A physically scaled light can vanish against a stand-in: on starlit nights takram's clouds are
+  lit by a stand-in sun overhead at a sun's strength, so the aurora's real ~3e-4 lux on cloud
+  edges changed 0.06% of pixels. Check what else lights the receiver (and how) before judging a
+  new light's strength; fix the stand-in, don't boost the real source. Sample real pixels (a canvas `getImageData`, `scratchpad` script) before reasoning
   about a tint; turn sources off one at a time (`passes.glow`, `milkyWay: false`).
 - The night glow is patched into the env cube's sky too, against the "main sky only" rule: it is
   smooth (0.35°/texel and coarser), so 256² faces hold it, and the sea must reflect it. Sharp

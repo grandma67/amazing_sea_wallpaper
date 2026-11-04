@@ -59,7 +59,7 @@ import { createClouds, loadCloudAssets, loadImageTexture, primeCloudShadow, rend
 import { patchSkyContrails } from './contrails'
 import { patchSkyNoctilucent } from './noctilucent'
 import { patchSkyMeteors } from './meteors'
-import { auroraLux, auroraScale, patchSkyAurora } from './aurora'
+import { auroraLux, auroraScale, patchCloudsAurora, patchSkyAurora } from './aurora'
 import { extinction, GLITTER_MAGNITUDE, planetStarData, PLANET_MAGNITUDES, PLANETS } from './planets'
 import { glowScale, patchSkyNightGlow, type GlowFrame } from './nightGlow'
 import { eclipseSky } from './eclipse'
@@ -628,6 +628,10 @@ export async function renderScene(
   })
   const still = clouds != null ? new StillScenePass(scene, camera, spray, skyObjects) : null
   composer.addPass(still ?? new RenderPass(scene, camera))
+  // The display lights the clouds (their edges toward it glow).
+  if (clouds != null && aurora != null && pass('auroraClouds')) {
+    patchCloudsAurora(clouds.cloudsPass.currentMaterial, worldToECEF, aurora, renderPerLux(params.nightSky, elongation))
+  }
   if (clouds != null) {
     // Clouds are soft: ray march them at no more than ~1080p. Except on a
     // beach, where trees and ridges stand against the sky: each cloud ray

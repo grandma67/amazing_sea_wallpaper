@@ -188,16 +188,24 @@ How it looks (the five fixes that took it from a green wash to arcs; render spec
    underside (240 km, 35 below, 60 above). Storms add a **diffuse red glow** (0.8–3% of the
    column at Kp 5–9, 250 km, over the oval and ~3° equatorward) and a **type-B lower border**
    (magenta, 3–8%, brightest arc only, Kp ≥ 5 on a draw, always when forced 'strong').
-6. **Rays along the field** (0.94): curtains follow dipole field lines (tan I = 2 tan λ, ~71–77°),
-   sampled at each point's field-line foot (110 km): in a poleward frame rays lean toward the
-   camera, stand taller and fan out toward the frame's edges.
 5. **No stripes.** Rays fade to their mean once the layers' samples step more than half their
    period along the arc; sheets are widened to the step across them (folds' drift included);
    profiles are averaged over each layer (erf), not point-sampled; one layer offset per pixel
    (interleaved gradient noise). Grain ≤ ~3% s.d. at the arcs' lower edge.
+6. **Rays along the field** (0.94): curtains follow dipole field lines (tan I = 2 tan λ, ~71–77°),
+   sampled at each point's field-line foot (110 km): in a poleward frame rays lean toward the
+   camera, stand taller and fan out toward the frame's edges.
+
+7. **Clouds lit by the display** (0.96, `patchCloudsAurora`): the aurora is a second light in
+   takram's clouds pass, from the brightest arc's direction, with the march's irradiance on a
+   surface facing it (`auroraCloudLight`: ~2.8e-4 lux quiet, ~3.4e-3 at Kp 9); each cloud sample
+   marches 3 steps toward it and scatters it with takram's multiple-scattering phase, so edges
+   in front of the arc glow (green, pink-orange in storms) and undersides stay dark. Pass
+   `auroraClouds`; render set `scenes/aurora-clouds.json`; +2% render time on cloudy aurora
+   nights.
 
 Light on the ground: the march integrated over the sky (`auroraLux`, RGB), ~1.5–2.5e-4 lux quiet
-to ~1e-3 at Kp 9 (under a starlit night's 0.002).
+to ~3e-3 at Kp 9 (a starlit night's 0.002; a quarter moon's 0.01).
 
 Current values (0.93, `params.mjs --scene scenes/aurora.json`; mirror through `nightSkyCd`, the
 sky without the Milky Way):
@@ -217,8 +225,31 @@ from 10° above the arc to 60°; example 4's weaker arc reads yellow-green (1, 0
 bit and why in LESSONS.md "Sky". The sea mirrors the arcs through the env cube;
 the blur on a "glassy" sea is the sea's own (Jupiter's reflection blurs the same).
 
-Left: clouds aren't lit by the aurora (only the sky behind them is); the airglow's wave crests
-show more on aurora nights (+1.5 EV, more sky; ARCHITECTURE.md known issues).
+Left (from the 2026-11-04 handoff, `handoff.md`, now merged here):
+- **Quiet nights' cloud glow barely shows:** on starlit nights the clouds pass is lit by the
+  stand-in sun nearly overhead (`scene.ts` `starlight`) at a sun's strength in the night's units,
+  which outweighs the display's physical light on cloud tops (`tromso-scattered`: 0.06% of pixels
+  change, max Δ9; storms 21–28%, max Δ23–61). Fix the stand-in (diffuse, ~0.002 lux), not the
+  aurora; it touches every cloudy starlit night.
+- **Corona:** with the field's lean, an overhead storm near the magnetic zenith (on the equator's
+  side of the zenith) shows rays converging; check only with a forced `camera.horizonFraction`
+  spec with sky to ~75°.
+- **Sunlit violet tops:** curtains above the earth's shadow (~257 km at sun −16°, ~330 km at
+  −18°) scatter N₂⁺ 427.8 nm sunlight; our night is the sun 16–30° down, so only tall storm rays
+  near −16°. Needs the sun's depression in the uniforms; skipped.
+- **Sharper rays** (~1 km; today 1.5–4.5 km): only visible at 4K, costs aliasing work.
+- **Diffuse pulsating patches** after magnetic midnight: grey-green blotches instead of arcs on
+  some late quiet nights.
+- **Exposure blur:** a 10–15 s exposure smears fast rays; could soften rays by Kp.
+- The type-B border reads crimson, not magenta, 5–10° up: the air takes its blue (physical).
+- The airglow's wave crests show more on aurora nights (+1.5 EV, more sky; ARCHITECTURE.md known
+  issues).
+
+How to work on it (kept from the handoff): mirror first (`auroraRay` and the GLSL together; read
+changes along lines with `params.mjs --line --sky aurora`), validate the mirror once per layer
+with `params.debug.probeLine` (within 1–3% at 0.92–0.94), judge colours by RGB on the mirror and
+the probe, not a JPEG; renders `snapshot.mjs --scene scenes/aurora.json` and
+`scenes/aurora-clouds.json`, ≤ ~3 rounds per change.
 
 ### Later or not at all
 

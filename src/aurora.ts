@@ -1,4 +1,4 @@
-import { Uniform, Vector3, Vector4, type Matrix4 } from 'three'
+import { Uniform, Vector3, Vector4, type Matrix4, type ShaderMaterial } from 'three'
 import type { SkyMaterial } from '@takram/three-atmosphere'
 
 import { solarActivity } from './nightGlow'
@@ -594,6 +594,61 @@ export function auroraLux(a: AuroraParams): Vec3 {
     }
   }
   return out
+}
+
+/** The display as a light on the clouds: the direction of the brightest
+ * arc (world azimuth, elevation of its 150 km body) and the irradiance (lux,
+ * RGB) on a surface facing it, the march integrated over the sky with
+ * max(0, cos) to that direction (24 azimuths × 10 elevations). */
+export function auroraCloudLight(a: AuroraParams): { azDeg: number; elDeg: number; lux: Vec3 } {
+  const [x] = a.arcs[0] ?? [0]
+  const fromPole = x < 0 ? 180 : 0
+  const elDeg = Math.max(5, elevationOf(Math.abs(x), 150))
+  const target: Vec3 = [Math.cos(elDeg * DEG) * Math.cos(fromPole * DEG), Math.cos(elDeg * DEG) * Math.sin(fromPole * DEG), Math.sin(elDeg * DEG)]
+  const [nAz, nEl] = [24, 10]
+  const lux: Vec3 = [0, 0, 0]
+  const dAz = (2 * Math.PI) / nAz
+  const dEl = (Math.PI / 2) / nEl
+  for (let j = 0; j < nEl; j++) {
+    const el = (j + 0.5) * dEl
+    for (let i = 0; i < nAz; i++) {
+      const az = (i + 0.5) * dAz
+      const cosine = Math.cos(el) * Math.cos(az) * target[0] + Math.cos(el) * Math.sin(az) * target[1] + Math.sin(el) * target[2]
+      if (cosine <= 0) continue
+      const c = auroraThroughAir(a, az / DEG, el / DEG)
+      const w = cosine * Math.cos(el) * dEl * dAz
+      for (let k = 0; k < 3; k++) lux[k] += c[k] * w
+    }
+  }
+  return { azDeg: a.poleAzimuthDeg + fromPole, elDeg, lux }
+}
+
+/** Patch takram's clouds with the display's light: each cloud sample marches
+ * a few steps toward the arc for its optical depth and scatters the light
+ * (takram's multiple-scattering phase): edges in front of the display glow
+ * (a green silver lining), sides away from it stay dark. `irradiance` in
+ * render units (lux × renderPerLux). */
+export function patchCloudsAurora(material: ShaderMaterial, worldToECEF: Matrix4, a: AuroraParams, renderPerLux: number): void {
+  const light = auroraCloudLight(a)
+  const [az, el] = [light.azDeg * DEG, light.elDeg * DEG]
+  const dir = new Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).transformDirection(worldToECEF)
+  const source = material.fragmentShader
+  const sky = 'radiance += skyIrradiance * RECIPROCAL_PI4 * skyGradient * skyLightScale;'
+  if (!source.includes(sky) || !source.includes('vec4 marchClouds(')) {
+    throw new Error('patchCloudsAurora: the clouds shader has changed; update the patch')
+  }
+  material.fragmentShader = source
+    .replace('vec4 marchClouds(', 'uniform vec3 auroraLightDirection;\nuniform vec3 auroraLightIrradiance;\nvec4 marchClouds(')
+    .replace(
+      sky,
+      `${sky}
+      // The aurora's light (aurora.ts patchCloudsAurora).
+      float auroraDepth = marchOpticalDepth(position, auroraLightDirection, 3, mipLevel, jitter);
+      radiance += auroraLightIrradiance * approximateMultipleScattering(auroraDepth, dot(auroraLightDirection, rayDirection));`
+    )
+  material.uniforms.auroraLightDirection = new Uniform(dir)
+  material.uniforms.auroraLightIrradiance = new Uniform(new Vector3(...light.lux).multiplyScalar(renderPerLux))
+  material.needsUpdate = true
 }
 
 // --- The march in the sky shader ------------------------------------------

@@ -4,6 +4,7 @@ import {
   ARC_REACH,
   AURORA_COLOURS,
   auroraCdToward,
+  auroraCloudLight,
   auroraLux,
   auroraRay,
   dipFor,
@@ -311,6 +312,26 @@ describe('aurora', () => {
       expect(Math.abs(top[0] - foot[0])).toBeGreaterThan(Math.abs(vertical[0] - foot[0]))
       expect(Math.sign(top[0] - foot[0])).toBe(Math.sign(foot[0] - at(0, 110, 1)[0]))
     }
+  })
+
+  it('lights the clouds from the arc: green when quiet, redder in storms', () => {
+    const quiet = scene({ ...DARK, place: 'norway-north', weather: 'scattered', aurora: true }, '2026-01-20')
+    const storm = scene({ ...DARK, place: 'maine', weather: 'scattered', aurora: 'strong' }, '2026-03-20')
+    for (const p of [quiet, storm]) {
+      const a = p.aurora!
+      const light = auroraCloudLight(a)
+      // Toward the brightest arc, low in the sky.
+      const fromPole = a.arcs[0][0] < 0 ? 180 : 0
+      expect(Math.abs(((light.azDeg - a.poleAzimuthDeg - fromPole) % 360 + 540) % 360 - 180)).toBeLessThan(1)
+      expect(light.elDeg).toBeGreaterThan(5)
+      expect(light.elDeg).toBeLessThan(40)
+      // A surface facing the display gets more than level ground.
+      expect(lum(light.lux)).toBeGreaterThan(lum(auroraLux(a)))
+    }
+    const [q, s] = [auroraCloudLight(quiet.aurora!).lux, auroraCloudLight(storm.aurora!).lux]
+    expect(q[1]).toBeGreaterThan(q[0])
+    expect(s[0] / s[1]).toBeGreaterThan(q[0] / q[1])
+    expect(lum(s)).toBeGreaterThan(lum(q))
   })
 
   it('lights the ground faintly, more in bigger storms', () => {

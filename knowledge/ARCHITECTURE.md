@@ -226,8 +226,10 @@ December noon is 17° up; changes many winter days, ask first).
 - Light pollution (`nightGlow.ts`): low clouds aren't lit from below by the towns. At the
   night white balance (4000 K) the domes come out only mildly warm (sodium ~2100 K stays
   orange; the LED share pulls them neutral).
-- Aurora (`aurora.ts`): clouds aren't lit by it (in a gap only the sky behind them is green);
-  the airglow's wave crests (`nightGlow.ts` bands) show more on aurora nights (+1.5 EV and a
+- Aurora (`aurora.ts`): clouds are lit by it (0.96), but on quiet starlit nights the glow barely
+  shows: the clouds pass's stand-in sun (`scene.ts` `starlight`, nearly overhead, a sun's
+  strength in the night's units) outweighs the display's physical light on cloud tops. The
+  airglow's wave crests (`nightGlow.ts` bands) show more on aurora nights (+1.5 EV and a
   wider, higher frame) as faint slanted stripes low in the sky: they are the airglow's, not the
   aurora's (`passes.aurora: false` keeps them). Until 0.92 the airglow's sin() hash also made
   structure of its own at large cell coordinates; with the integer hash what shows is the

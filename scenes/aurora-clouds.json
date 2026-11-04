@@ -1,0 +1,6 @@
+{ "base": { "timeOfDay": "night", "eclipse": null, "fog": null, "storm": null, "nightSky": "starlit" },
+  "scenes": [
+    { "name": "tromso-scattered", "date": "2026-01-20", "place": "norway-north", "weather": "scattered", "aurora": true },
+    { "name": "tromso-broken-strong", "date": "2026-01-20", "place": "norway-north", "weather": "broken", "aurora": "strong" },
+    { "name": "maine-scattered-strong", "date": "2026-03-20", "place": "maine", "weather": "scattered", "aurora": "strong" }
+  ] }
