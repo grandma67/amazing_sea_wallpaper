@@ -176,19 +176,35 @@ How it looks (the five fixes that took it from a green wash to arcs; render spec
 2. **Brightness from the photo, not the column.** A photographed display is the session's peak
    (substorm onset): quiet arcs ~10 kR (IBC II), storms 30–100 kR. Seen across from 300–500 km an
    arc gives about its overhead column; the sky there is ~2.5× the zenith and the air takes ~1.3
-   mag, so a quiet arc is ~2× the sky beside it (probe).
+   mag, so a quiet arc is ~2–2.5× the sky beside it (mirror 2.5× on example 1; render probe ~2×
+   beside it, ~3× above).
 3. **A faint diffuse glow** (1.2% of the arc's column) on its own thin profile (112 ± 10 km): on
    the old shell-wide profile its long low paths outshone the arcs.
 4. **Colours as luminance shares.** Red = 0.265·r / (1 + 0.265·r) with r = I630/I557.7 ~0.1–0.3
-   (a few % of the luminance); r 1.5–2.5 only for equatorward arcs at Kp ≥ 7 (type A, SAR). The
+   (3–8% of the luminance); r 1.5–2.5 only for equatorward arcs at Kp ≥ 7 (type A, SAR). The
    N₂⁺ fringe 1–4%, Kp ≥ 5 only.
 5. **No stripes.** Rays fade to their mean once the layers' samples step more than half their
    period along the arc; sheets are widened to the step across them (folds' drift included);
    profiles are averaged over each layer (erf), not point-sampled; one layer offset per pixel
    (interleaved gradient noise). Grain ≤ ~3% s.d. at the arcs' lower edge.
 
-Light on the ground: the march integrated over the sky (`auroraLux`, RGB), ~1e-4 lux quiet to
-~1e-3 at Kp 9 (under a starlit night's 0.002). The sea mirrors the arcs through the env cube;
+Light on the ground: the march integrated over the sky (`auroraLux`, RGB), ~1.5–2.5e-4 lux quiet
+to ~1e-3 at Kp 9 (under a starlit night's 0.002).
+
+Current values (0.92, `params.mjs --scene scenes/aurora.json`; mirror through `nightSkyCd`, the
+sky without the Milky Way):
+
+| Example | Kp, kind | Column | Red / fringe (luminance) | Ground | Arc ÷ sky | Lens, horizon |
+|---|---|---|---|---|---|---|
+| 1 Tromsø quiet | 2, overhead | 14 kR | 3.3% / 0 | 1.5e-4 lux | 2.5× | 22 mm, 0.66 |
+| 2 Tromsø calm, strong | 6, overhead | 35 kR | 5.1% / 1.8% | 4.1e-4 | 5.3× | 22 mm, 0.66 |
+| 3 Iceland, full moon | 1, overhead | 14 kR | 2.7% / 0 | 2.4e-4 | (moonlit sky hides it) | 15 mm, 0.61 |
+| 4 Scotland, Kp 9 | 9, overhead | 38 kR | 7.8% / 4.0% | 3.8e-4 | 3.4× | 21 mm, 0.63 |
+| 5 Maine, Kp 9 | 9, overhead | 96 kR | 6.5% / 4.0% | 1.1e-3 | 14.5× | 20 mm, 0.61 |
+
+Known gap (2026-11-04 review): big storms render green with faint red tops; photos of the May and
+October 2024 storms at these latitudes are strongly red, pink and magenta. Next steps:
+`handoff.md` (repo root, temporary). The sea mirrors the arcs through the env cube;
 the blur on a "glassy" sea is the sea's own (Jupiter's reflection blurs the same).
 
 Left: clouds aren't lit by the aurora (only the sky behind them is); the airglow's wave crests

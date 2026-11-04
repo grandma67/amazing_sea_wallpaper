@@ -192,7 +192,7 @@ tool gotchas: TOOLS.md.
   no rods: use its night white balance (~4000 K) instead (`whiteBalance.ts`). Without the grey,
   each night source's own colour matters: give it the colour a camera records, in luminance
   terms (the red 630 nm airglow line at 5–35% of the luminance turned dark skies brown; it is a
-  few %; the aurora's red line, `redShare(I630/I557.7)`, is 3–7%, not the 10–90% "share of
+  few %; the aurora's red line, `redShare(I630/I557.7)`, is 3–8%, not the 10–90% "share of
   light" it was drawn with, which made the arcs pink). Sample real pixels (a canvas `getImageData`, `scratchpad` script) before reasoning
   about a tint; turn sources off one at a time (`passes.glow`, `milkyWay: false`).
 - The night glow is patched into the env cube's sky too, against the "main sky only" rule: it is

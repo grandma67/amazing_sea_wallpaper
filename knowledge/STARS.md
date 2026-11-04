@@ -241,10 +241,12 @@ showers, moon, clouds, radiant height and hour (decision in the plan).
   100, 1000 kR *(general)*. 1 R of 557.7 nm ≈ 1.93e-7 cd/m², so a dark zenith is ~0.9 kR of
   green-equivalent luminance. Seen across from 300–500 km an arc gives about its overhead column;
   low in the sky the airglow is ~2.5× the zenith and the air takes ~1.3 mag, so a 10 kR arc is
-  ~2× the sky beside it.
+  ~2–2.5× the sky beside it (render probe and the sky mirror, 0.92).
 - **Red vs green:** I630/I557.7 falls as the green brightens (dayside arcs: ~5 at 0.1 kR green,
   ~0.1 at 10 kR; Chinese J. Geophys. 2017). Night arcs ~0.1–0.3, so with V(630) ≈ 0.265 of
-  V(557.7) red is only **3–7% of the luminance**: green curtains with red tops. Type-A and SAR
+  V(557.7) red is only **3–8% of the luminance** (Kp 1–9): green curtains with red tops. Storm-time
+  red is probably underdrawn: photos of the 2024 great storms at 50–57° are red and magenta
+  (handoff.md). Type-A and SAR
   arcs seen equatorward in big storms: ratio > 1, red-dominated.
 - **Light on the ground:** a Kp 9 display as drawn gives ~1e-3 lux (integrated over the sky),
   under a starlit night's 0.002 and far under a quarter moon's 0.01.
