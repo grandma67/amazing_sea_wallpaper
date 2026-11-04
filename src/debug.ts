@@ -34,6 +34,17 @@ export interface DebugParams {
   probe?: ([number, number] | { az: number; el: number })[]
   /** Half size of each probe's box (px): 0 a single pixel, default 2 (5×5). */
   probeHalf?: number
+  /** Read a line of sky pixels ({az, el, step}: az from the view, one of
+   * az/el a [from, to] range, deg): cd/m² and final colour per pixel and
+   * `lineStats` (bands vs grain, stars left out), in `debug.probeLine`.
+   * Same line format as the CPU mirrors (skyMirror.ts, params.mjs --line). */
+  probeLine?: ProbeLine | ProbeLine[]
+}
+
+export interface ProbeLine {
+  az: number | [number, number]
+  el: number | [number, number]
+  step?: number
 }
 
 export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'stars', 'glow', 'meteors', 'aurora'] as const

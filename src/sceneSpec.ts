@@ -434,7 +434,21 @@ function checkDebug(value: unknown, path: string): void {
     },
     probeHalf: (v, p) => {
       if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 20) fail(p, 'must be an integer 0–20')
+    },
+    probeLine: (v, path) => {
+      const lines = Array.isArray(v) ? v : [v]
+      if (lines.length === 0 || lines.length > 12) fail(path, 'must be a line or a list of 1–12')
+      lines.forEach((l, i) => checkLine(l, Array.isArray(v) ? `${path}[${i}]` : path))
     }
+  }
+  function checkLine(v: unknown, p: string): void {
+    if (v === null || typeof v !== 'object' || Array.isArray(v)) fail(p, 'must be {az, el, step?}')
+    const o = v as Record<string, unknown>
+    const range = (x: unknown): boolean => Array.isArray(x) && x.length === 2 && x.every(n => typeof n === 'number')
+    for (const k of Object.keys(o)) if (!['az', 'el', 'step'].includes(k)) fail(`${p}.${k}`, 'is not a line field: az, el, step')
+    for (const k of ['az', 'el']) if (typeof o[k] !== 'number' && !range(o[k])) fail(`${p}.${k}`, 'must be degrees or [from, to]')
+    if (range(o.az) === range(o.el)) fail(p, 'needs exactly one of az, el as a [from, to] range')
+    if (o.step !== undefined && (typeof o.step !== 'number' || o.step < 0.005 || o.step > 5)) fail(`${p}.step`, 'must be 0.005–5 degrees')
   }
   for (const [k, v] of Object.entries(d)) {
     if (checks[k] == null) fail(`${path}.${k}`, `is not a debug field: ${Object.keys(checks).join(', ')}`)

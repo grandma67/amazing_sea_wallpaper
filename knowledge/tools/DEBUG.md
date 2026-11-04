@@ -14,6 +14,7 @@ rock platform and a beach. Tools: [TOOLS.md](../TOOLS.md).
 | `passes: {name: false}` | switches off `clouds`, `aerial` (aerial perspective), `skyFill`, `bloom`, `reflection` (planar), `shadows` (props cast none), `stars` (the star catalogue), `glow` (Milky Way, airglow, zodiacal light, light pollution), `meteors`, `aurora` | which pass causes a glow, rim or dark band: one `diff --off` per pass |
 | `exposure: N` | fixed exposure (the metered one is `debug.exposure` in each render's `.json`) | comparing renders whose sky or weather differs (`diff.mjs --keep-exposure` sets it) |
 | `terrainView` | false colour on the terrain, lit by the scene's light: `slope` (grey by steepness, red where the height bends by 3–10 px within ~2 grid cells: aliasing candidates; less red with `terrainGrid: 2`), `relief` (rock: gullies red, boulders green, bed bands blue; beach: cusps red, bars green, storm ridges blue), `lines` (today's still water cyan, run-up orange, today's high water green, spring high water yellow, beach high-tide line magenta, storm line red), `shore` (s blue and a orange every 10 m, s = 0 white, `waterline` cyan) | which height term made a feature; whether lines sit where props and wet bands assume; the shore frame (wobble, curvature) round the camera |
+| `probeLine: {az, el, step}` or a list | reads lines of single pixels (az from the view; one of az/el a `[from, to]` range): per pixel cd/m² and final RGB, and per line `lineStats`: bands (period, regularity), ripple, stars left out, a sparkline. Same format as `params.mjs --line` on the CPU mirrors | "stripes or grain? from what?": compare the render's line with the mirror's ("Lines of pixels" below) |
 | `probe: [...]` | reads the render at points `[x, y]` (fractions of the image, y down) or sky directions `{az, el}` (degrees, az from the view, + right): **raw** radiance (render units, before exposure and white balance), its luminance in **cd/m²** and **mag/arcsec²**, **exposed** (after exposure and white balance, before bloom and tone mapping), **final** 8-bit; mean and peak of a 5×5 box (`probeHalf`: 0–20); `⚠ clipped` past the grade's clamp (40). `snapshot.mjs` prints one line per point; the `.json` has them under `debug.probe` (`src/probe.ts`) | "how bright is X against the sky behind it?" in numbers: a star or planet's peak vs the sky beside it, an aurora arc vs the sky between arcs, a colour's real RGB. Instead of reading JPEGs or boosting a term ×20 to find it |
 | `oceanView` | false colour on the sea: `shelter` (blue → red), `breaking` (deep blue, steepening green, breaking red), `depth` (sand → blue over 15 m, a line every metre), `foam` (coverage, grey) | calm water, break lines, depth under the camera's view |
 
@@ -42,3 +43,32 @@ node scripts/snapshot.mjs --out $SP/p --w 1920 --h 1080 --frames 16 \
   cd/m²; a Bortle-2 night zenith ~21.6 mag/arcsec².
 - Exposed values: ~0.1–0.2 is a mid sky; final 8-bit after AgX, saturation and contrast.
 - A point (star, planet, meteor): set `probeHalf: 0` and probe its pixel; the peak is what shows.
+
+## Lines of pixels: bands or grain? (`probeLine`)
+
+A stripe, a band or a texture in the sky is a question about a *line* of pixels: does it repeat
+(bands, with a period), or is it grain, stars, or the edge of something smooth?
+`params.debug.probeLine` reads a line (or a list of up to 12) of single pixels and prints
+`lineStats` (`skyMirror.ts`): the period and how regular it is, the ripple (RMS of the line minus
+a 2° running median), stars left out, and the shape.
+
+```sh
+node scripts/snapshot.mjs --out $SP/l --w 1920 --h 1080 --frames 16 --scene '{"date":"2026-02-18", …,
+  "params":{"debug":{"passes":{"aurora":false},"probeLine":[{"az":-25,"el":[6,30]},{"az":[-40,40],"el":12,"step":0.1}]}}}'
+#  probe line az -25 el [6,30], 481 px: bands every 2.05° (corr 0.34), ±0.32%; mean 6.34e-4, …; 2 spikes (stars) left out
+#    ▇████████████████▇▇▇█▇▇▆▆▆▅▅▅▅▅▅▅▅▄▄▄▄▄▃▃▃▃▃▃▃▂▂▂▂▂▁▁▁▁▁▁▁▁▁
+```
+
+- `az` is from the view (+ right), `el` above the horizon; one of them a `[from, to]` range,
+  `step` deg (default 0.05, ~a pixel at 20 mm 1080p). The `.json` keeps every sample (az, el,
+  pixel, cd/m², final RGB) under `debug.probeLine`.
+- **The same line runs through the CPU mirrors** (`params.mjs --line`, tools/PARAMS.md): compare
+  mean, shape and period number for number. When they disagree, the mirror is wrong or the
+  shader isn't what you think; find which before tuning anything.
+- To read one shader term along the line (the airglow's crests, patches, a noise value): render
+  three times with a temporary `pattern = 0.0`, `1.0` and `<term>` in its place; per pixel
+  `(v − v₀) / (v₁ − v₀)` is the term's value on the GPU. Never test a constant expression this way
+  (`ngHash(vec2(3.0, 1.0))`): the compiler folds it at higher precision than the shader runs.
+- Bands in a sky feature: switch its pass off on the same frame first (`passes.aurora: false`):
+  the aurora's last "bands" were the airglow's.
+

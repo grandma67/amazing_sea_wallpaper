@@ -15,7 +15,8 @@
 // --ref REF           render that commit (worktree on port 5177); implies --drop-unknown
 // --drop-unknown      leave out (and name) spec fields the served commit rejects
 // DEBUG=1             print each render's debug (exposure, luminance, …)
-//                     params.debug.probe (tools/DEBUG.md) prints one line per point
+//                     params.debug.probe (tools/DEBUG.md) prints one line per point,
+//                     params.debug.probeLine its band/grain stats and shape
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -24,6 +25,20 @@ import { chromium } from 'playwright'
 import { snapshotWarnings } from './checks.mjs'
 import { expandDates, parseArgs, readSpecs, watchPage } from './lib.mjs'
 import { serveRef } from './refServer.mjs'
+
+/** A row of characters showing a line's shape (as skyMirror.ts sparkline). */
+function sparkline(values, width = 60) {
+  const bars = '▁▂▃▄▅▆▇█'
+  const n = Math.min(width, values.length)
+  const cells = Array.from({ length: n }, (_, i) => {
+    const a = Math.floor((i * values.length) / n)
+    const b = Math.max(a + 1, Math.floor(((i + 1) * values.length) / n))
+    return values.slice(a, b).reduce((s, x) => s + x, 0) / (b - a)
+  })
+  const [lo, hi] = [Math.min(...cells), Math.max(...cells)]
+  return cells.map(v => bars[hi > lo ? Math.min(7, Math.floor(((v - lo) / (hi - lo)) * 8)) : 0]).join('')
+}
+
 
 const { args, option, flag } = parseArgs()
 let baseUrl = option('url', 'http://localhost:5174/')
@@ -160,6 +175,15 @@ for (const { date, spec: asked, name } of todo) {
       `  probe ${at} px ${r.pixel.join(',')}: raw ${e(r.raw.mean)} (peak ${e(r.raw.peak)}), ${r.cdm2.toExponential(2)} cd/m²${mag}; ` +
         `exposed ${r.exposed.mean.map(x => x.toFixed(3)).join(' ')}; final ${r.final.mean.join(',')} (peak ${r.final.peak.join(',')})${r.clipped ? ' ⚠ clipped' : ''}`
     )
+  }
+  // The line probe (params.debug.probeLine): its stats and shape.
+  for (const pl of params.debug?.probeLine ?? []) {
+    const what = `az ${JSON.stringify(pl.line.az)} el ${JSON.stringify(pl.line.el)}`
+    if (pl.stats == null) console.log(`  probe line ${what}: out of frame`)
+    else {
+      console.log(`  probe line ${what}, ${pl.samples.length} px: ${pl.stats.summary}`)
+      console.log(`    ${sparkline(pl.samples.map(s => s.cdm2))}`)
+    }
   }
   // GPU-process messages arrive a few ms after the frame.
   await page.waitForTimeout(100)

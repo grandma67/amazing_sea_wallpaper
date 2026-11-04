@@ -1,7 +1,8 @@
 import { Uniform, Vector3, Vector4, type Matrix4 } from 'three'
 import type { SkyMaterial } from '@takram/three-atmosphere'
 
-import { airglowZenith, s10Luminance, solarActivity, vanRhijn } from './nightGlow'
+import { solarActivity } from './nightGlow'
+import { airTransmittance, hashCell, hashGlsl, luminance, seedInt } from './skyMirror'
 import type { Random } from './random'
 
 // Aurora (NIGHT_SKY phase 6, STARS.md §8).
@@ -380,13 +381,14 @@ export function profiles(hKm: number, dh = DH): { green: number; red: number; fr
 
 // --- The march, in TypeScript (mirrors GLSL below line for line) ----------
 
-const fract = (x: number): number => x - Math.floor(x)
 const smooth = (a: number, b: number, x: number): number => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
   return t * t * (3 - 2 * t)
 }
+/** The noise cells' hash (skyMirror.ts hashCell: bit for bit the shader's,
+ * so the mirror sees the shader's own folds, patches and rays). */
 function auHash(x: number, seed: number): number {
-  return fract(Math.sin(x * 127.1 + seed) * 43758.5453)
+  return hashCell(seedInt(seed), x)
 }
 function auNoise(x: number, seed: number): number {
   const i = Math.floor(x)
@@ -438,8 +440,10 @@ function insideOval(a: AuroraParams, x: number): number {
 export function auroraRay(a: AuroraParams, azDeg: number, elDeg: number, jitter = 0.5): Vec3 {
   if (elDeg <= 0) return [0, 0, 0]
   const [ce, se, ca, sa] = [Math.cos(elDeg * DEG), Math.sin(elDeg * DEG), Math.cos(azDeg * DEG), Math.sin(azDeg * DEG)]
-  // Local frame: up z, pole x, east y; the camera at the ground.
-  const dir: Vec3 = [ce * ca, ce * sa, se]
+  // Local frame: up z, pole x, y along the arcs as the shader's
+  // `cross(up, pole)`, which points 90° left of the pole (azimuth − 90°):
+  // a direction `azDeg` right of the pole has y = −cos(el) sin(az).
+  const dir: Vec3 = [ce * ca, -ce * sa, se]
   const r = EARTH_KM + 0.002
   const out: Vec3 = [0, 0, 0]
   const [G, R, F] = [AURORA_COLOURS.green, AURORA_COLOURS.red, AURORA_COLOURS.fringe]
@@ -470,26 +474,22 @@ export function auroraRay(a: AuroraParams, azDeg: number, elDeg: number, jitter 
   return out
 }
 
-const lum = (c: Vec3): number => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
-/** The air's extinction toward an elevation (clear coast, ~0.2 mag per
- * airmass; Kasten–Young airmass; general). */
-export function airTransmittance(elDeg: number): number {
-  const s = Math.sin(Math.max(elDeg, 0) * DEG)
-  return 10 ** (-0.4 * 0.2 / (s + 0.025 * Math.exp(-11 * s)))
-}
-/** The plain moonless night sky's luminance (cd/m²) at an elevation, as
- * the night glow draws it: airglow (van Rhijn, then the air's extinction),
- * the air's own scattered glow and a starlight and zodiacal background
- * (~60 S10; general). For comparing the aurora with in tests. */
-export function nightSkyCd(date: string, elDeg: number): number {
-  const air = airglowZenith(date)
+/** The aurora's radiance toward a direction through the air (RGB, cd/m²
+ * of luminance-normalised colour): the shader's `colour × transmittance`. */
+export function auroraThroughAir(a: AuroraParams, azDeg: number, elDeg: number, jitter = 0.5): Vec3 {
+  const c = auroraRay(a, azDeg, elDeg, jitter)
   const T = airTransmittance(elDeg)
-  const vr = vanRhijn(Math.sin(elDeg * DEG), 95)
-  return (air * T * vr + (1 - T) * (air + 120) + 60) * s10Luminance()
+  return [0, 1, 2].map(k => c[k] * T[k] * 1000 * RAYLEIGH_CD) as Vec3
 }
-/** The aurora's luminance (cd/m²) toward a direction, through the air. */
+/** The aurora's luminance (cd/m²) toward a direction: `azDeg` from the
+ * geomagnetic pole. Compare with nightGlow.ts `nightSkyCd`. */
 export function auroraCd(a: AuroraParams, azDeg: number, elDeg: number, jitter = 0.5): number {
-  return lum(auroraRay(a, azDeg, elDeg, jitter)) * 1000 * RAYLEIGH_CD * airTransmittance(elDeg)
+  return luminance(auroraThroughAir(a, azDeg, elDeg, jitter))
+}
+/** The same toward a world direction (skyMirror.ts lines). */
+export function auroraCdToward(a: AuroraParams, dir: Vec3, jitter = 0.5): number {
+  const az = Math.atan2(dir[0], -dir[2]) / DEG - a.poleAzimuthDeg
+  return auroraCd(a, az, Math.asin(Math.max(-1, Math.min(1, dir[1]))) / DEG, jitter)
 }
 
 /** Light the display sheds on level ground (lux, RGB in the lines'
@@ -502,9 +502,9 @@ export function auroraLux(a: AuroraParams): Vec3 {
   const dEl = (Math.PI / 2) / nEl
   for (let j = 0; j < nEl; j++) {
     const el = (j + 0.5) * dEl
-    const w = Math.sin(el) * Math.cos(el) * dEl * dAz * 1000 * RAYLEIGH_CD * airTransmittance(el / DEG)
+    const w = Math.sin(el) * Math.cos(el) * dEl * dAz
     for (let i = 0; i < nAz; i++) {
-      const c = auroraRay(a, ((i + 0.5) * dAz) / DEG, el / DEG)
+      const c = auroraThroughAir(a, ((i + 0.5) * dAz) / DEG, el / DEG)
       for (let k = 0; k < 3; k++) out[k] += c[k] * w
     }
   }
@@ -519,12 +519,14 @@ const vec = (c: Vec3): string => `vec3(${c.map(f).join(', ')})`
 const GLSL = /* glsl */ `
 uniform vec4 auroraA; // pole direction (ECEF, horizontal, unit), radiance scale (render units per kR)
 uniform vec4 auroraB; // the oval's equatorward and poleward edges (km poleward of the camera), red share, fringe share
-uniform vec4 auroraC; // fold amplitude (km), fold wavelength (km), seed, strength (kR)
+uniform vec4 auroraC; // fold amplitude (km), fold wavelength (km), seed (integer), strength (kR)
 uniform vec4 auroraD; // the arcs' positions (km poleward of the camera)
 uniform vec4 auroraE; // the arcs' strengths (0: none)
 uniform float auroraPatchy;
 
-float auHash(float x) { return fract(sin(x * 127.1 + auroraC.z) * 43758.5453); }
+${hashGlsl('au')}
+// An integer hash (skyMirror.ts): aurora.ts auHash matches it bit for bit.
+float auHash(float x) { return auHash1(x, auroraC.z); }
 float auNoise(float x) {
   float i = floor(x);
   float t = fract(x);
@@ -574,6 +576,7 @@ vec3 aurora(vec3 radiance, const vec3 transmittance, const vec3 cameraPosition, 
   float mu = dot(up, rayDirection);
   if (RayIntersectsGround(ATMOSPHERE, r, mu)) return radiance;
   vec3 pole = auroraA.xyz;
+  // Along the arcs, 90° left of the pole (aurora.ts auroraRay's y).
   vec3 east = normalize(cross(up, pole));
   // One offset of the layers per pixel: what aliasing is left becomes
   // grain, not stripes. Interleaved gradient noise (Jimenez 2014): sin()
@@ -636,7 +639,7 @@ export function patchSkyAurora(material: SkyMaterial, a: AuroraParams, worldToEC
   Object.assign(material.uniforms, {
     auroraA: new Uniform(new Vector4(pole.x, pole.y, pole.z, scale)),
     auroraB: new Uniform(new Vector4((a.edgeLat - a.observerLat) * 111, (a.polewardLat - a.observerLat) * 111, a.red, a.fringe)),
-    auroraC: new Uniform(new Vector4(a.foldKm[0], a.foldKm[1], a.seed, a.strengthKR)),
+    auroraC: new Uniform(new Vector4(a.foldKm[0], a.foldKm[1], seedInt(a.seed), a.strengthKR)),
     auroraD: new Uniform(new Vector4(arc(0)[0], arc(1)[0], arc(2)[0], arc(3)[0])),
     auroraE: new Uniform(new Vector4(arc(0)[1], arc(1)[1], arc(2)[1], arc(3)[1])),
     auroraPatchy: new Uniform(a.patchy)

@@ -93,6 +93,7 @@ import { GpuResources, trackUploads } from './dispose'
 import { createTerrain, hasLand } from './terrain'
 import { NIGHT_WHITE_BALANCE_K, whiteBalanceGains } from './whiteBalance'
 import { probeResult, ProbePass, readCanvas, type ProbeBox } from './probe'
+import { lineDirections, lineStats } from './skyMirror'
 import { dirFromAzEl as skyDir, pixelOf } from './skyFrame'
 
 const DEG = Math.PI / 180
@@ -746,7 +747,17 @@ export async function renderScene(
     const clampPx = (v: number, n: number): number => Math.min(n - 1 - half, Math.max(half, v))
     return { pixel: [clampPx(px[0], width), clampPx(px[1], height)], half }
   })
-  const probePass = probes.length > 0 ? new ProbePass(probeBoxes, height) : null
+  // The line probe: one pixel per sample, after the points.
+  const lines = [params.debug?.probeLine ?? []].flat()
+  const linePoints = lines.map(line => lineDirections(params, line))
+  const lineBoxes: (ProbeBox | null)[][] = linePoints.map(points =>
+    points.map(pt => {
+      const px = pixelOf({ camera: { ...params.camera, aspect: width / height } }, pt.dir, width, height, dip)
+      return px == null ? null : { pixel: [Math.min(width - 1, Math.round(px[0])), Math.min(height - 1, Math.round(px[1]))], half: 0 }
+    })
+  )
+  const allBoxes = [...probeBoxes, ...lineBoxes.flat()]
+  const probePass = allBoxes.length > 0 ? new ProbePass(allBoxes, height) : null
   if (probePass != null) composer.addPass(probePass)
   composer.addPass(finish)
 
@@ -849,17 +860,32 @@ export async function renderScene(
   camera.clearViewOffset()
 
   const gl = renderer.getContext()
+  const probeGrade = {
+    exposure,
+    whiteBalance: whiteBalance.toArray() as [number, number, number],
+    cdPerUnit: 1 / renderPerLux(params.nightSky, elongationDeg(params)),
+    darkZenithCd: darkZenithLuminance()
+  }
   const probe =
-    probePass == null
+    probePass == null || probes.length === 0
       ? undefined
       : probes.map((at, k) => {
           const box = probeBoxes[k]
-          return probeResult(at, box?.pixel ?? null, probePass.results[k] ?? null, box == null ? null : readCanvas(gl, box, height), {
-            exposure,
-            whiteBalance: whiteBalance.toArray() as [number, number, number],
-            cdPerUnit: 1 / renderPerLux(params.nightSky, elongationDeg(params)),
-            darkZenithCd: darkZenithLuminance()
+          return probeResult(at, box?.pixel ?? null, probePass.results[k] ?? null, box == null ? null : readCanvas(gl, box, height), probeGrade)
+        })
+  let offset = probes.length
+  const probeLine =
+    probePass == null || lines.length === 0
+      ? undefined
+      : lines.map((line, n) => {
+          const samples = linePoints[n].flatMap((pt, k) => {
+            const box = lineBoxes[n][k]
+            if (box == null) return []
+            const r = probeResult({ az: pt.az, el: pt.el }, box.pixel, probePass.results[offset + k] ?? null, readCanvas(gl, box, height), probeGrade)
+            return r.cdm2 == null ? [] : [{ az: +pt.az.toFixed(3), el: +pt.el.toFixed(3), pixel: r.pixel, cdm2: r.cdm2, final: r.final!.mean }]
           })
+          offset += linePoints[n].length
+          return { line, samples, stats: samples.length > 0 ? lineStats(samples.map(s => s.cdm2), line.step ?? 0.05) : null }
         })
   const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
   const debug = {
@@ -869,6 +895,7 @@ export async function renderScene(
       skyZenith: metered.zenith,
       whiteBalance: whiteBalance.toArray(),
       ...(probe != null ? { probe } : {}),
+      ...(probeLine != null ? { probeLine } : {}),
       nightScale,
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),

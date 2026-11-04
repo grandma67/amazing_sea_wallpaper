@@ -1,9 +1,12 @@
 import { DataTexture, DataUtils, HalfFloatType, LinearFilter, Matrix3, RedFormat, Uniform, Vector2, Vector3, Vector4, type Texture } from 'three'
 import type { SkyMaterial } from '@takram/three-atmosphere'
 
+import { hasLand } from './coastKind'
 import type { SceneParams } from './params'
 import { placeNamed } from './places'
 import type { Random } from './random'
+import { apply, ECLIPTIC_POLE, skyRotation, sunECI } from './skyClock'
+import { airTransmittance, hashCell, hashGlsl, luminance, seedInt } from './skyMirror'
 import { darkZenithLuminance, DARK_ZENITH_MAG, renderPerLux } from './starLight'
 
 // The night sky's own light (NIGHT_SKY phase 3, STARS.md §3, §6, §7, §9):
@@ -226,6 +229,151 @@ export function glowScale(night: SceneParams['nightSky'], elongationDeg: number)
   return s10Luminance() * renderPerLux(night, elongationDeg)
 }
 
+
+// --- The glow in TypeScript (mirrors GLSL below term by term) -------------
+//
+// For comparing a sky feature with the night sky it stands in (aurora.ts
+// tests, `params.mjs --line --sky glow`) and for finding which term makes a
+// pattern. World frame: geographic north is +x and east +z (takram's
+// north-up-east anchor), so the airglow's band frame is the shader's. The
+// noise hashes run in doubles here and float32 on the GPU: band positions
+// differ, their period, direction and strength don't. The Milky Way needs
+// its map: pass `milkyWay` (test/milkyWayMap.mjs) or it is left out.
+
+type V3 = [number, number, number]
+/** The noise cells' hash (skyMirror.ts hashCell: bit for bit the shader's). */
+export function ngHash(x: number, y: number, seed: number): number {
+  return hashCell(seedInt(seed), x, y)
+}
+export function ngNoise(x: number, y: number, seed: number): number {
+  const [ix, iy] = [Math.floor(x), Math.floor(y)]
+  let [fx, fy] = [x - ix, y - iy]
+  fx = fx * fx * (3 - 2 * fx)
+  fy = fy * fy * (3 - 2 * fy)
+  const a = ngHash(ix, iy, seed) + (ngHash(ix + 1, iy, seed) - ngHash(ix, iy, seed)) * fx
+  const b = ngHash(ix, iy + 1, seed) + (ngHash(ix + 1, iy + 1, seed) - ngHash(ix, iy + 1, seed)) * fx
+  return a + (b - a) * fy
+}
+export function ngFbm(x: number, y: number, seed: number): number {
+  let [v, a] = [0, 0.5]
+  for (let i = 0; i < 4; i++) {
+    v += a * ngNoise(x, y, seed)
+    ;[x, y] = [x * 2.03 + 17, y * 2.03 + 9]
+    a *= 0.5
+  }
+  return v
+}
+const ngSmooth = (a: number, b: number, x: number): number => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
+  return t * t * (3 - 2 * t)
+}
+const dot3 = (a: V3, b: V3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+const norm3 = (a: V3): V3 => {
+  const l = Math.hypot(...a)
+  return l > 0 ? [a[0] / l, a[1] / l, a[2] / l] : a
+}
+
+/** The airglow's pattern toward a world direction, term by term (for
+ * finding which one makes a band): where the ray meets the green layer
+ * (`q`, km east and north), the gravity-wave crests (−1…1), the patches they
+ * show in (0–1), how edge-on the layer is, the fine mottling, and the
+ * products the shader uses. */
+export function airglowPattern(g: NightGlowParams, dir: V3): { q: [number, number]; crests: number; patches: number; edgeOn: number; mottle: number; pattern: number; redPattern: number } {
+  const mu = dir[1]
+  const r = EARTH_KM
+  const layer = EARTH_KM + GREEN_LAYER_KM
+  const t = -r * mu + Math.sqrt(r * r * mu * mu - r * r + layer * layer)
+  // East and north of the layer point (world z and x).
+  const [qx, qy] = [dir[2] * t, dir[0] * t]
+  const h = (g.bands.headingDeg * Math.PI) / 180
+  const [ax, ay] = [Math.sin(h), Math.cos(h)]
+  const w = qx * -ay + qy * ax
+  const seed = g.bands.seed
+  const warp = 25 * ngFbm(qx / 120, qy / 120, seed)
+  const crests = Math.sin((w + warp) / 4.5)
+  const patches = ngSmooth(0.35, 0.75, ngFbm(qx / 260 + 3, qy / 260 + 3, seed))
+  const edgeOn = 1 - ngSmooth(0.15, 0.8, mu)
+  const mottle = 1.2 * (ngFbm(qx / 60, qy / 60, seed) - 0.5)
+  const pattern = Math.max(0.2, 1 + g.bands.strength * edgeOn * (crests * patches + mottle))
+  return { q: [qx, qy], crests, patches, edgeOn, mottle, pattern, redPattern: 0.8 + 0.4 * ngFbm(qx / 400 + 7, qy / 400 + 7, seed) }
+}
+
+/**
+ * The night glow toward a world direction, in S10 (luminance-normalised
+ * colours, as the shader before `glowScale`): Milky Way (if `milkyWay` is
+ * given) and zodiacal light through the air, the airglow's two shells with
+ * their bands, the air's in-scattered glow, light pollution. On a starlit
+ * night this is the sky; under the moon the moonlit sky adds to it.
+ */
+export function nightGlowS10(p: SceneParams, dir: V3, milkyWay?: (l: number, b: number) => number): V3 {
+  const g = p.nightGlow
+  const mu = dir[1]
+  if (g == null || mu <= 0) return [0, 0, 0]
+  const el = Math.asin(Math.min(1, mu)) / (Math.PI / 180)
+  const T = airTransmittance(el)
+  const out: V3 = [0, 0, 0]
+  const add = (c: readonly number[], s: number, t: readonly number[] = [1, 1, 1]): void => {
+    for (let k = 0; k < 3; k++) out[k] += c[k] * s * t[k]
+  }
+  const eciToWorld = skyRotation(p).matrix
+  if (g.milkyWay && milkyWay != null) {
+    const m = eciToWorld
+    // World → ECI: the transpose.
+    const eci: V3 = [m[0] * dir[0] + m[3] * dir[1] + m[6] * dir[2], m[1] * dir[0] + m[4] * dir[1] + m[7] * dir[2], m[2] * dir[0] + m[5] * dir[1] + m[8] * dir[2]]
+    const { l, b } = galactic(eci)
+    add([1, 1, 1], milkyWay(l, b), T)
+  }
+  if (g.zodiacal) {
+    const pole = apply(eciToWorld, ECLIPTIC_POLE) as V3
+    const sun = apply(eciToWorld, sunECI(p.date)) as V3
+    const sinBeta = dot3(dir, pole)
+    const beta = Math.asin(Math.min(1, Math.abs(sinBeta))) / (Math.PI / 180)
+    const rp = norm3([dir[0] - pole[0] * sinBeta, dir[1] - pole[1] * sinBeta, dir[2] - pole[2] * sinBeta])
+    const ss = dot3(sun, pole)
+    const sp = norm3([sun[0] - pole[0] * ss, sun[1] - pole[1] * ss, sun[2] - pole[2] * ss])
+    const lon = Math.acos(Math.max(-1, Math.min(1, dot3(rp, sp)))) / (Math.PI / 180)
+    add(GLOW_COLOURS.zodiacal, zodiacalS10(lon, beta), T)
+  }
+  let airglow = 0
+  if (g.airglow) {
+    const { pattern, redPattern } = airglowPattern(g, dir)
+    const green = (1 - g.redShare) * vanRhijn(mu, GREEN_LAYER_KM) * pattern
+    const red = g.redShare * vanRhijn(mu, RED_LAYER_KM) * redPattern
+    airglow = g.airglowS10
+    add(GLOW_COLOURS.green, airglow * green, T)
+    add(GLOW_COLOURS.red, airglow * red, T)
+  }
+  add(GLOW_COLOURS.green.map(v => 0.5 + 0.5 * v), airglow + 120, T.map(x => 1 - x))
+  const artificial = ARTIFICIAL[g.bortle]
+  if (artificial.zenith > 0) {
+    const sea = (p.coast.seawardAzimuthDeg * Math.PI) / 180
+    const land = hasLand(p.coast)
+    const off = (g.dome.offsetDeg * Math.PI) / 180
+    const inland: V3 = [-Math.sin(sea), 0, Math.cos(sea)]
+    const dome: V3 = land ? [inland[0] * Math.cos(off) - inland[2] * Math.sin(off), 0, inland[0] * Math.sin(off) + inland[2] * Math.cos(off)] : [1, 0, 0]
+    const horiz = norm3([dir[0], 0, dir[2]])
+    // cross(up, dome) with up = +y.
+    const side: V3 = [dome[2], 0, -dome[0]]
+    const width = (g.dome.widthDeg * Math.PI) / 180
+    let domes = 0
+    for (let i = -1; i <= 1; i++) {
+      const a = i * 1.309
+      const d: V3 = [dome[0] * Math.cos(a) + side[0] * Math.sin(a), 0, dome[2] * Math.cos(a) + side[2] * Math.sin(a)]
+      const az = Math.acos(Math.max(-1, Math.min(1, dot3(horiz, d))))
+      domes += (i === 0 ? 1 : 0.7) * Math.exp((-0.5 * az * az) / (width * width))
+    }
+    const e = el * (Math.PI / 180)
+    const town = artificial.zenith * (1 + 2 * Math.exp(-e / 0.35)) + (land ? artificial.dome : 0) * Math.exp(-e / 0.12) * domes
+    add(GLOW_COLOURS.town, town, T.map(x => 0.5 + 0.5 * x))
+  }
+  return out
+}
+
+/** The night glow's luminance (cd/m²) toward a world direction. */
+export function nightSkyCd(p: SceneParams, dir: V3, milkyWay?: (l: number, b: number) => number): number {
+  return luminance(nightGlowS10(p, dir, milkyWay)) * s10Luminance()
+}
+
 const GLSL = /* glsl */ `
 uniform float glowScale;
 uniform float glowReplace;
@@ -235,12 +383,14 @@ uniform vec3 eclipticPoleECEF;
 uniform vec3 realSunECEF;
 uniform sampler2D milkyWayMap;
 uniform sampler2D zodiacalMap;
-uniform vec4 airglowA; // zenith S10, red share, band strength, seed
+uniform vec4 airglowA; // zenith S10, red share, band strength, seed (integer)
 uniform vec2 airglowBands; // crest direction (east, north)
 uniform vec4 lightDome; // inland direction (ECEF, unit), artificial zenith S10
 uniform vec2 lightDomeB; // dome at the horizon (S10), width (rad)
 
-float ngHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7)) + airglowA.w) * 43758.5453); }
+${hashGlsl('ng')}
+// An integer hash (skyMirror.ts): nightGlow.ts ngHash matches it bit for bit.
+float ngHash(vec2 p) { return ngHash2(p, airglowA.w); }
 float ngNoise(vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
@@ -392,7 +542,7 @@ export function patchSkyNightGlow(
     realSunECEF: new Uniform(toECEF(frame.realSun)),
     milkyWayMap: new Uniform(milkyWay),
     zodiacalMap: new Uniform(zodiacal()),
-    airglowA: new Uniform(new Vector4(glow.airglowS10, glow.redShare, glow.bands.strength, glow.bands.seed)),
+    airglowA: new Uniform(new Vector4(glow.airglowS10, glow.redShare, glow.bands.strength, seedInt(glow.bands.seed))),
     airglowBands: new Uniform(new Vector2(Math.sin(heading), Math.cos(heading))),
     lightDome: new Uniform(new Vector4(domeDir.x, domeDir.y, domeDir.z, artificial.zenith)),
     lightDomeB: new Uniform(new Vector2(inland == null ? 0 : artificial.dome, (glow.dome.widthDeg * Math.PI) / 180))

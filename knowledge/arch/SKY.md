@@ -90,6 +90,14 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   noise); × transmittance, in kR × `auroraScale`. **`auroraRay` is the same march in
   TypeScript**: change both together; tests and `auroraLux` (the ground light, the march
   integrated over the sky, an ambient + sky irradiance) use it. Metered without it; +1.5 EV.
+- **CPU mirrors of sky shaders** (`skyMirror.ts`): `auroraRay` and `nightGlowS10` (with
+  `airglowPattern`, term by term) compute what the shader draws toward a world direction, in the
+  same frame (world +x north, +z east: takram's north-up-east anchor; the aurora's along-arc axis
+  is `cross(up, pole)`, 90° left of the pole), with takram's RGB transmittance
+  (`airTransmittance`: Rayleigh 8 km, Mie 1.2 km, ozone 10–40 km) and the shaders' own integer
+  noise hash (`hashGlsl`/`hashCell`, PCG, bit for bit). `lineDirections`, `mirrorLine` and
+  `lineStats` read them along lines; `params.debug.probeLine` reads the render on the same lines
+  (tools/DEBUG.md). Change a shader and its mirror together, then compare one line of each.
 - **Marine layer** (`coastalWeather.ts`, PLAN_BIOMES 3): `marineLayerFor` on stream
   `'marine-layer'` from `MARINE_LAYER` (place × local month) on morning golden hour, sunrise and
   daylight. After the eclipse fix-up the day turns overcast (coverage 0.75–0.82) with one stratus

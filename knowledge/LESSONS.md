@@ -26,6 +26,13 @@ tool gotchas: TOOLS.md.
 - A stripe or band in a sky feature: switch that feature's pass off on the same frame before
   fixing its sampling (`passes.aurora: false`). The aurora's last "bands" were the airglow's
   wave crests, made visible by the aurora nights' +1.5 EV.
+- Validate a mirror against the render before trusting it: the same line through
+  `params.debug.probeLine` and `params.mjs --line`, means and shapes side by side. The first such
+  check found two mirror bugs no unit test could (the aurora mirror was left-right mirrored; the
+  noise hash differed on the GPU), and a "smooth" mirror that would have hidden real bands.
+- Don't write throwaway band metrics: a high-pass of a line counts an arc's edge as ripple, and
+  the residuals of two smooth curves after a median filter correlate at 0.99 whatever they are.
+  Use `lineStats` (period needs both an autocorrelation peak and repeated zero crossings).
 - A brightness quoted for a sky object is a column or a visual class, not what a frame sees:
   seen across from far away, an aurora arc gives about its overhead column (a 25 km sheet), and
   low in the sky the air takes ~1.3 mag while the airglow is ~2.5× the zenith. Compare with the
@@ -155,6 +162,11 @@ tool gotchas: TOOLS.md.
   into grain. Check each in the TS mirror (a column of pixels averaged over the offset: no
   wiggles; spread between offsets: grain) before rendering. A `fract(sin(dot(gl_FragCoord…)))`
   hash loses precision at 1e5 in float32; use interleaved gradient noise.
+- A shader with a CPU mirror hashes its noise with integers (`skyMirror.ts` `hashGlsl`/`hashCell`,
+  PCG): uint math is exact in WebGL2 and in JS (`Math.imul`). Any float hash ends in the fract of
+  a large product that float32 rounds differently: a cell near the wrap flips 1 → 0 and every
+  octave touching it differs (airglow fbm 0.63 on the CPU, 0.22 on the GPU), even with "sine-free"
+  hashes. Each patch prefixes its copy (`ng`, `au`): patches share one shader.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
   bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN terrain.
 

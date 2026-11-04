@@ -229,7 +229,9 @@ December noon is 17° up; changes many winter days, ask first).
 - Aurora (`aurora.ts`): clouds aren't lit by it (in a gap only the sky behind them is green);
   the airglow's wave crests (`nightGlow.ts` bands) show more on aurora nights (+1.5 EV and a
   wider, higher frame) as faint slanted stripes low in the sky: they are the airglow's, not the
-  aurora's (`passes.aurora: false` keeps them). A single-layer feature in the march (the 5 km
+  aurora's (`passes.aurora: false` keeps them). Until 0.92 the airglow's sin() hash also made
+  structure of its own at large cell coordinates; with the integer hash what shows is the
+  crests as designed (the mirror predicts them: `params.mjs --line --sky glow`). A single-layer feature in the march (the 5 km
   N₂⁺ fringe) leaves ~3% grain at the arcs' lower edge on Kp ≥ 5 nights.
 
 Places and climate:

@@ -20,6 +20,14 @@
 // --changed EXPR   with --ref: count 'p => …' over the changed days (now's params).
 // --rendered       the params the page renders (generateSceneParams re-rolls a
 //                  bad framing); slower.
+// --line LINE      a line of sky pixels through the CPU mirrors of the sky
+//                  shaders (skyMirror.ts): '{"az":0,"el":[2,40],"step":0.05}' or a
+//                  list of them, az
+//                  from the view as params.debug.probeLine. Prints bands vs
+//                  ripple, grain and the shape per day; compare with the render's
+//                  line probe. --sky aurora,glow (default both, summed: cd/m²;
+//                  glow includes the Milky Way); --jitters N layer offsets
+//                  averaged (default 8; 1 = one pixel's view).
 //
 // In expressions, besides SceneParams: p.props (props/choices.ts on the
 // render's streams), p.placeData (places.ts Place), p.view (composition.ts
@@ -30,6 +38,7 @@
 //   node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-06
 //   node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null'
 //   node scripts/params.mjs --ref HEAD --changed 'p => p.place.climate'
+//   node scripts/params.mjs --scene scenes/aurora.json --line '{"az":-30,"el":[8,30]}' --sky aurora
 //   node scripts/params.mjs --scene '{"saltMarsh":true}' --stats 'p => props.saltMarsh.createSaltMarsh(p.ctx).length' 2025-07-01..2025-07-10
 
 import { readFile } from 'node:fs/promises'
@@ -55,6 +64,9 @@ const expect = option('expect', null)
 const changedArg = option('changed', null)
 const list = flag('list')
 const rendered = flag('rendered')
+const lineArg = option('line', null)
+const skyArg = option('sky', 'aurora,glow')
+const jitters = Number(option('jitters', 8))
 const limit = Number(option('limit', ref != null ? 20 : 1e9))
 rejectUnknown()
 
@@ -260,6 +272,40 @@ if (/\b(src|props)\.\w/.test([where, stats, expect, changedArg].join(' '))) {
     }
     globalThis[global] = modules
   }
+}
+if (lineArg != null) {
+  // A mirror line per day: the summed sources along it.
+  const lines = [JSON.parse(lineArg)].flat()
+  const sources = skyArg.split(',')
+  const [mirror, aurora, glow, { milkyWayMap }] = await Promise.all([
+    here.mod('/src/skyMirror.ts'),
+    here.mod('/src/aurora.ts'),
+    here.mod('/src/nightGlow.ts'),
+    import('../test/milkyWayMap.mjs')
+  ])
+  const unknown = sources.filter(s => !['aurora', 'glow'].includes(s))
+  if (unknown.length > 0) throw new Error(`--sky: unknown ${unknown.join(', ')} (aurora, glow)`)
+  const milkyWay = milkyWayMap(glow.MILKY_WAY_LOG2)
+  try {
+    for (const { name, spec: raw } of await specs()) {
+      here.parseSceneSpec(raw)
+      const { spec, dates } = datesFor(raw)
+      if (name != null) console.log(`== ${name}`)
+      for (const p of dates.map(d => here.day(d, spec)).filter(p => keep(p))) {
+        const f = (dir, j) =>
+          (sources.includes('aurora') && p.aurora != null ? aurora.auroraCdToward(p.aurora, dir, j) : 0) +
+          (sources.includes('glow') ? glow.nightSkyCd(p, dir, milkyWay) : 0)
+        for (const line of lines) {
+          const m = mirror.mirrorLine(p, line, f, jitters)
+          console.log(`${p.date}  az ${JSON.stringify(line.az)} el ${JSON.stringify(line.el)}: ${m.stats.summary}; grain ${(100 * m.grain).toFixed(1)}%`)
+          console.log(`    ${mirror.sparkline(m.points.map(q => q.value))}`)
+        }
+      }
+    }
+  } finally {
+    await here.server.close()
+  }
+  process.exit(0)
 }
 if (expect != null) {
   try {

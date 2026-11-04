@@ -21,6 +21,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Which pass, term or grid causes a look | `params.debug` switches and views | [tools/DEBUG.md](tools/DEBUG.md) |
 | How bright or what colour is X in the render (raw, cd/m², mag/″², final RGB) | `params.debug.probe` | [tools/DEBUG.md](tools/DEBUG.md) |
+| Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |
 | Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
 
@@ -73,6 +74,8 @@ minutes (dep optimisation).
   `node_modules/.vite` (a worktree symlinking `node_modules`): stop 5174,
   `rm -rf node_modules/.vite`, start again. `refServer.mjs` gives its worktree its own `cacheDir`.
 - macOS has no `timeout`; don't wrap commands in one (snapshot has `--budget`).
+- zsh: `LINES` and `COLUMNS` are the terminal's variables; assigning JSON to `LINES` fails with
+  "bad output format specification". Keep line specs in a file (`--line "$(cat $SP/lines.json)"`).
 - Each `params.mjs` call costs a few seconds (it builds the modules): a shell loop over seeds or
   places timed out. Ask once over a date range with `--list --where 'p => …'` or `--stats`.
 - No PDF tools here (`pdftotext`, poppler, pypdf missing; inflating the streams by hand fails on

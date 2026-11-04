@@ -3,13 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   ARC_REACH,
   AURORA_COLOURS,
-  auroraCd,
+  auroraCdToward,
   auroraLux,
   auroraRay,
   elevationOf,
   geomagnetic,
   kpFor,
-  nightSkyCd,
   ovalEdge,
   ovalWidth,
   type AuroraParams
@@ -17,7 +16,10 @@ import {
 import { shiftDate } from '../src/dates'
 import type { SceneParams } from '../src/params'
 import type { SceneSpec } from '../src/sceneSpec'
-import { dirFromAzEl, project } from '../src/skyFrame'
+import { MILKY_WAY_LOG2, nightSkyCd } from '../src/nightGlow'
+import { mirrorLine } from '../src/skyMirror'
+import { dirFromAzEl, project, type Vec3 } from '../src/skyFrame'
+import { milkyWayMap } from './milkyWayMap.mjs'
 import { allParams, scene } from './days'
 
 // NIGHT_SKY phase 6: the aurora (STARS.md §8).
@@ -30,6 +32,7 @@ const WINTER = [
 ]
 const winter = (spec: SceneSpec, step = 1): SceneParams[] => WINTER.filter((_, i) => i % step === 0).map(d => scene(spec, d))
 const lum = (c: number[]): number => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+const milkyWay = milkyWayMap(MILKY_WAY_LOG2)
 /** The display's colour looking straight up through an arc. */
 const column = (a: AuroraParams): number[] =>
   [0, 1, 2].map(k => (1 - a.red - a.fringe) * AURORA_COLOURS.green[k] + a.red * AURORA_COLOURS.red[k] + a.fringe * AURORA_COLOURS.fringe[k])
@@ -188,68 +191,47 @@ describe('aurora', () => {
   })
 
   it('stands as arcs over a dark sky, not as a wash', () => {
-    // Example 1 of night_fixes: a quiet night at Tromsø.
+    // Example 1 of night_fixes: a quiet night at Tromsø, against the night
+    // sky's own mirror (nightGlow.ts, Milky Way included; both checked
+    // against the render's line probe).
     const p = scene({ ...DARK, place: 'norway-north', aurora: true }, '2026-01-20')
     const a = p.aurora!
     expect(a.kp).toBeLessThanOrEqual(3)
     expect(a.arcs.length).toBeLessThanOrEqual(2)
-    const az = headingFromPole(p)
+    const ratio = (dir: Vec3): number => auroraCdToward(a, dir) / nightSkyCd(p, dir, milkyWay)
     // The brightest point of the arc across the frame's width (folds and
     // patches change it along the arc).
     let peak = 0
     let peakEl = 0
-    for (let daz = -20; daz <= 20; daz += 2) {
-      for (let el = 2; el <= 40; el += 0.25) {
-        const r = auroraCd(a, az + daz, el) / nightSkyCd(p.date, el)
-        if (r > peak) [peak, peakEl] = [r, el]
-      }
+    for (let az = -20; az <= 20; az += 2) {
+      for (const pt of mirrorLine(p, { az, el: [2, 40], step: 0.25 }, ratio, 1).points) if (pt.value > peak) [peak, peakEl] = [pt.value, pt.el]
     }
     // The arc stands out of the sky (the render's probe: ~2× the sky beside
     // it, ~3× the sky above)...
     expect(peak).toBeGreaterThan(1.8)
     expect(peakEl).toBeGreaterThan(5)
     // ...and the sky above it is barely touched: no diffuse wash.
-    for (const el of [peakEl + 12, 30, 45, 60]) expect(auroraCd(a, az, el) / nightSkyCd(p.date, el)).toBeLessThan(0.5)
+    for (const el of [peakEl + 12, 30, 45, 60]) expect(ratio(dirFromAzEl(p.camera.headingDeg, el))).toBeLessThan(0.5)
     // Overhead the diffuse glow alone is under half the sky.
     const diffuseOnly: AuroraParams = { ...a, arcs: [] }
-    for (const el of [10, 20, 45, 90]) expect(auroraCd(diffuseOnly, az, el) / nightSkyCd(p.date, el)).toBeLessThan(0.5)
+    for (const el of [10, 20, 45, 90]) {
+      const dir = dirFromAzEl(p.camera.headingDeg, el)
+      expect(auroraCdToward(diffuseOnly, dir) / nightSkyCd(p, dir, milkyWay)).toBeLessThan(0.5)
+    }
   })
 
   it('samples rays without stripes', () => {
-    // Example 4: a storm seen from Scotland. A row of 1080p pixels (0.03°)
-    // looking obliquely along the arcs varies smoothly; a per-pixel layer
-    // offset (jitter) changes little.
+    // Example 4: a storm seen from Scotland. Up columns of 1080p pixels
+    // across the frame, averaged over the layers' offset (what the per-pixel
+    // jitter gives): no bands parallel to the arcs, and little grain between
+    // offsets. The fringe and the rays aliased here (1–3% bands, 13% grain)
+    // before they were sampled by layer and faded.
     const p = scene({ ...DARK, place: 'scotland', aurora: 'strong' }, '2026-02-18')
     const a = p.aurora!
-    for (const az of [30, 60]) {
-      const row = Array.from({ length: 200 }, (_, i) => auroraCd(a, az + i * 0.03, 12))
-      const mean = row.reduce((s, v) => s + v) / row.length
-      const step = row.slice(1).reduce((s, v, i) => s + Math.abs(v - row[i]), 0) / (row.length - 1) / mean
-      expect(step).toBeLessThan(0.02)
-      const jit = [0.05, 0.35, 0.65, 0.95].map(j => auroraCd(a, az, 12, j))
-      expect(Math.max(...jit) / Math.min(...jit)).toBeLessThan(1.15)
-    }
-    // Up a column of pixels, averaged over the layers' offset (what the
-    // per-pixel jitter gives), no bands parallel to the arcs; the grain
-    // between offsets stays small. The fringe and the rays aliased here (1–3%
-    // bands, 13% grain) before they were sampled by layer and faded.
-    const h = ((p.camera.headingDeg - a.poleAzimuthDeg) % 360 + 540) % 360 - 180
-    for (const daz of [-40, -20, 0, 20]) {
-      const mean: number[] = []
-      let grain = 0
-      for (let el = 6; el < 30; el += 0.04) {
-        const v = Array.from({ length: 8 }, (_, j) => auroraCd(a, h + daz, el, (j + 0.5) / 8))
-        const m = v.reduce((s, x) => s + x) / v.length
-        mean.push(m)
-        grain = Math.max(grain, (Math.max(...v) - Math.min(...v)) / m)
-      }
-      let wiggles = 0
-      for (let i = 2; i < mean.length - 2; i++) {
-        const [d2a, d2b] = [mean[i + 1] - 2 * mean[i] + mean[i - 1], mean[i + 2] - 2 * mean[i + 1] + mean[i]]
-        if (Math.sign(d2a) !== Math.sign(d2b) && Math.abs(d2a) > 1e-4 * mean[i]) wiggles++
-      }
-      expect(wiggles, `daz ${daz}`).toBeLessThanOrEqual(2)
-      expect(grain, `daz ${daz}`).toBeLessThan(0.12)
+    for (const az of [-40, -20, 0, 20]) {
+      const m = mirrorLine(p, { az, el: [6, 30], step: 0.04 }, (dir, j) => auroraCdToward(a, dir, j))
+      expect(m.stats.periodDeg == null || m.stats.ripple < 0.003, `az ${az}: ${m.stats.summary}`).toBe(true)
+      expect(m.grain, `az ${az}`).toBeLessThan(0.12)
     }
   })
 

@@ -83,6 +83,30 @@ node scripts/params.mjs --scene S --stats 'p => { const d = src.skyClock.apply(s
 Checking only the azimuth missed the vertical field: three "core in frame" nights had it 20°
 above the top edge.
 
+### Sky shaders on the CPU: `--line`
+
+Sky features with a TypeScript mirror (`aurora.ts` `auroraRay`, `nightGlow.ts` `nightGlowS10`)
+can be read along a line of pixels without rendering, in cd/m²: the same line format and stats
+as the render's `params.debug.probeLine` (tools/DEBUG.md), so the two compare directly.
+
+```sh
+node scripts/params.mjs --scene scenes/aurora.json --line '[{"az":-25,"el":[4,30]},{"az":[-40,40],"el":12,"step":0.1}]'
+# 2026-02-18  az -25 el [4,30]: no bands, ±0.41% ripple; mean 1.05e-3, 6.59e-4–2.09e-3; grain 0.0%
+#     ▂▃▃▄▆▇█████▇▆▆▅▄▄▃▃▃▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+```
+
+- `--sky aurora,glow` picks the sources (default both, summed; the glow includes the Milky Way
+  from `test/milkyWayMap.mjs`). `--jitters N` averages the aurora over N layer offsets (default 8,
+  what the per-pixel offset gives; `grain` is the spread between them); `--jitters 1` is one
+  pixel's view, to compare with a render line pixel for pixel.
+- Term by term: `src.nightGlow.airglowPattern(p.nightGlow, dir)` (crests, patches, edge-on,
+  mottle), `src.aurora.auroraRay(a, azFromPole, el, jitter)` (RGB before the air),
+  `src.skyMirror.airTransmittance(el)` (takram's RGB transmittance), and `src.skyMirror`
+  `mirrorLine`/`lineStats` for your own function along a line.
+- Validated against renders (2026-11-04): airglow means within 1–2% and the same shape along
+  lines; aurora columns and rows within 1–3% (peaks 2.09 vs 2.10e-3 cd/m², the same 3.9° folds).
+  Not mirrored: the moonlit and twilight sky (Bruneton), clouds, stars.
+
 ### Which days did a change touch: `--ref`
 
 `--ref HEAD` generates every test day with that commit and with this tree and counts the days
