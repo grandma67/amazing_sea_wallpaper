@@ -1,0 +1,20 @@
+{
+  "base": { "date": "2025-07-10", "eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "weather": "few", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "coast-pei-red", "date": "2025-01-30", "place": "pei", "coast": "beach", "sand": "red", "composition": "along-beach" },
+    { "name": "coast-maldives-reef", "date": "2026-03-20", "place": "maldives", "reef": true, "composition": "shoreline", "timeOfDay": "midday" },
+    { "name": "coast-rock-platform", "place": "nova-scotia", "rockShore": "platform", "composition": "along-beach" },
+    { "name": "coast-rock-boulder", "place": "iceland", "rockShore": "boulder", "composition": "along-beach", "weather": "overcast", "swellHeight": 4, "swellPeriod": 13 },
+    { "name": "coast-rock-cliff", "place": "california", "rockShore": "cliff", "timeOfDay": "golden-hour", "sunAzimuthDeg": 140 },
+    { "name": "coast-tidal-flat", "place": "wadden-north-sea", "coast": "tidal-flat", "tide": "low", "composition": "shoreline", "timeOfDay": "golden-hour", "sunAzimuthDeg": 25 },
+    { "name": "coast-salt-marsh", "date": "2025-07-13", "place": "wadden-north-sea", "coast": "beach", "saltMarsh": true, "tide": "high", "composition": "along-beach", "colony": null },
+    { "name": "climate-temperate", "place": "scotland", "climate": "temperate", "coast": "beach", "beachMaterial": "sand", "sand": "white", "composition": "along-beach" },
+    { "name": "climate-subtropical", "place": "florida-carolinas", "climate": "subtropical", "coast": "beach", "beachMaterial": "sand", "composition": "framed" },
+    { "name": "climate-polar", "place": "greenland", "climate": "polar", "coast": "beach", "composition": "framed" },
+    { "name": "weather-june-gloom", "date": "2025-06-15", "place": "california", "coast": "beach", "marineLayer": true, "composition": "shoreline" },
+    { "name": "weather-haar", "place": "scotland", "coast": "beach", "fog": "advection", "composition": "along-beach" },
+    { "name": "weather-harmattan", "date": "2025-01-15", "place": "west-africa", "coast": "beach", "dust": "harmattan", "composition": "shoreline" },
+    { "name": "sun-svalbard-polar-night", "date": "2025-12-21", "place": "svalbard", "coast": "beach", "composition": "along-beach", "timeOfDay": "night" },
+    { "name": "sun-svalbard-midnight", "date": "2025-06-21", "place": "svalbard", "coast": "beach", "composition": "shoreline", "sunElevationDeg": 12, "sunAzimuthDeg": 8, "evening": true }
+  ]
+}

@@ -4,10 +4,14 @@ A new photorealistic sea-and-beach wallpaper every day, rendered in the browser
 with three.js. The date is the seed: everyone sees the same scene on the same
 day, and any past day can be rendered again.
 
-Each date picks the time of day, sun and real moon phase, weather (cirrus to
-thunderstorms, rainbows), one of the five oceans and a coast (tropical,
-mediterranean, nordic, volcanic, desert), the camera, sea state and surf, ice,
-rocks, plants, boats, mountains and volcanoes, birds, dolphins and whales.
+Each date picks a real stretch of coast (~90 places in five oceans), its biome
+(tropical, mediterranean, nordic, volcanic, desert) and climate (temperate,
+subtropical, boreal, polar…), and a shore: sand or stony beach, coral reef, rock
+platform, boulder shore, sea cliffs, tidal flat or salt marsh, at the day's tide.
+Then the time of day, the real sun (polar night and midnight sun) and moon
+phase, the night sky and aurora, weather (cirrus to thunderstorms, rainbows,
+sea fog, marine layer, harmattan dust), the camera, sea state and surf, ice,
+rocks, plants, boats, mountains and volcanoes, birds, seals, dolphins and whales.
 
 ## Use it
 

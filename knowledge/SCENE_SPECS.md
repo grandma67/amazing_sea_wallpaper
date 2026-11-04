@@ -115,7 +115,15 @@ Every new random feature gets one. Always make the draw, then apply the force vi
     at Tromsø (2025-06-21, `sunElevationDeg` just above the day's minimum, `evening`). From 63°
     a forced `timeOfDay` the sun can't reach still wins (debugging), and so does
     `sunElevationDeg`: the heading of a midnight-sun day follows the forced elevation.
+  - Real days (found 2026-11-04): PEI red sand beach 2025-01-30 (morning, temperate, skerries);
+    Maldives reef 2026-03-20 (morning overlook, palm islet; also 2026-09-26 shoreline at dawn);
+    California marine layer 2025-09-17 (the only one in the test years: June gloom days at
+    `california` are rare, so force `marineLayer: true` on a June date).
+  - Coasts, climates and weather together (`scenes/coasts.json`, for regression renders): PEI
+    red, Maldives reef, rock platform, boulder shore and cliff top, Wadden tidal flat and salt
+    marsh, temperate Hebrides, subtropical Florida, polar Greenland, California June gloom
+    (2025-06-15), Scottish haar, harmattan dust, Svalbard polar night and midnight sun.
 - Spec files for each finished feature: `scenes/` (`examples`, `stony`, `tables`, `beach-states`,
-  `tides`, `shelter`, `reef`, `rock`, `tidal`, `climates`, `sun`, `islands-water`: reflections and
+  `tides`, `shelter`, `reef`, `rock`, `tidal`, `climates`, `sun`, `coasts`, `islands-water`: reflections and
   white water at the colony stack, karst islands, skerries, an iceberg and a lighthouse rock, calm,
   rough and front-lit); `debug.json` shows the debug views.

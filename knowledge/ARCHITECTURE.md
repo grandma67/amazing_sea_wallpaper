@@ -51,6 +51,11 @@ Playwright (headless snapshots), Vitest.
   everything on it sit `tide.level` lower (arch/COAST.md).
 - **Calm water is one shelter mask** (PLAN_BIOMES 6) shared by reefs and, later, lagoons and fjords.
 - **Biome is a constant of the place, climate a choice of it** (PLAN_BIOMES 11): no new biomes.
+- **The real sun only from 63°** (2026-11-03, PLAN_BIOMES 12): at |latitude| ≥ 63° the day's real
+  elevation range (`sunLimits`) limits the time of day and the sun's height, and midnight-sun
+  days turn the heading to the sun's real compass bearing. Below 63° the drawn sun stays as it
+  was (a real compass sun on every day and real winter noon heights are in "Ideas": they change
+  many days).
 - **Cheaper rendering must not change the image.** Rejected for speed: shipping precomputed
   atmosphere LUTs (10–48 MB, slightly different sky), caching sky textures between visits
   (~48 MB of float 3D textures), dropping the higher-order scattering texture (sky and aerial

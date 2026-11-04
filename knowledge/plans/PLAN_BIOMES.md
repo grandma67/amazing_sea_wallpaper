@@ -254,7 +254,7 @@ mangrove shelter from barriers follow from 8 and 10.
   days and winter months stand in (phase 4).
 - **Toyama's glowing firefly squid** (Mar–Jun): not plankton; a separate feature if wanted.
 
-## Wrap-up (across phases)
+## Wrap-up (across phases) — done 0.97
 
 - `scenes/coasts.json`: one spec per new coast, climate and weather, for regression renders.
 - SCENE_SPECS.md fixed dates for new looks (PEI red beach, Wadden low tide, Maldives reef,
