@@ -155,22 +155,39 @@ describe('aurora', () => {
     expect(inFrame / framed).toBeGreaterThan(0.9)
   })
 
-  it('is green with red tops, red only for equatorward arcs in big storms', () => {
+  it('is green with red tops; storms add red with Kp and a magenta lower border', () => {
+    const byKp = new Map<number, number[]>()
     for (const place of ['norway-north', 'iceland', 'scotland', 'maine']) {
       for (const force of [true, 'strong'] as const) {
         for (const p of winter({ ...DARK, place, aurora: force }, 30)) {
           const a = p.aurora!
           const c = column(a)
-          if (a.kind === 'overhead' || a.kp < 7) {
-            expect(c[1], `${place} Kp ${a.kp}`).toBeGreaterThan(c[0])
+          if (a.kind === 'overhead') byKp.set(a.kp, [...(byKp.get(a.kp) ?? []), a.red])
+          // Quiet displays: green with a few % red; no glow, no border.
+          if (a.kp <= 4) {
+            expect(c[1], `${place} Kp ${a.kp}`).toBeGreaterThan(2 * c[0])
             expect(a.red).toBeLessThan(0.1)
+            expect(a.fringe).toBe(0)
+            expect(a.redGlowKR).toBe(0)
           }
-          // The purple fringe only on strong nights, and thin.
-          if (a.kp < 5) expect(a.fringe).toBe(0)
-          expect(a.fringe).toBeLessThanOrEqual(0.04)
+          // The type-B border: Kp ≥ 5, always in a forced storm, thin.
+          if (force === 'strong') expect(a.fringe).toBeGreaterThan(0)
+          expect(a.fringe).toBeLessThanOrEqual(0.08)
         }
       }
     }
+    // The red share climbs with Kp under the oval.
+    const mean = (kp: number): number => {
+      const v = byKp.get(kp) ?? []
+      return v.reduce((x, y) => x + y, 0) / v.length
+    }
+    expect(byKp.has(2) && byKp.has(9)).toBe(true)
+    expect(mean(9)).toBeGreaterThan(0.15)
+    expect(mean(9)).toBeGreaterThan(3 * mean(2))
+    // Not every storm has a border (only forced ones always do).
+    const storms = allParams().filter(p => p.aurora != null && p.aurora.kp >= 5)
+    expect(storms.length).toBeGreaterThan(0)
+    expect(storms.some(p => p.aurora!.fringe === 0)).toBe(true)
     // Brittany sees a storm's equatorward arc: red-dominated (type A, SAR).
     const low = winter({ ...DARK, place: 'brittany', aurora: 'strong' }, 30).map(p => p.aurora!)
     expect(low.length).toBeGreaterThan(0)
@@ -179,15 +196,29 @@ describe('aurora', () => {
       const c = column(a)
       expect(c[0]).toBeGreaterThan(c[1])
     }
-    // Seen across an arc, the body is green: G/R > 2 before the sky adds.
-    const p = scene({ ...DARK, place: 'norway-north', aurora: 'strong', swellHeight: 0.3, wind: 1 }, '2026-01-20')
-    const az = headingFromPole(p)
-    let best = [0, 0, 0]
-    for (let el = 2; el < 40; el += 0.5) {
-      const c = auroraRay(p.aurora!, az, el)
-      if (lum(c) > lum(best)) best = c
+    // Along the frame's middle: the body green (G/R > 1.3 before the sky
+    // adds), and from Kp 9 the sky above the arc red up to the frame's top.
+    const look = (spec: SceneSpec, date: string): { body: number[]; above: number[][] } => {
+      const p = scene({ ...DARK, ...spec }, date)
+      const az = headingFromPole(p)
+      let [body, bodyEl] = [[0, 0, 0], 0]
+      for (let el = 2; el < 40; el += 0.5) {
+        const c = auroraRay(p.aurora!, az, el)
+        if (lum(c) > lum(body)) [body, bodyEl] = [c, el]
+      }
+      return { body, above: [bodyEl + 10, 25, 32].map(el => auroraRay(p.aurora!, az, el)) }
     }
-    expect(best[1] / best[0]).toBeGreaterThan(2)
+    const tromso = look({ place: 'norway-north', aurora: 'strong', swellHeight: 0.3, wind: 1 }, '2026-01-20')
+    expect(tromso.body[1] / tromso.body[0]).toBeGreaterThan(1.3)
+    // Kp 6: red tops just above the arc.
+    expect(tromso.above[0][0]).toBeGreaterThan(tromso.above[0][1])
+    const maine = look({ place: 'maine', aurora: 'strong' }, '2026-03-20')
+    expect(maine.body[1] / maine.body[0]).toBeGreaterThan(1.3)
+    for (const c of maine.above) expect(c[0]).toBeGreaterThan(2 * c[1])
+    const quiet = look({ place: 'norway-north', aurora: true }, '2026-01-20')
+    expect(quiet.body[1] / quiet.body[0]).toBeGreaterThan(2)
+    // Quiet: the sky well above stays green-grey (airglow's colour), no red wash.
+    expect(quiet.above[2][1]).toBeGreaterThan(quiet.above[2][0])
   })
 
   it('stands as arcs over a dark sky, not as a wash', () => {

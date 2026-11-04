@@ -28,7 +28,9 @@ import type { Random } from './random'
 // Drawn in takram's sky shader as layers through 92–320 km (`AURORA_LAYERS`):
 // each samples the curtains' footprint (folded sheets along the magnetic
 // east–west, fine vertical rays), weighted by the emission profile (green
-// peaking ~110 km, red ~230 km, a purple N₂⁺ fringe ~97 km on strong nights),
+// peaking ~110 km, red ~230 km on a wider sheet, a magenta type-B lower
+// border ~97 km on the brightest arc of strong displays), plus in storms a
+// diffuse red glow (~250 km) over the oval and equatorward of it,
 // on the main sky and the reflection cube (the sea mirrors it).
 // `auroraRay` is the same march in TypeScript: tests, and the light the
 // display sheds on the ground (`auroraLux`), use it.
@@ -168,10 +170,15 @@ export interface AuroraParams {
   /** Patchiness along the arcs: the fbm threshold below which an arc fades
    * out (0.1 quiet, near continuous; 0.25 active, broken). */
   patchy: number
-  /** Shares of the luminance in red (630 nm, high) and the purple N₂⁺
-   * fringe (low edge of strong displays); the rest is green. */
+  /** Shares of the arcs' luminance in red (630 nm, high) and the magenta
+   * type-B lower border (N₂ first positive red and N₂⁺ blue under a
+   * quenched green line; brightest arc of strong displays only); the rest is
+   * green. */
   red: number
   fringe: number
+  /** Storm-time diffuse red glow (630 nm, ~250 km) over the oval and ~3°
+   * equatorward of it: its column's luminance (kR of green-equivalent). */
+  redGlowKR: number
   seed: number
   /** Folds of the curtains: amplitude (km) and wavelength (km). */
   foldKm: [number, number]
@@ -235,6 +242,8 @@ export function auroraFor(input: AuroraInput, rng: Random, framing: number, forc
   const uCount = rng.float()
   const gaps = [rng.range(60, 180), rng.range(60, 180), rng.range(60, 180)]
   const weights = [rng.range(0.35, 0.75), rng.range(0.35, 0.75), rng.range(0.35, 0.75)]
+  // Storm colours (appended draws): the type-B border, the red glow.
+  const [uTypeB, uGlow] = [rng.float(), rng.float()]
   const site = AURORA_SITES[input.placeId]
   if (site == null || force === false || force === null) return null
   // The day's latitude within the place shifts the geomagnetic one by as much.
@@ -294,9 +303,26 @@ export function auroraFor(input: AuroraInput, rng: Random, framing: number, forc
   }
   // Red: the 630 nm line is ~0.1–0.3 of the green in kR in ordinary
   // displays (the ratio falls as the green brightens), so a few % of the
-  // luminance; equatorward arcs in big storms (seen from below the oval)
-  // are red-dominated (type-A, SAR arcs): ratio 1.5–2.5.
-  const ratio = kp >= 7 && !under ? 1.5 + uRed : (0.1 + 0.02 * kp) * (0.8 + 0.4 * uRed)
+  // luminance. In storms it climbs (low-energy electrons, a hot, expanded
+  // upper atmosphere): photos of the 2024 great storms at 50–57° are red and
+  // magenta, and the May 2024 mid-latitude aurora had I630/I557.7 up to
+  // 15–30 (Beletsky 2024). ~0.2 at Kp 5, ~0.5 at 7, ~1.2 at 9 (more would turn the arcs in front of other arcs' red tops orange; the storm's red sky is the glow below); equatorward
+  // arcs in big storms (type A, SAR) twice that.
+  const ratio = (kp <= 4 ? 0.1 + 0.02 * kp : 0.2 * 1.55 ** (kp - 5)) * (0.8 + 0.4 * uRed) * (kp >= 7 && !under ? 2 : 1)
+  const red = redShare(ratio)
+  // The red adds to the green, it doesn't replace it: the green keeps the
+  // luminance it has with a quiet night's ratio.
+  const quietRed = redShare(Math.min(ratio, (0.1 + 0.02 * kp) * (0.8 + 0.4 * uRed)))
+  // Type-B lower border: on fast, bright curtains reaching down to ~90 km
+  // the green line is quenched and N₂ glows red with N₂⁺ blue: a magenta
+  // edge. Kp ≥ 5, more often in bigger storms; always in a forced 'strong'.
+  const typeB = kp >= 5 && (force === 'strong' || uTypeB < 0.35 + 0.1 * (kp - 5))
+  const fringe = typeB ? 0.03 + 0.0125 * (kp - 5) : 0
+  // The storm's diffuse red: ~25 kR of 630 nm (≈ 6.6 kR luminance) at the
+  // May 2024 peak over Irkutsk. As a share of the arcs' column (a brighter
+  // storm is brighter in both), 0.8% at Kp 5 to 3% at 9: ~1–3.5 kR at Kp 9,
+  // which leaves the arcs green in front of it.
+  const redGlowKR = strengthKR * [0, 0, 0, 0, 0, 0.008, 0.014, 0.02, 0.025, 0.03][Math.min(9, Math.max(0, kp))] * (0.7 + 0.6 * uGlow)
   return {
     kp,
     kind: under ? 'overhead' : 'arc',
@@ -304,12 +330,12 @@ export function auroraFor(input: AuroraInput, rng: Random, framing: number, forc
     edgeLat: edge,
     polewardLat: poleEdge,
     poleAzimuthDeg: poleAzimuthDeg + frameTurnDeg,
-    strengthKR,
+    strengthKR: strengthKR * (1 - quietRed) / (1 - red),
     arcs,
     patchy: kp <= 3 ? 0.1 : 0.25,
-    red: redShare(ratio),
-    // The N₂⁺ fringe: a thin lower edge on strong, fast curtains (general).
-    fringe: kp >= 5 ? 0.01 + 0.0075 * (kp - 5) : 0,
+    red,
+    fringe,
+    redGlowKR,
     seed,
     foldKm,
     frameTurnDeg
@@ -331,11 +357,26 @@ export const ARC_KM = 25
  * thin, low profile (`DIFFUSE_KM`). */
 export const DIFFUSE = 0.012
 export const DIFFUSE_KM: [number, number] = [112, 10]
+/** The red's sheet across the arcs (km): the 630 nm line lives ~110 s, so
+ * its glow spreads wider and softer than the green curtains (general). */
+export const RED_KM = 60
+/** The arcs' red profile (centre, below, above; km): O(¹D) is quenched by
+ * N₂ below ~200 km, so the red has a steep underside and a broad top, and
+ * stands clear of the green curtains (general). */
+export const RED_KM_PROFILE: [number, number, number] = [240, 35, 60]
+/** The storm red glow's profile (centre, below, above; km): a broad layer
+ * peaking ~250 km (cut at the shell's top). */
+export const RED_GLOW_KM: [number, number, number] = [250, 40, 70]
 /** Layers through the emitting shell. */
 export const AURORA_LAYERS = 28
 const BOTTOM_KM = 92
 const TOP_KM = 320
 const DH = (TOP_KM - BOTTOM_KM) / AURORA_LAYERS
+const shellIntegral = (c: number, lo: number, hi: number): number => layerMean((BOTTOM_KM + TOP_KM) / 2, TOP_KM - BOTTOM_KM, c, lo, hi) * (TOP_KM - BOTTOM_KM)
+const RED_NORM = shellIntegral(...RED_KM_PROFILE)
+/** The red glow profile's integral inside the shell (its top above 320 km
+ * isn't drawn; the drawn part carries the column). */
+const RED_GLOW_NORM = shellIntegral(...RED_GLOW_KM)
 /** The rays' mean (their period along the arc is 1.5 + i km per arc). */
 const RAY_MEAN = 1 - 0.55 * 0.5
 /** How far the folded sheet moves across per km along it, per (amplitude /
@@ -350,7 +391,7 @@ const unit = (c: Vec3): Vec3 => {
   return [c[0] / l, c[1] / l, c[2] / l]
 }
 /** Luminance-normalised colours of the lines as a camera records them. */
-export const AURORA_COLOURS = { green: unit([0.25, 1.0, 0.35]), red: unit([1.0, 0.08, 0.12]), fringe: unit([0.55, 0.25, 1.0]) }
+export const AURORA_COLOURS = { green: unit([0.25, 1.0, 0.35]), red: unit([1.0, 0.08, 0.12]), fringe: unit([1.0, 0.1, 0.55]) }
 
 /** erf, to ~1e-4 (Winitzki). */
 function erf(x: number): number {
@@ -370,12 +411,13 @@ function layerMean(h: number, dh: number, c: number, lo: number, hi = lo): numbe
 }
 /** Emission profiles (per km) averaged over the layer at `hKm`, each
  * integrating to 1 over height (Gaussian halves: ∫ = √π σ / 2 each). */
-export function profiles(hKm: number, dh = DH): { green: number; red: number; fringe: number; diffuse: number } {
+export function profiles(hKm: number, dh = DH): { green: number; red: number; fringe: number; diffuse: number; redGlow: number } {
   return {
     green: layerMean(hKm, dh, 110, 9, 35) / (0.886227 * 44),
-    red: layerMean(hKm, dh, 230, 55) / (1.772454 * 55),
+    red: layerMean(hKm, dh, RED_KM_PROFILE[0], RED_KM_PROFILE[1], RED_KM_PROFILE[2]) / RED_NORM,
     fringe: layerMean(hKm, dh, 97, 5) / (1.772454 * 5),
-    diffuse: layerMean(hKm, dh, DIFFUSE_KM[0], DIFFUSE_KM[1]) / (1.772454 * DIFFUSE_KM[1])
+    diffuse: layerMean(hKm, dh, DIFFUSE_KM[0], DIFFUSE_KM[1]) / (1.772454 * DIFFUSE_KM[1]),
+    redGlow: layerMean(hKm, dh, RED_GLOW_KM[0], RED_GLOW_KM[1], RED_GLOW_KM[2]) / RED_GLOW_NORM
   }
 }
 
@@ -403,9 +445,10 @@ function auFbm(x: number, seed: number): number {
  * column: `width` the sheet's width at this sample (km), `dy` how far the
  * sample moves along the arcs between layers (rays finer than that can't be
  * sampled: keep their mean). */
-function footprint(a: AuroraParams, x: number, y: number, width: number, dy: number, soft: number): [number, number] {
+function footprint(a: AuroraParams, x: number, y: number, width: number, dy: number, soft: number, redWidth: number): Vec3 {
   let sum = 0
   let sumSoft = 0
+  let sumRed = 0
   for (let i = 0; i < 4; i++) {
     const arc = a.arcs[i]
     if (arc == null) break
@@ -417,11 +460,14 @@ function footprint(a: AuroraParams, x: number, y: number, width: number, dy: num
     const rays = RAY_MEAN + (fine - RAY_MEAN) * (1 - smooth(0.5, 1, dy / period))
     const patchy = smooth(a.patchy, a.patchy + 0.4, auFbm(y / (a.foldKm[1] * 1.7) + i * 5.3, a.seed))
     const ds = (x - centre) / soft
+    const dr = (x - centre) / redWidth
     const w = arc[1] * rays * patchy
     sum += w * Math.exp(-d * d)
-    sumSoft += w * Math.exp(-ds * ds)
+    // The type-B border: the brightest arc only.
+    if (i === 0) sumSoft += w * Math.exp(-ds * ds)
+    sumRed += w * Math.exp(-dr * dr)
   }
-  return [sum, sumSoft]
+  return [sum, sumSoft, sumRed]
 }
 
 /** Inside the oval (0–1), with soft edges; km poleward of the camera. */
@@ -429,6 +475,13 @@ function insideOval(a: AuroraParams, x: number): number {
   const [e, p] = [(a.edgeLat - a.observerLat) * 111, (a.polewardLat - a.observerLat) * 111]
   const soft = 0.15 * (p - e)
   return smooth(e, e + soft, x) * (1 - smooth(p - soft, p, x))
+}
+/** Where the storm red glow lies (0–1): from ~3° equatorward of the oval
+ * (SAR arcs, stable red) over the oval, fading poleward. */
+function redGlowShape(a: AuroraParams, x: number): number {
+  const [e, p] = [(a.edgeLat - a.observerLat) * 111, (a.polewardLat - a.observerLat) * 111]
+  const soft = 0.15 * (p - e)
+  return smooth(e - 450, e - 150, x) * (1 - smooth(p - soft, p, x)) * (1 - 0.6 * smooth(e, p, x))
 }
 
 /**
@@ -461,13 +514,15 @@ export function auroraRay(a: AuroraParams, azDeg: number, elDeg: number, jitter 
     const step = Math.abs(dir[0]) * path + (FOLD_SLOPE * a.foldKm[0] / a.foldKm[1]) * dy
     const width = Math.max(ARC_KM, step)
     const soft = Math.max(width, 2 * step)
-    const [sharp, blurred] = footprint(a, x, y, width, dy, soft)
+    const redWidth = Math.max(RED_KM, step)
+    const [sharp, blurred, wide] = footprint(a, x, y, width, dy, soft, redWidth)
     const arcs = sharp * (ARC_KM / width)
     const fringeArcs = blurred * (ARC_KM / soft)
+    const redArcs = wide * (ARC_KM / redWidth)
     const pr = profiles(h)
     const diffuse = DIFFUSE * insideOval(a, x) * pr.diffuse
     const green = (1 - a.red - a.fringe) * pr.green * arcs + diffuse
-    const red = a.red * pr.red * arcs
+    const red = a.red * pr.red * redArcs + (a.redGlowKR / a.strengthKR) * redGlowShape(a, x) * pr.redGlow
     const fringe = a.fringe * pr.fringe * fringeArcs
     for (let c = 0; c < 3; c++) out[c] += (green * G[c] + red * R[c] + fringe * F[c]) * path * a.strengthKR
   }
@@ -522,6 +577,7 @@ uniform vec4 auroraB; // the oval's equatorward and poleward edges (km poleward 
 uniform vec4 auroraC; // fold amplitude (km), fold wavelength (km), seed (integer), strength (kR)
 uniform vec4 auroraD; // the arcs' positions (km poleward of the camera)
 uniform vec4 auroraE; // the arcs' strengths (0: none)
+uniform vec4 auroraF; // red glow (column ÷ strength), 0, 0, 0
 uniform float auroraPatchy;
 
 ${hashGlsl('au')}
@@ -552,8 +608,8 @@ float auLayer(float h, float dh, float c, float lo, float hi) {
 // The arcs' footprint at (across, along) km from the camera (aurora.ts
 // footprint): folded sheets, vertical rays (their mean where the samples
 // step past them), patchy along their length.
-vec2 auroraFootprint(float x, float y, float width, float dy, float soft) {
-  vec2 sum = vec2(0.0);
+vec3 auroraFootprint(float x, float y, float width, float dy, float soft, float redWidth) {
+  vec3 sum = vec3(0.0);
   for (int i = 0; i < 4; i++) {
     float w = auroraE[i];
     if (w <= 0.0) break;
@@ -565,7 +621,9 @@ vec2 auroraFootprint(float x, float y, float width, float dy, float soft) {
     float rays = mix(fine, ${f(RAY_MEAN)}, smoothstep(0.5, 1.0, dy / period));
     float patchy = smoothstep(auroraPatchy, auroraPatchy + 0.4, auFbm(y / (auroraC.y * 1.7) + fi * 5.3));
     float ds = (x - centre) / soft;
-    sum += w * rays * patchy * vec2(exp(-d * d), exp(-ds * ds));
+    float dr = (x - centre) / redWidth;
+    // The type-B border: the brightest arc only.
+    sum += w * rays * patchy * vec3(exp(-d * d), i == 0 ? exp(-ds * ds) : 0.0, exp(-dr * dr));
   }
   return sum;
 }
@@ -606,16 +664,24 @@ vec3 aurora(vec3 radiance, const vec3 transmittance, const vec3 cameraPosition, 
     // The fringe lives in one layer's height: on a sheet as sharp as the
     // step it lands on or off by chance (grain); give it a softer one.
     float soft = max(width, 2.0 * step);
-    vec2 sheets = auroraFootprint(x, y, width, dy, soft);
+    float redWidth = max(${f(RED_KM)}, step);
+    vec3 sheets = auroraFootprint(x, y, width, dy, soft, redWidth);
     float arcs = sheets.x * (${f(ARC_KM)} / width);
     float fringeArcs = sheets.y * (${f(ARC_KM)} / soft);
+    float redArcs = sheets.z * (${f(ARC_KM)} / redWidth);
     float inside = smoothstep(auroraB.x, auroraB.x + ovalSoft, x) * (1.0 - smoothstep(auroraB.y - ovalSoft, auroraB.y, x));
+    // The storm red glow (aurora.ts redGlowShape).
+    float glow = auroraF.x > 0.0
+      ? auroraF.x * smoothstep(auroraB.x - 450.0, auroraB.x - 150.0, x) * (1.0 - smoothstep(auroraB.y - ovalSoft, auroraB.y, x))
+        * (1.0 - 0.6 * smoothstep(auroraB.x, auroraB.y, x))
+        * auLayer(h, dh, ${f(RED_GLOW_KM[0])}, ${f(RED_GLOW_KM[1])}, ${f(RED_GLOW_KM[2])}) / ${f(RED_GLOW_NORM)}
+      : 0.0;
     float g = auLayer(h, dh, 110.0, 9.0, 35.0) / ${f(0.886227 * 44)};
-    float red = auLayer(h, dh, 230.0, 55.0, 55.0) / ${f(1.772454 * 55)};
+    float red = auLayer(h, dh, ${f(RED_KM_PROFILE[0])}, ${f(RED_KM_PROFILE[1])}, ${f(RED_KM_PROFILE[2])}) / ${f(RED_NORM)};
     float fringe = auroraB.w > 0.0 ? auLayer(h, dh, 97.0, 5.0, 5.0) / ${f(1.772454 * 5)} : 0.0;
     float diffuse = ${f(DIFFUSE)} * inside * auLayer(h, dh, ${f(DIFFUSE_KM[0])}, ${f(DIFFUSE_KM[1])}, ${f(DIFFUSE_KM[1])}) / ${f(1.772454 * DIFFUSE_KM[1])};
     vec3 e = ((1.0 - auroraB.z - auroraB.w) * g * arcs + diffuse) * ${vec(AURORA_COLOURS.green)}
-      + auroraB.z * red * arcs * ${vec(AURORA_COLOURS.red)}
+      + (auroraB.z * red * redArcs + glow) * ${vec(AURORA_COLOURS.red)}
       + auroraB.w * fringe * fringeArcs * ${vec(AURORA_COLOURS.fringe)};
     colour += e * path;
   }
@@ -642,6 +708,7 @@ export function patchSkyAurora(material: SkyMaterial, a: AuroraParams, worldToEC
     auroraC: new Uniform(new Vector4(a.foldKm[0], a.foldKm[1], seedInt(a.seed), a.strengthKR)),
     auroraD: new Uniform(new Vector4(arc(0)[0], arc(1)[0], arc(2)[0], arc(3)[0])),
     auroraE: new Uniform(new Vector4(arc(0)[1], arc(1)[1], arc(2)[1], arc(3)[1])),
+    auroraF: new Uniform(new Vector4(a.redGlowKR / a.strengthKR, 0, 0, 0)),
     auroraPatchy: new Uniform(a.patchy)
   })
   const source = material.fragmentShader

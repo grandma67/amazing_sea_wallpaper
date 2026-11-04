@@ -244,10 +244,22 @@ showers, moon, clouds, radiant height and hour (decision in the plan).
   ~2–2.5× the sky beside it (render probe and the sky mirror, 0.92).
 - **Red vs green:** I630/I557.7 falls as the green brightens (dayside arcs: ~5 at 0.1 kR green,
   ~0.1 at 10 kR; Chinese J. Geophys. 2017). Night arcs ~0.1–0.3, so with V(630) ≈ 0.265 of
-  V(557.7) red is only **3–8% of the luminance** (Kp 1–9): green curtains with red tops. Storm-time
-  red is probably underdrawn: photos of the 2024 great storms at 50–57° are red and magenta
-  (handoff.md). Type-A and SAR
-  arcs seen equatorward in big storms: ratio > 1, red-dominated.
+  V(557.7) red is only **3–5% of the luminance** on quiet nights: green curtains with red tops.
+- **Storm red:** in great storms the ratio climbs: the May 2024 mid-latitude aurora over Irkutsk
+  had I630/I557.7 up to 15 toward the northern horizon and 30 at the celestial pole, and the 630
+  nm glow passed 25 kR in the main phase (Beletsky 2024). Photos of the May and October 2024
+  storms at 50–57° are red and magenta above green arcs. We draw ~0.2 at Kp 5 to ~1.2 at Kp 9 on
+  the arcs (~25% of the luminance), ×2 for equatorward (type A, SAR) arcs, plus a diffuse red
+  glow over the oval and equatorward of it (~250 km; 0.8–3% of the arcs' column, ~1–3.5 kR of
+  luminance at Kp 9, below the Irkutsk peak's ~6.6 kR so the arcs stay green). The 630 nm line
+  is quenched by N₂ below ~200 km *(general)*: red tops stand clear of the green.
+- **Type-B lower border:** fast, bright curtains reaching ~90 km have a red/magenta lower edge:
+  the green line is quenched at low altitude and N₂ first-positive (red) with N₂⁺ (blue) shows
+  (Hallinan et al. 1998; Vallance Jones; via search summaries, *general*). Seen 5–10° up the air
+  takes the blue: it reads crimson.
+- **Sunlit tops (not drawn):** curtains above the earth's shadow (~140 km at sun −12°, ~257 km
+  at −16°, ~330 km at −18°) scatter N₂⁺ 427.8 nm sunlight: blue-violet ray tops. Our night is
+  the sun 16–30° down, so at most the tops of tall storm rays near −16°; skipped.
 - **Light on the ground:** a Kp 9 display as drawn gives ~1e-3 lux (integrated over the sky),
   under a starlit night's 0.002 and far under a quarter moon's 0.01.
 

@@ -80,12 +80,15 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   (`kpFor`: NOAA storm days × solar cycle) and the oval (`ovalEdge` 67 − 2 Kp, `ovalWidth` 7 + 1.5
   Kp, low arcs `ARC_REACH` 4° beyond): under it `overhead`, beyond it `arc`. It returns up to four
   arcs as km poleward of the camera (the first where the frame looks, its base 8–18° up),
-  strength (kR column of the brightest arc), red and fringe luminance shares, patchiness, folds
+  strength (kR column of the brightest arc), red and type-B border luminance shares, the storm
+  red glow (`redGlowKR`, uniform `auroraF.x` as a share of the strength), patchiness, folds
   and `frameTurnDeg` (sun and moon turned so the display stands ahead). Aurora nights shoot
   14–24 mm with more sky (`'aurora-framing'`). `patchSkyAurora` patches the main sky and the env
   cube (the sea mirrors it) before the night glow, so it adds to the night sky: 28 layers
   92–320 km, each sampling the folded sheets (widened to the samples' step), rays (faded to
-  their mean past half their period), the diffuse glow inside the oval, with each emission
+  their mean past half their period; red on its own 60 km sheet, the border on the brightest
+  arc's soft sheet only), the diffuse glow inside the oval, the storm red glow
+  (`redGlowShape`: 450–150 km equatorward of the oval to its poleward edge, fading poleward), with each emission
   profile averaged over the layer (erf); one layer offset per pixel (interleaved gradient
   noise); × transmittance, in kR × `auroraScale`. **`auroraRay` is the same march in
   TypeScript**: change both together; tests and `auroraLux` (the ground light, the march

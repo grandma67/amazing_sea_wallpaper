@@ -193,7 +193,12 @@ tool gotchas: TOOLS.md.
   each night source's own colour matters: give it the colour a camera records, in luminance
   terms (the red 630 nm airglow line at 5–35% of the luminance turned dark skies brown; it is a
   few %; the aurora's red line, `redShare(I630/I557.7)`, is 3–8%, not the 10–90% "share of
-  light" it was drawn with, which made the arcs pink). Sample real pixels (a canvas `getImageData`, `scratchpad` script) before reasoning
+  light" it was drawn with, which made the arcs pink). Storm red (0.93) bit twice: a symmetric
+  red profile (230 ± 55 km) laid farther arcs' red tops over nearer arcs' green bodies (rays at
+  10–15° cross 230 km far behind the arc), and a diffuse red in fixed kR turned weak arcs orange
+  while bright ones stayed green. Give the red its quenched steep underside and scale a diffuse
+  term with the display's own strength; split each colour term's R and G at the arc's peak
+  elevation on the mirror (`params.mjs --stats` with the term zeroed) before rendering. Sample real pixels (a canvas `getImageData`, `scratchpad` script) before reasoning
   about a tint; turn sources off one at a time (`passes.glow`, `milkyWay: false`).
 - The night glow is patched into the env cube's sky too, against the "main sky only" rule: it is
   smooth (0.35°/texel and coarser), so 256² faces hold it, and the sea must reflect it. Sharp

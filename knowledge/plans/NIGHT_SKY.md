@@ -180,9 +180,13 @@ How it looks (the five fixes that took it from a green wash to arcs; render spec
    beside it, ~3× above).
 3. **A faint diffuse glow** (1.2% of the arc's column) on its own thin profile (112 ± 10 km): on
    the old shell-wide profile its long low paths outshone the arcs.
-4. **Colours as luminance shares.** Red = 0.265·r / (1 + 0.265·r) with r = I630/I557.7 ~0.1–0.3
-   (3–8% of the luminance); r 1.5–2.5 only for equatorward arcs at Kp ≥ 7 (type A, SAR). The
-   N₂⁺ fringe 1–4%, Kp ≥ 5 only.
+4. **Colours as luminance shares.** Red = 0.265·r / (1 + 0.265·r) with r = I630/I557.7: quiet
+   ~0.1–0.18 (3–5% of the luminance), rising in storms (0.93): ~0.2 at Kp 5, ~0.5 at 7, ~1.2 at 9
+   (~25%), ×2 for equatorward arcs at Kp ≥ 7 (type A, SAR). The red adds to the green (the green
+   keeps its quiet-ratio luminance). Its sheet is 60 km wide and its profile has a steep
+   underside (240 km, 35 below, 60 above). Storms add a **diffuse red glow** (0.8–3% of the
+   column at Kp 5–9, 250 km, over the oval and ~3° equatorward) and a **type-B lower border**
+   (magenta, 3–8%, brightest arc only, Kp ≥ 5 on a draw, always when forced 'strong').
 5. **No stripes.** Rays fade to their mean once the layers' samples step more than half their
    period along the arc; sheets are widened to the step across them (folds' drift included);
    profiles are averaged over each layer (erf), not point-sampled; one layer offset per pixel
@@ -191,20 +195,22 @@ How it looks (the five fixes that took it from a green wash to arcs; render spec
 Light on the ground: the march integrated over the sky (`auroraLux`, RGB), ~1.5–2.5e-4 lux quiet
 to ~1e-3 at Kp 9 (under a starlit night's 0.002).
 
-Current values (0.92, `params.mjs --scene scenes/aurora.json`; mirror through `nightSkyCd`, the
+Current values (0.93, `params.mjs --scene scenes/aurora.json`; mirror through `nightSkyCd`, the
 sky without the Milky Way):
 
-| Example | Kp, kind | Column | Red / fringe (luminance) | Ground | Arc ÷ sky | Lens, horizon |
-|---|---|---|---|---|---|---|
-| 1 Tromsø quiet | 2, overhead | 14 kR | 3.3% / 0 | 1.5e-4 lux | 2.5× | 22 mm, 0.66 |
-| 2 Tromsø calm, strong | 6, overhead | 35 kR | 5.1% / 1.8% | 4.1e-4 | 5.3× | 22 mm, 0.66 |
-| 3 Iceland, full moon | 1, overhead | 14 kR | 2.7% / 0 | 2.4e-4 | (moonlit sky hides it) | 15 mm, 0.61 |
-| 4 Scotland, Kp 9 | 9, overhead | 38 kR | 7.8% / 4.0% | 3.8e-4 | 3.4× | 21 mm, 0.63 |
-| 5 Maine, Kp 9 | 9, overhead | 96 kR | 6.5% / 4.0% | 1.1e-3 | 14.5× | 20 mm, 0.61 |
+| Example | Kp, kind | Column | Red / border (luminance) | Red glow | Ground | Arc ÷ sky | Lens, horizon |
+|---|---|---|---|---|---|---|---|
+| 1 Tromsø quiet | 2, overhead | 14 kR | 3.3% / 0 | 0 | 1.5e-4 lux | 2.5× | 22 mm, 0.66 |
+| 2 Tromsø calm, strong | 6, overhead | 36 kR | 7.0% / 4.3% | 0.6 kR | 6.9e-4 | 5.6× | 22 mm, 0.66 |
+| 3 Iceland, full moon | 1, overhead | 14 kR | 2.7% / 0 | 0 | 2.4e-4 | (moonlit sky hides it) | 15 mm, 0.61 |
+| 4 Scotland, Kp 9 | 9, overhead | 47 kR | 25.9% / 8.0% | 1.1 kR | 1.2e-3 | 3.8× | 21 mm, 0.63 |
+| 5 Maine, Kp 9 | 9, overhead | 115 kR | 22.4% / 8.0% | 2.1 kR | 2.9e-3 | 15.1× | 20 mm, 0.61 |
 
-Known gap (2026-11-04 review): big storms render green with faint red tops; photos of the May and
-October 2024 storms at these latitudes are strongly red, pink and magenta. Next steps:
-`handoff.md` (repo root, temporary). The sea mirrors the arcs through the env cube;
+Colours on the mirror (RGB normalised to the brightest channel, before the sky): example 2 body
+(0.69, 1, 0.2), 10° above it (1, 0.2, 0.1); example 5 body (0.74, 1, 0.22), red (1, 0.14–0.28)
+from 10° above the arc to 60°; example 4's weaker arc reads yellow-green (1, 0.93) at its peak
+(the red glow and farther arcs' tops behind it), green below, red above. Storm colours 0.93: what
+bit and why in LESSONS.md "Sky". The sea mirrors the arcs through the env cube;
 the blur on a "glassy" sea is the sea's own (Jupiter's reflection blurs the same).
 
 Left: clouds aren't lit by the aurora (only the sky behind them is); the airglow's wave crests

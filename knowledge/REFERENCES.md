@@ -61,7 +61,11 @@ Sources behind built features. Research for planned work lives with its plan: co
   (dittonpark-archive.rl.ac.uk) and the WMO International Cloud Atlas "polar aurora,
   brightness" (cloudatlas.wmo.int); interleaved gradient noise: Jimenez, "Next generation
   post-processing in Call of Duty: Advanced Warfare" (SIGGRAPH 2014); integer hash: Jarzynski &
-  Olano, "Hash Functions for GPU Rendering", JCGT 9(3) 2020 (PCG); takram three-atmosphere
+  Olano, "Hash Functions for GPU Rendering", JCGT 9(3) 2020 (PCG); storm red (0.93): Beletsky
+  et al., mid-latitude aurora of 10–12 May 2024 over Irkutsk, I630/I557.7 up to 15–30, 630 nm
+  > 25 kR (seminar.pgia.ru/archive/2024/1_02_Beletsky.pdf; read as a search summary); type-B
+  red lower border, green quenching and N₂ 1PG: Hallinan et al. 1998 and Vallance Jones
+  (earthref.org/ERR/21966, nature.com/articles/141200a0; search summaries only); takram three-atmosphere
   defaults for the mirrors' transmittance (Rayleigh, Mie, ozone)
 
 ## Shore and animals
