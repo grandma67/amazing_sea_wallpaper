@@ -13,9 +13,15 @@ climate or place"), with place fields only for one place's difference.
 | 2 | Trees in autumn and winter: turned leaves, leaf fall, bare crowns; fresh spring green | done (0.98) |
 | 3 | Grass, ground cover and distant land by season (dry Mediterranean summer, brown boreal and tundra) | done (0.98) |
 | 4 | Animals: colonies in season, humpback migration, seal haul-out, winter dormancy (ghost crabs, shore crabs, spiny-tailed lizards), geese and ducks by climate and season, polar gulls | done (0.98) |
-| 5 | Snow cover and ice foot (PLAN_BIOMES 13) with the season's months; seasonal mountain snow line | later, own plan |
-| 6 | Leaf litter on the ground and in the wrack under deciduous trees | later |
-| 7 | Tropical wet and dry seasons (savanna coasts brown in the dry season), Baltic sea ice, sargassum season | later |
+| 5 | Seasonal mountain snow line (incl. winter snow on summer-bare mountains) | next, ~1–2 h |
+| 6 | Sargassum season (Caribbean and subtropical Atlantic wrack Apr–Sep) | next, ~1 h |
+| 7 | Tropical dry season: savanna coasts brown in the dry months (`dryMonths` per place) | next, ~½ day |
+| 8 | Leaf litter on the ground and in the wrack under deciduous trees | after a visibility count, ~½–1 day |
+| 9 | Snow cover and ice foot: built as PLAN_BIOMES 13; this plan gives the months | later, own plan, ~2–4 days |
+| 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
+
+Order: 5–7 together (about a day), then the count for 8, then the snow plan (9). Estimates
+include tests, `diff.mjs`, renders and docs.
 
 ## Decisions
 
@@ -84,18 +90,76 @@ Jul–Aug. Grass `dry` by climate (§2.2).
 | Geese, ducks | presence by climate × month (`waterfowlSeason`) | `props/migratory.ts` |
 | Gulls | polar climate Nov–Mar ×⅓ | `props/birds.ts` |
 
-## 5. Later phases (not built)
+## 5. Seasonal snow line (not built)
 
-- **Snow and ice foot** (PLAN_BIOMES 13): snow cover months by climate: polar Oct–May, boreal
-  Dec–Mar (coasts thaw often: a chance per day), temperate only on rare cold days; with snow,
-  grass and ground cover are hidden and the `dry` value no longer matters. Needs terrain mask,
-  rock and plant snow caps; its own plan.
-- **Seasonal snow line:** `pickLandform` draws a snow line; scale it by season (winter ×0.6,
-  late summer ×1.2), on a stream that doesn't move the draw.
-- **Leaf litter:** autumn leaves in the wrack and under trees on framed days.
-- **Tropical wet and dry season:** a per-place `dryMonths` for savanna coasts (north Australia,
-  West Africa, Gujarat), feeding `dry`.
-- **Baltic sea ice** (Gulf of Bothnia Jan–Apr) and **sargassum season** (Caribbean Apr–Sep).
+- `pickLandform` (`params.ts`, `snowLine`) draws a snow line as a share of the mountain's
+  height, or `Infinity` for mountains with no snow. Scale it after the draw by the season in the
+  day's hemisphere (`seasonDay`): winter ×0.6, late summer ×1.2. This is a function of the
+  date, so no draw and no stream.
+- **Gap to close:** `Infinity × 0.6` is still `Infinity`, so a temperate mountain that's bare in
+  summer never gets winter snow. Give non-desert mountains above ~1500 m a winter snow line
+  (e.g. 0.7–0.9 of the height, from `hash()` of the landform so it's stable). Check the share of
+  days that change with `params.mjs --ref HEAD`.
+- Off with `phenology: false` (summer snow line).
+- Done when: an overlook with mountains on a temperate January day has white tops that the same
+  place in August doesn't; polar and nordic tops reach lower in winter; desert unchanged.
+
+## 6. Sargassum season (not built)
+
+- The wrack choice already exists (`props/debris.ts`, `wrack('sargassum', …)`). Add a month
+  threshold on the draw it already makes: full Apr–Sep (the bloom and beaching season), ×0.2
+  Oct–Mar. No new draws.
+- Done when: `test/seasonsAnimals.test.ts` (or a debris test) over `allParams()` shows
+  sargassum wrack mostly Apr–Sep; other wrack kinds unchanged.
+
+## 7. Tropical dry season (not built)
+
+- A per-place `dryMonths` (place field: one place's difference) for savanna coasts, feeding
+  `Phenology.dry` on tropical-climate days. Places: `north-australia` (May–Oct),
+  `west-africa` (Nov–Apr); Gujarat isn't a place id. Find its place, or drop it. Research
+  each place's months briefly (1–2 searches) before writing the table, and cite it in SEASONS.md.
+- The grass and ground cover already follow `dry` (phase 3), so no new builder work.
+- Done when: a north-Australia September day has straw grass behind the beach and a February day
+  green; other tropical places unchanged.
+
+## 8. Leaf litter (not built)
+
+- **First, count:** real leaves are 5–10 cm and read only within ~20 m. Count framed and
+  shoreline days with a deciduous tree within ~20 m of the camera in frame (`view()` in
+  `test/days.ts`) in autumn. If that's rare, drop this phase or make it a ground tint.
+- If built: a tint on the ground cover under deciduous crowns plus a few leaves mixed into the
+  wrack, coloured from `Phenology.autumn`, amount from `1 − on` (leaves that fell). `hash()` for
+  in-mesh detail; placement on its own stream (`ctx.rng('leafLitter')`).
+- Spec field `leafLitter`, off switch `props.leafLitter: false`.
+- Done when: `diff.mjs --off '{"props":{"leafLitter":false}}'` shows a visible change on a
+  temperate November framed day (no `⚠ invisible`), and nothing in summer.
+
+## 9. Snow cover and ice foot (later, own plan)
+
+Built as PLAN_BIOMES 13 ("Snow and ice foot", which has the build list: snow mask, snow-capped
+rocks and plants, ice foot, frozen spray). This plan only gives the season. Write the snow plan
+before code. It needs to settle:
+
+- **Months by climate:** polar Oct–May, boreal Dec–Mar, temperate only on rare cold days. Put a
+  number on "a chance per day" for boreal coasts (they thaw often) and on temperate cold days.
+  Decide whether the weather or the month drives the chance, and give it its own stream
+  (`'snow'`).
+- **Lying vs. falling snow:** lying snow only, or snowfall too (a weather kind, CLOUDS.md).
+- **With snow:** grass and ground cover hidden (`dry` no longer matters); deciduous trees bare
+  anyway; animals already dormant (phase 4).
+- **Exposure and white balance:** snow's brightness shifts the exposure; check `exposure.ts`
+  and the render time (≤ ~10% more).
+- Spec field `snow`; done-when views: polar and boreal shoreline and framed days, front-lit and
+  backlit.
+
+## 10. Baltic sea ice (later, own plan)
+
+- The `baltic` place covers latitudes 54–66°, but only the Gulf of Bothnia (about 60–66°)
+  freezes over in most winters. Ice comes only on days north of a cutoff, Jan–Apr, with a chance
+  per day.
+- Not a small extra: shore-fast ice and floes mean damped waves, no breaking surf and a changed
+  ocean shader (foam, reflection). Size it like phase 9 and plan it on its own.
+- Spec field `seaIce`.
 
 ## Checks
 
@@ -105,3 +169,9 @@ Jul–Aug. Grass `dry` by climate (§2.2).
   of season where the tables say; Oman humpbacks all year.
 - `diff.mjs --off '{"phenology":false}'` on a temperate autumn framed day and a Mediterranean
   August day; renders at 1080p, 16 frames.
+- Phase 5: snow line by month over `allParams()` (lower in winter, unchanged for deserts, finite
+  in winter for tall non-desert mountains), both hemispheres.
+- Phase 6: sargassum share by month over `allParams()` (`expectShare`).
+- Phase 7: `dryMonths` table over every place that has one; `dry` in and out of the months.
+- Phase 8: the visibility count first; then the prop's mesh checks (deterministic, finite, base
+  near y = 0) and `diff.mjs` with the off switch.
