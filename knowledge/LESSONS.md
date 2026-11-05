@@ -3,6 +3,15 @@
 Things that bit us, by topic. Read the sections for what you're touching. Workflow: CLAUDE.md;
 tool gotchas: TOOLS.md.
 
+## Scripts
+
+- Cleanup in `finally` or a signal handler doesn't survive every stop: Ctrl+C skips `finally` unless
+  a handler exits, `kill -9` runs nothing, and a handler waits for a synchronous loop. For anything
+  that must not be left behind, use a detached watcher that polls the owner's pid
+  (`scripts/worktreeReaper.mjs`), and test it by stopping the script.
+- `child.kill()` on `npx vite` signals npx only; start the server `detached` and kill the group
+  (`process.kill(-pid)`).
+
 ## Debugging approach
 
 - Before investigating a look, grep ARCHITECTURE.md "Known issues" for the symptom ("dark",

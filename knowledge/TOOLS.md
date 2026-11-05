@@ -34,7 +34,8 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
   from 2024-01-01 (`test/days.ts` `DAYS`).
 - **`--ref REF`** (params, snapshot, diff, bench) checks the commit out into a temporary worktree
   under `/private/tmp/claude-*` sharing `node_modules`, removed afterwards: compare without
-  stashing. Ports: bench 5175, snapshot/diff 5177 (`refServer.mjs`); params needs no server.
+  stashing. If the script dies first (Ctrl+C, `kill -9`, a closed terminal),
+  `worktreeReaper.mjs`, a detached watcher, stops its server and removes it within a second. Ports: bench 5175, snapshot/diff 5177 (`refServer.mjs`); params needs no server.
   Spec fields the ref doesn't know are dropped and named.
 - Long outputs put the summary last (bench's table, params' "… N more not shown").
 - **Browser messages**: every script that opens a page uses `watchPage(page)` (`lib.mjs`): page

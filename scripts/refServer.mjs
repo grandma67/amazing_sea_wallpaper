@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { worktree } from './lib.mjs'
+import { SERVER_PID_FILE, stopServer, worktree } from './lib.mjs'
 
 export { shortSha } from './lib.mjs'
 
@@ -21,11 +21,14 @@ export async function serveRef(ref, port = 5175) {
     join(tree, 'vite.ref.config.mjs'),
     `import { mergeConfig } from 'vite'\nimport base from './vite.config.ts'\nexport default mergeConfig(base, { cacheDir: ${JSON.stringify(join(tree, '.vite-cache'))} })\n`
   )
-  const server = spawn('npx', ['vite', '--config', 'vite.ref.config.mjs', '--port', String(port), '--strictPort'], { cwd: tree, stdio: 'ignore' })
+  const server = spawn('npx', ['vite', '--config', 'vite.ref.config.mjs', '--port', String(port), '--strictPort'], { cwd: tree, stdio: 'ignore', detached: true })
+  // For worktreeReaper.mjs, if the caller dies before calling close.
+  writeFileSync(join(tree, SERVER_PID_FILE), String(server.pid))
   // Don't keep the caller alive; its 'exit' handler (close) stops the server.
   server.unref()
   const close = () => {
-    server.kill()
+    // The whole group: killing npx alone can leave vite on the port.
+    stopServer(server.pid)
     remove()
   }
   const url = `http://localhost:${port}/`

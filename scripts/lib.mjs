@@ -1,10 +1,11 @@
 // Shared by the scripts: argument parsing, scene specs, dates, git worktrees,
 // browser messages.
 
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, rmSync, symlinkSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /** `--name value` and `--flag` readers that remove what they read from
  * `args`, so what's left are the positional arguments. */
@@ -83,11 +84,31 @@ export function shortSha(ref) {
   return sha
 }
 
+/** Where a worktree's server notes its pid, for worktreeReaper.mjs. */
+export const SERVER_PID_FILE = '.ref-server-pid'
+
+/** Stops a server started as its own process group (npx and vite under it). */
+export function stopServer(pid) {
+  try {
+    process.kill(-pid, 'SIGTERM')
+  } catch {}
+}
+
+/** Synchronous (safe in 'exit'). Retries: a stopping server may still write. */
+export function removeWorktree(tree) {
+  git('worktree', 'remove', '--force', tree)
+  rmSync(tree, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+  git('worktree', 'prune')
+}
+
 /** A temporary git worktree of `ref` at /private/tmp/claude-TAG-SHA, sharing
- * this tree's node_modules. `remove()` is synchronous (safe in 'exit'). */
+ * this tree's node_modules. `remove()` is synchronous (safe in 'exit'); if the
+ * script dies first, worktreeReaper.mjs removes it. */
 export function worktree(ref, tag) {
   const sha = shortSha(ref)
   const tree = resolve(`/private/tmp/claude-${tag}-${sha}`)
+  // Forget worktrees whose folder is gone (a cleared /tmp after a reboot).
+  git('worktree', 'prune')
   if (!git('worktree', 'list', '--porcelain').stdout.includes(`worktree ${tree}\n`)) {
     // A leftover folder that isn't a worktree any more.
     if (existsSync(tree)) rmSync(tree, { recursive: true, force: true })
@@ -95,12 +116,13 @@ export function worktree(ref, tag) {
     if (r.status !== 0) throw new Error(r.stderr)
     symlinkSync(resolve('node_modules'), join(tree, 'node_modules'))
   }
+  // Own session, so the terminal's Ctrl+C doesn't stop it with the script.
+  spawn(process.execPath, [fileURLToPath(new URL('./worktreeReaper.mjs', import.meta.url)), String(process.pid), tree], { detached: true, stdio: 'ignore' }).unref()
   let removed = false
   const remove = () => {
     if (removed) return
     removed = true
-    git('worktree', 'remove', '--force', tree)
-    rmSync(tree, { recursive: true, force: true })
+    removeWorktree(tree)
   }
   return { sha, tree, remove }
 }
