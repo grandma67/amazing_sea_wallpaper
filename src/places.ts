@@ -112,6 +112,16 @@ export interface Place {
   mountains: boolean
   /** Night-sky darkness, Bortle class (nightGlow.ts). */
   bortle: 1 | 2 | 3 | 4
+  /** A savanna coast's dry season, when its grass cures (phenology.ts);
+   * unset: green all year. */
+  drySeason?: DrySeason
+}
+
+export interface DrySeason {
+  /** Real calendar months, not the day's season. */
+  months: Months
+  /** Only from this latitude north (°, signed); unset: all of the place. */
+  fromLatitudeDeg?: number
 }
 
 export type LandKind = 'beach' | 'rock-shore' | 'tidal-flat'
@@ -291,6 +301,15 @@ const TIDE: Record<string, readonly [number, number]> = {
   'cook-inlet': [7, 9.5],
   'yellow-sea': [5, 8],
   'nw-australia': [5, 9]
+}
+
+// Dry seasons of savanna coasts (SEASONS.md §2.2). West Africa's holds from 5°N:
+// nearer the equator the rains come twice a year and south of it the months
+// differ, so those days stay green.
+const DRY_SEASON: Record<string, DrySeason> = {
+  'north-australia': { months: [5, 10] },
+  'nw-australia': { months: [5, 10] },
+  'west-africa': { months: [11, 4], fromLatitudeDeg: 5 }
 }
 
 // Fringing reefs (PLAN_BIOMES 7; COASTS.md "Reef-fronted beaches"), by place
@@ -598,7 +617,8 @@ function resolve(): Place[] {
       coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome], FLAT[row.id] ?? 0),
       mud: MUD[row.id] ?? DEFAULT_MUD,
       mountains: !FLAT_LAND.has(row.id),
-      bortle: BORTLE[row.id] ?? BORTLE[region] ?? 2
+      bortle: BORTLE[row.id] ?? BORTLE[region] ?? 2,
+      drySeason: DRY_SEASON[row.id]
     }
   })
 }

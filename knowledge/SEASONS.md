@@ -83,13 +83,32 @@ Spring: new leaves are a pale yellow-green for two or three weeks before darkeni
 | Boreal | Jun–Sep | Oct–May: brown and straw when not under snow | |
 | Polar | Jul–Aug | Sep–Jun: brown tundra (under snow most of it) | Svalbard: melt in early June over 2–3 weeks |
 | Subtropical | all year | Dec–Feb slightly duller | |
-| Tropical | wet season | dry season on monsoon coasts (north Australia, West Africa, Gujarat) *(est.)* | not yet modelled (needs wet/dry months per place) |
+| Tropical | wet season, and all year outside the places below | savanna coasts' dry season, below | `Place.drySeason`, `phenology.ts` `savannaDry` |
 | Arid | – | always straw | |
 
 Evidence: summer dormancy is how Mediterranean perennial grasses survive the dry season (growth
 stops, leaves senesce); in Iberia the green-up moves from spring-driven in the cool wet north to
 autumn-rain-driven in the dry south; annual pastures germinate with the first lasting autumn
 rains.
+
+Savanna coasts, in **real calendar months** (these are local rains, so no hemisphere shift):
+
+| Place | Dry | Applies | Evidence |
+|---|---|---|---|
+| `north-australia`, `nw-australia` | May–Oct | whole place | most rain December–April; growth slows and dries out April–May; driest late in the dry season; fire-prone days can last into November–December (BoM, Greening Australia, Williams and Cook) |
+| `west-africa` | Nov–Apr | from 5°N | the rainy season shortens going north, and Senegal's dry season is long; Ghana's January–February are dry; sources disagree on a marked dry season on the Gulf of Guinea, and none covered Gabon. Below 5°N stays green |
+
+The grass cures over the first six weeks, holds at `dry` 0.8 and greens in the month after. The six
+weeks, the month, 0.8 and the 5°N limit are *(est.)*. All of this comes from search summaries; none
+gave curing dates for one town, and the West Africa sources are weak.
+
+Not modelled:
+
+- **Gujarat:** no place of its own. `india` (8–22°N) also holds wet Kerala and the east coast's
+  different monsoon, so one set of months would be wrong for much of it.
+- **Other tropical coasts with a dry season** *(est., not researched)*: e.g. Pacific Central America,
+  parts of east Africa and northeast Brazil.
+- **Queensland's wet tropics** (around Cairns) are inside `north-australia`, so they dry with it.
 
 ### 2.3 Already done: flowers and salt marsh
 
@@ -224,6 +243,11 @@ offshore:
 - Ghost crab: https://animaldiversity.org/accounts/Ocypode_quadrata/ ,
   https://archives.datapages.com/data/bulletns/1977-79/data/pg/0063/0003/0450/0466.htm
 - Uromastyx: https://www.sfzoodocents.org/notebook/FactSheets/REPTILIA/Uromastyx.pdf
+- Savanna dry seasons (search summaries): BoM, https://media.bom.gov.au/social/blog/2171/fire-weather-across-northern-australia/ ;
+  Greening Australia, https://www.greeningaustralia.org.au/publications/grasses-northern-territory-savannas ;
+  Williams and Cook 2001, https://ava.icmbio.gov.br/pluginfile.php/4592/mod_data/content/19705/2001_3_._Savanna_fire_regimes_by_Dick_Williams_and_Garry_Cook.pdf ;
+  Climate of Ghana, https://en.wikipedia.org/wiki/Climate_of_Ghana ; Senegal, https://visiearth.pages.dev/sn/geography-and-climate/ ;
+  rainy season by latitude (low quality), https://www.vf-tropi.com/vf-wa04.html
 - Sargassum (search summaries): USF outlook, https://optics.marine.usf.edu/projects/SaWS/pdf/Sargassum_outlook_2023_bulletin4_USF.pdf ;
   West Africa, https://egusphere.copernicus.org/preprints/2026/egusphere-2026-2727/egusphere-2026-2727.pdf
   and https://pml.ac.uk/news/why-is-sargassum-seaweed-swamping-west-african-coasts/

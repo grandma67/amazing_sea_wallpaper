@@ -6,6 +6,7 @@
 
 import type { Climate, RGB, VegetationKind } from './biome'
 import { hashCell } from './cellNoise'
+import { PLACES } from './places'
 import { seasonDay, type Day } from './seasons'
 
 /** What phenology reads from a day (SceneParams has all of it). */
@@ -82,6 +83,22 @@ export const DRY_DAYS: Partial<Record<Climate, { a: number; b: number; c: number
   polar: { a: 228, b: 250, c: 166, e: 190, max: 0.9 }
 }
 
+/** How dry a savanna's grass gets at the end of its dry season (SEASONS.md §2.2). */
+const SAVANNA_DRY = 0.8
+
+/** The grass of a savanna coast (`Place.drySeason`): cures over the first six
+ * weeks of the dry season, holds, and greens in the month after it. Other
+ * places: 0. */
+function savannaDry(day: PhenologyDay): number {
+  const season = PLACES.find(p => p.id === day.place.id)?.drySeason
+  if (season == null || day.latitudeDeg < (season.fromLatitudeDeg ?? -90)) return 0
+  const dayOfYear = (date: string): number => seasonDay({ date, latitudeDeg: 1 })
+  const firstOf = (month: number): number => dayOfYear(`2025-${String(month).padStart(2, '0')}-01`)
+  const start = firstOf(season.months[0])
+  const end = firstOf((season.months[1] % 12) + 1)
+  return SAVANNA_DRY * band(dayOfYear(day.date), start, start + 45, end, end + 30)
+}
+
 /** The day's phenology; the summer look when a spec switches it off. */
 export function phenologyFor(day: PhenologyDay): Phenology {
   const climate = day.place.climate
@@ -96,7 +113,7 @@ export function phenologyFor(day: PhenologyDay): Phenology {
     fresh = band(d, leaf.out, leaf.out + 1, leaf.full, leaf.full + 21)
   }
   const dryDays = DRY_DAYS[climate]
-  const dry = dryDays == null ? 0 : dryDays.max * band(d, dryDays.a, dryDays.b, dryDays.c, dryDays.e)
+  const dry = dryDays == null ? savannaDry(day) : dryDays.max * band(d, dryDays.a, dryDays.b, dryDays.c, dryDays.e)
   // Tropical almond: red and shedding in January–February and July–August
   // (calendar months: two dry seasons a year).
   const doy = seasonDay({ date: day.date, latitudeDeg: 1 })

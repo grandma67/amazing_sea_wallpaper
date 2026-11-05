@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLIMATES } from '../src/places'
+import { CLIMATES, PLACES } from '../src/places'
 import type { Climate, VegetationKind } from '../src/biome'
 import { band, canopyTint, deciduousShare, groundCoverTint, phenologyFor, plantSeason, seasonalSnowLine, SNOW_SEASON, type PhenologyDay } from '../src/phenology'
 import { birch, broadleaf, bush } from '../src/props/trees'
@@ -154,6 +154,66 @@ describe('seasonal trees', () => {
     const g = broadleaf(new Random('tree'), foliage, plantSeason('birch', phenologyFor(day('2025-11-20', 'temperate'))))
     const pos = g.getAttribute('position').array
     for (const v of pos) expect(Number.isFinite(v)).toBe(true)
+  })
+})
+
+describe('savanna dry season (SEASONS.md §2.2)', () => {
+  const inPlace = (id: string, date: string, latitudeDeg: number): number => phenologyFor(day(date, 'tropical', latitudeDeg, id)).dry
+
+  it('dries only the places that have a dry season, in every month', () => {
+    const dryPlaces = PLACES.filter(p => p.drySeason != null).map(p => p.id).sort()
+    expect(dryPlaces).toEqual(['north-australia', 'nw-australia', 'west-africa'])
+    for (const place of PLACES) {
+      if (place.drySeason != null) continue
+      for (const climate of Object.keys(place.climate) as Climate[]) {
+        if (climate !== 'tropical') continue
+        for (const date of months) expect(phenologyFor(day(date, climate, 10, place.id)).dry).toBe(0)
+      }
+    }
+  })
+
+  it('is straw late in the dry season and green in the wet, in real calendar months', () => {
+    for (const id of ['north-australia', 'nw-australia']) {
+      expect(inPlace(id, '2025-09-15', -15)).toBe(0.8)
+      expect(inPlace(id, '2025-02-15', -15)).toBe(0)
+    }
+    expect(inPlace('west-africa', '2025-01-15', 12)).toBe(0.8)
+    expect(inPlace('west-africa', '2025-08-15', 12)).toBe(0)
+  })
+
+  it('cures over six weeks and greens within a month of the season ending', () => {
+    expect(inPlace('north-australia', '2025-05-01', -15)).toBe(0)
+    const midway = inPlace('north-australia', '2025-05-23', -15)
+    expect(midway).toBeGreaterThan(0.2)
+    expect(midway).toBeLessThan(0.6)
+    expect(inPlace('north-australia', '2025-06-20', -15)).toBe(0.8)
+    expect(inPlace('north-australia', '2025-10-31', -15)).toBe(0.8)
+    expect(inPlace('north-australia', '2025-11-15', -15)).toBeLessThan(0.6)
+    expect(inPlace('north-australia', '2025-12-05', -15)).toBe(0)
+    // Across the new year too.
+    expect(inPlace('west-africa', '2025-12-31', 12)).toBe(0.8)
+    expect(inPlace('west-africa', '2025-05-31', 12)).toBe(0)
+  })
+
+  it('leaves West Africa green south of 5°N', () => {
+    for (const lat of [4.9, 0, -3]) {
+      for (const date of months) expect(inPlace('west-africa', date, lat)).toBe(0)
+    }
+    expect(inPlace('west-africa', '2025-01-15', 5)).toBe(0.8)
+  })
+
+  it('reaches the grass and the ground cover, and the off switch keeps them green', () => {
+    const foliage = [0.045, 0.075, 0.03] as [number, number, number]
+    const phen = phenologyFor(day('2025-09-15', 'tropical', -15, 'north-australia'))
+    expect(plantSeason('grass', phen)?.dry).toBe(0.8)
+    expect(groundCoverTint(foliage, phen)[0]).toBeGreaterThan(foliage[0] * 2)
+    const off = phenologyFor({ ...day('2025-09-15', 'tropical', -15, 'north-australia'), overrides: { phenology: false } })
+    expect(off.dry).toBe(0)
+  })
+
+  it('reads the day from a real spec', () => {
+    expect(phenologyFor(scene({ place: 'north-australia' }, '2025-09-15')).dry).toBe(0.8)
+    expect(phenologyFor(scene({ place: 'north-australia' }, '2025-02-15')).dry).toBe(0)
   })
 })
 

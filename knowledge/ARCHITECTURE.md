@@ -133,6 +133,8 @@ Playwright (headless snapshots), Vitest.
   trees keep their shape. `animalSeasons.ts`: colonies, humpbacks, seal haul-outs, crab and
   lizard dormancy, waterfowl, Arctic gulls (ANIMALS.md "Seasons"). `sargassumSeason` thins the
   sargassum wrack Oct–Mar by calendar month, except West Africa and northeast Brazil (0.100).
+  `Place.drySeason` dries the grass on savanna coasts in their own calendar months (0.101). What
+  phenology works out isn't in `SceneParams`, so `params.mjs --ref` doesn't count it.
 - **Scene specs** (`sceneSpec.ts`, SCENE_SPECS.md): typed, validated JSON.
   `generateParams(date, attempt, aspect, spec)` applies it at each decision but still makes
   every draw. Forcing the time of day changes how many main-stream draws the sky makes, so later

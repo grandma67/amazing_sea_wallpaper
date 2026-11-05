@@ -15,17 +15,17 @@ climate or place"), with place fields only for one place's difference.
 | 4 | Animals: colonies in season, humpback migration, seal haul-out, winter dormancy (ghost crabs, shore crabs, spiny-tailed lizards), geese and ducks by climate and season, polar gulls | done (0.98) |
 | 5 | Seasonal mountain snow line (incl. winter snow on summer-bare mountains) | done (0.99) |
 | 6 | Sargassum season (Caribbean and subtropical Atlantic wrack Apr–Sep) | done (0.100) |
-| 7 | Tropical dry season: savanna coasts brown in the dry months (`dryMonths` per place) | next, ~½ day |
+| 7 | Tropical dry season: savanna coasts brown in the dry months (`drySeason` per place) | done (0.101) |
 | 8 | Leaf litter on the ground and in the wrack under deciduous trees | after a visibility count, ~½–1 day |
 | 9 | Snow cover and ice foot: built as PLAN_BIOMES 13; this plan gives the months | later, own plan, ~2–4 days |
 | 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
 
-Order: the drawn snow lines (open problem 1, if approved), 7, then the count for 8,
-then the snow plan (9). Estimates include tests, `diff.mjs`, renders and docs.
+Order: the drawn snow lines (open problem 1, if approved), then the count for 8, then the snow
+plan (9). Estimates include tests, `diff.mjs`, renders and docs.
 
 ## Open problems
 
-As of 0.100 (2026-11-06).
+As of 0.101 (2026-11-06).
 
 **To decide**
 
@@ -35,8 +35,10 @@ As of 0.100 (2026-11-06).
      recorded snow is about 2800 m, and phase 5 leaves tropical lines as drawn.
    - Nordic biome on temperate coasts: 0.35–0.6 of the height is low. Ireland comes to ~430 m in
      January (after ×0.6) and west Norway ~630 m in late August.
-2. **Phase 7's places:** the first plan named Gujarat, which isn't a place id. Find its place or
-   drop it.
+2. **More savanna coasts?** Phase 7 covers north and northwest Australia and West Africa from 5°N.
+   Gujarat is dropped: `india` also holds wet Kerala and a different east-coast monsoon. Pacific
+   Central America and parts of east Africa and northeast Brazil have dry seasons too, not
+   researched (SEASONS.md §2.2).
 3. **Phase 8 may not be built:** it depends on the visibility count.
 
 **Not checked in a render**
@@ -62,8 +64,7 @@ As of 0.100 (2026-11-06).
 
 7. **White mountains above brown ground:** winter tundra and boreal shores stay brown grass with no
    snow cover until phase 9, which the lower snow lines make more noticeable.
-8. **Still not modelled:** tropical wet and dry seasons (phase 7), leaf litter (phase 8) and larch
-   (conifers stay green; no phase).
+8. **Still not modelled:** leaf litter (phase 8) and larch (conifers stay green; no phase).
 
 **From phase 6**
 
@@ -175,15 +176,30 @@ because it follows the wrack's meshes on the same stream). `phenology: false` an
 What changed from the first plan: West Africa and northeast Brazil keep sargassum all year, since
 West Africa's peaks differ from the Caribbean's and we found no calendar for Brazil.
 
-## 7. Tropical dry season (not built)
+## 7. Tropical dry season (done, 0.101)
 
-- A per-place `dryMonths` (place field: one place's difference) for savanna coasts, feeding
-  `Phenology.dry` on tropical-climate days. Places: `north-australia` (May–Oct),
-  `west-africa` (Nov–Apr); Gujarat isn't a place id. Find its place, or drop it. Research
-  each place's months briefly (1–2 searches) before writing the table, and cite it in SEASONS.md.
-- The grass and ground cover already follow `dry` (phase 3), so no new builder work.
-- Done when: a north-Australia September day has straw grass behind the beach and a February day
-  green; other tropical places unchanged.
+`Place.drySeason` (`places.ts` `DRY_SEASON`) feeds `Phenology.dry` through `savannaDry`
+(`phenology.ts`): `dry` reaches 0.8 over the season's first six weeks, holds, and returns to 0 in
+the month after. Calendar months, no draws, and `props.phenology: false` keeps the grass green.
+Numbers: SEASONS.md §2.2. Tests: `test/phenology.test.ts`.
+
+What changed from the first plan:
+
+- **`nw-australia` added:** the Kimberley and Broome are the same savanna as the Top End, and leaving
+  them out would keep them green on the days it dries.
+- **West Africa only from 5°N:** the place runs from −5° to 15°, and Nov–Apr doesn't hold near or
+  south of the equator.
+- **Gujarat dropped** (open problem 2).
+- **A field, not `dryMonths`:** `drySeason` holds the months and West Africa's latitude limit.
+
+Rendered at 1080p against the last commit: north Australia in September and northwest Australia in
+August show straw grass, north Australia in February and the Antilles in September are identical,
+and West Africa changes in December and not in July. The ground cover's tint is tested but no
+change showed in these renders; only the grass did.
+
+`dry` isn't in `SceneParams`, so `params.mjs --ref` reports 0 changed. Count with
+`--stats 'p => src.phenology.phenologyFor(p).dry > 0 …'`: 21 of 1095 days have it, 2 of them open
+sea.
 
 ## 8. Leaf litter (not built)
 
@@ -235,6 +251,6 @@ before code. It needs to settle:
 - Phase 5 (`test/phenology.test.ts`): snow line by month and climate, both hemispheres; tropical
   and arid unchanged; off switch keeps the draw.
 - Phase 6: sargassum share by month over `allParams()` (`expectShare`).
-- Phase 7: `dryMonths` table over every place that has one; `dry` in and out of the months.
+- Phase 7: `drySeason` over every place; `dry` in and out of the months.
 - Phase 8: the visibility count first; then the prop's mesh checks (deterministic, finite, base
   near y = 0) and `diff.mjs` with the off switch.
