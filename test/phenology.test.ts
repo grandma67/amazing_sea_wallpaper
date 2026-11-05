@@ -162,7 +162,7 @@ describe('savanna dry season (SEASONS.md §2.2)', () => {
 
   it('dries only the places that have a dry season, in every month', () => {
     const dryPlaces = PLACES.filter(p => p.drySeason != null).map(p => p.id).sort()
-    expect(dryPlaces).toEqual(['north-australia', 'nw-australia', 'west-africa'])
+    expect(dryPlaces).toEqual(['central-america', 'east-africa', 'india', 'indonesia', 'north-australia', 'northeast-brazil', 'nw-australia', 'west-africa'])
     for (const place of PLACES) {
       if (place.drySeason != null) continue
       for (const climate of Object.keys(place.climate) as Climate[]) {
@@ -200,6 +200,46 @@ describe('savanna dry season (SEASONS.md §2.2)', () => {
       for (const date of months) expect(inPlace('west-africa', date, lat)).toBe(0)
     }
     expect(inPlace('west-africa', '2025-01-15', 5)).toBe(0.8)
+  })
+
+  it('dries each coast in its months and keeps the wetter coasts of the same place green', () => {
+    const cases: [id: string, dryDate: string, wetDate: string, inside: number, outside: number][] = [
+      // Guanacaste, not the Chocó.
+      ['central-america', '2025-03-15', '2025-08-15', 10.5, 5],
+      // Mozambique, not Kenya.
+      ['east-africa', '2025-09-15', '2025-02-15', -15, -4],
+      // Fortaleza, not Recife.
+      ['northeast-brazil', '2025-10-15', '2025-04-15', -3.7, -8],
+      // Mumbai, not Kerala or Tamil Nadu.
+      ['india', '2025-04-15', '2025-08-15', 19, 10],
+      // Sumba, not Borneo.
+      ['indonesia', '2025-09-15', '2025-02-15', -9.7, 0]
+    ]
+    for (const [id, dryDate, wetDate, inside, outside] of cases) {
+      expect(inPlace(id, dryDate, inside), id).toBe(0.8)
+      expect(inPlace(id, wetDate, inside), id).toBe(0)
+      expect(inPlace(id, dryDate, outside), id).toBe(0)
+    }
+  })
+
+  it('keeps Queensland\'s wet tropics green, but not the Top End or Townsville', () => {
+    const north = (latitudeDeg: number, ocean: string): number =>
+      phenologyFor({ ...day('2025-09-15', 'tropical', latitudeDeg, 'north-australia'), sea: { ocean } }).dry
+    expect(north(-17, 'pacific')).toBe(0)
+    expect(north(-17, 'indian')).toBe(0.8)
+    expect(north(-19.3, 'pacific')).toBe(0.8)
+    expect(north(-13, 'pacific')).toBe(0.8)
+  })
+
+  it('has real places, latitudes inside them, and grass to dry on every dry coast', () => {
+    for (const place of PLACES.filter(p => p.drySeason != null)) {
+      expect(place.climate.tropical, place.id).toBeGreaterThan(0)
+      const [south, north] = place.drySeason!.latitudeDeg ?? place.latitude
+      expect(south, place.id).toBeGreaterThanOrEqual(place.latitude[0])
+      expect(north, place.id).toBeLessThanOrEqual(place.latitude[1])
+      expect(south, place.id).toBeLessThan(north)
+      expect(scene({ place: place.id }).biome.vegetation.some(([kind]) => kind === 'grass'), place.id).toBe(true)
+    }
   })
 
   it('reaches the grass and the ground cover, and the off switch keeps them green', () => {

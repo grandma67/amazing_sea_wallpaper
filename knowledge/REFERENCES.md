@@ -74,8 +74,9 @@ Sources behind built features. Research for planned work lives with its plan: co
 
 - Savanna dry seasons (0.101; SEASONS.md has the links; from search summaries): Bureau of
   Meteorology and Greening Australia (northern savanna's rains and curing), Williams and Cook 2001
-  (savanna fire regimes); West Africa from weak sources (Climate of Ghana, a Senegal guide, a
-  rainy-season-by-latitude page).
+  (savanna fire regimes); Gahounsougbo et al. 2015 (Fortaleza and Recife rains, 1974–2008); rainfall
+  tables (currentresults.com, weather2travel); West Africa, Central America, Mozambique and India
+  mostly from general and travel sources.
 - Sargassum season (0.100; SEASONS.md has the links; from search summaries): USF outlook 2023
   (peak about June–July); EGUsphere 2026 preprint and Plymouth Marine Laboratory 2025 (West
   Africa's peaks differ from the Caribbean's).

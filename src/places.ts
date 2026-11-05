@@ -120,8 +120,12 @@ export interface Place {
 export interface DrySeason {
   /** Real calendar months, not the day's season. */
   months: Months
-  /** Only from this latitude north (°, signed); unset: all of the place. */
-  fromLatitudeDeg?: number
+  /** Only between these latitudes (°, signed, south to north); unset: all of
+   * the place. */
+  latitudeDeg?: readonly [number, number]
+  /** A stretch of the place that stays green: the same latitudes as the dry
+   * coast, on another ocean. */
+  wetCoast?: { ocean: OceanName; latitudeDeg: readonly [number, number] }
 }
 
 export type LandKind = 'beach' | 'rock-shore' | 'tidal-flat'
@@ -303,13 +307,19 @@ const TIDE: Record<string, readonly [number, number]> = {
   'nw-australia': [5, 9]
 }
 
-// Dry seasons of savanna coasts (SEASONS.md §2.2). West Africa's holds from 5°N:
-// nearer the equator the rains come twice a year and south of it the months
-// differ, so those days stay green.
+// Dry seasons of savanna coasts (SEASONS.md §2.2). Where a place also holds
+// wetter coasts, the latitudes keep them green: the Chocó, Kenya's two rains,
+// Recife and Salvador, Tamil Nadu and Kerala, the wet side of Indonesia.
 const DRY_SEASON: Record<string, DrySeason> = {
-  'north-australia': { months: [5, 10] },
+  // Queensland's wet tropics (Cooktown to Cardwell) stay green; Townsville dries.
+  'north-australia': { months: [5, 10], wetCoast: { ocean: 'pacific', latitudeDeg: [-18.5, -15.5] } },
   'nw-australia': { months: [5, 10] },
-  'west-africa': { months: [11, 4], fromLatitudeDeg: 5 }
+  'west-africa': { months: [11, 4], latitudeDeg: [5, 15] },
+  'central-america': { months: [12, 4], latitudeDeg: [9, 20] },
+  'east-africa': { months: [5, 10], latitudeDeg: [-26, -10] },
+  'northeast-brazil': { months: [8, 12], latitudeDeg: [-5, -3] },
+  india: { months: [12, 5], latitudeDeg: [15, 22] },
+  indonesia: { months: [5, 10], latitudeDeg: [-11, -8] }
 }
 
 // Fringing reefs (PLAN_BIOMES 7; COASTS.md "Reef-fronted beaches"), by place

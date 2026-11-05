@@ -91,24 +91,30 @@ stops, leaves senesce); in Iberia the green-up moves from spring-driven in the c
 autumn-rain-driven in the dry south; annual pastures germinate with the first lasting autumn
 rains.
 
-Savanna coasts, in **real calendar months** (these are local rains, so no hemisphere shift):
+Savanna coasts, in **real calendar months** (these are local rains, so no hemisphere shift). A place
+gets a dry season only if it's clear and latitudes can separate it from the place's wetter coasts:
 
-| Place | Dry | Applies | Evidence |
-|---|---|---|---|
-| `north-australia`, `nw-australia` | May–Oct | whole place | most rain December–April; growth slows and dries out April–May; driest late in the dry season; fire-prone days can last into November–December (BoM, Greening Australia, Williams and Cook) |
-| `west-africa` | Nov–Apr | from 5°N | the rainy season shortens going north, and Senegal's dry season is long; Ghana's January–February are dry; sources disagree on a marked dry season on the Gulf of Guinea, and none covered Gabon. Below 5°N stays green |
+| Place | Dry | Applies | Evidence | Stays green |
+|---|---|---|---|---|
+| `north-australia`, `nw-australia` | May–Oct | whole place | most rain December–April; growth slows and dries out April–May; driest late in the dry season (BoM, Greening Australia, Williams and Cook) | Queensland's wet tropics, 18.5–15.5°S on the Pacific side: Cairns ~38–71 mm a month June–September, Townsville 10–21 mm |
+| `west-africa` | Nov–Apr | 5–15°N | Conakry dry November–April; Accra and Lomé's Dahomey Gap under ~760 mm a year; Abidjan's rains May–July and October–November | below 5°N: no source for Gabon |
+| `central-america` | Dec–Apr | 9–20°N | Pacific dry forest from Chiapas to northwest Costa Rica; Guanacaste nearly rainless December–April; Panama's Pacific mid-December to mid-April | the wetter south, including Colombia's Pacific *(est., no source read)* |
+| `east-africa` | May–Oct | 26–10°S | Mozambique: dry May–October in the north, April–September in the south | Kenya and north Tanzania: two rainy seasons |
+| `northeast-brazil` | Aug–Dec | 5–3°S | Fortaleza: core rains March–April (1974–2008 study), July–November about 12–95 mm a month | Recife ~388 mm in July, Salvador ~137 mm in November |
+| `india` | Dec–May | 15–22°N | southwest monsoon June–September brings most of the rain; the northeast monsoon lasts to mid-December. No source named Konkan or Odisha directly | Kerala and Tamil Nadu (northeast monsoon) |
+| `indonesia` | May–Oct | 11–8°S | Bali and Komodo are dry May–October (indirect); the same cycle as north Australia across the sea | the wet equatorial islands |
 
 The grass cures over the first six weeks, holds at `dry` 0.8 and greens in the month after. The six
-weeks, the month, 0.8 and the 5°N limit are *(est.)*. All of this comes from search summaries; none
-gave curing dates for one town, and the West Africa sources are weak.
+weeks, the month, 0.8 and every latitude limit are *(est.)*. All of this comes from search summaries,
+many of them travel pages; the Brazil study and the rainfall tables are the firmest.
 
-Not modelled:
+Left out, or wrong within a place:
 
-- **Gujarat:** no place of its own. `india` (8–22°N) also holds wet Kerala and the east coast's
-  different monsoon, so one set of months would be wrong for much of it.
-- **Other tropical coasts with a dry season** *(est., not researched)*: e.g. Pacific Central America,
-  parts of east Africa and northeast Brazil.
-- **Queensland's wet tropics** (around Cairns) are inside `north-australia`, so they dry with it.
+- **`mainland-se-asia`, `philippines`:** sources conflict (central Vietnam, the Philippine west coast),
+  and each place mixes wet and dry coasts that latitude can't separate.
+- **Madagascar's east coast** is inside `east-africa`'s latitudes and dries with Mozambique, though it's
+  humid *(est., no source read)*.
+- **Gujarat:** only the coast up to 22°N is in `india`; Kutch has no place.
 
 ### 2.3 Already done: flowers and salt marsh
 
@@ -247,7 +253,17 @@ offshore:
   Greening Australia, https://www.greeningaustralia.org.au/publications/grasses-northern-territory-savannas ;
   Williams and Cook 2001, https://ava.icmbio.gov.br/pluginfile.php/4592/mod_data/content/19705/2001_3_._Savanna_fire_regimes_by_Dick_Williams_and_Garry_Cook.pdf ;
   Climate of Ghana, https://en.wikipedia.org/wiki/Climate_of_Ghana ; Senegal, https://visiearth.pages.dev/sn/geography-and-climate/ ;
-  rainy season by latitude (low quality), https://www.vf-tropi.com/vf-wa04.html
+  rainy season by latitude (low quality), https://www.vf-tropi.com/vf-wa04.html ;
+  Guinea, https://www.globalsecurity.org/military/world/africa/gn-climate.htm ; Dahomey Gap, https://en.wikipedia.org/wiki/Dahomey_Gap ;
+  Abidjan, https://en.wikipedia.org/wiki/West_African_forest_zone ;
+  Central American dry forests, https://en.wikipedia.com/wiki/Central_American_dry_forests ;
+  Costa Rica, https://ticotimes.net/2024/11/13/costa-ricas-dry-season-transforms-wildlife-watching ;
+  Mozambique, https://www.expertafrica.com/mozambique/info/mozambique-weather-and-climate ;
+  East Africa's rains, https://www.nature.com/articles/s43017-023-00397-x.pdf ;
+  Fortaleza and Recife, https://repositorio.ufc.br/bitstream/riufc/64563/1/2015_art_gahounsougbo.pdf ;
+  Brazil's monthly rain, https://www.currentresults.com/Weather/South-America/Brazil/precipitation-july.php ;
+  India's monsoons, https://www.wionews.com/india-news/met-dept-announces-onset-of-northeast-monsoon-withdrawal-of-southwest-monsoon-1760602512372/amp ;
+  Cairns and Townsville, https://weather2travel.com/queensland/cairns/climate , https://weather2travel.com/queensland/townsville/climate/?Units=1
 - Sargassum (search summaries): USF outlook, https://optics.marine.usf.edu/projects/SaWS/pdf/Sargassum_outlook_2023_bulletin4_USF.pdf ;
   West Africa, https://egusphere.copernicus.org/preprints/2026/egusphere-2026-2727/egusphere-2026-2727.pdf
   and https://pml.ac.uk/news/why-is-sargassum-seaweed-swamping-west-african-coasts/

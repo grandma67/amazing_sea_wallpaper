@@ -15,7 +15,7 @@ climate or place"), with place fields only for one place's difference.
 | 4 | Animals: colonies in season, humpback migration, seal haul-out, winter dormancy (ghost crabs, shore crabs, spiny-tailed lizards), geese and ducks by climate and season, polar gulls | done (0.98) |
 | 5 | Seasonal mountain snow line (incl. winter snow on summer-bare mountains) | done (0.99) |
 | 6 | Sargassum season (Caribbean and subtropical Atlantic wrack Apr–Sep) | done (0.100) |
-| 7 | Tropical dry season: savanna coasts brown in the dry months (`drySeason` per place) | done (0.101) |
+| 7 | Tropical dry season: savanna coasts brown in the dry months (`drySeason` per place) | done (0.101, more coasts 0.102) |
 | 8 | Leaf litter on the ground and in the wrack under deciduous trees | after a visibility count, ~½–1 day |
 | 9 | Snow cover and ice foot: built as PLAN_BIOMES 13; this plan gives the months | later, own plan, ~2–4 days |
 | 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
@@ -25,7 +25,7 @@ plan (9). Estimates include tests, `diff.mjs`, renders and docs.
 
 ## Open problems
 
-As of 0.101 (2026-11-06).
+As of 0.102 (2026-11-06).
 
 **To decide**
 
@@ -35,10 +35,9 @@ As of 0.101 (2026-11-06).
      recorded snow is about 2800 m, and phase 5 leaves tropical lines as drawn.
    - Nordic biome on temperate coasts: 0.35–0.6 of the height is low. Ireland comes to ~430 m in
      January (after ×0.6) and west Norway ~630 m in late August.
-2. **More savanna coasts?** Phase 7 covers north and northwest Australia and West Africa from 5°N.
-   Gujarat is dropped: `india` also holds wet Kerala and a different east-coast monsoon. Pacific
-   Central America and parts of east Africa and northeast Brazil have dry seasons too, not
-   researched (SEASONS.md §2.2).
+2. **Dry coasts left out or wrong within a place:** `mainland-se-asia` and `philippines` have no dry
+   season, and Madagascar's east coast dries with Mozambique (SEASONS.md §2.2). Separating them needs
+   more than latitude.
 3. **Phase 8 may not be built:** it depends on the visibility count.
 
 **Not checked in a render**
@@ -185,21 +184,26 @@ Numbers: SEASONS.md §2.2. Tests: `test/phenology.test.ts`.
 
 What changed from the first plan:
 
-- **`nw-australia` added:** the Kimberley and Broome are the same savanna as the Top End, and leaving
-  them out would keep them green on the days it dries.
+- **More places (0.102, after research):** `nw-australia`, `central-america`, `east-africa`,
+  `northeast-brazil`, `india` and `indonesia`, each in the latitudes where its dry season holds.
 - **West Africa only from 5°N:** the place runs from −5° to 15°, and Nov–Apr doesn't hold near or
   south of the equator.
-- **Gujarat dropped** (open problem 2).
-- **A field, not `dryMonths`:** `drySeason` holds the months and West Africa's latitude limit.
+- **Queensland's wet tropics stay green:** latitude can't separate them from the Top End, so
+  `wetCoast` adds the ocean.
+- **Gujarat:** it has no place, but `india`'s 15–22°N covers its coast up to 22°N.
+- **A field, not `dryMonths`:** `drySeason` holds the months, latitudes and `wetCoast`.
 
-Rendered at 1080p against the last commit: north Australia in September and northwest Australia in
-August show straw grass, north Australia in February and the Antilles in September are identical,
-and West Africa changes in December and not in July. The ground cover's tint is tested but no
-change showed in these renders; only the grass did.
+Rendered at 1080p against the previous commit, with a framed view forced on each place: straw grass
+in the dry month (north Australia September
+5.81% of the frame, Guanacaste March 36.25%, Fortaleza October 5.29%, Mozambique September 4.77%, India
+April 1.68%, West Africa December 2.22%, northwest Australia August 0.37%, the Lesser Sundas September
+0.39%), and identical in the wet month (north Australia February, West Africa July, India August) and
+elsewhere (Antilles September). Guanacaste's large share is the ground cover's tint, seen there as a
+slight warming of the ground. A backlit view and the wet-tropics exception weren't rendered (tested).
 
 `dry` isn't in `SceneParams`, so `params.mjs --ref` reports 0 changed. Count with
-`--stats 'p => src.phenology.phenologyFor(p).dry > 0 …'`: 21 of 1095 days have it, 2 of them open
-sea.
+`--stats 'p => src.phenology.phenologyFor(p).dry > 0 …'`: 44 of 1095 days have savanna-dry grass, 13
+of them open sea.
 
 ## 8. Leaf litter (not built)
 

@@ -13,6 +13,7 @@ import { seasonDay, type Day } from './seasons'
 export interface PhenologyDay extends Day {
   place: { id: string; climate: Climate }
   overrides?: { phenology?: boolean }
+  sea?: { ocean: string }
 }
 
 export interface Phenology {
@@ -91,7 +92,11 @@ const SAVANNA_DRY = 0.8
  * places: 0. */
 function savannaDry(day: PhenologyDay): number {
   const season = PLACES.find(p => p.id === day.place.id)?.drySeason
-  if (season == null || day.latitudeDeg < (season.fromLatitudeDeg ?? -90)) return 0
+  if (season == null) return 0
+  const [south, north] = season.latitudeDeg ?? [-90, 90]
+  if (day.latitudeDeg < south || day.latitudeDeg > north) return 0
+  const wet = season.wetCoast
+  if (wet != null && day.sea?.ocean === wet.ocean && day.latitudeDeg >= wet.latitudeDeg[0] && day.latitudeDeg <= wet.latitudeDeg[1]) return 0
   const dayOfYear = (date: string): number => seasonDay({ date, latitudeDeg: 1 })
   const firstOf = (month: number): number => dayOfYear(`2025-${String(month).padStart(2, '0')}-01`)
   const start = firstOf(season.months[0])
