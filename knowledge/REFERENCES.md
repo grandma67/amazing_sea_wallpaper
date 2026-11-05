@@ -72,6 +72,9 @@ Sources behind built features. Research for planned work lives with its plan: co
 
 ## Shore and animals
 
+- Sargassum season (0.100; SEASONS.md has the links; from search summaries): USF outlook 2023
+  (peak about June–July); EGUsphere 2026 preprint and Plymouth Marine Laboratory 2025 (West
+  Africa's peaks differ from the Caribbean's).
 - Seasons (0.98, snow line 0.99; SEASONS.md has the links): Woodland Trust Nature's Calendar autumn analyses
   (UK oak first tint ~2 Oct, full tint ~4 Nov, bare ~1 Dec); the Swedish citizen-science
   autumn colour study (EGU 2014, 2017: birch and poplar turn later further north); phys.org 2021

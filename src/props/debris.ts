@@ -12,6 +12,7 @@ import {
 import { beachLines, isStony } from '../beach'
 import type { RGB } from '../biome'
 import type { SceneParams } from '../params'
+import { sargassumSeason } from '../phenology'
 import type { Random } from '../random'
 import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
@@ -69,10 +70,15 @@ function drawDebris(params: SceneParams, rng: Random): DebrisSpec | null {
   const wood = (chance: number, min: number, max: number): void => {
     if (rng.chance(chance)) spec.driftwood = rng.range(min, max)
   }
-  const wrack = (kind: WrackKind, chance: number): void => {
-    if (rng.chance(chance)) {
+  // `season` is a threshold on the same roll: a day out of season draws what
+  // it always did, so the rest of the day's debris stays the same.
+  const wrack = (kind: WrackKind, chance: number, season = 1): void => {
+    const roll = rng.float()
+    if (roll >= chance) return
+    const amount = rng.range(0.3, 1)
+    if (roll < chance * season) {
       spec.wrack = kind
-      spec.wrackAmount = rng.range(0.3, 1)
+      spec.wrackAmount = amount
     }
   }
   const climate = params.place.climate
@@ -104,12 +110,12 @@ function drawDebris(params: SceneParams, rng: Random): DebrisSpec | null {
       // subtropical North Atlantic (Florida, the Carolinas), turtle grass
       // and eelgrass on the other subtropical coasts.
       if (climate === 'temperate' || (climate === 'mediterranean' && ocean === 'pacific')) wrack('kelp', 0.7)
-      else if (climate === 'subtropical' && ocean === 'atlantic' && params.latitudeDeg > 0) wrack('sargassum', 0.45)
+      else if (climate === 'subtropical' && ocean === 'atlantic' && params.latitudeDeg > 0) wrack('sargassum', 0.45, sargassumSeason(params))
       else wrack('seagrass', climate === 'subtropical' ? 0.4 : 0.65)
       break
     case 'tropical':
       wood(0.3, 0.1, 0.4)
-      if (ocean === 'atlantic') wrack('sargassum', 0.5)
+      if (ocean === 'atlantic') wrack('sargassum', 0.5, sargassumSeason(params))
       else wrack('seagrass', 0.25)
       if (rng.chance(0.6)) spec.coconuts = rng.range(0.3, 1)
       break

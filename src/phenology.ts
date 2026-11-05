@@ -104,6 +104,21 @@ export function phenologyFor(day: PhenologyDay): Phenology {
   return { ...base, on, turned, fresh, dry, tropical: { on: 1 - 0.5 * almond, turned: almond } }
 }
 
+/** Coasts that don't follow the Caribbean's sargassum months: West Africa has
+ * its own peaks (March–May, September), and we found no calendar for northeast
+ * Brazil (SEASONS.md §2.4). They keep it all year. */
+const SARGASSUM_ALL_YEAR = new Set(['west-africa', 'northeast-brazil'])
+
+/** The share of drawn sargassum wrack that is on the beach today: full in the
+ * bloom and beaching season, April–September, and a fifth of it otherwise. Real
+ * calendar months, not the day's season: it is one Atlantic bloom, not a local
+ * summer. A spec's `phenology: false` keeps the wrack as drawn. */
+export function sargassumSeason(day: PhenologyDay): number {
+  if (day.overrides?.phenology === false || SARGASSUM_ALL_YEAR.has(day.place.id)) return 1
+  const month = Number(day.date.slice(5, 7))
+  return month >= 4 && month <= 9 ? 1 : 0.2
+}
+
 /** Places whose autumn is red, not yellow: eastern North America's maples,
  * East Asia's, Patagonia's lenga. Europe's is yellow (SEASONS.md §2.1). */
 export const AUTUMN_RED = new Set(['maine', 'nova-scotia', 'pei', 'fundy', 'newfoundland', 'yellow-sea', 'south-japan', 'russian-far-east', 'tierra-del-fuego', 'patagonia-fjords'])

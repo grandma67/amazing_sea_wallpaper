@@ -96,6 +96,21 @@ rains.
 Beach flowers bloom in their months (`FLOWERS`, `shoreLife.ts`); salt marsh turns from green to
 straw, glasswort red in autumn (`marshLook`).
 
+### 2.4 Sargassum on the beach
+
+`phenology.ts` `sargassumSeason`, a threshold on the wrack draw in `props/debris.ts`. These are
+**real calendar months**, not the day's season: it's one Atlantic bloom, not a local summer.
+
+| Coast | Months | Drawn wrack kept | |
+|---|---|---|---|
+| Caribbean, subtropical North Atlantic | Apr–Sep | all | peak about June–July (USF) |
+| Same, Oct–Mar | | a fifth | the low season is sourced only weakly; ×0.2 is *(est.)* |
+| West Africa | all year | all | its peaks differ: March–May and September (2026 preprint, not peer reviewed); Nigeria May–August (2011–12 survey); satellite data are thin |
+| Northeast Brazil | all year | all | no stranding calendar found |
+
+All of this comes from search summaries, not the full papers. West Africa and northeast Brazil are
+left as they were rather than given the Caribbean's months.
+
 ## 3. Animals
 
 ### 3.1 Seabird colonies (attendance)
@@ -183,7 +198,6 @@ offshore:
   it down to about 2800 m, so a tropical mountain needs real height.
 - **Baltic sea ice:** the Gulf of Bothnia freezes Jan–Apr most winters *(est.)*; only Arctic ice
   exists today.
-- **Sargassum season** (Caribbean, Apr–Sep peak) *(est.)*: debris, later.
 - **Leaf litter:** autumn leaves on the ground and in the wrack under deciduous trees: later.
 
 ## Sources
@@ -210,3 +224,6 @@ offshore:
 - Ghost crab: https://animaldiversity.org/accounts/Ocypode_quadrata/ ,
   https://archives.datapages.com/data/bulletns/1977-79/data/pg/0063/0003/0450/0466.htm
 - Uromastyx: https://www.sfzoodocents.org/notebook/FactSheets/REPTILIA/Uromastyx.pdf
+- Sargassum (search summaries): USF outlook, https://optics.marine.usf.edu/projects/SaWS/pdf/Sargassum_outlook_2023_bulletin4_USF.pdf ;
+  West Africa, https://egusphere.copernicus.org/preprints/2026/egusphere-2026-2727/egusphere-2026-2727.pdf
+  and https://pml.ac.uk/news/why-is-sargassum-seaweed-swamping-west-african-coasts/

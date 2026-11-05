@@ -131,7 +131,8 @@ Playwright (headless snapshots), Vitest.
   `autumnColors`, `AUTUMN_RED` places), `canopyTint` the distant woods (landforms, islands),
   `groundCoverTint` the terrain. Leaves turn and fall by `hash()` after the builder's draws, so
   trees keep their shape. `animalSeasons.ts`: colonies, humpbacks, seal haul-outs, crab and
-  lizard dormancy, waterfowl, Arctic gulls (ANIMALS.md "Seasons").
+  lizard dormancy, waterfowl, Arctic gulls (ANIMALS.md "Seasons"). `sargassumSeason` thins the
+  sargassum wrack Oct–Mar by calendar month, except West Africa and northeast Brazil (0.100).
 - **Scene specs** (`sceneSpec.ts`, SCENE_SPECS.md): typed, validated JSON.
   `generateParams(date, attempt, aspect, spec)` applies it at each decision but still makes
   every draw. Forcing the time of day changes how many main-stream draws the sky makes, so later

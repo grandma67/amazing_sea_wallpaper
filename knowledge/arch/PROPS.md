@@ -86,7 +86,8 @@ platform 3–20 m in from today's water. Vegetation starts on top of the back fa
   fibre balls, sargassum, sticks) on the high-tide line at ~1.1× run-up height, plus a fainter
   older line; logs on the storm line above ~2.2× and up to the back of the beach (`logGeometry`:
   bowed, oval, knots, checks, splintered end, root wads); coconuts on palm coasts. Stony days:
-  logs on the storm ridge crest and its back slope, the older wrack line on the crest.
+  logs on the storm ridge crest and its back slope, the older wrack line on the crest. Sargassum
+  follows the month (`phenology.ts` `sargassumSeason`, a threshold on the same roll).
 - **Shore life** (`shoreLife.ts`, `shoreLifeFor()`): crabs by biome and time of day, shells by
   coast, flowers in bloom by month (`FLOWERS`). Crabs and shells show only near the camera. Each
   flower has a `ground` (`sand`, `stones`, `both`; `growsOn`): shingle and cobble get the

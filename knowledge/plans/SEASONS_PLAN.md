@@ -14,18 +14,18 @@ climate or place"), with place fields only for one place's difference.
 | 3 | Grass, ground cover and distant land by season (dry Mediterranean summer, brown boreal and tundra) | done (0.98) |
 | 4 | Animals: colonies in season, humpback migration, seal haul-out, winter dormancy (ghost crabs, shore crabs, spiny-tailed lizards), geese and ducks by climate and season, polar gulls | done (0.98) |
 | 5 | Seasonal mountain snow line (incl. winter snow on summer-bare mountains) | done (0.99) |
-| 6 | Sargassum season (Caribbean and subtropical Atlantic wrack Apr–Sep) | next, ~1 h |
+| 6 | Sargassum season (Caribbean and subtropical Atlantic wrack Apr–Sep) | done (0.100) |
 | 7 | Tropical dry season: savanna coasts brown in the dry months (`dryMonths` per place) | next, ~½ day |
 | 8 | Leaf litter on the ground and in the wrack under deciduous trees | after a visibility count, ~½–1 day |
 | 9 | Snow cover and ice foot: built as PLAN_BIOMES 13; this plan gives the months | later, own plan, ~2–4 days |
 | 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
 
-Order: the drawn snow lines (open problem 1, if approved), 6–7 together, then the count for 8,
+Order: the drawn snow lines (open problem 1, if approved), 7, then the count for 8,
 then the snow plan (9). Estimates include tests, `diff.mjs`, renders and docs.
 
 ## Open problems
 
-As of 0.99 (2026-11-06).
+As of 0.100 (2026-11-06).
 
 **To decide**
 
@@ -64,6 +64,18 @@ As of 0.99 (2026-11-06).
    snow cover until phase 9, which the lower snow lines make more noticeable.
 8. **Still not modelled:** tropical wet and dry seasons (phase 7), leaf litter (phase 8) and larch
    (conifers stay green; no phase).
+
+**From phase 6**
+
+9. **Sargassum in the Adriatic (a bug from before phase 6, needs a yes):** `drawDebris` tests
+   `ocean === 'atlantic'`, which the Mediterranean Sea's places also are, so `adriatic`'s subtropical
+   days get golden sargassum (2 of 20 real sargassum days before phase 6, 1 now). It should
+   probably be seagrass.
+10. **West Africa and northeast Brazil have no season:** West Africa's peaks are from a preprint
+    and Brazil has no source, so both keep sargassum all year (SEASONS.md §2.4). Together they are
+    9 of the 15 sargassum days left.
+11. **The heaps' look:** in the 2026-10-29 render, sargassum reads as smooth tan mounds, not a
+    tangle of little floats. Phase 6 only changes when it's there.
 
 ## Decisions
 
@@ -152,13 +164,16 @@ What changed from the first plan, after checking its numbers:
 - Low lines crossed the slopes in a straight edge, so the snow edge's noise is stronger
   (`props/landforms.ts`).
 
-## 6. Sargassum season (not built)
+## 6. Sargassum season (done, 0.100)
 
-- The wrack choice already exists (`props/debris.ts`, `wrack('sargassum', …)`). Add a month
-  threshold on the draw it already makes: full Apr–Sep (the bloom and beaching season), ×0.2
-  Oct–Mar. No new draws.
-- Done when: `test/seasonsAnimals.test.ts` (or a debris test) over `allParams()` shows
-  sargassum wrack mostly Apr–Sep; other wrack kinds unchanged.
+`sargassumSeason` (`phenology.ts`) is a threshold on the roll `wrack()` already makes (`props/debris.ts`):
+full Apr–Sep, ×0.2 Oct–Mar, calendar months in both hemispheres. No new draws, and the amount is
+still drawn, so the day's other debris choices stay the same (coconut placement can still shift,
+because it follows the wrack's meshes on the same stream). `phenology: false` and a forced
+`props.debris.wrack` keep the wrack. Numbers: SEASONS.md §2.4. Tests: `test/debris.test.ts`.
+
+What changed from the first plan: West Africa and northeast Brazil keep sargassum all year, since
+West Africa's peaks differ from the Caribbean's and we found no calendar for Brazil.
 
 ## 7. Tropical dry season (not built)
 
