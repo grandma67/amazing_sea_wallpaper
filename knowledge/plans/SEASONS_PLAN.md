@@ -20,17 +20,60 @@ climate or place"), with place fields only for one place's difference.
 | 9 | Snow cover and ice foot: built as PLAN_BIOMES 13; this plan gives the months | later, own plan, ~2–4 days |
 | 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
 
-Order: 6–7 together, then the count for 8, then the snow plan (9). Estimates
-include tests, `diff.mjs`, renders and docs.
+Order: the drawn snow lines (open problem 1, if approved), 6–7 together, then the count for 8,
+then the snow plan (9). Estimates include tests, `diff.mjs`, renders and docs.
+
+## Open problems
+
+As of 0.99 (2026-11-06).
+
+**To decide**
+
+1. **Drawn snow lines too low (`pickLandform`, biome-keyed; needs a yes, it changes the look on
+   many days).** Phase 5 scales these lines but doesn't fix them.
+   - Tropical: 32 of 61 tropical landform days have snow below 3 km. Even Mauna Kea's lowest
+     recorded snow is about 2800 m, and phase 5 leaves tropical lines as drawn.
+   - Nordic biome on temperate coasts: 0.35–0.6 of the height is low. Ireland comes to ~430 m in
+     January (after ×0.6) and west Norway ~630 m in late August.
+2. **Phase 7's places:** the first plan named Gujarat, which isn't a place id. Find its place or
+   drop it.
+3. **Phase 8 may not be built:** it depends on the visibility count.
+
+**Not checked in a render**
+
+4. **Phase 5:**
+   - Tropical, arid and southern-hemisphere days were tested, not rendered.
+   - The plan's January and August comparison wasn't rendered: each date draws a different
+     mountain, so on/off pairs were used instead.
+   - The stronger snow edge was rendered only on Kamchatka and British Columbia, not Ireland or
+     Norway.
+   - The higher autumn start (1.3 × the peak) came after the last render; it moves bare mountains'
+     line from November to mid-January.
+5. **Distant woods' autumn tint** (`canopyTint` on landforms and islands, 0.98): tested in numbers
+   only.
+
+**Estimates to replace with research**
+
+6. **`SNOW_SEASON`:** only the temperate winter line has a source (the Alps' ~800 m, a
+   station-based cover median, so a rough guide). The other climates, the ×0.7, ×0.85 and ×1.2
+   factors and the minimum heights are *(est.)* in SEASONS.md §4.
+
+**Known gaps until later phases**
+
+7. **White mountains above brown ground:** winter tundra and boreal shores stay brown grass with no
+   snow cover until phase 9, which the lower snow lines make more noticeable.
+8. **Still not modelled:** tropical wet and dry seasons (phase 7), leaf litter (phase 8) and larch
+   (conifers stay green; no phase).
 
 ## Decisions
 
 - **Phenology is not random.** It follows the date, climate and hemisphere, so there is no draw
   and no new stream. The tree builders keep every draw they made before: a leaf's colour and
   whether it is still on come from `hash()` of its position, so a tree's shape never changes with
-  the season, only its leaves. Days outside autumn, winter and spring render as before.
-- **Off switch:** spec `phenology: false` (→ `params.overrides.phenology`) gives every day the
-  summer look, for `diff.mjs --off '{"phenology":false}'`.
+  the season, only its leaves. Plants outside autumn, winter and spring render as before; the
+  snow line also moves in late summer (phase 5).
+- **Off switch:** spec `props.phenology: false` (→ `params.overrides.phenology`) gives every day the
+  summer look and the snow line as drawn, for `diff.mjs --off '{"props":{"phenology":false}}'`.
 - **Animals change only on the days they're about:** out-of-season days lose or gain an animal.
   Decisions keep their draws; the season is an extra threshold on a draw that's already made, or
   its own stream (`'pinnipeds/season'`).
@@ -45,12 +88,17 @@ include tests, `diff.mjs`, renders and docs.
 seasonDay(day)            // seasons.ts: northern-equivalent day of year (south +182)
 phenologyFor(params)      // → Phenology, or SUMMER when overrides.phenology === false
 interface Phenology {
-  leaves: { on, turned, fresh }   // deciduous leaves: share still on, share turned, spring green
-  deciduous(kind): number         // share of that kind's trees that are deciduous here
-  autumn: RGB[]                   // the turned leaves' colours (yellow; redder in AUTUMN_RED places)
+  on, turned, fresh               // deciduous leaves: share still on, share turned, spring green
   dry: number                     // grass and ground cover: 0 green … 1 straw
+  tropical: { on, turned }        // the tropical almond's own clock
+  climate, placeId, south
 }
-canopyTint(foliage, phen, share) // a distant forest's colour this season
+deciduousShare(kind, phen)        // share of that kind's trees that are deciduous here
+autumnColors(kind, phen)          // the turned leaves' colours (yellow; redder in AUTUMN_RED places)
+plantSeason(kind, phen)           // what a plant builder gets; undefined when it looks as in summer
+canopyTint(foliage, phen, plants) // a distant forest's colour this season, from the day's plant pool
+groundCoverTint(cover, phen)      // ground cover dried toward straw
+seasonalSnowLine(land, climate, day) // phase 5
 ```
 
 Leaf curve per climate (SEASONS.md §2.1): `on` = 1 until peak colour, falling to 0 at "bare",
