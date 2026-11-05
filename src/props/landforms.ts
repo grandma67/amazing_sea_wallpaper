@@ -70,9 +70,11 @@ function surfaceColor(
     const green = Math.max(0, Math.min(1, (treeline - h) / (treeline * 0.3) + (n - 0.5))) * (1 - steep * 0.8)
     c = c.map((v, i) => v + (p.vegetation![i] - v) * green) as RGB
   }
-  // Snow, deeper in the hollows, thinning on steep faces.
+  // Snow, deeper in the hollows, thinning on steep faces. Its edge wanders
+  // (a few hundred metres on a big mountain): a low winter line would
+  // otherwise cross the slopes as straight as a cloud's shadow.
   if (Number.isFinite(land.snowLine)) {
-    const snow = Math.max(0, Math.min(1, (h - land.snowLine) / (land.height * 0.08) + (n - 0.5) * 1.5)) * (1 - steep * 0.6)
+    const snow = Math.max(0, Math.min(1, (h - land.snowLine) / (land.height * 0.08) + (n - 0.5) * 6)) * (1 - steep * 0.6)
     c = c.map((v, i) => v + (p.snow[i] - v) * snow) as RGB
   }
   // Fresh dark ash around an active crater.

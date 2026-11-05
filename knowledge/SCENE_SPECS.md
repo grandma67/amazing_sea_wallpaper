@@ -65,10 +65,11 @@ Allowed values are in `sceneSpec.ts`.
 - **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,debris,shoreLife,mangroves,wildlife}`.
   Off for `diff.mjs`: `false` (booleans and kinds), `[]` (`vegetation`), `null` (`debris`,
   `shoreLife`, `wildlife`). `phenology: false` keeps plants and ground in their summer look
-  (no autumn leaves, bare trees or dry grass; `phenology.ts`); the season itself comes from the
+  (no autumn leaves, bare trees or dry grass, and the mountains' snow line as drawn; `phenology.ts`); the season itself comes from the
   date (`date` + `place`): Maine 2025-10-20 framed (red autumn), Cornwall 2025-01-12 framed
   (bare oaks), the Baltic 2025-09-22 framed with `climate: "boreal"` (yellow birch), the western
-  Med 2025-08-10 framed (dry grass).
+  Med 2025-08-10 framed (dry grass); snow line: Kamchatka 2024-01-04 shoreline (bare volcano
+  whitened in winter), British Columbia 2025-01-02 overlook.
 
 ## Writing specs that show the feature
 

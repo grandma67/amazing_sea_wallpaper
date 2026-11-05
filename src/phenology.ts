@@ -5,6 +5,7 @@
 // its leaves (props/trees.ts hashes each leaf).
 
 import type { Climate, RGB, VegetationKind } from './biome'
+import { hashCell } from './cellNoise'
 import { seasonDay, type Day } from './seasons'
 
 /** What phenology reads from a day (SceneParams has all of it). */
@@ -171,6 +172,46 @@ export function canopyTint(foliage: RGB, phen: Phenology, plants: readonly (read
   // Far away the turned crowns are dimmer than a lit leaf (shade inside the crown).
   const turned = mix(foliage, mean(autumnColors('broadleaf', phen)).map(v => v * 0.6) as RGB, share * leaves.on * leaves.turned)
   return mix(turned, BARE, share * (1 - leaves.on))
+}
+
+/**
+ * The mountains' snow by climate (SEASONS.md §4): how far the drawn line drops
+ * in deep winter; how tall a mountain with no snow in summer must be to whiten
+ * in winter (m); and the altitudes its winter line comes down to (m). Tropical
+ * and arid climates aren't here: their snow doesn't follow these seasons, so
+ * their line stays as drawn.
+ */
+export const SNOW_SEASON: Partial<Record<Climate, { winter: number; bareFrom: number; level: readonly [number, number] }>> = {
+  polar: { winter: 0.6, bareFrom: 900, level: [100, 400] },
+  boreal: { winter: 0.6, bareFrom: 900, level: [200, 600] },
+  temperate: { winter: 0.6, bareFrom: 1500, level: [800, 1300] },
+  mediterranean: { winter: 0.7, bareFrom: 2000, level: [1200, 1700] },
+  subtropical: { winter: 0.85, bareFrom: 2500, level: [1800, 2300] }
+}
+
+/** A range's real peaks reach about this share of its `height` (the envelope
+ * and ridges in props/landforms.ts); a volcano's cone reaches all of it. */
+const RANGE_PEAK = 0.8
+
+/**
+ * The day's snow line (m) from the drawn one: lowest mid-January to mid-March,
+ * as drawn at the end of May and on 1 November, highest mid-August to
+ * mid-September. A mountain drawn with no snow (Infinity) whitens from the top
+ * down in winter if it's tall enough; `seed` keeps its line stable through the
+ * season. A function of the date: no draw.
+ */
+export function seasonalSnowLine(land: { snowLine: number; height: number; kind: 'range' | 'strato' | 'shield'; seed: number }, climate: Climate, day: Day): number {
+  const table = SNOW_SEASON[climate]
+  if (table == null) return land.snowLine
+  const d = seasonDay(day)
+  const winter = band(d, 305, 15, 75, 150)
+  if (Number.isFinite(land.snowLine)) return land.snowLine * (1 - (1 - table.winter) * winter + 0.2 * band(d, 150, 227, 258, 305))
+  if (winter === 0 || land.height < table.bareFrom) return Infinity
+  const peak = land.height * (land.kind === 'range' ? RANGE_PEAK : 1)
+  const [low, high] = table.level
+  const level = Math.min(low + (high - low) * (hashCell(land.seed, 5) / 4294967295), peak * 0.85)
+  // Starts above the peak, past the reach of the snow edge's noise (landforms.ts).
+  return peak * 1.3 + (level - peak * 1.3) * winter
 }
 
 /** Ground cover (terrain) with the grass dried toward straw. */

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { CLIMATES } from '../src/places'
 import type { Climate, VegetationKind } from '../src/biome'
-import { band, canopyTint, deciduousShare, groundCoverTint, phenologyFor, plantSeason, type PhenologyDay } from '../src/phenology'
+import { band, canopyTint, deciduousShare, groundCoverTint, phenologyFor, plantSeason, seasonalSnowLine, SNOW_SEASON, type PhenologyDay } from '../src/phenology'
 import { birch, broadleaf, bush } from '../src/props/trees'
 import { Random } from '../src/random'
 import { seasonDay } from '../src/seasons'
@@ -172,5 +172,66 @@ describe('real days', () => {
     const p = scene({ place: 'maine' }, '2025-10-20')
     const phen = phenologyFor(p)
     expect(phen.turned).toBeGreaterThan(0.5)
+  })
+})
+
+describe('seasonal snow line', () => {
+  const land = (snowLine: number, height = 2000, kind: 'range' | 'strato' = 'strato') => ({ snowLine, height, kind, seed: 1234 })
+  const at = (date: string, latitudeDeg = 50) => ({ date, latitudeDeg })
+
+  it('is lower in winter and higher in late summer, in the day\'s own hemisphere', () => {
+    for (const climate of Object.keys(SNOW_SEASON) as Climate[]) {
+      const winter = SNOW_SEASON[climate]!.winter
+      expect(seasonalSnowLine(land(1000), climate, at('2025-02-01'))).toBeCloseTo(1000 * winter)
+      expect(seasonalSnowLine(land(1000), climate, at('2025-08-25'))).toBeCloseTo(1200)
+      expect(seasonalSnowLine(land(1000), climate, at('2025-05-31'))).toBeCloseTo(1000, -1)
+      expect(seasonalSnowLine(land(1000), climate, at('2025-08-01', -40))).toBeCloseTo(1000 * winter)
+    }
+  })
+
+  it('leaves tropical and arid mountains as drawn, every month', () => {
+    for (const climate of ['tropical', 'arid'] as const) {
+      for (const date of months) {
+        expect(seasonalSnowLine(land(1500), climate, at(date))).toBe(1500)
+        expect(seasonalSnowLine(land(Infinity, 3500), climate, at(date))).toBe(Infinity)
+      }
+    }
+  })
+
+  it('whitens a mountain bare in summer only in winter, only if it\'s tall enough', () => {
+    for (const climate of Object.keys(SNOW_SEASON) as Climate[]) {
+      const { bareFrom } = SNOW_SEASON[climate]!
+      expect(seasonalSnowLine(land(Infinity, bareFrom), climate, at('2025-02-01'))).toBeLessThan(bareFrom * 0.9)
+      expect(seasonalSnowLine(land(Infinity, bareFrom), climate, at('2025-07-15'))).toBe(Infinity)
+      expect(seasonalSnowLine(land(Infinity, bareFrom - 1), climate, at('2025-02-01'))).toBe(Infinity)
+    }
+  })
+
+  it('puts the winter line under a range\'s real peaks, and falls with the season', () => {
+    // A range's peaks reach ~0.8 of its height.
+    expect(seasonalSnowLine(land(Infinity, 2000, 'range'), 'temperate', at('2025-02-01'))).toBeLessThan(2000 * 0.8 * 0.9 + 1)
+    // Nothing before the snow's noise can reach the top: above the peak by 6% of the height.
+    const start = seasonalSnowLine(land(Infinity, 2000), 'temperate', at('2025-11-02'))
+    expect(start).toBeGreaterThan(2000 * 1.06)
+    const lines = ['2025-11-10', '2025-12-01', '2025-12-20', '2026-01-15'].map(date => seasonalSnowLine(land(Infinity, 2000), 'temperate', at(date)))
+    for (let i = 1; i < lines.length; i++) expect(lines[i]).toBeLessThan(lines[i - 1])
+  })
+
+  it('over real days: deserts have none, lines follow the season, the off switch keeps the draw', () => {
+    const days = allParams().filter(p => p.landform != null)
+    const finite = (p: (typeof days)[number]) => Number.isFinite(p.landform!.snowLine)
+    expect(days.filter(p => p.biome.name === 'desert').some(finite)).toBe(false)
+    const coldClimate = days.filter(p => p.place.climate === 'temperate' || p.place.climate === 'boreal')
+    const inMonth = (from: number, to: number) => coldClimate.filter(p => {
+      const m = Number(p.date.slice(5, 7))
+      const season = p.latitudeDeg < 0 ? ((m + 5) % 12) + 1 : m
+      return season >= from && season <= to
+    })
+    const snowy = (list: typeof days) => list.filter(finite).length / list.length
+    expect(snowy(inMonth(1, 2))).toBeGreaterThan(snowy(inMonth(7, 8)))
+    const off = scene({ landform: 'strato', place: 'norway-west', props: { phenology: false } }, '2025-02-01').landform!
+    const on = scene({ landform: 'strato', place: 'norway-west' }, '2025-02-01').landform!
+    expect(on.snowLine).toBeCloseTo(off.snowLine * 0.6)
+    expect({ ...on, snowLine: 0 }).toEqual({ ...off, snowLine: 0 })
   })
 })

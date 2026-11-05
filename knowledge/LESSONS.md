@@ -118,6 +118,13 @@ tool gotchas: TOOLS.md.
 - The `southern` hemisphere shift is half a year: 2 July south is day 365, 3 July day 1
   (`seasonDay`), not 2 July.
 
+- A mountain's `height` isn't its peak: a range's envelope and ridges reach only ~0.8 of it. Measure
+  a mesh's real top before writing a target as a share of a parameter (0.7–0.9 of `height` would
+  have left most ranges with no winter snow). A share of the height also scales the wrong way for a
+  physical limit: snow comes down to an altitude, whatever the mountain's size.
+- Lowering a colour boundary can show a flaw it hid: small noise that looked fine on a summit gave
+  a ruler-straight snow edge across a whole slope.
+
 ## Light and exposure
 
 - Auto exposure re-normalises: scaling the whole scene does nothing; change `exposure` (e.g.

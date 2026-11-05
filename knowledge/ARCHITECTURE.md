@@ -163,6 +163,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | landform chance, volcano chance, snow line | `params.ts` `pickLandform` | biome; flat places opt out (`mountains`) | **leftover**: volcanoes on Greenland and Norway, subtropical places get the Mediterranean's odds (phase 10: per place) |
 | island kinds | `params.ts` `ISLANDS` | biome; flat places only low ones | **leftover**: phase 10 |
 | leaf colour and fall, grass dryness, deciduous share | `phenology.ts` | climate × hemisphere; `AUTUMN_RED` and the deciduous lenga by place | right |
+| snow line by season | `phenology.ts` `SNOW_SEASON` | climate × hemisphere | right (the drawn line under it is the `pickLandform` leftover above) |
 | colony birds, humpbacks, haul-outs, crab and lizard dormancy, waterfowl, gulls by season | `animalSeasons.ts` | climate × season (colonies, seals by kind) | right |
 | beach flowers | `props/shoreLife.ts` `FLOWERS` | biome × ocean × month | **leftover**: Florida and Natal can bloom Mediterranean sea daffodil and horned poppy (should follow climate) |
 | shells, starfish | `props/shoreLife.ts` `SHELLS` | biome × ocean | leftover (minor) |
@@ -239,10 +240,12 @@ December noon is 17° up; changes many winter days, ask first).
 ## Known issues
 
 - Seasons (0.98): no snow cover in polar and boreal winters yet (PLAN_BIOMES 13, SEASONS_PLAN
-  phase 5), so winter tundra shows as brown grass; the mountains' snow line ignores the season;
-  no leaf litter under bare trees; no larch (conifers stay green); tropical wet and dry seasons
+  phase 9), so winter tundra shows as brown grass under white mountains; no leaf litter under bare trees; no larch (conifers stay green); tropical wet and dry seasons
   aren't modelled (only the tropical almond's red). The distant woods' autumn tint
   (`canopyTint` on landforms and islands) was tested in numbers, not checked in a render.
+- Drawn snow lines (`pickLandform`, biome-keyed): tropical mountains can have snow below 3 km
+  (32 of 61 tropical landform days; real tropical snow starts far higher), and the nordic biome's
+  0.35–0.6 of the height is low for a temperate summer (west Norway ~630 m in late August).
 
 - Light pollution (`nightGlow.ts`): low clouds aren't lit from below by the towns. At the
   night white balance (4000 K) the domes come out only mildly warm (sodium ~2100 K stays

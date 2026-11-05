@@ -13,14 +13,14 @@ climate or place"), with place fields only for one place's difference.
 | 2 | Trees in autumn and winter: turned leaves, leaf fall, bare crowns; fresh spring green | done (0.98) |
 | 3 | Grass, ground cover and distant land by season (dry Mediterranean summer, brown boreal and tundra) | done (0.98) |
 | 4 | Animals: colonies in season, humpback migration, seal haul-out, winter dormancy (ghost crabs, shore crabs, spiny-tailed lizards), geese and ducks by climate and season, polar gulls | done (0.98) |
-| 5 | Seasonal mountain snow line (incl. winter snow on summer-bare mountains) | next, ~1–2 h |
+| 5 | Seasonal mountain snow line (incl. winter snow on summer-bare mountains) | done (0.99) |
 | 6 | Sargassum season (Caribbean and subtropical Atlantic wrack Apr–Sep) | next, ~1 h |
 | 7 | Tropical dry season: savanna coasts brown in the dry months (`dryMonths` per place) | next, ~½ day |
 | 8 | Leaf litter on the ground and in the wrack under deciduous trees | after a visibility count, ~½–1 day |
 | 9 | Snow cover and ice foot: built as PLAN_BIOMES 13; this plan gives the months | later, own plan, ~2–4 days |
 | 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
 
-Order: 5–7 together (about a day), then the count for 8, then the snow plan (9). Estimates
+Order: 6–7 together, then the count for 8, then the snow plan (9). Estimates
 include tests, `diff.mjs`, renders and docs.
 
 ## Decisions
@@ -90,19 +90,19 @@ Jul–Aug. Grass `dry` by climate (§2.2).
 | Geese, ducks | presence by climate × month (`waterfowlSeason`) | `props/migratory.ts` |
 | Gulls | polar climate Nov–Mar ×⅓ | `props/birds.ts` |
 
-## 5. Seasonal snow line (not built)
+## 5. Seasonal snow line (done, 0.99)
 
-- `pickLandform` (`params.ts`, `snowLine`) draws a snow line as a share of the mountain's
-  height, or `Infinity` for mountains with no snow. Scale it after the draw by the season in the
-  day's hemisphere (`seasonDay`): winter ×0.6, late summer ×1.2. This is a function of the
-  date, so no draw and no stream.
-- **Gap to close:** `Infinity × 0.6` is still `Infinity`, so a temperate mountain that's bare in
-  summer never gets winter snow. Give non-desert mountains above ~1500 m a winter snow line
-  (e.g. 0.7–0.9 of the height, from `hash()` of the landform so it's stable). Check the share of
-  days that change with `params.mjs --ref HEAD`.
-- Off with `phenology: false` (summer snow line).
-- Done when: an overlook with mountains on a temperate January day has white tops that the same
-  place in August doesn't; polar and nordic tops reach lower in winter; desert unchanged.
+`seasonalSnowLine` (`phenology.ts`, table `SNOW_SEASON`) runs after `pickLandform`'s draws, by
+climate and date; numbers in SEASONS.md §4. Off with `props.phenology: false` (the line as drawn).
+What changed from the first plan, after checking its numbers:
+
+- A flat "non-desert above ~1500 m" would have whitened tropical peaks, so the minimum height and
+  the amount are by climate, and tropical and arid lines stay as drawn.
+- A winter line of 0.7–0.9 of `height` misses most ranges (their peaks reach ~0.8 of it) and sits
+  far too high on tall volcanoes, so summer-bare mountains get a winter altitude in metres, capped
+  at 0.85 of the real peak.
+- Low lines crossed the slopes in a straight edge, so the snow edge's noise is stronger
+  (`props/landforms.ts`).
 
 ## 6. Sargassum season (not built)
 
@@ -169,8 +169,8 @@ before code. It needs to settle:
   of season where the tables say; Oman humpbacks all year.
 - `diff.mjs --off '{"phenology":false}'` on a temperate autumn framed day and a Mediterranean
   August day; renders at 1080p, 16 frames.
-- Phase 5: snow line by month over `allParams()` (lower in winter, unchanged for deserts, finite
-  in winter for tall non-desert mountains), both hemispheres.
+- Phase 5 (`test/phenology.test.ts`): snow line by month and climate, both hemispheres; tropical
+  and arid unchanged; off switch keeps the draw.
 - Phase 6: sargassum share by month over `allParams()` (`expectShare`).
 - Phase 7: `dryMonths` table over every place that has one; `dry` in and out of the months.
 - Phase 8: the visibility count first; then the prop's mesh checks (deterministic, finite, base

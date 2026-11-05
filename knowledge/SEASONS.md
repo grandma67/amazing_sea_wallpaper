@@ -165,8 +165,22 @@ offshore:
 - **Snow and ice on the shore:** polar and boreal winters (and nordic late winter) cover the
   land; an ice foot forms at the high-water line. Planned in PLAN_BIOMES phase 13 (snow and ice
   foot); the season tables here give its months (see the plan).
-- **Mountain snow line:** lower in winter, higher in late summer. Today `pickLandform` draws it
-  without the season.
+- **Mountain snow line** (`phenology.ts` `SNOW_SEASON`): lowest mid-January to mid-March, highest
+  mid-August to mid-September, in the day's hemisphere. Alps 1961–2010: median snow line ~800 m in
+  winter, ~3080 m in summer (a station-based cover median, so a rough guide). The drawn line is
+  scaled: winter ×0.6 (polar, boreal, temperate), ×0.7 (Mediterranean), ×0.85 (subtropical) *(est.)*,
+  late summer ×1.2 *(est.)*. Mountains drawn bare come down to a winter altitude if tall enough:
+
+  | Climate | Bare mountain whitens from | Winter line | |
+  |---|---|---|---|
+  | Polar | 900 m | 100–400 m | *(est.)* |
+  | Boreal | 900 m | 200–600 m | *(est.)* |
+  | Temperate | 1500 m | 800–1300 m | Alps' winter median, above |
+  | Mediterranean | 2000 m | 1200–1700 m | *(est.)* |
+  | Subtropical | 2500 m | 1800–2300 m | *(est.)* |
+
+  Tropical and arid stay as drawn. Mauna Kea (4207 m) has snow mostly November–March and has had
+  it down to about 2800 m, so a tropical mountain needs real height.
 - **Baltic sea ice:** the Gulf of Bothnia freezes Jan–Apr most winters *(est.)*; only Arctic ice
   exists today.
 - **Sargassum season** (Caribbean, Apr–Sep peak) *(est.)*: debris, later.
@@ -181,6 +195,8 @@ offshore:
 - Europe yellow vs North America red (phys.org, 2021): https://phys.org/news/2021-11-north-american-fall-red-europe.pdf
 - Tundra autumn colour (Popular Science): https://www.popsci.com/science/tundra-fall-foliage/
 - Svalbard snowmelt: https://pureportal.spbu.ru/ru/publications/physical-and-optical-properties-of-snow-covering-arctic-tundra-on-svalbard(eceba47e-64e1-449d-a07a-a7e7072589af).html
+- Snow line: Alps 1961–2010, https://link.springer.com/article/10.1007/s00704-012-0688-9 ; Mauna Kea,
+  https://www.hawaiimagazine.com/snow-on-mauna-kea/
 - Tropical almond: https://biodiversitysg.nparks.gov.sg/our-biodiversity/flowering-plants/trees/ketapang-/ ,
   https://apps.worldagroforestry.org/treedb2/speciesprofile.php?Spid=1616
 - Mediterranean summer dormancy: https://pmc.ncbi.nlm.nih.gov/articles/PMC2803600 ,

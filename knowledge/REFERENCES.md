@@ -72,7 +72,7 @@ Sources behind built features. Research for planned work lives with its plan: co
 
 ## Shore and animals
 
-- Seasons (0.98; SEASONS.md has the links): Woodland Trust Nature's Calendar autumn analyses
+- Seasons (0.98, snow line 0.99; SEASONS.md has the links): Woodland Trust Nature's Calendar autumn analyses
   (UK oak first tint ~2 Oct, full tint ~4 Nov, bare ~1 Dec); the Swedish citizen-science
   autumn colour study (EGU 2014, 2017: birch and poplar turn later further north); phys.org 2021
   (Europe's yellow vs North America's red autumns); Popular Science on tundra autumn colour;

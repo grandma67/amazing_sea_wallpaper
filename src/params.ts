@@ -25,6 +25,7 @@ import { choose, climateTitle, latitudeIn, pickPlace, placeBiome, plantsFor, san
 import { Random } from './random'
 import { apply, ECLIPTIC_POLE, eclipticOffset, skyRotation } from './skyClock'
 import { haulOutSeason } from './animalSeasons'
+import { seasonalSnowLine } from './phenology'
 import { monthInSeason, season, seasonMonth } from './seasons'
 import { reefFor, reefShelter, type Reef } from './reef'
 import { flatGround, flatWaterline, tidalFlatFor, type SaltMarsh, type TidalFlat } from './tidalFlat'
@@ -172,7 +173,8 @@ export interface LandformParams {
   /** Peak height above the sea and width across the view (m). */
   height: number
   width: number
-  /** Height above which snow lies (m); Infinity for none. */
+  /** Height above which snow lies on this day (m; phenology.ts
+   * `seasonalSnowLine`); Infinity for none. */
   snowLine: number
   plume: 'steam' | 'ash' | null
   /** Lava glowing at the crater and down the flank (dusk and dark only). */
@@ -1934,6 +1936,8 @@ function buildParams(
   const pinnipeds = pickPinnipeds(seed, date, basin.name, biome, climate, latitudeDeg, coast.type, spec.pinnipeds, spec.haulOut)
   const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog, spec.lighthouse)
   const landform = pickLandform(seed, biome, place.mountains, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
+  // After the draws: the season moves the snow line, by date and climate.
+  if (landform != null && spec.props?.phenology !== false) landform.snowLine = seasonalSnowLine(landform, climate, { date, latitudeDeg })
   const islands = pickIslands(seed, biome, place.mountains, spec.islands)
   if (storm != null) storm.shelf = shelfCloudFor(storm, Random.derive(seed, 'shelf-cloud'), spec.shelfCloud)
   // The shelf is the storm's low cloud there: scud at the same height would
