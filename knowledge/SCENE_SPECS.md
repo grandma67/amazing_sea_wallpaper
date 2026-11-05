@@ -62,9 +62,9 @@ Allowed values are in `sceneSpec.ts`.
   `haulOut`.
 - **Camera:** `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`. `horizonFraction` = how far
   **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
-- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,debris,shoreLife,mangroves,wildlife}`.
+- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,leafLitter,debris,shoreLife,mangroves,wildlife}`.
   Off for `diff.mjs`: `false` (booleans and kinds), `[]` (`vegetation`), `null` (`debris`,
-  `shoreLife`, `wildlife`). `phenology: false` keeps plants and ground in their summer look
+  `shoreLife`, `wildlife`). `leafLitter: false`: no fallen leaves or litter colour. `phenology: false` keeps plants and ground in their summer look
   (no autumn leaves, bare trees or dry grass, and the mountains' snow line as drawn; `phenology.ts`); the season itself comes from the
   date (`date` + `place`): Maine 2025-10-20 framed (red autumn), Cornwall 2025-01-12 framed
   (bare oaks), the Baltic 2025-09-22 framed with `climate: "boreal"` (yellow birch), the western

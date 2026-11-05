@@ -168,6 +168,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | island kinds | `params.ts` `ISLANDS` | biome; flat places only low ones | **leftover**: phase 10 |
 | leaf colour and fall, grass dryness, deciduous share | `phenology.ts` | climate × hemisphere; `AUTUMN_RED` and the deciduous lenga by place | right |
 | snow line by season | `phenology.ts` `SNOW_SEASON` | climate × hemisphere | right (the drawn line under it is the `pickLandform` leftover above) |
+| fallen leaves by season | `phenology.ts` `LITTER_DAYS` | climate × hemisphere | right |
 | colony birds, humpbacks, haul-outs, crab and lizard dormancy, waterfowl, gulls by season | `animalSeasons.ts` | climate × season (colonies, seals by kind) | right |
 | beach flowers | `props/shoreLife.ts` `FLOWERS` | biome × ocean × month | **leftover**: Florida and Natal can bloom Mediterranean sea daffodil and horned poppy (should follow climate) |
 | shells, starfish | `props/shoreLife.ts` `SHELLS` | biome × ocean | leftover (minor) |
@@ -244,7 +245,7 @@ December noon is 17° up; changes many winter days, ask first).
 ## Known issues
 
 - Seasons (0.98): no snow cover in polar and boreal winters yet (PLAN_BIOMES 13, SEASONS_PLAN
-  phase 9), so winter tundra shows as brown grass under white mountains; no leaf litter under bare trees; no larch (conifers stay green); tropical wet and dry seasons
+  phase 9), so winter tundra shows as brown grass under white mountains; no leaves in the wrack; no larch (conifers stay green); tropical wet and dry seasons
   aren't modelled (only the tropical almond's red). The distant woods' autumn tint
   (`canopyTint` on landforms and islands) was tested in numbers, not checked in a render.
 - Drawn snow lines (`pickLandform`, biome-keyed): tropical mountains can have snow below 3 km

@@ -27,6 +27,10 @@ export interface Phenology {
   climate: Climate
   /** The tropical almond's twice-yearly red (a different clock). */
   tropical: { on: number; turned: number }
+  /** Fallen leaves: how much lies on the ground under a deciduous tree, and
+   * how fresh it is (1 still coloured … 0 weathered brown; each 0–1). */
+  litter: number
+  litterFresh: number
   placeId: string
   south: boolean
 }
@@ -43,7 +47,7 @@ export interface PlantSeason {
 }
 
 /** Plants in full summer leaf: what every day looked like before. */
-export const SUMMER: Omit<Phenology, 'climate' | 'placeId' | 'south'> = { on: 1, turned: 0, fresh: 0, dry: 0, tropical: { on: 1, turned: 0 } }
+export const SUMMER: Omit<Phenology, 'climate' | 'placeId' | 'south'> = { on: 1, turned: 0, fresh: 0, dry: 0, tropical: { on: 1, turned: 0 }, litter: 0, litterFresh: 0 }
 
 /**
  * A value that rises from 0 at day `a` to 1 at `b`, holds, and falls back to
@@ -70,6 +74,18 @@ export const LEAF_DAYS: Partial<Record<Climate, { out: number; full: number; tin
   // November, bare ~1 December.
   temperate: { out: 105, full: 130, tint: 268, peak: 300, bare: 335 }
 }
+
+/** Fallen leaves by climate (SEASONS.md §2.5; `band`): building from peak
+ * colour to bare, then gone under the spring's growth (temperate) or the first
+ * lasting snow (boreal, polar: phase 9's months). */
+export const LITTER_DAYS: Partial<Record<Climate, { a: number; b: number; c: number; e: number }>> = {
+  polar: { a: 248, b: 268, c: 269, e: 285 },
+  boreal: { a: 263, b: 288, c: 320, e: 340 },
+  temperate: { a: 300, b: 335, c: 105, e: 135 }
+}
+
+/** Days after peak colour until fallen leaves have weathered brown (est.). */
+const LITTER_WEATHERS = 90
 
 /** Grass and ground cover dryness by climate (SEASONS.md §2.2): rise, hold,
  * fall (days), and how dry at most. */
@@ -123,7 +139,11 @@ export function phenologyFor(day: PhenologyDay): Phenology {
   // (calendar months: two dry seasons a year).
   const doy = seasonDay({ date: day.date, latitudeDeg: 1 })
   const almond = Math.max(band(doy, 1, 25, 40, 60), band(doy, 182, 205, 222, 243))
-  return { ...base, on, turned, fresh, dry, tropical: { on: 1 - 0.5 * almond, turned: almond } }
+  // Fallen leaves: the almond's rot within weeks, so they follow its shedding.
+  const fall = LITTER_DAYS[climate]
+  const litter = climate === 'tropical' ? almond : fall == null ? 0 : band(d, fall.a, fall.b, fall.c, fall.e)
+  const litterFresh = climate === 'tropical' || fall == null ? 1 : Math.max(0, 1 - ((((d - fall.a) % 365) + 365) % 365) / LITTER_WEATHERS)
+  return { ...base, on, turned, fresh, dry, tropical: { on: 1 - 0.5 * almond, turned: almond }, litter, litterFresh }
 }
 
 /** Coasts that don't follow the Caribbean's sargassum months: West Africa has
@@ -176,6 +196,27 @@ export function autumnColors(kind: VegetationKind, phen: Phenology): readonly RG
   if (AUTUMN_RED.has(phen.placeId)) return [RED, ORANGE, GOLD, RED, YELLOW]
   if (phen.climate === 'boreal') return [YELLOW, GOLD, YELLOW, ORANGE]
   return [GOLD, ORANGE, COPPER, YELLOW, BROWN]
+}
+
+/** A fallen leaf's length here (m, est.: oak and beech ~10 cm, the southern
+ * beeches' ~4 cm, birch ~5 cm, tundra shrubs ~2.5 cm, tropical almond ~20 cm). */
+export function fallenLeafSize(kind: VegetationKind, phen: Phenology): number {
+  if (phen.climate === 'tropical') return 0.2
+  if (kind === 'birch') return 0.05
+  if (kind === 'bush') return phen.climate === 'temperate' ? 0.04 : 0.025
+  return phen.south ? 0.04 : 0.1
+}
+
+/** A leaf weathered on the ground. */
+export const LITTER_BROWN: RGB = [0.075, 0.048, 0.026]
+
+/** The colour fallen leaves give the ground, seen from afar: the turned
+ * colours of the day's deciduous `kinds`, weathering brown, and dimmer than one
+ * lit leaf (they shade each other and the ground shows between them). */
+export function litterTint(kinds: readonly VegetationKind[], phen: Phenology): RGB {
+  if (kinds.length === 0) return LITTER_BROWN
+  const fresh = mean(kinds.map(k => mean(autumnColors(k, phen))))
+  return mix(LITTER_BROWN, fresh.map(v => v * 0.45) as RGB, 0.7 * phen.litterFresh)
 }
 
 /** What a plant builder gets for `kind` today; undefined when it looks as

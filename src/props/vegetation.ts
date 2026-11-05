@@ -325,6 +325,26 @@ const KINDS: Record<VegetationKind, KindSpec> = {
   }
 }
 
+/** Leaves' material. No sun glints: a low sun behind the trees catches the
+ * many edge-on leaves at grazing angles, where the specular lobe spikes, and
+ * the crowns glitter. Real leaves scatter that light through their blades
+ * instead. Skylight reflections (indirect specular) stay. */
+export function plantMaterial(): MeshStandardMaterial {
+  const material = new MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.85,
+    metalness: 0,
+    side: DoubleSide
+  })
+  material.onBeforeCompile = shader => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <lights_fragment_end>',
+      '#include <lights_fragment_end>\nreflectedLight.directSpecular = vec3(0.0);'
+    )
+  }
+  return material
+}
+
 export function createVegetation(ctx: PropContext): InstancedMesh[] {
   const { params } = ctx
   const { coast, biome } = params
@@ -349,22 +369,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       : forcedKinds.map(kind => [kind, biome.vegetation.find(([k]) => k === kind)?.[1] ?? 3] as const)
   const lushness = rng.range(0.4, 1.2)
   const phenology = phenologyFor(params)
-  const material = new MeshStandardMaterial({
-    vertexColors: true,
-    roughness: 0.85,
-    metalness: 0,
-    side: DoubleSide
-  })
-  // No sun glints: a low sun behind the trees catches the many edge-on
-  // leaves at grazing angles, where the specular lobe spikes, and the crowns
-  // glitter. Real leaves scatter that light through their blades instead.
-  // Skylight reflections (indirect specular) stay.
-  material.onBeforeCompile = shader => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <lights_fragment_end>',
-      '#include <lights_fragment_end>\nreflectedLight.directSpecular = vec3(0.0);'
-    )
-  }
+  const material = plantMaterial()
 
   const order: VegetationKind[] = [
     'palm',
@@ -485,6 +490,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       if (indices.length === 0) continue
       const mesh = new InstancedMesh(spec.build(rng, biome.foliage, plantSeason(kind, phenology)), bent.material, indices.length)
       mesh.customDepthMaterial = bent.depth
+      mesh.userData.plantKind = kind
       indices.forEach((i, j) => {
         mesh.setMatrixAt(j, m.copy(placed[i]))
         mesh.setColorAt(j, colors[i])

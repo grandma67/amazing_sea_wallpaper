@@ -136,6 +136,29 @@ straw, glasswort red in autumn (`marshLook`).
 All of this comes from search summaries, not the full papers. West Africa and northeast Brazil are
 left as they were rather than given the Caribbean's months.
 
+### 2.5 Leaf litter
+
+Leaves lie from peak colour until spring's growth covers them (temperate) or the first lasting snow
+buries them (boreal, polar, using the snow plan's months). All dates *(est.)*, from §2.1's table:
+
+| Climate | Builds (day) | Gone (day) |
+|---|---|---|
+| Temperate | 300–335 | 105–135 |
+| Boreal | 263–288 | 320–340 |
+| Polar | 248–268 | 269–285 |
+| Tropical (almond) | its shedding months only: they rot within weeks *(est.)* | |
+
+- **It lasts:** oak and beech litter loses only part of its mass in a year or two (beech ~13% in a
+  year in Turkey; ~40% oak and ~26% beech in 24 months in microcosms; oak disappears ~1.7 times as
+  fast as beech in a French field study), from search summaries. So a winter floor is a real look.
+- **Colour:** we found no source on how fast it fades. Leaves weather brown over 90 days *(est.)*.
+- **Sizes** *(est.)*: oak and beech ~10 cm, southern beeches ~4 cm, birch ~5 cm, tundra shrubs ~2.5
+  cm, tropical almond ~20 cm.
+- **Density** *(est.)*: a real floor has hundreds of leaves per m²; we draw 60, on the litter colour.
+- **In the wrack: not modelled.** On Oregon's rocky coast red alder leaves arrive by small streams
+  in the autumn, and in the wrack range from negligible to the main detritus by beach, so a rule by
+  season wouldn't hold.
+
 ## 3. Animals
 
 ### 3.1 Seabird colonies (attendance)
@@ -223,9 +246,13 @@ offshore:
   it down to about 2800 m, so a tropical mountain needs real height.
 - **Baltic sea ice:** the Gulf of Bothnia freezes Jan–Apr most winters *(est.)*; only Arctic ice
   exists today.
-- **Leaf litter:** autumn leaves on the ground and in the wrack under deciduous trees: later.
 
 ## Sources
+
+- Leaf litter (§2.5), from search summaries: Jonard et al. 2008 (Canadian Journal of Forest
+  Research), Kara et al. 2014 (Journal of Soil Science and Plant Nutrition), Sariyildiz & Anderson
+  2003, and a study of terrestrial matter in Oregon's rocky intertidal
+  (https://www.aminer.org/pub/5c7573f8f56def97988f634f/consumption-of-terrestrial-organic-matter-in-the-rocky-intertidal-zone-along-the).
 
 - Woodland Trust, Nature's Calendar autumn analyses (2019 records, 2022):
   https://naturescalendar.woodlandtrust.org.uk/blog/2020/recording-autumn-phenology-an-analysis-of-2019-records

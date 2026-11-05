@@ -124,6 +124,13 @@ tool gotchas: TOOLS.md.
   same tree just loses its leaves (`test/phenology.test.ts` checks the next draw is the same).
   Likewise a choice that zeroes a count in a season still makes the draw (shore crabs in
   winter): a skipped draw moves every draw after it (shells).
+- A diff's straight-edged patch on the ground can be clumps of grass in front of a slightly changed
+  ground, not a seam: crop `on` and `off` at the same place and project the suspect's rectangle
+  (`params.mjs` `p.ctx`, `.project(camera)`) before changing a shader.
+- A soft mask plus noise needs the noise faded out at the mask's edge (`under + k * smoothstep(0,
+  0.25, under) * noise`), or a threshold on the sum turns on abruptly where the mask leaves 0.
+- A pale, even colour under a tree reads as a stain, and a map's discs as neat ellipses from above:
+  fainter, warped, and in drifts; the leaves on top carry the look.
 - The `southern` hemisphere shift is half a year: 2 July south is day 365, 3 July day 1
   (`seasonDay`), not 2 July.
 

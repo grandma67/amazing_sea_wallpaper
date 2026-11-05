@@ -1072,6 +1072,12 @@ uniform float tideHigh;
 uniform float tideSpring;
 uniform vec3 groundCover;
 uniform float groundCoverAmount;
+// Fallen leaves' colour under deciduous trees (props/leafLitter.ts): a map of
+// the crowns' ground in world space; rect = x0, z0, 1/width, 1/depth.
+uniform sampler2D litterMap;
+uniform vec4 litterRect;
+uniform vec3 litterColor;
+uniform float litterAmount;
 uniform float pixelAngle;
 // Rocky shores: the rock's colour and the lichens' (linear albedo).
 uniform vec3 rockColor;
@@ -1268,6 +1274,19 @@ void main() {
   cover *= smoothstep(0.75, 0.9, N.y) * groundCoverAmount;
   vec3 coverAlbedo = groundCover * (0.6 + 0.8 * fbm(q / 9.0 + 4.0));
   albedo = mix(albedo, coverAlbedo, cover);
+  if (litterAmount > 0.0) {
+    // Warped, so a crown's ground has no neat outline.
+    vec2 warp = 7.0 * (vec2(vnoise(q / 6.0 + 41.0), vnoise(q / 6.0 + 53.0)) - 0.5) + 2.0 * (vec2(vnoise(q / 1.4 + 61.0), vnoise(q / 1.4 + 67.0)) - 0.5);
+    float under = texture2D(litterMap, (p + warp - litterRect.xy) * litterRect.zw).r;
+    if (under > 0.0) {
+      float close = 1.0 - smoothstep(0.05, 0.4, footprint);
+      // In drifts, and thin on bare ground, where the wind doesn't leave them.
+      float litter = smoothstep(0.1, 0.75, under + 0.8 * smoothstep(0.0, 0.25, under) * (fbm(q / 3.0 + 31.0) - 0.5));
+      litter *= litterAmount * (0.4 + 0.6 * cover / max(groundCoverAmount, 0.01)) * smoothstep(0.55, 0.8, N.y) * smoothstep(tideHigh + runup, tideHigh + runup + 0.4, h);
+      vec3 leaves = litterColor * (0.7 + 0.6 * fbm(q / 0.9 + 37.0) + close * 0.5 * (vnoise(q * 14.0) - 0.5));
+      albedo = mix(albedo, leaves, 0.65 * litter);
+    }
+  }
 
   // Wet sand below the run-up line: darker and glossy.
   float wetLine = runup * (0.85 + 0.3 * vnoise(vec2(sa.y / 25.0, 7.0)));
@@ -1437,6 +1456,10 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       tideSpring: { value: tideMarks(coast).spring },
       groundCover: { value: new Color(...groundCoverTint(params.biome.groundCover, phenologyFor(params))) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
+      litterMap: { value: null as Texture | null },
+      litterRect: { value: new Vector4(0, 0, 0, 0) },
+      litterColor: { value: new Color() },
+      litterAmount: { value: 0 },
       rockColor: { value: new Color(...(coast.rock?.color ?? [0.3, 0.3, 0.3])) },
       terrainView: { value: Math.max(0, TERRAIN_VIEWS.indexOf(params.debug?.terrainView ?? 'none')) },
       gridStep: { value: new Vector2(ringStep(rings, TERRAIN_INNER_RADIUS, TERRAIN_OUTER_RADIUS), wedge.span / segments) },

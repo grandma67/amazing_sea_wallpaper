@@ -71,6 +71,9 @@ export interface PropOverrides {
   /** false: plants and ground keep their summer look whatever the date
    * (phenology.ts: autumn leaves, bare trees, dry grass). */
   phenology?: boolean
+  /** false: no fallen leaves or litter colour under deciduous trees
+   * (props/leafLitter.ts). */
+  leafLitter?: boolean
   /** null: nothing washed up; fields replace the drawn ones. */
   debris?: Partial<DebrisSpec> | null
   /** null: no crabs, shells or flowers; fields replace the drawn ones. */
@@ -356,6 +359,7 @@ const SPEC = object({
     rockEdge: boolean,
     vegetation: listOf(oneOf(...PLANTS)),
     phenology: boolean,
+    leafLitter: boolean,
     debris: object(
       { driftwood: number, rootWads: boolean, wrack: oneOf(null, 'kelp', 'seagrass', 'sargassum'), wrackAmount: number, coconuts: number },
       true

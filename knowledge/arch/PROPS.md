@@ -23,6 +23,15 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   draws; as the leaves go, 0–3 fine twigs per tip show (`TWIG`). Spring's `fresh` leaves are
   paler. `grass()` turns more blades straw with `dry`. Colony birds, crabs, lizards, humpbacks,
   waterfowl and gulls read `animalSeasons.ts`.
+- **Leaf litter** (`props/leafLitter.ts`, 0.103): `litterFor()` from `Phenology.litter`, not random.
+  `deciduousTrees()` reads the plants' meshes (`userData.plantKind`, `geometry.userData.deciduous`
+  from `leaves()`). Each leaf is `treeLeaf(tree, i)`, a hash of the tree's position and its index,
+  so a moving camera sees the same leaves: `leafShare()` thins them by size on screen (full to
+  15 px, none under 3 px), then an even thinning keeps `MAX_LEAVES` (16,000 instances, 8 triangles,
+  4 variants, no shadows cast). `litterField()` writes a soft disc per crown in view into a
+  world-space R8 map (≤ 1024², ≥ 0.5 m a texel, empty rim), passed through `group.userData.litter`
+  to `terrain.ts` `litterMap`: warped, in drifts, thinner on bare ground, above the high-tide mark.
+  Distant forests on landforms and islands keep `canopyTint` (their ground doesn't show).
 - **Trees** (`trees.ts`, `props/vegetation.ts`, `wind.ts` bending): per-species leaf meshes folded
   on the midrib (oval oak/almond, ovate birch, lance olive, needles stone pine, rounded shrubs,
   pinnate acacia); bark relief as geometry (28 sides, rings every 15 cm, fissures to 5 cm,

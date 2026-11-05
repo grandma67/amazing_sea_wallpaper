@@ -16,12 +16,11 @@ climate or place"), with place fields only for one place's difference.
 | 5 | Seasonal mountain snow line (incl. winter snow on summer-bare mountains) | done (0.99) |
 | 6 | Sargassum season (Caribbean and subtropical Atlantic wrack Apr–Sep) | done (0.100) |
 | 7 | Tropical dry season: savanna coasts brown in the dry months (`drySeason` per place) | done (0.101, more coasts 0.102) |
-| 8 | Leaf litter on the ground and in the wrack under deciduous trees | after a visibility count, ~½–1 day |
+| 8 | Leaf litter: real leaves under deciduous trees near the camera, litter colour on the ground further off | done (0.103) |
 | 9 | Snow cover and ice foot: built as PLAN_BIOMES 13; this plan gives the months | later, own plan, ~2–4 days |
 | 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
 
-Order: the drawn snow lines (open problem 1, if approved), then the count for 8, then the snow
-plan (9). Estimates include tests, `diff.mjs`, renders and docs.
+Order: the drawn snow lines (open problem 1, if approved), then the snow plan (9). Estimates include tests, `diff.mjs`, renders and docs.
 
 ## Open problems
 
@@ -38,7 +37,6 @@ As of 0.102 (2026-11-06).
 2. **Dry coasts left out or wrong within a place:** `mainland-se-asia` and `philippines` have no dry
    season, and Madagascar's east coast dries with Mozambique (SEASONS.md §2.2). Separating them needs
    more than latitude.
-3. **Phase 8 may not be built:** it depends on the visibility count.
 
 **Not checked in a render**
 
@@ -63,7 +61,8 @@ As of 0.102 (2026-11-06).
 
 7. **White mountains above brown ground:** winter tundra and boreal shores stay brown grass with no
    snow cover until phase 9, which the lower snow lines make more noticeable.
-8. **Still not modelled:** leaf litter (phase 8) and larch (conifers stay green; no phase).
+8. **Still not modelled:** larch (conifers stay green; no phase), and leaves in the wrack (phase 8
+   left them out: the evidence varies from negligible to dominant by beach, §2.5 in SEASONS.md).
 
 **From phase 6**
 
@@ -205,17 +204,29 @@ slight warming of the ground. A backlit view and the wet-tropics exception weren
 `--stats 'p => src.phenology.phenologyFor(p).dry > 0 …'`: 44 of 1095 days have savanna-dry grass, 13
 of them open sea.
 
-## 8. Leaf litter (not built)
+## 8. Leaf litter (done, 0.103)
 
-- **First, count:** real leaves are 5–10 cm and read only within ~20 m. Count framed and
-  shoreline days with a deciduous tree within ~20 m of the camera in frame (`view()` in
-  `test/days.ts`) in autumn. If that's rare, drop this phase or make it a ground tint.
-- If built: a tint on the ground cover under deciduous crowns plus a few leaves mixed into the
-  wrack, coloured from `Phenology.autumn`, amount from `1 − on` (leaves that fell). `hash()` for
-  in-mesh detail; placement on its own stream (`ctx.rng('leafLitter')`).
-- Spec field `leafLitter`, off switch `props.leafLitter: false`.
-- Done when: `diff.mjs --off '{"props":{"leafLitter":false}}'` shows a visible change on a
-  temperate November framed day (no `⚠ invisible`), and nothing in summer.
+`props/leafLitter.ts`, `phenology.ts` `LITTER_DAYS` and `litterTint`, `terrain.ts` `litterMap`.
+Numbers: SEASONS.md §2.5. Off with `props.leafLitter: false` or `props.phenology: false`.
+
+- **The count first.** Within the season, a deciduous tree stands under 20 m in frame on 8 of 1095
+  days, which the plan called rare. Built anyway, by decision: realism first, and a future
+  move-around mode will walk up to trees a still frame never shows close. A 5–10 cm leaf at those
+  distances is 6–20 px at 1080p, so it reads clearly where it shows.
+- **Two levels, no seam.** Real leaves while a leaf is at least 3 px long (`leafShare`); past that,
+  a world-space map of the ground under each deciduous crown, which the terrain shader reads with
+  one fetch. The map also lies under the leaves.
+- **Ready for a moving camera.** A leaf comes from a hash of its tree's position and its index, not
+  a stream or the view; thinning is a threshold on its own hash, so coming closer only adds leaves.
+  Only `createLeafLitter`'s range, frustum and budget and `litterField`'s frustum test read the
+  camera: a live mode re-runs those per tree (or drops the frustum test).
+- **What changed from the first plan:** no leaves in the wrack (the evidence varies too much by
+  beach for a rule by season); no new stream or spec force, since it isn't random and every draw
+  stays as it was (`--ref`: 0 of 1095 days changed).
+- **Seen in renders** (`diff.mjs --off`, 16 frames): temperate January and November, boreal October,
+  tundra September, an overlook for the colour alone, backlit, and real days 2026-10-16 (Norway) and
+  2026-02-25 (British Columbia). 2026-10-12 (Iceland) showed nothing: its birches' ground is out of
+  frame or on the shore. Render time +2% (at worst +7%); `check:restart` passes.
 
 ## 9. Snow cover and ice foot (later, own plan)
 
@@ -256,5 +267,6 @@ before code. It needs to settle:
   and arid unchanged; off switch keeps the draw.
 - Phase 6: sargassum share by month over `allParams()` (`expectShare`).
 - Phase 7: `drySeason` over every place; `dry` in and out of the months.
-- Phase 8: the visibility count first; then the prop's mesh checks (deterministic, finite, base
-  near y = 0) and `diff.mjs` with the off switch.
+- Phase 8 (`test/leafLitter.test.ts`): the curve in every climate and month, a leaf fixed by its
+  tree, thinning, mesh checks, dry ground, budget, weathering, plants unchanged, off switches, the
+  map's rim.

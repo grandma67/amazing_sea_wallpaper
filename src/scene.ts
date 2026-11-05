@@ -74,6 +74,7 @@ import { SUN_ANGULAR_RADIUS, type SceneParams } from './params'
 import { PropContext } from './props/context'
 import type { LanternInfo } from './props/lighthouse'
 import { createProps } from './props'
+import type { LitterField } from './props/leafLitter'
 import { reportProps } from './props/report'
 import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './props/shipLights'
 import { setGlowBrightness } from './props/storm'
@@ -498,6 +499,13 @@ export async function renderScene(
   tu.skyIrradiance.value.copy(skyIrradiance)
   tu.pixelAngle.value = vfov / height
   tu.stoneMeshRadius.value.set(...(props.userData.stoneRadius as [number, number, number]))
+  const litter = props.userData.litter as LitterField | null
+  if (litter != null) {
+    tu.litterMap.value = litter.texture
+    tu.litterRect.value.set(...litter.rect)
+    tu.litterColor.value.setRGB(...litter.color)
+    tu.litterAmount.value = litter.amount
+  }
   scene.add(terrain)
 
   // --- Sun light, shadows and props -----------------------------------------

@@ -7,6 +7,7 @@ import { createRollCloud, createShelfCloud } from './cloudEvents'
 import { createColony } from './colony'
 import { createDebris } from './debris'
 import { createIce } from './ice'
+import { createLeafLitter, litterField } from './leafLitter'
 import { createIslands } from './islands'
 import { createLandforms } from './landforms'
 import { createLighthouse } from './lighthouse'
@@ -67,7 +68,10 @@ export function createProps(ctx: PropContext): Group {
   add('lighthouse', () => createLighthouse(ctx, island))
   group.userData.waterIslands = off ? [] : waterIslandsOf(ctx, group.children)
   add('surf', () => createIslandSpray(ctx, group.userData.waterIslands as IslandWater[]))
-  add('vegetation', () => createVegetation(ctx))
+  const plants = add('vegetation', () => createVegetation(ctx))
+  add('leaf-litter', () => createLeafLitter(ctx, plants))
+  // The litter's colour on the ground (terrain.ts litterMap).
+  group.userData.litter = off ? null : litterField(ctx, plants)
   add('salt-marsh', () => createSaltMarsh(ctx))
   add('mangroves', () => createMangroves(ctx))
   // For their wakes and the hull cut out of the sea (ocean.ts setOceanShips).

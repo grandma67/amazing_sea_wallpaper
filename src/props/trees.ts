@@ -287,6 +287,8 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
   const key = hash(tips[0].p.x * 13.1 + tips.length, tips[0].p.z * 7.7 + tips[0].p.y)
   const season = f.season != null && key < f.season.deciduous ? f.season : undefined
   const early = (hash(key * 91.3, 3.3) - 0.5) * 0.3
+  // For what falls from it (props/leafLitter.ts).
+  b.userData.deciduous = season != null
   for (const tip of tips) {
     // Leafless twigs: as the leaves fall, the fine twigs they hid show, a
     // few per tip (hashed: no draws).

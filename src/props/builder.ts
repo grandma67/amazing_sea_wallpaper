@@ -7,6 +7,8 @@ export class MeshBuilder {
   private readonly positions: number[] = []
   private readonly colors: number[] = []
   private readonly indices: number[] = []
+  /** Copied to the built geometry (what a reader needs to know of its shape). */
+  readonly userData: Record<string, unknown> = {}
 
   vertex(p: Vector3, color: [number, number, number]): number {
     this.positions.push(p.x, p.y, p.z)
@@ -150,11 +152,13 @@ export class MeshBuilder {
       this.positions.push(other.positions[i] + offset.x, other.positions[i + 1] + offset.y, other.positions[i + 2] + offset.z)
     }
     this.colors.push(...other.colors)
+    Object.assign(this.userData, other.userData)
     for (const index of other.indices) this.indices.push(index + base)
   }
 
   build(): BufferGeometry {
     const geometry = new BufferGeometry()
+    Object.assign(geometry.userData, this.userData)
     geometry.setAttribute('position', new BufferAttribute(new Float32Array(this.positions), 3))
     geometry.setAttribute('color', new BufferAttribute(new Float32Array(this.colors), 3))
     geometry.setIndex(this.indices)
