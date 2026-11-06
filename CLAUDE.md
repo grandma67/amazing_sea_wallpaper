@@ -42,6 +42,11 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Research briefly (1–2 searches; cite only what you read), then encode the result as a data table by place or climate (biome only for rock), ocean, month and time of day (e.g. `FLOWERS` in `props/shoreLife.ts`, `debrisFor()` in `props/debris.ts`). Test the table.
 - Terrain, shore and water-level features: read `arch/COAST.md` "Coordinates and heights" first (s = 0 is the land, not the water; who measures from the shore; the readers of "A new seabed or shore profile") and write the geometry down before code, with a forced-extremes table (each tide stage × composition: camera and dry land); test it with `expectDryCameras` (`test/days.ts`).
 
+- **Before the first render, write down (in the plan or to the user):**
+  1. the docs this section names for the task, opened, not grepped (a skipped COAST.md cost a bug on sea ice);
+  2. the real sizes and shapes, from the reference photos, before reusing a mesh that's nearby;
+  3. how many days it touches (`params.mjs --stats`). If that's very few, or a neighbouring case would be many more, raise the scope now, not after building.
+
 ## 2. Structure
 - Split choice from geometry: a pure `xxxFor(params, rng)` decides; builders (`logGeometry(rng, …)`) work at real size with the base on y = 0; `createXxx(ctx)` places. The first two are unit-testable without WebGL. Add new choices to `props/choices.ts`.
 - New randomness = its own stream: `ctx.rng('my-feature')` (props) or `Random.derive(seed, 'my-feature')` (`params.ts`). Never add draws to the main `rng` in `generateParams` (that changes every day). In-mesh detail may use `hash()`/`noise3()`.
@@ -62,6 +67,9 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Debugging a look: first grep ARCHITECTURE.md "Known issues" for the symptom. Probe creators and helpers with `params.mjs` (`p.ctx`, `src.X`, `props.X`), not throwaway tests; `profile.mjs` maps the view cone and warns when dry land floods. Then switches and false-colour views in `params.debug` (`tools/DEBUG.md`: grid density, props off, markers, passes, fixed exposure, terrain and sea views) before editing code to test a guess.
 - Prove visibility with `scripts/diff.mjs` before the first full render (`⚠ invisible` = fix before looking): props with `--off '{"props":{"<kind>":false}}'`; sky, light, haze and weather features with their spec field off (`'{"dust":null}'`) on a clear **and** a cloudy sky (clear days skip the clouds pass, so haze and cloud-lit effects can vanish there). Read a contact sheet, not single frames.
 - "Was this already broken?": `snapshot.mjs --ref HEAD` (or `diff.mjs --scene … --ref HEAD`) renders the last commit without stashing.
+- **Real days in the first render round, beside the specs:** `snapshot.mjs --where 'p => …' --sample 8`. Forced specs hide what real days show (seed-dependent bugs, low sun, the coasts you didn't think of). A shader or choice that reads the seed: `--seeds 3`.
+- A look on a mesh: `mesh.mjs --material … --scale … --sun 8` before any scene (~1 s, low sun shows what a high one flatters).
+- A wrong look: find its cause before the next render (grep every term that feeds it, `params.debug`), so one render tests one idea.
 - Check front-lit first, then backlit. Act on snapshot ⚠ warnings before reading images.
 - One render command per step, 16 frames at 1080p. ~3 render rounds per feature (see, fix everything, confirm) on the same dates. If a 4th seems needed, reason from numbers, `--props` and `diff.mjs` instead.
 - Stop the dev server when done: `lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`.

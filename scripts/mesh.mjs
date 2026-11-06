@@ -7,6 +7,14 @@
 //
 // MODULE is under src/; ARGS are JSON, $rng a seeded Random:
 //   node scripts/mesh.mjs 'props/wildlife#hippoGeometry($rng, 0)'
+//
+// To judge a look as the scene draws it, not just the shape:
+// --material 'MODULE#FUNCTION(ARGS)'  the prop's own material for a BufferGeometry
+//                                     (its onBeforeCompile runs: world-position shaders show)
+// --scale X,Y,Z                       real size for a unit mesh (a slab's thickness)
+// --sun DEG                           the sun's height (default about 50): 8 for low sun,
+//                                     where a tiny tilt or a flat facet shows
+//   node scripts/mesh.mjs --material 'props/seaIce#rubbleMaterial(0.8)' --scale 1.2,0.3,1 --sun 8 'props/seaIce#slabGeometry($rng)'
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -21,6 +29,9 @@ const seed = option('seed', 'preview')
 const eye = option('eye', '20')
 const width = option('w', '1600')
 const height = option('h', '1000')
+const material = option('material', null)
+const scale = option('scale', null)
+const sun = option('sun', null)
 if (args.length === 0) {
   console.log("usage: node scripts/mesh.mjs 'props/wildlife#hippoGeometry($rng, 0)' …")
   process.exit(1)
@@ -41,7 +52,7 @@ for (const call of args) {
   const n = (used.get(name) ?? 0) + 1
   used.set(name, n)
   const url = new URL('tools/mesh.html', baseUrl)
-  for (const [k, v] of Object.entries({ call, seed, eye, w: width, h: height })) url.searchParams.set(k, v)
+  for (const [k, v] of Object.entries({ call, seed, eye, w: width, h: height, material, scale, sun })) if (v != null) url.searchParams.set(k, v)
   await page.goto(url.toString())
   await page.waitForFunction(() => window.__preview != null)
   try {

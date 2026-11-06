@@ -17,6 +17,8 @@ node scripts/params.mjs --scene scenes/stony.json --fields title,place.id    # e
 node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'   # prop choices
 ```
 
+A sample to render: `--where 'p => p.seaIce' --sample 8 [--spread 'p => p.place.id']` prints 8 dates, one a line, spread over the groups (`snapshot.mjs --where` runs this for you).
+
 Besides `SceneParams`, expressions see:
 - `p.props`: what the props choose (`props/choices.ts`), on the render's own streams. Placement
   can still miss the frame.

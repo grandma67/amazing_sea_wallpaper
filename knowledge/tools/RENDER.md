@@ -11,6 +11,8 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --scene '{"timeOfDay":"nigh
 node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands --scene $SP/specs.json
 ```
 
+- **Real days:** `--where 'p => p.seaIce' --sample 8` renders 8 days the generator gives that, spread by `--spread EXPR` (default place, coast type and time of day; biggest groups first). It prints which. Use it in a feature's first round: on sea ice these showed streaks, low-sun paving and an unrendered midday that forced specs hid. Narrow to what shows it: `p.coast.type !== "open-sea" && p.timeOfDay !== "night"`.
+- **Other seeds:** `--seeds 3` renders each date or spec three times on seeds of its own (`NAME-s1`…). Forcing keeps what the spec forces; the rest changes. For anything fed by a day's seed or random origin.
 - Defaults are 3840×2160 and the page's 64 frames: always pass size and frames. 16 frames at
   1080p (~2–3 s/day) is enough for geometry and lighting; grainy clouds are expected. 2560×1440
   for small features; placement only: `--w 640 --h 360 --frames 1`; after a shader edit:
@@ -100,7 +102,11 @@ can't show shader terrain: preview that with forced-spec renders.
 
 ```sh
 node scripts/mesh.mjs --out $SP/mesh 'props/wildlife#hippoGeometry($rng, 0)' 'props/wildlife#crocodileGeometry($rng, "nile", 0.4)'
+# As the scene draws it: its own material, its real size, a low sun.
+node scripts/mesh.mjs --out $SP/mesh --material 'props/seaIce#rubbleMaterial(0.5)' --scale 1.1,0.3,1 --sun 8 --eye 3 'props/seaIce#slabGeometry($rng)'
 ```
+
+`--material` is a call like the mesh's; its `onBeforeCompile` runs, so world-position shaders show. The preview has no instancing and none of the scene's shade, so light is neutral: use it for shape and surface, a render for colour against the scene. On sea ice it showed a noise lattice and too-strong bumps that no scene render had.
 
 ## `scripts/contact-sheet.mjs`: look at results cheaply
 

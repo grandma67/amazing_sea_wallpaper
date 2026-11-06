@@ -6,6 +6,12 @@
 // DATE: YYYY-MM-DD, FROM..TO or "today" (default). SPEC: JSON file or inline;
 //   one spec, a list, or { base, scenes } (scenes merged deeply over base).
 //   Saved as the spec's name, else its date, else scene-N.
+// --where EXPR --sample N [--spread EXPR]   real days instead of DATEs: N of the days
+//                     'p => …' keeps, spread across places, coasts and times of day
+//                     (params.mjs --sample). Use it in a feature's first render round:
+//                     forced specs hide what real days show.
+// --seeds N           each render N times, each on its own seed (a shader or a choice
+//                     that depends on the day's seed); saved as NAME-s1, NAME-s2…
 // --out DIR (out)  --w 3840 --h 2160  --frames N (page default 64)  --quality 0.92
 // --url http://localhost:5174/  --angle metal|swiftshader  --channel chrome|chromium
 // --props KINDS|all   per prop: placed, in frame, nearest m, pixel box, CPU build
@@ -18,6 +24,7 @@
 //                     params.debug.probe (tools/DEBUG.md) prints one line per point,
 //                     params.debug.probeLine its band/grain stats and shape
 
+import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
@@ -54,6 +61,10 @@ const channel = option('channel', process.env.CI ? undefined : 'chrome')
 const angle = option('angle', process.env.CI ? 'swiftshader' : 'metal')
 const timeoutMs = Number(option('timeout', 30 * 60_000))
 const sceneArg = option('scene', null)
+const whereArg = option('where', null)
+const sampleArg = option('sample', whereArg != null ? '8' : null)
+const spreadArg = option('spread', null)
+const seeds = Number(option('seeds', 0))
 const list = value => (value == null ? [] : value.split(',').filter(Boolean))
 const cropKinds = list(option('crop', null))
 const propKinds = [...new Set([...list(option('props', null)), ...cropKinds])]
@@ -65,6 +76,12 @@ setTimeout(() => {
 
 /** One render: a date, or a scene spec. */
 async function jobs() {
+  if (whereArg != null) {
+    const asked = ['--where', whereArg, '--sample', sampleArg, ...(spreadArg != null ? ['--spread', spreadArg] : [])]
+    const dates = execFileSync(process.execPath, [new URL('./params.mjs', import.meta.url).pathname, ...asked], { encoding: 'utf8' }).split('\n').filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l))
+    console.log(`[snapshot] real days: ${dates.join(' ') || 'none'}`)
+    return dates.map(date => ({ date, name: date }))
+  }
   if (sceneArg == null) return expandDates(args.length > 0 ? args : ['today']).map(date => ({ date, name: date }))
   const { specs } = await readSpecs(sceneArg)
   const used = new Set()
@@ -75,7 +92,10 @@ async function jobs() {
     return { date: spec.date ?? null, spec, name }
   })
 }
-const todo = await jobs()
+/** Each job on `seeds` seeds of its own. */
+const seeded = list =>
+  seeds < 1 ? list : list.flatMap(job => Array.from({ length: seeds }, (_, i) => ({ ...job, name: `${job.name}-s${i + 1}`, spec: { ...job.spec, seed: `${job.name}/${i + 1}` } })))
+const todo = seeded(await jobs())
 await mkdir(outDir, { recursive: true })
 if (ref != null) {
   const old = await serveRef(ref, 5177)

@@ -13,6 +13,9 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | What a creator or helper does on real days | `params.mjs` `p.ctx`, `src.X`, `props.X` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Where a prop lands, what's beside the camera, where it ends (no render) | `params.mjs --project KIND` | [tools/PARAMS.md](tools/PARAMS.md) |
 | A prop against the shore and water at each tide (no render) | `profile.mjs --props KIND` | [tools/PARAMS.md](tools/PARAMS.md) |
+| Render real days that have a feature, spread across places, coasts and light | `snapshot.mjs --where --sample` | [tools/RENDER.md](tools/RENDER.md) |
+| Does it hold on other seeds | `snapshot.mjs --seeds N` | [tools/RENDER.md](tools/RENDER.md) |
+| A mesh's look in its own material, at real size, at low sun | `mesh.mjs --material --scale --sun` | [tools/RENDER.md](tools/RENDER.md) |
 | Coast shape, depths, break line, view cone, flooding | `profile.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Prop choices and placement in tests | `propsOf`, `view`, `expectDryCameras` (`test/days.ts`) | [tools/PARAMS.md](tools/PARAMS.md) |
 | Animal shares table for ANIMALS.md | `animals.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
@@ -81,9 +84,10 @@ minutes (dep optimisation).
   "bad output format specification". Keep line specs in a file (`--line "$(cat $SP/lines.json)"`).
 - Each `params.mjs` call costs a few seconds (it builds the modules): a shell loop over seeds or
   places timed out. Ask once over a date range with `--list --where 'p => …'` or `--stats`.
-- No PDF tools here (`pdftotext`, poppler, pypdf missing; inflating the streams by hand fails on
-  TeX's custom font encodings). For a paper's table, look for a transcription (a library's
-  source, an HTML version: arXiv `/html/ID`) and say where the numbers came from.
+- **PDFs:** `pdftotext -layout FILE out.txt` (poppler, `brew install poppler`, installed 2026-11-06), then grep. WebFetch can't read a PDF, but it saves the bytes and says where: run `pdftotext` on that. Numbers in figures aren't in the text: use the paper's prose and tables, and say so.
+- **Reference photos:** Wikimedia Commons' API finds them with a thumbnail URL (`curl -G https://commons.wikimedia.org/w/api.php -d action=query -d format=json -d generator=search -d gsrnamespace=6 --data-urlencode gsrsearch=… -d prop=imageinfo -d iiprop=url\|mime -d iiurlwidth=900`). Save them in their own scratchpad folder and `Read` the JPEG. Plain web search returns captions, not pictures. Record each file's page in the plan.
+- **zsh, not bash:** an unquoted `$VAR` isn't split into words, so `F="a b"; sed … $F` and `D="d1 d2"; cmd $D` pass one argument, and often fail quietly. Use a `for` over literal words, or `${=VAR}`. An unmatched glob is an error (`--include=*`: quote it), and a bare `======` is too (`echo '---'`).
+- **Patching with a heredoc:** in `<<'EOF'` nothing is unescaped, so `\`` stays a backslash and backtick in the file. In `<<EOF` it's the reverse: `$` and backticks run. Use `<<'EOF'` and write backticks plain.
 - Vitest hides `console.log` from passing tests: `--silent=false`, or `process.stderr.write(…)` in
   a throwaway probe test (deleted afterwards). Better: probe with `params.mjs` (`p.ctx`, `src.X`).
 - `sips --cropOffset` silently returns the whole image here, and there's no PIL: crop with

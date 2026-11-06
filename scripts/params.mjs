@@ -13,6 +13,10 @@
 // --stats EXPR     count the values 'p => …' returns (each array element), with shares.
 // --list           one line per day (with --ref: each changed day, before → after).
 // --limit N        lines listed (default all; 20 with --ref).
+// --sample N       print N dates of the days kept by --where, one per line, spread
+//                  across --spread EXPR (default place, coast, time of day): the
+//                  largest groups first, one day each, then round again.
+// --spread EXPR    what to spread a --sample over: 'p => …', any value.
 // --expect EXPR    over the place table, weighted by share of days: numbers
 //                  averaged, the rest counted, null skips the place. No sampling.
 // --ref REF        compare with a commit (temporary worktree): days changed per
@@ -55,7 +59,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 
-import { expandDates, parseArgs, propPoints, readSpecs, TEST_DAYS, worktree } from './lib.mjs'
+import { expandDates, parseArgs, propPoints, readSpecs, spreadSample, TEST_DAYS, worktree } from './lib.mjs'
 
 const { args, option, flag, rejectUnknown } = parseArgs()
 if (flag('help') || flag('h')) {
@@ -79,6 +83,8 @@ const rows = Number(option('rows', 12))
 const skyArg = option('sky', 'aurora,glow')
 const jitters = Number(option('jitters', 8))
 const limit = Number(option('limit', ref != null ? 20 : 1e9))
+const sample = Number(option('sample', 0))
+const spreadArg = option('spread', 'p => [p.place.id, p.coast.type, p.timeOfDay]')
 rejectUnknown()
 
 const given = expandDates(args)
@@ -422,6 +428,10 @@ try {
       continue
     }
     const days = dates.map(d => here.day(d, spec)).filter(p => keep(p))
+    if (sample > 0) {
+      for (const p of spreadSample(days, fn(spreadArg), sample)) console.log(p.date)
+      continue
+    }
     if (stats != null) printStats(days)
     else printDays(days)
   }

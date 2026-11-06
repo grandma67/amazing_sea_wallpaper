@@ -190,3 +190,27 @@ export function propPoints(object, three, { corners = false } = {}, out = []) {
   for (const child of object.children) propPoints(child, three, { corners }, out)
   return out
 }
+
+/** Up to `n` of `items`, spread across what `key` says about each: the largest
+ * groups first, one from each, then round again, each group's picks evenly
+ * through it. For a sample that isn't all one place or one kind of day. */
+export function spreadSample(items, key, n) {
+  const groups = new Map()
+  for (const item of items) {
+    const k = JSON.stringify(key(item))
+    if (!groups.has(k)) groups.set(k, [])
+    groups.get(k).push(item)
+  }
+  const ordered = [...groups.values()].sort((a, b) => b.length - a.length)
+  const out = []
+  for (let round = 0; out.length < Math.min(n, items.length); round++) {
+    for (const group of ordered) {
+      if (out.length >= n) break
+      // Golden-ratio steps through the group, so picks don't bunch.
+      if (round < group.length) out.push(group[Math.floor((((round + 0.5) * 0.618034) % 1) * group.length)])
+    }
+    out.splice(0, out.length, ...new Set(out))
+    if (round > items.length) break
+  }
+  return out
+}

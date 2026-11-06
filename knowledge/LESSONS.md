@@ -14,6 +14,7 @@ tool gotchas: TOOLS.md.
 
 ## Debugging approach
 
+- **Reflection on sea ice (0.114–0.116, about 14 render batches against ~9 allowed).** Most of it was process, not missing knowledge: required docs grepped rather than read, a nearby mesh reused against the photos just viewed, real days rendered only after several rounds on specs, a guess at a cause instead of finding every term behind it, and the scope raised after building rather than when the day count showed it. What was missing is now tools: `snapshot --where --sample`, `--seeds`, `mesh --material --scale --sun`, `pdftotext`, and the checklist in CLAUDE.md.
 - Before investigating a look, grep ARCHITECTURE.md "Known issues" for the symptom ("dark",
   "zig-zag", "flat blue"): phase 9 spent two renders proving near-black land on broken-cloud days
   was older than the phase, while an entry for the same symptom already existed.
@@ -101,8 +102,8 @@ tool gotchas: TOOLS.md.
   follows the forced value; compare the fields the test is about.
 - `params.mjs --ref` counts open-sea days for beach-shape changes (their coast carries a shape the
   terrain never draws): report beach days separately.
-- Pack ice calms `params.ocean.windSpeed` (×0.4, for the waves) but not the wind the sky reads
-  (lenticulars, fog): compare sky features with the wind before the ice factor.
+- `params.ocean.windSpeed` is the wind the waves feel: pack ice calms it ×0.4 and sea ice caps it. The air's is
+  `params.ocean.airWindSpeed` (0.117): clouds, plants and tests of them read that one.
 - Module cycles: `tides.ts` importing `terrain.ts` (which imports `tides.ts`) left half the test
   files failing to load. Put shared helpers in a module with no imports (`reef.ts`).
 
@@ -481,6 +482,7 @@ tool gotchas: TOOLS.md.
 
 ## Placement
 
+- **Test what the camera sees at every tide, not just where the camera is (sea ice, 0.117):** the placement table found rubble 0.2 m above the eye at 12 m, blocking the view, which no render round had pointed to. Skip such pieces when drawing rather than moving them, so the world stays fixed for a moving viewer.
 - Place by trying spots until enough is in view: sampling shore coords round the camera fails in
   along-beach views (the beach in view is ahead). Cast rays through the frame and march them to the
   ground (`spot()` in `props/wildlife.ts`). Flocks: by a view ray reaching the target altitude, not

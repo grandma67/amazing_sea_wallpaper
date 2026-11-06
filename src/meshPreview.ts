@@ -8,6 +8,7 @@ import {
   HemisphereLight,
   Mesh,
   MeshStandardMaterial,
+  type Material,
   Object3D,
   PerspectiveCamera,
   PlaneGeometry,
@@ -26,7 +27,8 @@ import { Random } from './random'
 //
 // MODULE is under src/, ARGS is JSON (double quotes) where $rng becomes a
 // new Random(seed) (&seed=, default "preview"). The result may be a
-// BufferGeometry (drawn with vertex colours) or any Object3D.
+// BufferGeometry (drawn with vertex colours, or &material=MODULE#FUNCTION(ARGS)) or
+// any Object3D. &scale=X,Y,Z for a unit mesh, &sun=DEG for the sun's height.
 //
 // Four views in a 2×2 grid: side, front, three-quarter from above, and from
 // eye height `&eye=` metres away (default 20, as it would sit on a beach).
@@ -44,8 +46,8 @@ const width = Number(query.get('w') ?? 1600)
 const height = Number(query.get('h') ?? 1000)
 const eye = Number(query.get('eye') ?? 20)
 
-async function build(): Promise<Object3D> {
-  const call = query.get('call') ?? 'props/birds#restingGull(false)'
+/** Runs MODULE#FUNCTION(ARGS) under src/. */
+async function run(call: string): Promise<unknown> {
   const match = /^([\w/.-]+)#(\w+)\((.*)\)$/s.exec(call)
   if (match == null) throw new Error(`call must be MODULE#FUNCTION(ARGS): ${call}`)
   const [, module, name, rawArgs] = match
@@ -54,13 +56,22 @@ async function build(): Promise<Object3D> {
   if (typeof fn !== 'function') throw new Error(`${module} has no function ${name}`)
   const rng = new Random(query.get('seed') ?? 'preview')
   const args = (JSON.parse(`[${rawArgs.replace(/\$rng/g, '"$rng"')}]`) as unknown[]).map(a => (a === '$rng' ? rng : a))
-  const result = fn(...args)
+  return fn(...args)
+}
+
+async function build(): Promise<Object3D> {
+  const call = query.get('call') ?? 'props/birds#restingGull(false)'
+  const result = await run(call)
+  const own = query.get('material')
+  const scale = query.get('scale')?.split(',').map(Number)
+  let object: Object3D
   if (result instanceof BufferGeometry) {
-    const mesh = new Mesh(result, new MeshStandardMaterial({ vertexColors: result.hasAttribute('color'), roughness: 0.7, side: DoubleSide }))
-    return mesh
-  }
-  if (result instanceof Object3D) return result
-  throw new Error(`${name} returned neither a BufferGeometry nor an Object3D`)
+    const material = own != null ? ((await run(own)) as Material) : new MeshStandardMaterial({ vertexColors: result.hasAttribute('color'), roughness: 0.7, side: DoubleSide })
+    object = new Mesh(result, material)
+  } else if (result instanceof Object3D) object = result
+  else throw new Error(`${call} returned neither a BufferGeometry nor an Object3D`)
+  if (scale != null) object.scale.set(scale[0], scale[1] ?? scale[0], scale[2] ?? scale[0])
+  return object
 }
 
 function ruler(): Object3D {
@@ -91,6 +102,7 @@ async function main(): Promise<{ size: number[]; triangles: number }> {
     o.receiveShadow = true
   })
   scene.add(object)
+  object.updateMatrixWorld(true)
   const box = new Box3().setFromObject(object)
   const size = box.getSize(new Vector3())
   const centre = box.getCenter(new Vector3())
@@ -108,7 +120,10 @@ async function main(): Promise<{ size: number[]; triangles: number }> {
 
   scene.add(new HemisphereLight(new Color(0.6, 0.7, 0.9), new Color(0.35, 0.3, 0.25), 1.2))
   const sun = new DirectionalLight(0xfff4e6, 3)
-  sun.position.copy(centre).add(new Vector3(0.6, 1, 0.8).normalize().multiplyScalar(radius * 6))
+  // &sun= the sun's height in degrees: low sun shows what a high one flatters.
+  const sunDeg = query.get('sun')
+  const sunDirection = sunDeg == null ? new Vector3(0.6, 1, 0.8) : new Vector3(0.6, Math.tan((Number(sunDeg) * Math.PI) / 180), 0.8)
+  sun.position.copy(centre).add(sunDirection.normalize().multiplyScalar(radius * 6))
   sun.target.position.copy(centre)
   sun.castShadow = true
   sun.shadow.bias = -0.0005
