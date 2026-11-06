@@ -313,8 +313,7 @@ That table is the Baltic. The other coasts' rows are in `SEA_ICE_PLACES`; below 
 - **Ice (Eriksson et al. 2025):** the Bay's annual maximum level ice is 0.65–0.80 m, 0.3–0.5 m in mild winters; below
   0.5 m in the south. Fast ice lies in coastal and archipelago waters; drift ice is uneven, with floes up to several km,
   leads, brash barriers, rafting and ridges of 5–15 m sail plus keel.
-- **Canadian Arctic:** most of the Archipelago is fast by November or December; both onset and break-up have moved, shortening the season (Galley et al. 2012, *Arctic*,
-  abstract only). Exact dates are *(est.)*, by analogy with Alaska.
+- **Canadian Arctic (Galley et al. 2012, *Arctic* 65(2), read in full; 1983–2009):** the High Arctic usually landfast by mid-November; the southern channels (Coronation-Maud, Franklin, M'Clintock) as early as the first week of November and by early January in most years; the interior and edges by mid-November to the end of January. Break-up from 18 June; southern Coronation-Maud clear by mid-July, most of the rest by early August, the High Arctic last, with multi-year ice into September in 20–40% of years. Hudson Bay and Ungava aren't in the study *(est.)*. The channels with the latest onset (Amundsen Mouth, Eastern Parry, Prince Regent) never became landfast in over half of years: the table's chance of 1 is high for them, as latitude can't pick them out.
 - **Alaska:** break-up averages 2 June over 38 communities (3 May to 24 July, 2000–2022); Beaufort regional onset ~6 June, 2007–2015; Wainwright to Utqiaġvik in the second half of June (NOAA
   outlook). Freeze-up dates are *(est.)*.
 - **Svalbard:** fast-ice days fell from 50 to 22 in Isfjorden and 56 to 34 in Hornsund after 2006 (Muckenhuber et al. 2016); Hornsund's goes in June. Fjords, so low cover, and a chance

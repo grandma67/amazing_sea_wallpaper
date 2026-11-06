@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
 import { PLACES } from '../src/places'
-import { offshore, seaIceFor, slabGeometry, lumpGeometry, BLOCK_SETS, iceBlock } from '../src/props/seaIce'
+import { InstancedMesh, Matrix4, Vector3 } from 'three'
+
+import type { SceneParams } from '../src/params'
+import type { SceneSpec } from '../src/sceneSpec'
+import { hasLand, terrainHeight } from '../src/terrain'
+import { createSeaIce, offshore, seaIceFor, slabGeometry, lumpGeometry, BLOCK_SETS, iceBlock } from '../src/props/seaIce'
 import { marineFor } from '../src/props/marine'
 import { Random } from '../src/random'
 import { ICE_FREEBOARD, ICE_WAVE_WIND, iceDrift, iceRubble, iceZone, pickSeaIce, SEA_ICE_PLACES, seaIceChance } from '../src/seaIce'
 import { iceFootChance } from '../src/snow'
-import { allParams, scene, scenes } from './days'
+import { allParams, expectDryCameras, scene, scenes, viewOf } from './days'
 
 const at = (date: string, latitudeDeg: number) => ({ date, latitudeDeg })
 const BASE = { place: 'baltic', eclipse: null, storm: null } as const
@@ -263,5 +268,73 @@ describe('the ice foot goes with the sea', () => {
     const days = allParams().filter(p => p.snow != null && iceZone(p.place.id, p.latitudeDeg) != null)
     const share = (list: typeof days): number => list.filter(p => p.snow?.iceFoot).length / Math.max(1, list.length)
     expect(share(days.filter(p => p.seaIce != null))).toBeGreaterThan(share(days.filter(p => p.seaIce == null)))
+  })
+})
+
+describe('the ice round the camera, at every tide', () => {
+  const COASTS: SceneSpec[] = [
+    { coast: 'beach', beachMaterial: 'sand' },
+    { coast: 'beach', beachMaterial: 'cobble' },
+    { rockShore: 'platform' },
+    { rockShore: 'boulder' },
+    { rockShore: 'cliff' },
+    { coast: 'tidal-flat' }
+  ]
+  const instances = (p: SceneParams): { d: number; y: number; ground: number; eye: number }[] => {
+    const ctx = viewOf(p)
+    const out: { d: number; y: number; ground: number; eye: number }[] = []
+    const m = new Matrix4()
+    const v = new Vector3()
+    for (const o of createSeaIce(ctx)) {
+      if (!(o instanceof InstancedMesh)) continue
+      for (let i = 0; i < o.count; i++) {
+        v.setFromMatrixPosition((o.getMatrixAt(i, m), m))
+        out.push({ d: ctx.distance(v.x, v.z), y: v.y, ground: hasLand(p.coast) ? terrainHeight(p.coast, v.x, v.z) : -1, eye: ctx.camera.position.y })
+      }
+    }
+    return out
+  }
+  // A spread of tidal ranges: the Baltic's nothing to Ungava's many metres.
+  const table = COASTS.flatMap(coast => ['arctic-canada', 'baltic'].flatMap(place => expectDryCameras({ place, seaIce: 'fast', snow: true, ...coast, ...(place === 'arctic-canada' ? { tidalRange: 8 } : {}) }, { count: 1, above: () => -20, compositions: coast.rockShore != null || coast.coast === 'tidal-flat' ? ['framed', 'overlook'] : undefined })))
+
+  it('the eye is above the ice', () => {
+    for (const p of table) {
+      const ctx = viewOf(p)
+      expect(ctx.camera.position.y, `${p.date} ${p.coast.type} ${p.coast.tide}`).toBeGreaterThan(ICE_FREEBOARD + 1)
+    }
+  })
+
+  it('no piece stands within 4 m of the camera', () => {
+    for (const p of table) for (const b of instances(p)) expect(b.d, `${p.date} ${p.coast.type}`).toBeGreaterThanOrEqual(4)
+  })
+
+  it('no piece near the camera stands above the eye, blocking the view', () => {
+    for (const p of table) {
+      for (const b of instances(p)) if (b.d < 40) expect(b.y, `${p.date} ${p.coast.type} at ${b.d.toFixed(1)} m`).toBeLessThan(b.eye)
+    }
+  })
+
+  it('a pile stays a pile: no piece floats far above what is under it', () => {
+    for (const p of table) for (const b of instances(p)) expect(b.y - Math.max(b.ground, ICE_FREEBOARD)).toBeLessThanOrEqual(2.2)
+  })
+
+  it('stays within budget on every coast', () => {
+    for (const p of table) expect(instances(p).length).toBeLessThanOrEqual(BLOCK_SETS[0].budget + BLOCK_SETS[1].budget)
+  })
+})
+
+describe('the study behind Arctic Canada’s dates', () => {
+  it('breaks up from 18 June, the channels clear by mid-July, the High Arctic stays into August', () => {
+    expect(seaIceChance('arctic-canada', at('2025-06-10', 66))).toBe(1)
+    expect(seaIceChance('arctic-canada', at('2025-07-20', 66))).toBe(0)
+    expect(seaIceChance('arctic-canada', at('2025-07-20', 74))).toBeGreaterThan(0)
+    expect(seaIceChance('arctic-canada', at('2025-09-01', 74))).toBe(0)
+  })
+
+  it('keeps the air’s wind apart from the waves’', () => {
+    const open = scene({ seaIce: null, wind: undefined, eclipse: null, storm: null }, '2025-02-20')
+    const frozen = scene({ seaIce: 'fast', eclipse: null, storm: null }, '2025-02-20')
+    expect(frozen.ocean.windSpeed).toBeLessThanOrEqual(ICE_WAVE_WIND)
+    expect(frozen.ocean.airWindSpeed).toBe(open.ocean.airWindSpeed)
   })
 })

@@ -153,9 +153,8 @@ describe('generateParams', () => {
     for (const p of storms) {
       expect(p.weather.kind).toBe('storm')
       expect(p.weather.formations.map(g => CLOUD_GENERA[g].genus)).toContain('cumulonimbus')
-      // A gale, calmed only by the Arctic's light airs and pack ice; a frozen sea caps the waves' wind.
-      const ice = p.sea.ice != null && p.sea.ice.packIce > 0 ? 0.4 : 1
-      if (p.seaIce == null) expect(p.ocean.windSpeed).toBeGreaterThanOrEqual(14 * 0.85 * ice)
+      // A gale, calmed only by the Arctic's light airs.
+      expect(p.ocean.airWindSpeed).toBeGreaterThanOrEqual(14 * 0.85)
       expect(p.title).toMatch(p.storm!.bolts.length > 0 ? /thunderstorm/ : /squall/)
       expect(p.storm!.curtains.length).toBeGreaterThan(0)
     }

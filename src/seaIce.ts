@@ -73,10 +73,13 @@ export const SEA_ICE_PLACES: Readonly<Record<string, readonly IceZone[]>> = {
     // Central and southern Baltic: severe winters.
     { from: 0, a: 15, b: 32, c: 59, e: 80, chance: 0.06, edge: [100, 800], cover: [0, 0.3] }
   ],
-  // The Archipelago is mostly fast by November–December; Hudson Bay and Ungava later.
+  // Galley et al. 2012: the High Arctic usually fast by mid-November, the southern channels
+  // from early November and by early January; break-up from 18 June, those channels
+  // clear by mid-July, most of the rest by early August. Hudson Bay and Ungava aren't
+  // in that study (est.).
   'arctic-canada': [
-    SEASONAL(70, 274, 325, 170, 220, 1, [5000, 60000], [0.9, 1]),
-    SEASONAL(62, 295, 345, 150, 200, 1, [3000, 40000], [0.8, 1]),
+    SEASONAL(70, 274, 320, 169, 220, 1, [5000, 60000], [0.9, 1]),
+    SEASONAL(62, 305, 5, 169, 197, 1, [3000, 40000], [0.8, 1]),
     SEASONAL(0, 315, 355, 135, 185, 1, [2000, 20000], [0.7, 1])
   ],
   // The north is fast; Disko Bay peaks in March and some winters barely freezes; the

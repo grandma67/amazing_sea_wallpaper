@@ -14,7 +14,7 @@ export function windDirection(params: SceneParams): Vector3 {
 
 /** 0 in a calm, 1 in a strong breeze (~14 m/s); drag grows with speed². */
 export function windStrength(params: SceneParams): number {
-  const t = Math.min(1.3, Math.max(0, (params.ocean.windSpeed - 1.5) / 12.5))
+  const t = Math.min(1.3, Math.max(0, (params.ocean.airWindSpeed - 1.5) / 12.5))
   return t * t
 }
 

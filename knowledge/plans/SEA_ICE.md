@@ -95,7 +95,7 @@ Wikimedia Commons, viewed 2026-11-06:
 Decided after the Baltic: realism first, so every coast that freezes gets it. The Baltic alone was 1 of 1095 days, while
 polar coasts showed waves in front of an ice foot through the winter.
 
-- **Days:** 95 of 1095 (8.7%): arctic-canada 51, arctic-russia 12, greenland 11, russian-far-east 9, alaska-north 3, cook-inlet 2,
+- **Days:** 95 of 1095 at 0.115 (92 from 0.117, with Canada's dates from the study): arctic-canada 51, arctic-russia 12, greenland 11, russian-far-east 9, alaska-north 3, cook-inlet 2,
   south-shetland 2, svalbard 2, baltic, pei and newfoundland 1 each. 30 are open sea, as drift. `--ref` against 0.114: 95 days, with ocean and
   coast on 94, props on 35, sea smoke gone on 5.
 - **Open on purpose:** north Norway, Iceland, the Gulf of Alaska, south-east Alaska, Kerguelen, South Georgia. In Greenland's south-west and
@@ -106,9 +106,8 @@ polar coasts showed waves in front of an ice foot through the winter.
 - **Cost:** −6% to +5% on four days that are newly frozen (`bench.mjs --runs 2`), a day without ice identical. `check:restart --date 2024-02-27 --steps 5` clean.
 - **Rendered, real days:** Arctic Canada (twilight, dawn, low sun, starlit, June break-up), Greenland (sunrise, thunderstorm), PEI, Newfoundland's break-up,
   the Pacific boulder shore 2024-04-07.
-- **Not rendered:** the southern hemisphere (tested for dates only), Svalbard, Alaska, Cook Inlet, midday polar fast ice.
-- **Weakest sourcing:** Antarctic-side rows (South Shetlands, South Sandwich) and Cook Inlet found no usable source and are estimates; Canada's dates rest
-  on one statement plus Alaska's, as its climatology paper couldn't be read. SEASONS.md §4.2 says which row rests on what.
+- **Not rendered:** the southern hemisphere (tested for dates only), Svalbard, Alaska, Cook Inlet. Midday polar fast ice: see 0.117.
+- **Weakest sourcing:** Antarctic-side rows (South Shetlands, South Sandwich) and Cook Inlet found no usable source and are estimates; SEASONS.md §4.2 says which row rests on what.
 - **Also not done:** Bohai and Yellow Sea bays, the far north's multi-year ice, and Hudson Bay's own later dates against its northern part beyond the zones.
 - **At very low sun** the fine cracks read a little like dried mud.
 
@@ -124,3 +123,24 @@ polar coasts showed waves in front of an ice foot through the winter.
 - **Compared by eye** with the Rügen and Gulf of Finland photos, at 1080p: the first pass overshot (granite-like faces, candy stripes), softened in the second.
 - **Still not like the photos:** real slabs are clearer and more translucent, with sharper small chips; these are opaque and a little soft. Piles are less tightly stacked than Rügen's, and a
   few long plates stand out as beams.
+
+## Tide table and what the camera sees (0.117)
+
+Sea 0 always; tides lower the land (COAST.md), so the sheet stands at the freeboard whatever the tide, and `off` follows today's `waterline`.
+
+| Tide × composition | Camera | Ice |
+|---|---|---|
+| Low, shoreline or along-beach | may stand seaward of the water (`to water −1 m`): on the ice | gap of 4 m + the piece's size; nothing above the eye within 40 m |
+| High, shoreline or along-beach | on the beach | rubble rides up to 8 m inland of the water, up to ~1.6 m high on a steep beach |
+| Any, framed or overlook | on the land | below and ahead |
+| Rock platform, boulder, cliff | on the rock | sheet under the rock to 400 m inland, pools frozen; rubble at its edge |
+| Tidal flat | land behind | sheet over the flat below the freeboard |
+
+`test/seaIce.test.ts` checks these for six coasts on the Baltic and at an 8 m tidal range (forced tide × composition, `expectDryCameras`): eye above the ice, no piece within 4 m, none above the eye within 40 m, piles no higher than 2.2 m over what's under them, within budget.
+
+- **Found by it:** rubble above the eye (1.84 m at 12 m, eye 1.66 m). Those pieces are now not drawn.
+- **Rendered framing, no render** (`params.mjs --project sea-ice`, the 21 land ice days of 2025): nearest piece 10.9 m at least, 52 m median.
+- **Midday:** the concern was clipping. `params.debug.probe` on 2024-04-28 reads final 204,195,191 at the brightest of four points, so no. It looks plain because high sun flattens the relief.
+- **Arctic Canada's dates** now rest on Galley et al. 2012, read in full: the middle row's end moved a month (11 days changed).
+- **Real days with the new slabs,** by `snapshot --where`: 2024-01-01, 01-18, 02-28, 04-02, 04-17, 04-28, 11-24, 2025-05-18. Render time 0%, no leak.
+- **Still open:** the sheet's lower limit against a steep beach at low tide reads as a straight line in places (2024-02-28).

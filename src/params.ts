@@ -446,7 +446,10 @@ export interface SceneParams {
   }
 
   ocean: {
+    /** The wind the waves feel (m/s): pack and sea ice calm it. */
     windSpeed: number
+    /** The wind in the air (m/s): clouds, plants, what the ice doesn't touch. */
+    airWindSpeed: number
     /** Azimuth the wind (and waves) travel toward. */
     windHeadingDeg: number
     /** Seconds; freezes the wave animation at a seeded moment. */
@@ -1922,7 +1925,7 @@ function buildParams(
   // Deep-water wavelength from a forced period: L = g T² / 2π.
   const forcedLength = spec.swellPeriod == null ? undefined : (9.81 * spec.swellPeriod ** 2) / (2 * Math.PI)
   oceanSwell.swellWavelength = Math.min(320, or(oceanSwell.swellWavelength * basin.swellWavelength, forcedLength))
-  const oceanState = { windSpeed: spec.wind ?? (seaIce != null ? Math.min(ICE_WAVE_WIND, windSpeed * iceCalm) : windSpeed * iceCalm), windHeadingDeg, ...oceanSwell }
+  const oceanState = { airWindSpeed: windSpeed, windSpeed: spec.wind ?? (seaIce != null ? Math.min(ICE_WAVE_WIND, windSpeed * iceCalm) : windSpeed * iceCalm), windHeadingDeg, ...oceanSwell }
   const roughBeach = storm != null || (Math.abs(latitudeDeg) > 25 && season({ date, latitudeDeg }) === 'winter')
   const tide = tideFor(place.tide, moonPhaseDeg, Random.derive(seed, 'tide'), spec)
   const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach, frozen: seaIce != null }, tide, spec)

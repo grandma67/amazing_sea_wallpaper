@@ -38,6 +38,8 @@ const SLAB_VARIANTS = 3
 const SLAB_THICKNESS = [0.12, 0.5] as const
 /** No block this near the camera, so none stands in it (m). */
 const CAMERA_GAP = 4
+/** Within this of the camera, nothing rises above the eye (m). */
+const VIEW_RANGE = 40
 /** Below this the mask has no blocks; the sheet's colour carries it. */
 const MIN_RUBBLE = 0.2
 /** A pile's top above the ice (m). Estimate: sail + keel is 5–15 m (Eriksson et al.
@@ -447,10 +449,11 @@ export function rubbleMaterial(snow: number): MeshStandardMaterial {
         `#include <normal_fragment_maps>
         if (rubNear > 0.0) {
           float rubE = 0.035;
-          vec3 rubP = vRubWorld * 6.0;
+          // Turned off the axes, so value noise's lattice doesn't show as a grid.
+          vec3 rubP = mat3(0.8, 0.6, 0.0, -0.48, 0.64, 0.6, 0.36, -0.48, 0.8) * vRubWorld * 6.0;
           float rubH = rubFbm(rubP);
           vec3 rubG = vec3(rubFbm(rubP + vec3(rubE * 6.0, 0, 0)), rubFbm(rubP + vec3(0, rubE * 6.0, 0)), rubFbm(rubP + vec3(0, 0, rubE * 6.0))) - rubH;
-          normal = normalize(normal - (viewMatrix * vec4(rubG, 0.0)).xyz * mix(0.45, 0.5, rubSnowy) * rubNear);
+          normal = normalize(normal - (viewMatrix * vec4(rubG, 0.0)).xyz * mix(0.2, 0.3, rubSnowy) * rubNear);
         }`
       )
   }
@@ -544,7 +547,11 @@ export function createSeaIce(ctx: PropContext): Object3D[] {
         if (Math.hypot(block.x - cam.x, block.z - cam.z) < CAMERA_GAP + size) continue
         const position = new Vector3(block.x, block.y, block.z)
         const spin = new Quaternion().setFromAxisAngle(yUp, h(10) * Math.PI * 2)
+        // Near the camera, nothing rises above the eye and blocks the view: only
+        // whether a piece is drawn reads the camera, not where it lies.
+        const rises = (top: number): boolean => distance < VIEW_RANGE && top > cam.y - 0.05
         if (set.lumps && ice.snow > 0.3 && h(6) < 0.15) {
+          if (rises(position.y + size * 0.6)) continue
           placed.push({ m: new Matrix4().compose(position, spin, new Vector3(size * 1.3, size * (0.7 + 0.5 * h(12)), size * (0.9 + 0.6 * h(13)))), distance, target: lumps })
           continue
         }
@@ -554,6 +561,7 @@ export function createSeaIce(ctx: PropContext): Object3D[] {
         const q = new Quaternion().setFromAxisAngle(axis, tilt).multiply(spin)
         // Plates, not blocks: never thicker than about a third of their width.
         const thick = Math.min(size * 0.3, SLAB_THICKNESS[0] + (SLAB_THICKNESS[1] - SLAB_THICKNESS[0]) * h(11))
+        if (rises(position.y + thick + size * 0.8 * Math.sin(tilt))) continue
         placed.push({ m: new Matrix4().compose(position, q, new Vector3(size * 0.55, thick, size * 0.55 * (0.6 + 0.7 * h(13)))), distance, target: bySlab[setIndex][Math.floor(h(15) * SLAB_VARIANTS)] })
       }
     }
