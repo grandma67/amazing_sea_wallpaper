@@ -23,6 +23,15 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   draws; as the leaves go, 0–3 fine twigs per tip show (`TWIG`). Spring's `fresh` leaves are
   paler. `grass()` turns more blades straw with `dry`. Colony birds, crabs, lizards, humpbacks,
   waterfowl and gulls read `animalSeasons.ts`.
+- **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
+  (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
+  the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is
+  below depth resolution past ~1 km. The look is in its fragment shader, from world position and `off`: plates by cell
+  noise, cracks and leads (discard over the water), drifts, pools. `iceRubble`, mirrored in GLSL, says where it's piled:
+  ridges, a shore belt, the edge's barrier. Rubble is instanced slabs and lumps by a hash of a world cell, near and far
+  sets with budgets; only range, frustum and budget read the camera. Waves: `params.ts` caps the wind and zeroes the
+  swell, so surf and spray turn themselves off; `waterSpot`, `marineFor` and `createShips` give nothing afloat.
+  Off: `"seaIce": null`, or `props.seaIce: false` for the mesh alone.
 - **Snow** (`snow.ts`, `props/snowCap.ts`, `props/iceFoot.ts`, 0.111, plans/SNOW.md): `pickSnow` on its
   own stream gives `params.snow` (`cover`, `iceFoot`). Nothing about the look reads the camera: the terrain
   shader (`snowLook`) and `snowCap` (a wrapper patch on a standard material, keeping the inner program key)

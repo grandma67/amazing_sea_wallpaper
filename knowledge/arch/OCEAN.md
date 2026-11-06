@@ -64,3 +64,5 @@ surf".
   crisper column sides. Revisit for rough seas with near objects, if a render shows round smudges.
 - **Ships in the ocean shader:** `setOceanShips` (8 nearest) cuts the hull out of the sea and adds
   the Kelvin wake, foam and slick (PROPS.md "Ships").
+- **A frozen sea:** the ocean shader doesn't know. A floating sheet covers it (PROPS.md "Sea ice") and it runs calm below,
+  showing through leads and past the ice's edge.

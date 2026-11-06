@@ -15,6 +15,8 @@ import {
 
 const SIZE = 32
 const SEA_REFLECTANCE = 0.12
+/** What a snowy frozen sea sends back of the sky, for the same sum. */
+export const ICE_REFLECTANCE = 0.6
 
 export interface Metered {
   /** What the camera's meter reads (render units, cd/m² / ~75,700). */
@@ -27,7 +29,8 @@ export function meterScene(
   renderer: WebGLRenderer,
   skyScene: Scene,
   camera: PerspectiveCamera,
-  horizonDip: number
+  horizonDip: number,
+  seaReflectance = SEA_REFLECTANCE
 ): Metered {
   const target = new WebGLCubeRenderTarget(SIZE, { type: FloatType })
   const cubeCamera = new CubeCamera(0.1, 400_000, target)
@@ -95,7 +98,7 @@ export function meterScene(
   target.dispose()
 
   const upperAverage = upperWeight > 0 ? upperSum / upperWeight : 0
-  const total = skySum + seaWeight * upperAverage * SEA_REFLECTANCE
+  const total = skySum + seaWeight * upperAverage * seaReflectance
   const weight = skyWeight + seaWeight
   return {
     luminance: weight > 0 ? total / weight : upperAverage,

@@ -152,3 +152,7 @@ Sources behind built features. Research for planned work lives with its plan: co
   zone, via search summary). Leads only, from search summaries: Nature Communications 2025 (flat
   width and slope vs sediment and tide range, 2,538 Chinese transects), a LiDAR study of creek
   size by zone on Chinese flats
+
+## Sea ice
+
+Sources and photos: [SEASONS.md](SEASONS.md) §4.2, [plans/SEA_ICE.md](plans/SEA_ICE.md).

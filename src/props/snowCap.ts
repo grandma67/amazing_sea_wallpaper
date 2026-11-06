@@ -1,3 +1,4 @@
+import { ICE_SNOW_DROP } from '../seaIce'
 import { DoubleSide, type MeshStandardMaterial } from 'three'
 
 import type { SceneParams } from '../params'
@@ -26,7 +27,7 @@ const ABOVE_REACH = 0.15
 export function snowLook(params: SceneParams): SnowLook | null {
   const { snow, coast } = params
   if (snow == null) return null
-  return { cover: snow.cover, line: tideMarks(coast).high + coast.runup + ABOVE_REACH, glaze: snow.iceFoot ? 1 : 0 }
+  return { cover: snow.cover, line: tideMarks(coast).high + coast.runup + ABOVE_REACH - (params.seaIce != null ? ICE_SNOW_DROP : 0), glaze: snow.iceFoot ? 1 : 0 }
 }
 
 /** Patches a standard material (after its own onBeforeCompile); nothing on a

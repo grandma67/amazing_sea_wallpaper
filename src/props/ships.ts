@@ -839,6 +839,8 @@ function highestPoint(geometry: BufferGeometry): Vector3 {
 
 export function createShips(ctx: PropContext): Object3D[] {
   const { params } = ctx
+  // Nothing cuts through the ice: icebreakers' channels aren't drawn.
+  if (params.seaIce != null) return []
   const rng = ctx.rng('ships')
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, side: DoubleSide })
   const meshes: Mesh[] = []

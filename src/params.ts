@@ -26,6 +26,7 @@ import { Random } from './random'
 import { apply, ECLIPTIC_POLE, eclipticOffset, skyRotation } from './skyClock'
 import { haulOutSeason } from './animalSeasons'
 import { seasonalSnowLine } from './phenology'
+import { ICE_RUNUP, ICE_WAVE_WIND, pickSeaIce, type SeaIceParams } from './seaIce'
 import { pickSnow, type SnowParams } from './snow'
 import { monthInSeason, season, seasonMonth } from './seasons'
 import { reefFor, reefShelter, type Reef } from './reef'
@@ -416,6 +417,8 @@ export interface SceneParams {
   lighthouse: LighthouseParams | null
   /** Lying snow and the ice foot today (snow.ts); null: none. */
   snow: SnowParams | null
+  /** The sea frozen today (seaIce.ts); null: open. */
+  seaIce: SeaIceParams | null
   /** What a scene spec forces the props to show (sceneSpec.ts); absent on
    * ordinary days. */
   overrides?: PropOverrides
@@ -1908,14 +1911,18 @@ function buildParams(
     // (scene.ts fogSunTransmittance), where the eye's height is known.
   }
   const oceanSwell = swell(seed, windHeadingDeg, climate)
-  oceanSwell.swellHeight = or(oceanSwell.swellHeight * (basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm), spec.swellHeight)
+  // A frozen sea stops the waves: crests stay under the ice (seaIce.ts).
+  const seaIce = pickSeaIce(seed, place.id, { date, latitudeDeg }, spec.seaIce, spec.props?.phenology)
+  oceanSwell.swellHeight = or(seaIce != null ? 0 : oceanSwell.swellHeight * (basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm), spec.swellHeight)
   // Deep-water wavelength from a forced period: L = g T² / 2π.
   const forcedLength = spec.swellPeriod == null ? undefined : (9.81 * spec.swellPeriod ** 2) / (2 * Math.PI)
   oceanSwell.swellWavelength = Math.min(320, or(oceanSwell.swellWavelength * basin.swellWavelength, forcedLength))
-  const oceanState = { windSpeed: spec.wind ?? windSpeed * iceCalm, windHeadingDeg, ...oceanSwell }
+  const oceanState = { windSpeed: spec.wind ?? (seaIce != null ? Math.min(ICE_WAVE_WIND, windSpeed * iceCalm) : windSpeed * iceCalm), windHeadingDeg, ...oceanSwell }
   const roughBeach = storm != null || (Math.abs(latitudeDeg) > 25 && season({ date, latitudeDeg }) === 'winter')
   const tide = tideFor(place.tide, moonPhaseDeg, Random.derive(seed, 'tide'), spec)
   const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach }, tide, spec)
+  // No waves to run up the beach: it's as frozen as the sea below it.
+  if (seaIce != null) coast.runup = ICE_RUNUP
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',
@@ -2009,6 +2016,7 @@ function buildParams(
   }
   if (lighthouse != null) titleParts.push('lighthouse')
   if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
+  if (seaIce != null) titleParts.push('sea ice')
   if (snow != null) titleParts.push(snow.iceFoot && hasLand(coast) ? 'snow and shore ice' : 'snow')
   if (fog != null) titleParts.push(fog.kind === 'sea-smoke' ? 'sea smoke' : fog.start > 0 ? 'fog bank' : 'fog')
   if (storm != null) {
@@ -2077,6 +2085,7 @@ function buildParams(
     rollCloud: null,
     lighthouse,
     snow,
+    seaIce,
     ...(spec.props != null ? { overrides: spec.props } : {}),
     camera: {
       heightM: spec.camera?.heightM ?? eyeHeight ?? heightM,

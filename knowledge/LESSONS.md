@@ -108,6 +108,8 @@ tool gotchas: TOOLS.md.
 
 ## Seasons
 
+- **Check a plan's season against a source before building (sea ice, 0.114):** "Jan–Apr north of 60°" was the plan's *(est.)*; FMI has November to
+  late May in the north and normal-winter ice down to the northern Baltic Proper.
 - The real sun at 76–80° (Svalbard) never gets above −6° in December: the plan's "blue-hour
   glow at noon" exists only nearer the Arctic Circle (Tromsø's 69–71°). Check `sunLimits`
   before writing a render spec for a polar look. Below 63° the time of day is still a free
@@ -217,6 +219,9 @@ tool gotchas: TOOLS.md.
 
 ## Shaders (GLSL)
 
+- **Take screen derivatives before adding a large offset (sea ice, 0.114):** `dFdx(world + origin)` at ±50 km turned noisy near the
+  camera, drawing radial streaks and sector-shaped tones along the grid. Forced specs drew small origins and looked fine; the real day
+  showed it. Render a real day too, not just specs, when a seed feeds a shader.
 - Reserved words that read like names: `flat`, `smooth`, `half`, `input`, `output`, `filter`,
   `active`, `common`, `partition`, `fixed`, `long`, `short`. `smoothstep(e0, e1, x)` with e0 ≥ e1
   is undefined (works on one GPU, not another): write `1.0 - smoothstep(e1, e0, x)`. Both show
@@ -496,6 +501,8 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **Shared vertices round a slab's sides read as a drum (sea ice, 0.114):** a low-poly plate needs `toCreasedNormals`. And real sizes first: a block
+  across 4.5 m as tall as it's wide reads as a boulder; ice rubble is slabs as thick as the ice.
 - Clamp before a fractional power: `(1 - t) ** 2.2` is NaN for t a hair above 1, and a path
   built as `start + (length * i) / n` can end there (the rock lighthouse's top shaft ring, 0.83).
   three then logs `computeBoundingSphere(): Computed radius is NaN`; find the mesh by hooking

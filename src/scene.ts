@@ -64,7 +64,7 @@ import { extinction, GLITTER_MAGNITUDE, planetStarData, PLANET_MAGNITUDES, PLANE
 import { glowScale, patchSkyNightGlow, type GlowFrame } from './nightGlow'
 import { eclipseSky } from './eclipse'
 import type { DebugPass } from './debug'
-import { meterScene } from './exposure'
+import { ICE_REFLECTANCE, meterScene } from './exposure'
 import { FogEffect } from './fog'
 import { fogSunTransmittance } from './fogLayer'
 import { LighthouseBeamEffect } from './lighthouse'
@@ -560,7 +560,8 @@ export async function renderScene(
   const auroraUniform = envSkyMaterial.uniforms.auroraA?.value as Vector4 | undefined
   const auroraScaleValue = auroraUniform?.w ?? 0
   if (auroraUniform != null) auroraUniform.w = 0
-  const metered = meterScene(renderer, envScene, camera, dip)
+  // A frozen sea is bright, and the meter sees it (seaIce.ts).
+  const metered = meterScene(renderer, envScene, camera, dip, params.seaIce != null ? ICE_REFLECTANCE : undefined)
   if (auroraUniform != null) auroraUniform.w = auroraScaleValue
   const sceneLuminance = metered.luminance
   starFields.forEach(o => (o.visible = true))

@@ -108,6 +108,8 @@ export class PropContext {
    * 150 m: callers wanting deep water near the beach should allow a shallow
    * minimum and adapt (lie down, sink less) rather than find nothing. */
   waterSpot(rng: Random, depth: [number, number], maxDistance: number, minDistance = 6, tries = 80): Vector3 | null {
+    // A frozen sea has none to offer (seaIce.ts).
+    if (this.params.seaIce != null) return null
     for (let i = 0; i < tries; i++) {
       const p = this.seaPoint(rng, [-0.95, 0.15], minDistance, maxDistance, depth[0])
       if (p != null && this.ground(p.x, p.z) >= -depth[1]) return p

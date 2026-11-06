@@ -1,0 +1,10 @@
+{"base": {"eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "sunAzimuthDeg": 150, "weather": "few", "ice": null, "place": "baltic", "climate": "boreal", "landform": null}, "scenes": [
+    {"name": "ice-fast-shoreline", "date": "2025-02-20", "coast": "beach", "composition": "shoreline", "seaIce": "fast", "snow": true},
+    {"name": "ice-typical-framed", "date": "2025-03-01", "coast": "beach", "composition": "framed", "seaIce": true, "snow": true},
+    {"name": "ice-overlook", "date": "2025-03-05", "rockShore": "cliff", "composition": "overlook", "seaIce": true, "snow": 0.6},
+    {"name": "ice-drift-sea", "date": "2025-03-10", "coast": "open-sea", "seaIce": "drift"},
+    {"name": "ice-melting", "date": "2025-05-05", "coast": "beach", "composition": "along-beach", "seaIce": "melting", "snow": null},
+    {"name": "ice-forming", "date": "2025-12-05", "coast": "beach", "composition": "shoreline", "seaIce": "forming", "snow": null},
+    {"name": "ice-backlit", "date": "2025-02-20", "coast": "beach", "composition": "shoreline", "seaIce": "fast", "snow": true, "timeOfDay": "golden-hour", "sunAzimuthDeg": 10},
+    {"name": "ice-overcast", "date": "2025-02-20", "rockShore": "platform", "seaIce": "fast", "snow": true, "weather": "overcast"}
+]}

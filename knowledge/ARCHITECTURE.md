@@ -106,6 +106,7 @@ Playwright (headless snapshots), Vitest.
      `'beach-material'` (material, grain, stone size, beach state and shape), `'reef'`,
      `'hills'`, `'composition'`).
   9. Colony, pinnipeds, lighthouse, landform, snow (`'snow'`, three draws always; brings the landform's line down), islands (`pick*`, own streams); shelf cloud,
+     Sea ice (`'sea-ice'`, its draws always) comes earlier, just before the swell and the waves it calms.
      lenticular; rainbow geometry; title.
   10. Moon scale, horizon (aurora nights at least 0.6–0.68 from `'aurora-framing'`), roll, time,
       choppiness (main, `keep`).
@@ -170,6 +171,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | snow line by season | `phenology.ts` `SNOW_SEASON` | climate × hemisphere | right (the drawn line under it is the `pickLandform` leftover above) |
 | fallen leaves by season | `phenology.ts` `LITTER_DAYS` | climate × hemisphere | right |
 | lying snow, ice foot | `snow.ts` `SNOW_COVER`, `SNOW_PLACES`, `ICE_FOOT_PLACES` | climate × hemisphere, a place's own chance | right |
+| sea ice | `seaIce.ts` `SEA_ICE_PLACES` | place × latitude, day of year; north only for now | right |
 | colony birds, humpbacks, haul-outs, crab and lizard dormancy, waterfowl, gulls by season | `animalSeasons.ts` | climate × season (colonies, seals by kind) | right |
 | beach flowers | `props/shoreLife.ts` `FLOWERS` | biome × ocean × month | **leftover**: Florida and Natal can bloom Mediterranean sea daffodil and horned poppy (should follow climate) |
 | shells, starfish | `props/shoreLife.ts` `SHELLS` | biome × ocean | leftover (minor) |

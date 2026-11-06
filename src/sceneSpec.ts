@@ -7,6 +7,7 @@ import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
 import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
 import { ROCK_KINDS, type RockKind } from './rockShore'
+import type { SeaIceForce } from './seaIce'
 import type { TideStage } from './tides'
 import { DEBUG_MARKERS, DEBUG_PASSES, OCEAN_VIEWS, TERRAIN_VIEWS } from './debug'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
@@ -71,6 +72,8 @@ export interface PropOverrides {
   /** false: plants and ground keep their summer look whatever the date
    * (phenology.ts: autumn leaves, bare trees, dry grass). */
   phenology?: boolean
+  /** false: no sea-ice mesh on a sea-ice day, waves still calmed (props/seaIce.ts). */
+  seaIce?: boolean
   /** false: no ice foot on a snow day; true: one on any snow day (props/iceFoot.ts). */
   iceFoot?: boolean
   /** false: no fallen leaves or litter colour under deciduous trees
@@ -133,6 +136,9 @@ export interface SceneSpec {
   /** Lying snow (snow.ts): null/false none, true a typical cover, or the cover
    * (0–1). */
   snow?: boolean | number | null
+  /** Sea ice (seaIce.ts): null/false none, true typical for the date, 'fast' or
+   * 'drift' that kind to the camera, 'forming' or 'melting' those shoulders. */
+  seaIce?: SeaIceForce
   /** The tide's stage today (tides.ts): low water, half tide, high water. */
   tide?: TideStage
   /** Today's tidal range (m), low to high water. */
@@ -306,6 +312,7 @@ const SPEC = object({
     number(value, path)
     if ((value as number) < 0 || (value as number) > 1) throw new Error(`${path}: a share of the ground, 0–1`)
   },
+  seaIce: oneOf(true, false, null, 'fast', 'drift', 'forming', 'melting'),
   coast: oneOf('beach', 'open-sea', 'rock-shore', 'tidal-flat'),
   rockShore: oneOf(...ROCK_KINDS),
   composition: oneOf('shoreline', 'along-beach', 'framed', 'overlook'),
@@ -371,6 +378,7 @@ const SPEC = object({
     phenology: boolean,
     leafLitter: boolean,
     iceFoot: boolean,
+    seaIce: boolean,
     debris: object(
       { driftwood: number, rootWads: boolean, wrack: oneOf(null, 'kelp', 'seagrass', 'sargassum'), wrackAmount: number, coconuts: number },
       true

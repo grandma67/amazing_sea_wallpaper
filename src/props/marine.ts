@@ -374,7 +374,9 @@ export function marineFor(params: SceneParams, rng: Random): Species | null {
   // Humpbacks migrate: summer feeding grounds, winter breeding grounds.
   const humpbacks = humpbackSeason(params)
   if (humpbacks < 1) table = table.map(([s, w]) => [s, s === 'humpback' ? w * humpbacks : w] as const)
-  return forcedKind(force, rng.weighted(table))
+  const kind = forcedKind(force, rng.weighted(table))
+  // Nothing surfaces through a frozen sea (seaIce.ts).
+  return params.seaIce != null ? null : kind
 }
 
 export function createMarineLife(ctx: PropContext): Object3D[] {

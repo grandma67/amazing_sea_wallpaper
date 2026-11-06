@@ -35,7 +35,7 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
 ]
 
 /** Star-shaped outline of unit size: radius per angle with seeded wobble. */
-function outline(rng: Random, points: number, elongation: number, roughness: number): [number, number][] {
+export function outline(rng: Random, points: number, elongation: number, roughness: number): [number, number][] {
   const seed = rng.int(0, 100_000)
   const phase = rng.range(0, Math.PI * 2)
   return Array.from({ length: points }, (_, i) => {
@@ -46,7 +46,7 @@ function outline(rng: Random, points: number, elongation: number, roughness: num
 }
 
 /** A slab: flat top at `top`, sides down to `bottom`, from an outline. */
-function slab(
+export function slab(
   b: MeshBuilder,
   shape: [number, number][],
   top: number,
@@ -168,7 +168,7 @@ export function createIce(ctx: PropContext): (Mesh | InstancedMesh)[] {
   const seaPoint = (ndcY: [number, number], minDistance: number, maxDistance: number): Vector3 | null =>
     ctx.seaPoint(rng, ndcY, minDistance, maxDistance)
 
-  if (ice.packIce > 0) {
+  if (ice.packIce > 0 && ctx.params.seaIce == null) {
     const variants = Array.from({ length: 6 }, () => floe(rng))
     const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.6 })
     const placed: Matrix4[][] = variants.map(() => [])

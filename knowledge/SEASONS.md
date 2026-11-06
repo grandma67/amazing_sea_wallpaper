@@ -242,8 +242,7 @@ offshore:
 
   Tropical and arid stay as drawn. Mauna Kea (4207 m) has snow mostly November–March and has had
   it down to about 2800 m, so a tropical mountain needs real height.
-- **Baltic sea ice:** the Gulf of Bothnia freezes Jan–Apr most winters *(est.)*; only Arctic ice
-  exists today.
+- **Baltic sea ice:** see §4.2.
 
 ## 4.1 Lying snow and the ice foot
 
@@ -284,6 +283,35 @@ about six months a year; forms change quickly over small distances (Point Lay an
 more high and several metres wide, with sediment in it, comes from a USGS report on **Lake Michigan**, an
 analogue: we found no measured range for the Arctic. Season rises from day 295 to 325, falls from 135 to
 165, and 0.8 of polar snow days, 0–0.6 by place (`ICE_FOOT_PLACES`), are *(est.)*.
+
+## 4.2 Sea ice
+
+`seaIce.ts`, plans/SEA_ICE.md. A chance per day by latitude on the `baltic` place, rising and falling by day of year
+(`band`).
+
+| From | Water | First ice | Established | Break-up from | Last ice | Peak chance |
+|---|---|---|---|---|---|---|
+| 64.5° | North of the Bay of Bothnia | 315 (11 Nov) | 349 | 115 | 145 (25 May) | 1 |
+| 63° | South of the Bay, the Quark | 325 | 355 | 105 | 130 (10 May) | 1 |
+| 60° | Sea of Bothnia, Archipelago Sea, Gulf of Finland | 340 | 15 | 90 | 122 (2 May) | 0.75 |
+| 57.5° | Northern Baltic Proper, Gulf of Riga | 355 | 32 | 65 | 95 (5 Apr) | 0.35 |
+| 54° | Central and southern Baltic | 15 | 32 | 59 | 80 | 0.06 |
+
+- **Evidence (FMI, "Ice season in the Baltic Sea"):** the ice's largest extent is usually at the end of February or
+  beginning of March. In normal winters ice covers the Sea of Bothnia, the Archipelago Sea, the Gulf of Finland and
+  part of the northern Baltic Proper; in mild ones the Sea of Bothnia doesn't freeze and the Gulf of Finland only
+  partly; only severe ones reach the central Baltic Proper and the Danish Sounds. Melting starts in April, from south
+  to north: the northern Baltic Proper is clear by early April, by early May ice is left only in the northern Bay,
+  and the last pieces go by early June. Its seasons report the northern Bay starting in early November and clearing
+  at the end of May.
+- **Northern coast:** first ice before 15 November on average and gone after 15 May, and Kemi's last ice on average
+  21 May (a 2020 paper in *Oceanological and Hydrobiological Studies*, read only through a search summary).
+- **Ice (Eriksson et al. 2025):** the Bay's annual maximum level ice is 0.65–0.80 m, 0.3–0.5 m in mild winters; below
+  0.5 m in the south. Fast ice lies in coastal and archipelago waters; drift ice is uneven, with floes up to several km,
+  leads, brash barriers, rafting and ridges of 5–15 m sail plus keel.
+- *(est.)*: the exact dates between those points, every chance below 1, how far fast ice reaches (`edge`) and how much of the sea past it
+  is ice (`cover`), the 1.5 m/s wave cap and 0.18 m freeboard (10% of the ice, plus snow), and the piles' 2.2 m top.
+  FMI's dates for 12 Finnish stations ("AE figures") would replace the dates; its page didn't give them to our tools.
 
 ## Sources
 
@@ -347,3 +375,6 @@ analogue: we found no measured range for the Arctic. Season rises from day 295 t
 - Sargassum (search summaries): USF outlook, https://optics.marine.usf.edu/projects/SaWS/pdf/Sargassum_outlook_2023_bulletin4_USF.pdf ;
   West Africa, https://egusphere.copernicus.org/preprints/2026/egusphere-2026-2727/egusphere-2026-2727.pdf
   and https://pml.ac.uk/news/why-is-sargassum-seaweed-swamping-west-african-coasts/
+- Sea ice: FMI, https://en.ilmatieteenlaitos.fi/ice-season-in-the-baltic-sea ; season reports, e.g.
+  https://en.ilmatieteenlaitos.fi/ice-winter-2021-2022 ; Eriksson et al. 2025, *Frontiers in Marine Science*,
+  https://www.frontiersin.org/articles/10.3389/fmars.2025.1561461/full ; photos in plans/SEA_ICE.md.

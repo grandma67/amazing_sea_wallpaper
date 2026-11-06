@@ -36,6 +36,7 @@ Allowed values are in `sceneSpec.ts`.
   them and force the choice; a combination no place has throws; the climate also changes the
   land, sea, sky and animals: `scenes/climates.json` has one spec per new look); `monsoon`, `ice`.
 - **Snow:** `snow` (`null` or `false` none, `true` a typical cover for the date, a number the cover, 0–1; `scenes/snow.json`). `props.phenology: false` removes drawn snow, not forced.
+- **Sea ice:** `seaIce` (`null` or `false` none, `true` typical for the date or a mid-winter one out of season, `fast` or `drift` that kind to the camera, `forming` or `melting` those shoulders; `scenes/sea-ice.json`). `props.seaIce: false` removes the mesh and keeps the calm sea; `props.phenology: false` has none unless forced. A forced `wind` or `swellHeight` above the freeboard pokes through it.
 - **Coast:** `coast` (`beach`, `open-sea`, `rock-shore`, `tidal-flat`: a flat at the day's tide, force `tide` too), `composition`; `rockShore` (`platform`,
   `boulder`, `cliff`: a rocky shore of that kind, implies one; on a rock shore `overlook` means a
   cliff and any other composition not a cliff); `swellHeight` (m offshore) and `swellPeriod` (s; wavelength

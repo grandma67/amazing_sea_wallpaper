@@ -18,9 +18,9 @@ climate or place"), with place fields only for one place's difference.
 | 7 | Tropical dry season: savanna coasts brown in the dry months (`drySeason` per place) | done (0.101, more coasts 0.102) |
 | 8 | Leaf litter: real leaves under deciduous trees near the camera, litter colour on the ground further off | done (0.103) |
 | 9 | Snow cover and ice foot: built as PLAN_BIOMES 13 | done (0.111), [SNOW.md](SNOW.md) |
-| 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
+| 10 | Baltic sea ice | done (0.114), [SEA_ICE.md](SEA_ICE.md) |
 
-Order: the drawn snow lines (open problem 1, if approved), then Baltic sea ice (10). Estimates include tests, `diff.mjs`, renders and docs.
+Next: the drawn snow lines (open problem 1, if approved).
 
 ## Open problems
 
@@ -236,16 +236,10 @@ Numbers: SEASONS.md §2.5. Off with `props.leafLitter: false` or `props.phenolog
 Its own plan, with what it settled, how it came out and its limits: [SNOW.md](SNOW.md). Numbers:
 SEASONS.md §4.1. Spec: `snow`, `props.iceFoot`.
 
-## 10. Baltic sea ice (later, own plan)
+## 10. Baltic sea ice (done, 0.114)
 
-- The `baltic` place covers latitudes 54–66°, but only the Gulf of Bothnia (about 60–66°)
-  freezes over in most winters. Ice comes only on days north of a cutoff, Jan–Apr, with a chance
-  per day.
-- Not a small extra: shore-fast ice and floes mean damped waves, no breaking surf and a changed
-  ocean shader (foam, reflection). Size it like phase 9 and plan it on its own.
-- Spec field `seaIce`.
-- Ice seen from a moving viewer (LIVE_MODE.md) needs no view-dependent placement: hash floes by
-  position, like the leaves.
+Its own plan, with what it settled, how it came out and its limits: [SEA_ICE.md](SEA_ICE.md). Numbers: SEASONS.md §4.2.
+Spec: `seaIce`, `props.seaIce`. The first plan's Jan–Apr north of 60° was too narrow against FMI's own account.
 
 ## Checks
 
@@ -262,3 +256,5 @@ SEASONS.md §4.1. Spec: `snow`, `props.iceFoot`.
 - Phase 8 (`test/leafLitter.test.ts`): the curve in every climate and month, a leaf fixed by its
   tree, thinning, mesh checks, dry ground, budget, weathering, plants unchanged, off switches, the
   map's rim.
+- Phase 10 (`test/seaIce.test.ts`): the table over every place, dates by zone, waves under the ice, nothing surfacing,
+  off switches, the fields' ranges, a piece of rubble fixed by its cell, mesh checks.
