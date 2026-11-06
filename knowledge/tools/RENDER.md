@@ -50,7 +50,14 @@ node scripts/diff.mjs --scene $SP/specs.json --off '{"contrails":null}' --out $S
 node scripts/diff.mjs --scene $SP/specs.json --off '{"props":{"rocks":false}}' --out $SP/rocks     # keeps the other props
 node scripts/diff.mjs --scene S --ref HEAD --out $SP/change   # S at the ref (off) vs now (on)
 node scripts/diff.mjs --a $SP/before --b $SP/after            # two folders, same names
+node scripts/diff.mjs --a $SP/x/off --b $SP/x/on --match NAME --out $SP/x --crop 0,700,180,90 --zoom 4   # look closer, no new render
 ```
+
+- Renders at 1920×1080 and 16 frames unless `--w --h --frames` say otherwise (`snapshot.mjs` alone
+  defaults to 4K).
+- `--crop X,Y,W,H` or `--crop box` (the changed box) saves `NAME.crop.jpg`: off | on side by side
+  at full size, where `NAME.diff.jpg` is shrunk. `--zoom N` enlarges it with sharp pixels. Use it to
+  tell a real edge from something standing in front of it.
 
 - `--keep-camera`: terrain changes (bars, cusps, tides) also move the camera, which stands on the
   ground. With it the "on" renders go first and each "off" render stands at the same height

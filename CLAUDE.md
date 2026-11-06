@@ -15,7 +15,7 @@ Docs in `knowledge/` (read what the task needs):
   winter sleep, waterfowl): research and numbers.
 - `STARS.md`: the night sky (stars, meteors, Milky Way, planets, airglow, aurora): research and numbers.
 - `REGIONS.md`: research behind places, grain, tides; `REFERENCES.md`: sources.
-- `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons).
+- `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons, live mode).
 
 Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5173 is other projects).
 
@@ -27,6 +27,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
   - Instance repeats; bake colour into vertices instead of shader work; keep each mesh under ~100k tris.
   - Cap per-pixel loops (ocean foam goes round the nearest 48 rocks only).
   - Render time (snapshot, 1080p, 16 frames) is ~2–3 s per day; adding more than ~10% needs a reason (`scripts/bench.mjs`).
+- **A move-around mode is planned** (`plans/LIVE_MODE.md`, not designed yet): "rare in frame" alone isn't a reason to drop a feature, so raise this before dropping one on a visibility count. Where it costs little, decide what a thing is from its world position and let only the choice of what to draw read the camera (`props/leafLitter.ts`).
 
 # Developing features
 
@@ -69,7 +70,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
   - feature rules via specs: `scene(spec, date?)` and `scenes(spec, count)` in `test/days.ts` (e.g. `scenes({ lighthouse: true, timeOfDay: 'night', fog: null })`). Add `eclipse: null` when forcing time of day or sky (real eclipse days override);
   - meshes: deterministic, finite positions and normals, base near y = 0, within the triangle budget;
   - `params.ts` changes: determinism and title.
-- Run `npm test` (typecheck + Vitest, ~6 s) and `npx tsc --noEmit` before committing.
+- Run `npm test` (typecheck of `test/` + Vitest, ~20 s) and `npx tsc --noEmit` (`src/` only) before committing; neither alone covers both.
 - Say "done" only for what a render or `diff.mjs` showed; otherwise say "placed, not checked".
 - After new animals or changed chances: run `node scripts/animals.mjs` and paste its table into ANIMALS.md (update the rules there too).
 - Count the days a change touches with `node scripts/params.mjs --ref HEAD` (before committing; `--list` shows each day's changed values; `--changed 'p => p.place.id'` says where; `--fields` narrows the comparison, not just the print) for the changelog row.

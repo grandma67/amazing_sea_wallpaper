@@ -125,10 +125,16 @@ tool gotchas: TOOLS.md.
   Likewise a choice that zeroes a count in a season still makes the draw (shore crabs in
   winter): a skipped draw moves every draw after it (shells).
 - A diff's straight-edged patch on the ground can be clumps of grass in front of a slightly changed
-  ground, not a seam: crop `on` and `off` at the same place and project the suspect's rectangle
-  (`params.mjs` `p.ctx`, `.project(camera)`) before changing a shader.
-- A soft mask plus noise needs the noise faded out at the mask's edge (`under + k * smoothstep(0,
-  0.25, under) * noise`), or a threshold on the sum turns on abruptly where the mask leaves 0.
+  ground, not a seam: look at both first (`diff.mjs --a --b --crop … --zoom 4`), and project the
+  suspect's rectangle (`params.mjs` `p.ctx`, `.project(camera)`) before changing a shader.
+- A soft mask plus noise should fade the noise out at the mask's edge (`under + k * smoothstep(0,
+  0.25, under) * noise`): by the maths a threshold on the sum turns on abruptly where the mask leaves
+  0. No render showed this happening (the edge that prompted it was grass); it's a precaution.
+- Counting what a frame shows? Use `params.mjs --rendered`. Without it you get the first framing
+  attempt, and the page may re-roll: leaf litter's real days went from 13 to 14 leaf days and 78 to
+  69 colour days, and one "invisible" day simply had no such tree in the framing it renders.
+- A leak check proves nothing about days it doesn't visit: its default dates are June. Pass
+  `--date` to cover days that have the feature (`params.mjs --list --where`).
 - A pale, even colour under a tree reads as a stain, and a map's discs as neat ellipses from above:
   fainter, warped, and in drifts; the leaves on top carry the look.
 - The `southern` hemisphere shift is half a year: 2 July south is day 365, 3 July day 1

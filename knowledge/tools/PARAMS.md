@@ -40,7 +40,8 @@ Eye height above the ground, lens, pixel angle at 1080p, nearest ground in frame
 bottom centre (`frameView` in `composition.ts`). A thing of size S at distance d is
 S / (d × pixelMrad / 1000) px wide. Over real beach days the nearest ground is under ~7 m on
 40–55% of along-beach and framed days, 5–40 m on shorelines and 40 m+ on overlooks. `--rendered`
-uses the params the page renders (`generateSceneParams` may re-roll a bad framing; slower).
+uses the params the page renders (`generateSceneParams` may re-roll a bad framing; slower). Use it
+for counts of what's in frame, and before calling a real day "invisible".
 
 ```sh
 node scripts/params.mjs --rendered --scene '{"place":"nova-scotia","composition":"shoreline"}' --fields view 2025-07-10
@@ -162,6 +163,8 @@ long lens stretches across the picture shows here, not after a render.
 
 ## Tests: props without a render (`test/days.ts`)
 
+- `scene(spec)` validates the spec's JSON as the page does, so a wrong field fails instead of
+  forcing nothing; `field: undefined` means not forced.
 - `propsOf(p)`: the tests' `p.props` (`propChoices` on the render's `'props/<kind>'` streams,
   cached per params). Use it instead of deriving `Random.derive(p.seed, 'props/…')` by hand.
 - `view(spec, height)` / `viewOf(params, height)`: a `PropContext` (camera, `pixelAngle`) without

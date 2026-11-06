@@ -14,6 +14,11 @@
 // --keep-exposure   "on" first, then each "off" uses its exposure (debug.exposure):
 //                   for sky, weather, haze and sun changes, which re-meter the frame
 // --threshold N     luminance change that counts, 0–255 (default 4, above JPEG noise)
+// --crop X,Y,W,H    also save OUT/NAME.crop.jpg: off | on side by side at full size,
+//                   not shrunk (`box`: the changed box). With --a/--b, no new render.
+// --zoom N          enlarge that crop N times, pixels kept sharp (default 1)
+//
+// Renders at 1920×1080 and 16 frames unless --w --h --frames say otherwise.
 
 import { spawnSync } from 'node:child_process'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
@@ -34,8 +39,13 @@ const threshold = Number(option('threshold', 4))
 const keepCamera = flag('keep-camera')
 const keepExposure = flag('keep-exposure')
 const onFirst = keepCamera || keepExposure
+const cropArg = option('crop', null)
+const crop = cropArg == null || cropArg === 'box' ? cropArg : cropArg.split(',').map(Number)
+if (Array.isArray(crop) && (crop.length !== 4 || crop.some(v => !Number.isFinite(v)))) throw new Error('--crop is X,Y,W,H in pixels, or box')
+const zoom = Number(option('zoom', 1))
+const defaults = { w: '1920', h: '1080', frames: '16' }
 const render = ['w', 'h', 'frames', 'url'].flatMap(k => {
-  const v = option(k, null)
+  const v = option(k, defaults[k] ?? null)
   return v == null ? [] : [`--${k}`, v]
 })
 
@@ -85,7 +95,23 @@ const page = await browser.newPage()
 for (const file of names) {
   const [a, b] = await Promise.all([readFile(join(dirA, file)), readFile(join(dirB, file))].map(p => p.then(buf => buf.toString('base64'))))
   const result = await page.evaluate(
-    async ({ a, b, threshold }) => {
+    async ({ a, b, threshold, crop, zoom }) => {
+      const encode = async canvas => {
+        const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.92 })
+        return new Uint8Array(await blob.arrayBuffer()).reduce((s, x) => s + String.fromCharCode(x), '')
+      }
+      /** off | on at full size (× zoom), a thin white line between them. */
+      const fullSize = async (x, y, w, h) => {
+        const gap = 4
+        const sheet = new OffscreenCanvas(w * zoom * 2 + gap, h * zoom)
+        const ctx = sheet.getContext('2d')
+        ctx.imageSmoothingEnabled = false
+        ctx.fillStyle = '#fff'
+        ctx.fillRect(0, 0, sheet.width, sheet.height)
+        ctx.drawImage(ia, x, y, w, h, 0, 0, w * zoom, h * zoom)
+        ctx.drawImage(ib, x, y, w, h, w * zoom + gap, 0, w * zoom, h * zoom)
+        return encode(sheet)
+      }
       const load = async data => createImageBitmap(await (await fetch(`data:image/jpeg;base64,${data}`)).blob())
       const [ia, ib] = await Promise.all([load(a), load(b)])
       const W = ia.width
@@ -120,7 +146,8 @@ for (const file of names) {
             if (d > 0) brighter++
           }
         }
-      if (changed === 0) return { W, H, changed, share: 0 }
+      const asked = Array.isArray(crop) ? await fullSize(...crop) : null
+      if (changed === 0) return { W, H, changed, share: 0, crop: asked }
       // The box holding 98% of the changed pixels (stray noise left out).
       const span = counts => {
         const total = counts.reduce((s, n) => s + n, 0)
@@ -158,16 +185,21 @@ for (const file of names) {
       const dc = new OffscreenCanvas(cw, ch)
       dc.getContext('2d').putImageData(diff, 0, 0)
       ctx.drawImage(dc, 0, 0, cw, ch, w / 2, h, w, h)
-      const blob = await sheet.convertToBlob({ type: 'image/jpeg', quality: 0.9 })
-      const jpeg = new Uint8Array(await blob.arrayBuffer()).reduce((s, x) => s + String.fromCharCode(x), '')
-      return { W, H, changed, share: changed / (W * H), box: [x0, y0, x1, y1], mean: sum / changed, max, brighter: brighter / changed, jpeg }
+      const jpeg = await encode(sheet)
+      const boxed = crop === 'box' ? await fullSize(x0, y0, x1 - x0 + 1, y1 - y0 + 1) : asked
+      return { W, H, changed, share: changed / (W * H), box: [x0, y0, x1, y1], mean: sum / changed, max, brighter: brighter / changed, jpeg, crop: boxed }
     },
-    { a, b, threshold }
+    { a, b, threshold, crop, zoom }
   )
   const name = file.replace(/\.jpg$/, '')
   if (result.error != null) {
     console.log(`${name}: ${result.error}`)
     continue
+  }
+  if (result.crop != null) {
+    const cropFile = join(outDir, `${name}.crop.jpg`)
+    await writeFile(cropFile, Buffer.from(result.crop, 'latin1'))
+    console.log(`  ${cropFile}`)
   }
   if (result.changed === 0) {
     console.log(`${name}: identical (no pixel moved more than ${threshold}/255)`)

@@ -225,14 +225,23 @@ Numbers: SEASONS.md §2.5. Off with `props.leafLitter: false` or `props.phenolog
   stays as it was (`--ref`: 0 of 1095 days changed).
 - **Seen in renders** (`diff.mjs --off`, 16 frames): temperate January and November, boreal October,
   tundra September, an overlook for the colour alone, backlit, and real days 2026-10-16 (Norway) and
-  2026-02-25 (British Columbia). 2026-10-12 (Iceland) showed nothing: its birches' ground is out of
-  frame or on the shore. Render time +2% (at worst +7%); `check:restart` passes.
+  2026-02-25 (British Columbia). 2026-10-12 (Iceland) showed nothing: the page re-rolls its framing,
+  and the framing it renders has no deciduous tree. Render time 0% overall on three litter scenes
+  (`bench.mjs --runs 3`; one scene's runs were noisy).
+- **How often** (`params.mjs --rendered`): 14 of 1095 days have leaves in frame and 69 only the
+  ground colour. The 8 in the count above is from the first framing attempt, for a tree under 20 m.
+- **Freed:** `check:restart --date 2024-11-28 --steps 8` covers real litter days (11-30, 12-05), and
+  `test/leafLitter.test.ts` checks the map goes with the terrain's material.
 
 ## 9. Snow cover and ice foot (later, own plan)
 
 Built as PLAN_BIOMES 13 ("Snow and ice foot", which has the build list: snow mask, snow-capped
 rocks and plants, ice foot, frozen spray). This plan only gives the season. Write the snow plan
 before code. It needs to settle:
+
+- **A moving viewer** (LIVE_MODE.md): where a snow mask comes from. `props/leafLitter.ts`'s
+  world-space map (`terrain.ts` `litterMap`) is one precedent; the map there still covers only what's
+  in view.
 
 - **Months by climate:** polar Oct–May, boreal Dec–Mar, temperate only on rare cold days. Put a
   number on "a chance per day" for boreal coasts (they thaw often) and on temperate cold days.
@@ -254,6 +263,8 @@ before code. It needs to settle:
 - Not a small extra: shore-fast ice and floes mean damped waves, no breaking surf and a changed
   ocean shader (foam, reflection). Size it like phase 9 and plan it on its own.
 - Spec field `seaIce`.
+- Ice seen from a moving viewer (LIVE_MODE.md) needs no view-dependent placement: hash floes by
+  position, like the leaves.
 
 ## Checks
 

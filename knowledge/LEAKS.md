@@ -21,7 +21,9 @@ makes must be freed, in two stages:
 
 ## `npm run check:restart` (`scripts/restart.mjs`, ~1 min)
 
-Run it after anything that adds to the scene, the page or a listener (dev server on 5174). It
+Run it after anything that adds to the scene, the page or a listener (dev server on 5174), with
+`--date` on real days that have the addition: the default start is June, so a seasonal or rare
+feature may not appear at all. It
 clicks → several times, then ←, Back, Forward, Random, Today, once with the render on the page
 (`?worker=0`, where heap and contexts are visible) and once on the worker. `ok` + `failures`
 first; the header lists every check. In short: the day expected in the address bar, view and

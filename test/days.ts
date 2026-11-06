@@ -5,7 +5,7 @@ import { shiftDate } from '../src/dates'
 import { generateParams, type Composition, type SceneParams } from '../src/params'
 import { propChoices, type PropChoices } from '../src/props/choices'
 import { PropContext } from '../src/props/context'
-import type { SceneSpec } from '../src/sceneSpec'
+import { parseSceneSpec, type SceneSpec } from '../src/sceneSpec'
 import { terrainHeight } from '../src/terrain'
 
 /** Every day of three years: enough for the rare events to show up. */
@@ -43,8 +43,11 @@ export function expectShare<T>(list: T[], test: (p: T) => boolean, target: numbe
   expect(Math.abs(value - target), `share ${value.toFixed(3)} vs ${target} ± ${tolerance.toFixed(3)} (${n} samples)`).toBeLessThanOrEqual(tolerance)
 }
 
-/** A scene described by a spec (sceneSpec.ts), on `date` or the spec's own. */
+/** A scene described by a spec (sceneSpec.ts), on `date` or the spec's own.
+ * Its JSON is validated as the page's is, so a wrong field fails instead of
+ * forcing nothing (`field: undefined`, not forced, isn't in the JSON). */
 export function scene(spec: SceneSpec, date = DAYS[0]): SceneParams {
+  parseSceneSpec(JSON.stringify(spec))
   return generateParams(date, 0, 16 / 9, spec)
 }
 

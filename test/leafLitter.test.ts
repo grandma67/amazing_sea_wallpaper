@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Climate } from '../src/biome'
+import { GpuResources } from '../src/dispose'
+import { createTerrain } from '../src/terrain'
 import { CLIMATES } from '../src/places'
 import { fallenLeafSize, LITTER_DAYS, phenologyFor, type PhenologyDay } from '../src/phenology'
 import { createLeafLitter, deciduousTrees, fallenLeafGeometry, leafShare, litterField, litterFor, MAX_LEAVES, treeLeaf } from '../src/props/leafLitter'
@@ -167,6 +169,21 @@ describe('on a day', () => {
     const u = (tree.x - rect[0]) * rect[2]
     const v = (tree.z - rect[1]) * rect[3]
     if (u > 0 && u < 1 && v > 0 && v < 1) expect(data[Math.floor(v * size) * size + Math.floor(u * size)]).toBeGreaterThan(50)
+  })
+})
+
+describe('the map on the GPU', () => {
+  it('is freed with the terrain that holds it', () => {
+    const ctx = view(spec({}), 1080, '2025-01-15')
+    const field = litterField(ctx, createVegetation(ctx))!
+    const terrain = createTerrain(ctx.params, ctx.camera)
+    terrain.material.uniforms.litterMap.value = field.texture
+    let freed = false
+    field.texture.addEventListener('dispose', () => (freed = true))
+    const gpu = new GpuResources()
+    gpu.addMaterial(terrain.material)
+    gpu.dispose()
+    expect(freed).toBe(true)
   })
 })
 
