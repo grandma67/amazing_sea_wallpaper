@@ -30,6 +30,37 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
 
+## Tests
+
+`npm test` is the typecheck and Vitest: logic, no GPU and no browser, ~7 s. Helpers: `test/days.ts`, `test/mesh.ts`
+([tools/PARAMS.md](tools/PARAMS.md)). `npm run test:times` prints the slowest files and tests.
+
+| To check | Add a row or test in |
+|---|---|
+| A small mesh: real size, budget, deterministic, finite | `test/meshes.test.ts` (`expectMesh`, 3 seeds) |
+| "When this, then that" on every real day | `test/realDays.test.ts` (fails if the rule never applies) |
+| Forcing a field keeps the rest of the day | `test/sceneSpec.test.ts` |
+| A prop's off switch | `test/propSwitches.test.ts` |
+| A new scene the prop tree should build (finite, tagged, freed, shaded) | `test/props.test.ts` `SCENES` |
+| A rule of one feature: chances, rates, shapes | `test/<feature>.test.ts` |
+
+Shaders are read, not compiled: `test/glsl.test.ts` checks every `/* glsl */` for reserved names, brackets and
+`#include`s. What still takes a render: other GLSL errors, how anything looks, GPU memory (`check:restart`).
+
+Keeping it fast:
+- **Workers take whole files, so the longest file sets the wall time.** Past ~5 s, split it (`props`, `propSwitches`).
+- **One `expect` per list, not per item:** `expectEvery`, or `if (…) expect.fail(…)` in a loop. `expect` per vertex took
+  7.7 of the 7.9 s of the tree tests.
+- **Build once:** a test file's rules on one scene share the build (`test/props.test.ts` `build`).
+- **Samples spread over the years** (`i % N === 0`), not the first N days: fewer days see more seasons, and first-N
+  samples hid real cases (below). Prop creators cost ~50–400 ms a day, `measureFrame` ~80 ms, `generateParams` 0.1 ms.
+- `isolate: false` (`vite.config.ts`): modules load once per worker, so a test mustn't change a module's state or the
+  shared `allParams()`. Check with `npx vitest run --sequence.shuffle.files`.
+
+Coverage: `npm i --no-save @vitest/coverage-v8@5` (then `git checkout package-lock.json`), and `npx vitest run --exclude
+test/glsl.test.ts --coverage --coverage.reportOnFailure --coverage.include='src/**'`. The GLSL test's raw imports count
+each source file as fully covered, so leave it out.
+
 ## Shared conventions
 
 - **Specs** (`--scene`, all scripts): a JSON file or inline JSON; one spec, a list, or

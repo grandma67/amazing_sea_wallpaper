@@ -104,6 +104,18 @@ tool gotchas: TOOLS.md.
   terrain never draws): report beach days separately.
 - `params.ocean.windSpeed` is the wind the waves feel: pack ice calms it ×0.4 and sea ice caps it. The air's is
   `params.ocean.airWindSpeed` (0.117): clouds, plants and tests of them read that one.
+- **Samples of the first N days hide cases.** Spreading them over the three years found specs missing `eclipse: null`, and
+  13 of 2096 forced days where a lens chosen for a rainbow or aurora stays after a storm or fog takes it away. Spread
+  them: fewer days see more.
+- **A loop over a filter passes on nothing.** The nacreous rule ran on no day for as long as it existed, since no real
+  day has them. `expectEvery` fails on an empty list.
+- **Timing in a test is a flake:** `auroraLux < 50 ms` failed whenever the machine was busy. Time things with `bench.mjs`.
+- **Coverage shows what ran, not what's checked.** Inject the bug instead: 18 bugs put into `src/` were caught 8 times by
+  the old suite and 16 by the new, and all 581 old tests passed with a wrong eclipse memo that only `params.mjs --ref`
+  and a comparison with the original over a century caught. Before cutting tests, compare both ways.
+- **A memo of a search has to answer as the search does.** `SearchGlobalSolarEclipse` goes by the moon's phase: with a new
+  moon just before midnight and the peak after, a search from that midnight misses the eclipse, so reuse stopped a day
+  before the peak.
 - Module cycles: `tides.ts` importing `terrain.ts` (which imports `tides.ts`) left half the test
   files failing to load. Put shared helpers in a module with no imports (`reef.ts`).
 

@@ -232,7 +232,8 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   `scripts/mesh.mjs`.
 - **Tests** (`test/`, Vitest, `npm test`, also in CI before the build): logic, not rendering —
   PRNG, dates, FFT, `generateParams` invariants over three years, terrain/surf mirrors, choice
-  tables, meshes, specs.
+  tables, meshes, specs, and with no GPU the whole prop tree (built, finite, shaded, freed) and a
+  static read of the shaders. Which file for what: TOOLS.md "Tests".
 - **CI** (`.github/workflows/pages.yml`): deploys on push and daily at 00:05 UTC renders
   `/latest.jpg` (1920×1080) and `/latest-portrait.jpg` (1290×2796) with SwiftShader (24 frames).
 

@@ -218,6 +218,11 @@ is its box, so a rounded rock reads a little taller than it is.
   of a coast spec and checks the camera stands on finite ground above today's water (`above(p)`,
   e.g. the run-up). Run it for every new coast kind or shore profile: a profile built for one
   tide can drown the camera at another.
+- `expectEvery(items, test, { what, allowEmpty })`: one `expect` for a whole list, naming the first failure. An empty
+  list fails, since a rule checked on nothing proves nothing: pass `allowEmpty` only where it may truly have no items.
+- `expectSameDay(a, b, paths)`: two scenes agree on these fields (`'coast.tide.mean'`).
+- `DARK` (a clear, moonless night), `MONTHS` (the 15th of each), `monthOf(p)`, `heightAt(coast, s, a)`.
+- `test/mesh.ts`: `expectMesh(seed => build(new Random(seed)), rules)` and `instancePositions(objects)`.
 - Table checks over every place × climate × ocean (`test/climate.test.ts` "grows only what the
   climate allows") catch a wrong combination without sampling; add one when a table gains a key.
 

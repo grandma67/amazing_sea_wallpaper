@@ -61,7 +61,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Numbers before renders. Use scene specs, not hunted dates; ask `params.mjs` for frequencies and "is it there at all?". Changed a choice or its inputs? `params.mjs --ref HEAD --stats 'p => …'` (⚠ at ≥ 5 points). Test targets: `params.mjs --expect 'pl => …'` (no sampling).
 - Terrain and water-depth features (bars, cusps, tides, reefs, flats): `profile.mjs` (numbers, cross-shore profile, top-down depth map with the break line); compare drawn and reached numbers; force waves with `swellHeight`/`swellPeriod`. Diff terrain changes with `diff.mjs --keep-camera`.
 - A spec file's base forces `timeOfDay` and `weather` (the date's own may be night); don't force `camera.heightM` (compositions set their own). `--props KIND` also prints CPU build time. Preview new meshes alone with `scripts/mesh.mjs`; render the beach only for placement and light.
-- After any shader edit, render `--w 320 --h 180 --frames 1` first (GLSL errors and reserved words like `flat` show only at render time).
+- After any shader edit, `npx vitest run test/glsl` (reserved names like `flat`, brackets, `#include`s of everything tagged `/* glsl */`), then render `--w 320 --h 180 --frames 1` (any other GLSL error shows only at render time).
 - Sky and light features: place and check positions with `skyFrame.ts` (`params.mjs` `src.skyFrame`); write a TS mirror of the shader (`skyMirror.ts`: same frame, `airTransmittance`, integer noise hash `hashGlsl`/`hashCell`) and compare it with the night sky's own mirror (`nightGlow.ts` `nightSkyCd`) before rendering; then measure the render with `params.debug.probe` (points) and `probeLine` (lines: bands vs grain) and run the same line through `params.mjs --line` to validate the mirror. Bands or stripes: switch the feature's pass off on the same frame first.
 - A console message the user sees but a script doesn't: first check the script sees that kind of message (TOOLS.md "Gotchas": GPU and worker GL messages need `watchPage`), then try 4K with default frames, before changing render conditions.
 - Debugging a look: first grep ARCHITECTURE.md "Known issues" for the symptom. Probe creators and helpers with `params.mjs` (`p.ctx`, `src.X`, `props.X`), not throwaway tests; `profile.mjs` maps the view cone and warns when dry land floods. Then switches and false-colour views in `params.debug` (`tools/DEBUG.md`: grid density, props off, markers, passes, fixed exposure, terrain and sea views) before editing code to test a guess.
@@ -75,12 +75,12 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Stop the dev server when done: `lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`.
 
 ## 4. Tests and finishing
-- `test/<feature>.test.ts` covering:
+- A row in a shared table where there is one (`knowledge/TOOLS.md` "Tests"): a mesh in `meshes.test.ts`, a "when this, then that" rule in `realDays.test.ts`, a forced field in `sceneSpec.test.ts`, an off switch in `propSwitches.test.ts`. Then `test/<feature>.test.ts` covering:
   - the choice table over `allParams()` (real days): only where intended, roughly as often (`expectShare` in `test/days.ts`, not `toBeCloseTo`), season respected; prop choices via `propsOf(p)`; a table keyed by place, climate or ocean also checked over every key combination (no sampling);
   - feature rules via specs: `scene(spec, date?)` and `scenes(spec, count)` in `test/days.ts` (e.g. `scenes({ lighthouse: true, timeOfDay: 'night', fog: null })`). Add `eclipse: null` when forcing time of day or sky (real eclipse days override);
-  - meshes: deterministic, finite positions and normals, base near y = 0, within the triangle budget;
+  - meshes: a row with its real size and budget (`expectMesh`: deterministic, finite, 3 seeds);
   - `params.ts` changes: determinism and title.
-- Run `npm test` (typecheck of `test/` + Vitest, ~20 s) and `npx tsc --noEmit` (`src/` only) before committing; neither alone covers both.
+- Run `npm test` (typecheck of `test/` + Vitest, ~7 s; where the time goes: `npm run test:times`) and `npx tsc --noEmit` (`src/` only) before committing; neither alone covers both.
 - Say "done" only for what a render or `diff.mjs` showed; otherwise say "placed, not checked". A subtle feature needs a before/after with its own switch off (`diff.mjs --crop`): a full frame or contact sheet doesn't show it.
 - After new animals or changed chances: run `node scripts/animals.mjs` and paste its table into ANIMALS.md (update the rules there too).
 - Count the days a change touches with `node scripts/params.mjs --ref HEAD` (before committing; `--list` shows each day's changed values; `--changed 'p => p.place.id'` says where; `--fields` narrows the comparison, not just the print) for the changelog row.

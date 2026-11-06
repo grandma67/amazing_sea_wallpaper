@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "snapshot": "node scripts/snapshot.mjs",
     "test": "tsc --noEmit -p test && vitest run",
+    "test:times": "node scripts/testTimes.mjs",
     "check:restart": "node scripts/restart.mjs"
   },
   "dependencies": {
