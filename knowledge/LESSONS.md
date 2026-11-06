@@ -501,6 +501,9 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **Big level things have no business being tilted (sea ice, 0.115):** floes 0.5–1° apart read as paving stones near a grazing sun, where brightness goes with the angle. Fine at noon; every low-sun polar
+  day showed it. Grep for every tilt: the same effect was in two places, and fixing one looked like it had failed.
+- **Set a value where it's built (sea ice, 0.115):** overwriting `coast.runup` after `generateCoast` left the berm at the old high-tide line. `beach.test.ts` caught it.
 - **Shared vertices round a slab's sides read as a drum (sea ice, 0.114):** a low-poly plate needs `toCreasedNormals`. And real sizes first: a block
   across 4.5 m as tall as it's wide reads as a boulder; ice rubble is slabs as thick as the ice.
 - Clamp before a fractional power: `(1 - t) ** 2.2` is NaN for t a hair above 1, and a path

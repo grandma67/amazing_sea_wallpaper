@@ -297,6 +297,8 @@ analogue: we found no measured range for the Arctic. Season rises from day 295 t
 | 57.5° | Northern Baltic Proper, Gulf of Riga | 355 | 32 | 65 | 95 (5 Apr) | 0.35 |
 | 54° | Central and southern Baltic | 15 | 32 | 59 | 80 | 0.06 |
 
+That table is the Baltic. The other coasts' rows are in `SEA_ICE_PLACES`; below it, what each rests on.
+
 - **Evidence (FMI, "Ice season in the Baltic Sea"):** the ice's largest extent is usually at the end of February or
   beginning of March. In normal winters ice covers the Sea of Bothnia, the Archipelago Sea, the Gulf of Finland and
   part of the northern Baltic Proper; in mild ones the Sea of Bothnia doesn't freeze and the Gulf of Finland only
@@ -309,6 +311,18 @@ analogue: we found no measured range for the Arctic. Season rises from day 295 t
 - **Ice (Eriksson et al. 2025):** the Bay's annual maximum level ice is 0.65–0.80 m, 0.3–0.5 m in mild winters; below
   0.5 m in the south. Fast ice lies in coastal and archipelago waters; drift ice is uneven, with floes up to several km,
   leads, brash barriers, rafting and ridges of 5–15 m sail plus keel.
+- **Canadian Arctic:** most of the Archipelago is fast by November or December; both onset and break-up have moved, shortening the season (Galley et al. 2012, *Arctic*,
+  abstract only). Exact dates are *(est.)*, by analogy with Alaska.
+- **Alaska:** break-up averages 2 June over 38 communities (3 May to 24 July, 2000–2022); Beaufort regional onset ~6 June, 2007–2015; Wainwright to Utqiaġvik in the second half of June (NOAA
+  outlook). Freeze-up dates are *(est.)*.
+- **Svalbard:** fast-ice days fell from 50 to 22 in Isfjorden and 56 to 34 in Hornsund after 2006 (Muckenhuber et al. 2016); Hornsund's goes in June. Fjords, so low cover, and a chance
+  of 0.55 *(est.)*.
+- **Greenland:** the Disko Bay area peaks in March, growth began in January in some years, and 2005 was nearly ice-free. North and south rows are *(est.)*.
+- **Okhotsk:** the Siberian coast from about November, Hokkaido's from mid-January, largest at the start of March (~80% of the sea), the southern edge melting from mid-March, gone by the
+  end of June (Okhotsk Ryuhyo Museum). Hokkaido itself is north of `japan`'s 43°, so it isn't drawn.
+- **Gulf of St Lawrence (PEI, Nova Scotia, Newfoundland):** first ice ~2 December 2021, climatological cover 4.7% at the start of January, ice-free by early May and the mid-Labrador coast by mid-June
+  in 2020–21 (ECCC reports). Single seasons, so the rows are *(est.)* on them.
+- **No source found:** Siberia and the White Sea, Cook Inlet, Kamchatka's bays, the South Shetlands and South Sandwich. Their rows are *(est.)*.
 - *(est.)*: the exact dates between those points, every chance below 1, how far fast ice reaches (`edge`) and how much of the sea past it
   is ice (`cover`), the 1.5 m/s wave cap and 0.18 m freeboard (10% of the ice, plus snow), and the piles' 2.2 m top.
   FMI's dates for 12 Finnish stations ("AE figures") would replace the dates; its page didn't give them to our tools.
@@ -378,3 +392,6 @@ analogue: we found no measured range for the Arctic. Season rises from day 295 t
 - Sea ice: FMI, https://en.ilmatieteenlaitos.fi/ice-season-in-the-baltic-sea ; season reports, e.g.
   https://en.ilmatieteenlaitos.fi/ice-winter-2021-2022 ; Eriksson et al. 2025, *Frontiers in Marine Science*,
   https://www.frontiersin.org/articles/10.3389/fmars.2025.1561461/full ; photos in plans/SEA_ICE.md.
+- Sea ice beyond the Baltic: Alaska, https://dukespace.lib.duke.edu/items/ae3a5e10-3aee-4bdd-b960-e75852652f76 ; Svalbard, https://tc.copernicus.org/articles/10/149/2016/ ;
+  Okhotsk, https://www.ryuhyokan.com/guide/en/BF-4-3-1.html ; Canada, https://journalhosting.ucalgary.ca/index.php/arctic/article/view/67242 ; Disko Bay,
+  https://polarresearch.net/index.php/polar/article/view/2091 ; Gulf of St Lawrence, https://publications.gc.ca/collections/collection_2021/eccc/En55-2-2021-eng.pdf .

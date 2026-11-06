@@ -128,6 +128,8 @@ Months are the day's own season (south of the equator six months on).
 Planned animals (sea otters, walrus, polar bears, waders, herons, tidepool life, blacktip
 sharks): PLAN_BIOMES.md phase 14.
 
+**On a frozen sea** (`seaIce.ts`, SEA_ICE.md), nothing is in the water: no whales or dolphins, swimming seals or animals afloat. Seals stay hauled out on rock and beach.
+
 ## How often, over three years
 
 Share of days on which the generator chooses each animal, of all days and of each biome's
@@ -149,9 +151,9 @@ and ocean's days. Regenerate with `node scripts/animals.mjs`.
 | Lizards: green-iguana | 0.5% | – | – | – | – | 2% | 0.6% | 1% | – | – | – |
 | Lizards: marine-iguana | 0.5% | – | – | 4% | – | – | – | 2% | – | – | – |
 | Lizards: monitor | 0.5% | – | – | – | – | 2% | – | 0.8% | 1% | – | – |
-| Marine: dolphin | 15% | 13% | 14% | 13% | 20% | 19% | 19% | 17% | 18% | – | 13% |
-| Marine: humpback | 6% | 7% | 6% | 7% | 2% | 5% | 5% | 5% | 5% | 12% | 10% |
-| Marine: orca | 5% | 9% | 3% | 5% | – | – | 1% | 2% | – | 17% | 25% |
+| Marine: dolphin | 14% | 11% | 14% | 13% | 20% | 19% | 19% | 16% | 18% | – | 13% |
+| Marine: humpback | 5% | 5% | 6% | 7% | 2% | 5% | 5% | 5% | 5% | 8% | 10% |
+| Marine: orca | 3% | 5% | 3% | 4% | – | – | 1% | 1% | – | 7% | 23% |
 | Marine: swordfish | 6% | 3% | 9% | 3% | 12% | 8% | 6% | 8% | 10% | – | – |
 | Migratory birds: duck | 6% | 10% | 5% | 8% | – | – | 8% | 6% | – | 4% | 10% |
 | Migratory birds: flamingo | 8% | – | 11% | 10% | 15% | 16% | 9% | 8% | 16% | – | – |

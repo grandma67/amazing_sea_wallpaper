@@ -1,6 +1,6 @@
-# Baltic sea ice plan
+# Sea ice plan
 
-A frozen sea on the days that have one (SEASONS_PLAN phase 10). Numbers and sources:
+A frozen sea on the days that have one (SEASONS_PLAN phase 10, then every freezing coast). Numbers and sources:
 [SEASONS.md](../SEASONS.md) §4.2.
 
 ## Status
@@ -20,8 +20,7 @@ A frozen sea on the days that have one (SEASONS_PLAN phase 10). Numbers and sour
   Archipelago Sea and part of the northern Baltic Proper. So five zones by latitude, each with its own season
   and chance. The research wins over the plan.
 - **How often:** the `baltic` place has 12 of the 1095 test days and 1–3 of them have ice, so a still frame
-  rarely shows this. It's built anyway, as asked, and the table is keyed by place, so other freezing coasts can
-  be added by a row (see Known limits).
+  rarely shows this. So the table is keyed by place, and 0.115 added the other freezing coasts (below): 95 days.
 - **A mesh, not a branch in the ocean shader.** A sheet floating at a freeboard above y = 0 hides the sea, so
   surf, foam and reflections need no edits and non-ice days pay nothing. It takes light, shade and shadows the
   way props do, haze from the aerial pass, and curves with the sea.
@@ -60,7 +59,7 @@ Wikimedia Commons, viewed 2026-11-06:
 
 - **Days:** 1 of 1095 (2024-01-22, 65.9°N, moonlit, drift); 2 of the `baltic` place's 12 days have a chance
   above 0. `--ref`: that one day only (title, coast, ocean, props). So in a still frame this is about one day
-  in three years. Built anyway, as asked and per LIVE_MODE.md; see "Other freezing coasts" below.
+  in three years. Built anyway, as asked and per LIVE_MODE.md; see "Every freezing coast" below.
 - **Cost:** render time 0% on that day against the commit before (`bench.mjs --runs 2`), built in ~30 ms;
   2024-07-14 and 2024-09-05 identical to the pixel. `check:restart --date 2024-01-19 --steps 6` spans the ice
   day: no GPU resources left.
@@ -92,10 +91,26 @@ Wikimedia Commons, viewed 2026-11-06:
 - **Not rendered:** tidal flat and salt marsh under ice; an overlook of a real ridge field; the TS and GLSL rubble
   fields are written to match, and blocks land on the bands in renders, but no test compares them.
 
-## Other freezing coasts
+## Every freezing coast (0.115)
 
-Not in this phase, and worth a decision. `SEA_ICE_PLACES` is keyed by place, so a coast is a row. The Gulf of St Lawrence
-(`pei`, `nova-scotia`), the Sea of Okhotsk (`russian-far-east`), Cook Inlet, and above all the polar places have
-frozen seas in winter but today show open water with waves in front of an ice foot (91 days have an ice foot). That's
-far more days than the Baltic's one, and the larger realism gain. It needs research per coast and looks at how
-it meets `sea.ice`'s Arctic pack.
+Decided after the Baltic: realism first, so every coast that freezes gets it. The Baltic alone was 1 of 1095 days, while
+polar coasts showed waves in front of an ice foot through the winter.
+
+- **Days:** 95 of 1095 (8.7%): arctic-canada 51, arctic-russia 12, greenland 11, russian-far-east 9, alaska-north 3, cook-inlet 2,
+  south-shetland 2, svalbard 2, baltic, pei and newfoundland 1 each. 30 are open sea, as drift. `--ref` against 0.114: 95 days, with ocean and
+  coast on 94, props on 35, sea smoke gone on 5.
+- **Open on purpose:** north Norway, Iceland, the Gulf of Alaska, south-east Alaska, Kerguelen, South Georgia. In Greenland's south-west and
+  on the Kola coast, the table's chance is lower, since latitude can't separate them from what freezes nearby.
+- **Bergs stay,** frozen in. Arctic pack on the same day gives way to the sheet; on a day with no sea ice the old pack (`sea.ice`) still drifts.
+- **Other things that needed water:** sea smoke and waterspouts go unless forced; the title says "frozen sea" or, under 60% cover, "ice-strewn sea";
+  what rests on the sea (a gull) rests on the ice (`ctx.seaLevel`), and seal heads go.
+- **Cost:** −6% to +5% on four days that are newly frozen (`bench.mjs --runs 2`), a day without ice identical. `check:restart --date 2024-02-27 --steps 5` clean.
+- **Rendered, real days:** Arctic Canada (twilight, dawn, low sun, starlit, June break-up), Greenland (sunrise, thunderstorm), PEI, Newfoundland's break-up,
+  the Pacific boulder shore 2024-04-07.
+- **Not rendered:** the southern hemisphere (tested for dates only), Svalbard, Alaska, Cook Inlet, midday polar fast ice.
+- **Weakest sourcing:** Antarctic-side rows (South Shetlands, South Sandwich) and Cook Inlet found no usable source and are estimates; Canada's dates rest
+  on one statement plus Alaska's, as its climatology paper couldn't be read. SEASONS.md §4.2 says which row rests on what.
+- **Ice foot on an open sea:** the foot's draw is separate, so 32 foot days have no sea ice (Greenland and Svalbard mostly). Those are within the table's
+  chances, but a foot usually means shore ice; linking them is open.
+- **Also not done:** Bohai and Yellow Sea bays, the far north's multi-year ice, and Hudson Bay's own later dates against its northern part beyond the zones.
+- **At very low sun** the fine cracks read a little like dried mud.

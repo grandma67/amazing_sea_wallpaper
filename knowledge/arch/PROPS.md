@@ -31,6 +31,7 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   ridges, a shore belt, the edge's barrier. Rubble is instanced slabs and lumps by a hash of a world cell, near and far
   sets with budgets; only range, frustum and budget read the camera. Waves: `params.ts` caps the wind and zeroes the
   swell, so surf and spray turn themselves off; `waterSpot`, `marineFor` and `createShips` give nothing afloat.
+  `ctx.seaLevel` returns the ice's height, so what rests on the sea rests on it; sea smoke and spouts go in `params.ts`. Bergs (`sea.ice`) stay, frozen in.
   Off: `"seaIce": null`, or `props.seaIce: false` for the mesh alone.
 - **Snow** (`snow.ts`, `props/snowCap.ts`, `props/iceFoot.ts`, 0.111, plans/SNOW.md): `pickSnow` on its
   own stream gives `params.snow` (`cover`, `iceFoot`). Nothing about the look reads the camera: the terrain

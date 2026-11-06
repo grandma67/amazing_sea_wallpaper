@@ -1,3 +1,4 @@
+import { ICE_FREEBOARD } from '../seaIce'
 import { DataUtils, Frustum, Matrix4, Vector3, type PerspectiveCamera } from 'three'
 
 import type { SceneParams } from '../params'
@@ -47,6 +48,8 @@ export class PropContext {
    * sideways displacement and the damping in the shallows), with sheltered
    * water's swell taken out as the shader does (shelter.ts). */
   seaLevel(x: number, z: number): number {
+    // What rests on the sea rests on the ice (seaIce.ts).
+    if (this.params.seaIce != null) return ICE_FREEBOARD
     if (this.surface == null) return 0
     const n = CASCADE_SIZE
     const { coast } = this.params

@@ -130,7 +130,7 @@ describe('with snow', () => {
   })
 
   it('starts above today’s reach', () => {
-    const p = scene({ eclipse: null, place: 'greenland', coast: 'beach', snow: 1, tide: 'high' }, '2025-01-15')
+    const p = scene({ eclipse: null, place: 'greenland', coast: 'beach', snow: 1, tide: 'high', seaIce: null }, '2025-01-15')
     const look = snowLook(p)!
     expect(look.line).toBeGreaterThan(tideMarks(p.coast).high + p.coast.runup)
     expect(snowLook(scene({ eclipse: null, place: 'brittany', snow: null }, '2025-07-15'))).toBeNull()

@@ -75,7 +75,7 @@ describe('chop inside', () => {
 })
 
 describe('seaLevel follows the mask', () => {
-  const ocean = scene({ coast: 'beach', wind: 10, params: { ocean: { swellHeight: 2 } } })
+  const ocean = scene({ seaIce: null, coast: 'beach', wind: 10, params: { ocean: { swellHeight: 2 } } })
   const surface = synthesizeOcean(ocean.ocean)
   const open = new PropContext(ocean, new PerspectiveCamera(), surface)
   const calm = new PropContext({ ...ocean, coast: { ...ocean.coast, shelter: { strength: 1, line: 2000, basins: [], blur: 50 } } }, new PerspectiveCamera(), surface)

@@ -18,7 +18,7 @@ climate or place"), with place fields only for one place's difference.
 | 7 | Tropical dry season: savanna coasts brown in the dry months (`drySeason` per place) | done (0.101, more coasts 0.102) |
 | 8 | Leaf litter: real leaves under deciduous trees near the camera, litter colour on the ground further off | done (0.103) |
 | 9 | Snow cover and ice foot: built as PLAN_BIOMES 13 | done (0.111), [SNOW.md](SNOW.md) |
-| 10 | Baltic sea ice | done (0.114), [SEA_ICE.md](SEA_ICE.md) |
+| 10 | Sea ice: the Baltic, then every freezing coast | done (0.114, 0.115), [SEA_ICE.md](SEA_ICE.md) |
 
 Next: the drawn snow lines (open problem 1, if approved).
 

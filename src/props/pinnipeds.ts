@@ -449,7 +449,7 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
     const r = radius * rng.range(1.2, 2.5) + (storm ? rng.range(0, 100) : 0)
     const x = centre.x + Math.cos(a) * r
     const z = centre.z + Math.sin(a) * r
-    if (ctx.ground(x, z) > (storm ? -0.8 : -1.5)) continue
+    if (ctx.ground(x, z) > (storm ? -0.8 : -1.5) || ctx.params.seaIce != null) continue
     // Facing any way, head cocked a little.
     const q = new Quaternion().setFromEuler(new Euler(rng.range(-0.12, 0.12), rng.range(0, Math.PI * 2), 0, 'YXZ'))
     heads[rng.int(0, 1)].push(new Matrix4().compose(new Vector3(x, ctx.seaLevel(x, z) - rng.range(0, 0.1), z), q, new Vector3().setScalar(rng.range(0.9, 1.1))))

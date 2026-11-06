@@ -234,7 +234,9 @@ const SURFACE_GLSL = /* glsl */ `
     iceSlope += 0.08 * iceSnowHere * iceFade * slope / e;
   }
   float iceAngle = 6.2831853 * iceBig.z;
-  iceSlope += (0.008 + 0.016 * iceDriftHere) * vec2(cos(iceAngle), sin(iceAngle));
+  // Floes lie level, at this size and the finer one below: near a grazing sun
+  // even 1° shows each as a paving stone.
+  iceSlope += 0.002 * vec2(cos(iceAngle), sin(iceAngle));
 
   // Fine plates, and small cracks, in ice that's been pushed about.
   if (iceFp < 2.5) {
@@ -245,7 +247,7 @@ const SURFACE_GLSL = /* glsl */ `
     float line = (1.0 - smoothstep(w, w + iceFp, iceFine.x)) * step(iceFine.y, crack) * show;
     iceColor = mix(iceColor, vec3(0.12, 0.17, 0.2), 0.75 * line);
     float a = 6.2831853 * iceFine.z;
-    iceSlope += show * (0.02 + 0.06 * iceDriftHere) * vec2(cos(a), sin(a));
+    iceSlope += show * 0.004 * vec2(cos(a), sin(a));
     // A rafted lip, lit along the crack's side.
     iceSlope += show * 0.12 * (1.0 - smoothstep(w, w + 0.5, iceFine.x)) * step(iceFine.y, crack) * vec2(sin(a * 3.0), cos(a * 3.0));
   }

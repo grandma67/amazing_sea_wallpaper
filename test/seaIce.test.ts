@@ -118,7 +118,7 @@ describe('with the sea frozen', () => {
   })
 
   it('says so in the title', () => {
-    for (const p of days) expect(p.title).toContain('sea ice')
+    for (const p of days) expect(p.title).toMatch(/sea ice|frozen sea|ice-strewn sea/)
   })
 
   it('the mesh has its own switch, and the waves stay calm', () => {
@@ -184,5 +184,49 @@ describe('the rubble’s meshes', () => {
   it('lumps too', () => checks(lumpGeometry, 200))
   it('every set stays in budget: under 100k triangles a mesh', () => {
     for (const set of BLOCK_SETS) expect(set.budget * 50).toBeLessThan(250_000)
+  })
+})
+
+describe('every freezing coast', () => {
+  it('has a season on its own coast, none in its summer', () => {
+    for (const [id, zones] of Object.entries(SEA_ICE_PLACES)) {
+      const place = PLACES.find(q => q.id === id)
+      expect(place, id).toBeDefined()
+      const south = place!.latitude[0] < 0
+      // Each zone reaches into the place's latitudes.
+      const lat = Math.max(...place!.latitude.map(Math.abs))
+      expect(zones.some(z => lat >= z.from), id).toBe(true)
+      const peak = south ? '2025-08-15' : '2025-02-15'
+      const summer = south ? '2025-01-20' : '2025-08-20'
+      const signed = (south ? -1 : 1) * lat
+      if (id !== 'arctic-canada') expect(seaIceChance(id, at(summer, signed)), id).toBe(0)
+      expect(seaIceChance(id, at(peak, signed)), id).toBeGreaterThan(0)
+    }
+  })
+
+  it('leaves the open coasts open', () => {
+    for (const id of ['norway-north', 'iceland', 'iceland-faroe', 'gulf-alaska', 'kerguelen-heard', 'south-georgia', 'se-alaska']) {
+      expect(seaIceChance(id, at('2025-02-15', 66))).toBe(0)
+      expect(seaIceChance(id, at('2025-08-15', -55))).toBe(0)
+    }
+  })
+
+  it('the far north stays frozen into June, the Gulf of St Lawrence is clear by May', () => {
+    expect(seaIceChance('alaska-north', at('2025-06-10', 70))).toBeGreaterThan(0)
+    expect(seaIceChance('pei', at('2025-05-10', 46.5))).toBe(0)
+    expect(seaIceChance('russian-far-east', at('2025-05-20', 58))).toBeGreaterThan(0)
+  })
+
+  it('the bits a frozen sea can’t have are gone, unless forced', () => {
+    for (const p of allParams().filter(q => q.seaIce != null)) {
+      expect(p.fog?.kind, p.date).not.toBe('sea-smoke')
+      expect(p.waterspout, p.date).toBeNull()
+      expect(p.title, p.date).not.toMatch(/pack ice|glassy|calm sea/)
+    }
+  })
+
+  it('keeps the coast’s own geometry whole: run-up is set as it’s built', () => {
+    const p = scene({ eclipse: null, place: 'arctic-canada', coast: 'beach', seaIce: true }, '2025-02-15')
+    expect(p.coast.runup).toBeLessThanOrEqual(0.03)
   })
 })

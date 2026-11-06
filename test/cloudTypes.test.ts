@@ -64,7 +64,8 @@ describe('cloud species over the real days', () => {
   })
 
   it('tears cumulus into fractus only when windy', () => {
-    const fractus = days.filter(p => has(p, 'cumulus-fractus'))
+    // A frozen sea caps the waves' wind: the air's isn't in params then.
+    const fractus = days.filter(p => has(p, 'cumulus-fractus') && p.seaIce == null)
     expect(fractus.length).toBeGreaterThan(10)
     for (const p of fractus) {
       expect(['scattered', 'broken']).toContain(p.weather.kind)

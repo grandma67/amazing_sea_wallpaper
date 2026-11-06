@@ -55,7 +55,11 @@ export interface IceZone {
   cover: readonly [number, number]
 }
 
-/** By place, northernmost first (SEASONS.md §4.2). */
+const SEASONAL = (from: number, a: number, b: number, c: number, e: number, chance: number, edge: readonly [number, number], cover: readonly [number, number]): IceZone => ({ from, a, b, c, e, chance, edge, cover })
+
+/** By place, poleward first; days are northern-equivalent, so the south's are six
+ * months on (SEASONS.md §4.2, which says what's measured and what's an estimate).
+ * Open coasts stay out: north Norway, Iceland, the Kola coast's warm current. */
 export const SEA_ICE_PLACES: Readonly<Record<string, readonly IceZone[]>> = {
   baltic: [
     // Northern Bay of Bothnia: freezes every winter, last ice mid to late May.
@@ -68,7 +72,49 @@ export const SEA_ICE_PLACES: Readonly<Record<string, readonly IceZone[]>> = {
     { from: 57.5, a: 355, b: 32, c: 65, e: 95, chance: 0.35, edge: [300, 3000], cover: [0.2, 0.7] },
     // Central and southern Baltic: severe winters.
     { from: 0, a: 15, b: 32, c: 59, e: 80, chance: 0.06, edge: [100, 800], cover: [0, 0.3] }
-  ]
+  ],
+  // The Archipelago is mostly fast by November–December; Hudson Bay and Ungava later.
+  'arctic-canada': [
+    SEASONAL(70, 274, 325, 170, 220, 1, [5000, 60000], [0.9, 1]),
+    SEASONAL(62, 295, 345, 150, 200, 1, [3000, 40000], [0.8, 1]),
+    SEASONAL(0, 315, 355, 135, 185, 1, [2000, 20000], [0.7, 1])
+  ],
+  // The north is fast; Disko Bay peaks in March and some winters barely freezes; the
+  // south-west stays mostly open, with the East Greenland drift ice coming round.
+  greenland: [
+    SEASONAL(72, 290, 335, 150, 205, 1, [3000, 40000], [0.85, 1]),
+    SEASONAL(66, 15, 50, 95, 135, 0.6, [500, 8000], [0.4, 0.9]),
+    SEASONAL(0, 40, 70, 120, 160, 0.15, [100, 800], [0.2, 0.6])
+  ],
+  // Siberia's fast ice is wide; the White Sea freezes; the Kola coast doesn't,
+  // and a day's latitude can't tell it from the White Sea, so the share is lower.
+  'arctic-russia': [
+    SEASONAL(70, 285, 330, 160, 205, 1, [10000, 80000], [0.9, 1]),
+    SEASONAL(0, 315, 350, 110, 150, 0.6, [1000, 12000], [0.6, 1])
+  ],
+  // Fjord ice, shrinking: Isfjorden 22 days of fast ice since 2006, Hornsund 34, gone in June.
+  svalbard: [SEASONAL(0, 345, 40, 105, 165, 0.55, [500, 6000], [0.3, 0.85])],
+  // Break-up at communities averages 2 June; Beaufort onset ~6 June.
+  'alaska-north': [SEASONAL(0, 295, 340, 150, 190, 1, [3000, 30000], [0.8, 1])],
+  // Freezes from the north from November; the most at the start of March; gone by June.
+  'russian-far-east': [
+    SEASONAL(52, 325, 15, 90, 165, 1, [500, 8000], [0.7, 1]),
+    SEASONAL(0, 15, 35, 75, 110, 0.8, [100, 1000], [0.5, 0.95])
+  ],
+  // The northern bays freeze; the open Pacific side and the islands don't.
+  'kamchatka-kurils-aleutians': [SEASONAL(55, 340, 30, 90, 130, 0.2, [200, 2000], [0.2, 0.7])],
+  'cook-inlet': [SEASONAL(0, 320, 350, 75, 110, 0.85, [100, 1000], [0.4, 0.85])],
+  // The Gulf's first ice is in early December, mean cover ~5% at the start of January,
+  // ice-free by early May. Labrador's lasts to mid-June.
+  pei: [SEASONAL(0, 355, 30, 95, 122, 0.9, [500, 6000], [0.6, 1])],
+  'nova-scotia': [SEASONAL(45.5, 20, 45, 90, 115, 0.35, [200, 2000], [0.3, 0.8])],
+  newfoundland: [
+    SEASONAL(49, 30, 60, 110, 150, 0.7, [500, 5000], [0.5, 0.95]),
+    SEASONAL(0, 45, 70, 100, 125, 0.2, [100, 800], [0.2, 0.6])
+  ],
+  // Bays in winter some years, and the pack's edge further north.
+  'south-shetland': [SEASONAL(0, 345, 25, 80, 115, 0.6, [200, 3000], [0.3, 0.8])],
+  'south-sandwich': [SEASONAL(0, 20, 50, 85, 115, 0.35, [100, 500], [0.2, 0.6])]
 }
 
 /** The zone for this latitude here, if the place's sea freezes. */

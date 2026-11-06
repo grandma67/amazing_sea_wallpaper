@@ -108,7 +108,7 @@ Compared by eye in a before/after crop (`foot-low-along` in the render, a 29 m v
 
 - Close up the wall is smooth and lobed: real faces are broken and layered, and its sections are too coarse for that past ~20 m.
 - No fast ice, slabs or brash in front of it: in all three photos broken sea ice lies against the foot. Sea ice (phase 10,
-  SEA_ICE.md) brings that to the Baltic only.
+  SEA_ICE.md) brings that where the day has both.
 - All the photos are Antarctic or an 1880s Arctic plate, and none shows a foot on a sandy beach, so its look on sand, and all
   widths, are inferred. Boreal and temperate feet use the same shape, unchecked.
 
@@ -123,4 +123,4 @@ Compared by eye in a before/after crop (`foot-low-along` in the render, a 29 m v
 - **The far boreal forest:** terrain snow past the plants' range has no dark woods in it, so far low
   land is plain white. Landforms and islands do show their woods.
 - **Falling snow:** not modelled. Polar-winter rain shafts have no snow form.
-- **Sea ice in the bays:** outside the Baltic (SEA_ICE.md) the foot is the only shore ice.
+- **Sea ice in the bays:** on a foot day without sea ice (SEA_ICE.md), the foot is the only shore ice.

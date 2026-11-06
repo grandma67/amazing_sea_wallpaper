@@ -639,7 +639,7 @@ function generateCoast(
   ocean: Pick<SceneParams['ocean'], 'swellHeight' | 'swellWavelength' | 'windSpeed'>,
   /** Storm days and mid-latitude winters move the beach a state toward
    * dissipative (the winter profile). */
-  beachWeather: { rough: boolean },
+  beachWeather: { rough: boolean; frozen?: boolean },
   tide: Tide,
   spec: SceneSpec
 ): { coast: CoastParams; eyeHeight: number | null } {
@@ -696,7 +696,8 @@ function generateCoast(
     bars: [],
     rips: null,
     cusps: null,
-    runup: 0.25 + surfAmplitude * rng.range(0.4, 0.8),
+    // No waves to run up a frozen shore; the draw stays.
+    runup: Math.min(0.25 + surfAmplitude * rng.range(0.4, 0.8), beachWeather.frozen ? ICE_RUNUP : Infinity),
     surfAmplitude,
     surfWavelength: rng.range(18, 40),
     surfPhase: rng.range(0, Math.PI * 2),
@@ -807,7 +808,7 @@ function generateCoast(
       ridges: [],
       reef: null,
       shelter: null,
-      runup: 0.08 + 0.12 * frng.float(),
+      runup: Math.min(0.08 + 0.12 * frng.float(), beachWeather.frozen ? ICE_RUNUP : Infinity),
       beachWidth: marsh.width + 5,
       duneHeight: 0
     })
@@ -1879,7 +1880,8 @@ function buildParams(
     },
     spec.clouds ?? (weather.marineLayer ? marineDeck : undefined)
   )
-  const waterspout = waterspoutFor(
+  const seaIce = pickSeaIce(seed, place.id, { date, latitudeDeg }, spec.seaIce, spec.props?.phenology)
+  const drawnSpout = waterspoutFor(
     {
       biome: biome.name,
       ocean: basin.name,
@@ -1894,16 +1896,20 @@ function buildParams(
     Random.derive(seed, 'waterspout'),
     spec.waterspout
   )
+  // None over ice, unless a spec wants one.
+  const waterspout = seaIce != null && spec.waterspout === undefined ? null : drawnSpout
   // A spout hangs from the flat base of building cumulus: make sure the sky
   // has it (unless the spec set the clouds).
   if (waterspout != null && weather.kind !== 'storm' && spec.clouds == null && !weather.formations.includes('cumulus-congestus')) {
     weather.formations = ['cumulus-congestus', ...weather.formations.filter(g => CLOUD_GENERA[g].etage !== 'low')]
   }
   weather.arrangement = pickArrangement(seed, weather, climate === 'tropical', windSpeed, windHeadingDeg, spec.cloudArrangement)
-  const fog =
+  const drawnFog =
     (rainbowDay || eclipse != null) && spec.fog === undefined
       ? null
       : pickFog(seed, biome, climate, basin.name, seasonMonth({ date, latitudeDeg }), timeOfDay, weather, windSpeed, spec.fog)
+  // Sea smoke rises off open water; a frozen sea has none to give it.
+  const fog = seaIce != null && spec.fog === undefined && drawnFog?.kind === 'sea-smoke' ? null : drawnFog
   if (fog != null) {
     // Fog comes with light airs: the sea calms under it.
     if (spec.wind == null) windSpeed = Math.min(windSpeed, fog.kind === 'sea-smoke' ? 3 : 6)
@@ -1912,7 +1918,6 @@ function buildParams(
   }
   const oceanSwell = swell(seed, windHeadingDeg, climate)
   // A frozen sea stops the waves: crests stay under the ice (seaIce.ts).
-  const seaIce = pickSeaIce(seed, place.id, { date, latitudeDeg }, spec.seaIce, spec.props?.phenology)
   oceanSwell.swellHeight = or(seaIce != null ? 0 : oceanSwell.swellHeight * (basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm), spec.swellHeight)
   // Deep-water wavelength from a forced period: L = g T² / 2π.
   const forcedLength = spec.swellPeriod == null ? undefined : (9.81 * spec.swellPeriod ** 2) / (2 * Math.PI)
@@ -1920,9 +1925,7 @@ function buildParams(
   const oceanState = { windSpeed: spec.wind ?? (seaIce != null ? Math.min(ICE_WAVE_WIND, windSpeed * iceCalm) : windSpeed * iceCalm), windHeadingDeg, ...oceanSwell }
   const roughBeach = storm != null || (Math.abs(latitudeDeg) > 25 && season({ date, latitudeDeg }) === 'winter')
   const tide = tideFor(place.tide, moonPhaseDeg, Random.derive(seed, 'tide'), spec)
-  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach }, tide, spec)
-  // No waves to run up the beach: it's as frozen as the sea below it.
-  if (seaIce != null) coast.runup = ICE_RUNUP
+  const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach, frozen: seaIce != null }, tide, spec)
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',
@@ -1980,7 +1983,9 @@ function buildParams(
         ? `${climateWord} ${ROCK_NAMES[coast.rock.kind]}`
         : coast.flat != null
           ? `${climateWord} tidal flats`
-          : seaName(oceanState.windSpeed),
+          : seaIce != null
+            ? seaIce.cover < 0.6 ? 'ice-strewn sea' : 'frozen sea'
+            : seaName(oceanState.windSpeed),
     basin.label
   ]
   if (coast.reef != null) titleParts.push('coral reef')
@@ -2015,8 +2020,9 @@ function buildParams(
     titleParts.push(names[pinnipeds.kind])
   }
   if (lighthouse != null) titleParts.push('lighthouse')
-  if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
-  if (seaIce != null) titleParts.push('sea ice')
+  // The sheet takes the pack's place on a frozen day; bergs stay, frozen in.
+  if (ice != null && (seaIce == null || ice.bergs > 0)) titleParts.push(ice.packIce > 0 && seaIce == null ? 'pack ice' : 'icebergs')
+  if (seaIce != null && hasLand(coast)) titleParts.push('sea ice')
   if (snow != null) titleParts.push(snow.iceFoot && hasLand(coast) ? 'snow and shore ice' : 'snow')
   if (fog != null) titleParts.push(fog.kind === 'sea-smoke' ? 'sea smoke' : fog.start > 0 ? 'fog bank' : 'fog')
   if (storm != null) {
