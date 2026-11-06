@@ -148,3 +148,9 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   cloud transmittance from takram's cascaded cloud shadow map (exp(−(maxOpticalDepth + tail)),
   primed by `primeCloudShadow` because the sea is drawn once at frame 0). `weather.sunVisibility`
   stays as the overall dimming.
+- **Skylight from clouds** (`skylight.ts`): the sea and terrain take `skyIrradiance` from the clear
+  atmosphere (`SkyLightProbe`). On daylight cloud days it is scaled per channel by the env cube's
+  cosine-weighted light with its clouds over without (`debug.cloudSkylight`; typically red 1.3–2.7,
+  blue about 1), so shade is lit by the clouds actually drawn and matches the props, which already
+  see the cube. Not on clear days, at night, in totality or with dust (`dustSkylight` does that).
+  Off with `passes.cloudLight: false`.

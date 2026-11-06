@@ -179,6 +179,13 @@ tool gotchas: TOOLS.md.
 - A shade term has to reach every use of the light. The sea's seabed and foam skipped the shadow,
   so shallows stayed turquoise beside a shaded beach. To see a shade's real effect: render with the
   raw map as the output colour (is it there?), then with only that term off (does it show?).
+- No cloud shadow in frame isn't always a bug. A 12 m eye with a 45 mm lens has only 60–600 m of sea in most of
+  its frame; under a 13° sun a 600 m cloud base throws its shadow 2.6 km or
+  more. Before fixing, look from 450 m (`camera.heightM`, `horizonFraction`).
+- Light a cloud removes from the sun must come back as diffuse light, as fog and dust do, or shade
+  turns navy and land under a deck goes black. Measure it from the sky as drawn, not a coverage table.
+- Check a known issue's own repro before closing it: a date alone can land on another time of day
+  (Mont-Saint-Michel's date rendered at night and proved nothing), so force what it names.
 
 ## Shaders (GLSL)
 

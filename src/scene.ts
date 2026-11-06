@@ -89,6 +89,7 @@ import { stormCells } from './stormCells'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
 import { dustSkylight, dustTransmittance } from './seaHaze'
 import { bindCloudShadow, bindLandShadow, bindShadow, renderLandShadow } from './shadow'
+import { cloudSkylightRatio, measureSkylight } from './skylight'
 import { SkyDenoiseEffect } from './skyDenoise'
 import { GpuResources, trackUploads } from './dispose'
 import { createTerrain, hasLand } from './terrain'
@@ -775,6 +776,11 @@ export async function renderScene(
 
   // --- Render once ------------------------------------------------------------
   cubeCamera.update(renderer, envScene)
+  // Daylight clouds only: dust gives its own light back (dustSkylight), and
+  // night and totality keep their own units.
+  const lightFromClouds = cloudAssets != null && pass('cloudLight') && !night && !totality && weather.formations.length > 0 && weather.dust == null
+  const clearSkylight = lightFromClouds ? measureSkylight(renderer, envTarget) : null
+  let cloudSkylight: [number, number, number] | null = null
   if (cloudAssets != null) {
     // Reflections are blurry; they need far fewer frames than the main view.
     const envFrames = Math.max(2, Math.round(cloudFrames / 5))
@@ -792,6 +798,13 @@ export async function renderScene(
       cells,
       envFrames
     )
+  }
+  if (clearSkylight != null) {
+    // The light the clouds scatter down, on what the clear sky gave.
+    cloudSkylight = cloudSkylightRatio(clearSkylight, measureSkylight(renderer, envTarget))
+    const [r, g, b] = cloudSkylight
+    for (const c of [u.skyIrradiance.value as Color, tu.skyIrradiance.value as Color]) c.setRGB(c.r * r, c.g * g, c.b * b)
+    setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, u.skyIrradiance.value as Color)
   }
   {
     // Render the shadow map once with only the props, then let the custom
@@ -911,6 +924,7 @@ export async function renderScene(
       nightScale,
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),
+      cloudSkylight,
       pitchDeg: camera.rotation.x / DEG,
       // Ground under the camera (diff.mjs --keep-camera).
       cameraGroundM: camera.position.y - params.camera.heightM,
