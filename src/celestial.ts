@@ -67,18 +67,39 @@ export function offsetFor(fraction: number, r: number): number {
 /** Umbra radius in moon radii at the moon's distance. */
 export const UMBRA_RATIO = 2.7
 
+/** A search for the next eclipse, remembering the last one found: starts
+ * after that search's start and over a day before that peak find the same one.
+ * (Not nearer: a search goes by the new or full moon, minutes off the peak, and
+ * misses an eclipse whose moon falls just before its start.) Searching took most
+ * of `generateParams`, 2 searches a day; 3 years of days now take about 40. */
+function rememberNext<T extends { peak: { date: Date } }>(search: (start: Date) => T): (start: Date) => T {
+  const DAY = 86_400_000
+  let from = Infinity
+  let found: T | null = null
+  return start => {
+    const t = start.getTime()
+    if (found == null || t < from || t > found.peak.date.getTime() - DAY) {
+      found = search(start)
+      from = t
+    }
+    return found
+  }
+}
+const nextLunar = rememberNext(SearchLunarEclipse)
+const nextSolar = rememberNext(SearchGlobalSolarEclipse)
+
 /** The eclipse whose peak falls on `date` (YYYY-MM-DD, UTC), if any.
  * Penumbral lunar eclipses are left out: the eye barely sees them. `pick`
  * draws a number in [0, 1) for the choices the real eclipse leaves open
  * (how much of a partial one we see, the direction of the bite). */
 export function eclipseOn(date: string, pick: () => number): EclipseParams | null {
   const start = new Date(`${date}T00:00:00Z`)
-  const lunar = SearchLunarEclipse(start)
+  const lunar = nextLunar(start)
   if (lunar.peak.date.toISOString().slice(0, 10) === date && lunar.kind !== EclipseKind.Penumbral) {
     if (lunar.kind === EclipseKind.Total) return lunarEclipse(true, 1, lunar.sd_total, pick)
     return lunarEclipse(false, lunar.obscuration, 0, pick)
   }
-  const solar = SearchGlobalSolarEclipse(start)
+  const solar = nextSolar(start)
   if (solar.peak.date.toISOString().slice(0, 10) === date) {
     return solarEclipse(solar.kind === EclipseKind.Total ? 'solar-total' : solar.kind === EclipseKind.Annular ? 'solar-annular' : 'solar-partial', pick)
   }
