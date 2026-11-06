@@ -5,6 +5,7 @@ import { offshore, seaIceFor, slabGeometry, lumpGeometry, BLOCK_SETS, iceBlock }
 import { marineFor } from '../src/props/marine'
 import { Random } from '../src/random'
 import { ICE_FREEBOARD, ICE_WAVE_WIND, iceDrift, iceRubble, iceZone, pickSeaIce, SEA_ICE_PLACES, seaIceChance } from '../src/seaIce'
+import { iceFootChance } from '../src/snow'
 import { allParams, scene, scenes } from './days'
 
 const at = (date: string, latitudeDeg: number) => ({ date, latitudeDeg })
@@ -180,10 +181,26 @@ describe('the rubble’s meshes', () => {
     a.computeBoundingBox()
     expect(Math.abs(a.boundingBox!.min.y)).toBeLessThan(0.15)
   }
-  it('slabs are cheap, deterministic and finite', () => checks(r => slabGeometry(r, 0.8), 50))
-  it('lumps too', () => checks(lumpGeometry, 200))
+  it('near slabs are deterministic, finite and in budget', () => checks(r => slabGeometry(r), 100))
+  it('far slabs are cheaper', () => checks(r => slabGeometry(r, false), 50))
+  it('lumps too', () => checks(lumpGeometry, 320))
+  it('slabs are closed underneath and face out', () => {
+    const g = slabGeometry(new Random('y'))
+    const position = g.attributes.position
+    const normal = g.attributes.normal
+    let down = 0
+    let up = 0
+    for (let i = 0; i < normal.count; i++) {
+      if (normal.getY(i) < -0.9 && Math.abs(position.getY(i)) < 0.01) down++
+      if (normal.getY(i) > 0.9) up++
+    }
+    expect(down).toBeGreaterThan(0)
+    expect(up).toBeGreaterThan(0)
+  })
   it('every set stays in budget: under 100k triangles a mesh', () => {
-    for (const set of BLOCK_SETS) expect(set.budget * 50).toBeLessThan(250_000)
+    // Near: 100 triangles, split over 3 variants. Far: 50.
+    expect(BLOCK_SETS[0].budget * 100 / 3).toBeLessThanOrEqual(100_000)
+    expect(BLOCK_SETS[1].budget * 50 / 3).toBeLessThanOrEqual(100_000)
   })
 })
 
@@ -228,5 +245,23 @@ describe('every freezing coast', () => {
   it('keeps the coast’s own geometry whole: run-up is set as it’s built', () => {
     const p = scene({ eclipse: null, place: 'arctic-canada', coast: 'beach', seaIce: true }, '2025-02-15')
     expect(p.coast.runup).toBeLessThanOrEqual(0.03)
+  })
+})
+
+describe('the ice foot goes with the sea', () => {
+  const winter = at('2025-02-15', 72)
+  it('is likelier on sea ice, half as likely on open water, and none where the sea never freezes', () => {
+    const base = iceFootChance('greenland', 'polar', winter)
+    expect(iceFootChance('greenland', 'polar', winter, true)).toBeGreaterThan(base)
+    expect(iceFootChance('greenland', 'polar', winter, false)).toBeCloseTo(base / 2)
+    expect(iceFootChance('kamchatka-kurils-aleutians', 'boreal', at('2025-02-15', 48))).toBe(0)
+    expect(iceFootChance('south-georgia', 'polar', at('2025-08-15', -54.5))).toBe(0)
+    expect(iceFootChance('kamchatka-kurils-aleutians', 'boreal', at('2025-02-15', 58))).toBeGreaterThan(0)
+  })
+
+  it('is far commoner with sea ice than without', () => {
+    const days = allParams().filter(p => p.snow != null && iceZone(p.place.id, p.latitudeDeg) != null)
+    const share = (list: typeof days): number => list.filter(p => p.snow?.iceFoot).length / Math.max(1, list.length)
+    expect(share(days.filter(p => p.seaIce != null))).toBeGreaterThan(share(days.filter(p => p.seaIce == null)))
   })
 })

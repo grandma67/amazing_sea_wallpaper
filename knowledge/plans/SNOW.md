@@ -123,4 +123,4 @@ Compared by eye in a before/after crop (`foot-low-along` in the render, a 29 m v
 - **The far boreal forest:** terrain snow past the plants' range has no dark woods in it, so far low
   land is plain white. Landforms and islands do show their woods.
 - **Falling snow:** not modelled. Polar-winter rain shafts have no snow form.
-- **Sea ice in the bays:** on a foot day without sea ice (SEA_ICE.md), the foot is the only shore ice.
+- **Sea ice in the bays:** on a foot day without sea ice (SEA_ICE.md, 13 days), the foot is the only shore ice. The two are linked in `iceFootChance`.

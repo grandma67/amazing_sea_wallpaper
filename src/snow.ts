@@ -6,6 +6,7 @@
 import type { Climate } from './biome'
 import { band } from './phenology'
 import { Random } from './random'
+import { iceZone } from './seaIce'
 import { seasonDay, type Day } from './seasons'
 
 export interface SnowParams {
@@ -108,9 +109,15 @@ export function snowChance(placeId: string, climate: Climate, day: Day): number 
   return peak * band(seasonDay(day), season.a, season.b, season.c, season.e)
 }
 
-/** The chance of an ice foot on a snow day here (0–1). No draw. */
-export function iceFootChance(placeId: string, climate: Climate, day: Day): number {
-  const share = ICE_FOOT_PLACES[placeId] ?? (climate === 'polar' ? ICE_FOOT_POLAR : 0)
+/** The chance of an ice foot on a snow day here (0–1). No draw. `frozen`: whether
+ * the sea is frozen today, if known. A foot goes with a sea that freezes: none on a
+ * coast whose sea never does. With sea ice, half the days it would lack one gain it
+ * *(est.)*. On open water it's occasional (Hornsund), though it can stand before
+ * the sea closes and after it opens, so half as likely *(est.)*. */
+export function iceFootChance(placeId: string, climate: Climate, day: Day, frozen?: boolean): number {
+  if (iceZone(placeId, day.latitudeDeg) == null) return 0
+  const base = ICE_FOOT_PLACES[placeId] ?? (climate === 'polar' ? ICE_FOOT_POLAR : 0)
+  const share = frozen == null ? base : frozen ? (base + 1) / 2 : base / 2
   return share * band(seasonDay(day), ICE_FOOT_SEASON.a, ICE_FOOT_SEASON.b, ICE_FOOT_SEASON.c, ICE_FOOT_SEASON.e)
 }
 
@@ -127,7 +134,8 @@ export function pickSnow(
   day: Day,
   force?: boolean | number | null,
   forceFoot?: boolean,
-  phenology?: boolean
+  phenology?: boolean,
+  frozen?: boolean
 ): SnowParams | null {
   const rng = Random.derive(seed, 'snow')
   const lies = rng.float() < snowChance(placeId, climate, day)
@@ -140,5 +148,5 @@ export function pickSnow(
   const inSeason = season == null ? 0 : band(seasonDay(day), season.a, season.b, season.c, season.e)
   const deep = Math.max(inSeason, force === undefined ? 0 : 0.7) * (0.4 + 0.6 * peak)
   const cover = typeof force === 'number' ? force : 0.3 + 0.55 * deep + (0.2 - 0.05 * deep) * roll
-  return { cover: Math.min(1, cover), iceFoot: forceFoot ?? footRoll < iceFootChance(placeId, climate, day) }
+  return { cover: Math.min(1, cover), iceFoot: forceFoot ?? footRoll < iceFootChance(placeId, climate, day, frozen) }
 }

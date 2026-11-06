@@ -1951,7 +1951,7 @@ function buildParams(
   const landform = pickLandform(seed, biome, place.mountains, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
   // After the draws: the season moves the snow line, by date and climate.
   if (landform != null && spec.props?.phenology !== false) landform.snowLine = seasonalSnowLine(landform, climate, { date, latitudeDeg })
-  const snow = pickSnow(seed, place.id, climate, { date, latitudeDeg }, spec.snow, spec.props?.iceFoot, spec.props?.phenology)
+  const snow = pickSnow(seed, place.id, climate, { date, latitudeDeg }, spec.snow, spec.props?.iceFoot, spec.props?.phenology, seaIce != null)
   // Snow lying at the shore lies on the mountains behind it too.
   if (landform != null && snow != null) landform.snowLine = Math.min(landform.snowLine, landform.height * 0.35 * (1 - snow.cover))
   const islands = pickIslands(seed, biome, place.mountains, spec.islands)

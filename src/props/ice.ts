@@ -35,7 +35,7 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
 ]
 
 /** Star-shaped outline of unit size: radius per angle with seeded wobble. */
-export function outline(rng: Random, points: number, elongation: number, roughness: number): [number, number][] {
+function outline(rng: Random, points: number, elongation: number, roughness: number): [number, number][] {
   const seed = rng.int(0, 100_000)
   const phase = rng.range(0, Math.PI * 2)
   return Array.from({ length: points }, (_, i) => {
@@ -46,7 +46,7 @@ export function outline(rng: Random, points: number, elongation: number, roughne
 }
 
 /** A slab: flat top at `top`, sides down to `bottom`, from an outline. */
-export function slab(
+function slab(
   b: MeshBuilder,
   shape: [number, number][],
   top: number,

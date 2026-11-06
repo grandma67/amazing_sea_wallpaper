@@ -284,6 +284,8 @@ more high and several metres wide, with sediment in it, comes from a USGS report
 analogue: we found no measured range for the Arctic. Season rises from day 295 to 325, falls from 135 to
 165, and 0.8 of polar snow days, 0–0.6 by place (`ICE_FOOT_PLACES`), are *(est.)*.
 
+- **The foot and sea ice (0.116):** see plans/SEA_ICE.md: likelier with sea ice, half as likely on open water, none where the sea has no ice in `SEA_ICE_PLACES`. Factors *(est.)*; the Hornsund study has the foot "occasionally present", without saying how often.
+
 ## 4.2 Sea ice
 
 `seaIce.ts`, plans/SEA_ICE.md. A chance per day by latitude on the `baltic` place, rising and falling by day of year
@@ -395,3 +397,4 @@ That table is the Baltic. The other coasts' rows are in `SEA_ICE_PLACES`; below 
 - Sea ice beyond the Baltic: Alaska, https://dukespace.lib.duke.edu/items/ae3a5e10-3aee-4bdd-b960-e75852652f76 ; Svalbard, https://tc.copernicus.org/articles/10/149/2016/ ;
   Okhotsk, https://www.ryuhyokan.com/guide/en/BF-4-3-1.html ; Canada, https://journalhosting.ucalgary.ca/index.php/arctic/article/view/67242 ; Disko Bay,
   https://polarresearch.net/index.php/polar/article/view/2091 ; Gulf of St Lawrence, https://publications.gc.ca/collections/collection_2021/eccc/En55-2-2021-eng.pdf .
+- Ice foot at Hornsund: found through a search summary of https://www.proquest.com/docview/3202838513 , citing Rodzik & Zagórski 2009; not read in full.

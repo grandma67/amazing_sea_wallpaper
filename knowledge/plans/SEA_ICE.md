@@ -76,8 +76,7 @@ Wikimedia Commons, viewed 2026-11-06:
 
 ## Known limits
 
-- **Rubble from close by:** at a distance it matches the Rügen and Gulf of Finland photos. Within about 15 m the
-  slabs are clean, plain and blocky, and the lumps too smooth. Real slabs are cloudy, chipped and layered.
+- **Rubble from close by:** see 0.116 below: better, not yet like a photo.
 - **Open water past the edge is too calm:** the wave cap holds for the whole sea, so on a day whose fast ice ends
   near the shore (south Baltic, freeze-up) the water beyond is glassy. Masking waves by the edge needs a change in
   the ocean shader, which the mesh approach avoided.
@@ -110,7 +109,18 @@ polar coasts showed waves in front of an ice foot through the winter.
 - **Not rendered:** the southern hemisphere (tested for dates only), Svalbard, Alaska, Cook Inlet, midday polar fast ice.
 - **Weakest sourcing:** Antarctic-side rows (South Shetlands, South Sandwich) and Cook Inlet found no usable source and are estimates; Canada's dates rest
   on one statement plus Alaska's, as its climatology paper couldn't be read. SEASONS.md §4.2 says which row rests on what.
-- **Ice foot on an open sea:** the foot's draw is separate, so 32 foot days have no sea ice (Greenland and Svalbard mostly). Those are within the table's
-  chances, but a foot usually means shore ice; linking them is open.
 - **Also not done:** Bohai and Yellow Sea bays, the far north's multi-year ice, and Hudson Bay's own later dates against its northern part beyond the zones.
 - **At very low sun** the fine cracks read a little like dried mud.
+
+## The foot and the slabs (0.116)
+
+- **Ice foot and sea ice linked** (`iceFootChance`, `frozen`): with sea ice today, half the days it would lack a foot gain one; on open water
+  half as likely; none where the table has no ice for that latitude. A ban on open water would be wrong: a Hornsund study has the foot "occasionally present" on an
+  open fjord, and freeze-up comes after the beach freezes. Both factors are estimates. Foot days: 67 with sea ice, 13 on open water (before: 59 and 32). South
+  Georgia's and Kamchatka's lower latitudes lose theirs: no ice in the table.
+- **Slabs:** broken plates, with straight fracture lines, a bevelled rim and a closed underside, never thicker than about a third of their width. Fine near the camera (up to 96 triangles),
+  plain past it (about half). `rubbleMaterial`, from world position: cloudy ice, uneven frosted layers in the sides, snow in patches on what faces up, chips in the normal. Lumps are broader
+  and more uneven and take the same material.
+- **Compared by eye** with the Rügen and Gulf of Finland photos, at 1080p: the first pass overshot (granite-like faces, candy stripes), softened in the second.
+- **Still not like the photos:** real slabs are clearer and more translucent, with sharper small chips; these are opaque and a little soft. Piles are less tightly stacked than Rügen's, and a
+  few long plates stand out as beams.

@@ -501,6 +501,8 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **Detail from world noise needs low contrast (sea ice, 0.116):** cloudy ice at ±24% over a short scale read as granite, and evenly spaced frost layers as candy stripes. Start subtle, at the object's own scale,
+  and read the near render, not the sheet.
 - **Big level things have no business being tilted (sea ice, 0.115):** floes 0.5–1° apart read as paving stones near a grazing sun, where brightness goes with the angle. Fine at noon; every low-sun polar
   day showed it. Grep for every tilt: the same effect was in two places, and fixing one looked like it had failed.
 - **Set a value where it's built (sea ice, 0.115):** overwriting `coast.runup` after `generateCoast` left the berm at the old high-tide line. `beach.test.ts` caught it.

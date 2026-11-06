@@ -29,7 +29,7 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   below depth resolution past ~1 km. The look is in its fragment shader, from world position and `off`: plates by cell
   noise, cracks and leads (discard over the water), drifts, pools. `iceRubble`, mirrored in GLSL, says where it's piled:
   ridges, a shore belt, the edge's barrier. Rubble is instanced slabs and lumps by a hash of a world cell, near and far
-  sets with budgets; only range, frustum and budget read the camera. Waves: `params.ts` caps the wind and zeroes the
+  sets with budgets, drawn by `rubbleMaterial` (cloud, layers, snow and chips from world position); only range, frustum and budget read the camera. Waves: `params.ts` caps the wind and zeroes the
   swell, so surf and spray turn themselves off; `waterSpot`, `marineFor` and `createShips` give nothing afloat.
   `ctx.seaLevel` returns the ice's height, so what rests on the sea rests on it; sea smoke and spouts go in `params.ts`. Bergs (`sea.ice`) stay, frozen in.
   Off: `"seaIce": null`, or `props.seaIce: false` for the mesh alone.

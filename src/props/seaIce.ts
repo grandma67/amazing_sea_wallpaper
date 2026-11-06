@@ -10,7 +10,6 @@ import { ICE_FREEBOARD, iceRubble, type SeaIceParams } from '../seaIce'
 import { hasLand, terrainHeight, worldToShore } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
-import { outline, slab } from './ice'
 import { curvatureDrop } from './landforms'
 import { fbm3 } from './noise'
 
@@ -316,15 +315,53 @@ export function sheetMaterial(ice: SeaIceParams, windHeadingDeg: number, inland 
   return material
 }
 
-/** A slab of radius ~1, top at y = 1 and base at y = 0, for a thickness set by its
- * y scale: angular, snowy or clear on top, blue-green at its broken sides. */
-export function slabGeometry(rng: Random, snow: number): BufferGeometry {
+/** A broken plate of ice, radius ~1, top at y = 1 and base at y = 0, for a thickness
+ * set by its y scale: straight fracture lines meeting in sharp corners, chipped
+ * and bevelled at the rim, closed underneath. `fine`: for the pieces near the camera.
+ * Snow, cloudiness and chips are the material's (rubbleMaterial). */
+export function slabGeometry(rng: Random, fine = true): BufferGeometry {
   const b = new MeshBuilder()
-  const top: RGB = [0.56 + 0.26 * snow, 0.7 + 0.14 * snow, 0.76 + 0.11 * snow]
-  // Snow lies thinner to the rim, where the ice shows.
-  const rim: RGB = [0.5 + 0.2 * snow, 0.62 + 0.13 * snow, 0.68 + 0.1 * snow]
-  const topAt = (x: number, z: number): RGB => (x === 0 && z === 0 ? top : rim)
-  slab(b, outline(rng, rng.int(5, 8), rng.range(1, 1.35), rng.range(0.12, 0.28)), 1, 0, topAt, (_x, y) => [0.38 + 0.18 * y, 0.5 + 0.17 * y, 0.56 + 0.15 * y])
+  const planes = Array.from({ length: rng.int(4, 6) }, () => ({ angle: rng.range(0, Math.PI * 2), d: rng.range(0.55, 1) }))
+  const stretch = rng.range(1, 1.45)
+  const n = fine ? rng.int(10, 12) : rng.int(5, 6)
+  const rim = Array.from({ length: n }, (_, i) => {
+    const a = ((i + rng.range(-0.3, 0.3)) / n) * Math.PI * 2
+    // A straight break: the nearest fracture line along this direction.
+    let r = 1.1
+    for (const { angle, d } of planes) {
+      const c = Math.cos(a - angle)
+      if (c > 0.05) r = Math.min(r, d / c)
+    }
+    r *= 1 - (fine ? 0.08 : 0.02) * rng.float() ** 2
+    return [Math.cos(a) * r * stretch, Math.sin(a) * r] as const
+  })
+  const TOP: RGB = [0.72, 0.82, 0.86]
+  const UPPER: RGB = [0.6, 0.74, 0.79]
+  const MIDDLE: RGB = [0.5, 0.67, 0.72]
+  const LOWER: RGB = [0.42, 0.6, 0.66]
+  const ring = (scale: number, y: number, color: RGB, wobble = 0): number[] => rim.map(([x, z]) => b.vertex(new Vector3(x * (scale + wobble * rng.range(-1, 1)), y + wobble * rng.range(-1, 1), z * (scale + wobble * rng.range(-1, 1))), color))
+  const fan = (centre: number, around: number[], flip: boolean): void => {
+    for (let i = 0; i < around.length; i++) {
+      const [p, q] = [around[(i + 1) % around.length], around[i]]
+      if (flip) b.triangle(centre, q, p)
+      else b.triangle(centre, p, q)
+    }
+  }
+  const band = (upper: number[], lower: number[]): void => {
+    for (let i = 0; i < upper.length; i++) {
+      const j = (i + 1) % upper.length
+      b.quad(upper[i], upper[j], lower[j], lower[i])
+    }
+  }
+  const inner = ring(0.86, 1, TOP, fine ? 0.012 : 0)
+  fan(b.vertex(new Vector3(0, 1, 0), TOP), inner, false)
+  const edge = ring(1, 0.93, UPPER)
+  band(inner, edge)
+  const middle = ring(1.01, 0.5, MIDDLE, fine ? 0.03 : 0)
+  band(edge, middle)
+  const base = ring(0.95, 0, LOWER)
+  band(middle, base)
+  fan(b.vertex(new Vector3(0, 0, 0), LOWER), ring(0.95, 0, LOWER), true)
   // Broken faces, each flat: shared normals round the sides read as a drum.
   const built = b.build()
   const creased = toCreasedNormals(built, 0.5)
@@ -332,9 +369,97 @@ export function slabGeometry(rng: Random, snow: number): BufferGeometry {
   return creased
 }
 
+const RUBBLE_VERTEX_GLSL = /* glsl */ `
+varying vec3 vRubWorld;
+varying vec3 vRubUp;
+varying float vRubLayer;
+`
+
+const RUBBLE_NOISE_GLSL = /* glsl */ `
+varying vec3 vRubWorld;
+varying vec3 vRubUp;
+varying float vRubLayer;
+uniform float rubSnow;
+float rubHash(vec3 p) {
+  p = fract(p * 0.3183099 + 0.1);
+  p *= 17.0;
+  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+float rubNoise(vec3 x) {
+  vec3 i = floor(x);
+  vec3 f = fract(x);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(mix(rubHash(i), rubHash(i + vec3(1, 0, 0)), f.x), mix(rubHash(i + vec3(0, 1, 0)), rubHash(i + vec3(1, 1, 0)), f.x), f.y),
+    mix(mix(rubHash(i + vec3(0, 0, 1)), rubHash(i + vec3(1, 0, 1)), f.x), mix(rubHash(i + vec3(0, 1, 1)), rubHash(i + vec3(1, 1, 1)), f.x), f.y),
+    f.z);
+}
+float rubFbm(vec3 p) {
+  return 0.55 * rubNoise(p) + 0.3 * rubNoise(p * 2.13 + 7.0) + 0.15 * rubNoise(p * 4.41 + 13.0);
+}
+`
+
+/** The rubble's material, from world position, so a piece never needs a texture:
+ * cloudy ice, frosted layers in its sides, snow in patches on what faces up, chips. */
+export function rubbleMaterial(snow: number): MeshStandardMaterial {
+  const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0 })
+  const rubSnow = { value: snow }
+  material.customProgramCacheKey = () => 'sea-ice-rubble'
+  material.onBeforeCompile = shader => {
+    shader.uniforms.rubSnow = rubSnow
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>\n${RUBBLE_VERTEX_GLSL}`)
+      .replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        mat4 rubModel = modelMatrix;
+        #ifdef USE_INSTANCING
+          rubModel = modelMatrix * instanceMatrix;
+        #endif
+        vRubWorld = (rubModel * vec4(transformed, 1.0)).xyz;
+        vRubUp = normalize(mat3(rubModel) * objectNormal);
+        // Height through the plate, 0–1 (lumps run a little past it).
+        vRubLayer = transformed.y;`
+      )
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\n${RUBBLE_NOISE_GLSL}`)
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        float rubFp = length(fwidth(vRubWorld));
+        float rubNear = 1.0 - smoothstep(0.02, 0.2, rubFp);
+        float rubUpness = normalize(vRubUp).y;
+        float rubCloud = rubFbm(vRubWorld * 1.1);
+        // Cloudy ice, and a few frosted layers through the plate where it broke.
+        diffuseColor.rgb *= mix(1.0, 0.86 + 0.28 * rubCloud, rubNear);
+        float rubSide = 1.0 - smoothstep(0.35, 0.7, abs(rubUpness));
+        // Uneven, and only here and there: they're layers, not stripes.
+        float rubBands = smoothstep(0.6, 0.9, sin(vRubLayer * 9.0 + 7.0 * rubNoise(vRubWorld * 0.9)) * 0.5 + 0.5) * smoothstep(0.35, 0.65, rubNoise(vRubWorld * 0.6 + 31.0));
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.74, 0.82, 0.86), 0.3 * rubBands * rubSide * rubNear);
+        // Snow on what faces up, in patches as thick as the day's, a dusting below.
+        float rubPatch = rubFbm(vRubWorld * 1.15);
+        float rubSnowy = smoothstep(1.0 - rubSnow - 0.1, 1.0 - rubSnow + 0.1, 0.25 + 0.75 * rubPatch) * smoothstep(0.3, 0.75, rubUpness);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.84, 0.87) * (0.96 + 0.08 * rubNear * rubCloud), rubSnowy);`
+      )
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(0.28 + 0.3 * rubCloud, 0.85, rubSnowy);')
+      .replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+        if (rubNear > 0.0) {
+          float rubE = 0.035;
+          vec3 rubP = vRubWorld * 6.0;
+          float rubH = rubFbm(rubP);
+          vec3 rubG = vec3(rubFbm(rubP + vec3(rubE * 6.0, 0, 0)), rubFbm(rubP + vec3(0, rubE * 6.0, 0)), rubFbm(rubP + vec3(0, 0, rubE * 6.0))) - rubH;
+          normal = normalize(normal - (viewMatrix * vec4(rubG, 0.0)).xyz * mix(0.45, 0.5, rubSnowy) * rubNear);
+        }`
+      )
+  }
+  return material
+}
+
 /** A rounded lump of snowy ice, about 1 across, base near y = 0. */
 export function lumpGeometry(rng: Random): BufferGeometry {
-  const geometry = mergeVertices(new IcosahedronGeometry(1, 2).deleteAttribute('normal').deleteAttribute('uv'))
+  const geometry = mergeVertices(new IcosahedronGeometry(1, 3).deleteAttribute('normal').deleteAttribute('uv'))
   const position = geometry.attributes.position as BufferAttribute
   const seed = rng.int(0, 100_000)
   const colors = new Float32Array(position.count * 3)
@@ -342,7 +467,7 @@ export function lumpGeometry(rng: Random): BufferGeometry {
   for (let i = 0; i < position.count; i++) {
     v.fromBufferAttribute(position, i)
     // Broad, low and uneven: drifted-over cakes, not pebbles.
-    v.multiplyScalar(0.46 * (0.45 + 1.1 * fbm3(v.x * 2.1, v.y * 2.1, v.z * 2.1, seed)))
+    v.multiplyScalar(0.46 * (0.35 + 1.3 * fbm3(v.x * 2.6, v.y * 2.6, v.z * 2.6, seed)))
     v.y = Math.max(-0.08, v.y * 0.5 + 0.1)
     position.setXYZ(i, v.x, v.y, v.z)
     colors.set(v.y < 0.05 ? [0.5, 0.64, 0.7] : [0.82, 0.84, 0.87], i * 3)
@@ -380,8 +505,9 @@ export function createSeaIce(ctx: PropContext): Object3D[] {
   sheet.frustumCulled = false
   const objects: Object3D[] = [sheet]
 
-  const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0 })
-  const slabs = Array.from({ length: SLAB_VARIANTS }, () => slabGeometry(rng, ice.snow))
+  const material = rubbleMaterial(ice.snow)
+  // One list per set: fine plates near the camera, plain ones past them.
+  const slabs = BLOCK_SETS.map(set => Array.from({ length: SLAB_VARIANTS }, () => slabGeometry(rng, set.lumps)))
   const lump = lumpGeometry(rng)
   const cam = ctx.camera.position
   const axis = new Vector3()
@@ -399,9 +525,9 @@ export function createSeaIce(ctx: PropContext): Object3D[] {
     mesh.frustumCulled = false
     objects.push(mesh)
   }
-  const bySlab: Matrix4[][] = slabs.map(() => [])
+  const bySlab: Matrix4[][][] = slabs.map(list => list.map(() => []))
   const lumps: Matrix4[] = []
-  for (const set of BLOCK_SETS) {
+  for (const [setIndex, set] of BLOCK_SETS.entries()) {
     const placed: { m: Matrix4; distance: number; target: Matrix4[] }[] = []
     const reach = Math.ceil(set.range / set.cell)
     for (let cx = -reach; cx <= reach; cx++) {
@@ -426,15 +552,16 @@ export function createSeaIce(ctx: PropContext): Object3D[] {
         const tilt = (0.1 + 0.8 * block.rubble * h(7)) * (0.5 + 0.5 * h(14))
         axis.set(h(8) - 0.5, 0, h(9) - 0.5).normalize()
         const q = new Quaternion().setFromAxisAngle(axis, tilt).multiply(spin)
-        const thick = SLAB_THICKNESS[0] + (SLAB_THICKNESS[1] - SLAB_THICKNESS[0]) * h(11)
-        placed.push({ m: new Matrix4().compose(position, q, new Vector3(size * 0.55, thick, size * 0.55 * (0.6 + 0.7 * h(13)))), distance, target: bySlab[Math.floor(h(15) * SLAB_VARIANTS)] })
+        // Plates, not blocks: never thicker than about a third of their width.
+        const thick = Math.min(size * 0.3, SLAB_THICKNESS[0] + (SLAB_THICKNESS[1] - SLAB_THICKNESS[0]) * h(11))
+        placed.push({ m: new Matrix4().compose(position, q, new Vector3(size * 0.55, thick, size * 0.55 * (0.6 + 0.7 * h(13)))), distance, target: bySlab[setIndex][Math.floor(h(15) * SLAB_VARIANTS)] })
       }
     }
     // Over budget, the nearest stay: they're the ones seen as pieces.
     placed.sort((a, b) => a.distance - b.distance)
     for (const p of placed.slice(0, set.budget)) p.target.push(p.m)
   }
-  slabs.forEach((g, i) => (bySlab[i].length > 0 ? emit(g, bySlab[i]) : g.dispose()))
+  slabs.forEach((list, k) => list.forEach((g, i) => (bySlab[k][i].length > 0 ? emit(g, bySlab[k][i]) : g.dispose())))
   if (lumps.length > 0) emit(lump, lumps)
   else lump.dispose()
   return objects
