@@ -38,9 +38,12 @@ const sprayShader = {
     attribute float opacity;
     uniform float pixelsPerRadian;
     varying float vOpacity;
+    varying float vShade;
     varying vec3 vWorld;
     void main() {
       vec4 world = modelMatrix * vec4(position, 1.0);
+      // Cloud and mountain shade (propShade.ts).
+      vShade = 1.0;
       vec4 view = viewMatrix * world;
       vWorld = world.xyz;
       // Sub-pixel droplets keep a 1.5 px footprint but fade out instead.
@@ -57,6 +60,7 @@ const sprayShader = {
     uniform float bowStrength;
     uniform float frame;
     varying float vOpacity;
+    varying float vShade;
     varying vec3 vWorld;
     vec3 bow(float t) {
       vec3 c;
@@ -80,11 +84,12 @@ const sprayShader = {
       // Water droplets: bright white in sky and sun light, glowing when
       // the sun shines through them.
       float forward = pow(max(dot(V, sunDirection), 0.0), 6.0);
-      vec3 color = albedo * (skyIrradiance + sunIrradiance * max(sunDirection.y, 0.0) * 0.8) / 3.14159;
-      color += sunIrradiance * forward * 0.25 * sunUp;
+      vec3 sun = sunIrradiance * vShade;
+      vec3 color = albedo * (skyIrradiance + sun * max(sunDirection.y, 0.0) * 0.8) / 3.14159;
+      color += sun * forward * 0.25 * sunUp;
       // Spray bow.
       float theta = degrees(acos(clamp(dot(V, -sunDirection), -1.0, 1.0)));
-      color += bow((theta - 40.4) / 2.3) * sunIrradiance * 0.06 * sunUp * bowStrength;
+      color += bow((theta - 40.4) / 2.3) * sun * 0.06 * sunUp * bowStrength;
       gl_FragColor = vec4(color, 1.0);
     }`
 }

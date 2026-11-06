@@ -184,6 +184,10 @@ tool gotchas: TOOLS.md.
   more. Before fixing, look from 450 m (`camera.heightM`, `horizonFraction`).
 - Light a cloud removes from the sun must come back as diffuse light, as fog and dust do, or shade
   turns navy and land under a deck goes black. Measure it from the sky as drawn, not a coverage table.
+- three's standard materials have no `.lights` (only ShaderMaterial does): test `isMeshStandardMaterial`, or
+  a patch quietly reaches nothing. A patch's report needs a test on real material classes.
+- Absent from a coverage report isn't covered: forced colonies, marsh and wildlife weren't placed in the
+  first scenes. Check each kind's row exists.
 - A shadow bias is a fraction of the shadow camera's depth range: 0.0004 of 6490 m is 2.6 m, a visible
   gap at the foot of every tree. Convert it to metres before choosing it.
 - Check a known issue's own repro before closing it: a date alone can land on another time of day

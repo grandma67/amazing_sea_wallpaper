@@ -339,12 +339,10 @@ Light:
   fixed by skylight from clouds (`place: "western-med"`, 2024-05-08, along-beach is sand-coloured
   now). Still dark and blue: `place: "brittany"`, 2025-07-10, along-beach, daylight, `weather:
   "broken"`, sun 160°: shaded sand exposes to ~0.03 with the sky at ~0.11. Likely cause, untested:
-  exposure is metered from the clear sky, so it doesn't open up when the frame is in shade.
+  exposure is metered from the clear sky, so it doesn't open up when the frame is in shade
+  (plans/SHADOWS.md phase 6).
   That sand also reads less red than albedo × skylight predicts (raw 0.0069, 0.0076, 0.0112 against
   ~0.012 each); not traced.
-- **Cloud shade stops at the sea and terrain:** landforms, islands and props don't read the cloud
-  map, only the overall `sunVisibility`, so bushes stay sunlit on ground in a cloud's shadow and the
-  ground looks nearly black beside them.
 - **Meter zenith:** `meterScene`'s `zenith` (`debug.skyZenith`) reads ~3× the env cube's own zenith
   luminance at the same sun (0.074 vs 0.023 at 60°). Not traced; the cube's is the darker part of
   the sky, as it should be. Only a stat so far.

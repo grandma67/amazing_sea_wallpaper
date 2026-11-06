@@ -25,5 +25,8 @@ export function snapshotWarnings(params, props = [], gl = []) {
     if (r == null) warnings.push(`${kind}: nothing placed (chance, or no spot found).`)
     else if (r.inFrame === 0) warnings.push(`${kind}: ${r.placed} placed but none in frame.`)
   }
+  for (const [kind, c] of Object.entries(params.debug?.shadowCoverage ?? {})) {
+    if (c.shaded < c.lit) warnings.push(`${kind}: ${c.lit - c.shaded} of ${c.lit} lit objects don't read the land and cloud shade (src/propShade.ts).`)
+  }
   return warnings
 }

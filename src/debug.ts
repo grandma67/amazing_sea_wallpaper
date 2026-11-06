@@ -19,6 +19,12 @@ export interface DebugParams {
   /** Fixed exposure instead of the one metered from the sky and weather
    * (diff.mjs --keep-exposure). */
   exposure?: number
+  /** Force the cloud shade everywhere, 0 (no direct light) to 1 (none): at 0
+   * anything still sunlit doesn't read the shade (knowledge/tools/DEBUG.md). */
+  cloudShade?: number
+  /** Everything that reads the land and cloud shade shows it, in grey: black in
+   * full shade, ~0.25 in sun. */
+  shadeView?: boolean
   /** False colour on the terrain: 'slope' (grey by steepness, red where the
    * height bends within ~2 grid cells: aliasing), 'relief' (each relief term
    * in its own channel), 'lines' (today's water, run-up, high waters, beach
@@ -47,7 +53,7 @@ export interface ProbeLine {
   step?: number
 }
 
-export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds'] as const
+export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds'] as const
 export type DebugPass = (typeof DEBUG_PASSES)[number]
 export const TERRAIN_VIEWS = ['none', 'slope', 'relief', 'lines', 'shore'] as const
 export type TerrainView = (typeof TERRAIN_VIEWS)[number]

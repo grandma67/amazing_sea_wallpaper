@@ -148,6 +148,12 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   cloud transmittance from takram's cascaded cloud shadow map (exp(−(maxOpticalDepth + tail)),
   primed by `primeCloudShadow` because the sea is drawn once at frame 0). `weather.sunVisibility`
   stays as the overall dimming.
+- **The same shade on props** (`propShade.ts`): every lit standard material multiplies its directional
+  light by land × cloud shade, in three's own light loop (`lights_fragment_begin`); near shadows stay
+  three's. Spray takes it per droplet. Shelf and roll clouds are left out. Props are in the land map and
+  it's coarse, so they read it three texels toward the light (`landShadowLift`). A point above the deck
+  has less cloud over it: takram's `min(max + tail, meanExtinction × (toTop − front))`, so summits stay
+  lit. `debug.shadowCoverage` reports by kind.
 - **Skylight from clouds** (`skylight.ts`): the sea and terrain take `skyIrradiance` from the clear
   atmosphere (`SkyLightProbe`). On daylight cloud days it is scaled per channel by the env cube's
   cosine-weighted light with its clouds over without (`debug.cloudSkylight`; typically red 1.3–2.7,

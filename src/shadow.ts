@@ -25,6 +25,79 @@ import { EARTH_RADIUS } from './params'
 // Lets the custom terrain and ocean shaders receive the sun's shadow map,
 // which three.js renders for the standard-material props (rocks, plants...).
 
+export const LAND_CLOUD_GLSL = /* glsl */ `
+// Shade from mountains, volcanoes and islands kilometres away: a low sun or
+// moon behind them leaves the sea in front in their shadow, glitter path and
+// all. The near map above covers only a few hundred metres round the camera,
+// so these get their own (renderLandShadow): one orthographic depth map along
+// the light over the sea out to the horizon. Where both cover a rock, either
+// one's shade is the same shade, so take the darker.
+uniform sampler2DShadow landShadowMap;
+uniform mat4 landShadowMatrix;
+uniform vec2 landShadowTexel;
+uniform float landShadowOn;
+// Props are in this map themselves and it's coarse (tens of metres a texel), so
+// they read it from a little toward the light: mountains shade them, they don't
+// shade themselves. The sea and terrain aren't in it: 0.
+uniform vec3 landShadowLift;
+
+float landShadow(vec3 world) {
+  if (landShadowOn < 0.5) return 1.0;
+  vec4 c = landShadowMatrix * vec4(world, 1.0);
+  c.xyz /= c.w;
+  if (c.x < 0.0 || c.x > 1.0 || c.y < 0.0 || c.y > 1.0 || c.z > 1.0) return 1.0;
+  float sum = 0.0;
+  for (int j = 0; j < 2; j++) {
+    for (int i = 0; i < 2; i++) {
+      sum += texture(landShadowMap, vec3(c.xy + (vec2(float(i), float(j)) - 0.5) * landShadowTexel, c.z));
+    }
+  }
+  return sum / 4.0;
+}
+
+// Shade from the volumetric clouds in the sky. The clouds effect ray-marches
+// them toward the sun (or the moon at night) into cascaded maps of optical
+// depth (takram's BSM; primed by primeCloudShadow in clouds.ts). The sea and
+// sand are below every layer, so the full optical depth along the light ray
+// applies; a peak above the deck has less above it, or none (takram's
+// readShadowOpticalDepth). The sun's glint off the water is the same light:
+// where a cloud hides the sun, the glitter path goes too.
+uniform sampler2DArray cloudShadowMap;
+uniform mat4 cloudShadowMatrices[4];
+uniform vec2 cloudShadowIntervals[4];
+uniform int cloudShadowCascades;
+uniform float cloudShadowNear;
+uniform float cloudShadowFar;
+uniform float cloudShadowTop;
+uniform vec3 cloudShadowLight;
+// A debug spec can force it (params.debug.cloudShade); < 0: the map.
+uniform float cloudShadeForce;
+
+float cloudShadow(vec3 world) {
+  if (cloudShadeForce >= 0.0) return cloudShadeForce;
+  if (cloudShadowCascades == 0) return 1.0;
+  float toTop = (cloudShadowTop - world.y) / max(cloudShadowLight.y, 0.02);
+  if (toTop <= 0.0) return 1.0;
+  float viewZ = -(viewMatrix * vec4(world, 1.0)).z;
+  float depth = (viewZ - cloudShadowNear) / (cloudShadowFar - cloudShadowNear);
+  int cascade = cloudShadowCascades - 1;
+  for (int i = 3; i >= 0; i--) {
+    if (i < cloudShadowCascades && depth < cloudShadowIntervals[i].y) cascade = i;
+  }
+  vec4 clip = cloudShadowMatrices[cascade] * vec4(world, 1.0);
+  vec2 uv = clip.xy / clip.w * 0.5 + 0.5;
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return 1.0;
+  // r: front depth, g: mean extinction, b: max optical depth marched, a: tail.
+  vec4 bsm = texture(cloudShadowMap, vec3(uv, float(cascade)));
+  return exp(-min(bsm.b + bsm.a, bsm.g * max(toTop - bsm.r, 0.0)));
+}
+
+// Direct light left by the land and clouds, on a prop.
+float propShade(vec3 world) {
+  return landShadow(world + landShadowLift) * cloudShadow(world);
+}
+`
+
 export const SHADOW_GLSL = /* glsl */ `
 uniform sampler2DShadow sunShadowMap;
 uniform mat4 sunShadowMatrix;
@@ -48,64 +121,11 @@ float sunShadow(vec3 world) {
   return sum / 9.0;
 }
 
-// Shade from mountains, volcanoes and islands kilometres away: a low sun or
-// moon behind them leaves the sea in front in their shadow, glitter path and
-// all. The near map above covers only a few hundred metres round the camera,
-// so these get their own (renderLandShadow): one orthographic depth map along
-// the light over the sea out to the horizon. Where both cover a rock, either
-// one's shade is the same shade, so take the darker.
-uniform sampler2DShadow landShadowMap;
-uniform mat4 landShadowMatrix;
-uniform vec2 landShadowTexel;
-uniform float landShadowOn;
-
-float landShadow(vec3 world) {
-  if (landShadowOn < 0.5) return 1.0;
-  vec4 c = landShadowMatrix * vec4(world, 1.0);
-  c.xyz /= c.w;
-  if (c.x < 0.0 || c.x > 1.0 || c.y < 0.0 || c.y > 1.0 || c.z > 1.0) return 1.0;
-  float sum = 0.0;
-  for (int j = 0; j < 2; j++) {
-    for (int i = 0; i < 2; i++) {
-      sum += texture(landShadowMap, vec3(c.xy + (vec2(float(i), float(j)) - 0.5) * landShadowTexel, c.z));
-    }
-  }
-  return sum / 4.0;
-}
-
-// Shade from the volumetric clouds in the sky. The clouds effect ray-marches
-// them toward the sun (or the moon at night) into cascaded maps of optical
-// depth (takram's BSM; primed by primeCloudShadow in clouds.ts). The sea and
-// sand are below every layer, so the full optical depth along the light ray
-// applies. The sun's glint off the water is the same light: where a cloud
-// hides the sun, the glitter path goes too.
-uniform sampler2DArray cloudShadowMap;
-uniform mat4 cloudShadowMatrices[4];
-uniform vec2 cloudShadowIntervals[4];
-uniform int cloudShadowCascades;
-uniform float cloudShadowNear;
-uniform float cloudShadowFar;
-
-float cloudShadow(vec3 world) {
-  if (cloudShadowCascades == 0) return 1.0;
-  float viewZ = -(viewMatrix * vec4(world, 1.0)).z;
-  float depth = (viewZ - cloudShadowNear) / (cloudShadowFar - cloudShadowNear);
-  int cascade = cloudShadowCascades - 1;
-  for (int i = 3; i >= 0; i--) {
-    if (i < cloudShadowCascades && depth < cloudShadowIntervals[i].y) cascade = i;
-  }
-  vec4 clip = cloudShadowMatrices[cascade] * vec4(world, 1.0);
-  vec2 uv = clip.xy / clip.w * 0.5 + 0.5;
-  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return 1.0;
-  // b: max optical depth marched, a: estimated tail beyond the march.
-  vec4 bsm = texture(cloudShadowMap, vec3(uv, float(cascade)));
-  return exp(-(bsm.b + bsm.a));
-}
-
+${LAND_CLOUD_GLSL}
 // Direct light reaching a point on the sea or sand: props nearby, land far
 // away, then the clouds.
 float lightReaching(vec3 world) {
-  return min(sunShadow(world), landShadow(world)) * cloudShadow(world);
+  return min(sunShadow(world), landShadow(world + landShadowLift)) * cloudShadow(world);
 }
 `
 
@@ -135,7 +155,8 @@ function setShadowMap(uniform: { value: unknown }, map: Texture): void {
   uniform.value = map
 }
 
-export function shadowUniforms(): Record<string, { value: unknown }> {
+/** The uniforms of LAND_CLOUD_GLSL. */
+export function landCloudUniforms(): Record<string, { value: unknown }> {
   return {
     cloudShadowMap: { value: null as Texture | null },
     cloudShadowMatrices: { value: [0, 1, 2, 3].map(() => new Matrix4()) },
@@ -143,14 +164,24 @@ export function shadowUniforms(): Record<string, { value: unknown }> {
     cloudShadowCascades: { value: 0 },
     cloudShadowNear: { value: 0 },
     cloudShadowFar: { value: 1 },
-    sunShadowMap: { value: noShadowMap() as Texture },
-    sunShadowMatrix: { value: new Matrix4() },
-    sunShadowTexel: { value: new Vector2(1, 1) },
-    sunShadowOn: { value: 0 },
+    cloudShadowTop: { value: 0 },
+    cloudShadowLight: { value: new Vector3(0, 1, 0) },
+    cloudShadeForce: { value: -1 },
     landShadowMap: { value: noShadowMap() as Texture },
     landShadowMatrix: { value: new Matrix4() },
     landShadowTexel: { value: new Vector2(1, 1) },
-    landShadowOn: { value: 0 }
+    landShadowOn: { value: 0 },
+    landShadowLift: { value: new Vector3() }
+  }
+}
+
+export function shadowUniforms(): Record<string, { value: unknown }> {
+  return {
+    ...landCloudUniforms(),
+    sunShadowMap: { value: noShadowMap() as Texture },
+    sunShadowMatrix: { value: new Matrix4() },
+    sunShadowTexel: { value: new Vector2(1, 1) },
+    sunShadowOn: { value: 0 }
   }
 }
 
@@ -158,7 +189,8 @@ export function shadowUniforms(): Record<string, { value: unknown }> {
 export function bindCloudShadow(
   uniforms: Record<string, { value: unknown }>,
   clouds: CloudsEffect,
-  camera: PerspectiveCamera
+  camera: PerspectiveCamera,
+  lightDirection: Vector3
 ): void {
   const maps = clouds.shadowMaps
   uniforms.cloudShadowMap.value = clouds.shadowPass.outputBuffer
@@ -169,6 +201,8 @@ export function bindCloudShadow(
   uniforms.cloudShadowCascades.value = maps.cascadeCount
   uniforms.cloudShadowNear.value = camera.near
   uniforms.cloudShadowFar.value = maps.far
+  uniforms.cloudShadowTop.value = (clouds.cloudsPass.currentMaterial.uniforms as unknown as { shadowTopHeight: { value: number } }).shadowTopHeight.value
+  ;(uniforms.cloudShadowLight.value as Vector3).copy(lightDirection).normalize()
 }
 
 /** Point the shader uniforms at the light's (already rendered) shadow map. */
@@ -248,13 +282,17 @@ export function renderLandShadow(
     .set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1)
     .multiply(shadowCamera.projectionMatrix)
     .multiply(shadowCamera.matrixWorldInverse)
-  return { target, matrix, texel: new Vector2(1 / LAND_SHADOW_SIZE, 1 / height) }
+  // Three texels along the light: more than a tree, less than a mountain.
+  const texel = Math.max((2 * radius) / LAND_SHADOW_SIZE, (2 * halfHeight) / height)
+  return { target, matrix, texel: new Vector2(1 / LAND_SHADOW_SIZE, 1 / height), lift: L.clone().multiplyScalar(3 * texel) }
 }
 
 export interface LandShadow {
   target: WebGLRenderTarget
   matrix: Matrix4
   texel: Vector2
+  /** From a surface toward the light, for what's in the map itself. */
+  lift: Vector3
 }
 
 /** Solid props that block the light: shadow casters, landforms, islands. */
@@ -271,9 +309,10 @@ function isCaster(o: Object3D, props: Object3D): boolean {
   return o.castShadow || kind === 'landforms' || kind === 'islands'
 }
 
-export function bindLandShadow(uniforms: Record<string, { value: unknown }>, shadow: LandShadow): void {
+export function bindLandShadow(uniforms: Record<string, { value: unknown }>, shadow: LandShadow, inMap = false): void {
   setShadowMap(uniforms.landShadowMap, shadow.target.depthTexture!)
   ;(uniforms.landShadowMatrix.value as Matrix4).copy(shadow.matrix)
   ;(uniforms.landShadowTexel.value as Vector2).copy(shadow.texel)
   uniforms.landShadowOn.value = 1
+  if (inMap) (uniforms.landShadowLift.value as Vector3).copy(shadow.lift)
 }

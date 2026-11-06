@@ -426,6 +426,10 @@ function checkDebug(value: unknown, path: string): void {
       }
     },
     exposure: number,
+    cloudShade: (v, p) => {
+      if (typeof v !== 'number' || v < 0 || v > 1) fail(p, 'must be a number in 0–1')
+    },
+    shadeView: boolean,
     terrainView: oneOf(...TERRAIN_VIEWS),
     oceanView: oneOf(...OCEAN_VIEWS),
     probe: (v, p) => {

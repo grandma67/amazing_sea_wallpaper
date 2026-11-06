@@ -1,6 +1,7 @@
 # Shadows and dark frames
 
-**Status: planned 2026-11-06, phases not started.** Done before this plan: shade reaches the sea's
+**Status: phases 0 and 1 done (0.109), phases 2–6 open.** Decided 2026-11-06: dark nights at ~×8; the
+long-exposure look turns on by itself when the shutter is long. Done before this plan: shade reaches the sea's
 seabed, foam and body (0.105), skylight from clouds (0.106), shadows start at the stem (0.107).
 Sources: end of this file. Estimates are marked; everything else was measured or read in the code.
 
@@ -29,64 +30,55 @@ talk's slides may say.
 
 ## Where we stand
 
-Direct light in one line: `sun × min(near map, land map) × cloud map`. Only the sea and terrain
-compute all of it (`SHADOW_GLSL` is read only by `ocean.ts`, `terrain.ts`). Rows for props come from
-a grep and from the code, so phase 0 confirms them mesh by mesh.
+Direct light in one line: `sun × min(near map, land map) × cloud map`. The sea, terrain and every lit
+prop now read the land and cloud maps (`propShade.ts`). Near shadows depend on each object's
+`receiveShadow`, and casting on its `castShadow`. Counts from `debug.shadowCoverage` over
+`scenes/shadows.json` (objects, not instances); 2026-11-06:
 
-| | Casts | Near shadows | Mountain shadows | Cloud shadows |
+| Kind | Lit, all shaded | Casts | Receives near shadows | Gap for phase 2 |
 |---|---|---|---|---|
-| Sea | not needed | yes | yes | yes |
-| Land (terrain) | **no**, in no map | yes | yes | yes |
-| Trees, bushes | yes | yes | **no** | **no** |
-| Grass | **no** (`castShadow: false`) | yes | **no** | **no** |
-| Flowers, shore life | yes (confirm) | yes | **no** | **no** |
-| Rocks, stones, debris | yes | yes | **no** | **no** |
-| Animals on land, seals, colonies | yes | yes | **no** | **no** |
-| Marine animals, migratory birds | yes | **confirm** | **no** | **no** |
-| Boats, ships, lighthouse | yes | yes | **no** | **no** |
-| Ice | yes | yes | **no** | **no** |
-| Islands | land map only | yes | **no** | **no** |
-| Mountains (landforms) | land map only | **confirm** | **no** | **no** |
-| Leaf litter, marsh | no: smaller than a texel | yes | **no** | **no** |
-| Surf spray | no | own shader | **no** | **no** |
-| Lamps, lava, lightning (unlit) | no | not needed | not needed | not needed |
+| Sea, terrain | own shaders | terrain: **no** | yes | terrain casts in no map |
+| Vegetation | 196 | 172 | 196 | grass casts nothing |
+| Shore life (flowers, crabs...) | 97 | 97 | 97 | |
+| Debris | 60 | 60 | 60 | |
+| Rocks, stones, beachrock | 40 | 40 | 40 | |
+| Boats, ships | 22 | 22 | 22 | |
+| Ice | 8 | 8 | 8 | |
+| Mangroves | 3 | 3 | 3 | |
+| Lighthouse | 3 | 2 | 2 | |
+| Wildlife (8 forced scenes) | 2–5 per scene | all | all | |
+| Birds, migratory birds | 42 | 42 | **0** | don't receive |
+| Marine animals | 10 | 10 | **0** | don't receive |
+| Seals | 6 | 6 | **1** | don't receive |
+| Colony | 4 | **1** | **1** | most don't cast or receive |
+| Islands | 5 | land map only | **0 here, some elsewhere** | no near map |
+| Mountains | 3 | land map only | **0** | no near map |
+| Salt marsh, leaf litter | 8 + 4 | no: smaller than a texel | yes | |
+| Surf, whale and ship spray | own shader, per droplet | no | no | |
+| Lamps, lava, lightning | unlit | no | not needed | |
+| Shelf and roll clouds | left out: they are clouds | no | no | |
 
 ## Phases
 
 Order: each phase is judged better after the one before. Cost is checked with `bench.mjs`; adding
 over ~10% needs a reason.
 
-### 0. Prove coverage first
+### 0. Prove coverage first: done
 
-- Debug report `debug.shadowCoverage`: every lit material in the scene, by prop kind, and whether it
-  reads the shared shade. Test: none missing, listed exceptions only.
-- `passes.cloudShade: false` and a false-colour shade view in `params.debug` (the temporary one used
-  while investigating, made permanent).
-- `scenes/shadows.json`: one scene per row of the table. Render with shade forced to 0: anything
-  still sunlit isn't covered. Also front-lit and backlit.
+`debug.shadowCoverage` by prop kind (a snapshot ⚠ if a lit object isn't shaded), `passes.cloudShade`,
+`params.debug.cloudShade` (force the shade) and `shadeView` (show it), `scenes/shadows.json`. With
+`cloudShade: 0` and `shadeView`, anything not black doesn't read the shade: tools/DEBUG.md.
 
-**Done:** the table above is filled in from the report instead of a grep.
+### 1. Every lit object receives land and cloud shade: done
 
-### 1. Every lit object receives all three shades
-
-All standard materials go through three.js's `lights_fragment_begin`, so this is one patch: multiply
-`directLight.color` by the shared `land map × cloud map`, with one loop over the props.
-
-- Chain to a material's own `onBeforeCompile` (13 places) and extend `customProgramCacheKey`, or
-  programs get mixed up. `props/wash.ts` shows the way.
-- Apply it regardless of `receiveShadow`: clouds shade everything.
-- Sky light stays. Lit by the sky cube, shaded props keep their colour.
-- Surf spray: read the shade once per particle in its own shader.
-- Split the cloud part out of `SHADOW_GLSL`. Share uniform objects per render (everything is freed
-  per day, LEAKS.md; run `npm run check:restart`).
-
-**Done:** phase 0's forced shade darkens every row. Fixes bushes in sun on shaded ground, and
-mountains get cloud patches. Cost, estimate: one texture read per prop pixel, small.
+`propShade.ts`: one patch of three's `lights_fragment_begin`, one loop over the props. Spray per
+droplet. Render time +0–4% on 3 days. No lit object uncovered in 28 scene and 44 sweep renders.
 
 ### 2. Everything solid casts
 
 | Caster | How | Note |
 |---|---|---|
+| **Birds, marine animals, seals, colony, islands, mountains** | Set `receiveShadow`; colony also casts | Near shadows on them. Test acne first |
 | **Terrain** (cliffs, shelves, dunes) | Draw its mesh into the near and land maps | The largest gap. It can then shade itself, so it needs phase 3's bias first |
 | **Grass** | Cast only within ~40 m (estimate) of the camera, reduced blades | 7000 per kind: test the cost. Grass ~1 m tall is a few texels |
 | **Flowers, small life** | Confirm from phase 0; add where missing | |
@@ -201,9 +193,7 @@ changelog, `arch/SKY.md`, LESSONS.md. One commit per phase.
 
 ## Questions for later
 
-1. **How bright should a dark night be?** ~×8 (still night, recommended) or ×32 (dusk-like).
-2. **Long-exposure look:** on by itself whenever the shutter is long (recommended), or brightness only?
-3. **Grass casting:** worth its cost? Decide from phase 2's numbers.
+- **Grass casting:** worth its cost? Decide from phase 2's numbers.
 
 ## Sources
 

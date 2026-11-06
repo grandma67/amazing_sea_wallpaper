@@ -1,0 +1,135 @@
+{
+ "base": {
+  "date": "2025-07-10",
+  "eclipse": null,
+  "storm": null,
+  "fog": null,
+  "timeOfDay": "daylight",
+  "weather": "clear",
+  "sunAzimuthDeg": 120,
+  "sunElevationDeg": 40
+ },
+ "scenes": [
+  {
+   "name": "trees-bushes",
+   "place": "scotland",
+   "coast": "beach",
+   "composition": "framed"
+  },
+  {
+   "name": "grass-flowers",
+   "date": "2025-05-10",
+   "place": "western-med",
+   "coast": "beach",
+   "composition": "framed"
+  },
+  {
+   "name": "rocks",
+   "rockShore": "boulder"
+  },
+  {
+   "name": "stones-debris",
+   "coast": "beach",
+   "beachMaterial": "cobble",
+   "composition": "along-beach"
+  },
+  {
+   "name": "colony-birds",
+   "colony": "gannet",
+   "composition": "overlook",
+   "colonySite": "island"
+  },
+  {
+   "name": "seals",
+   "pinnipeds": true,
+   "coast": "beach",
+   "composition": "shoreline"
+  },
+  {
+   "name": "boats",
+   "coast": "beach",
+   "composition": "shoreline",
+   "lighthouse": "rock",
+   "props": {
+    "ships": true
+   }
+  },
+  {
+   "name": "ice",
+   "date": "2025-02-10",
+   "place": "greenland",
+   "ice": true,
+   "timeOfDay": "daylight"
+  },
+  {
+   "name": "mountains-islands",
+   "coast": "beach",
+   "composition": "overlook",
+   "landform": "strato",
+   "islands": true
+  },
+  {
+   "name": "mangroves",
+   "date": "2025-07-10",
+   "place": "bahamas-bermuda",
+   "coast": "beach",
+   "composition": "along-beach",
+   "props": {
+    "mangroves": "rhizophora"
+   }
+  },
+  {
+   "name": "marsh",
+   "saltMarsh": true,
+   "composition": "along-beach",
+   "place": "wadden-north-sea",
+   "date": "2025-07-13",
+   "coast": "beach",
+   "tide": "high",
+   "colony": null
+  },
+  {
+   "name": "open-sea",
+   "coast": "open-sea",
+   "props": {
+    "marine": "orca",
+    "ships": true,
+    "birds": true
+   }
+  },
+  {
+   "name": "migratory",
+   "date": "2025-10-10",
+   "place": "scotland",
+   "coast": "beach",
+   "composition": "shoreline",
+   "props": {
+    "migratory": "goose"
+   }
+  },
+  {
+   "name": "beachrock",
+   "place": "antilles",
+   "composition": "along-beach",
+   "beachrock": true
+  },
+  {
+   "name": "wildlife",
+   "coast": "beach",
+   "biome": "tropical",
+   "composition": "along-beach",
+   "props": {
+    "wildlife": {
+     "crocodile": "nile"
+    }
+   }
+  },
+  {
+   "name": "leaf-litter",
+   "date": "2025-10-20",
+   "place": "maine",
+   "coast": "beach",
+   "composition": "framed"
+  }
+ ]
+}

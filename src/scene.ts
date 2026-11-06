@@ -88,7 +88,8 @@ import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
 import { dustSkylight, dustTransmittance } from './seaHaze'
-import { bindCloudShadow, bindLandShadow, bindShadow, renderLandShadow } from './shadow'
+import { shadeProps } from './propShade'
+import { bindCloudShadow, bindLandShadow, bindShadow, landCloudUniforms, renderLandShadow } from './shadow'
 import { cloudSkylightRatio, measureSkylight } from './skylight'
 import { SkyDenoiseEffect } from './skyDenoise'
 import { GpuResources, trackUploads } from './dispose'
@@ -777,6 +778,9 @@ export async function renderScene(
   composer.addPass(finish)
 
   // --- Render once ------------------------------------------------------------
+  // Land and cloud shade on the props (propShade.ts).
+  const propUniforms = landCloudUniforms()
+  let shadeCoverage: ReturnType<typeof shadeProps> = {}
   cubeCamera.update(renderer, envScene)
   // Daylight clouds only: dust gives its own light back (dustSkylight), and
   // night and totality keep their own units.
@@ -812,6 +816,12 @@ export async function renderScene(
     // Render the shadow map once with only the props, then let the custom
     // terrain and ocean shaders sample it.
     if (!pass('shadows')) props.traverse(o => (o.castShadow = false))
+    const view = params.debug?.shadeView === true
+    if (view) for (const material of [ocean.material, terrain.material]) material.defines = { ...material.defines, SHADE_VIEW: 1 }
+    shadeCoverage = shadeProps(props, propUniforms, view)
+    if (params.debug?.cloudShade != null) {
+      for (const uniforms of [ocean.material.uniforms, terrain.material.uniforms, propUniforms]) uniforms.cloudShadeForce.value = params.debug.cloudShade
+    }
     ocean.visible = false
     terrain.visible = false
     const scratch = new WebGLRenderTarget(4, 4)
@@ -823,11 +833,17 @@ export async function renderScene(
     terrain.visible = hasLand(params.coast)
     bindShadow(ocean.material.uniforms, sun)
     bindShadow(terrain.material.uniforms, sun)
-    if (clouds != null) {
+    if (clouds != null && pass('cloudShade')) {
       primeCloudShadow(clouds, renderer, composer.inputBuffer)
-      bindCloudShadow(ocean.material.uniforms, clouds, camera)
-      bindCloudShadow(terrain.material.uniforms, clouds, camera)
+      for (const uniforms of [ocean.material.uniforms, terrain.material.uniforms, propUniforms]) bindCloudShadow(uniforms, clouds, camera, lightDirectionWorld)
     }
+    // Before the reflection: the sea mirrors land and props in their shade.
+    renderer.shadowMap.autoUpdate = false
+    const land = renderLandShadow(renderer, scene, props, camera, lightDirectionWorld)
+    gpu.add(land.target)
+    bindLandShadow(ocean.material.uniforms, land)
+    bindLandShadow(terrain.material.uniforms, land)
+    bindLandShadow(propUniforms, land, true)
 
     // Mirror image of land and props for the water (sky comes from the cube).
     if (pass('reflection') && (hasLand(params.coast) || scene.getObjectByName('props')!.children.length > 0)) {
@@ -849,11 +865,6 @@ export async function renderScene(
       ocean.material.uniforms.planarProjInv.value.copy(reflection.projectionInverse)
       ocean.material.uniforms.planarOn.value = 1
     }
-    renderer.shadowMap.autoUpdate = false
-    const land = renderLandShadow(renderer, scene, props, camera, lightDirectionWorld)
-    gpu.add(land.target)
-    bindLandShadow(ocean.material.uniforms, land)
-    bindLandShadow(terrain.material.uniforms, land)
   }
   // Volumetric clouds converge over frames (temporal upscaling and
   // stochastic sampling), so render the still repeatedly before capturing.
@@ -927,6 +938,7 @@ export async function renderScene(
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),
       cloudSkylight,
+      shadowCoverage: shadeCoverage,
       pitchDeg: camera.rotation.x / DEG,
       // Ground under the camera (diff.mjs --keep-camera).
       cameraGroundM: camera.position.y - params.camera.heightM,
