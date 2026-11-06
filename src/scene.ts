@@ -530,7 +530,9 @@ export async function renderScene(
   sun.shadow.mapSize.set(4096, 4096)
   Object.assign(sun.shadow.camera, { left: -320, right: 320, top: 320, bottom: -320, near: 10, far: 6500 })
   sun.shadow.camera.updateProjectionMatrix()
-  sun.shadow.bias = -0.0002
+  // ~0.3 m along the light (depth range 6490 m): props do shade themselves, so
+  // they need some, but more starts a shadow late on whatever it falls across.
+  sun.shadow.bias = -0.00005
   sun.shadow.normalBias = 0.03
   scene.add(sun, sun.target)
   if (starlitAmbient != null) scene.add(new AmbientLight(starlitAmbient, 1))

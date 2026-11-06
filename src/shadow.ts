@@ -31,6 +31,9 @@ uniform mat4 sunShadowMatrix;
 uniform vec2 sunShadowTexel;
 uniform float sunShadowOn;
 
+// Depth offset as a fraction of the map's 6490 m range: ~0.13 m along the light.
+// The sea and terrain aren't in this map, so they can't shade themselves; a
+// bigger offset only cuts the shadow off short of what casts it.
 float sunShadow(vec3 world) {
   if (sunShadowOn < 0.5) return 1.0;
   vec4 c = sunShadowMatrix * vec4(world, 1.0);
@@ -39,7 +42,7 @@ float sunShadow(vec3 world) {
   float sum = 0.0;
   for (int j = -1; j <= 1; j++) {
     for (int i = -1; i <= 1; i++) {
-      sum += texture(sunShadowMap, vec3(c.xy + vec2(float(i), float(j)) * sunShadowTexel * 1.2, c.z - 0.0004));
+      sum += texture(sunShadowMap, vec3(c.xy + vec2(float(i), float(j)) * sunShadowTexel * 1.2, c.z - 0.00002));
     }
   }
   return sum / 9.0;
