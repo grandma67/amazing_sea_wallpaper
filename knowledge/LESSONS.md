@@ -148,12 +148,16 @@ tool gotchas: TOOLS.md.
   a ruler-straight snow edge across a whole slope.
 
 - **Check a close prop on the rendered framing (snow, 0.111):** a straight cut in the ice foot was blamed on culling
-  and survived a fix, because `params.mjs` without `--rendered` gave another camera. On the framing the page
-  renders, the camera stood on the line and the cut was the gap's taper. Project the vertices with `--rendered`
-  before changing code.
-- **Wrapping `windMaterials`' patch needs the inner key (snow, 0.111):** the wrapper's source is the same every day,
-  so a snowless plant could reuse a snowy day's program with its uniform unset. `shadeMaterial`, `addWash`,
-  `snowCap` and `windMaterials` all keep it.
+  and survived a fix, because `params.mjs` without `--rendered` gave another camera (it does on about 30% of days:
+  12 of the first 40 checked). On the framing the page renders, the camera stood on the line and the cut was the
+  gap's taper. `params.mjs --project KIND` gives this in one call; it now warns when the framing differs.
+- **A long single mesh's "nearest" is its box centre (snow, 0.111):** `snapshot --props` said the ice foot was
+  2946 m away while it ran past the camera at 6 m. `--project`'s rows measure its points.
+- **A full frame doesn't check a subtle feature (snow, 0.112):** frozen spray looked fine in a contact sheet and
+  was camouflage in a before/after crop. Don't call a feature right until you've seen it with its own switch off.
+- **Wrapper patches should keep the inner program key (snow, 0.111):** a wrapper's source is the same on every day,
+  so by reading the code, a snowless plant could reuse a snowy day's program with its uniform unset. A risk seen in
+  the code, not a bug seen in a render. `shadeMaterial`, `addWash`, `snowCap` and `windMaterials` all keep it.
 - **Caps on tiny things read as crackle (snow, 0.111):** white tops and dark sides on thousands of mesh stones looked
   like cracked mud. Hide what real cover would bury and let the ground stand in.
 

@@ -19,7 +19,15 @@
 //                  top-level param; with --stats, shares side by side (⚠ ≥ 5 pts).
 // --changed EXPR   with --ref: count 'p => …' over the changed days (now's params).
 // --rendered       the params the page renders (generateSceneParams re-rolls a
-//                  bad framing); slower.
+//                  bad framing); slower. Without it, expressions that read the
+//                  camera (p.ctx, p.view) get a warning when the page's framing
+//                  differs (first 40 days checked).
+// --project KINDS  where props land, without a render: builds the props on the
+//                  params the page renders (implies --rendered). Per kind (from
+//                  props/index.ts, comma-separated, or all): pieces, in frame, pixel
+//                  box, nearest; then the --rows nearest points in frame (default
+//                  12): distance, shore s and a, height, height above the ground,
+//                  pixel. For "where does this end / what's next to the camera".
 // --line LINE      a line of sky pixels through the CPU mirrors of the sky
 //                  shaders (skyMirror.ts): '{"az":0,"el":[2,40],"step":0.05}' or a
 //                  list of them, az
@@ -63,14 +71,17 @@ const ref = option('ref', null)
 const expect = option('expect', null)
 const changedArg = option('changed', null)
 const list = flag('list')
-const rendered = flag('rendered')
 const lineArg = option('line', null)
+const projectArg = option('project', null)
+const rendered = flag('rendered') || projectArg != null
+const rows = Number(option('rows', 12))
 const skyArg = option('sky', 'aurora,glow')
 const jitters = Number(option('jitters', 8))
 const limit = Number(option('limit', ref != null ? 20 : 1e9))
 rejectUnknown()
 
 const given = expandDates(args)
+const FRAMING_CHECKS = 40
 
 /** The specs to run: one (unnamed), or each scene of a list or scenes file. */
 async function specs() {
@@ -108,11 +119,29 @@ async function load(root) {
     mod('/src/camera.ts'),
     mod('/src/props/context.ts')
   ])
+  /** Is this the camera the page renders? Asked only when an expression reads
+   * the camera, and only for the first days: measuring a frame isn't free. */
+  const framing = { checked: 0, differ: 0, example: null }
+  const checkFraming = (p, date, spec) => {
+    if (rendered || framing.checked >= FRAMING_CHECKS) return
+    framing.checked++
+    const shown = generateSceneParams(date, 16 / 9, spec)
+    const key = q => JSON.stringify([q.camera, q.coast?.composition, q.coast?.distanceToWater])
+    if (key(shown) === key(p)) return
+    framing.differ++
+    framing.example ??= `${date}: camera height ${p.camera.heightM.toFixed(2)} m here, ${shown.camera.heightM.toFixed(2)} m on the page`
+  }
   const day = (date, spec) => {
     const p = rendered ? generateSceneParams(date, 16 / 9, spec) : generateParams(date, 0, 16 / 9, spec)
     const out = { ...p, props: propChoices(p) }
     // Computed only when asked for (it marches rays over the terrain).
-    Object.defineProperty(out, 'view', { get: () => frameView(p), enumerable: false })
+    Object.defineProperty(out, 'view', {
+      get: () => {
+        checkFraming(p, date, spec)
+        return frameView(p)
+      },
+      enumerable: false
+    })
     // Not enumerable either: it isn't a param, so --ref doesn't count it.
     Object.defineProperty(out, 'placeData', { get: () => places.PLACES?.find(pl => pl.id === p.place?.id), enumerable: false })
     // The props' PropContext at 1080p (as test/days.ts viewOf): the render's
@@ -121,6 +150,7 @@ async function load(root) {
     Object.defineProperty(out, 'ctx', {
       get: () => {
         if (ctx == null) {
+          checkFraming(p, date, spec)
           const { camera } = createCamera(p, p.camera.aspect * 1080, 1080)
           ctx = new PropContext(p, camera, null, (camera.fov * Math.PI) / 180 / 1080)
         }
@@ -130,7 +160,7 @@ async function load(root) {
     })
     return out
   }
-  return { server, mod, parseSceneSpec, day, places: places.PLACES ?? [] }
+  return { server, mod, parseSceneSpec, day, framing, places: places.PLACES ?? [] }
 }
 
 function countStats(days) {
@@ -146,6 +176,12 @@ function countStats(days) {
     for (const v of new Set(Array.isArray(value) ? value.map(x => JSON.stringify(x)) : [JSON.stringify(value) ?? 'undefined'])) counts.set(v, (counts.get(v) ?? 0) + 1)
   }
   return counts
+}
+
+/** Warn when what was just printed came from a camera the page wouldn't use. */
+function warnFraming({ checked, differ, example }) {
+  if (differ === 0) return
+  console.log(`⚠ framing: on ${differ} of the ${checked} days checked the page renders another camera (${example}). Anything read from p.ctx or p.view is for a frame nobody sees: add --rendered.`)
 }
 
 const pct = (n, total) => (100 * n) / Math.max(1, total)
@@ -315,6 +351,66 @@ if (expect != null) {
   }
   process.exit(0)
 }
+if (projectArg != null) {
+  const { createProps } = await here.mod('/src/props/index.ts')
+  const { reportProps } = await here.mod('/src/props/report.ts')
+  const { worldToShore, terrainHeight } = await here.mod('/src/terrain.ts')
+  const { Matrix4, Vector3 } = await import('three')
+  const [W, H] = [1920, 1080]
+  /** Every point of a prop in world space: vertices of a mesh, a thinned set; an instance's origin. */
+  const pointsOf = (object, out) => {
+    if (object.isInstancedMesh === true) {
+      const m = new Matrix4()
+      for (let i = 0; i < object.count; i++) {
+        object.getMatrixAt(i, m)
+        out.push(new Vector3().setFromMatrixPosition(m.premultiply(object.matrixWorld)))
+      }
+    } else if (object.geometry?.attributes?.position != null) {
+      const position = object.geometry.attributes.position
+      for (let i = 0; i < position.count; i++) out.push(new Vector3().fromBufferAttribute(position, i).applyMatrix4(object.matrixWorld))
+    }
+    for (const child of object.children) pointsOf(child, out)
+  }
+  try {
+    for (const { name, spec: raw } of await specs()) {
+      here.parseSceneSpec(raw)
+      const { spec, dates } = datesFor(raw)
+      if (name != null) console.log(`== ${name}`)
+      for (const p of dates.map(d => here.day(d, spec)).filter(p => keep(p))) {
+        const { camera } = p.ctx
+        const group = createProps(p.ctx)
+        const report = reportProps(group, camera, W, H)
+        const wanted = projectArg === 'all' ? Object.keys(report) : projectArg.split(',')
+        console.log(`${p.date}  camera height ${p.camera.heightM.toFixed(2)} m, ${p.coast?.composition}, to water ${p.coast?.distanceToWater?.toFixed(1)} m; 1920×1080`)
+        for (const kind of wanted) {
+          const r = report[kind]
+          if (r == null) {
+            console.log(`  ${kind}: nothing placed`)
+            continue
+          }
+          console.log(`  ${kind}: ${r.inFrame}/${r.placed} in frame, nearest ${r.nearest} m, box ${JSON.stringify(r.box)}`)
+          const points = []
+          for (const object of group.children) if (object.userData.prop === kind) pointsOf(object, points)
+          const near = points
+            .map(v => ({ v, n: v.clone().project(camera) }))
+            .filter(({ n }) => n.z < 1 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1)
+            .map(({ v, n }) => ({ v, n, d: Math.hypot(v.x - camera.position.x, v.z - camera.position.z) }))
+            .sort((a, b) => a.d - b.d)
+            .slice(0, rows)
+          if (near.length > 0) console.log('      dist       s       a       y  above   px')
+          for (const { v, n, d } of near) {
+            const [s, a] = p.coast != null ? worldToShore(p.coast, v.x, v.z) : [NaN, NaN]
+            const cells = [d, s, a, v.y, v.y - terrainHeight(p.coast, v.x, v.z)].map(x => x.toFixed(1).padStart(7))
+            console.log(`   ${cells.join(' ')}   ${Math.round(((n.x + 1) / 2) * W)},${Math.round(((1 - n.y) / 2) * H)}`)
+          }
+        }
+      }
+    }
+  } finally {
+    await here.server.close()
+  }
+  process.exit(0)
+}
 const old = ref != null ? worktree(ref, 'params') : null
 const there = old != null ? await load(old.tree) : null
 try {
@@ -343,6 +439,7 @@ try {
     else printDays(days)
   }
 } finally {
+  warnFraming(here.framing)
   await here.server.close()
   await there?.server.close()
   old?.remove()

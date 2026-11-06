@@ -34,6 +34,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 ## 1. Before code
 - Read the relevant `arch/` doc (for a new decision in `params.ts`, ARCHITECTURE.md "Draw order in `buildParams`" first), LESSONS.md (relevant sections) and the closest module: `props/rocks.ts` / `props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
 - Define "done": which views (shoreline, along-beach, framed, overlook, open sea) on which coasts (beach, rock-shore: platform, boulder, cliff top; tidal-flat, salt-marsh beach), what distance, how often, and whether it must read at wallpaper size or may be realistic and subtle. Ask if it's unclear and it matters (life-size crabs and shells show only within ~20 m).
+- Features judged by eye (a new look, not a number): find 2–3 reference photos first and say what to match; without one, say the look is an estimate. Only a description cost several render rounds on the ice foot.
 - Near-camera features: read how near the ground in frame is on real days (`params.mjs` `p.view`) and count placements in a test (`view()` in `test/days.ts`) before rendering. Plan numbers (radii, counts, budgets) are estimates until then.
 - TODO lists: read all open items first, then ask every build-changing question (visibility, places, kinds) in one batch.
 - A biome-keyed table? Read ARCHITECTURE.md "Biome, climate or place" first: key it by what it follows (rock → biome, weather → `place.climate`, one place → a place field) and add it to that list.
@@ -51,6 +52,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Storm-aware props: `stormy(params)` (`props/context.ts`). Animals in water: `ctx.waterSpot(rng, depth, maxDistance)`.
 
 ## 3. Check it (details: TOOLS.md and `tools/`, SCENE_SPECS.md)
+- A new mesh, in this order, before any scene render: its geometry tests (faces up, finite, budget), `scripts/mesh.mjs` alone, then `params.mjs --project KIND` for where it lands. Anything about the frame in `params.mjs` needs `--rendered` (`--project` implies it): the page's camera differs on about 30% of days.
 - Numbers before renders. Use scene specs, not hunted dates; ask `params.mjs` for frequencies and "is it there at all?". Changed a choice or its inputs? `params.mjs --ref HEAD --stats 'p => …'` (⚠ at ≥ 5 points). Test targets: `params.mjs --expect 'pl => …'` (no sampling).
 - Terrain and water-depth features (bars, cusps, tides, reefs, flats): `profile.mjs` (numbers, cross-shore profile, top-down depth map with the break line); compare drawn and reached numbers; force waves with `swellHeight`/`swellPeriod`. Diff terrain changes with `diff.mjs --keep-camera`.
 - A spec file's base forces `timeOfDay` and `weather` (the date's own may be night); don't force `camera.heightM` (compositions set their own). `--props KIND` also prints CPU build time. Preview new meshes alone with `scripts/mesh.mjs`; render the beach only for placement and light.
@@ -71,7 +73,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
   - meshes: deterministic, finite positions and normals, base near y = 0, within the triangle budget;
   - `params.ts` changes: determinism and title.
 - Run `npm test` (typecheck of `test/` + Vitest, ~20 s) and `npx tsc --noEmit` (`src/` only) before committing; neither alone covers both.
-- Say "done" only for what a render or `diff.mjs` showed; otherwise say "placed, not checked".
+- Say "done" only for what a render or `diff.mjs` showed; otherwise say "placed, not checked". A subtle feature needs a before/after with its own switch off (`diff.mjs --crop`): a full frame or contact sheet doesn't show it.
 - After new animals or changed chances: run `node scripts/animals.mjs` and paste its table into ANIMALS.md (update the rules there too).
 - Count the days a change touches with `node scripts/params.mjs --ref HEAD` (before committing; `--list` shows each day's changed values; `--changed 'p => p.place.id'` says where; `--fields` narrows the comparison, not just the print) for the changelog row.
 - Update docs: changelog.md, ARCHITECTURE.md and the `arch/` doc (how it works, known issues), LESSONS.md, REFERENCES.md, the topic doc (ANIMALS, CLOUDS, COASTS), SCENE_SPECS.md (new fields), and TODO.md status if used.

@@ -24,6 +24,29 @@ Besides `SceneParams`, expressions see:
   sand chances, pools).
 - `p.view`, `p.ctx`, `src.X`, `props.X`: below.
 
+### Where props land, no render: `--project`
+
+Builds the props on the params the page renders (implies `--rendered`; ~1 s a day) and prints, per kind, what
+`snapshot --props` does, then the `--rows` nearest points in frame: distance, shore `s` and `a`, height, height
+above the ground, pixel. Use it **before a first render** of a new prop, and for "where does this end" or "what's
+beside the camera". Kinds: `props/index.ts`, comma-separated, or `all`.
+
+```sh
+node scripts/params.mjs --scene scenes/snow.json --project ice-foot,rocks --rows 6
+#   ice-foot: 1/1 in frame, nearest 2946 m, box [0,492,1730,510]     ← box centre of one long mesh
+#       dist       s       a       y  above   px
+#        6.4    -4.6     6.4     0.4     0.0   1259,776              ← its real nearest point
+```
+
+Points are a mesh's vertices or an instance's origin, so a big instanced piece is measured at its origin.
+
+### Which camera: `--rendered`
+
+`generateParams` is attempt 0; the page renders `generateSceneParams`, which re-rolls a bad framing (other camera,
+sometimes other props). They differ on about 30% of days (12 of the first 40 days checked), even with the composition
+forced. Without `--rendered`, an expression that reads `p.ctx` or `p.view` ends with `⚠ framing` when the first 40
+days checked differ. Anything about the frame: use `--rendered`. Frequencies of choices: not needed, and much faster.
+
 ### Expected shares, no sampling: `--expect`
 
 `--expect 'pl => …'` weighs every place by its share of days: numbers are averaged, anything else
