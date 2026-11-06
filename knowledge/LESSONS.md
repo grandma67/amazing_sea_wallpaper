@@ -176,6 +176,9 @@ tool gotchas: TOOLS.md.
 - A steep stony beach face tilts away from a sun behind the land: at golden hour it sits in shade
   while rocks on it are lit. Judge ground texture under `"weather":"clear"`; a heavy deck also
   leaves the beach flat blue (cloud shadow).
+- A shade term has to reach every use of the light. The sea's seabed and foam skipped the shadow,
+  so shallows stayed turquoise beside a shaded beach. To see a shade's real effect: render with the
+  raw map as the output colour (is it there?), then with only that term off (does it show?).
 
 ## Shaders (GLSL)
 

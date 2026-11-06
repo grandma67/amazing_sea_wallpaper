@@ -143,8 +143,8 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   Atacama nearly all year, North Sea, Newfoundland, Arctic in spring/summer; light wind, likeliest
   at dawn), *fog bank* offshore, *sea smoke* (very cold air over warmer water, polar winters, calm
   and clear). Inside fog the sun dims and the sea calms.
-- **Light reaching sea and sand** (`shadow.ts lightReaching`): direct sun/moon (glitter, body,
-  floor) = min(props' shadow map ±320 m, land shadow map to the horizon (`renderLandShadow`)) ×
+- **Light reaching sea and sand** (`shadow.ts lightReaching`): direct sun/moon (glitter, body, crest glow,
+  floor, foam; `sunReaching` in `ocean.ts`) = min(props' shadow map ±320 m, land shadow map to the horizon (`renderLandShadow`)) ×
   cloud transmittance from takram's cascaded cloud shadow map (exp(−(maxOpticalDepth + tail)),
   primed by `primeCloudShadow` because the sea is drawn once at frame 0). `weather.sunVisibility`
   stays as the overall dimming.

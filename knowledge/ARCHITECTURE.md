@@ -339,7 +339,7 @@ Light:
   `weather: "broken"` days land is lit almost only by the sky (marsh, beach and sand alike;
   Mont-Saint-Michel 2025-07-10 along-beach, same at 0bf8187), and `place: "western-med"`,
   2024-05-08, along-beach daylight front-lit renders the whole beach dark blue (same at a6ac87a,
-  before tides). Probably one cause (cloud shadow or sky irradiance on the terrain); not traced.
+  before tides). Likely cause, not yet fixed or confirmed by a fix: shaded ground gets only `skyIrradiance`, which is the clear sky's (`SkyLightProbe`; G ≈ 0.08 against a horizontal sun of ≈ 1.08 at 50° elevation, 13:1). Fog and dust give the sunlight they scatter back as diffuse light; clouds give back nothing. Foam in cloud shade goes dim the same way. Cloud shade also reaches only the sea and terrain shaders: landforms, islands and props stay lit, with just the overall `sunVisibility`.
 
 Sky:
 - Waterspouts: the fog rule never applies and they're far rarer than intended (1 in 3 years):

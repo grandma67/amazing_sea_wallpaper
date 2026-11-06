@@ -546,7 +546,10 @@ void main() {
   float F = fresnel(NoV);
 
   // Sun glitter.
+  // The sun's light at this point: cloud and land shade take all of it from
+  // everything it lights (glitter, water body, seabed, foam); skylight stays.
   float shadow = lightReaching(vWorld);
+  vec3 sunReaching = sunIrradiance * shadow;
   vec3 L = sunDirection;
   float NoL = dot(N, L);
   vec3 specular = vec3(0.0);
@@ -555,7 +558,7 @@ void main() {
     float NoH = max(dot(N, H), 0.0);
     float VoH = max(dot(V, H), 0.0);
     float G = smithG1(NoV, alpha) * smithG1(NoL, alpha);
-    specular = fresnel(VoH) * ggx(NoH, alpha) * G / (4.0 * NoV) * sunIrradiance * shadow;
+    specular = fresnel(VoH) * ggx(NoH, alpha) * G / (4.0 * NoV) * sunReaching;
   }
   // Each lamp's glitter: the same microfacet reflection with its irradiance
   // I / r², a column of glints down toward us on a wavy sea.
@@ -573,11 +576,11 @@ void main() {
 
   // Light scattered out of the water body, plus extra transmission through
   // crests when looking toward the sun.
-  vec3 ambient = skyIrradiance + sunIrradiance * max(L.y, 0.0) * mix(0.4, 1.0, shadow);
+  vec3 ambient = skyIrradiance + sunReaching * max(L.y, 0.0);
   vec3 body = deepColor * ambient / PI;
   float crest = clamp(vHeight / waveHeight + 0.5, 0.0, 1.0);
   float backlit = pow(max(dot(V, -L) * 0.5 + 0.5, 0.0), 6.0);
-  body += scatterColor * sunIrradiance * backlit * crest * crest * 0.3 / PI;
+  body += scatterColor * sunReaching * backlit * crest * crest * 0.3 / PI;
   body += scatterColor * skyIrradiance * crest * 0.08 / PI;
 
   // Shallow water: the sea floor shows through, tinted by absorption along
@@ -593,7 +596,7 @@ void main() {
   float caustic = mix(1.0, caustics(q + slope * depth * 2.0), causticFade);
   vec3 seabed = mix(sandAlbedo, coralAlbedo(q), reefCover(sa, q));
   vec3 floorRadiance = seabed * 0.6 / PI *
-    (sunIrradiance * max(L.y, 0.0) * caustic + skyIrradiance);
+    (sunReaching * max(L.y, 0.0) * caustic + skyIrradiance);
   vec3 refracted = floorRadiance * transmittance + body * (1.0 - transmittance);
 
   vec3 color = reflected * F + specular + refracted * (1.0 - F);
@@ -712,7 +715,7 @@ void main() {
   float foam = foamLace(laceCoords, clamp(coverage, 0.0, 1.0), footprint);
   foam = max(foam, rainDrops.z * 0.9);
   // Foam is matte but wet: diffuse light plus a little sky sheen.
-  vec3 foamColor = vec3(0.85) * (sunIrradiance * max(NoL, 0.0) + skyIrradiance) / PI +
+  vec3 foamColor = vec3(0.85) * (sunReaching * max(NoL, 0.0) + skyIrradiance) / PI +
     0.25 * textureLod(envMap, vec3(R.x, max(R.y, 0.05), R.z), envMaxLod - 2.0).rgb;
   color = mix(color, foamColor, clamp(foam, 0.0, 0.95));
 
