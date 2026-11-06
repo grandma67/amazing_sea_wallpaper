@@ -27,7 +27,7 @@ describe('climate', () => {
     for (const p of of('desert')) expect(p.place.climate).toBe('arid')
   })
 
-  it('names the climate in titles (decision 2)', () => {
+  it('names the climate in titles', () => {
     expect(climateTitle('nordic', 'temperate')).toBe('temperate')
     expect(climateTitle('mediterranean', 'subtropical')).toBe('subtropical')
     expect(climateTitle('desert', 'arid')).toBe('desert')
@@ -41,7 +41,7 @@ describe('climate', () => {
     }
   })
 
-  describe('land (11b)', () => {
+  describe('land', () => {
     const kinds = (p: { biome: { vegetation: readonly (readonly [string, number])[] } }) => p.biome.vegetation.map(([k]) => k)
 
     it('patches only what the climate changes', () => {
@@ -112,7 +112,7 @@ describe('climate', () => {
     })
   })
 
-  describe('sea and sky (11c)', () => {
+  describe('sea and sky', () => {
     // Every real date with the place forced: the same days, only the climate differs.
     const year = (spec: SceneSpec) => DAYS.map(d => scene({ eclipse: null, ...spec }, d))
 
@@ -145,7 +145,7 @@ describe('climate', () => {
     })
   })
 
-  describe('animals (11e)', () => {
+  describe('animals', () => {
     it('keeps seals where they live in each climate', () => {
       expect(pinnipedTable('mediterranean', 'mediterranean', 'pacific', 35)?.[0][0]).toBe('sea-lion') // California
       expect(pinnipedTable('mediterranean', 'subtropical', 'atlantic', 28)).toBeUndefined() // Florida

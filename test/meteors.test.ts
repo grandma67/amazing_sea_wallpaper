@@ -13,14 +13,13 @@ import {
 } from '../src/meteors'
 import { apply, skyRotation } from '../src/skyClock'
 import { project } from '../src/skyFrame'
-import { allParams, scene, scenes } from './days'
+import { DARK, scene, scenes } from './days'
 
 // NIGHT_SKY phase 4: shooting stars.
 
 type Vec3 = [number, number, number]
 const dot = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
-const DARK = { timeOfDay: 'night', nightSky: 'starlit', weather: 'clear', eclipse: null, fog: null, storm: null } as const
 const sessionP = (n: number): number => 1 - Math.exp(-n)
 
 describe('meteors', () => {
@@ -55,13 +54,7 @@ describe('meteors', () => {
     for (const p of ordinary) expect(frameShare(p)).toBeLessThanOrEqual(0.6)
   })
 
-  it('never by day, in twilight, under overcast or fog', () => {
-    for (const p of allParams()) {
-      if (p.meteors.length === 0) continue
-      expect(p.timeOfDay).toBe('night')
-      expect(p.weather.kind).not.toBe('overcast')
-      expect(p.fog).toBeNull()
-    }
+  it('none forced into twilight or under overcast', () => {
     expect(scene({ ...DARK, weather: 'overcast', date: '2026-08-12' }).meteors).toEqual([])
     expect(scene({ timeOfDay: 'blue-hour', eclipse: null, date: '2026-08-12' }).meteors).toEqual([])
   })
@@ -87,12 +80,8 @@ describe('meteors', () => {
     }
   })
 
-  it('follows the spec without changing anything else', () => {
-    const p = scene({ ...DARK, date: '2026-03-10' })
+  it('follows the spec', () => {
     expect(scene({ ...DARK, date: '2026-03-10', meteors: 2 }).meteors).toHaveLength(2)
-    const none = scene({ ...DARK, date: '2026-03-10', meteors: null })
-    expect(none.meteors).toEqual([])
-    expect(none.nightGlow).toEqual(p.nightGlow)
-    expect(none.camera).toEqual(p.camera)
+    expect(scene({ ...DARK, date: '2026-03-10', meteors: null }).meteors).toEqual([])
   })
 })

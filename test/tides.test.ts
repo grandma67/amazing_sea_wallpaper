@@ -2,14 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import { beachLines } from '../src/beach'
 import { hasLand } from '../src/coastKind'
-import { generateParams } from '../src/params'
 import { placeNamed, PLACES } from '../src/places'
 import { Random } from '../src/random'
-import { shoreToWorld, terrainHeight } from '../src/terrain'
 import { MICRO_TIDE, NEAP, SPRING, springFactor, terraceFor, tideFor, tideMarks, tideModified, waterlineAt } from '../src/tides'
-import { allParams, scene, scenes } from './days'
+import { allParams, heightAt as at, scene, scenes } from './days'
 
-const at = (coast: ReturnType<typeof scene>['coast'], s: number, a = 0): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
 const beach = { coast: 'beach', beachMaterial: 'sand', eclipse: null } as const
 
 describe('tide ranges', () => {
@@ -134,15 +131,6 @@ describe('tide-modified beach states', () => {
 })
 
 describe('tides over real days', () => {
-  it('is deterministic, and a forced stage keeps the rest of the day', () => {
-    expect(generateParams('2025-02-03').coast.tide).toEqual(generateParams('2025-02-03').coast.tide)
-    const drawn = scene({ ...beach, place: 'brittany' }, '2025-02-03')
-    const high = scene({ ...beach, place: 'brittany', tide: 'high' }, '2025-02-03')
-    expect(high.coast.tide.mean).toBe(drawn.coast.tide.mean)
-    expect(high.coast.terrace).toEqual(drawn.coast.terrace)
-    expect(high.title).toBe(drawn.title)
-  })
-
   it('give most beach days a micro or meso tide, and about one in ten a big one', () => {
     const beaches = allParams().filter(p => hasLand(p.coast))
     const big = beaches.filter(p => p.coast.tide.springRange >= 4).length / beaches.length

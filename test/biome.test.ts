@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { SAND_STYLES } from '../src/biome'
 import { HIGH_ARCTIC_DEG, PLACES, sandChances, type Climate } from '../src/places'
+import { allParams, expectShare, scene, scenes, share } from './days'
 
 const climates = (place: (typeof PLACES)[number]) => Object.keys(place.climate) as Climate[]
 const everySand = PLACES.flatMap(place => climates(place).map(climate => ({ place, sand: sandChances(place, climate) })))
-import { allParams, expectShare, scene, scenes, share } from './days'
 
 const RED_PLACES = ['pei', 'fundy', 'hawaii', 'oman-yemen', 'red-sea']
 
@@ -32,7 +32,7 @@ describe('sand colour', () => {
     }
   })
 
-  it('is rare overall (decision 4)', () => {
+  it('is rare overall', () => {
     const beaches = allParams().filter(p => p.coast.type === 'beach')
     expect(share(beaches, p => p.coast.sand.name === 'pink' || p.coast.sand.name === 'red')).toBeLessThan(0.02)
   })

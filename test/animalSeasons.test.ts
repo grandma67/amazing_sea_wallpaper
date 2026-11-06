@@ -4,23 +4,22 @@ import { colonyInSeason, ghostCrabSeason, gullSeason, haulOutSeason, humpbackSea
 import type { Climate } from '../src/biome'
 import { CLIMATES } from '../src/places'
 import { seasonMonth } from '../src/seasons'
-import { allParams, propsOf, share } from './days'
+import { allParams, MONTHS, propsOf, share } from './days'
 
 const at = (date: string, climate: Climate, latitudeDeg = 50, id = 'x') => ({ date, latitudeDeg, place: { id, climate } })
-const months = Array.from({ length: 12 }, (_, i) => `2025-${String(i + 1).padStart(2, '0')}-15`)
 
 describe('colonies', () => {
   it('have puffins from April to mid-August and gannets from late February to October', () => {
-    const puffins = months.filter(d => colonyInSeason('puffin', { date: d, latitudeDeg: 58 })).map(d => Number(d.slice(5, 7)))
+    const puffins = MONTHS.filter(d => colonyInSeason('puffin', { date: d, latitudeDeg: 58 })).map(d => Number(d.slice(5, 7)))
     expect(puffins).toEqual([4, 5, 6, 7, 8])
-    const gannets = months.filter(d => colonyInSeason('gannet', { date: d, latitudeDeg: 56 })).map(d => Number(d.slice(5, 7)))
+    const gannets = MONTHS.filter(d => colonyInSeason('gannet', { date: d, latitudeDeg: 56 })).map(d => Number(d.slice(5, 7)))
     expect(gannets).toEqual([3, 4, 5, 6, 7, 8, 9, 10])
   })
 
   it('fill southern gannetries in the austral summer; penguins and boobies all year', () => {
     expect(colonyInSeason('gannet', { date: '2025-12-15', latitudeDeg: -40 })).toBe(true)
     expect(colonyInSeason('gannet', { date: '2025-06-15', latitudeDeg: -40 })).toBe(false)
-    for (const d of months) {
+    for (const d of MONTHS) {
       expect(colonyInSeason('penguin', { date: d, latitudeDeg: -54 })).toBe(true)
       expect(colonyInSeason('tropical', { date: d, latitudeDeg: 10 })).toBe(true)
     }
@@ -50,7 +49,7 @@ describe('seals', () => {
     expect(haulOutSeason('seal', { date: '2025-01-15', latitudeDeg: 57 })).toBeLessThan(haulOutSeason('seal', { date: '2025-07-15', latitudeDeg: 57 }))
     expect(haulOutSeason('elephant-seal', { date: '2025-07-15', latitudeDeg: -54 })).toBeLessThan(0.2)
     expect(haulOutSeason('elephant-seal', { date: '2025-01-15', latitudeDeg: 36 })).toBe(1)
-    for (const d of months) expect(haulOutSeason('sea-lion', { date: d, latitudeDeg: 36 })).toBe(1)
+    for (const d of MONTHS) expect(haulOutSeason('sea-lion', { date: d, latitudeDeg: 36 })).toBe(1)
   })
 })
 
@@ -58,7 +57,7 @@ describe('winter sleep', () => {
   it('keeps subtropical ghost crabs in their burrows in winter, tropical ones out all year', () => {
     expect(ghostCrabSeason(at('2025-01-15', 'subtropical', 30)).out).toBe(0)
     expect(ghostCrabSeason(at('2025-07-15', 'subtropical', 30)).out).toBe(1)
-    for (const d of months) expect(ghostCrabSeason(at(d, 'tropical', 10)).out).toBe(1)
+    for (const d of MONTHS) expect(ghostCrabSeason(at(d, 'tropical', 10)).out).toBe(1)
     expect(shoreCrabsOut({ date: '2025-01-15', latitudeDeg: 55 })).toBe(false)
     expect(lizardAwake('spiny-tailed', { date: '2025-12-15', latitudeDeg: 24 })).toBe(false)
     expect(lizardAwake('spiny-tailed', { date: '2025-05-15', latitudeDeg: 24 })).toBe(true)
@@ -85,7 +84,7 @@ describe('winter sleep', () => {
 describe('waterfowl and gulls', () => {
   it('stay in 0..1 for every climate and month', () => {
     for (const climate of CLIMATES)
-      for (const d of months)
+      for (const d of MONTHS)
         for (const lat of [50, -40]) {
           const w = waterfowlSeason(at(d, climate, lat))
           for (const v of [w.goose, w.duck, gullSeason(at(d, climate, lat))]) {

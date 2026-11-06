@@ -4,7 +4,7 @@ import { sargassumSeason } from '../src/phenology'
 import { debrisFor } from '../src/props/debris'
 import { Random } from '../src/random'
 import type { SceneSpec } from '../src/sceneSpec'
-import { allParams, expectShare, scene, scenes, share } from './days'
+import { allParams, expectShare, monthOf, scene, scenes, share } from './days'
 
 describe('shore debris', () => {
   const days = allParams()
@@ -37,7 +37,7 @@ describe('shore debris', () => {
     expect(share(scenes({ coast: 'beach', place: 'mediterranean-sea' }, 60), p => spec(p)!.wrack === 'seagrass')).toBeGreaterThan(0.5)
   })
 
-  it('follows the climate (PLAN_BIOMES 11d)', () => {
+  it('follows the climate', () => {
     const wrack = (place: string, kind: string, climate?: 'temperate' | 'subtropical') =>
       share(scenes({ coast: 'beach', place, climate }, 80), p => spec(p)!.wrack === kind)
     expect(wrack('florida-carolinas', 'sargassum')).toBeGreaterThan(0.2)
@@ -49,8 +49,7 @@ describe('shore debris', () => {
   })
 
   describe('sargassum season (SEASONS.md §2.4)', () => {
-    const month = (p: (typeof days)[number]): number => Number(p.date.slice(5, 7))
-    const inSeason = (p: (typeof days)[number]): boolean => month(p) >= 4 && month(p) <= 9
+    const inSeason = (p: (typeof days)[number]): boolean => monthOf(p) >= 4 && monthOf(p) <= 9
     const isSargassum = (p: (typeof days)[number]): boolean => spec(p)?.wrack === 'sargassum'
     const noSeason: SceneSpec = { props: { phenology: false } }
     const antilles = scenes({ coast: 'beach', place: 'antilles' }, 600)

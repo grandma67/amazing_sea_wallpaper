@@ -1,3 +1,4 @@
+import { InstancedMesh, type Mesh } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import type { Climate } from '../src/biome'
@@ -10,10 +11,9 @@ import { SNOW_COVER, SNOW_PLACES, ICE_FOOT_PLACES, iceFootChance, pickSnow, snow
 import { shoreToWorld, terrainHeight } from '../src/terrain'
 import { tideMarks } from '../src/tides'
 import type { SceneSpec } from '../src/sceneSpec'
-import { allParams, expectDryCameras, propsOf, scene, scenes, viewOf } from './days'
+import { allParams, expectDryCameras, expectEvery, MONTHS, propsOf, scene, scenes, viewOf } from './days'
 
 const day = (date: string, latitudeDeg = 70): { date: string; latitudeDeg: number } => ({ date, latitudeDeg })
-const months = Array.from({ length: 12 }, (_, m) => `2025-${String(m + 1).padStart(2, '0')}-15`)
 
 describe('when snow lies', () => {
   it('follows the climate: long polar winters, boreal winters, rare temperate days, none elsewhere', () => {
@@ -23,7 +23,7 @@ describe('when snow lies', () => {
     expect(snowChance('x', 'boreal', day('2025-06-15'))).toBe(0)
     expect(snowChance('x', 'temperate', day('2025-01-15', 50))).toBeLessThan(0.1)
     for (const climate of ['tropical', 'arid', 'mediterranean', 'subtropical'] as Climate[]) {
-      for (const date of months) expect(snowChance('x', climate, day(date, 30))).toBe(0)
+      for (const date of MONTHS) expect(snowChance('x', climate, day(date, 30))).toBe(0)
     }
   })
 
@@ -52,7 +52,7 @@ describe('when snow lies', () => {
     for (const id of Object.keys(ICE_FOOT_PLACES)) expect(ids.has(id), id).toBe(true)
     for (const place of PLACES) {
       for (const climate of CLIMATES) {
-        for (const date of months) {
+        for (const date of MONTHS) {
           const c = snowChance(place.id, climate, day(date))
           expect(c).toBeGreaterThanOrEqual(0)
           expect(c).toBeLessThanOrEqual(1)
@@ -194,18 +194,12 @@ describe('the ice foot', () => {
     for (const coast of coasts) {
       const spec2 = Object.fromEntries(Object.entries(coast).filter(([, v]) => v !== undefined)) as SceneSpec
       for (const p of expectDryCameras(spec2, { count: 2, above: () => -1, compositions: coast.coast === 'beach' ? ['shoreline', 'along-beach', 'framed'] : ['framed', 'shoreline'] })) {
-        const objects = createIceFoot(viewOf(p, 1080))
-        for (const o of objects) {
-          const mesh = o as unknown as { geometry: { attributes: { position?: { count: number; getX(i: number): number; getY(i: number): number; getZ(i: number): number } } }; isInstancedMesh?: boolean; count: number }
-          if (mesh.isInstancedMesh === true) continue
-          const position = mesh.geometry.attributes.position!
-          for (let i = 0; i < position.count; i += 7) {
-            const x = position.getX(i)
-            const z = position.getZ(i)
-            expect(Number.isFinite(position.getY(i))).toBe(true)
-            // Nothing stands over the eye within the gap.
-            expect(Math.hypot(x, z), `${p.date} ${p.coast.composition}`).toBeGreaterThan(CAMERA_GAP - 1)
-          }
+        for (const mesh of createIceFoot(viewOf(p, 1080)) as Mesh[]) {
+          if (mesh instanceof InstancedMesh) continue
+          const position = mesh.geometry.attributes.position
+          // Nothing stands over the eye within the gap.
+          const every7 = Array.from({ length: Math.ceil(position.count / 7) }, (_, k) => k * 7)
+          expectEvery(every7, i => Number.isFinite(position.getY(i)) && Math.hypot(position.getX(i), position.getZ(i)) > CAMERA_GAP - 1, { what: i => `${p.date} ${p.coast.composition} vertex ${i}` })
         }
       }
     }

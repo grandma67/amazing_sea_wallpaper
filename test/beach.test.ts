@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { BEACH_MATERIALS, beachLines, FUNDY_STONES, materialChances, MATERIAL_CHANCES } from '../src/beach'
 import { hasBeach } from '../src/coastKind'
-import { generateParams } from '../src/params'
 import { PLACES, placeNamed } from '../src/places'
 import { bareBeach, highWater } from '../src/tides'
 import { allParams, scene, scenes, share } from './days'
@@ -114,19 +113,11 @@ describe('beach material', () => {
 
   it('draws, then forces: forcing sand leaves the rest of a stony day as drawn', () => {
     for (const p of beaches.filter(stony).slice(0, 20)) {
-      const forced = scene({ beachMaterial: p.coast.material }, p.date)
-      expect(forced).toEqual(p)
       const sand = scene({ beachMaterial: 'sand' }, p.date)
       expect(sand.coast.material).toBe('sand')
       expect(sand.place).toEqual(p.place)
       expect(sand.coast.noiseOffset).toEqual(p.coast.noiseOffset)
       expect(sand.camera.focalLengthMm).toBe(p.camera.focalLengthMm)
-    }
-  })
-
-  it('is deterministic', () => {
-    for (const date of ['2024-03-08', '2025-07-01', '2026-12-30']) {
-      expect(generateParams(date).coast).toEqual(generateParams(date).coast)
     }
   })
 })

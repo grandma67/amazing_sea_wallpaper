@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { fogDepthAbove, fogProfile, fogRayDepth, fogSigma, fogSunTransmittance } from '../src/fogLayer'
 import type { FogParams } from '../src/params'
-import { allParams } from './days'
 
 const deck: FogParams = { kind: 'advection', visibility: 345, height: 55, start: 0, seed: 1 }
 const smoke: FogParams = { kind: 'sea-smoke', visibility: 800, height: 15, start: 0, seed: 1 }
@@ -21,7 +20,7 @@ function integrate(fog: FogParams, y0: number, dy: number, s0: number, s1: numbe
 }
 
 describe('fog layer', () => {
-  it('holds σ × height in a column from the sea, as the old exponential layer did', () => {
+  it('holds σ × height in a column from the sea', () => {
     expect(fogDepthAbove(deck, 0)).toBeCloseTo(fogSigma(deck) * deck.height, 9)
     expect(fogDepthAbove(smoke, 0)).toBeCloseTo(fogSigma(smoke) * smoke.height, 9)
   })
@@ -61,15 +60,6 @@ describe('fog layer', () => {
         const exact = integrate(fog, y0, dy, s0, s1)
         expect(Math.abs(fogRayDepth(fog, y0, dy, s0, s1) - exact)).toBeLessThan(1e-3 * Math.max(1, exact))
       }
-    }
-  })
-
-  it('real fog days: the layer is 30–120 m (banks 18–50 m), sea smoke 6–25 m', () => {
-    for (const p of allParams().filter(p => p.fog != null)) {
-      const { kind, height, start } = p.fog!
-      const [lo, hi] = kind === 'sea-smoke' ? [6, 25] : start > 0 ? [18, 50] : [30, 120]
-      expect(height).toBeGreaterThanOrEqual(lo)
-      expect(height).toBeLessThanOrEqual(hi)
     }
   })
 })

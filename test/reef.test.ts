@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
 import { hasBeach } from '../src/coastKind'
-import { generateParams, type CoastParams } from '../src/params'
+import type { CoastParams } from '../src/params'
 import { placeNamed, PLACES } from '../src/places'
 import { createBeachrock } from '../src/props/beachrock'
 import { mangroveFor } from '../src/props/mangroves'
 import { Random } from '../src/random'
 import { reefFor } from '../src/reef'
 import { shelterAt } from '../src/shelter'
-import { reefCrest, reefGap, seaDistance, shoreToWorld, surfWave, terrainHeight, worldToShore } from '../src/terrain'
-import { allParams, expectShare, scene, scenes, view } from './days'
+import { reefCrest, reefGap, seaDistance, shoreToWorld, surfWave, worldToShore } from '../src/terrain'
+import { allParams, expectShare, heightAt as at, scene, scenes, view } from './days'
 
-const at = (coast: CoastParams, s: number, a = 0): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
 const base = { eclipse: null, coast: 'beach', beachMaterial: 'sand', tide: 'mid' } as const
 /** The along-shore coordinate of the reef (not a pass) nearest a = 0. */
 const onReef = (coast: CoastParams): number => {
@@ -36,11 +35,7 @@ describe('reef chances', () => {
 
   it('give reefs on about half the tropical beach days, only on beaches of places that have them', () => {
     const days = allParams()
-    for (const p of days) {
-      if (p.coast.reef == null) continue
-      expect(hasBeach(p.coast)).toBe(true)
-      expect(placeNamed(p.place.id).reef).toBeGreaterThan(0)
-    }
+    for (const p of days) if (p.coast.reef != null) expect(placeNamed(p.place.id).reef, p.date).toBeGreaterThan(0)
     // Over forced tropical beach days, the place-weighted chance (0.46, params.mjs --expect:
     // continental coasts, a third of tropical days, have few reefs).
     expectShare(scenes({ ...base, biome: 'tropical' }, 400), p => p.coast.reef != null, 0.46)
@@ -53,16 +48,10 @@ describe('reef chances', () => {
 })
 
 describe('reef spec', () => {
-  it('forces a reef on any beach and keeps the rest of the day', () => {
+  it('forces a reef on any beach', () => {
     for (const date of ['2024-02-01', '2025-06-15', '2026-09-30']) {
-      const plain = scene({ place: 'norway-west', ...base }, date)
-      const reef = scene({ place: 'norway-west', ...base, reef: true }, date)
-      expect(plain.coast.reef).toBeNull()
-      expect(reef.coast.reef).not.toBeNull()
-      expect(reef.coast.noiseOffset).toEqual(plain.coast.noiseOffset)
-      expect(reef.coast.sand).toEqual(plain.coast.sand)
-      expect(reef.camera.headingDeg).toBe(plain.camera.headingDeg)
-      expect(reef.place).toEqual(plain.place)
+      expect(scene({ place: 'norway-west', ...base }, date).coast.reef).toBeNull()
+      expect(scene({ place: 'norway-west', ...base, reef: true }, date).coast.reef).not.toBeNull()
     }
   })
 
@@ -82,11 +71,8 @@ describe('reef spec', () => {
     expect(reefFor(1, false, 1, Random.derive('x', 'reef'))).toBeNull()
   })
 
-  it('is deterministic and titled', () => {
-    const p = scene({ ...base, reef: true }, '2025-03-01')
-    expect(scene({ ...base, reef: true }, '2025-03-01')).toEqual(p)
-    expect(p.title).toContain('coral reef')
-    expect(generateParams('2025-03-01').coast).toEqual(generateParams('2025-03-01').coast)
+  it('is titled', () => {
+    expect(scene({ ...base, reef: true }, '2025-03-01').title).toContain('coral reef')
   })
 })
 

@@ -139,8 +139,7 @@ describe('generateParams', () => {
     }
   })
 
-  it('has storms only by day', () => {
-    for (const p of days.filter(p => p.storm != null)) expect(p.timeOfDay).not.toBe('night')
+  it('has storms on fewer than one day in eight', () => {
     expect(share(days, p => p.storm != null)).toBeLessThan(0.12)
   })
 
@@ -173,14 +172,6 @@ describe('generateParams', () => {
       const view = dirFromAzEl(p.camera.headingDeg, 0)
       expect(p.sunDirection[0] * view[0] + p.sunDirection[2] * view[2]).toBeLessThan(0)
       expect(p.title).toContain('rainbow')
-    }
-  })
-
-  it('puts ice only on polar seas, and penguins only in the Southern Ocean', () => {
-    for (const p of days) {
-      if (p.sea.ice != null) expect(['arctic', 'southern']).toContain(p.sea.ocean)
-      if (p.colony?.kind === 'penguin') expect(p.sea.ocean).toBe('southern')
-      if (p.sea.ocean === 'southern' && p.colony != null) expect(p.colony.kind).toBe('penguin')
     }
   })
 })

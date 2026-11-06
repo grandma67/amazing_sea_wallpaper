@@ -8,7 +8,7 @@ import { allParams, DAYS, scene } from './days'
 
 describe('createCamera', () => {
   it('puts the dipped horizon at the chosen height in the frame', () => {
-    for (const p of allParams().slice(0, 50)) {
+    for (const p of allParams().filter((_, i) => i % 40 === 0)) {
       for (const aspect of [16 / 9, 9 / 19.5]) {
         const params = { ...p, camera: { ...p.camera, rollDeg: 0, aspect } }
         const { camera, dip } = createCamera(params, aspect, 1)
@@ -31,7 +31,7 @@ describe('createCamera', () => {
 
 describe('measureFrame', () => {
   it('splits the frame into sky, sea and land', () => {
-    for (const p of allParams().slice(0, 30)) {
+    for (const p of allParams().filter((_, i) => i % 110 === 0)) {
       const c = measureFrame(p)
       expect(c.sky + c.sea + c.land).toBeCloseTo(1)
       expect(c.sky).toBeGreaterThan(0)
@@ -41,8 +41,8 @@ describe('measureFrame', () => {
 })
 
 describe('generateSceneParams', () => {
-  it('re-rolls beach framings that hide the sea or the sky', { timeout: 20_000 }, () => {
-    const days = DAYS.slice(0, 20).map(date => scene({ coast: 'beach' }, date))
+  it('re-rolls beach framings that hide the sea or the sky', () => {
+    const days = DAYS.filter((_, i) => i % 100 === 0).map(date => scene({ coast: 'beach' }, date))
     let accepted = 0
     for (const p of days) {
       const chosen = generateSceneParams(p.date, 16 / 9, { coast: 'beach' })

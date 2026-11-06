@@ -15,7 +15,7 @@ function fromStart(a: number, start: number): number {
 }
 
 describe('terrain grid', () => {
-  it('a full circle keeps its old shape: rings × segments vertices, wrapped', () => {
+  it('a full circle has rings × segments vertices, wrapped', () => {
     const g = createPolarGrid({ rings: 10, segments: 16 })
     expect(g.getAttribute('position').count).toBe(10 * 16 + 1)
     expect(g.getIndex()!.count).toBe(16 * 3 + 9 * 16 * 6)
@@ -63,8 +63,7 @@ describe('terrain grid', () => {
           const a = Math.atan2(ray.z, ray.x)
           // Inside the wedge with at least most of the margin to spare.
           const d = fromStart(a, start)
-          expect(d).toBeGreaterThan(0.9 * MARGIN)
-          expect(d).toBeLessThan(span - 0.9 * MARGIN)
+          if (d <= 0.9 * MARGIN || d >= span - 0.9 * MARGIN) expect.fail(`${date} ${w}x${h}: ray ${i} leaves the wedge`)
         }
       }
     }

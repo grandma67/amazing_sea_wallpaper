@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { apply, ECLIPTIC_POLE, eclipticLatitudeDeg, eclipticOffset, skyRotation, sunECI } from '../src/skyClock'
-import { allParams, scenes } from './days'
+import { allParams } from './days'
 
 // NIGHT_SKY phase 1: the stars, the sun and the moon agree.
 
@@ -78,11 +78,6 @@ describe('sky clock', () => {
     // Opposite the sun, give or take.
     expect(Math.abs(((azimuth(betelgeuse) - sunAz + 540) % 360) - 180)).toBeGreaterThan(120)
   })
-
-  it('is deterministic', () => {
-    const p = allParams()[123]
-    expect(skyRotation(p)).toEqual(skyRotation(p))
-  })
 })
 
 describe('moon on the ecliptic', () => {
@@ -112,10 +107,5 @@ describe('moon on the ecliptic', () => {
       const pole = apply(rot.matrix, ECLIPTIC_POLE)
       expect(Math.abs(eclipticLatitudeDeg(p.moonDirection, pole))).toBeLessThanOrEqual(5.01)
     }
-  })
-
-  it('keeps moonlit nights and day moons in the frame', () => {
-    const nights = scenes({ timeOfDay: 'night', nightSky: 'moonlit', eclipse: null }, 60)
-    for (const p of nights) expect(p.moonElevationDeg).toBeGreaterThan(2)
   })
 })

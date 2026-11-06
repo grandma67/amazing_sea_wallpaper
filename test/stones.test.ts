@@ -105,7 +105,7 @@ describe('mesh stones', () => {
               expect(stoneCell(coast, m.stone.s, m.stone.a)!.cell).toEqual(m.stone.cell)
             }
           }
-          for (let i = 1; i < stones.length; i++) expect(stones[i].distance).toBeGreaterThanOrEqual(stones[i - 1].distance)
+          for (let i = 1; i < stones.length; i++) if (stones[i].distance < stones[i - 1].distance) expect.fail(`stone ${i} is nearer than the one before`)
         }
       }
     }
@@ -117,12 +117,10 @@ describe('mesh stones', () => {
   })
 
   it('stays within the instance and triangle budget on real stony days', () => {
-    const days = allParams()
-      .filter(p => p.coast.type === 'beach' && p.coast.material !== 'sand')
-      .slice(0, 40)
-    for (const p of days) {
+    const days = allParams().filter(p => p.coast.type === 'beach' && p.coast.material !== 'sand')
+    for (const p of days.filter((_, i) => i % Math.ceil(days.length / 10) === 0)) {
       const { stones } = meshStones(viewOf(p, 2160))
       expect(stones.length * 80).toBeLessThanOrEqual(1_000_000)
     }
-  }, 60_000)
+  })
 })

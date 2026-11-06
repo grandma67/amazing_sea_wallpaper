@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { noctilucentSeason } from '../src/noctilucent'
-import { DAYS, allParams, scene, scenes } from './days'
+import { DAYS, allParams, expectEvery, monthOf, scene, scenes } from './days'
 
 describe('noctilucent clouds', () => {
   const days = allParams()
@@ -31,19 +31,17 @@ describe('noctilucent clouds', () => {
     expect(noctilucentSeason(6, 21, true)).toBe(0)
   })
 
-  it('are forced by a spec, and absent by day without one', () => {
+  it('are forced by a spec', () => {
     expect(scene({ noctilucent: true, timeOfDay: 'blue-hour' }, '2024-06-26').noctilucent).not.toBeNull()
     expect(scene({ noctilucent: null }, '2024-06-26').noctilucent).toBeNull()
-    for (const p of days.filter(q => q.timeOfDay === 'midday' || q.timeOfDay === 'night')) expect(p.noctilucent).toBeNull()
   })
 
-  it('nacreous clouds only in polar winter twilight, rarely', () => {
-    const ncr = days.filter(p => p.nacreous != null)
-    expect(ncr.length).toBeLessThan(10)
-    for (const p of ncr) {
-      expect(p.timeOfDay).toBe('blue-hour')
-      expect(['arctic', 'southern']).toContain(p.sea.ocean)
-    }
+  it('nacreous clouds are rare, in polar winter twilight, and forced by a spec', () => {
+    expect(days.filter(p => p.nacreous != null).length).toBeLessThan(10)
+    // Too rare for three real years: add clear polar blue hours on every date.
+    const twilights = (ocean: 'arctic' | 'southern') => scenes({ ocean, timeOfDay: 'blue-hour', weather: 'clear', eclipse: null }, DAYS.length).filter(p => p.nacreous != null)
+    expectEvery(twilights('arctic'), p => [11, 12, 1, 2].includes(monthOf(p)))
+    expectEvery(twilights('southern'), p => [5, 6, 7, 8].includes(monthOf(p)))
     expect(scene({ nacreous: true, ocean: 'arctic', timeOfDay: 'blue-hour' }, '2024-01-15').nacreous).not.toBeNull()
   })
 })

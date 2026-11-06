@@ -136,5 +136,6 @@ describe('cloud species over the real days', () => {
       const p = scene({ weather: 'scattered', clouds: [g], storm: null, eclipse: null })
       expect(p.weather.formations).toEqual([g])
     }
+    expect(scene({ weather: 'scattered', clouds: ['cumulus-congestus', 'cirrus'], storm: null }).weather.formations).toEqual(['cumulus-congestus', 'cirrus'])
   })
 })

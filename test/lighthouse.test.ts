@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { beamDirections } from '../src/lighthouse'
 import type { LighthouseParams } from '../src/params'
 import { tower } from '../src/props/lighthouse'
-import { allParams } from './days'
+import { allParams, expectEvery } from './days'
 
 const light = (flashes: number, groups: number, beamAzimuthDeg = 0): LighthouseParams => ({
   site: 'rock',
@@ -61,8 +61,8 @@ describe('tower', () => {
       for (const kind of ['rock', 'point'] as const) {
         const { body, lantern } = tower(light, kind, light.seed)
         for (const g of [body.build(), lantern.build()]) {
-          expect((g.attributes.position.array as Float32Array).every(Number.isFinite), `${light.height} m ${kind}`).toBe(true)
-          expect((g.attributes.normal.array as Float32Array).every(Number.isFinite)).toBe(true)
+          expectEvery(g.attributes.position.array as Float32Array, Number.isFinite, { what: () => `${light.height} m ${kind}` })
+          expectEvery(g.attributes.normal.array as Float32Array, Number.isFinite)
         }
       }
     }

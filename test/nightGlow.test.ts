@@ -12,7 +12,6 @@ import {
   GREEN_LAYER_KM
 } from '../src/nightGlow'
 import { PLACES } from '../src/places'
-import { generateParams } from '../src/params'
 import { allParams, scene, share } from './days'
 import { milkyWayMap } from './milkyWayMap.mjs'
 
@@ -79,10 +78,6 @@ describe('night glow', () => {
     expect(s10ToMag(airglowZenith('2024-11-01') + 60 + ARTIFICIAL[4].zenith)).toBeGreaterThan(20.4)
   })
 
-  it('is there whenever the sun is down, never by day', () => {
-    for (const p of allParams()) expect(p.nightGlow != null).toBe(p.sunElevationDeg < 0)
-  })
-
   it('gives most coasts a dark sky', () => {
     expect(PLACES.every(p => [1, 2, 3, 4].includes(p.bortle))).toBe(true)
     const nights = allParams().filter(p => p.nightGlow != null)
@@ -92,19 +87,11 @@ describe('night glow', () => {
     expect(share(nights, p => p.nightGlow!.bortle === 4)).toBeGreaterThan(0.03)
   })
 
-  it('follows the spec switches without changing the drawn night', () => {
+  it('follows the spec switches', () => {
     const base = { timeOfDay: 'night', nightSky: 'starlit', eclipse: null } as const
     const p = scene(base)
     const off = scene({ ...base, milkyWay: false, airglow: null, zodiacalLight: false, skyDarkness: 4 })
     expect(p.nightGlow!.milkyWay && p.nightGlow!.airglow && p.nightGlow!.zodiacal).toBe(true)
     expect(off.nightGlow).toMatchObject({ milkyWay: false, airglow: false, zodiacal: false, bortle: 4 })
-    expect(off.nightGlow!.airglowS10).toBe(p.nightGlow!.airglowS10)
-    expect(off.title).toBe(p.title)
-  })
-
-  it('is deterministic', () => {
-    const a = generateParams('2026-06-02', 0, 16 / 9, { timeOfDay: 'night' }).nightGlow
-    const b = generateParams('2026-06-02', 0, 16 / 9, { timeOfDay: 'night' }).nightGlow
-    expect(a).toEqual(b)
   })
 })

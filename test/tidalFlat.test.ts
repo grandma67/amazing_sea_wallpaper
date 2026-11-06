@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { hasBeach, hasLand, hasSurfZone } from '../src/coastKind'
-import type { CoastParams } from '../src/params'
 import { Random } from '../src/random'
 import { wobbleAtCamera } from '../src/rockShore'
-import { shoreToWorld, terrainHeight, terrainNormal } from '../src/terrain'
+import { terrainNormal } from '../src/terrain'
 import { bareFlat, flatCreeks, flatWaterline, tidalFlatFor } from '../src/tidalFlat'
 import { placeNamed, PLACES } from '../src/places'
-import { allParams, expectDryCameras, expectShare, scene, scenes } from './days'
+import { allParams, expectDryCameras, expectShare, heightAt as at, scene, scenes } from './days'
 
-const at = (coast: CoastParams, s: number, a = 0): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
 const base = { eclipse: null, coast: 'tidal-flat' } as const
 const places = ['wadden-north-sea', 'fundy', 'morecambe-bay', 'mont-saint-michel', 'yellow-sea']
 const flats = places.flatMap(place => scenes({ ...base, place, tide: 'low' }, 8))

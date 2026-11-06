@@ -35,3 +35,13 @@ describe('debug switches', () => {
     expect(() => parseSceneSpec({ params: { debug: all } })).not.toThrow()
   })
 })
+
+describe('probe line spec', () => {
+  it('takes a line or a list, one range each', () => {
+    expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: 0, el: [2, 40] } } } })).not.toThrow()
+    expect(() => parseSceneSpec({ params: { debug: { probeLine: [{ az: [-40, 40], el: 12, step: 0.1 }, { az: 5, el: [2, 9] }] } } })).not.toThrow()
+    expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: 0, el: 3 } } } })).toThrow(/exactly one/)
+    expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: [0, 1], el: 3, step: 0 } } } })).toThrow(/step/)
+    expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: [0, 1], el: 3, at: 1 } } } })).toThrow(/line field/)
+  })
+})

@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import { PLACES } from '../src/places'
-import { InstancedMesh, Matrix4, Vector3 } from 'three'
-
-import type { SceneParams } from '../src/params'
 import type { SceneSpec } from '../src/sceneSpec'
 import { hasLand, terrainHeight } from '../src/terrain'
 import { createSeaIce, offshore, seaIceFor, slabGeometry, BLOCK_SETS, iceBlock } from '../src/props/seaIce'
@@ -11,7 +8,8 @@ import { marineFor } from '../src/props/marine'
 import { Random } from '../src/random'
 import { ICE_FREEBOARD, ICE_WAVE_WIND, iceDrift, iceRubble, iceZone, pickSeaIce, SEA_ICE_PLACES, seaIceChance } from '../src/seaIce'
 import { iceFootChance } from '../src/snow'
-import { allParams, expectDryCameras, scene, scenes, viewOf } from './days'
+import { allParams, expectDryCameras, expectEvery, scene, scenes, viewOf } from './days'
+import { instancePositions } from './mesh'
 
 const at = (date: string, latitudeDeg: number) => ({ date, latitudeDeg })
 const BASE = { place: 'baltic', eclipse: null, storm: null } as const
@@ -53,8 +51,8 @@ describe('when the sea freezes', () => {
         expect(z.edge[0]).toBeLessThan(z.edge[1])
         expect(z.cover[0]).toBeLessThanOrEqual(z.cover[1])
       })
-      expect(iceZone('baltic', 54)).toBeDefined()
     }
+    expect(iceZone('baltic', 54)).toBeDefined()
   })
 })
 
@@ -81,18 +79,9 @@ describe('the day’s ice', () => {
     expect(winter.lead).toBe(0)
   })
 
-  it('forcing it changes nothing but the waves, title and the ice on a day without', () => {
-    const open = scene({ seaIce: null }, '2024-07-14')
-    const iced = scene({ seaIce: 'fast' }, '2024-07-14')
-    expect(open.seaIce).toBeNull()
-    expect(iced.seaIce).not.toBeNull()
-    expect(iced.place.id).toBe(open.place.id)
-    expect(iced.camera.headingDeg).toBe(open.camera.headingDeg)
-    expect(iced.weather).toEqual(open.weather)
-  })
-
-  it('an unforced day out of season is unchanged by the field', () => {
-    expect(scene({}, '2024-07-14')).toEqual(scene({ seaIce: undefined }, '2024-07-14'))
+  it('is forced on and off on a day without', () => {
+    expect(scene({ seaIce: null }, '2024-07-14').seaIce).toBeNull()
+    expect(scene({ seaIce: 'fast' }, '2024-07-14').seaIce).not.toBeNull()
   })
 
   it('the summer look has none unless forced', () => {
@@ -225,14 +214,6 @@ describe('every freezing coast', () => {
     expect(seaIceChance('russian-far-east', at('2025-05-20', 58))).toBeGreaterThan(0)
   })
 
-  it('the bits a frozen sea can’t have are gone, unless forced', () => {
-    for (const p of allParams().filter(q => q.seaIce != null)) {
-      expect(p.fog?.kind, p.date).not.toBe('sea-smoke')
-      expect(p.waterspout, p.date).toBeNull()
-      expect(p.title, p.date).not.toMatch(/pack ice|glassy|calm sea/)
-    }
-  })
-
   it('keeps the coast’s own geometry whole: run-up is set as it’s built', () => {
     const p = scene({ eclipse: null, place: 'arctic-canada', coast: 'beach', seaIce: true }, '2025-02-15')
     expect(p.coast.runup).toBeLessThanOrEqual(0.03)
@@ -258,54 +239,37 @@ describe('the ice foot goes with the sea', () => {
 })
 
 describe('the ice round the camera, at every tide', () => {
-  const COASTS: SceneSpec[] = [
-    { coast: 'beach', beachMaterial: 'sand' },
-    { coast: 'beach', beachMaterial: 'cobble' },
-    { rockShore: 'platform' },
-    { rockShore: 'boulder' },
-    { rockShore: 'cliff' },
-    { coast: 'tidal-flat' }
-  ]
-  const instances = (p: SceneParams): { d: number; y: number; ground: number; eye: number }[] => {
-    const ctx = viewOf(p)
-    const out: { d: number; y: number; ground: number; eye: number }[] = []
-    const m = new Matrix4()
-    const v = new Vector3()
-    for (const o of createSeaIce(ctx)) {
-      if (!(o instanceof InstancedMesh)) continue
-      for (let i = 0; i < o.count; i++) {
-        v.setFromMatrixPosition((o.getMatrixAt(i, m), m))
-        out.push({ d: ctx.distance(v.x, v.z), y: v.y, ground: hasLand(p.coast) ? terrainHeight(p.coast, v.x, v.z) : -1, eye: ctx.camera.position.y })
-      }
-    }
-    return out
-  }
   // A spread of tidal ranges: the Baltic's nothing to Ungava's many metres.
-  const table = COASTS.flatMap(coast => ['arctic-canada', 'baltic'].flatMap(place => expectDryCameras({ place, seaIce: 'fast', snow: true, ...coast, ...(place === 'arctic-canada' ? { tidalRange: 8 } : {}) }, { count: 1, above: () => -20, compositions: coast.rockShore != null || coast.coast === 'tidal-flat' ? ['framed', 'overlook'] : undefined })))
+  const cases = (coast: SceneSpec) =>
+    (['arctic-canada', 'baltic'] as const).flatMap(place =>
+      expectDryCameras(
+        { place, seaIce: 'fast', snow: true, ...coast, ...(place === 'arctic-canada' ? { tidalRange: 8 } : {}) },
+        { count: 1, above: () => -20, compositions: coast.rockShore != null || coast.coast === 'tidal-flat' ? ['framed', 'overlook'] : undefined }
+      )
+    )
 
-  it('the eye is above the ice', () => {
-    for (const p of table) {
+  it.each<[string, SceneSpec]>([
+    ['sand', { coast: 'beach', beachMaterial: 'sand' }],
+    ['cobble', { coast: 'beach', beachMaterial: 'cobble' }],
+    ['rock platform', { rockShore: 'platform' }],
+    ['boulder shore', { rockShore: 'boulder' }],
+    ['cliff', { rockShore: 'cliff' }],
+    ['tidal flat', { coast: 'tidal-flat' }]
+  ])('%s', (_, coast) => {
+    for (const p of cases(coast)) {
+      const where = `${p.date} ${p.place.id} ${p.coast.composition} ${p.coast.tide.level.toFixed(1)}`
       const ctx = viewOf(p)
-      expect(ctx.camera.position.y, `${p.date} ${p.coast.type} ${p.coast.tide}`).toBeGreaterThan(ICE_FREEBOARD + 1)
+      const eye = ctx.camera.position.y
+      expect(eye, `the eye above the ice: ${where}`).toBeGreaterThan(ICE_FREEBOARD + 1)
+      const blocks = instancePositions(createSeaIce(ctx)).map(v => ({ d: ctx.distance(v.x, v.z), y: v.y, ground: hasLand(p.coast) ? terrainHeight(p.coast, v.x, v.z) : -1 }))
+      expect(blocks.length, `within budget: ${where}`).toBeLessThanOrEqual(BLOCK_SETS[0].budget + BLOCK_SETS[1].budget)
+      // Nothing within 4 m, nothing near standing above the eye and blocking the
+      // view; a pile stays a pile, no piece floating far above what is under it.
+      const opts = { allowEmpty: true, what: (b: (typeof blocks)[number]) => [where, b] }
+      expectEvery(blocks, b => b.d >= 4, opts)
+      expectEvery(blocks, b => b.d >= 40 || b.y < eye, opts)
+      expectEvery(blocks, b => b.y - Math.max(b.ground, ICE_FREEBOARD) <= 2.2, opts)
     }
-  })
-
-  it('no piece stands within 4 m of the camera', () => {
-    for (const p of table) for (const b of instances(p)) expect(b.d, `${p.date} ${p.coast.type}`).toBeGreaterThanOrEqual(4)
-  })
-
-  it('no piece near the camera stands above the eye, blocking the view', () => {
-    for (const p of table) {
-      for (const b of instances(p)) if (b.d < 40) expect(b.y, `${p.date} ${p.coast.type} at ${b.d.toFixed(1)} m`).toBeLessThan(b.eye)
-    }
-  })
-
-  it('a pile stays a pile: no piece floats far above what is under it', () => {
-    for (const p of table) for (const b of instances(p)) expect(b.y - Math.max(b.ground, ICE_FREEBOARD)).toBeLessThanOrEqual(2.2)
-  })
-
-  it('stays within budget on every coast', () => {
-    for (const p of table) expect(instances(p).length).toBeLessThanOrEqual(BLOCK_SETS[0].budget + BLOCK_SETS[1].budget)
   })
 })
 

@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { hasBeach, hasLand, hasSurfZone } from '../src/coastKind'
-import type { CoastParams } from '../src/params'
 import { Random } from '../src/random'
 import { bareRock, ROCK_KINDS, rockShoreFor, rockWaterline, scarpFoot, wobbleAtCamera } from '../src/rockShore'
-import { shoreToWorld, terrainHeight, terrainNormal } from '../src/terrain'
+import { terrainHeight, terrainNormal } from '../src/terrain'
 import { placeNamed, PLACES } from '../src/places'
-import { allParams, expectDryCameras, expectShare, scene, scenes } from './days'
+import { allParams, expectDryCameras, expectShare, heightAt as at, scene, scenes } from './days'
 
-const at = (coast: CoastParams, s: number, a = 0): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
 const base = { eclipse: null, coast: 'rock-shore' } as const
 const shores = ROCK_KINDS.flatMap(rockShore => scenes({ ...base, rockShore }, 15))
 

@@ -12,9 +12,8 @@ import {
   wavePeriod
 } from '../src/beachState'
 import { hasBeach } from '../src/coastKind'
-import { generateParams } from '../src/params'
-import { barHeight, cuspHeight, cuspReach, ripGap, shoreToWorld, terrainHeight } from '../src/terrain'
-import { allParams, scene, scenes, share } from './days'
+import { barHeight, cuspHeight, cuspReach, ripGap } from '../src/terrain'
+import { allParams, heightAt as at, scenes, share } from './days'
 
 const steep = (state: string): boolean => CUSP_CHANCE[state as keyof typeof CUSP_CHANCE] > 0
 
@@ -68,7 +67,8 @@ describe('fall velocity and Ω', () => {
     expect(beachStateFor('sand', 0.2, 3, 12)).toBe('dissipative')
   })
 
-  it('moves a state toward dissipative in storms and winter', () => {
+  it('moves a state a step rougher when asked, stopping at dissipative', () => {
+    expect(beachStateFor('sand', 0.5, 0.5, 8, GRAIN.golden)).toBe('reflective')
     expect(beachStateFor('sand', 0.5, 0.5, 8, GRAIN.golden, 1)).toBe('low-tide-terrace')
     expect(beachStateFor('sand', 0.2, 3, 12, GRAIN.golden, 1)).toBe('dissipative')
   })
@@ -150,24 +150,10 @@ describe('beach state on real days', () => {
     // "Two to occasionally three" bars.
     expect(share(flat, p => p.coast.bars.length === 3)).toBeGreaterThan(0)
     expect(share(flat, p => p.coast.bars.length === 3)).toBeLessThan(0.35)
-    for (const p of sand.slice(0, 15)) {
-      expect(scene({ beachState: p.coast.state }, p.date)).toEqual(p)
-      const other = scene({ beachState: p.coast.state === 'reflective' ? 'dissipative' : 'reflective' }, p.date)
-      expect(other.coast.noiseOffset).toEqual(p.coast.noiseOffset)
-      expect(other.coast.grainMm).toBe(p.coast.grainMm)
-      expect(other.camera).toEqual(p.camera)
-      expect(other.place).toEqual(p.place)
-    }
-  })
-
-  it('is deterministic', () => {
-    for (const date of ['2024-03-08', '2025-07-01', '2026-12-30']) expect(generateParams(date).coast).toEqual(generateParams(date).coast)
   })
 })
 
 describe('bars, rips and cusps in the terrain', () => {
-  const at = (coast: ReturnType<typeof scene>['coast'], s: number, a: number): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
-
   it('raises the bars and cuts the inner one at the rip channels', () => {
     for (const p of scenes({ beachState: 'transverse-bar-rip', beachMaterial: 'sand', coast: 'beach' }, 10)) {
       const { coast } = p

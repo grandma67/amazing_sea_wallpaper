@@ -16,14 +16,13 @@ import {
 } from '../src/props/ships'
 import type { ShipKind } from '../src/sceneSpec'
 import { Random } from '../src/random'
-import { allParams, scene, share } from './days'
+import { allParams, monthOf, scene, share } from './days'
 
 describe('ships in polar seas', () => {
   const polar = allParams().filter(polarWaters)
   const fleet = (p: (typeof polar)[number]) => polarFleet(p, Random.derive(p.seed, 'ships'))
-  const month = (p: (typeof polar)[number]) => Number(p.date.slice(5, 7))
   const summer = (p: (typeof polar)[number]) =>
-    p.sea.ocean === 'southern' ? month(p) >= 11 || month(p) <= 3 : month(p) >= 6 && month(p) <= 9
+    p.sea.ocean === 'southern' ? monthOf(p) >= 11 || monthOf(p) <= 3 : monthOf(p) >= 6 && monthOf(p) <= 9
 
   it('is only the Arctic and the Southern Ocean', () => {
     expect(polar.length).toBeGreaterThan(30)

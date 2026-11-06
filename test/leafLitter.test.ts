@@ -179,7 +179,8 @@ describe('real days', () => {
     const days = allParams().filter(p => litterFor(p) != null)
     expect(days.length / allParams().length).toBeGreaterThan(0.1)
     for (const p of days) expect(['temperate', 'boreal', 'polar', 'tropical']).toContain(p.place.climate)
-    for (const p of days.slice(0, 40)) {
+    // Over the whole three years: the cap holds in a heavy month as in a light one.
+    for (const p of days.filter((_, i) => i % Math.ceil(days.length / 8) === 0)) {
       const ctx = viewOf(p)
       const plants = createVegetation(ctx)
       expect(createLeafLitter(ctx, plants).reduce((n, m) => n + m.count, 0)).toBeLessThanOrEqual(MAX_LEAVES)

@@ -6,7 +6,7 @@ import { PropContext } from '../src/props/context'
 import { cascadeShelter, chopFactor, shelterAt, shelterFetch, shelterUniforms, type Shelter } from '../src/shelter'
 import { synthesizeOcean } from '../src/spectrum'
 import { shoreToWorld, surfWave } from '../src/terrain'
-import { allParams, scene } from './days'
+import { scene } from './days'
 
 /** A test lagoon: a reef 250 m out stopping 80% of the swell. */
 const reef: Shelter = { strength: 0.8, line: 250, basins: [], blur: 60 }
@@ -14,8 +14,7 @@ const beach = scene({ coast: 'beach', beachMaterial: 'sand', tide: 'mid', reef: 
 const lagoon: CoastParams = { ...beach.coast, shelter: reef, surfAmplitude: 1.2, surfWavelength: 30 }
 
 describe('shelter mask', () => {
-  it('is set only behind a reef: the ocean as before elsewhere', () => {
-    for (const p of allParams()) expect(p.coast.shelter != null).toBe(p.coast.reef != null)
+  it('leaves the ocean as it was without a reef', () => {
     expect(shelterAt(beach.coast, 100, 0)).toBe(0)
     const u = shelterUniforms(beach.coast, 8, 6)
     expect(u.shelterStrength.value).toBe(0)

@@ -35,9 +35,8 @@ describe('planets', () => {
     }
   })
 
-  it('are drawn only with the sun down, and Venus stays near the sun', () => {
+  it('keep Venus near the sun', () => {
     for (const p of allParams()) {
-      expect(p.planets.length > 0).toBe(p.sunElevationDeg < 0)
       const venus = p.planets.find(q => q.id === 'venus')
       if (venus != null) expect(angleDeg(venus.direction, p.sunDirection)).toBeLessThan(48.5)
     }

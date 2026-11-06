@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { waveOnRock } from '../src/props/surf'
 import { breakerIndex, surfBreakDepth, surfProfile, surfWave } from '../src/terrain'
 import { scene } from './days'
 
@@ -85,8 +86,7 @@ describe('surf: wave profile', () => {
 })
 
 describe('waves on rocks', () => {
-  it('break on a rock that stands higher than the crests, wash over one that doesn’t', async () => {
-    const { waveOnRock } = await import('../src/props/surf')
+  it('break on a rock that stands higher than the crests, wash over one that doesn’t', () => {
     const depth = 1.5
     const { crest } = waveOnRock(coast, { top: 10, depth }, 0)
     expect(crest).toBeGreaterThan(0.3)
@@ -100,8 +100,7 @@ describe('waves on rocks', () => {
     expect(waveOnRock(coast, { top: 20, depth: 30 }, 3).breaks).toBe(1)
   })
 
-  it('crest in the surf is the depth-limited wave’s', async () => {
-    const { waveOnRock } = await import('../src/props/surf')
+  it('crest in the surf is the depth-limited wave’s', () => {
     // Shallower water, smaller broken waves: the same rock breaks them sooner.
     const shallow = waveOnRock(coast, { top: 0.6, depth: 0.5 }, 0)
     const deeper = waveOnRock(coast, { top: 0.6, depth: 2 }, 0)

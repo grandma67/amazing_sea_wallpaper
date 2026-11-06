@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { airglowPattern, MILKY_WAY_LOG2, nightSkyCd } from '../src/nightGlow'
-import { parseSceneSpec } from '../src/sceneSpec'
 import { dirFromAzEl } from '../src/skyFrame'
 import { airTransmittance, hashCell, lineDirections, lineStats, mirrorLine, pcg, seedInt } from '../src/skyMirror'
 import { darkZenithLuminance } from '../src/starLight'
-import { scene } from './days'
+import { DARK, scene } from './days'
 import { milkyWayMap } from './milkyWayMap.mjs'
 
 // The CPU mirrors' tools (skyMirror.ts) and the night glow's mirror. Their
@@ -13,7 +12,6 @@ import { milkyWayMap } from './milkyWayMap.mjs'
 // the same line as `params.mjs --line` (tools/DEBUG.md); at the time of
 // writing the airglow and the aurora agreed within 1–3% in mean and shape.
 
-const DARK = { timeOfDay: 'night', nightSky: 'starlit', weather: 'clear', fog: null, storm: null, eclipse: null } as const
 const STEP = 0.05
 const line = (f: (el: number) => number, from = 6, to = 30): number[] => Array.from({ length: Math.round((to - from) / STEP) + 1 }, (_, i) => f(from + i * STEP))
 
@@ -116,15 +114,5 @@ describe('night glow mirror', () => {
     expect(Math.abs(low.crests)).toBeLessThanOrEqual(1)
     const off = airglowPattern({ ...g, bands: { ...g.bands, strength: 0 } }, dirFromAzEl(0, 8))
     expect(off.pattern).toBe(1)
-  })
-})
-
-describe('probe line spec', () => {
-  it('takes a line or a list, one range each', () => {
-    expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: 0, el: [2, 40] } } } })).not.toThrow()
-    expect(() => parseSceneSpec({ params: { debug: { probeLine: [{ az: [-40, 40], el: 12, step: 0.1 }, { az: 5, el: [2, 9] }] } } })).not.toThrow()
-    expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: 0, el: 3 } } } })).toThrow(/exactly one/)
-    expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: [0, 1], el: 3, step: 0 } } } })).toThrow(/step/)
-    expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: [0, 1], el: 3, at: 1 } } } })).toThrow(/line field/)
   })
 })

@@ -5,12 +5,11 @@ import { Random } from '../src/random'
 import { shoreLifeFor } from '../src/props/shoreLife'
 import { inWater, nestingSpecies, trackGeometry, wildlifeFor } from '../src/props/wildlife'
 import { placeNamed } from '../src/places'
-import { allParams, scenes, share } from './days'
+import { allParams, monthOf, scenes, share } from './days'
 
 describe('beach wildlife', () => {
   const days = allParams()
   const life = (p: (typeof days)[number]) => wildlifeFor(p, Random.derive(p.seed, 'props/wildlife'))
-  const month = (p: (typeof days)[number]) => Number(p.date.slice(5, 7))
 
   it('nests each species in its season', () => {
     const pool = (id: string) => placeNamed(id).animals
@@ -39,7 +38,7 @@ describe('beach wildlife', () => {
       // two months on).
       if (l.turtle === 'loggerhead') {
         const south = p.place.hemisphere === 'south'
-        expect(south ? [9, 10, 11, 12, 1, 2, 3, 4, 5] : [5, 6, 7, 8, 9, 10]).toContain(month(p))
+        expect(south ? [9, 10, 11, 12, 1, 2, 3, 4, 5] : [5, 6, 7, 8, 9, 10]).toContain(monthOf(p))
       }
       if (l.monkey != null) expect(p.biome.name).toBe('tropical')
       if (l.lizard === 'marine-iguana') expect(p.biome.name).toBe('volcanic')
@@ -75,7 +74,7 @@ describe('beach wildlife', () => {
         hippos++
         expect(['west-africa', 'east-africa']).toContain(l.region)
       }
-      if (l.region === 'west-africa' && l.turtle != null && l.turtle !== 'green') expect([10, 11, 12, 1, 2, 3]).toContain(month(p))
+      if (l.region === 'west-africa' && l.turtle != null && l.turtle !== 'green') expect([10, 11, 12, 1, 2, 3]).toContain(monthOf(p))
     }
     // Rare: a handful over three years.
     expect(crocs).toBeGreaterThan(3)

@@ -6,10 +6,9 @@ import { band, canopyTint, deciduousShare, groundCoverTint, phenologyFor, plantS
 import { birch, broadleaf, bush } from '../src/props/trees'
 import { Random } from '../src/random'
 import { seasonDay } from '../src/seasons'
-import { allParams, scene } from './days'
+import { allParams, MONTHS, scene } from './days'
 
 const day = (date: string, climate: Climate, latitudeDeg = 50, id = 'x'): PhenologyDay => ({ date, latitudeDeg, place: { id, climate } })
-const months = Array.from({ length: 12 }, (_, i) => `2025-${String(i + 1).padStart(2, '0')}-15`)
 
 describe('seasonDay', () => {
   it('counts the calendar day north and half a year on south', () => {
@@ -36,7 +35,7 @@ describe('band', () => {
 describe('phenology', () => {
   it('stays in 0..1 for every climate and month, both hemispheres', () => {
     for (const climate of CLIMATES) {
-      for (const date of months) {
+      for (const date of MONTHS) {
         for (const lat of [50, -40]) {
           const p = phenologyFor(day(date, climate, lat))
           for (const v of [p.on, p.turned, p.fresh, p.dry, p.tropical.on, p.tropical.turned]) {
@@ -60,7 +59,7 @@ describe('phenology', () => {
     expect(may.fresh).toBeGreaterThan(0.5)
   })
 
-  it('runs six months later in the south', () => {
+  it('runs six MONTHS later in the south', () => {
     const north = phenologyFor(day('2025-10-28', 'temperate', 50))
     const south = phenologyFor(day('2026-04-28', 'temperate', -45))
     expect(south.turned).toBeCloseTo(north.turned, 1)
@@ -152,12 +151,12 @@ describe('savanna dry season (SEASONS.md §2.2)', () => {
       if (place.drySeason != null) continue
       for (const climate of Object.keys(place.climate) as Climate[]) {
         if (climate !== 'tropical') continue
-        for (const date of months) expect(phenologyFor(day(date, climate, 10, place.id)).dry).toBe(0)
+        for (const date of MONTHS) expect(phenologyFor(day(date, climate, 10, place.id)).dry).toBe(0)
       }
     }
   })
 
-  it('is straw late in the dry season and green in the wet, in real calendar months', () => {
+  it('is straw late in the dry season and green in the wet, in real calendar MONTHS', () => {
     for (const id of ['north-australia', 'nw-australia']) {
       expect(inPlace(id, '2025-09-15', -15)).toBe(0.8)
       expect(inPlace(id, '2025-02-15', -15)).toBe(0)
@@ -182,12 +181,12 @@ describe('savanna dry season (SEASONS.md §2.2)', () => {
 
   it('leaves West Africa green south of 5°N', () => {
     for (const lat of [4.9, 0, -3]) {
-      for (const date of months) expect(inPlace('west-africa', date, lat)).toBe(0)
+      for (const date of MONTHS) expect(inPlace('west-africa', date, lat)).toBe(0)
     }
     expect(inPlace('west-africa', '2025-01-15', 5)).toBe(0.8)
   })
 
-  it('dries each coast in its months and keeps the wetter coasts of the same place green', () => {
+  it('dries each coast in its MONTHS and keeps the wetter coasts of the same place green', () => {
     const cases: [id: string, dryDate: string, wetDate: string, inside: number, outside: number][] = [
       // Guanacaste, not the Chocó.
       ['central-america', '2025-03-15', '2025-08-15', 10.5, 5],
@@ -253,7 +252,7 @@ describe('real days', () => {
     }
   })
 
-  it('give a real northern temperate November day autumn trees', () => {
+  it('give a real northern temperate October day autumn trees', () => {
     const p = scene({ place: 'maine' }, '2025-10-20')
     const phen = phenologyFor(p)
     expect(phen.turned).toBeGreaterThan(0.5)
@@ -276,7 +275,7 @@ describe('seasonal snow line', () => {
 
   it('leaves tropical and arid mountains as drawn, every month', () => {
     for (const climate of ['tropical', 'arid'] as const) {
-      for (const date of months) {
+      for (const date of MONTHS) {
         expect(seasonalSnowLine(land(1500), climate, at(date))).toBe(1500)
         expect(seasonalSnowLine(land(Infinity, 3500), climate, at(date))).toBe(Infinity)
       }

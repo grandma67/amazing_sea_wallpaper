@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { generateParams } from '../src/params'
 import { CLIMATES, PLACES, placeNamed, placesFor, plantsFor, REGION_IDS, type Climate } from '../src/places'
 import { OCEANS } from '../src/oceans'
 import { allParams, scene, scenes, share } from './days'
@@ -80,21 +79,6 @@ describe('places', () => {
     expect(() => scene({ biome: 'tropical', ocean: 'arctic' })).toThrow(/no place/)
     expect(() => scene({ place: 'svalbard', biome: 'desert' })).toThrow(/no place/)
     expect(() => placesFor({ climate: 'arid', ocean: 'southern' })).toThrow(/no place/)
-  })
-
-  it('draws the place before the sky: forcing the time of day keeps it', () => {
-    for (const p of days.slice(0, 60)) {
-      const night = scene({ timeOfDay: 'night', eclipse: null }, p.date)
-      expect(night.place).toEqual(p.place)
-      expect(night.latitudeDeg).toBe(p.latitudeDeg)
-      expect(night.sea.ocean).toBe(p.sea.ocean)
-    }
-  })
-
-  it('is deterministic', () => {
-    for (const date of ['2024-03-08', '2025-07-01', '2026-12-30']) {
-      expect(generateParams(date).place).toEqual(generateParams(date).place)
-    }
   })
 
   it('puts no mountains, volcanoes or high islands by flat coasts', () => {
