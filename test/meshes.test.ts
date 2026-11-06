@@ -1,7 +1,7 @@
 import type { BufferGeometry } from 'three'
 import { describe, it } from 'vitest'
 
-import type { RGB } from '../src/biome'
+import type { Climate, RGB } from '../src/biome'
 import { phenologyFor, plantSeason } from '../src/phenology'
 import { slabGeometry as beachrockSlab } from '../src/props/beachrock'
 import { restingGull } from '../src/props/birds'
@@ -46,13 +46,15 @@ family(
 )
 
 /** Out of leaf: bare twigs in winter, turned leaves in autumn. */
-const inSeason = (date: string) => plantSeason('birch', phenologyFor({ date, latitudeDeg: 50, place: { id: 'x', climate: 'temperate' } }))
+const inSeason = (date: string, climate: Climate = 'temperate') => plantSeason('birch', phenologyFor({ date, latitudeDeg: 50, place: { id: 'x', climate } }))
 family(
   'trees out of leaf',
   { maxTriangles: 100_000 },
   (['broadleaf', 'birch', 'bush'] as const).flatMap(name => [
     [`${name}, bare`, seed => trees[name](new Random(seed), FOLIAGE, inSeason('2025-01-15'))],
-    [`${name}, autumn`, seed => trees[name](new Random(seed), FOLIAGE, inSeason('2025-11-20'))]
+    [`${name}, autumn`, seed => trees[name](new Random(seed), FOLIAGE, inSeason('2025-11-20'))],
+    [`${name}, new leaves`, seed => trees[name](new Random(seed), FOLIAGE, inSeason('2025-05-01'))],
+    [`${name}, a polar autumn`, seed => trees[name](new Random(seed), FOLIAGE, inSeason('2025-09-05', 'polar'))]
   ] satisfies Row[])
 )
 

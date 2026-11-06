@@ -140,8 +140,8 @@ describe('islands and big rocks in the sea', () => {
 
   it('islands: one entry per placed island within 5 km, none further', () => {
     let near = 0
-    for (const kind of ['skerries', 'karst', 'high'] as const) {
-      for (const p of scenes({ islands: kind, colony: null }, 3)) {
+    for (const kind of KINDS) {
+      for (const p of scenes({ islands: kind, colony: null }, 2)) {
         const ctx = viewOf(p)
         const objects = createIslands(ctx, null)
         const tagged = objects.filter(o => o.userData.waterline != null)
@@ -165,7 +165,7 @@ describe('islands and big rocks in the sea', () => {
     // tell them by the water under the foot.
     let rocks = 0
     for (const site of ['rock', 'point'] as const) {
-      for (const p of scenes({ lighthouse: site }, 5)) {
+      for (const p of scenes({ lighthouse: site }, 8)) {
         const ctx = viewOf(p)
         const objects = createLighthouse(ctx, null)
         if (objects.length === 0) continue

@@ -34,6 +34,7 @@ const RULES: Rule[] = [
   ['contrails: a few, 9–12 km up, wider than 30 m', p => p.contrails.length > 0, p => p.contrails.length <= MAX_CONTRAILS && p.contrails.every(c => c.altitudeM >= 9000 && c.altitudeM <= 12000 && c.widthM > 30)],
   ['an old spread contrail: only on humid days', p => p.contrails.some(c => c.ageMin > 30), p => ['clear', 'cirrus', 'few', 'scattered', 'broken'].includes(p.weather.kind)],
   ['a Morning Glory: tropical Indo-Pacific dawns, September to November', p => p.rollCloud != null, p => p.biome.name === 'tropical' && ['indian', 'pacific'].includes(p.sea.ocean) && [9, 10, 11].includes(Number(p.date.slice(5, 7))) && !p.evening && p.title.includes('Morning Glory')],
+  ['a rainbow: never in a storm, a sun low enough for the bow', p => p.rainbow != null, p => p.storm == null && p.sunElevationDeg < 42],
   ['a shelf cloud: no scud hiding it', p => p.storm?.shelf != null, p => !p.weather.formations.includes('stratus-fractus')],
   // Pack ice calms the sea's wind (oceanState), not the wind over the peaks.
   ['a lenticular: strong wind and no thick cloud', p => p.landform?.lenticular != null && !(p.sea.ice?.packIce ?? 0), p => p.ocean.windSpeed >= 8 && !['storm', 'overcast'].includes(p.weather.kind)],

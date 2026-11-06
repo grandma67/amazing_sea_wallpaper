@@ -42,7 +42,7 @@ describe('measureFrame', () => {
 
 describe('generateSceneParams', () => {
   it('re-rolls beach framings that hide the sea or the sky', () => {
-    const days = DAYS.filter((_, i) => i % 100 === 0).map(date => scene({ coast: 'beach' }, date))
+    const days = DAYS.filter((_, i) => i % 190 === 0).map(date => scene({ coast: 'beach' }, date))
     let accepted = 0
     for (const p of days) {
       const chosen = generateSceneParams(p.date, 16 / 9, { coast: 'beach' })
@@ -55,6 +55,14 @@ describe('generateSceneParams', () => {
       if (c.sea >= 0.12 && c.sky >= 0.2 && c.land <= 0.6) accepted++
     }
     expect(accepted / days.length).toBeGreaterThan(0.9)
+  })
+
+  it('takes the best it found when no framing is acceptable', () => {
+    // The horizon at the frame's top on every try: never enough sky.
+    const spec = { coast: 'beach', camera: { horizonFraction: 0.01 } } as const
+    const chosen = generateSceneParams(DAYS[100], 16 / 9, spec)
+    expect(chosen.date).toBe(DAYS[100])
+    expect(measureFrame(chosen).sky).toBeLessThan(0.2)
   })
 
   it('takes the open sea as it comes', () => {

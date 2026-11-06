@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { CLIMATES, PLACES } from '../src/places'
 import type { Climate, VegetationKind } from '../src/biome'
-import { band, canopyTint, deciduousShare, groundCoverTint, phenologyFor, plantSeason, seasonalSnowLine, SNOW_SEASON, type PhenologyDay } from '../src/phenology'
+import { autumnColors, band, canopyTint, deciduousShare, groundCoverTint, phenologyFor, plantSeason, seasonalSnowLine, SNOW_SEASON, type PhenologyDay } from '../src/phenology'
 import { birch, broadleaf, bush } from '../src/props/trees'
 import { Random } from '../src/random'
 import { seasonDay } from '../src/seasons'
@@ -98,6 +98,21 @@ describe('which plants change', () => {
     for (const climate of ['mediterranean', 'subtropical'] as const) expect(deciduousShare('broadleaf', phenologyFor(day('2025-11-15', climate)))).toBe(0)
     expect(deciduousShare('broadleaf', phenologyFor(day('2025-05-15', 'temperate', -42, 'tasmania')))).toBe(0)
     expect(deciduousShare('broadleaf', phenologyFor(day('2025-05-15', 'temperate', -54, 'tierra-del-fuego')))).toBeGreaterThan(0)
+    // Patagonia's fjords are part evergreen beech, part deciduous.
+    const fjords = deciduousShare('broadleaf', phenologyFor(day('2025-05-15', 'temperate', -48, 'patagonia-fjords')))
+    expect(fjords).toBeGreaterThan(0)
+    expect(fjords).toBeLessThan(deciduousShare('broadleaf', phenologyFor(day('2025-05-15', 'temperate', -54, 'tierra-del-fuego'))))
+  })
+
+  it('turns each tree its own colours', () => {
+    const palette = (kind: VegetationKind, climate: Climate) => autumnColors(kind, phenologyFor(day('2025-09-20', climate)))
+    // Birches stay yellow; tundra shrubs go red, unlike boreal ones.
+    expect(palette('birch', 'polar')).toEqual(palette('birch', 'boreal'))
+    expect(palette('bush', 'polar')).not.toEqual(palette('bush', 'boreal'))
+    expect(palette('bush', 'polar')).not.toEqual(palette('birch', 'polar'))
+    // Maples and the like: a place's own red autumn.
+    const inPlace = (id: string) => autumnColors('broadleaf', phenologyFor(day('2025-10-10', 'temperate', 45, id)))
+    expect(inPlace('maine')).not.toEqual(inPlace('brittany'))
   })
 
   it('gives no season to a plant that looks as in summer', () => {
@@ -112,6 +127,8 @@ describe('which plants change', () => {
     expect(canopyTint(foliage, phenologyFor(day('2025-07-15', 'temperate')), plants)).toEqual(foliage)
     const october = canopyTint(foliage, phenologyFor(day('2025-10-28', 'temperate')), plants)
     expect(october[0]).toBeGreaterThan(foliage[0] * 1.5)
+    // A wood with nothing deciduous doesn't turn.
+    expect(canopyTint(foliage, phenologyFor(day('2025-10-28', 'temperate')), [['conifer', 1], ['grass', 6]])).toEqual(foliage)
     expect(groundCoverTint(foliage, phenologyFor(day('2025-07-15', 'temperate')))).toEqual(foliage)
     expect(groundCoverTint(foliage, phenologyFor(day('2025-08-15', 'mediterranean', 38)))[0]).toBeGreaterThan(foliage[0] * 2)
   })

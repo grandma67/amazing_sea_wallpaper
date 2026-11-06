@@ -1,5 +1,7 @@
+import { EclipseKind, SearchGlobalSolarEclipse, SearchLunarEclipse } from 'astronomy-engine'
 import { describe, expect, it } from 'vitest'
 
+import { shiftDate } from '../src/dates'
 import { eclipseOn, moonlight, offsetFor, overlap, UMBRA_RATIO } from '../src/celestial'
 import { generateParams, SUN_ANGULAR_RADIUS } from '../src/params'
 import { allParams, scenes } from './days'
@@ -81,6 +83,21 @@ describe('eclipses', () => {
       const full = moonlight(p.moonPhaseDeg <= 180 ? p.moonPhaseDeg : 360 - p.moonPhaseDeg)
       if (p.eclipse!.type === 'lunar-total') expect(p.moonlight).toBeLessThan(0.002 * full)
       else expect(p.moonlight).toBeCloseTo(full * (1 - 0.95 * p.eclipse!.obscuration), 6)
+    }
+  })
+
+  // A search goes by the moon's phase: with the new moon just before midnight and
+  // the peak just after, a search from that midnight doesn't find this eclipse.
+  // Walking day by day must answer the same as a fresh search on each date.
+  it.each(['1997-08-25', '2083-07-07', '2024-03-20', '2026-08-05'])('walks the days from %s as a fresh search does', from => {
+    for (let i = 0; i < 12; i++) {
+      const date = shiftDate(from, i)
+      const start = new Date(`${date}T00:00:00Z`)
+      const lunar = SearchLunarEclipse(start)
+      const solar = SearchGlobalSolarEclipse(start)
+      const day = (peak: { date: Date }): string => peak.date.toISOString().slice(0, 10)
+      const found = (day(lunar.peak) === date && lunar.kind !== EclipseKind.Penumbral) || day(solar.peak) === date
+      expect(eclipseOn(date, () => 0.5) != null, date).toBe(found)
     }
   })
 
