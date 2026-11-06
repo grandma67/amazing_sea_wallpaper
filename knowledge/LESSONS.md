@@ -186,6 +186,11 @@ tool gotchas: TOOLS.md.
   turns navy and land under a deck goes black. Measure it from the sky as drawn, not a coverage table.
 - three's standard materials have no `.lights` (only ShaderMaterial does): test `isMeshStandardMaterial`, or
   a patch quietly reaches nothing. A patch's report needs a test on real material classes.
+- Shader text is built when its module loads, and `shadow.ts` and `params.ts` import each other: a constant from
+  `params.ts` in the template throws before the page renders, and snapshot only waits out its budget (15 min).
+  Pass it as a uniform. A render silent for over a minute: rerun with `--budget 30` and read `[page error]`.
+- `passes.aerial: false` also removes the clouds (takram composites them in aerial perspective). A false-colour
+  shade view with it off shows a mountain the deck really hides: compare with the normal render before judging.
 - Absent from a coverage report isn't covered: forced colonies, marsh and wildlife weren't placed in the
   first scenes. Check each kind's row exists.
 - A shadow bias is a fraction of the shadow camera's depth range: 0.0004 of 6490 m is 2.6 m, a visible

@@ -69,6 +69,7 @@ uniform int cloudShadowCascades;
 uniform float cloudShadowNear;
 uniform float cloudShadowFar;
 uniform float cloudShadowTop;
+uniform float cloudShadowCurve;
 uniform vec3 cloudShadowLight;
 // A debug spec can force it (params.debug.cloudShade); < 0: the map.
 uniform float cloudShadeForce;
@@ -76,7 +77,10 @@ uniform float cloudShadeForce;
 float cloudShadow(vec3 world) {
   if (cloudShadeForce >= 0.0) return cloudShadeForce;
   if (cloudShadowCascades == 0) return 1.0;
-  float toTop = (cloudShadowTop - world.y) / max(cloudShadowLight.y, 0.02);
+  // Height above the sea: land and sea drop with the Earth's curvature
+  // (landforms.ts curvatureDrop), and the deck follows it.
+  float height = world.y + cloudShadowCurve * dot(world.xz, world.xz);
+  float toTop = (cloudShadowTop - height) / max(cloudShadowLight.y, 0.02);
   if (toTop <= 0.0) return 1.0;
   float viewZ = -(viewMatrix * vec4(world, 1.0)).z;
   float depth = (viewZ - cloudShadowNear) / (cloudShadowFar - cloudShadowNear);
@@ -165,6 +169,7 @@ export function landCloudUniforms(): Record<string, { value: unknown }> {
     cloudShadowNear: { value: 0 },
     cloudShadowFar: { value: 1 },
     cloudShadowTop: { value: 0 },
+    cloudShadowCurve: { value: 0.9 / (2 * EARTH_RADIUS) },
     cloudShadowLight: { value: new Vector3(0, 1, 0) },
     cloudShadeForce: { value: -1 },
     landShadowMap: { value: noShadowMap() as Texture },
