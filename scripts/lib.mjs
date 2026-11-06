@@ -165,3 +165,28 @@ export async function watchPage(page, { format } = {}) {
     }
   }
 }
+
+/**
+ * A prop's points in world space, for placing it without a render: a mesh's
+ * vertices; an instance's origin, or with `corners` the 8 corners of its box (so
+ * a boulder has a top). `three` is passed in: scripts load it themselves.
+ */
+export function propPoints(object, three, { corners = false } = {}, out = []) {
+  const { Matrix4, Vector3 } = three
+  const position = object.geometry?.attributes?.position
+  if (object.isInstancedMesh === true) {
+    const m = new Matrix4()
+    object.geometry.computeBoundingBox()
+    const box = object.geometry.boundingBox
+    for (let i = 0; i < object.count; i++) {
+      object.getMatrixAt(i, m)
+      m.premultiply(object.matrixWorld)
+      if (!corners) out.push(new Vector3().setFromMatrixPosition(m))
+      else for (let k = 0; k < 8; k++) out.push(new Vector3(k & 1 ? box.max.x : box.min.x, k & 2 ? box.max.y : box.min.y, k & 4 ? box.max.z : box.min.z).applyMatrix4(m))
+    }
+  } else if (position != null) {
+    for (let i = 0; i < position.count; i++) out.push(new Vector3().fromBufferAttribute(position, i).applyMatrix4(object.matrixWorld))
+  }
+  for (const child of object.children) propPoints(child, three, { corners }, out)
+  return out
+}

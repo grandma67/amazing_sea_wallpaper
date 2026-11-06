@@ -21,7 +21,8 @@
 // --rendered       the params the page renders (generateSceneParams re-rolls a
 //                  bad framing); slower. Without it, expressions that read the
 //                  camera (p.ctx, p.view) get a warning when the page's framing
-//                  differs (first 40 days checked).
+//                  differs (first 40 days checked). A re-roll changes only coast and
+//                  camera height, so choices and frequencies don't need it.
 // --project KINDS  where props land, without a render: builds the props on the
 //                  params the page renders (implies --rendered). Per kind (from
 //                  props/index.ts, comma-separated, or all): pieces, in frame, pixel
@@ -54,7 +55,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 
-import { expandDates, parseArgs, readSpecs, TEST_DAYS, worktree } from './lib.mjs'
+import { expandDates, parseArgs, propPoints, readSpecs, TEST_DAYS, worktree } from './lib.mjs'
 
 const { args, option, flag, rejectUnknown } = parseArgs()
 if (flag('help') || flag('h')) {
@@ -355,22 +356,8 @@ if (projectArg != null) {
   const { createProps } = await here.mod('/src/props/index.ts')
   const { reportProps } = await here.mod('/src/props/report.ts')
   const { worldToShore, terrainHeight } = await here.mod('/src/terrain.ts')
-  const { Matrix4, Vector3 } = await import('three')
+  const three = await import('three')
   const [W, H] = [1920, 1080]
-  /** Every point of a prop in world space: vertices of a mesh, a thinned set; an instance's origin. */
-  const pointsOf = (object, out) => {
-    if (object.isInstancedMesh === true) {
-      const m = new Matrix4()
-      for (let i = 0; i < object.count; i++) {
-        object.getMatrixAt(i, m)
-        out.push(new Vector3().setFromMatrixPosition(m.premultiply(object.matrixWorld)))
-      }
-    } else if (object.geometry?.attributes?.position != null) {
-      const position = object.geometry.attributes.position
-      for (let i = 0; i < position.count; i++) out.push(new Vector3().fromBufferAttribute(position, i).applyMatrix4(object.matrixWorld))
-    }
-    for (const child of object.children) pointsOf(child, out)
-  }
   try {
     for (const { name, spec: raw } of await specs()) {
       here.parseSceneSpec(raw)
@@ -390,7 +377,7 @@ if (projectArg != null) {
           }
           console.log(`  ${kind}: ${r.inFrame}/${r.placed} in frame, nearest ${r.nearest} m, box ${JSON.stringify(r.box)}`)
           const points = []
-          for (const object of group.children) if (object.userData.prop === kind) pointsOf(object, points)
+          for (const object of group.children) if (object.userData.prop === kind) propPoints(object, three, {}, points)
           const near = points
             .map(v => ({ v, n: v.clone().project(camera) }))
             .filter(({ n }) => n.z < 1 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1)

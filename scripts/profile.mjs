@@ -11,18 +11,25 @@
 // Prints beach numbers, reef / rock / flat drawn vs reached, dry-land checks
 // (⚠ floods), where a full wave breaks along the camera's cut, heights along s
 // at the camera, nearest rip and reef pass. Writes OUT/NAME.profile.png.
+// --props KINDS    a prop against the shore, no render: builds the props (kinds from
+//                  props/index.ts, comma-separated) and prints a cross-section through
+//                  it at each tide: ground, water, and the prop's top above the ground
+//                  per metre of s. ~1 s per tide. --at A picks the cut along the shore
+//                  (default: the prop's tallest point within 150 m of the camera).
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { crc32, deflateSync } from 'node:zlib'
 import { createServer } from 'vite'
 
-import { parseArgs, readSpecs } from './lib.mjs'
+import { parseArgs, propPoints, readSpecs } from './lib.mjs'
 
 const { args, option, rejectUnknown } = parseArgs()
 const sceneArg = option('scene', null)
 const outDir = resolve(option('out', 'out/profile'))
 const resArg = Number(option('res', 1))
+const propsArg = option('props', null)
+const atArg = option('at', null)
 rejectUnknown()
 const dateArg = args[0]
 
@@ -63,6 +70,52 @@ try {
   )
   const { terrainHeight, shoreToWorld, worldToShore, surfBreakDepth, surfWave, surfReach, ripGap, reefGap, reefCrest, hasLand } = terrain
   await mkdir(outDir, { recursive: true })
+  /** Each kind through a cut across the shore, at each stage of the tide. */
+  const propSections = async (spec, date) => {
+    const [{ createProps }, { PropContext }, three] = await Promise.all([server.ssrLoadModule('/src/props/index.ts'), server.ssrLoadModule('/src/props/context.ts'), import('three')])
+    for (const kind of propsArg.split(',')) {
+      console.log(`-- ${kind}`)
+      let cut = atArg != null ? Number(atArg) : null
+      for (const tide of ['low', 'mid', 'high']) {
+        const q = generateSceneParams(date, 16 / 9, { ...spec, tide })
+        const { camera } = createCamera(q, q.camera.aspect * 1080, 1080)
+        const group = createProps(new PropContext(q, camera, null, (camera.fov * Math.PI) / 180 / 1080))
+        const points = group.children.filter(o => o.userData.prop === kind).flatMap(o => propPoints(o, three, { corners: true }))
+        if (points.length === 0) {
+          console.log(`${tide.padEnd(5)} none placed`)
+          continue
+        }
+        const shore = points.map(v => {
+          const [s, a] = worldToShore(q.coast, v.x, v.z)
+          return { s, a, y: v.y }
+        })
+        // The tallest above the ground near the camera; kept through the tides.
+        const [, camA] = worldToShore(q.coast, 0, 0)
+        const above = pt => pt.y - terrainHeight(q.coast, ...shoreToWorld(q.coast, pt.s, pt.a))
+        if (cut == null) cut = shore.filter(pt => Math.abs(pt.a - camA) < 150).reduce((best, pt) => (best == null || above(pt) > above(best) ? pt : best), null)?.a ?? camA
+        const here = shore.filter(pt => Math.abs(pt.a - cut) < 1.5)
+        if (here.length === 0) {
+          console.log(`${tide.padEnd(5)} nothing within 1.5 m of a = ${f(cut, 1)}`)
+          continue
+        }
+        const lo = Math.floor(Math.min(...here.map(pt => pt.s))) - 2
+        const hi = Math.ceil(Math.max(...here.map(pt => pt.s))) + 2
+        const ss = Array.from({ length: Math.min(40, hi - lo + 1) }, (_, i) => lo + Math.round((i * (hi - lo)) / Math.max(1, Math.min(39, hi - lo))))
+        const groundAt = s => terrainHeight(q.coast, ...shoreToWorld(q.coast, s, cut))
+        const top = s => {
+          const near = here.filter(pt => Math.abs(pt.s - s) <= 0.75)
+          return near.length === 0 ? null : Math.max(...near.map(pt => pt.y))
+        }
+        const row = (label, g) => console.log(`${label.padEnd(11)}${ss.map(s => g(s).padStart(6)).join('')}`)
+        console.log(`${tide} tide, cut a = ${f(cut, 1)} (camera a = ${f(camA, 1)}), today's water at s = ${f(q.coast.waterline, 1)}, spring high water ${f(tideMarks(q.coast).spring)} m`)
+        row('s (m)', s => String(s))
+        row('ground', s => f(groundAt(s)))
+        row('water', s => (groundAt(s) < 0 ? f(-groundAt(s)) : '.'))
+        row('top', s => (top(s) == null ? '.' : f(top(s))))
+        row('above', s => (top(s) == null ? '.' : f(top(s) - Math.max(groundAt(s), 0))))
+      }
+    }
+  }
   for (const { name, spec: raw } of await specs()) {
     const { date: specDate, ...spec } = raw
     parseSceneSpec(raw)
@@ -292,6 +345,7 @@ try {
     const file = join(outDir, `${name}.profile.png`)
     await writeFile(file, png(W, H, rgb))
     console.log(`map ${W}×${H} px (${res} m/px), s ${f(s1, 0)} → ${f(s0, 0)} m top to bottom, a ${f(a0, 0)} → ${f(a1, 0)} m: ${file}`)
+    if (propsArg != null) await propSections(spec, date, name)
   }
 } finally {
   await server.close()

@@ -12,6 +12,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | How near is the ground; how many px is a thing | `params.mjs` `p.view` | [tools/PARAMS.md](tools/PARAMS.md) |
 | What a creator or helper does on real days | `params.mjs` `p.ctx`, `src.X`, `props.X` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Where a prop lands, what's beside the camera, where it ends (no render) | `params.mjs --project KIND` | [tools/PARAMS.md](tools/PARAMS.md) |
+| A prop against the shore and water at each tide (no render) | `profile.mjs --props KIND` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Coast shape, depths, break line, view cone, flooding | `profile.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Prop choices and placement in tests | `propsOf`, `view`, `expectDryCameras` (`test/days.ts`) | [tools/PARAMS.md](tools/PARAMS.md) |
 | Animal shares table for ANIMALS.md | `animals.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |

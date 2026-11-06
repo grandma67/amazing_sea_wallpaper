@@ -42,10 +42,22 @@ Points are a mesh's vertices or an instance's origin, so a big instanced piece i
 
 ### Which camera: `--rendered`
 
-`generateParams` is attempt 0; the page renders `generateSceneParams`, which re-rolls a bad framing (other camera,
-sometimes other props). They differ on about 30% of days (12 of the first 40 days checked), even with the composition
-forced. Without `--rendered`, an expression that reads `p.ctx` or `p.view` ends with `⚠ framing` when the first 40
-days checked differ. Anything about the frame: use `--rendered`. Frequencies of choices: not needed, and much faster.
+`generateParams` is attempt 0; the page renders `generateSceneParams`, which re-rolls a bad framing. Measured over
+the 1095 test days (2026-11-06): a re-roll happens on **214 days, 30% of the 715 land days (19.5% of all)**, and changes
+**only `coast` and `camera.heightM`**; heading, lens, place, weather, snow and prop choices stay. The composition moves,
+mostly toward `shoreline`:
+
+| Land days | Attempt 0 | Rendered |
+|---|---|---|
+| `shoreline` | 28.1% | 37.5% |
+| `along-beach` | 28.8% | 24.8% |
+| `overlook` | 28.0% | 24.5% |
+| `framed` | 15.1% | 13.3% |
+
+So: **anything about the coast, the composition or how near the ground is needs `--rendered`** (slow: minutes over all
+days, so narrow it with `--where` or dates). Choices, frequencies and sky framing don't. Without it, expressions reading
+`p.ctx` or `p.view` end with `⚠ framing` when any of the first 40 days checked differ. `test/days.ts` (`allParams`,
+`scene`, `view`) and `animals.mjs` use attempt 0 too.
 
 ### Expected shares, no sampling: `--expect`
 
@@ -61,8 +73,9 @@ node scripts/params.mjs --stats 'p => p.coast.reef != null' --where 'p => p.plac
 
 Eye height above the ground, lens, pixel angle at 1080p, nearest ground in frame, ground at the
 bottom centre (`frameView` in `composition.ts`). A thing of size S at distance d is
-S / (d × pixelMrad / 1000) px wide. Over real beach days the nearest ground is under ~7 m on
-40–55% of along-beach and framed days, 5–40 m on shorelines and 40 m+ on overlooks. `--rendered`
+S / (d × pixelMrad / 1000) px wide. On the beach days the page renders, the nearest ground is under
+7 m on 35% of along-beach and 40% of framed days; on shorelines under 7 m on 26%, 7–40 m on 48%, past
+40 m on 26%; on overlooks past 40 m on 96%. `--rendered`
 uses the params the page renders (`generateSceneParams` may re-roll a bad framing; slower). Use it
 for counts of what's in frame, and before calling a real day "invisible".
 
@@ -183,6 +196,13 @@ depth, 0.5 m contours, black waterline, white where the day's waves break, red c
 and the **view cone** in yellow (the frame's edges on the ground and an arc at `view.nearest`).
 It shows what crosses the frame and from how near: a creek or ridge 12 m beside the camera that a
 long lens stretches across the picture shows here, not after a render.
+
+### A prop against the shore: `profile.mjs --props`
+
+`node scripts/profile.mjs --scene S --props ice-foot [--at A]` prints a cross-section through the prop at low, mid and
+high tide: `s`, ground, water depth, the prop's top, and its height above the ground or water. Use it for anything
+standing on the shore, to see before rendering if it hangs over the water or drowns at some tide. An instance's height
+is its box, so a rounded rock reads a little taller than it is.
 
 ## Tests: props without a render (`test/days.ts`)
 

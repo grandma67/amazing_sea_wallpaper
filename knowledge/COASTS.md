@@ -87,7 +87,7 @@ mediterranean 9%, arid 8%.
 | `tidal-flat` | 0.3% (2 of the 1095 test days; 87 of 29,220 days 1990–2069) |
 | `open-sea` | 34.7% |
 
-| Composition (land days) | Share |
+| Composition (land days, attempt 0; the page renders mostly more `shoreline`: tools/PARAMS.md) | Share |
 |---|---|
 | `along-beach` | 28.8% |
 | `shoreline` | 28.1% |

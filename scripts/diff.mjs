@@ -24,6 +24,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { chromium } from 'playwright'
+import { createServer } from 'vite'
 
 import { merge, parseArgs, readJson, readSpecs } from './lib.mjs'
 
@@ -53,6 +54,18 @@ if (sceneArg != null) {
   if (offArg == null && refArg == null) throw new Error('--scene needs --off (the patch that turns the feature off) or --ref (a commit to compare with)')
   const { specs } = await readSpecs(sceneArg)
   const off = offArg != null ? await readJson(offArg) : {}
+  // A bad spec fails here, naming the field, before any render. (With --ref the
+  // off side runs on the ref's fields, which snapshot.mjs handles.)
+  const checker = await createServer({ cacheDir: resolve('node_modules/.vite-params'), server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom', logLevel: 'error' })
+  try {
+    const { parseSceneSpec } = await checker.ssrLoadModule('/src/sceneSpec.ts')
+    for (const s of specs) {
+      parseSceneSpec(s)
+      if (refArg == null) parseSceneSpec(merge(s, off))
+    }
+  } finally {
+    await checker.close()
+  }
   dirA = join(outDir, 'off')
   dirB = join(outDir, 'on')
   await mkdir(outDir, { recursive: true })

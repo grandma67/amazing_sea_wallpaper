@@ -148,11 +148,14 @@ tool gotchas: TOOLS.md.
   a ruler-straight snow edge across a whole slope.
 
 - **Check a close prop on the rendered framing (snow, 0.111):** a straight cut in the ice foot was blamed on culling
-  and survived a fix, because `params.mjs` without `--rendered` gave another camera (it does on about 30% of days:
-  12 of the first 40 checked). On the framing the page renders, the camera stood on the line and the cut was the
+  and survived a fix, because `params.mjs` without `--rendered` gave another camera (on 214 of 715 land days:
+  30%, or 19.5% of all days). On the framing the page renders, the camera stood on the line and the cut was the
   gap's taper. `params.mjs --project KIND` gives this in one call; it now warns when the framing differs.
 - **A long single mesh's "nearest" is its box centre (snow, 0.111):** `snapshot --props` said the ice foot was
   2946 m away while it ran past the camera at 6 m. `--project`'s rows measure its points.
+- **A look from words is a guess (snow, 0.113):** described as a low bench with soft edges, the ice foot was 0.3–1.2 m and
+  sloped, with round cakes. Three photos showed about 2 m, a near-vertical undercut wall and fractured blocks: every part of
+  the description was compatible with what I'd built, and it was still wrong. Look at pictures first.
 - **A full frame doesn't check a subtle feature (snow, 0.112):** frozen spray looked fine in a contact sheet and
   was camouflage in a before/after crop. Don't call a feature right until you've seen it with its own switch off.
 - **Wrapper patches should keep the inner program key (snow, 0.111):** a wrapper's source is the same on every day,

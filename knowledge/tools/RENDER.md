@@ -23,6 +23,7 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   build time, and the three slowest kinds (e.g. rocks ~275 ms, vegetation ~320 ms on a Nova
   Scotia beach). Use it for a new prop's cost (`bench.mjs` only times the whole render). Kinds are
   the creators in `props/index.ts` (`rocks`, `islands`, `shore-life`, `colony`, `ships`, …).
+- ⚠ `nearest` is measured from a piece's box centre, so one long mesh (the ice foot) reads kilometres away; `params.mjs --project` measures its points.
 - `--crop KINDS` saves `NAME.KIND.jpg`; read the crop, not the frame.
 - `params.debug.probe` in the spec: one line per point (raw, cd/m², mag/″², exposed, final RGB;
   tools/DEBUG.md). Numbers instead of judging brightness or tint from the JPEG.
@@ -40,7 +41,7 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
 
 ## `scripts/diff.mjs`: did it show up?
 
-Renders each spec as-is (`OUT/on`) and with `--off` merged deeply (`OUT/off`), then prints %
+Checks every spec first (a bad field fails before any render), then renders each as-is (`OUT/on`) and with `--off` merged deeply (`OUT/off`), and prints %
 changed, pixel box (98% of the change), mean/max Δ and brighter/darker, plus `NAME.diff.jpg`
 (off | on cropped, diff ×8 below). `⚠ invisible` (< 0.01%) means not placed, out of frame,
 hidden (cloud layer, geometry) or too faint: fix that before looking. ~6 s/spec at 960×540.
