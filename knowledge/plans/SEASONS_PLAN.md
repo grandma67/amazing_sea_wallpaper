@@ -17,7 +17,7 @@ climate or place"), with place fields only for one place's difference.
 | 6 | Sargassum season (Caribbean and subtropical Atlantic wrack Apr–Sep) | done (0.100) |
 | 7 | Tropical dry season: savanna coasts brown in the dry months (`drySeason` per place) | done (0.101, more coasts 0.102) |
 | 8 | Leaf litter: real leaves under deciduous trees near the camera, litter colour on the ground further off | done (0.103) |
-| 9 | Snow cover and ice foot: built as PLAN_BIOMES 13; this plan gives the months | later, own plan, ~2–4 days |
+| 9 | Snow cover and ice foot: built as PLAN_BIOMES 13 | in progress, [SNOW.md](SNOW.md) |
 | 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
 
 Order: the drawn snow lines (open problem 1, if approved), then the snow plan (9). Estimates include tests, `diff.mjs`, renders and docs.
