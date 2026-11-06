@@ -34,6 +34,8 @@ interface Palette {
   rock: RGB
   vegetation: RGB | null
   snow: RGB
+  /** Snow to the shore today: the woods show dark through it. */
+  snowDay: boolean
 }
 
 function palette(ctx: PropContext, rng: Random): Palette {
@@ -49,7 +51,8 @@ function palette(ctx: PropContext, rng: Random): Palette {
   return {
     rock: rng.pick(biome.rockColors),
     vegetation: polar || vegetation[biome.name] == null ? null : canopyTint(vegetation[biome.name]!, phenologyFor(ctx.params), biome.vegetation),
-    snow: [0.8, 0.82, 0.86]
+    snow: [0.8, 0.82, 0.86],
+    snowDay: ctx.params.snow != null
   }
 }
 
@@ -65,16 +68,18 @@ function surfaceColor(
   // Rock strata, scree and old lava flows: uneven tone.
   let c = p.rock.map(v => v * (0.65 + 0.7 * n)) as RGB
   // Forest and scrub on the lower, gentler slopes.
+  let woods = 0
   if (p.vegetation != null) {
     const treeline = land.height * 0.45
     const green = Math.max(0, Math.min(1, (treeline - h) / (treeline * 0.3) + (n - 0.5))) * (1 - steep * 0.8)
+    if (p.snowDay) woods = green
     c = c.map((v, i) => v + (p.vegetation![i] - v) * green) as RGB
   }
   // Snow, deeper in the hollows, thinning on steep faces. Its edge wanders
   // (a few hundred metres on a big mountain): a low winter line would
   // otherwise cross the slopes as straight as a cloud's shadow.
   if (Number.isFinite(land.snowLine)) {
-    const snow = Math.max(0, Math.min(1, (h - land.snowLine) / (land.height * 0.08) + (n - 0.5) * 6)) * (1 - steep * 0.6)
+    const snow = Math.max(0, Math.min(1, (h - land.snowLine) / (land.height * 0.08) + (n - 0.5) * 6)) * (p.snowDay ? 1 - 0.9 * Math.min(1, Math.max(0, (steep - 0.08) / 0.3 + (0.5 - n) * 0.6)) : 1 - steep * 0.6) * (1 - 0.45 * woods)
     c = c.map((v, i) => v + (p.snow[i] - v) * snow) as RGB
   }
   // Fresh dark ash around an active crater.

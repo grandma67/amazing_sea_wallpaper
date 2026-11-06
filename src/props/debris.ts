@@ -18,6 +18,7 @@ import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { noise3 } from './noise'
+import { snowCap, snowLook } from './snowCap'
 
 // What the sea leaves on the beach. Two lines run along most beaches: the
 // wrack line at the last high tide (seaweed, seagrass, a few sticks), and
@@ -423,8 +424,11 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
       meshes.push(mesh)
     })
   }
-  const material = (roughness: number): MeshStandardMaterial =>
-    new MeshStandardMaterial({ vertexColors: true, roughness, metalness: 0, side: DoubleSide })
+  const material = (roughness: number, snow = true): MeshStandardMaterial => {
+    const m = new MeshStandardMaterial({ vertexColors: true, roughness, metalness: 0, side: DoubleSide })
+    if (snow) snowCap(m, snowLook(params))
+    return m
+  }
 
   // Driftwood: logs heaped along the storm line, in piles, mostly lying
   // parallel to the shore as the waves rolled them; sticks scattered lower.
@@ -481,7 +485,8 @@ export function createDebris(ctx: PropContext): InstancedMesh[] {
       const tint = older ? rng.range(0.9, 1.3) : rng.range(0.7, 1)
       place(pieces, variant, u, a, rng.normal(0, 0.4), kind === 'seagrass' && variant === 3 ? 2.6 : 0.8, rng.range(0.7, 1.3), 0.02, tint)
     }
-    build(clumps, pieces, material(0.55))
+    // Fresh on the last tides: no snow on it, even above the day's reach.
+    build(clumps, pieces, material(0.55, false))
   }
 
   // Coconuts: a few husks along the wrack line and under the palms.

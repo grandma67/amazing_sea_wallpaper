@@ -26,7 +26,7 @@ ARCHITECTURE.md and `arch/`. Status 2026-10-31: phases 0–8 done; 9, 11, 12 pla
 | 10 | Landforms: barrier lagoon, spit, fjord | | later, own plan |
 | 11 | Climates: temperate, subtropical, polar | temperate oceanic and humid subtropical coasts | done (0.66–0.71): `climateBiome`, cloud leanings, wrack, crabs, seals, colonies and birds by climate; flat places get no mountains or high islands |
 | 12 | The real sun: polar night, midnight sun | | done (0.72): from 63°; Dec–Jan night and blue hour 18% → 30% of days; Svalbard (76–80°) December is night only (noon below −6°), so the twilight-noon render is Tromsø's latitude |
-| 13 | Weather extras: offshore wind, snow and ice foot, glowing surf, sea-breeze Cu | | later, own plan |
+| 13 | Weather extras: offshore wind, glowing surf, sea-breeze Cu; snow and ice foot done (0.111, [SNOW.md](SNOW.md)) | | later, own plan |
 | 14 | Animals: sea otters, walrus, polar bears, waders… | | later |
 
 Open from done phases (ARCHITECTURE.md "Known issues"): beach-state share retune (ask first;

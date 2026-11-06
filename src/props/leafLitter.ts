@@ -65,6 +65,8 @@ export interface LitterDay {
  * Not random: it follows the date and climate like the leaves on the trees. */
 export function litterFor(params: SceneParams, phen: Phenology = phenologyFor(params)): LitterDay | null {
   if (params.overrides?.leafLitter === false || phen.litter < MIN_LITTER) return null
+  // Under a closed snow cover; patchy snow leaves them showing between.
+  if (params.snow != null && params.snow.cover > 0.6) return null
   return { amount: phen.litter, fresh: phen.litterFresh }
 }
 

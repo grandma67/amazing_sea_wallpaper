@@ -75,6 +75,10 @@ export function windMaterials(
     material.onBeforeCompile(shader, renderer)
     patch(shader, direction, bend, strength)
   }
+  // Its wrapper's source is the same on every day: keep the inner patches' in
+  // the program key, or a snowless plant shares a snowy day's program.
+  const key = material.customProgramCacheKey()
+  bent.customProgramCacheKey = () => `${key}|wind`
   // Same settings as three's own shadow depth material, plus the bend.
   const depth = new MeshDepthMaterial()
   depth.onBeforeCompile = shader => patch(shader, direction, bend, strength)

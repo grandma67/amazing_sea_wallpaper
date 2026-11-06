@@ -19,6 +19,7 @@ import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { LICHEN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
 import { groundCoverTint, phenologyFor } from './phenology'
+import { snowLook } from './props/snowCap'
 import { seasonMonth } from './seasons'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { flatSurface, marshLook, type SaltMarsh, type TidalFlat } from './tidalFlat'
@@ -1079,6 +1080,9 @@ uniform vec4 litterRect;
 uniform vec3 litterColor;
 uniform float litterAmount;
 uniform float pixelAngle;
+// Lying snow (snow.ts, props/snowCap.ts): cover, world height where it starts,
+// frozen spray.
+uniform vec3 snowLook;
 // Rocky shores: the rock's colour and the lichens' (linear albedo).
 uniform vec3 rockColor;
 uniform vec3 lichenColor;
@@ -1118,6 +1122,8 @@ void main() {
   float hx = terrainHeight(p + vec2(e, 0.0));
   float hz = terrainHeight(p + vec2(0.0, e));
   vec3 N = normalize(vec3(h - hx, e, h - hz));
+  // The land's own slope, before stones and ripples tilt it.
+  vec3 Nland = N;
 
   // Stones: how much of the pixel is stone (0 on sand), its albedo, and a
   // dome normal per stone while the stones are bigger than a pixel; further
@@ -1288,6 +1294,28 @@ void main() {
     }
   }
 
+  // Lying snow: above the sea's reach, off steep faces, in patches of the
+  // day's cover. All from world position, slope and height.
+  float snowW = 0.0;
+  float sprayIce = 0.0;
+  if (snowLook.x > 0.0) {
+    float wide = fbm(q / 25.0) * 0.55 + fbm(q / 4.0) * 0.35 + vnoise(q * 0.9) * 0.1;
+    float open = 0.75 - 0.55 * snowLook.x;
+    float above = smoothstep(0.0, 0.45, h - snowLook.y + 0.5 * (fbm(q / 5.0 + 71.0) - 0.5));
+    snowW = above * smoothstep(open - 0.035, open + 0.035, wide) * smoothstep(0.5, 0.78, Nland.y);
+    // Frozen spray on bare rock round the high-water line.
+    if (rockW > 0.0 && snowLook.z > 0.0) {
+      sprayIce = smoothstep(0.4, 0.6, fbm(q / 1.3 + 83.0)) * smoothstep(snowLook.y - 1.2, snowLook.y - 0.4, h) * (1.0 - smoothstep(snowLook.y + 0.8, snowLook.y + 2.2, h));
+      albedo = mix(albedo, vec3(0.5, 0.58, 0.63), 0.75 * sprayIce);
+    }
+    // Soft drifts and wind-worn ripples where they can be seen; the stones'
+    // domes and the sand's ripples are under it.
+    float closeUp = 1.0 - smoothstep(0.03, 0.5, footprint);
+    vec2 drift = vec2(vnoise(q / 2.2 + 91.0) - 0.5, vnoise(q / 2.2 + 97.0) - 0.5) * 0.2 + closeUp * 0.05 * vec2(vnoise(q * 3.3 + 7.0) - 0.5, vnoise(q * 3.3 + 13.0) - 0.5);
+    N = normalize(mix(N, normalize(Nland + vec3(drift.x, 0.0, drift.y)), snowW));
+    albedo = mix(albedo, vec3(0.82, 0.84, 0.87) * (0.97 + 0.06 * fbm(q / 7.0 + 101.0)), snowW);
+  }
+
   // Wet sand below the run-up line: darker and glossy.
   float wetLine = runup * (0.85 + 0.3 * vnoise(vec2(sa.y / 25.0, 7.0)));
   float wet = 1.0 - smoothstep(wetLine * 0.7, wetLine, h);
@@ -1321,6 +1349,7 @@ void main() {
   albedo *= mix(1.0, 0.68, exposed * (1.0 - hard)) * mix(1.0, 0.6, pools);
   // Wet mud and flat sand hold a film of water: glossier than a beach.
   float gloss = max(max(wet, pools), exposed * (1.0 - hard) * mix(0.5 - 0.4 * drained, 0.85 - 0.3 * drained, flatW));
+  gloss = max(gloss * (1.0 - snowW), 0.5 * sprayIce);
 
   vec3 L = sunDirection;
   vec3 V = normalize(cameraPosition - vWorld);
@@ -1442,6 +1471,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
   const wedge = viewWedge(camera, TERRAIN_WEDGE_MARGIN)
   const { rings, segments } = squareGrid(TERRAIN_GRID_VERTICES * density * density, wedge.span, TERRAIN_INNER_RADIUS, TERRAIN_OUTER_RADIUS)
   const { coast } = params
+  const snowHere = snowLook(params)
   const material = new ShaderMaterial({
     vertexShader,
     fragmentShader,
@@ -1463,6 +1493,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       litterRect: { value: new Vector4(0, 0, 0, 0) },
       litterColor: { value: new Color() },
       litterAmount: { value: 0 },
+      snowLook: { value: new Vector3(snowHere?.cover ?? 0, snowHere?.line ?? 0, snowHere?.glaze ?? 0) },
       rockColor: { value: new Color(...(coast.rock?.color ?? [0.3, 0.3, 0.3])) },
       terrainView: { value: Math.max(0, TERRAIN_VIEWS.indexOf(params.debug?.terrainView ?? 'none')) },
       gridStep: { value: new Vector2(ringStep(rings, TERRAIN_INNER_RADIUS, TERRAIN_OUTER_RADIUS), wedge.span / segments) },

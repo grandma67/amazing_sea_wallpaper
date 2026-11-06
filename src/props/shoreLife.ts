@@ -195,7 +195,7 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
     life.starfish = rng.int(1, 6)
   }
 
-  // Flowers in bloom.
+  // Flowers in bloom (none poke through the snow; the draws stay).
   if (!southernOcean) {
     for (const [kind, where] of Object.entries(FLOWERS) as [FlowerKind, (typeof FLOWERS)[FlowerKind]][]) {
       if (!where.biomes.includes(biome)) continue
@@ -205,6 +205,10 @@ function drawShoreLife(params: SceneParams, rng: Random): ShoreLife | null {
       if (rng.chance(0.7)) life.flowers.push(kind)
     }
     if (life.flowers.length > 0) life.flowerAmount = rng.range(0.3, 1)
+    if (params.snow != null) {
+      life.flowers = []
+      life.flowerAmount = 0
+    }
   }
   return life
 }

@@ -17,10 +17,10 @@ climate or place"), with place fields only for one place's difference.
 | 6 | Sargassum season (Caribbean and subtropical Atlantic wrack Apr–Sep) | done (0.100) |
 | 7 | Tropical dry season: savanna coasts brown in the dry months (`drySeason` per place) | done (0.101, more coasts 0.102) |
 | 8 | Leaf litter: real leaves under deciduous trees near the camera, litter colour on the ground further off | done (0.103) |
-| 9 | Snow cover and ice foot: built as PLAN_BIOMES 13 | in progress, [SNOW.md](SNOW.md) |
+| 9 | Snow cover and ice foot: built as PLAN_BIOMES 13 | done (0.111), [SNOW.md](SNOW.md) |
 | 10 | Baltic sea ice (Gulf of Bothnia) | later, own plan, ~2–3 days |
 
-Order: the drawn snow lines (open problem 1, if approved), then the snow plan (9). Estimates include tests, `diff.mjs`, renders and docs.
+Order: the drawn snow lines (open problem 1, if approved), then Baltic sea ice (10). Estimates include tests, `diff.mjs`, renders and docs.
 
 ## Open problems
 
@@ -59,8 +59,6 @@ As of 0.102 (2026-11-06).
 
 **Known gaps until later phases**
 
-7. **White mountains above brown ground:** winter tundra and boreal shores stay brown grass with no
-   snow cover until phase 9, which the lower snow lines make more noticeable.
 8. **Still not modelled:** larch (conifers stay green; no phase), and leaves in the wrack (phase 8
    left them out: the evidence varies from negligible to dominant by beach, §2.5 in SEASONS.md).
 
@@ -233,27 +231,10 @@ Numbers: SEASONS.md §2.5. Off with `props.leafLitter: false` or `props.phenolog
 - **Freed:** `check:restart --date 2024-11-28 --steps 8` covers real litter days (11-30, 12-05), and
   `test/leafLitter.test.ts` checks the map goes with the terrain's material.
 
-## 9. Snow cover and ice foot (later, own plan)
+## 9. Snow cover and ice foot (done, 0.111)
 
-Built as PLAN_BIOMES 13 ("Snow and ice foot", which has the build list: snow mask, snow-capped
-rocks and plants, ice foot, frozen spray). This plan only gives the season. Write the snow plan
-before code. It needs to settle:
-
-- **A moving viewer** (LIVE_MODE.md): where a snow mask comes from. `props/leafLitter.ts`'s
-  world-space map (`terrain.ts` `litterMap`) is one precedent; the map there still covers only what's
-  in view.
-
-- **Months by climate:** polar Oct–May, boreal Dec–Mar, temperate only on rare cold days. Put a
-  number on "a chance per day" for boreal coasts (they thaw often) and on temperate cold days.
-  Decide whether the weather or the month drives the chance, and give it its own stream
-  (`'snow'`).
-- **Lying vs. falling snow:** lying snow only, or snowfall too (a weather kind, CLOUDS.md).
-- **With snow:** grass and ground cover hidden (`dry` no longer matters); deciduous trees bare
-  anyway; animals already dormant (phase 4).
-- **Exposure and white balance:** snow's brightness shifts the exposure; check `exposure.ts`
-  and the render time (≤ ~10% more).
-- Spec field `snow`; done-when views: polar and boreal shoreline and framed days, front-lit and
-  backlit.
+Its own plan, with what it settled, how it came out and its limits: [SNOW.md](SNOW.md). Numbers:
+SEASONS.md §4.1. Spec: `snow`, `props.iceFoot`.
 
 ## 10. Baltic sea ice (later, own plan)
 

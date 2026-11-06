@@ -71,6 +71,8 @@ export interface PropOverrides {
   /** false: plants and ground keep their summer look whatever the date
    * (phenology.ts: autumn leaves, bare trees, dry grass). */
   phenology?: boolean
+  /** false: no ice foot on a snow day; true: one on any snow day (props/iceFoot.ts). */
+  iceFoot?: boolean
   /** false: no fallen leaves or litter colour under deciduous trees
    * (props/leafLitter.ts). */
   leafLitter?: boolean
@@ -128,6 +130,9 @@ export interface SceneSpec {
   beachMaterial?: BeachMaterial
   /** Wright & Short beach state (beachState.ts): slopes, bars, rips, cusps. */
   beachState?: BeachState
+  /** Lying snow (snow.ts): null/false none, true a typical cover, or the cover
+   * (0–1). */
+  snow?: boolean | number | null
   /** The tide's stage today (tides.ts): low water, half tide, high water. */
   tide?: TideStage
   /** Today's tidal range (m), low to high water. */
@@ -296,6 +301,11 @@ const SPEC = object({
   climate: oneOf(...CLIMATES),
   monsoon: boolean,
   ice: force('pack', 'bergs'),
+  snow: (value, path) => {
+    if (value === true || value === false || value === null) return
+    number(value, path)
+    if ((value as number) < 0 || (value as number) > 1) throw new Error(`${path}: a share of the ground, 0–1`)
+  },
   coast: oneOf('beach', 'open-sea', 'rock-shore', 'tidal-flat'),
   rockShore: oneOf(...ROCK_KINDS),
   composition: oneOf('shoreline', 'along-beach', 'framed', 'overlook'),
@@ -360,6 +370,7 @@ const SPEC = object({
     vegetation: listOf(oneOf(...PLANTS)),
     phenology: boolean,
     leafLitter: boolean,
+    iceFoot: boolean,
     debris: object(
       { driftwood: number, rootWads: boolean, wrack: oneOf(null, 'kelp', 'seagrass', 'sargassum'), wrackAmount: number, coconuts: number },
       true

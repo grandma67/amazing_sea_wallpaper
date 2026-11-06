@@ -20,6 +20,7 @@ import type { PropContext } from './context'
 import { noise3 } from './noise'
 import { windDirection, windMaterials, type Bend } from './wind'
 import { acacia, birch, broadleaf, bush, conifer, cypress, olive, pandanus, stonePine } from './trees'
+import { snowCap, snowLook, type SnowLook } from './snowCap'
 
 // Procedural plants, generated per scene from the seed, then scattered over
 // the land behind the beach. Geometry is built at a nominal size with its
@@ -329,7 +330,7 @@ const KINDS: Record<VegetationKind, KindSpec> = {
  * many edge-on leaves at grazing angles, where the specular lobe spikes, and
  * the crowns glitter. Real leaves scatter that light through their blades
  * instead. Skylight reflections (indirect specular) stay. */
-export function plantMaterial(): MeshStandardMaterial {
+export function plantMaterial(snow: SnowLook | null = null): MeshStandardMaterial {
   const material = new MeshStandardMaterial({
     vertexColors: true,
     roughness: 0.85,
@@ -342,7 +343,16 @@ export function plantMaterial(): MeshStandardMaterial {
       '#include <lights_fragment_end>\nreflectedLight.directSpecular = vec3(0.0);'
     )
   }
+  // Boughs hold most of what falls on them; a leaf's whole face reads as snow.
+  snowCap(material, snow, 0.8)
   return material
+}
+
+/** Is this tuft of grass under the snow? More of them as the cover closes, a
+ * few of the tallest always showing (a hash of its position, not a draw). */
+export function grassBuried(x: number, z: number, cover: number): boolean {
+  const h = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1
+  return h < Math.min(0.95, cover * 1.25)
 }
 
 export function createVegetation(ctx: PropContext): InstancedMesh[] {
@@ -369,7 +379,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       : forcedKinds.map(kind => [kind, biome.vegetation.find(([k]) => k === kind)?.[1] ?? 3] as const)
   const lushness = rng.range(0.4, 1.2)
   const phenology = phenologyFor(params)
-  const material = plantMaterial()
+  const material = plantMaterial(snowLook(params))
 
   const order: VegetationKind[] = [
     'palm',
@@ -492,7 +502,10 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       mesh.customDepthMaterial = bent.depth
       mesh.userData.plantKind = kind
       indices.forEach((i, j) => {
-        mesh.setMatrixAt(j, m.copy(placed[i]))
+        m.copy(placed[i])
+        // Blades under the snow (drawn all the same: the draws stay).
+        if (kind === 'grass' && params.snow != null && grassBuried(m.elements[12], m.elements[14], params.snow.cover)) m.scale(new Vector3(0, 0, 0))
+        mesh.setMatrixAt(j, m)
         mesh.setColorAt(j, colors[i])
       })
       mesh.castShadow = spec.castShadow

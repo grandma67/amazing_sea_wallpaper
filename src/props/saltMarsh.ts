@@ -10,6 +10,7 @@ import { fbm, smoothstep } from '../cellNoise'
 import { flatCreeks, marshLook } from '../tidalFlat'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
+import { snowCap, snowLook } from './snowCap'
 
 // Salt-marsh tufts (PLAN_BIOMES 9; plans/TIDAL_FLAT.md): low clumps of
 // grass (Puccinellia, Spartina) and glasswort (Salicornia) on the marsh
@@ -161,6 +162,7 @@ export function createSaltMarsh(ctx: PropContext): InstancedMesh[] {
   material.onBeforeCompile = shader => {
     shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\nreflectedLight.directSpecular = vec3(0.0);')
   }
+  snowCap(material, snowLook(ctx.params), 0.8)
   const meshes: InstancedMesh[] = []
   const variants = 4
   const geometryRng = ctx.rng('salt-marsh-mesh')

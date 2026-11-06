@@ -23,6 +23,15 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   draws; as the leaves go, 0–3 fine twigs per tip show (`TWIG`). Spring's `fresh` leaves are
   paler. `grass()` turns more blades straw with `dry`. Colony birds, crabs, lizards, humpbacks,
   waterfowl and gulls read `animalSeasons.ts`.
+- **Snow** (`snow.ts`, `props/snowCap.ts`, `props/iceFoot.ts`, 0.111, plans/SNOW.md): `pickSnow` on its
+  own stream gives `params.snow` (`cover`, `iceFoot`). Nothing about the look reads the camera: the terrain
+  shader (`snowLook`) and `snowCap` (a wrapper patch on a standard material, keeping the inner program key)
+  work from world position, normal, height and noise. Caps: rocks, driftwood, plants (`amount` 0.8), marsh
+  tufts. Hidden, keeping their draws (zero scale, by a hash of the spot): buried grass, mesh stones above the
+  line. Flowers go; leaves go above cover 0.6. Mountains' line comes to the shore and islands whiten,
+  woods showing through. `createIceFoot` walks stations along `a`: `footLine` (the spring high-water
+  contour, walked from the sea) and `footShape` (noise of `a`) say what stands there; the camera only
+  chooses section spacing, the view margin and the gap round itself. Off: `"snow": null`, `props.iceFoot: false`.
 - **Leaf litter** (`props/leafLitter.ts`, 0.103): `litterFor()` from `Phenology.litter`, not random.
   `deciduousTrees()` reads the plants' meshes (`userData.plantKind`, `geometry.userData.deciduous`
   from `leaves()`). Each leaf is `treeLeaf(tree, i)`, a hash of the tree's position and its index,

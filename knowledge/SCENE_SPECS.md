@@ -35,6 +35,7 @@ Allowed values are in `sceneSpec.ts`.
   `"atlantic-canada"`); `biome`, `ocean`, `climate` (restrict the place draw to places that have
   them and force the choice; a combination no place has throws; the climate also changes the
   land, sea, sky and animals: `scenes/climates.json` has one spec per new look); `monsoon`, `ice`.
+- **Snow:** `snow` (`null` or `false` none, `true` a typical cover for the date, a number the cover, 0–1; `scenes/snow.json`). `props.phenology: false` removes drawn snow, not forced.
 - **Coast:** `coast` (`beach`, `open-sea`, `rock-shore`, `tidal-flat`: a flat at the day's tide, force `tide` too), `composition`; `rockShore` (`platform`,
   `boulder`, `cliff`: a rocky shore of that kind, implies one; on a rock shore `overlook` means a
   cliff and any other composition not a cliff); `swellHeight` (m offshore) and `swellPeriod` (s; wavelength
@@ -64,7 +65,7 @@ Allowed values are in `sceneSpec.ts`.
   **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
 - **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,leafLitter,debris,shoreLife,mangroves,wildlife}`.
   Off for `diff.mjs`: `false` (booleans and kinds), `[]` (`vegetation`), `null` (`debris`,
-  `shoreLife`, `wildlife`). `leafLitter: false`: no fallen leaves or litter colour. `phenology: false` keeps plants and ground in their summer look
+  `shoreLife`, `wildlife`). `iceFoot`: `false` none, `true` on any snow day (needs `snow`). `leafLitter: false`: no fallen leaves or litter colour. `phenology: false` keeps plants and ground in their summer look
   (no autumn leaves, bare trees or dry grass, and the mountains' snow line as drawn; `phenology.ts`); the season itself comes from the
   date (`date` + `place`): Maine 2025-10-20 framed (red autumn), Cornwall 2025-01-12 framed
   (bare oaks), the Baltic 2025-09-22 framed with `climate: "boreal"` (yellow birch), the western

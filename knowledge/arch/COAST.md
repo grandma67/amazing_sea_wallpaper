@@ -29,7 +29,7 @@ research numbers: REGIONS.md §2–3. Pitfalls: LESSONS.md "Coast and terrain".
   pebbles and clusters (`rocks.ts`); shoreline/along-beach camera distances (`generateCoast`);
   stones' size grading and mixed cover (`stoneHighTide`); cusps (`cuspReach`, u from s = 0);
   ridges; debris, shore life, wildlife, pinnipeds, colonies (`beachLines`); vegetation and flowers
-  (`tideMarks`); mangroves (mean sea = height + level); `profile.mjs`.
+  (`tideMarks`); snow's line (`snowLook`, today's high water + run-up) and the ice foot (`footLine`, the spring high water); mangroves (mean sea = height + level); `profile.mjs`.
 - **A new seabed or shore profile** (reef, rock platform, tidal flat: all three done) has readers beyond the
   height function (found one by one in phase 7):
   1. `TERRAIN_GLSL` and the TS `beachHeight` (and `test/terrain.test.ts`);

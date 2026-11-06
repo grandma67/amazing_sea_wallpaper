@@ -6,6 +6,7 @@ import { shoreToWorld, worldToShore } from '../terrain'
 import { tideMarks, waterlineAt } from '../tides'
 import type { PropContext } from './context'
 import { rockMaterial } from './rocks'
+import { snowLook } from './snowCap'
 
 // Beachrock (PLAN_BIOMES 7): beach sand cemented by calcium carbonate in the
 // intertidal zone of warm, micro-tidal beaches, then bared as the beach
@@ -101,7 +102,7 @@ export function createBeachrock(ctx: PropContext): InstancedMesh[] {
   }
   if (slabs.length === 0) return []
 
-  const material = rockMaterial([1, 1, 1], coast.runup, null, tideMarks(coast).spring)
+  const material = rockMaterial([1, 1, 1], coast.runup, null, tideMarks(coast).spring, snowLook(ctx.params))
   const variants = Array.from({ length: VARIANTS }, () => slabGeometry(rng))
   const meshes = variants.map((geometry, v) => {
     const mine = slabs.filter((_, i) => i % VARIANTS === v)

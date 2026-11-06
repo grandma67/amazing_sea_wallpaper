@@ -7,6 +7,7 @@ import { hasBeach, shoreToWorld, terrainNormal, worldToShore } from '../terrain'
 import type { PropContext } from './context'
 import { noise3 } from './noise'
 import { rockMaterial } from './rocks'
+import { snowLook } from './snowCap'
 
 // Stones near the camera (PLAN_BIOMES 2d): the shader (terrain.ts STONE_GLSL)
 // draws every stone of a shingle or cobble beach as a cell; while a stone is
@@ -201,7 +202,8 @@ export function createStones(ctx: PropContext): InstancedMesh[] {
   const faceted = (v: number): boolean => polar || (coast.material === 'cobble' ? v % 2 === 1 : coast.material === 'mixed' && v >= 4)
   const geometries = Array.from({ length: VARIANTS }, (_, v) => stoneGeometry(rng, 1, faceted(v)))
   const heights = geometries.map(g => g.boundingBox!.max.y)
-  const material = rockMaterial([1, 1, 1], coast.runup, null)
+  const snow = snowLook(params)
+  const material = rockMaterial([1, 1, 1], coast.runup, null, 0, snow)
   material.roughness = 0.8
 
   const byVariant: { stone: MeshStone; scale: number; sink: number; yaw: number }[][] = geometries.map(() => [])
@@ -232,7 +234,11 @@ export function createStones(ctx: PropContext): InstancedMesh[] {
       tilt.setFromUnitVectors(up, normal)
       yaw.setFromAxisAngle(up, angle)
       const y = m.y - sink * heights[v] * scale
-      matrix.compose(new Vector3(m.x, y, m.z), tilt.multiply(yaw), new Vector3(scale, scale, scale))
+      // Stones above the sea's reach are under the snow; the terrain's cover
+      // stands in for them. A hash of the spot, not a draw.
+      const under = snow != null && m.y > snow.line + 0.1 && Math.abs(Math.sin(m.x * 12.9898 + m.z * 78.233) * 43758.5453) % 1 < snow.cover * 1.3
+      const size = under ? 0 : scale
+      matrix.compose(new Vector3(m.x, y, m.z), tilt.multiply(yaw), new Vector3(size, size, size))
       mesh.setMatrixAt(k, matrix)
       const [r, g, b] = m.stone.color
       mesh.setColorAt(k, color.setRGB(r * TINT, g * TINT, b * TINT))

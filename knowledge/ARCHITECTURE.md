@@ -105,7 +105,7 @@ Playwright (headless snapshots), Vitest.
      `'rock-shore'` and `'rock-camera'` on rock days, `'sand-colour'`,
      `'beach-material'` (material, grain, stone size, beach state and shape), `'reef'`,
      `'hills'`, `'composition'`).
-  9. Colony, pinnipeds, lighthouse, landform, islands (`pick*`, own streams); shelf cloud,
+  9. Colony, pinnipeds, lighthouse, landform, snow (`'snow'`, three draws always; brings the landform's line down), islands (`pick*`, own streams); shelf cloud,
      lenticular; rainbow geometry; title.
   10. Moon scale, horizon (aurora nights at least 0.6–0.68 from `'aurora-framing'`), roll, time,
       choppiness (main, `keep`).
@@ -169,6 +169,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | leaf colour and fall, grass dryness, deciduous share | `phenology.ts` | climate × hemisphere; `AUTUMN_RED` and the deciduous lenga by place | right |
 | snow line by season | `phenology.ts` `SNOW_SEASON` | climate × hemisphere | right (the drawn line under it is the `pickLandform` leftover above) |
 | fallen leaves by season | `phenology.ts` `LITTER_DAYS` | climate × hemisphere | right |
+| lying snow, ice foot | `snow.ts` `SNOW_COVER`, `SNOW_PLACES`, `ICE_FOOT_PLACES` | climate × hemisphere, a place's own chance | right |
 | colony birds, humpbacks, haul-outs, crab and lizard dormancy, waterfowl, gulls by season | `animalSeasons.ts` | climate × season (colonies, seals by kind) | right |
 | beach flowers | `props/shoreLife.ts` `FLOWERS` | biome × ocean × month | **leftover**: Florida and Natal can bloom Mediterranean sea daffodil and horned poppy (should follow climate) |
 | shells, starfish | `props/shoreLife.ts` `SHELLS` | biome × ocean | leftover (minor) |
@@ -244,8 +245,9 @@ December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
 
-- Seasons (0.98): no snow cover in polar and boreal winters yet (PLAN_BIOMES 13, SEASONS_PLAN
-  phase 9), so winter tundra shows as brown grass under white mountains; no leaves in the wrack; no larch (conifers stay green); tropical wet and dry seasons
+- Snow (0.111): limits in plans/SNOW.md (a foot's end beside a very close camera, plain white far low
+  land, no falling snow).
+- Seasons (0.98): no leaves in the wrack; no larch (conifers stay green); tropical wet and dry seasons
   aren't modelled (only the tropical almond's red). The distant woods' autumn tint
   (`canopyTint` on landforms and islands) was tested in numbers, not checked in a render.
 - Drawn snow lines (`pickLandform`, biome-keyed): tropical mountains can have snow below 3 km

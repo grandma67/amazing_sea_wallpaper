@@ -7,6 +7,7 @@ import { createRollCloud, createShelfCloud } from './cloudEvents'
 import { createColony } from './colony'
 import { createDebris } from './debris'
 import { createIce } from './ice'
+import { createIceFoot } from './iceFoot'
 import { createLeafLitter, litterField } from './leafLitter'
 import { createIslands } from './islands'
 import { createLandforms } from './landforms'
@@ -55,6 +56,7 @@ export function createProps(ctx: PropContext): Group {
   // For the ocean's foam round them (ocean.ts setOceanRocks).
   group.userData.waterRocks = (off ? [] : [...waterRocks(ctx, rocks), ...edgeRocks(ctx)]).map(r => ({ ...r, breaks: waveOnRock(ctx.params.coast, r, ctx.waveHeight).breaks }))
   add('ice', () => createIce(ctx))
+  add('ice-foot', () => createIceFoot(ctx))
   // Where mesh stones replace the shader's (terrain.ts stoneMeshRadius).
   group.userData.stoneRadius = add('stones', () => createStones(ctx))[0]?.userData.stoneRadius ?? [0, 0, 0]
   add('beachrock', () => createBeachrock(ctx))

@@ -24,6 +24,7 @@ import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { fbm3 } from './noise'
 import { rockMaterial, type RockGrowth } from './rocks'
+import { snowLook } from './snowCap'
 
 // Seals and sea lions hauled out on the rocks (see PinnipedKind):
 //
@@ -267,7 +268,7 @@ function skerry(ctx: PropContext, rng: Random): Mesh | null {
     if (clear) at = p
   }
   if (at == null) return null
-  const mesh = new Mesh(skerryGeometry(rng), rockMaterial(rng.pick(ctx.params.biome.rockColors), 0.6, SKERRY_GROWTH))
+  const mesh = new Mesh(skerryGeometry(rng), rockMaterial(rng.pick(ctx.params.biome.rockColors), 0.6, SKERRY_GROWTH, 0, snowLook(ctx.params)))
   const height = rng.range(2.5, 5)
   mesh.scale.set(width / 2, height, (width / 2) * rng.range(0.5, 0.9))
   mesh.position.copy(at).setY(-height * 0.25)

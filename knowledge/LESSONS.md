@@ -147,6 +147,16 @@ tool gotchas: TOOLS.md.
 - Lowering a colour boundary can show a flaw it hid: small noise that looked fine on a summit gave
   a ruler-straight snow edge across a whole slope.
 
+- **Check a close prop on the rendered framing (snow, 0.111):** a straight cut in the ice foot was blamed on culling
+  and survived a fix, because `params.mjs` without `--rendered` gave another camera. On the framing the page
+  renders, the camera stood on the line and the cut was the gap's taper. Project the vertices with `--rendered`
+  before changing code.
+- **Wrapping `windMaterials`' patch needs the inner key (snow, 0.111):** the wrapper's source is the same every day,
+  so a snowless plant could reuse a snowy day's program with its uniform unset. `shadeMaterial`, `addWash`,
+  `snowCap` and `windMaterials` all keep it.
+- **Caps on tiny things read as crackle (snow, 0.111):** white tops and dark sides on thousands of mesh stones looked
+  like cracked mud. Hide what real cover would bury and let the ground stand in.
+
 ## Light and exposure
 
 - Auto exposure re-normalises: scaling the whole scene does nothing; change `exposure` (e.g.

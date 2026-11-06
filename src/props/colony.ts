@@ -26,6 +26,7 @@ import { stormy, type PropContext } from './context'
 import { fbm3 } from './noise'
 import { outlineOfMesh, type WaterIsland } from './surf'
 import { rockGeometry, rockMaterial, type RockGrowth } from './rocks'
+import { snowLook } from './snowCap'
 
 // Seabird islands: an offshore rock where thousands of birds nest, with a
 // cloud of them wheeling overhead.
@@ -150,7 +151,7 @@ function flock(spots: Matrix4[]): InstancedMesh | null {
 }
 
 function rockMesh(ctx: PropContext, geometry: BufferGeometry, style: ColonyStyle): Mesh {
-  const mesh = new Mesh(geometry, rockMaterial([1, 1, 1], ctx.params.coast.runup * 3, style.growth))
+  const mesh = new Mesh(geometry, rockMaterial([1, 1, 1], ctx.params.coast.runup * 3, style.growth, 0, snowLook(ctx.params)))
   mesh.castShadow = true
   mesh.receiveShadow = true
   mesh.userData.island = true

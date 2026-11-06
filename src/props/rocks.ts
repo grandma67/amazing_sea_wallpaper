@@ -20,6 +20,7 @@ import { hasLand, shoreToWorld } from '../terrain'
 import { tideMarks } from '../tides'
 import type { PropContext } from './context'
 import { fbm3 } from './noise'
+import { snowCap, snowLook, type SnowLook } from './snowCap'
 
 // Procedural rocks: a noisy sphere sliced by a few random planes, which gives
 // the flat fractured faces of real boulders, with crevices darkened in the
@@ -131,7 +132,7 @@ const GROWTH: Record<Biome['name'], { chance: number; growth: RockGrowth }> = {
 /** `tideLine`: world height of the spring high water; below it, above the
  * splash zone, rocks the tide has left carry a dark band of wrack weed,
  * mussels and barnacles (0: none). */
-export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | null, tideLine = 0): MeshStandardMaterial {
+export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | null, tideLine = 0, snow: SnowLook | null = null): MeshStandardMaterial {
   const material = new MeshStandardMaterial({
     color: new Color(...color),
     vertexColors: true,
@@ -224,6 +225,7 @@ export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | nul
         roughnessFactor = mix(roughnessFactor, 0.25, rockWet);`
       )
   }
+  snowCap(material, snow)
   return material
 }
 
@@ -334,7 +336,7 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
   const picked = rng.pick(biome.rockColors)
   const color = coast.rock?.color ?? picked
   const growthSpec = GROWTH[biome.name]
-  const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null, tideMarks(coast).spring)
+  const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null, tideMarks(coast).spring, snowLook(params))
   const meshes: InstancedMesh[] = []
   const m = new Matrix4()
   const q = new Quaternion()

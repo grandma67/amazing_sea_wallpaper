@@ -132,6 +132,8 @@ interface Palette {
   vegetation: RGB | null
   sand: RGB
   snow: boolean
+  /** Snow to the shore today: its cover (0–1), else 0. */
+  lying: number
 }
 
 const mix = (a: RGB, b: RGB, t: number): RGB => a.map((v, i) => v + (b[i] - v) * Math.max(0, Math.min(1, t))) as RGB
@@ -162,6 +164,12 @@ function surfaceColor(shape: Shape, p: Palette, h: number, steep: number, n: num
   if (p.snow) {
     const snow = smoothstep(H * 0.25, H * 0.45, h + (n - 0.5) * H * 0.3) * (1 - smoothstep(0.5, 0.85, steep))
     c = mix(c, [0.8, 0.82, 0.86], snow)
+  }
+  // Above the splash, in the day's cover; dark rock and woods show through.
+  if (p.lying > 0) {
+    const open = 0.75 - 0.55 * p.lying
+    const snow = smoothstep(Math.min(1.5, H * 0.1), Math.min(4, H * 0.3), h) * smoothstep(open - 0.1, open + 0.1, n) * (1 - smoothstep(0.55, 0.9, steep))
+    c = mix(c, [0.8, 0.82, 0.86], snow * (p.vegetation != null ? 0.7 : 1))
   }
   return c
 }
@@ -291,7 +299,8 @@ export function createIslands(ctx: PropContext, avoid: Object3D | null): Object3
     // Bare in the polar seas and on desert coasts; dark forest elsewhere.
     vegetation: polar || biome.name === 'desert' ? null : canopyTint(biome.foliage, phenologyFor(ctx.params), biome.vegetation),
     sand: params.kind === 'cay' ? [0.7, 0.66, 0.56] : ctx.params.coast.sand.albedo,
-    snow: polar && params.kind !== 'cay'
+    snow: polar && params.kind !== 'cay',
+    lying: ctx.params.snow?.cover ?? 0
   }
   const taken: { at: Vector3; r: number }[] = []
   if (avoid != null) taken.push({ at: avoid.position.clone().setY(0), r: 250 })

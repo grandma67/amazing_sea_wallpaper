@@ -26,6 +26,7 @@ import { Random } from './random'
 import { apply, ECLIPTIC_POLE, eclipticOffset, skyRotation } from './skyClock'
 import { haulOutSeason } from './animalSeasons'
 import { seasonalSnowLine } from './phenology'
+import { pickSnow, type SnowParams } from './snow'
 import { monthInSeason, season, seasonMonth } from './seasons'
 import { reefFor, reefShelter, type Reef } from './reef'
 import { flatGround, flatWaterline, tidalFlatFor, type SaltMarsh, type TidalFlat } from './tidalFlat'
@@ -413,6 +414,8 @@ export interface SceneParams {
   rollCloud: RollCloudParams | null
   /** A lighthouse on a point or a rock (props/lighthouse.ts, lighthouse.ts). */
   lighthouse: LighthouseParams | null
+  /** Lying snow and the ice foot today (snow.ts); null: none. */
+  snow: SnowParams | null
   /** What a scene spec forces the props to show (sceneSpec.ts); absent on
    * ordinary days. */
   overrides?: PropOverrides
@@ -1938,6 +1941,9 @@ function buildParams(
   const landform = pickLandform(seed, biome, place.mountains, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
   // After the draws: the season moves the snow line, by date and climate.
   if (landform != null && spec.props?.phenology !== false) landform.snowLine = seasonalSnowLine(landform, climate, { date, latitudeDeg })
+  const snow = pickSnow(seed, place.id, climate, { date, latitudeDeg }, spec.snow, spec.props?.iceFoot, spec.props?.phenology)
+  // Snow lying at the shore lies on the mountains behind it too.
+  if (landform != null && snow != null) landform.snowLine = Math.min(landform.snowLine, landform.height * 0.35 * (1 - snow.cover))
   const islands = pickIslands(seed, biome, place.mountains, spec.islands)
   if (storm != null) storm.shelf = shelfCloudFor(storm, Random.derive(seed, 'shelf-cloud'), spec.shelfCloud)
   // The shelf is the storm's low cloud there: scud at the same height would
@@ -2003,6 +2009,7 @@ function buildParams(
   }
   if (lighthouse != null) titleParts.push('lighthouse')
   if (ice != null) titleParts.push(ice.packIce > 0 ? 'pack ice' : 'icebergs')
+  if (snow != null) titleParts.push(snow.iceFoot && hasLand(coast) ? 'snow and shore ice' : 'snow')
   if (fog != null) titleParts.push(fog.kind === 'sea-smoke' ? 'sea smoke' : fog.start > 0 ? 'fog bank' : 'fog')
   if (storm != null) {
     titleParts.push(storm.bolts.length > 0 ? 'thunderstorm' : 'squall')
@@ -2069,6 +2076,7 @@ function buildParams(
     aurora: null,
     rollCloud: null,
     lighthouse,
+    snow,
     ...(spec.props != null ? { overrides: spec.props } : {}),
     camera: {
       heightM: spec.camera?.heightM ?? eyeHeight ?? heightM,

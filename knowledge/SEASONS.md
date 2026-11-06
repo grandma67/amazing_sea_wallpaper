@@ -225,9 +225,7 @@ offshore:
 ## 4. Weather and climate (already mostly in the project)
 
 - **Fog, haze, clouds:** fog seasons, summer haze, summer cumulus: done (§1).
-- **Snow and ice on the shore:** polar and boreal winters (and nordic late winter) cover the
-  land; an ice foot forms at the high-water line. Planned in PLAN_BIOMES phase 13 (snow and ice
-  foot); the season tables here give its months (see the plan).
+- **Snow and ice on the shore:** §4.1.
 - **Mountain snow line** (`phenology.ts` `SNOW_SEASON`): lowest mid-January to mid-March, highest
   mid-August to mid-September, in the day's hemisphere. Alps 1961–2010: median snow line ~800 m in
   winter, ~3080 m in summer (a station-based cover median, so a rough guide). The drawn line is
@@ -247,7 +245,51 @@ offshore:
 - **Baltic sea ice:** the Gulf of Bothnia freezes Jan–Apr most winters *(est.)*; only Arctic ice
   exists today.
 
+## 4.1 Lying snow and the ice foot
+
+`snow.ts`, plans/SNOW.md. A chance per day at the winter's peak, rising and falling by northern-equivalent
+day (`band`), by climate, with a place's own number where it differs. Not by the day's weather: lying
+snow outlasts it.
+
+| Climate | Rises (day) | Full | Falls | Gone | Peak chance per day |
+|---|---|---|---|---|---|
+| Polar | 258 | 305 | 140 | 175 | 0.95 |
+| Boreal | 296 | 335 | 85 | 130 | 0.6 |
+| Temperate | 325 | 355 | 50 | 80 | 0.04 |
+
+Mediterranean, subtropical, tropical and arid coasts have none.
+
+- **Evidence:** Svalbard's pack is gone within 2–3 weeks of early June, the first snow-free day about
+  12 days before the growing season. Tromsø has 188 days a year with ≥ 5 cm on the ground (1971–2000),
+  and its table value (0.95) comes from that. Helsinki's snow season is almost 100 days (tourism body;
+  unclear if cover or fall): Baltic 0.7. Bergen has noticeable snow on ~14% of days, November–March (a
+  count of snowfall days, not cover): west Norway 0.12.
+- **Everything else is *(est.)*:** the other dates and every other place's number (`SNOW_PLACES`):
+  Kerguelen 0.35, Campbell Island 0.1, South Georgia 0.7, Prince Edward Island 0.6, Maine 0.5,
+  Iceland 0.45, Tasmania and northern New Zealand 0. We found no snow-on-ground figures for Halifax,
+  Anchorage, Reykjavík, Greenland or the Canadian Arctic.
+- **Cover:** thin on the season's shoulders and where snow comes and goes, nearly closed in deep polar
+  winter (0.83–0.98); temperate days 0.5–0.71 *(est.)*.
+
+**The ice foot** (`props/iceFoot.ts`): forms last in the freeze-up, after the upper beach freezes and
+snow lies and cakes and slush are deposited (Short and Wiseman 1972, Alaska); Nome's beach is under ice
+about six months a year; forms change quickly over small distances (Point Lay and Svalbard). About 1 m or
+more high and several metres wide, with sediment in it, comes from a USGS report on **Lake Michigan**, an
+analogue: we found no measured range for the Arctic. Season rises from day 295 to 325, falls from 135 to
+165, and 0.8 of polar snow days, 0–0.6 by place (`ICE_FOOT_PLACES`), are *(est.)*.
+
 ## Sources
+
+- Snow and ice foot (§4.1), from search summaries: Svalbard, https://duo.uio.no/handle/10852/62032 and
+  https://polarresearch.net/index.php/polar/article/view/3047/6896 ; snow-free dates, MODIS 2000–2019,
+  https://modis.gsfc.nasa.gov/sci_team/pubs/abstract_new.php?id=39325 ; Tromsø, Climate of Norway,
+  https://kaweah.freedombox.rocks/kiwix/wikipedia_en_all_maxi_2023-10/Climate_of_Norway ; Bergen,
+  https://clombion.github.io/bergen-paris-weather/en/ ; Helsinki,
+  https://kwx.liehendr.com/content/wikivoyage_en_all_maxi_2025-02/A/Winter_in_the_Nordic_countries ;
+  Short and Wiseman 1972, https://archives.datapages.com/data/bulletns/1971-73/data/pg/0056/0003/0600/0620b.htm ;
+  Nome, https://pubs.usgs.gov/publication/ofr70142 ; Lake Michigan analogue,
+  https://pubs.usgs.gov/of/1990/0537/report.pdf ; Point Lay and Svalbard,
+  https://informahealthcare.com/doi/abs/10.1080/04353676.1981.11880020
 
 - Leaf litter (§2.5), from search summaries: Jonard et al. 2008 (Canadian Journal of Forest
   Research), Kara et al. 2014 (Journal of Soil Science and Plant Nutrition), Sariyildiz & Anderson

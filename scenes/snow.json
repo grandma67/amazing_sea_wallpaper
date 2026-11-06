@@ -1,0 +1,12 @@
+{"base": {"eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "sunAzimuthDeg": 150, "weather": "few", "ice": null}, "scenes": [
+    {"name": "snow-polar-shoreline", "date": "2025-03-20", "place": "greenland", "coast": "beach", "composition": "framed", "tide": "low", "snow": true, "props": {"iceFoot": true}}, 
+    {"name": "snow-polar-along", "date": "2025-04-02", "place": "arctic-canada", "coast": "beach", "composition": "along-beach", "tide": "high", "snow": true, "props": {"iceFoot": true}}, 
+    {"name": "snow-boreal-framed", "date": "2025-02-10", "place": "norway-north", "climate": "boreal", "coast": "beach", "composition": "framed", "snow": true}, 
+    {"name": "snow-temperate-patchy", "date": "2025-01-25", "place": "maine", "coast": "beach", "composition": "framed", "snow": 0.5}, 
+    {"name": "snow-stony", "date": "2025-02-20", "place": "svalbard", "coast": "beach", "composition": "framed", "tide": "high", "snow": true, "props": {"iceFoot": false}}, 
+    {"name": "snow-platform", "date": "2025-03-05", "place": "svalbard", "rockShore": "platform", "tide": "low", "snow": true, "props": {"iceFoot": true}}, 
+    {"name": "snow-overlook", "date": "2025-02-14", "place": "kamchatka-kurils-aleutians", "coast": "beach", "composition": "overlook", "snow": true, "landform": true}, 
+    {"name": "snow-spray", "date": "2025-03-05", "place": "svalbard", "rockShore": "platform", "tide": "high", "composition": "along-beach", "snow": true, "props": {"iceFoot": true}}, 
+    {"name": "snow-backlit", "date": "2025-02-10", "place": "norway-north", "climate": "boreal", "coast": "beach", "composition": "framed", "snow": true, "timeOfDay": "golden-hour", "sunAzimuthDeg": 10}, 
+    {"name": "snow-overcast", "date": "2025-02-20", "place": "svalbard", "coast": "beach", "composition": "along-beach", "tide": "low", "snow": true, "weather": "overcast", "props": {"iceFoot": true}}]
+}

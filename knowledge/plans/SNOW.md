@@ -7,12 +7,12 @@ Lying snow on the land, and an ice foot at the high-water line, on the days that
 
 | Step | What | Status |
 |---|---|---|
-| 1 | `src/snow.ts`: the day's snow by climate, place and date; `snow` spec field; off with `props.phenology: false` | |
-| 2 | Terrain shader: snow by height above the tide, slope and world noise | |
-| 3 | `props/snowCap.ts`: caps on rocks, stones, plants, driftwood, tufts; frozen spray | |
-| 4 | Far land: mountains and islands white to the shore; grass, flowers and leaves buried | |
-| 5 | `props/iceFoot.ts`: the strip at the spring high water, ice cakes | |
-| 6 | Tests, renders, bench, docs | |
+| 1 | `src/snow.ts`: the day's snow by climate, place and date; `snow` spec field; off with `props.phenology: false` | done (0.111) |
+| 2 | Terrain shader: snow by height above the tide, slope and world noise | done (0.111) |
+| 3 | `props/snowCap.ts`: caps on rocks, stones, plants, driftwood, tufts; frozen spray | done (0.111) |
+| 4 | Far land: mountains and islands white to the shore; grass, flowers and leaves buried | done (0.111) |
+| 5 | `props/iceFoot.ts`: the strip at the spring high water, ice cakes | done (0.111) |
+| 6 | Tests, renders, bench, docs | done (0.111) |
 
 ## What this settles
 
@@ -70,3 +70,33 @@ tides.
 - Temperate patchy (Maine, or `"snow": 0.5`): patches with grass and rock between them.
 - Stony beach: stones under snow above the line, wet below it. Rock platform: frozen spray.
 - `diff.mjs --off '{"snow":null}'` shows it on each; `check:restart` still clean.
+
+## How it came out (0.111)
+
+- **Days:** 162 of 1095 have snow (14.8%): polar 118, boreal 39, temperate 5; 91 of them an ice foot.
+  `--ref`: only the title (162), the mountains' line (65) and flowers and litter (26) change, so no
+  other stream moved. Render time +0–4% on snow days, and a snowless day is pixel-identical (`bench.mjs`).
+  `check:restart --date 2024-01-01 --steps 8` shows no leak; that span has snow days (2024-01-03, 2024-01-08). The bench and the leak check ran before the last two foot tweaks (the taper's length, no snow on wrack), which add no GPU resources.
+- **Changed from the plan:**
+  - Mesh stones above the line are hidden under the cover, not capped: caps on them read as a white
+    crackle near the camera.
+  - The foot narrows with its height: at full width it read as a slab laid on the sea. Its top has
+    relief and its lip wobbles.
+  - Wrack gets no snow: it came in on the last tides. Driftwood does. This came after the last render, so it's tested by type only.
+- **Seen in renders** (`scenes/snow.json`, 1080p, 16 frames; `diff.mjs --off '{"snow":null}'` on the
+  first seven): polar framed and along-beach, boreal framed front-lit and backlit, temperate patchy,
+  stony with snow to the line, rock platform at low and high tide (frozen spray), overlook, overcast; real
+  days 2024-01-03, 2024-11-22, 2024-12-05, 2026-02-16.
+- **Not rendered:** tidal flat and salt marsh (tested for the camera only), a cliff's foot, snow-capped
+  salt-marsh tufts, polar night.
+
+## Known limits
+
+- **A foot beside a very close camera:** where the camera stands on the line itself (`2025-04-02`-style
+  along-beach), the foot's end near it still looks a little cut. The strip must part round the camera;
+  a moving viewer will need a better answer (the camera shouldn't decide where ice is).
+- **The mountains under full snow** have little relief from a front-lit, far view: they read smoothly.
+- **The far boreal forest:** terrain snow past the plants' range has no dark woods in it, so far low
+  land is plain white. Landforms and islands do show their woods.
+- **Falling snow:** not modelled. Polar-winter rain shafts have no snow form.
+- **Sea ice in the bays:** the foot is the only shore ice. Fast ice is Baltic phase 10's job.
