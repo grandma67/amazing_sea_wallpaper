@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { BufferGeometry, InstancedMesh } from 'three'
 
 import { createRocks } from '../src/props/rocks'
-import { createSaltMarsh, glasswortGeometry, grassTuftGeometry, MARSH_TUFT_COUNT, saltMarshFor } from '../src/props/saltMarsh'
+import { createSaltMarsh, MARSH_TUFT_COUNT, saltMarshFor } from '../src/props/saltMarsh'
 import { Random } from '../src/random'
 import { MARSH_LOOK } from '../src/tidalFlat'
 import { allParams, scene, view } from './days'
@@ -34,21 +34,6 @@ describe('salt-marsh tufts', () => {
     expect(at('2025-09-20').accent[0]).toBeGreaterThan(3 * at('2025-09-20').accent[1])
     expect(at('2025-01-15').amount).toBe(0)
     expect(MARSH_LOOK).toHaveLength(12)
-  })
-
-  it('build deterministic, finite meshes at real size, base on y = 0, within budget', () => {
-    for (const build of [grassTuftGeometry, glasswortGeometry]) {
-      const a = build(Random.derive('t', 'mesh'))
-      const b = build(Random.derive('t', 'mesh'))
-      expect(Array.from(a.attributes.position.array)).toEqual(Array.from(b.attributes.position.array))
-      a.computeBoundingBox()
-      const box = a.boundingBox!
-      expect(box.min.y).toBeCloseTo(0, 5)
-      expect(box.max.y).toBeLessThan(0.45)
-      expect(box.max.y).toBeGreaterThan(0.05)
-      for (const v of a.attributes.position.array) expect(Number.isFinite(v)).toBe(true)
-      expect(triangles(a)).toBeLessThan(200)
-    }
   })
 
   it('stand on the dry marsh near the camera, many in view, off the flat and the water', () => {

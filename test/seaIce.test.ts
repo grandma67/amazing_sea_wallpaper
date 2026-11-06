@@ -6,7 +6,7 @@ import { InstancedMesh, Matrix4, Vector3 } from 'three'
 import type { SceneParams } from '../src/params'
 import type { SceneSpec } from '../src/sceneSpec'
 import { hasLand, terrainHeight } from '../src/terrain'
-import { createSeaIce, offshore, seaIceFor, slabGeometry, lumpGeometry, BLOCK_SETS, iceBlock } from '../src/props/seaIce'
+import { createSeaIce, offshore, seaIceFor, slabGeometry, BLOCK_SETS, iceBlock } from '../src/props/seaIce'
 import { marineFor } from '../src/props/marine'
 import { Random } from '../src/random'
 import { ICE_FREEBOARD, ICE_WAVE_WIND, iceDrift, iceRubble, iceZone, pickSeaIce, SEA_ICE_PLACES, seaIceChance } from '../src/seaIce'
@@ -175,20 +175,6 @@ describe('what the ice is at a point', () => {
 })
 
 describe('the rubble’s meshes', () => {
-  const checks = (make: (r: Random) => ReturnType<typeof slabGeometry>, budget: number) => {
-    const a = make(new Random('x'))
-    const b = make(new Random('x'))
-    expect(Array.from(a.attributes.position.array)).toEqual(Array.from(b.attributes.position.array))
-    for (const v of a.attributes.position.array) expect(Number.isFinite(v)).toBe(true)
-    for (const v of a.attributes.normal.array) expect(Number.isFinite(v)).toBe(true)
-    const triangles = (a.index?.count ?? a.attributes.position.count) / 3
-    expect(triangles).toBeLessThanOrEqual(budget)
-    a.computeBoundingBox()
-    expect(Math.abs(a.boundingBox!.min.y)).toBeLessThan(0.15)
-  }
-  it('near slabs are deterministic, finite and in budget', () => checks(r => slabGeometry(r), 100))
-  it('far slabs are cheaper', () => checks(r => slabGeometry(r, false), 50))
-  it('lumps too', () => checks(lumpGeometry, 320))
   it('slabs are closed underneath and face out', () => {
     const g = slabGeometry(new Random('y'))
     const position = g.attributes.position

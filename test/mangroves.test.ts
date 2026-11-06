@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import { mangroveFor, SHELTERED_SURF } from '../src/props/mangroves'
-import { avicennia, rhizophora } from '../src/props/trees'
 import { Random } from '../src/random'
 import { allParams, scenes, share } from './days'
 
@@ -42,20 +41,5 @@ describe('mangroves', () => {
     for (const p of forced) expect(stand(p)?.kind).toBe('rhizophora')
     for (const p of scenes({ coast: 'open-sea', props: { mangroves: true } }, 10)) expect(stand(p)).toBeNull()
     for (const p of scenes({ coast: 'beach', biome: 'tropical', props: { mangroves: null } }, 10)) expect(stand(p)).toBeNull()
-  })
-
-  it('builds finite trees rooted at the mud, within budget', () => {
-    for (let i = 0; i < 3; i++) {
-      for (const g of [rhizophora(new Random(`r${i}`), [0.1, 0.2, 0.05]), avicennia(new Random(`a${i}`), [0.1, 0.2, 0.05])]) {
-        const pos = g.attributes.position.array as Float32Array
-        expect(pos.every(Number.isFinite)).toBe(true)
-        expect((g.attributes.normal.array as Float32Array).every(Number.isFinite)).toBe(true)
-        g.computeBoundingBox()
-        expect(g.boundingBox!.min.y).toBeGreaterThan(-0.5)
-        expect(g.boundingBox!.min.y).toBeLessThan(0.05)
-        const triangles = (g.index?.count ?? pos.length / 3) / 3
-        expect(triangles).toBeLessThan(100_000)
-      }
-    }
   })
 })

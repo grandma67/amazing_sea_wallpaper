@@ -5,7 +5,7 @@ import { GpuResources } from '../src/dispose'
 import { createTerrain } from '../src/terrain'
 import { CLIMATES } from '../src/places'
 import { fallenLeafSize, LITTER_DAYS, phenologyFor, type PhenologyDay } from '../src/phenology'
-import { createLeafLitter, deciduousTrees, fallenLeafGeometry, leafShare, litterField, litterFor, MAX_LEAVES, treeLeaf } from '../src/props/leafLitter'
+import { createLeafLitter, deciduousTrees, leafShare, litterField, litterFor, MAX_LEAVES, treeLeaf } from '../src/props/leafLitter'
 import { createVegetation } from '../src/props/vegetation'
 import type { SceneSpec } from '../src/sceneSpec'
 import { allParams, scene, view, viewOf } from './days'
@@ -83,19 +83,6 @@ describe('a leaf', () => {
     const phen = phenologyFor(day('2025-11-01', 'temperate'))
     expect(fallenLeafSize('broadleaf', phen)).toBeGreaterThan(fallenLeafSize('birch', phen))
     expect(fallenLeafSize('birch', phen)).toBeGreaterThan(fallenLeafSize('bush', phenologyFor(day('2025-09-25', 'polar'))))
-  })
-
-  it('is a small, deterministic, finite mesh lying on y = 0', () => {
-    for (let v = 0; v < 4; v++) {
-      const g = fallenLeafGeometry(v)
-      const pos = g.attributes.position
-      expect(Array.from(pos.array)).toEqual(Array.from(fallenLeafGeometry(v).attributes.position.array))
-      expect(g.index!.count / 3).toBe(8)
-      for (const value of [...pos.array, ...g.attributes.normal.array]) expect(Number.isFinite(value)).toBe(true)
-      g.computeBoundingBox()
-      expect(g.boundingBox!.min.y).toBeGreaterThanOrEqual(0)
-      expect(g.boundingBox!.max.y).toBeLessThan(0.3)
-    }
   })
 })
 

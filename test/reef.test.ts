@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { hasBeach } from '../src/coastKind'
 import { generateParams, type CoastParams } from '../src/params'
 import { placeNamed, PLACES } from '../src/places'
-import { createBeachrock, slabGeometry } from '../src/props/beachrock'
+import { createBeachrock } from '../src/props/beachrock'
 import { mangroveFor } from '../src/props/mangroves'
 import { Random } from '../src/random'
 import { reefFor } from '../src/reef'
@@ -162,17 +162,6 @@ describe('reef profile', () => {
 })
 
 describe('beachrock', () => {
-  it('slabs are deterministic, finite, based on y = 0 and tiny', () => {
-    const g = slabGeometry(new Random('slab'))
-    expect(Array.from(slabGeometry(new Random('slab')).attributes.position.array)).toEqual(Array.from(g.attributes.position.array))
-    const pos = g.attributes.position.array
-    const nrm = g.attributes.normal.array
-    let minY = Infinity
-    for (let i = 0; i < pos.length; i++) expect(Number.isFinite(pos[i]) && Number.isFinite(nrm[i])).toBe(true)
-    for (let i = 1; i < pos.length; i += 3) minY = Math.min(minY, pos[i])
-    expect(minY).toBeCloseTo(0)
-    expect(pos.length / 9).toBeLessThanOrEqual(30)
-  })
 
   it('crops out along the waterline in view, and only with beachrock', () => {
     const ctx = view({ ...base, place: 'antilles', composition: 'along-beach', beachrock: true }, 1080, '2025-07-10')

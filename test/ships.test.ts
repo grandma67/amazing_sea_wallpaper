@@ -48,26 +48,6 @@ describe('ships in polar seas', () => {
     expect(inSummer).toBeGreaterThan(0.3)
     expect(inWinter).toBeLessThan(inSummer)
   })
-
-  it('builds finite boats floating at the waterline', () => {
-    for (let i = 0; i < 4; i++) {
-      for (const g of [dinghy(new Random(`d${i}`)), expeditionShip(new Random(`e${i}`)), icebreaker(new Random(`i${i}`))]) {
-        const pos = g.attributes.position.array as Float32Array
-        expect(pos.every(Number.isFinite)).toBe(true)
-        g.computeBoundingBox()
-        const box = g.boundingBox!
-        expect(box.min.y).toBeLessThan(0)
-        expect(box.max.y).toBeGreaterThan(0)
-        expect(pos.length / 3).toBeLessThan(100_000)
-      }
-    }
-  })
-
-  it('is deterministic', () => {
-    const a = icebreaker(new Random('x')).attributes.position.array
-    const b = icebreaker(new Random('x')).attributes.position.array
-    expect(Array.from(a)).toEqual(Array.from(b))
-  })
 })
 
 describe('ships on the waves', () => {

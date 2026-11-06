@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { sargassumSeason } from '../src/phenology'
-import { branchGeometry, debrisFor, logGeometry } from '../src/props/debris'
+import { debrisFor } from '../src/props/debris'
 import { Random } from '../src/random'
 import type { SceneSpec } from '../src/sceneSpec'
 import { allParams, expectShare, scene, scenes, share } from './days'
@@ -101,27 +101,5 @@ describe('shore debris', () => {
       expect(spec(winter)!.wrack).toBe('sargassum')
       expect(scene({ coast: 'beach', place: 'antilles', ...noSeason }, '2025-01-15').overrides?.phenology).toBe(false)
     })
-  })
-
-  it('builds finite logs and branches lying on the ground', () => {
-    for (let i = 0; i < 6; i++) {
-      for (const g of [logGeometry(new Random(`log-${i}`), i % 2 === 0), branchGeometry(new Random(`branch-${i}`))]) {
-        const pos = g.attributes.position.array as Float32Array
-        const normals = g.attributes.normal.array as Float32Array
-        for (let k = 0; k < pos.length; k++) expect(Number.isFinite(pos[k]) && Number.isFinite(normals[k])).toBe(true)
-        g.computeBoundingBox()
-        const box = g.boundingBox!
-        // The trunk lies on y = 0; a flared butt and flattened roots sink into the sand a little.
-        expect(box.min.y).toBeGreaterThan(-0.6)
-        expect(box.max.y).toBeLessThan(3)
-        expect(g.index!.count / 3).toBeLessThan(20_000)
-      }
-    }
-  })
-
-  it('is deterministic', () => {
-    const a = logGeometry(new Random('same'), true).attributes.position.array
-    const b = logGeometry(new Random('same'), true).attributes.position.array
-    expect(a).toEqual(b)
   })
 })

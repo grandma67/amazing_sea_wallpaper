@@ -28,8 +28,13 @@ export default defineConfig({
   // fail rather than drift to another port, so the snapshot script's
   // default URL always reaches this app.
   server: { port: 5174, strictPort: true, watch: { ignored: ['**/out/**'] } },
-  // Tests over every real day (allParams, generateSceneParams) take 1–4 s
-  // alone and time out at the default 5 s when renders or another suite
-  // share the machine.
-  test: { testTimeout: 20_000 }
+  test: {
+    // Modules load once per worker instead of once per file: `three` and the
+    // params' tables took 29% of the run (TOOLS.md "Tests"). So a test file
+    // must not change a module's state, nor the shared allParams().
+    isolate: false,
+    // Renders or a coverage run sharing the machine slows tests several
+    // times; a timeout here should mean a hang, not a busy machine.
+    testTimeout: 20_000
+  }
 })

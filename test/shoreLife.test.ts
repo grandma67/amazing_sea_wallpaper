@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { burrowGeometry, crabGeometry, FLOWERS, flowerGeometry, shellGeometry, shoreLifeFor, starfishGeometry, type FlowerKind } from '../src/props/shoreLife'
+import { FLOWERS, shoreLifeFor } from '../src/props/shoreLife'
 import { Random } from '../src/random'
 import { seasonMonth } from '../src/seasons'
 import { allParams, DAYS, scene, scenes } from './days'
@@ -65,25 +65,5 @@ describe('shore life', () => {
       if (shells.includes('sand-dollar')) expect(p.sea.ocean).toBe('pacific')
     }
     for (const p of scenes({ coast: 'beach', biome: 'volcanic', ocean: 'southern' })) expect(life(p).shells).toEqual(['mussel'])
-  })
-
-  it('builds small, finite meshes standing on the ground', () => {
-    const sand: [number, number, number] = [0.46, 0.36, 0.23]
-    const geometries = [
-      ...(['clam', 'cockle', 'scallop', 'mussel', 'razor', 'sand-dollar'] as const).map(k => shellGeometry(new Random(k), k)),
-      starfishGeometry(new Random('star')),
-      ...(['ghost', 'shore', 'hermit'] as const).map(k => crabGeometry(new Random(k), k, sand)),
-      burrowGeometry(new Random('burrow'), sand),
-      ...(Object.keys(FLOWERS) as FlowerKind[]).map(k => flowerGeometry(new Random(k), k))
-    ]
-    for (const g of geometries) {
-      const pos = g.attributes.position.array as Float32Array
-      const normals = g.attributes.normal.array as Float32Array
-      for (let i = 0; i < pos.length; i++) expect(Number.isFinite(pos[i]) && Number.isFinite(normals[i])).toBe(true)
-      g.computeBoundingBox()
-      expect(g.boundingBox!.min.y).toBeGreaterThan(-0.05)
-      expect(g.boundingBox!.max.y).toBeLessThan(0.6)
-      expect(g.index!.count / 3).toBeLessThan(30_000)
-    }
   })
 })

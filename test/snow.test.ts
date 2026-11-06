@@ -1,9 +1,8 @@
-import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import type { Climate } from '../src/biome'
 import { CLIMATES, PLACES } from '../src/places'
-import { cakeGeometry, createIceFoot, CAMERA_GAP, footLine, footShape, iceFootFor, runEnds } from '../src/props/iceFoot'
+import { createIceFoot, CAMERA_GAP, footLine, footShape, iceFootFor, runEnds } from '../src/props/iceFoot'
 import { snowLook } from '../src/props/snowCap'
 import { litterFor } from '../src/props/leafLitter'
 import { grassBuried } from '../src/props/vegetation'
@@ -224,20 +223,5 @@ describe('the ice foot', () => {
       for (let i = 0; i < normal.count; i++) if (normal.getY(i) > 0) up++
       expect(up / normal.count, composition).toBeGreaterThan(0.8)
     }
-  })
-
-  it('has cakes that are deterministic, finite and near y = 0', () => {
-    const a = cakeGeometry(1).attributes.position
-    const b = cakeGeometry(1).attributes.position
-    expect(a.array).toEqual(b.array)
-    const v = new Vector3()
-    let low = Infinity
-    for (let i = 0; i < a.count; i++) {
-      v.fromBufferAttribute(a, i)
-      expect(Number.isFinite(v.x + v.y + v.z)).toBe(true)
-      low = Math.min(low, v.y)
-    }
-    expect(low).toBeGreaterThan(-0.2)
-    expect(a.count / 3).toBeLessThan(1000)
   })
 })

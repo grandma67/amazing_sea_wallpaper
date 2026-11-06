@@ -2,11 +2,11 @@ import { expect } from 'vitest'
 
 import { createCamera } from '../src/camera'
 import { shiftDate } from '../src/dates'
-import { generateParams, type Composition, type SceneParams } from '../src/params'
+import { generateParams, type CoastParams, type Composition, type SceneParams } from '../src/params'
 import { propChoices, type PropChoices } from '../src/props/choices'
 import { PropContext } from '../src/props/context'
 import { parseSceneSpec, type SceneSpec } from '../src/sceneSpec'
-import { terrainHeight } from '../src/terrain'
+import { shoreToWorld, terrainHeight } from '../src/terrain'
 
 /** Every day of three years: enough for the rare events to show up. */
 export const DAYS: string[] = Array.from({ length: 3 * 365 }, (_, i) => shiftDate('2024-01-01', i))
@@ -93,4 +93,42 @@ export function expectDryCameras(
     }
   }
   return out
+}
+
+/** The 15th of each month, for tables that must hold all year. */
+export const MONTHS: string[] = Array.from({ length: 12 }, (_, i) => `2025-${String(i + 1).padStart(2, '0')}-15`)
+
+/** A clear, moonless night with nothing in the sky: for night-sky features. */
+export const DARK = { timeOfDay: 'night', nightSky: 'starlit', weather: 'clear', fog: null, storm: null, eclipse: null } as const
+
+/** The calendar month of a date or a day, 1–12. */
+export const monthOf = (day: string | { date: string }): number => Number((typeof day === 'string' ? day : day.date).slice(5, 7))
+
+/** Ground height at shore coordinates (s = 0 the land's foot, `a` along it). */
+export const heightAt = (coast: CoastParams, s: number, a = 0): number => terrainHeight(coast, ...shoreToWorld(coast, s, a))
+
+/** Expect `test` of every item, with one `expect` for the whole list: `expect`
+ * per vertex or instance took seconds (trees: 7.7 s of 7.9). An empty list
+ * fails: a rule checked on nothing proves nothing. Filter first, and pass
+ * `allowEmpty` for a rule that may have no days to apply to. */
+export function expectEvery<T>(items: Iterable<T>, test: (item: T) => boolean, { what = item => item, allowEmpty = false }: { what?: (item: T) => unknown; allowEmpty?: boolean } = {}): void {
+  let count = 0
+  let failed = 0
+  let first: T | undefined
+  for (const item of items) {
+    count++
+    if (test(item)) continue
+    if (failed++ === 0) first = item
+  }
+  if (!allowEmpty) expect(count, 'checked nothing').toBeGreaterThan(0)
+  expect(failed, failed > 0 ? `${failed} of ${count} fail, first: ${JSON.stringify(what(first as T))}` : undefined).toBe(0)
+}
+
+/** A value by its path, `'coast.tide.mean'`. */
+const pathOf = (p: unknown, path: string): unknown => path.split('.').reduce<unknown>((v, key) => (v as Record<string, unknown> | null | undefined)?.[key], p)
+
+/** Expect two scenes to agree on these fields: forcing a feature must leave the
+ * rest of the day as drawn (SCENE_SPECS.md "Adding a spec field"). */
+export function expectSameDay(a: SceneParams, b: SceneParams, paths: readonly string[]): void {
+  for (const path of paths) expect(pathOf(a, path), `${a.date} ${path}`).toEqual(pathOf(b, path))
 }

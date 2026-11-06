@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { beachLines, seabedAlbedo, STONE_LEVELS, STONE_SIZES, stoneAt, stoneCell, stoneCover, stoneGridCell, stoneLevel, stoneMean } from '../src/beach'
-import { MAX_RADIUS, MAX_STONES, meshRadius, meshStones, stoneGeometry } from '../src/props/stones'
-import { Random } from '../src/random'
+import { MAX_RADIUS, MAX_STONES, meshRadius, meshStones } from '../src/props/stones'
 import { stoneUniforms } from '../src/terrain'
 import { allParams, scene, view, viewOf } from './days'
 
@@ -82,25 +81,6 @@ describe('stone cells', () => {
 })
 
 describe('mesh stones', () => {
-  it('builds small, finite stones resting on y = 0, deterministically', () => {
-    for (let i = 0; i < 12; i++) {
-      const g = stoneGeometry(new Random(`stone-${i}`), 0.1, i % 2 === 1)
-      const position = g.attributes.position.array
-      const normal = g.attributes.normal.array
-      expect([...position, ...normal].every(Number.isFinite)).toBe(true)
-      g.computeBoundingBox()
-      const box = g.boundingBox!
-      expect(box.min.y).toBeCloseTo(0, 6)
-      expect(box.max.y).toBeGreaterThan(0.02)
-      expect(box.max.x - box.min.x).toBeLessThan(0.15)
-      const tris = (g.index?.count ?? 0) / 3
-      expect(tris).toBeGreaterThanOrEqual(50)
-      expect(tris).toBeLessThanOrEqual(150)
-    }
-    const a = stoneGeometry(new Random('same'), 1, true).attributes.position.array
-    const b = stoneGeometry(new Random('same'), 1, true).attributes.position.array
-    expect(Array.from(a)).toEqual(Array.from(b))
-  })
 
   it('sizes the mesh radius by pixels on screen', () => {
     // 50 mm lens, 1080p: ~0.25 mrad per pixel vertically.

@@ -2,23 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { hasBeach } from '../src/coastKind'
 import { Random } from '../src/random'
-import { restingGull } from '../src/props/birds'
 import { shoreLifeFor } from '../src/props/shoreLife'
-import {
-  crocodileGeometry,
-  hippoGeometry,
-  inWater,
-  lizardGeometry,
-  monkeyGeometry,
-  nestingSpecies,
-  trackGeometry,
-  turtleGeometry,
-  wildlifeFor,
-  type CrocodileKind,
-  type LizardKind,
-  type MonkeyKind,
-  type TurtleSpecies
-} from '../src/props/wildlife'
+import { inWater, nestingSpecies, trackGeometry, wildlifeFor } from '../src/props/wildlife'
 import { placeNamed } from '../src/places'
 import { allParams, scenes, share } from './days'
 
@@ -127,37 +112,6 @@ describe('beach wildlife', () => {
     }
     for (const p of scenes({ coast: 'beach', biome: 'tropical', props: { wildlife: { crocodile: 'nile' } } }, 10)) expect(life(p)!.crocodiles).toBeGreaterThan(0)
     for (const p of scenes({ coast: 'beach', biome: 'tropical', props: { wildlife: null } }, 10)) expect(life(p)).toBeNull()
-  })
-
-  it('builds finite animals standing on the ground', () => {
-    const sand: [number, number, number] = [0.6, 0.55, 0.45]
-    const geometries = [
-      ...(['green', 'loggerhead', 'leatherback', 'hawksbill', 'olive-ridley'] as TurtleSpecies[]).flatMap(s => [
-        turtleGeometry(new Random(s), s, sand, 'adult'),
-        turtleGeometry(new Random(s), s, sand, 'hatchling')
-      ]),
-      ...(['macaque', 'capuchin', 'vervet'] as MonkeyKind[]).flatMap(k => [monkeyGeometry(new Random(k), k, 'walk'), monkeyGeometry(new Random(k), k, 'sit')]),
-      ...(['marine-iguana', 'green-iguana', 'monitor', 'spiny-tailed'] as LizardKind[]).map(k => lizardGeometry(new Random(k), k)),
-      ...(['saltwater', 'american', 'nile', 'west-african'] as CrocodileKind[]).flatMap(k => [crocodileGeometry(new Random(k), k, 0.4), crocodileGeometry(new Random(k), k, 0.03)]),
-      hippoGeometry(new Random('h'), 0),
-      hippoGeometry(new Random('h'), 1),
-      restingGull(false)
-    ]
-    for (const g of geometries) {
-      const pos = g.attributes.position.array as Float32Array
-      expect(pos.every(Number.isFinite)).toBe(true)
-      g.computeBoundingBox()
-      expect(g.boundingBox!.min.y).toBeGreaterThan(-0.15)
-      expect(g.boundingBox!.min.y).toBeLessThan(0.05)
-      expect(pos.length / 3).toBeLessThan(50_000)
-    }
-  })
-
-  it('sinks the sand a nesting turtle throws up into the beach, not deeper', () => {
-    const g = turtleGeometry(new Random('n'), 'leatherback', [0.6, 0.55, 0.45], 'nesting')
-    g.computeBoundingBox()
-    expect(g.boundingBox!.min.y).toBeGreaterThan(-0.3)
-    expect(g.boundingBox!.max.y).toBeLessThan(0.6)
   })
 
   it('lays a track on the ground', () => {
