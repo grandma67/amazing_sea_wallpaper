@@ -141,6 +141,6 @@ Sea 0 always; tides lower the land (COAST.md), so the sheet stands at the freebo
 - **Found by it:** rubble above the eye (1.84 m at 12 m, eye 1.66 m). Those pieces are now not drawn.
 - **Rendered framing, no render** (`params.mjs --project sea-ice`, the 21 land ice days of 2025): nearest piece 10.9 m at least, 52 m median.
 - **Midday:** the concern was clipping. `params.debug.probe` on 2024-04-28 reads final 204,195,191 at the brightest of four points, so no. It looks plain because high sun flattens the relief.
-- **Arctic Canada's dates** now rest on Galley et al. 2012, read in full: the middle row's end moved a month (11 days changed).
+- **Arctic Canada's dates** now rest on Galley et al. 2012, read in full: the middle row's freeze-up moved 10–20 days later, its break-up start 19 days later and its last ice 3 days earlier (11 days changed).
 - **Real days with the new slabs,** by `snapshot --where`: 2024-01-01, 01-18, 02-28, 04-02, 04-17, 04-28, 11-24, 2025-05-18. Render time 0%, no leak.
 - **Still open:** the sheet's lower limit against a steep beach at low tide reads as a straight line in places (2024-02-28).
