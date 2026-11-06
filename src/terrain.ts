@@ -1305,8 +1305,9 @@ void main() {
     snowW = above * smoothstep(open - 0.035, open + 0.035, wide) * smoothstep(0.5, 0.78, Nland.y);
     // Frozen spray on bare rock round the high-water line.
     if (rockW > 0.0 && snowLook.z > 0.0) {
-      sprayIce = smoothstep(0.4, 0.6, fbm(q / 1.3 + 83.0)) * smoothstep(snowLook.y - 1.2, snowLook.y - 0.4, h) * (1.0 - smoothstep(snowLook.y + 0.8, snowLook.y + 2.2, h));
-      albedo = mix(albedo, vec3(0.5, 0.58, 0.63), 0.75 * sprayIce);
+      float edge = fbm(q / 1.3 + 83.0);
+      sprayIce = smoothstep(snowLook.y - 1.0, snowLook.y - 0.5, h) * (1.0 - smoothstep(snowLook.y + 0.1, snowLook.y + 0.9, h + 0.7 * (edge - 0.5))) * (0.75 + 0.25 * edge);
+      albedo = mix(albedo, vec3(0.45, 0.52, 0.56), 0.45 * sprayIce);
     }
     // Soft drifts and wind-worn ripples where they can be seen; the stones'
     // domes and the sand's ripples are under it.

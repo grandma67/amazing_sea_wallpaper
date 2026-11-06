@@ -89,10 +89,11 @@ export function snowCap(material: MeshStandardMaterial, look: SnowLook | null, a
           float lying = smoothstep(open - 0.1, open + 0.1, wide);
           float above = smoothstep(snowLook.y, snowLook.y + 0.4, q.y + 0.3 * (fine - 0.5));
           float capped = smoothstep(0.3, 0.72, ${up} + 0.45 * (fine - 0.5)) * lying * above * snowLook.w;
-          // Frozen spray: a pale glaze in the splash zone, on every face.
-          float spray = snowLook.z * smoothstep(0.35, 0.6, fine) * smoothstep(snowLook.y - 1.2, snowLook.y - 0.4, q.y) * (1.0 - smoothstep(snowLook.y + 0.8, snowLook.y + 2.2, q.y + fine));
-          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 0.58, 0.63), 0.75 * spray);
-          roughnessFactor = mix(roughnessFactor, 0.25, spray);
+          // Frozen spray: a glassy sheath low on every face, not patches: thin
+          // enough to see the rock through, its top edge running in drips.
+          float spray = snowLook.z * smoothstep(snowLook.y - 1.0, snowLook.y - 0.5, q.y) * (1.0 - smoothstep(snowLook.y + 0.1, snowLook.y + 0.9, q.y + 0.7 * (wide - 0.5))) * (0.75 + 0.25 * wide);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.45, 0.52, 0.56), 0.45 * spray);
+          roughnessFactor = mix(roughnessFactor, 0.2, spray);
           diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.84, 0.87), capped);
           roughnessFactor = mix(roughnessFactor, 0.9, capped);
         }`

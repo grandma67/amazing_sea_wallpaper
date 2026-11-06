@@ -83,10 +83,15 @@ tides.
   - The foot narrows with its height: at full width it read as a slab laid on the sea. Its top has
     relief and its lip wobbles.
   - Wrack gets no snow: it came in on the last tides. Driftwood does. This came after the last render, so it's tested by type only.
-- **Seen in renders** (`scenes/snow.json`, 1080p, 16 frames; `diff.mjs --off '{"snow":null}'` on the
-  first seven): polar framed and along-beach, boreal framed front-lit and backlit, temperate patchy,
-  stony with snow to the line, rock platform at low and high tide (frozen spray), overlook, overcast; real
-  days 2024-01-03, 2024-11-22, 2024-12-05, 2026-02-16.
+- **Seen in renders** (`scenes/snow.json`, 1080p, 16 frames): polar framed and along-beach, boreal framed
+  front-lit and backlit, temperate patchy, stony with snow to the line, rock platform at low and high tide,
+  overlook, overcast; real days 2024-01-03, 2024-11-22, 2024-12-05, 2026-02-16.
+- **Final `diff.mjs --off '{"snow":null}'`** on all 11 specs in the file (0.112): none invisible, from 2.4%
+  of the frame (platform at low tide: the snow is far off) to 64.8% (boreal framed).
+- **Frozen spray:** first called "reads well" from a full frame, unchecked. A before/after crop (`--crop`,
+  with `props.iceFoot: false`) then showed a hard-edged camouflage over the whole boulder. Rewritten in 0.112 as
+  a thin glassy sheath low on each face, and seen in the same crop: smooth, no patches. It's an estimate of the
+  look (no reference photo), and on a low boulder the sheath reaches near its top.
 - **Not rendered:** tidal flat and salt marsh (tested for the camera only), a cliff's foot, snow-capped
   salt-marsh tufts, polar night.
 
@@ -95,7 +100,9 @@ tides.
 - **A foot beside a very close camera:** where the camera stands on the line itself (`2025-04-02`-style
   along-beach), the foot's end near it still looks a little cut. The strip must part round the camera;
   a moving viewer will need a better answer (the camera shouldn't decide where ice is).
-- **The mountains under full snow** have little relief from a front-lit, far view: they read smoothly.
+- **The mountains under full snow: unsolved.** They read as smooth dunes when front-lit and far off. Letting
+  rock show on steep faces and by noise barely helped (slopes on that mesh are shallow at that scale); it needs
+  its own look at the mountain's relief and snow, not a threshold.
 - **The far boreal forest:** terrain snow past the plants' range has no dark woods in it, so far low
   land is plain white. Landforms and islands do show their woods.
 - **Falling snow:** not modelled. Polar-winter rain shafts have no snow form.
