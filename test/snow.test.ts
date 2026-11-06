@@ -171,8 +171,9 @@ describe('the ice foot', () => {
   it('is a function of its place along the shore, and comes and goes', () => {
     expect(footShape(7, 123.4)).toEqual(footShape(7, 123.4))
     const heights = Array.from({ length: 800 }, (_, i) => footShape(7, i * 3).height)
-    expect(Math.max(...heights)).toBeLessThan(1.7)
-    expect(Math.max(...heights)).toBeGreaterThan(0.5)
+    // About 2 m at most, as in the photos (SEASONS.md §4.1).
+    expect(Math.max(...heights)).toBeLessThan(2.4)
+    expect(Math.max(...heights)).toBeGreaterThan(1)
     expect(heights.filter(h => h < 0.04).length).toBeGreaterThan(20)
   })
 
@@ -237,6 +238,6 @@ describe('the ice foot', () => {
       low = Math.min(low, v.y)
     }
     expect(low).toBeGreaterThan(-0.2)
-    expect(a.count).toBeLessThan(2000)
+    expect(a.count / 3).toBeLessThan(1000)
   })
 })

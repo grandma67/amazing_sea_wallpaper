@@ -271,7 +271,14 @@ Mediterranean, subtropical, tropical and arid coasts have none.
 - **Cover:** thin on the season's shoulders and where snow comes and goes, nearly closed in deep polar
   winter (0.83–0.98); temperate days 0.5–0.71 *(est.)*.
 
-**The ice foot** (`props/iceFoot.ts`): forms last in the freeze-up, after the upper beach freezes and
+**The ice foot's look comes from three photos** (`props/iceFoot.ts`, 0.113): Mt. Gaudry, Antarctic Peninsula (Swisseduc: about
+2 m, a thick wall with a rolled top and dark scalloped hollows at its base); Adelaide Island area (Cool Antarctica: near-vertical
+face, flush with the land's snow, brown-yellow stains low down, flat slabs in front); Arctic, 1881–84 (G. W. Rice, Library of
+Congress: jumbled fractured blocks a metre or more across). They're Antarctic and one old Arctic plate; none shows a beach foot on
+a sandy shore. Height 0.5–2 m follows them; widths are still *(est.)*. Also "several feet" (Cool Antarctica) and a fairly level
+surface with a tide crack to the sea ice (AMS Glossary); Dionne 1973 has upper- and lower-strand types (St. Lawrence; abstract only).
+
+The ice foot's timing: forms last in the freeze-up, after the upper beach freezes and
 snow lies and cakes and slush are deposited (Short and Wiseman 1972, Alaska); Nome's beach is under ice
 about six months a year; forms change quickly over small distances (Point Lay and Svalbard). About 1 m or
 more high and several metres wide, with sediment in it, comes from a USGS report on **Lake Michigan**, an
@@ -280,6 +287,10 @@ analogue: we found no measured range for the Arctic. Season rises from day 295 t
 
 ## Sources
 
+- Ice foot photos, viewed: https://www.swisseduc.ch/glaciers/antarctic/antarctic_peninsula/sea_ice/index-en.html?id=9 ,
+  https://www.coolantarctica.com/gallery/scenic/sea-ice10.php , Rice, https://www.loc.gov/item/2009634175 via
+  https://course-exhibits.library.dartmouth.edu/s/ENVS15_24F/item/5949 ; definitions, https://glossarystaging.ametsoc.net/wiki/Ice_foot ,
+  https://www.coolantarctica.com/Antarctica%20fact%20file/antarctica_glossary_of_terms2.php ; Dionne 1973, https://releve.erudit.org/fr/revues/cgq/1973-v17-n41-cgq2615/021116ar
 - Snow and ice foot (§4.1), from search summaries: Svalbard, https://duo.uio.no/handle/10852/62032 and
   https://polarresearch.net/index.php/polar/article/view/3047/6896 ; snow-free dates, MODIS 2000–2019,
   https://modis.gsfc.nasa.gov/sci_team/pubs/abstract_new.php?id=39325 ; Tromsø, Climate of Norway,

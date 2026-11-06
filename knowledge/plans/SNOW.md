@@ -95,6 +95,23 @@ tides.
 - **Not rendered:** tidal flat and salt marsh (tested for the camera only), a cliff's foot, snow-capped
   salt-marsh tufts, polar night.
 
+## The look against photos (0.113)
+
+Built first from words, then compared with three photos (SEASONS.md §4.1). What changed: height 0.3–1.2 m → 0.5–2 m; a sloped
+clean edge → a rolled top over a steep wall, undercut into dark hollows, stained low down and broken along the shore; bays tens of
+metres long in its face; round cakes → fractured slabs and blocks up to ~3 m.
+
+Compared by eye in a before/after crop (`foot-low-along` in the render, a 29 m view) and a cross-section (`profile.mjs --props`: top
+~2.1 m above the ground, fixed through the tide, water at its base at high tide).
+
+**Still not like the photos:**
+
+- Close up the wall is smooth and lobed: real faces are broken and layered, and its sections are too coarse for that past ~20 m.
+- No fast ice, slabs or brash in front of it: in all three photos broken sea ice lies against the foot. That belongs with sea ice
+  (phase 10).
+- All the photos are Antarctic or an 1880s Arctic plate, and none shows a foot on a sandy beach, so its look on sand, and all
+  widths, are inferred. Boreal and temperate feet use the same shape, unchecked.
+
 ## Known limits
 
 - **A foot beside a very close camera:** where the camera stands on the line itself (`2025-04-02`-style
