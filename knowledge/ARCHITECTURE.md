@@ -87,8 +87,10 @@ Playwright (headless snapshots), Vitest.
   3. Time of day (main; one draw over `timeWeights(realSun)`: categories the sun can't reach
      get 0 from 63°), evening (main).
   4. Weather kind and coverage (`'weather'`, `generateWeather`); eclipse fix-up; marine layer
-     (`'marine-layer'`, deck on `'marine-layer-deck'`); dust (`'dust'`); rainbow day
-     (`'rainbow'`).
+     (`'marine-layer'`, deck on `'marine-layer-deck'`); dust (`'dust'`); whether a storm
+     comes (`stormComes`: the `'storm'` stream's first draw, as `generateStorm` takes it); rainbow
+     day (`'rainbow'`; none on a stormy day, so no turn from the sun and no wide lens; a forced
+     rainbow keeps random storms away).
   5. Heading, sun elevation (main, within `sunRange`: the day's real range from 63°) and
      azimuth (main; eclipse and rainbow override; on midnight-sun days the heading becomes the
      sun's real compass bearing − `relSunAz`), Venus framing at blue hour (`'planet-framing'`: the sun's
@@ -96,11 +98,14 @@ Playwright (headless snapshots), Vitest.
      (`skyClock.ts`; main, at night the sun depth from `'moon-hour'`, then `'moon-framing'`), day
      moon and night sky (`'moon-sky'`); aurora (`'aurora'`: Kp, display, arcs; a low display is
      framed by turning sun and moon about the vertical, NIGHT_SKY phase 6).
-  6. Camera height, focal length (main, `keep`; aurora nights 14–24 mm from `'aurora-framing'`),
-     wind speed and heading (main, `keep`).
+  6. Camera height, focal length drawn (main, `keep`; aurora nights 14–24 mm from
+     `'aurora-framing'`, rainbow days 14–22 mm, eclipses 24–35 mm: drawn here, the lens itself
+     chosen in 7 by `lensFor`), wind speed and heading (main, `keep`).
   7. Storm (`'storm'`, `'storm-weather'`: overrides weather and wind); water (`'water'`); wind
      × basin, marine-layer wind cap; formations (`'formations'`, `'cloud-species'`);
-     waterspout (`'waterspout'`); arrangement; fog (`'fog'`: calms the wind).
+     waterspout (`'waterspout'`); arrangement; fog (`'fog'`: calms the wind); an unforced aurora
+     dropped by fog, storm or overcast (the sky turned back, so the night keeps its own lens,
+     horizon and sky); then the lens (`lensFor`).
   8. Swell (`'swell'`); tide (`'tide'`); coast (`generateCoast`: `'coast'`, `'coast-kind'`,
      `'rock-shore'` and `'rock-camera'` on rock days, `'sand-colour'`,
      `'beach-material'` (material, grain, stone size, beach state and shape), `'reef'`,
@@ -112,8 +117,8 @@ Playwright (headless snapshots), Vitest.
       choppiness (main, `keep`).
   11. After `params` exists (read it whole): noctilucent, nacreous, roll cloud, contrails,
       visibility (`'visibility'`, reads `weather.dust`), night glow (`'night-glow'`, sun below
-      the horizon only; reads the place's `bortle`), aurora dropped by fog, storm or overcast
-      unless forced (adds "Northern/Southern lights" to the title), planets (no draw; sun down),
+      the horizon only; reads the place's `bortle`), aurora (dropped in 7; adds
+      "Northern/Southern lights" to the title), planets (no draw; sun down),
       meteors (`'meteors'`, night only; adds the shower's name to the title).
 
   Props decide later, at render, on `ctx.rng(kind)` (`props/choices.ts`).

@@ -169,6 +169,25 @@ describe('aurora', () => {
     expect(inFrame / framed).toBeGreaterThan(0.9)
   })
 
+  it('hidden by fog, leaves the lens, horizon and sky of a night without it', () => {
+    let hidden = 0
+    for (const place of ['norway-north', 'iceland']) {
+      for (const [i, p] of winter({ ...DARK, place, fog: 'advection' }, 9).entries()) {
+        const date = WINTER.filter((_, k) => k % 9 === 0)[i]
+        expect(p.aurora).toBeNull()
+        if (scene({ ...DARK, place }, date).aurora == null) continue
+        hidden++
+        const none = scene({ ...DARK, place, fog: 'advection', aurora: false }, date)
+        expect(p.camera).toEqual(none.camera)
+        for (const k of [0, 1, 2]) {
+          expect(p.sunDirection[k]).toBeCloseTo(none.sunDirection[k], 9)
+          expect(p.moonDirection[k]).toBeCloseTo(none.moonDirection[k], 9)
+        }
+      }
+    }
+    expect(hidden).toBeGreaterThan(5)
+  })
+
   it('is green with red tops; storms add red with Kp and a magenta lower border', () => {
     const byKp = new Map<number, number[]>()
     for (const place of ['norway-north', 'iceland', 'scotland', 'maine']) {

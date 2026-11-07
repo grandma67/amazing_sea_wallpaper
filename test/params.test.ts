@@ -174,6 +174,20 @@ describe('generateParams', () => {
       expect(p.title).toContain('rainbow')
     }
   })
+
+  it('a storm takes the rainbow day: no turn from the sun, no wide lens', () => {
+    const showery = { timeOfDay: 'golden-hour', weather: 'scattered', eclipse: null } as const
+    const stormy = scenes({ ...showery, storm: 'thunderstorm' }, 120)
+    const unstormed = scenes({ ...showery, storm: null }, 120)
+    const noBow = scenes({ ...showery, storm: 'thunderstorm', rainbow: false }, 120)
+    // Some of these days would have had a rainbow without the storm.
+    expect(unstormed.filter(p => p.rainbow != null).length).toBeGreaterThan(5)
+    stormy.forEach((p, i) => {
+      expect(p.rainbow).toBeNull()
+      expect(p.camera).toEqual(noBow[i].camera)
+      expect(p.sunDirection).toEqual(noBow[i].sunDirection)
+    })
+  })
 })
 
 describe('fog', () => {

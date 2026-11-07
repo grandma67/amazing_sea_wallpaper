@@ -380,6 +380,10 @@ tool gotchas: TOOLS.md.
   the high eyes (open sea and overlooks draw 40–160 m) as well as the beach.
 - Effects that depend on where the eye is (fog above or below it) belong in the render, where
   the camera's ground is known; `params.ts` can't call `terrainHeight` (import cycle).
+- A framing chosen for a sky object (a rainbow's turn from the sun, an aurora's wide lens and
+  turned sky) has to wait for, or undo on, whatever later cancels the object (storm, fog):
+  otherwise the day keeps a 14 mm storm shot facing away from the sun with nothing to show
+  (2024-06-21 until 0.121). Decide the cancel first where its draw allows (`stormComes`).
 - `Vector3.transformDirection` normalises: scale after transforming (contrails all landed 1 km
   away).
 

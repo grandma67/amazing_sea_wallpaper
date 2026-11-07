@@ -1118,6 +1118,12 @@ export function stormChance(climate: Climate, summer: boolean): number {
   return climate === 'subtropical' && summer ? 0.14 : 0.07
 }
 
+/** Whether generateStorm will make a storm (its first draw), known before
+ * the heading and lens it places the storm with. */
+function stormComes(seed: string, chance: number, timeOfDay: TimeOfDay, force?: Force<'thunderstorm' | 'squall'>): boolean {
+  return forced(force, timeOfDay !== 'night' && Random.derive(seed, 'storm').chance(chance))
+}
+
 function generateStorm(
   seed: string,
   chance: number,
@@ -1127,6 +1133,7 @@ function generateStorm(
   force?: Force<'thunderstorm' | 'squall'>
 ): StormParams | null {
   const rng = Random.derive(seed, 'storm')
+  // The same first draw as stormComes.
   if (!forced(force, timeOfDay !== 'night' && rng.chance(chance))) return null
   // Keep strikes and shafts inside the frame (a little narrower than the lens).
   const halfFov = Math.min(30, halfFovDeg * 0.8)
@@ -1615,15 +1622,22 @@ function buildParams(
   // Rainbows: a shower passing on a sunny, showery day while the sun is low
   // (the bow is a 42° circle around the point opposite the sun, so it's only
   // above the horizon when the sun is below 42°). On those days the camera
-  // turns its back to the sun.
+  // turns its back to the sun. A storm hides the bow, so a stormy day is no
+  // rainbow day (and keeps its own heading and lens); a forced rainbow keeps
+  // the random storms away.
+  // Jun–Sep north of the equator, Dec–Mar south of it.
+  const summer = monthInSeason({ date, latitudeDeg }, 6, 9)
+  const stormBarred = (eclipse != null || weather.marineLayer || weather.dust != null || spec.rainbow === true) && spec.storm === undefined
+  const stormy = !stormBarred && stormComes(seed, stormChance(climate, summer), timeOfDay, spec.storm)
   const rainbowRng = Random.derive(seed, 'rainbow')
   const rainbowDay =
-    spec.rainbow ??
-    (eclipse == null &&
-      weather.dust == null &&
-      (timeOfDay === 'golden-hour' || timeOfDay === 'daylight') &&
-      (weather.kind === 'scattered' || weather.kind === 'broken') &&
-      rainbowRng.chance(0.15))
+    (spec.rainbow ??
+      (eclipse == null &&
+        weather.dust == null &&
+        (timeOfDay === 'golden-hour' || timeOfDay === 'daylight') &&
+        (weather.kind === 'scattered' || weather.kind === 'broken') &&
+        rainbowRng.chance(0.15))) &&
+    !stormy
 
   // Camera heading, then the sun relative to it. Low suns are usually framed
   // in or near the view for glitter paths; high suns can be anywhere.
@@ -1739,12 +1753,13 @@ function buildParams(
     framing,
     spec.aurora
   )
-  if (aurora != null && aurora.frameTurnDeg !== 0) {
-    const turn = (d: [number, number, number]) => dirFromAzEl(Math.atan2(d[0], -d[2]) / DEG + aurora!.frameTurnDeg, elevationOf(d))
-    relSunAz += aurora.frameTurnDeg
+  const turnSky = (deg: number) => {
+    const turn = (d: [number, number, number]) => dirFromAzEl(Math.atan2(d[0], -d[2]) / DEG + deg, elevationOf(d))
+    relSunAz += deg
     sunDirection = turn(sunDirection)
     moonDirection = turn(moonDirection)
   }
+  if (aurora != null && aurora.frameTurnDeg !== 0) turnSky(aurora.frameTurnDeg)
   // The sun and the moon by day: a moon well clear of the sun, in the frame
   // with the sea.
   const dayMoon =
@@ -1817,11 +1832,21 @@ function buildParams(
   // horizon 60–68% down): the display stands 8–40° up (own stream).
   const auroraFrame = Random.derive(seed, 'aurora-framing')
   const [auroraLens, auroraHorizon] = [auroraFrame.range(14, 24), auroraFrame.range(0.6, 0.68)]
-  const auroraNight = aurora != null && eclipse == null
-  const focalLengthMm = or(
-    eclipse != null ? erng.range(24, 35) : auroraNight ? Math.min(drawnFocalLength, auroraLens) : rainbowDay ? Math.min(drawnFocalLength, rainbowRng.range(14, 22)) : drawnFocalLength,
-    spec.camera?.focalLengthMm
-  )
+  // The draws here; the lens itself once fog and storms have said whether
+  // the aurora shows (lensFor).
+  const eclipseLens = eclipse != null ? erng.range(24, 35) : drawnFocalLength
+  const rainbowLens = eclipse == null && !(aurora != null) && rainbowDay ? rainbowRng.range(14, 22) : drawnFocalLength
+  const lensFor = (auroraShown: boolean) =>
+    or(
+      eclipse != null
+        ? eclipseLens
+        : auroraShown
+          ? Math.min(drawnFocalLength, auroraLens)
+          : rainbowDay
+            ? Math.min(drawnFocalLength, rainbowLens)
+            : drawnFocalLength,
+      spec.camera?.focalLengthMm
+    )
 
   // Wind: mostly calm-to-moderate seas, fresher under heavy cloud (fronts)
   // and lighter on clear days.
@@ -1845,12 +1870,11 @@ function buildParams(
     ) * windByWeather[weather.kind]
   const windHeadingDeg = keep('windHeading', rng.range(0, 360))
 
-  // Jun–Sep north of the equator, Dec–Mar south of it.
-  const summer = monthInSeason({ date, latitudeDeg }, 6, 9)
-  const storm =
-    (eclipse != null || weather.marineLayer || weather.dust != null) && spec.storm === undefined
-      ? null
-      : generateStorm(seed, stormChance(climate, summer), timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.storm)
+  // Placed with the lens of the day it makes: an unforced aurora doesn't
+  // show through it.
+  const storm = stormBarred
+    ? null
+    : generateStorm(seed, stormChance(climate, summer), timeOfDay, headingDeg, horizontalHalfFovDeg(lensFor(aurora != null && spec.aurora != null), aspect), spec.storm)
   if (storm != null) {
     const srng = Random.derive(seed, 'storm-weather')
     weather.kind = 'storm'
@@ -1893,7 +1917,8 @@ function buildParams(
       weather: weather.kind,
       windSpeed,
       headingDeg,
-      halfFovDeg: horizontalHalfFovDeg(focalLengthMm, aspect),
+      // By day, where no aurora changes the lens.
+      halfFovDeg: horizontalHalfFovDeg(lensFor(aurora != null), aspect),
       fog: false
     },
     Random.derive(seed, 'waterspout'),
@@ -1919,6 +1944,14 @@ function buildParams(
     // The sun's dimming by the layer above the eye is applied at render time
     // (scene.ts fogSunTransmittance), where the eye's height is known.
   }
+  // Fog and storms are chosen after the aurora: they hide it, and then
+  // nothing calls for its wide lens, high horizon or turned sky.
+  if (aurora != null && spec.aurora == null && (fog != null || storm != null || weather.kind === 'overcast')) {
+    if (aurora.frameTurnDeg !== 0) turnSky(-aurora.frameTurnDeg)
+    aurora = null
+  }
+  const auroraNight = aurora != null && eclipse == null
+  const focalLengthMm = lensFor(auroraNight)
   const oceanSwell = swell(seed, windHeadingDeg, climate)
   // A frozen sea stops the waves: crests stay under the ice (seaIce.ts).
   oceanSwell.swellHeight = or(seaIce != null ? 0 : oceanSwell.swellHeight * (basin.swellHeight * (monsoon ? 1.5 : 1) * iceCalm * iceCalm), spec.swellHeight)
@@ -2144,8 +2177,6 @@ function buildParams(
   params.contrails = contrailsFor(params, Random.derive(seed, 'contrails'), spec.contrails)
   params.visibilityKm = visibilityFor(params, Random.derive(seed, 'visibility'), spec.visibilityKm)
   params.nightGlow = nightGlowFor(params, Random.derive(seed, 'night-glow'), spec)
-  // Fog and storms are chosen after the aurora: they hide it.
-  if (aurora != null && spec.aurora == null && (fog != null || storm != null || weather.kind === 'overcast')) aurora = null
   params.aurora = aurora
   if (aurora != null) params.title += latitudeDeg < 0 ? ' · Southern lights' : ' · Northern lights'
   params.planets = planetsFor(params, spec.planets === false || spec.planets === null)
