@@ -171,6 +171,20 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   it's coarse, so they read it three texels toward the light (`landShadowLift`). A point above the deck
   has less cloud over it: takram's `min(max + tail, meanExtinction × (toTop − front))`, so summits stay
   lit. `debug.shadowCoverage` reports by kind.
+- **Skylight under tree crowns** (`props/skyOcclusion.ts`, SHADOWS.md phase 4.1): each plant but grass
+  is a disc of leaves at a share of its height (`CROWN`, placed by its instance matrix, so a leaning
+  palm's is over its fronds), stopping 50–85% of the skylight it covers (estimates; deciduous crowns
+  down to 30% of that as the leaves fall). A level point loses opacity × the disc's view factor; crowns
+  multiply. Baked for the crowns within 200 m and in view into a world R8 map (≥ 0.25 m a texel, open
+  rim; 3–8 ms): the terrain scales its skylight and sky reflection by it, props their indirect diffuse
+  and specular, fading out 0.5–3 m above each prop's foot (crowns keep their baked depth, trees.ts).
+  Openness under groves 0.2–0.85. `debug.skyOpenLeast`; off: `passes.skyOcclusion: false`.
+- **Soft shadows by blocker height** (`shadow.ts SOFT_SHADOW_GLSL`, phase 4.3): on the fine slice the
+  sea, terrain and props filter each tap's blocker by its height band (0.3, 1, 3, 9, 27 m) over that
+  band's penumbra (the sun's half-angle 0.00465 × height, ≥ 1.5 texels; 8–16 taps a band, rotated per
+  pixel). Grass on sand stays sharp, a crown's gaps go round and soft (sunflecks). Props add their
+  slope × the disc radius to the offset. Render time +1%. Off: `passes.softShadows: false`. Contact
+  shadows (phase 4.2) weren't needed: tufts and stones sit on their fine-slice shadows.
 - **Skylight from clouds** (`skylight.ts`): the sea and terrain take `skyIrradiance` from the clear
   atmosphere (`SkyLightProbe`). On daylight cloud days it is scaled per channel by the env cube's
   cosine-weighted light with its clouds over without (`debug.cloudSkylight`; typically red 1.3–2.7,

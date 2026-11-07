@@ -1,12 +1,16 @@
 import { ShaderChunk, type IUniform, type Material, type Object3D, type ShaderMaterial, type WebGLProgramParametersWithUniforms } from 'three'
 
-import { LAND_CLOUD_GLSL } from './shadow'
+import { LAND_CLOUD_GLSL, SOFT_SHADOW_GLSL } from './shadow'
+import { SKY_OPEN_GLSL } from './skylight'
 
 // Cloud and mountain shade on everything three.js lights. The near sun map
 // already reaches props through their light; the land and cloud maps reach only
 // the sea and terrain, whose shaders are ours. All standard materials take the
 // sun in one place (`lights_fragment_begin`), so one patch covers every prop.
-// Only direct light goes: sky light stays, as it does in real shade.
+// Only direct light goes: sky light stays, as it does in real shade. Under a
+// tree crown the sky light is less too (props/skyOcclusion.ts): near the
+// ground, fading out over 0.5–3 m above each prop's foot, so a crown doesn't
+// hide the sky from its own leaves (they have their depth baked in, trees.ts).
 
 /** Prop kinds that are clouds themselves: they stand in the deck, so the map's
  * shade from above doesn't apply. */
@@ -33,7 +37,10 @@ float fineSunWeight = 0.0;
   // pushing a sunlit back face into its own shadow. Hatching at 1 cm texels.
   float fineCos = max(abs(dot(normal, directionalLights[ 0 ].direction)), 0.124);
   float fineBias = directionalLightShadows[ 1 ].shadowBias * (1.0 + sqrt(1.0 - fineCos * fineCos) / fineCos);
-  if (fineSunWeight > 0.0) fineSunShadow = getShadow( directionalShadowMap[ 1 ], directionalLightShadows[ 1 ].shadowMapSize, directionalLightShadows[ 1 ].shadowIntensity, fineBias, directionalLightShadows[ 1 ].shadowRadius, vDirectionalShadowCoord[ 1 ] );
+  // Softened by each blocker's height (shadow.ts SOFT_SHADOW_GLSL); the bias is three's sign.
+  if (fineSunWeight > 0.0) fineSunShadow = fineShadowScale.z > 0.0
+    ? softShadow( directionalShadowMap[ 1 ], fineCoord, -fineBias, min(sqrt(1.0 - fineCos * fineCos) / fineCos, 8.0) )
+    : getShadow( directionalShadowMap[ 1 ], directionalLightShadows[ 1 ].shadowMapSize, directionalLightShadows[ 1 ].shadowIntensity, fineBias, directionalLightShadows[ 1 ].shadowRadius, vDirectionalShadowCoord[ 1 ] );
 }
 #endif
 `
@@ -74,7 +81,7 @@ export function shadeMaterial(material: Material, uniforms: Uniforms, view: bool
     previous.call(material, shader, renderer)
     Object.assign(shader.uniforms, uniforms)
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vShadeWorld;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vShadeWorld;\nvarying float vShadeRise;')
       .replace(
         '#include <project_vertex>',
         `#include <project_vertex>
@@ -82,10 +89,20 @@ export function shadeMaterial(material: Material, uniforms: Uniforms, view: bool
         #ifdef USE_INSTANCING
           shadeModel = modelMatrix * instanceMatrix;
         #endif
-        vShadeWorld = (shadeModel * vec4(transformed, 1.0)).xyz;`
+        vShadeWorld = (shadeModel * vec4(transformed, 1.0)).xyz;
+        // Height above the prop's foot (builders put it on y = 0).
+        vShadeRise = vShadeWorld.y - shadeModel[3].y;`
       )
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vShadeWorld;\n${LAND_CLOUD_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying vec3 vShadeWorld;\nvarying float vShadeRise;\n${LAND_CLOUD_GLSL}\n${SKY_OPEN_GLSL}`)
+      .replace('#include <shadowmap_pars_fragment>', `#include <shadowmap_pars_fragment>\n${SOFT_SHADOW_GLSL}`)
+      .replace(
+        '#include <aomap_fragment>',
+        `float skyOpenHere = mix(skyOpen(vShadeWorld), 1.0, smoothstep(0.5, 3.0, vShadeRise));
+        reflectedLight.indirectDiffuse *= skyOpenHere;
+        reflectedLight.indirectSpecular *= skyOpenHere;
+        #include <aomap_fragment>`
+      )
       .replace(
         '#include <lights_fragment_begin>',
         `float shadeHere = propShade(vShadeWorld);\n${FINE_SLICE}${ShaderChunk.lights_fragment_begin

@@ -246,6 +246,13 @@ tool gotchas: TOOLS.md.
 - A shadow map can light more than the ground. takram reads its cloud shadow map to light the clouds
   too (`sampleShadowOpticalDepth`, 0 past `shadow.maxFar`): capping it near the horizon left far clouds
   unshadowed and pink. Check the sky, not just the ground, after changing a shared map.
+- A soft shadow from a comparison-only map: it can't read blocker depth, but it holds one blocker
+  per texel, so test each tap at a few depths toward the light (0.3, 1, 3, 9, 27 m) and filter each
+  height band over its own penumbra (`shadow.ts SOFT_SHADOW_GLSL`). A wide disc on a tilted receiver
+  shades itself (stipple on grass blades): offset each band by the slope × its radius. Keep every disc
+  ≥ 1.5 texels: a 1 cm texel is several pixels on a trunk a metre away, and one tap shows its steps.
+- A debug switch that turns a feature off must give back the exact old path, not a simpler one:
+  check it with this tree's switch off against `snapshot.mjs --ref HEAD` (`diff.mjs --a --b`).
 - Before blaming a too-bright result on convergence, measure it: 8 and 32 priming updates of the cloud
   map gave the same sunset, so the change was the finer map, not an unsettled one.
 - three's shadow pass tests the *main* camera's layers, so a layer can't hide a caster from the main

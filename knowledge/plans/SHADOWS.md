@@ -1,6 +1,6 @@
 # Shadows and dark frames
 
-**Status: phases 0–3 done (0.109, 0.123, 0.124–0.125), phases 4–6 open.** Left from phase 2: terrain in the land map
+**Status: phases 0–4 done (0.109, 0.123, 0.124–0.126), phases 5–6 open.** Left from phase 2: terrain in the land map
 (cliffs beyond ~470 m ahead cast nothing). Decided 2026-11-06: dark nights at ~×8; the
 long-exposure look turns on by itself when the shutter is long. Done before this plan: shade reaches the sea's
 seabed, foam and body (0.105), skylight from clouds (0.106), shadows start at the stem (0.107).
@@ -127,9 +127,18 @@ The plan as written:
 
 **Done:** no acne in `scenes/shadows.json` close up; shadow edges of near grass and trunks are clean.
 
-### 4. Small-scale shade
+### 4. Small-scale shade: done (0.126)
 
-Only after the maps are right. Bake first, as this project prefers.
+What was built (arch/SKY.md): **skylight under crowns** (`props/skyOcclusion.ts`): each crown a disc
+of leaves; its view factor × opacity (estimates, less for bare deciduous crowns) baked into a world
+map near the camera; the terrain's skylight and ground props' indirect light read it, fading out
+0.5–3 m above a prop's foot. Rock joints were already darkened in the rocks' vertex colours, crowns'
+insides in the leaves' (trees.ts), stones' feet by stones.ts. **Contact shadows: not built**: at 1:1,
+tufts, stones and ice blocks sit on their fine-slice shadows. **Softness by height: built**, on the
+fine slice: each tap's blocker filtered by its height band over its own penumbra, since the comparison
+map can't give blocker depth directly. Render time +1% (bench, default days and close-ups).
+
+The plan as written (bake first, as this project prefers):
 
 1. **Occlusion under trees and in rock joints:** darkens skylight only. Bake into vertex colours per
    instance; for the ground, a darkening under each near tree from its position.
@@ -244,4 +253,6 @@ Search summaries only, full pages not read:
 [Photrio, moonlight EV](https://www.photrio.com/forum/threads/moony-16.49349/unread);
 [Expert Photography, 500 rule](https://expertphotography.com/500-rule-night-sky-photography);
 [SLR Lounge, long exposure](https://www.slrlounge.com/glossary/long-exposure/);
-[Fstoppers, waves and shutter speed](https://fstoppers.com/landscapes/what-really-happens-waves-change-shutter-speed-900088).
+[Fstoppers, waves and shutter speed](https://fstoppers.com/landscapes/what-really-happens-waves-change-shutter-speed-900088);
+[Hemispherical photography: gap fraction, indirect site factor](https://www.wikipedia.org/wiki/Hemispherical_photography);
+[Bae et al. 2024, sky view with canopy transmittance](https://ual.sg/publication/2024-bae-svf/2024-bae-svf.pdf) (phase 4.1: crowns let light through gaps, so opacity < 1).

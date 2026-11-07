@@ -75,6 +75,7 @@ import { PropContext } from './props/context'
 import type { LanternInfo } from './props/lighthouse'
 import { createProps } from './props'
 import type { LitterField } from './props/leafLitter'
+import type { SkyOpenField } from './props/skyOcclusion'
 import { reportProps } from './props/report'
 import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './props/shipLights'
 import { setGlowBrightness } from './props/storm'
@@ -89,8 +90,8 @@ import { stormCells } from './stormCells'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
 import { dustSkylight, dustTransmittance } from './seaHaze'
 import { shadeProps } from './propShade'
-import { bindCloudShadow, bindLandShadow, bindShadow, FINE_SHADOW_SIZE, fitFineShadow, landCloudUniforms, renderLandShadow } from './shadow'
-import { cloudSkylightRatio, measureSkylight } from './skylight'
+import { bindCloudShadow, bindLandShadow, bindShadow, FINE_SHADOW_SIZE, fineShadowScale, fitFineShadow, landCloudUniforms, renderLandShadow } from './shadow'
+import { cloudSkylightRatio, measureSkylight, skyOpenUniforms } from './skylight'
 import { SkyDenoiseEffect } from './skyDenoise'
 import { GpuResources, trackUploads } from './dispose'
 import { createTerrain, createTerrainCaster, hasLand } from './terrain'
@@ -791,7 +792,15 @@ export async function renderScene(
 
   // --- Render once ------------------------------------------------------------
   // Land and cloud shade on the props (propShade.ts).
-  const propUniforms = landCloudUniforms()
+  const propUniforms: Record<string, { value: unknown }> = { ...landCloudUniforms(), ...skyOpenUniforms(), fineShadowScale: { value: new Vector3() } }
+  // The sky the crowns hide (props/skyOcclusion.ts), on the ground and props.
+  const skyOpen = pass('skyOcclusion') ? (props.userData.skyOpen as SkyOpenField | null) : null
+  if (skyOpen != null) {
+    for (const uniforms of [tu, propUniforms]) {
+      uniforms.skyOpenMap.value = skyOpen.texture
+      ;(uniforms.skyOpenRect.value as Vector4).set(...skyOpen.rect)
+    }
+  }
   let shadeCoverage: ReturnType<typeof shadeProps> = {}
   cubeCamera.update(renderer, envScene)
   // Daylight clouds only: dust gives its own light back (dustSkylight), and
@@ -848,6 +857,9 @@ export async function renderScene(
     terrain.visible = hasLand(params.coast)
     bindShadow(ocean.material.uniforms, sun, fineSun.castShadow ? fineSun : undefined)
     bindShadow(terrain.material.uniforms, sun, fineSun.castShadow ? fineSun : undefined)
+    if (fineSun.castShadow) (propUniforms.fineShadowScale.value as Vector3).copy(fineShadowScale(fineSun))
+    // Hard fine-slice shadows, for diff.mjs (shadow.ts SOFT_SHADOW_GLSL).
+    if (!pass('softShadows')) for (const uniforms of [ocean.material.uniforms, terrain.material.uniforms, propUniforms]) (uniforms.fineShadowScale.value as Vector3).setScalar(0)
     if (clouds != null && pass('cloudShade')) {
       primeCloudShadow(clouds, renderer, composer.inputBuffer)
       for (const uniforms of [ocean.material.uniforms, terrain.material.uniforms, propUniforms]) bindCloudShadow(uniforms, clouds, camera, lightDirectionWorld)
@@ -955,6 +967,8 @@ export async function renderScene(
       cloudSkylight,
       shadowCoverage: shadeCoverage,
       fineShadowTexelM: fineTexel,
+      // The least sky the ground sees under the crowns (props/skyOcclusion.ts).
+      skyOpenLeast: skyOpen?.least ?? 1,
       pitchDeg: camera.rotation.x / DEG,
       // Ground under the camera (diff.mjs --keep-camera).
       cameraGroundM: camera.position.y - params.camera.heightM,

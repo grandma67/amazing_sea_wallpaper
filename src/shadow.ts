@@ -102,6 +102,56 @@ float propShade(vec3 world) {
 }
 `
 
+/**
+ * The fine slice's shadow softened by how far above each blocker is
+ * (SHADOWS.md phase 4.3): the sun is 0.53° wide, so a shadow's edge blurs
+ * over 0.93 cm per metre between blocker and ground (a blade's 0.3 m above
+ * the sand stays sharp, a crown's 8 m up spreads over 7 cm, its gaps go
+ * round). The map is a comparison sampler and holds only the blocker
+ * nearest the light at each texel, so each tap's blocker lies in exactly
+ * one height band: count, band by band, the taps whose blocker is in it,
+ * over a disc as wide as that band's penumbra. `lead` is the depth offset
+ * (depth units, ≥ 0), `slope` the receiver's tan to the light (0 for the
+ * ground: it casts by its back faces). `fineShadowScale`: uv per metre (x, y), depth per
+ * metre (z; 0 = off: callers take their old hard filter).
+ */
+export const SOFT_SHADOW_GLSL = /* glsl */ `
+uniform vec3 fineShadowScale;
+float softShadow(sampler2DShadow map, vec3 c, float lead, float slope) {
+  // Half the sun's angular diameter (rad).
+  const float SUN_HALF = 0.00465;
+  // Band edges (m above the receiver, past its offset).
+  float edges[7] = float[7](0.0, 0.3, 1.0, 3.0, 9.0, 27.0, 1.0e4);
+  float phi = 6.2831853 * fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  float texelsPerMetre = fineShadowScale.x * float(textureSize(map, 0).x);
+  float blocked = 0.0;
+  for (int k = 0; k < 6; k++) {
+    float lo = edges[k];
+    float hi = edges[k + 1];
+    float mid = k == 0 ? 0.15 : (k == 5 ? 40.0 : sqrt(lo * hi));
+    // Never under 1.5 texels, as three's own filter: a texel is several
+    // pixels on a trunk a metre from the camera, and one tap shows its steps.
+    float r = max(SUN_HALF * mid, 1.5 / texelsPerMetre);
+    // A surface tilted to the light leaves the receiver's depth across the
+    // disc: offset by its slope (tan) over the disc, or it shades itself.
+    float tilt = slope * r * fineShadowScale.z;
+    float zLo = c.z - lead - tilt - lo * fineShadowScale.z;
+    float zHi = c.z - lead - tilt - hi * fineShadowScale.z;
+    // Wide discs need more taps.
+    int n = r * texelsPerMetre < 4.0 ? 8 : 16;
+    float sum = 0.0;
+    for (int i = 0; i < 16; i++) {
+      if (i >= n) break;
+      float a = float(i) * 2.39996323 + phi + float(k) * 1.3;
+      vec2 uv = c.xy + vec2(cos(a), sin(a)) * sqrt((float(i) + 0.5) / float(n)) * r * fineShadowScale.xy;
+      sum += texture(map, vec3(uv, zHi)) - texture(map, vec3(uv, zLo));
+    }
+    blocked += sum / float(n);
+  }
+  return 1.0 - clamp(blocked, 0.0, 1.0);
+}
+`
+
 export const SHADOW_GLSL = /* glsl */ `
 // The sun's near map (±320 m) and its fine slice (the view's first ~40 m,
 // a few cm a texel: fitFineShadow). Each has its own depth offset, in its own
@@ -117,6 +167,7 @@ uniform sampler2DShadow fineShadowMap;
 uniform mat4 fineShadowMatrix;
 uniform vec2 fineShadowTexel;
 uniform float fineShadowOn;
+${SOFT_SHADOW_GLSL}
 // x: near map, y: fine slice.
 uniform vec2 shadowBias;
 
@@ -142,7 +193,9 @@ float sunShadow(vec3 world) {
   // Fade into the near map over the slice's outer 8%: no seam where it ends.
   float fine = f.z > 1.0 ? 0.0 : clamp(min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)) / 0.08, 0.0, 1.0);
   if (fine <= 0.0) return near;
-  return mix(near, mapShadow(fineShadowMap, f.xyz, fineShadowTexel, shadowBias.y), fine);
+  // Hard, as before, with passes.softShadows off (fineShadowScale 0).
+  float fineShadow = fineShadowScale.z > 0.0 ? softShadow(fineShadowMap, f.xyz, shadowBias.y, 0.0) : mapShadow(fineShadowMap, f.xyz, fineShadowTexel, shadowBias.y);
+  return mix(near, fineShadow, fine);
 }
 
 ${LAND_CLOUD_GLSL}
@@ -211,6 +264,7 @@ export function shadowUniforms(): Record<string, { value: unknown }> {
     fineShadowMatrix: { value: new Matrix4() },
     fineShadowTexel: { value: new Vector2(1, 1) },
     fineShadowOn: { value: 0 },
+    fineShadowScale: { value: new Vector3() },
     shadowBias: { value: new Vector2(0.00002, 0) }
   }
 }
@@ -256,7 +310,15 @@ export function bindShadow(
   ;(uniforms.fineShadowMatrix.value as Matrix4).copy(fine.shadow.matrix)
   ;(uniforms.fineShadowTexel.value as Vector2).set(1 / fineMap.width, 1 / fineMap.height)
   uniforms.fineShadowOn.value = 1
+  ;(uniforms.fineShadowScale.value as Vector3).copy(fineShadowScale(fine))
   bias.y = depthUnits(fine, Math.max(fine.userData.biasM as number, FINE_GROUND_BIAS_M))
+}
+
+/** The fine slice's uv per metre (x, y) and depth per metre (z), for
+ * SOFT_SHADOW_GLSL. */
+export function fineShadowScale(light: DirectionalLight): Vector3 {
+  const c = light.shadow.camera
+  return new Vector3(1 / (c.right - c.left), 1 / (c.top - c.bottom), 1 / (c.far - c.near))
 }
 
 /** Metres along the light in a shadow camera's depth units. */

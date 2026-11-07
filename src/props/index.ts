@@ -21,6 +21,7 @@ import { createSaltMarsh } from './saltMarsh'
 import { createSeaIce } from './seaIce'
 import { createShips } from './ships'
 import { createShoreLife } from './shoreLife'
+import { skyOpenField } from './skyOcclusion'
 import { createStones } from './stones'
 import { createStorm } from './storm'
 import { createIslandSpray, createSurf, edgeRocks, islandWaves, waterRocks, waveOnRock, type IslandWater, type WaterIsland } from './surf'
@@ -76,6 +77,10 @@ export function createProps(ctx: PropContext): Group {
   add('leaf-litter', () => createLeafLitter(ctx, plants))
   // The litter's colour on the ground (terrain.ts litterMap).
   group.userData.litter = off ? null : litterField(ctx, plants)
+  // The sky the crowns hide from the ground (terrain.ts and propShade.ts skyOpen).
+  const skyStart = performance.now()
+  group.userData.skyOpen = off ? null : skyOpenField(ctx, plants)
+  times['sky-open'] = performance.now() - skyStart
   add('salt-marsh', () => createSaltMarsh(ctx))
   add('mangroves', () => createMangroves(ctx))
   // For their wakes and the hull cut out of the sea (ocean.ts setOceanShips).

@@ -249,7 +249,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 
 ## Ideas (not planned)
 
-Breaking-wave lips, ambient occlusion under trees, low-power mode for phones, wind-blown sand and
+Breaking-wave lips, low-power mode for phones, wind-blown sand and
 leaves, lamp reflections on wet sand, lit windows on cruise ships, ship roll resonance, wakes
 rolling onto the beach as surf, turtle heads at sea, a real compass sun on every day (ties framing,
 heading and coast orientation together; midnight-sun days already have it, PLAN_BIOMES 12), the

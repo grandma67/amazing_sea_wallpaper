@@ -52,6 +52,19 @@ describe('shadeMaterial', () => {
     expect(compiled(material).fragmentShader.match(/\*= shadeHere/g)).toHaveLength(1)
   })
 
+  it('dims only the sky light under the crowns, near the ground', () => {
+    const material = new MeshStandardMaterial()
+    shadeMaterial(material, uniforms, false)
+    const { fragmentShader, vertexShader } = compiled(material)
+    // Before three's own occlusion, after the indirect light is summed.
+    const at = fragmentShader.indexOf('reflectedLight.indirectDiffuse *= skyOpenHere;')
+    expect(at).toBeGreaterThan(fragmentShader.indexOf('#include <lights_fragment_end>'))
+    expect(fragmentShader).toContain('reflectedLight.indirectSpecular *= skyOpenHere;')
+    expect(fragmentShader).toContain('float skyOpen(vec3 world)')
+    expect(fragmentShader).not.toMatch(/(?<!in)direct(Diffuse|Specular|Light\.color) \*= skyOpenHere/)
+    expect(vertexShader).toContain('vShadeRise =')
+  })
+
   it('keeps a material\'s own patch, and its own program', () => {
     const own = new MeshStandardMaterial()
     own.onBeforeCompile = shader => {

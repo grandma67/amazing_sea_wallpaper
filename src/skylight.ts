@@ -5,6 +5,7 @@ import {
   PlaneGeometry,
   Scene,
   ShaderMaterial,
+  Vector4,
   WebGLRenderTarget,
   type Texture,
   type WebGLCubeRenderTarget,
@@ -68,4 +69,20 @@ export function cloudSkylightRatio(clear: RGB, cloudy: RGB): RGB {
     const ratio = cloudy[i] / c
     return c > 1e-9 && Number.isFinite(ratio) ? ratio : 1
   }) as RGB
+}
+
+/** GLSL: the share of the sky a point on the ground sees past the tree crowns
+ * near the camera (props/skyOcclusion.ts skyOpenField), 1 outside the map. */
+export const SKY_OPEN_GLSL = /* glsl */ `
+uniform sampler2D skyOpenMap;
+uniform vec4 skyOpenRect;
+float skyOpen(vec3 world) {
+  if (skyOpenRect.z <= 0.0) return 1.0;
+  return texture2D(skyOpenMap, (world.xz - skyOpenRect.xy) * skyOpenRect.zw).r;
+}
+`
+
+/** The uniforms of SKY_OPEN_GLSL; rect z = 0 means no map. */
+export function skyOpenUniforms(): Record<string, { value: unknown }> {
+  return { skyOpenMap: { value: null as Texture | null }, skyOpenRect: { value: new Vector4(0, 0, 0, 0) } }
 }

@@ -22,6 +22,7 @@ import { groundCoverTint, phenologyFor } from './phenology'
 import { snowLook } from './props/snowCap'
 import { seasonMonth } from './seasons'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
+import { SKY_OPEN_GLSL, skyOpenUniforms } from './skylight'
 import { flatSurface, marshLook, type SaltMarsh, type TidalFlat } from './tidalFlat'
 import { highWater, tideMarks } from './tides'
 
@@ -1061,6 +1062,7 @@ const fragmentShader = /* glsl */ `
 ${TERRAIN_GLSL}
 ${STONE_GLSL}
 ${SHADOW_GLSL}
+${SKY_OPEN_GLSL}
 uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
 uniform vec3 skyIrradiance;
@@ -1355,8 +1357,10 @@ void main() {
   vec3 V = normalize(cameraPosition - vWorld);
   float shadow = lightReaching(vWorld);
   float NoL = max(dot(N, L), 0.0) * shadow;
-  // Soft wrap lighting stands in for the missing ambient occlusion/shadowing.
-  vec3 diffuse = albedo / PI * (sunIrradiance * NoL + skyIrradiance * (0.6 + 0.4 * N.y));
+  // Soft wrap lighting stands in for the sky a slope doesn't face; the crowns
+  // overhead hide more of it (props/skyOcclusion.ts).
+  float skyOpenHere = skyOpen(vWorld);
+  vec3 diffuse = albedo / PI * (sunIrradiance * NoL + skyIrradiance * skyOpenHere * (0.6 + 0.4 * N.y));
   vec3 color = diffuse;
 
   if (gloss > 0.0) {
@@ -1368,7 +1372,7 @@ void main() {
     float F = 0.02 + 0.98 * pow(1.0 - NoV, 5.0);
     vec3 R = reflect(-V, Nw);
     R.y = abs(R.y);
-    vec3 reflected = textureLod(envMap, R, 2.0).rgb;
+    vec3 reflected = textureLod(envMap, R, 2.0).rgb * skyOpenHere;
     vec3 H = normalize(L + V);
     float NoH = max(dot(Nw, H), 0.0);
     // Widen the highlight where a pixel covers a lot of sand, so thin distant
@@ -1489,6 +1493,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       tideSpring: { value: tideMarks(coast).spring },
       groundCover: { value: new Color(...groundCoverTint(params.biome.groundCover, phenologyFor(params))) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
+      ...skyOpenUniforms(),
       litterMap: { value: null as Texture | null },
       litterRect: { value: new Vector4(0, 0, 0, 0) },
       litterColor: { value: new Color() },
