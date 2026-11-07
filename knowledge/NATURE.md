@@ -213,6 +213,10 @@ Biggest visible gains, roughly in order of (days touched × how much it changes 
 | Lichen zone height | the yellow-grey lichen splash zone is ~1 m high on very sheltered shores and extends "tens of metres up cliffs" on very exposed ones | JNCC supralittoral biotope, EUNIS B3.11 |
 | Laver | *Porphyra umbilicalis*: dense stands round high water on somewhat exposed rock along most of Norway's coast; northern Portugal to the Faroes; most abundant on the upper shore; *P. linearis* a winter annual | MarLIN, Store norske leksikon, Iceland–Iberia genetic study |
 | Fairy rings | darker, taller grass at the edge (nutrients), dead grass behind it; 20–30 cm a year; rings over 10 m; *Marasmius oreades* up to 365 m; can last centuries | RHS, Utah State herbarium, Britannica |
+| Glow-worm range | *Lampyris noctiluca* to ~65°N in Finland, glowing even on the shortest summer nights; 453 Norwegian records 1991–2024; Welsh and Scottish valleys | Springer 2020 (Finland), NVSU paper, GBIF, Animal Diversity Web |
+| More firefly regions | eastern Australia: Queensland "up to six months a year", Illawarra mid-Nov – early Dec, a few weeks at any one site; forests and mangroves along the NSW, Queensland and NT coast. India: Konkan fireflies just before the monsoon (one May observation); Western Ghats hold ~25% of India's 92 species, coasts ~17%. No seasonal source for Sri Lanka, the Andamans, Brazil's Atlantic forest or Kenya | Illawarra Flame, Coffs Coast news, Down To Earth (2026 checklist), EarthSky photo |
+| Eye persistence | visible persistence ~20 ms plus ~20 ms decay, longer in scotopic vision, shorter for brighter stimuli: a moving light leaves a 2–10 cm streak to the eye, so a whole-flash streak is a camera-like (~½ s) look | ghost-imaging-with-the-eye study, UBC thesis, Di Lollo & Bischof |
+| Namaqualand and the Cape West Coast | Namaqualand blooms every year Jul–Sep (orange *Ursinia*, white daisies), timed by winter rain; Postberg (West Coast NP, ~33°S) Aug 1 – Sep 30 every year, strong some years | SANParks flower reports, West Coast NP (Wikipedia), Business Day 2025 |
 | Atacama bloom | dominated by *Cistanthe longiscapa* (magenta; reddish, orange, yellow, pink forms; Caldera 2021 had big purple and yellow patches); *Nolana* white, bluish, lilac; ~200 species; mid-Sep to mid-Nov; big blooms every 5–10 years | Frontiers in Ecology and Evolution 2022, UC Chile |
 
 ## Sources
@@ -228,7 +232,13 @@ All read through search summaries unless marked "read".
   https://cambridge.org/core/books/british-plant-communities/calluna-vulgarisulex-gallii-heath/291C3AB55C89E1945B12F2FE02622986 ;
   https://eunis.eea.europa.eu/habitats_codeEUNIS/B3.11/eunis2007 ; https://marlin.ac.uk/species/detail/1463 , https://snl.no/Porphyra ;
   https://rhs.org.uk/advice/profile?pid=158 , https://artsci.usu.edu/herbarium/activities_fun-stuff/fun-facts-about-fungi/fairy-rings ;
-  https://www.frontiersin.org/articles/10.3389/fevo.2022.957318/full , https://www.uc.cl/noticias/desierto-florido-las-claves-para-entender-este-particular-fenomeno/
+  https://www.frontiersin.org/articles/10.3389/fevo.2022.957318/full , https://www.uc.cl/noticias/desierto-florido-las-claves-para-entender-este-particular-fenomeno/ ;
+  glow-worm range, https://link.springer.com/10.1007/s00265-020-02927-9 , https://vestnik.nvsu.ru/2311-1402/article/download/462766/pdf ;
+  Australia, https://www.theillawarraflame.com.au/the-magic-in-macquarie-pass-and-why-you-shouldnt-miss-it/ , https://newsofthearea.com.au/?p=78744 ;
+  India, https://www.downtoearth.org.in/wildlife-biodiversity/counting-the-glow-indias-first-firefly-checklist-reveals-92-species , https://ecp.earthsky.org/community-photos/entry/82629 ;
+  persistence, https://www.catalyzex.com/paper/ghost-imaging-with-the-human-eye , https://open.library.ubc.ca/cIRcle/collections/831/items/1.0088140 ;
+  Namaqualand and Postberg, https://www.sanparks.org/news/namaqua-national-park-flower-report , https://en.wikipedia.org/wiki/West_Coast_National_Park ,
+  https://www.businessday.co.za/bd/life/2025-09-10-when-its-time-to-say-it-with-flowers/
 
 - Fireflies: Japan, https://japantimes.co.jp/culture/2008/06/13/events/events-outside-tokyo/fireflies-set-the-nights-alight ,
   https://www.tokyoweekender.com/things-to-do-in-tokyo/where-to-see-fireflies-in-tokyo-2026/ ,
