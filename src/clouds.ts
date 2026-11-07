@@ -140,6 +140,17 @@ export function createClouds(
   clouds.worldToECEFMatrix.copy(worldToECEF)
   clouds.sunDirection.copy(lightECEF)
   clouds.qualityPreset = 'high'
+  // The cloud shadow map (read by the sea, terrain and props: shadow.ts
+  // cloudShadow). takram's 3 × 512² split 0.6 left the first cascade 0–53 km
+  // at ~200 m a texel: a cloud's shade on the sea seen from 450 m had
+  // staircase edges. 3 × 1024² split 0.9: the first spans ~13 km at ~25 m
+  // (a fourth cascade cost +10% on cloudy days, for little more).
+  // The far plane stays: the clouds light themselves from this map too
+  // (takram's sampleShadowOpticalDepth, 0 past it), and those on the horizon
+  // stand 150–200 km off; capped at 20 km they lit up pink at sunset.
+  clouds.shadow.cascadeCount = 3
+  clouds.shadow.mapSize.set(1024, 1024)
+  clouds.shadow.splitLambda = 0.9
   clouds.coverage = weather.coverage
   clouds.localWeatherOffset.set(...weather.weatherOffset)
   clouds.shapeOffset.set(...weather.shapeOffset)
