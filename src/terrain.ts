@@ -1512,3 +1512,29 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
   mesh.visible = hasLand(coast)
   return mesh
 }
+
+const CASTER_VERTICES = 256 * 1024
+const CASTER_RADIUS = 2000
+
+/**
+ * The terrain as the sun's shadow map sees it: cliffs, shelves and dunes shade
+ * the beach, the props and the sea. The drawn grid covers only the view, but
+ * a cliff behind or beside the camera shades what's in it, so this is a full
+ * disc round the camera, past the near map (props/scene.ts: 640 m box 150 m
+ * ahead). Hidden except while that map renders (scene.ts).
+ *
+ * The shadow pass draws back faces only (three flips the side): a ray from the
+ * sun leaves the ground through them, so a slope facing the sun never shades
+ * itself, and one facing away is dark anyway.
+ */
+export function createTerrainCaster(terrain: Mesh<BufferGeometry, ShaderMaterial>): Mesh<BufferGeometry, ShaderMaterial> {
+  const depth = new ShaderMaterial({ vertexShader, fragmentShader: 'void main() { gl_FragColor = vec4(1.0); }', uniforms: terrain.material.uniforms })
+  const { rings, segments } = squareGrid(CASTER_VERTICES, Math.PI * 2, TERRAIN_INNER_RADIUS, CASTER_RADIUS)
+  const caster = new Mesh(createPolarGrid({ rings, segments, innerRadius: TERRAIN_INNER_RADIUS, outerRadius: CASTER_RADIUS }), depth)
+  caster.customDepthMaterial = depth
+  caster.castShadow = true
+  caster.frustumCulled = false
+  caster.visible = false
+  caster.name = 'terrain-caster'
+  return caster
+}

@@ -1,6 +1,7 @@
 # Shadows and dark frames
 
-**Status: phases 0 and 1 done (0.109), phases 2–6 open.** Decided 2026-11-06: dark nights at ~×8; the
+**Status: phases 0–2 done (0.109, 0.123), phases 3–6 open.** Left from phase 2: terrain in the land map
+(cliffs beyond ~470 m ahead cast nothing). Decided 2026-11-06: dark nights at ~×8; the
 long-exposure look turns on by itself when the shutter is long. Done before this plan: shade reaches the sea's
 seabed, foam and body (0.105), skylight from clouds (0.106), shadows start at the stem (0.107).
 Sources: end of this file. Estimates are marked; everything else was measured or read in the code.
@@ -37,8 +38,8 @@ prop now read the land and cloud maps (`propShade.ts`). Near shadows depend on e
 
 | Kind | Lit, all shaded | Casts | Receives near shadows | Gap for phase 2 |
 |---|---|---|---|---|
-| Sea, terrain | own shaders | terrain: **no** | yes | terrain casts in no map |
-| Vegetation | 196 | 172 | 196 | grass casts nothing |
+| Sea, terrain | own shaders | terrain: near map (0.123) | yes | terrain not in the land map |
+| Vegetation | 196 | 196 (0.123) | 196 | |
 | Shore life (flowers, crabs...) | 97 | 97 | 97 | |
 | Debris | 60 | 60 | 60 | |
 | Rocks, stones, beachrock | 40 | 40 | 40 | |
@@ -47,12 +48,12 @@ prop now read the land and cloud maps (`propShade.ts`). Near shadows depend on e
 | Mangroves | 3 | 3 | 3 | |
 | Lighthouse | 3 | 2 | 2 | |
 | Wildlife (8 forced scenes) | 2–5 per scene | all | all | |
-| Birds, migratory birds | 42 | 42 | **0** | don't receive |
-| Marine animals | 10 | 10 | **0** | don't receive |
-| Seals | 6 | 6 | **1** | don't receive |
-| Colony | 4 | **1** | **1** | most don't cast or receive |
-| Islands | 5 | land map only | **0 here, some elsewhere** | no near map |
-| Mountains | 3 | land map only | **0** | no near map |
+| Birds, migratory birds | 42 | 42 | 42 (0.123) | |
+| Marine animals | 10 | 10 | 10 (0.123) | |
+| Seals | 6 | 6 | 6 (0.123) | |
+| Colony | 4 | 4 (0.123) | 4 | |
+| Islands | 5 | both maps (0.123) | 5 | |
+| Mountains | 3 | both maps (0.123) | 3 | |
 | Salt marsh, leaf litter | 8 + 4 | no: smaller than a texel | yes | |
 | Surf, whale and ship spray | own shader, per droplet | no | no | |
 | Lamps, lava, lightning | unlit | no | not needed | |
@@ -74,7 +75,18 @@ over ~10% needs a reason.
 `propShade.ts`: one patch of three's `lights_fragment_begin`, one loop over the props. Spray per
 droplet. Render time +0–4% on 3 days. No lit object uncovered in 28 scene and 44 sweep renders.
 
-### 2. Everything solid casts
+### 2. Everything solid casts: done (0.123), but not terrain in the land map
+
+What was built: the terrain casts through `createTerrainCaster` (a full disc of 256k vertices out to
+2 km, shown only while the near map renders). It draws **back faces only**, so it didn't need phase
+3's bias: a slope facing the sun never meets itself in the map. All grass casts (+8% on grass
+scenes, ~2% overall, so the 40 m limit wasn't needed). Animals, colony birds, islands and mountains
+cast and receive. Seen: a cliff 175° behind the camera at 6° shades the whole foreground ice
+(`2024-04-10`); ledges shade a platform; islands throw long shadows on the water (`2024-10-07`); no
+acne close up on grass or terrain. `test/props.test.ts` checks every solid lit object. Not done:
+terrain in the **land map**, so cliffs and headlands beyond the near map cast nothing.
+
+The plan as written:
 
 | Caster | How | Note |
 |---|---|---|
@@ -193,7 +205,9 @@ changelog, `arch/SKY.md`, LESSONS.md. One commit per phase.
 
 ## Questions for later
 
-- **Grass casting:** worth its cost? Decide from phase 2's numbers.
+- ~~**Grass casting:** worth its cost?~~ Yes: +8% on grass scenes, tufts sit on the sand (0.123).
+- **Terrain in the land map:** a far headland's shade on the sea. Coarse texels (tens of metres) and the
+  sand at the waterline; needs a lift like the props'.
 
 ## Sources
 

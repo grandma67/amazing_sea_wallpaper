@@ -148,6 +148,12 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   cloud transmittance from takram's cascaded cloud shadow map (exp(−(maxOpticalDepth + tail)),
   primed by `primeCloudShadow` because the sea is drawn once at frame 0). `weather.sunVisibility`
   stays as the overall dimming.
+- **What casts in the near map** (±320 m, 4096²): every solid prop (birds, animals, colony, islands and
+  mountains too, all receive as well), grass (+8% render time on grass scenes, ~2% overall), and the
+  terrain through `createTerrainCaster` (back faces only: three flips the side, so a slope facing the
+  sun never meets itself in the map). Not in it: the sea, marsh and leaf litter (below a texel), the
+  sea-ice sheet (flat), spray and clouds. `test/props.test.ts` checks every solid lit object. The land
+  map (to the horizon) still has props only: terrain beyond ~470 m ahead casts nothing.
 - **The same shade on props** (`propShade.ts`): every lit standard material multiplies its directional
   light by land × cloud shade, in three's own light loop (`lights_fragment_begin`); near shadows stay
   three's. Spray takes it per droplet. Shelf and roll clouds are left out. Props are in the land map and

@@ -109,8 +109,9 @@ uniform vec2 sunShadowTexel;
 uniform float sunShadowOn;
 
 // Depth offset as a fraction of the map's 6490 m range: ~0.13 m along the light.
-// The sea and terrain aren't in this map, so they can't shade themselves; a
-// bigger offset only cuts the shadow off short of what casts it.
+// The sea isn't in this map; the terrain is, by its back faces only (terrain.ts),
+// so a slope lit by the sun never meets itself in it. A bigger offset only cuts
+// the shadow off short of what casts it.
 float sunShadow(vec3 world) {
   if (sunShadowOn < 0.5) return 1.0;
   vec4 c = sunShadowMatrix * vec4(world, 1.0);

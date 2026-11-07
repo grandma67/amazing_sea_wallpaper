@@ -305,6 +305,8 @@ export function createColony(ctx: PropContext): Object3D[] {
       birds.setMatrixAt(i, m)
       birds.setColorAt(i, new Color(1, 1, 1))
     })
+    birds.castShadow = true
+    birds.receiveShadow = true
     birds.frustumCulled = false
     objects.push(birds)
   })

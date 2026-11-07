@@ -402,6 +402,7 @@ export function createMarineLife(ctx: PropContext): Object3D[] {
     const group = new Group()
     const mesh = new Mesh(geometry, material)
     mesh.castShadow = true
+    mesh.receiveShadow = true
     mesh.quaternion.multiplyQuaternions(
       new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), yaw),
       new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), pitch)

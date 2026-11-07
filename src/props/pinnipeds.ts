@@ -433,6 +433,7 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
     const herd = new InstancedMesh(geometry, material, placed[k].length)
     placed[k].forEach((m, i) => herd.setMatrixAt(i, m))
     herd.castShadow = true
+    herd.receiveShadow = true
     herd.frustumCulled = false
     objects.push(herd)
   })
@@ -459,6 +460,7 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
     const bobbing = new InstancedMesh(geometry, glossy, heads[k].length)
     heads[k].forEach((m, i) => bobbing.setMatrixAt(i, m))
     bobbing.castShadow = true
+    bobbing.receiveShadow = true
     bobbing.frustumCulled = false
     objects.push(bobbing)
   })

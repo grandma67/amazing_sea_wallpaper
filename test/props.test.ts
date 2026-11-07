@@ -84,6 +84,24 @@ describe.each(SCENES)('$name', ({ p }) => {
     expectEvery(Object.entries(coverage), ([, c]) => c.shaded === c.lit, { what: e => e })
   })
 
+  // plans/SHADOWS.md phase 2: everything solid that the sun lights casts the
+  // near shadow and receives it. Out: what lies flat on what it would shade
+  // (marsh and litter below a 0.16 m texel, the sea-ice sheet), spray and clouds.
+  it('casts and receives the near shadow on every solid lit object', () => {
+    const flat = new Set(['salt-marsh', 'leaf-litter', 'waterspout', 'shelf-cloud', 'roll-cloud'])
+    const solid: { kind: string; mesh: Mesh }[] = []
+    build(p).group.traverse(o => {
+      const mesh = o as Mesh
+      if (mesh.isMesh !== true) return
+      const materials = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) as Material[]
+      const lit = materials.some(m => (m as Material & { isMeshStandardMaterial?: boolean }).isMeshStandardMaterial === true && !m.transparent)
+      let kind: unknown = mesh.userData.prop
+      mesh.traverseAncestors(a => (kind ??= a.userData.prop))
+      if (lit && !flat.has(kind as string) && mesh.userData.flat !== true) solid.push({ kind: kind as string, mesh })
+    })
+    expectEvery(solid, ({ mesh }) => mesh.castShadow && mesh.receiveShadow, { what: ({ kind, mesh }) => `${kind} ${mesh.name}` })
+  })
+
   // What `npm run check:restart` needs a browser for: gpuAfterRender stays 0
   // only if the tree's own walk reaches every buffer and texture.
   it('frees all it made through GpuResources', () => {

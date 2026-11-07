@@ -24,6 +24,9 @@ export class GpuResources {
       if (typeof mesh.dispose === 'function') this.add(mesh as Disposable)
       const materials = Array.isArray(mesh.material) ? mesh.material : mesh.material != null ? [mesh.material] : []
       for (const material of materials) this.addMaterial(material)
+      // The shadow pass's own (terrain, bent grass).
+      const depth = (object as Object3D & { customDepthMaterial?: Material }).customDepthMaterial
+      if (depth != null) this.addMaterial(depth)
     })
   }
 

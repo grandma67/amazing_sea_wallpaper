@@ -61,8 +61,11 @@ research numbers: REGIONS.md §2–3. Pitfalls: LESSONS.md "Coast and terrain".
   point has the ray's azimuth) plus 3° each side, and `squareGrid` spends the old full circle's
   614k vertices (600 × 1024) on that wedge with near-square cells (Δr / r = the angle between
   segments): 0.33% of r each way with an 87 mm lens, ~0.6% at 18 mm, against the full circle's
-  2.2% × 0.6% slivers. The camera is fixed for the still and the terrain casts no shadow map and
-  isn't in the env cube; the planar reflection mirrors only in height, so it sees the same
+  2.2% × 0.6% slivers. The camera is fixed for the still and the terrain
+  isn't in the env cube. It casts into the sun's near map through its own mesh, a full disc of 256k
+  vertices out to 2 km (`createTerrainCaster`): a cliff behind or beside the camera shades what's in
+  view, and the wedge alone cast a straight-edged wedge of shade. The caster is shown only while that
+  map renders (once per still); the planar reflection mirrors only in height, so it sees the same
   azimuths. The vertex shader ignores the model matrix: the wedge's angles are baked into the
   positions. `biome.ts`/`oceans.ts`: palettes, plants,
   sea state, ice.

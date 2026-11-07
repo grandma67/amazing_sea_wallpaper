@@ -234,6 +234,14 @@ tool gotchas: TOOLS.md.
   first scenes. Check each kind's row exists.
 - A shadow bias is a fraction of the shadow camera's depth range: 0.0004 of 6490 m is 2.6 m, a visible
   gap at the foot of every tree. Convert it to metres before choosing it.
+- A caster drawn only where the camera looks casts only from there. The terrain grid covers the view
+  wedge, so a cliff right behind the camera threw a narrow straight-edged wedge of shade instead of
+  shading the whole foreground: casters need their own mesh over everything between the receivers and
+  the light. Force the light behind the caster (`sunAzimuthDeg` ≈ 175, low) to see it; real days with
+  the sun ahead hid it.
+- three's shadow pass tests the *main* camera's layers, so a layer can't hide a caster from the main
+  render only; show it around the one shadow render instead. A `customDepthMaterial` needs a fragment
+  output (`gl_FragColor`), or the draw is dropped with "missing fragment shader outputs" and nothing casts.
 - Check a known issue's own repro before closing it: a date alone can land on another time of day
   (Mont-Saint-Michel's date rendered at night and proved nothing), so force what it names.
 

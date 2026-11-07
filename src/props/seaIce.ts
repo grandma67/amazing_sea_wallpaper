@@ -505,6 +505,8 @@ export function createSeaIce(ctx: PropContext): Object3D[] {
   const rng = ctx.rng('sea-ice')
   const sheet = new Mesh(sheetGeometry(coast, viewWedge(ctx.camera, SHEET_MARGIN)), sheetMaterial(ice, ctx.params.ocean.windHeadingDeg, coast.rock != null ? -400 : -30))
   sheet.receiveShadow = true
+  // Lies flat on the water: nothing under it to shade (test/props.test.ts).
+  sheet.userData.flat = true
   sheet.frustumCulled = false
   const objects: Object3D[] = [sheet]
 

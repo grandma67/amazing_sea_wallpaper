@@ -250,7 +250,7 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     tilt: 0.15,
     leanSeaward: false,
     minSlope: 0.6,
-    castShadow: false,
+    castShadow: true,
     variants: 3,
     bend: { height: 0.8, flex: 0.7 }
   },

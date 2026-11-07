@@ -204,6 +204,8 @@ export function createLandforms(ctx: PropContext): Object3D[] {
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.92 })
   const mountain = new Mesh(isRange ? range(land, frame, colors) : volcano(land, frame, colors), material)
   mountain.frustumCulled = false
+  mountain.castShadow = true
+  mountain.receiveShadow = true
   const objects: Object3D[] = [mountain]
   if (land.lenticular != null) {
     const peak = frame.toWorld(0, isRange ? land.width * 0.175 : land.width / 2, land.height)

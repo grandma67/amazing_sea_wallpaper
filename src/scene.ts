@@ -93,7 +93,7 @@ import { bindCloudShadow, bindLandShadow, bindShadow, landCloudUniforms, renderL
 import { cloudSkylightRatio, measureSkylight } from './skylight'
 import { SkyDenoiseEffect } from './skyDenoise'
 import { GpuResources, trackUploads } from './dispose'
-import { createTerrain, hasLand } from './terrain'
+import { createTerrain, createTerrainCaster, hasLand } from './terrain'
 import { NIGHT_WHITE_BALANCE_K, whiteBalanceGains } from './whiteBalance'
 import { probeResult, ProbePass, readCanvas, type ProbeBox } from './probe'
 import { lineDirections, lineStats } from './skyMirror'
@@ -509,6 +509,8 @@ export async function renderScene(
     tu.litterAmount.value = litter.amount
   }
   scene.add(terrain)
+  const terrainCaster = createTerrainCaster(terrain)
+  scene.add(terrainCaster)
 
   // --- Sun light, shadows and props -----------------------------------------
   // Standard-material props are lit by a directional light carrying the same
@@ -814,7 +816,7 @@ export async function renderScene(
     setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, u.skyIrradiance.value as Color)
   }
   {
-    // Render the shadow map once with only the props, then let the custom
+    // Render the shadow map once with the props and terrain, then let the custom
     // terrain and ocean shaders sample it.
     if (!pass('shadows')) props.traverse(o => (o.castShadow = false))
     const view = params.debug?.shadeView === true
@@ -823,13 +825,16 @@ export async function renderScene(
     if (params.debug?.cloudShade != null) {
       for (const uniforms of [ocean.material.uniforms, terrain.material.uniforms, propUniforms]) uniforms.cloudShadeForce.value = params.debug.cloudShade
     }
+    // The terrain casts through its caster (a disc round the camera), the sea doesn't.
     ocean.visible = false
     terrain.visible = false
+    terrainCaster.visible = hasLand(params.coast) && pass('shadows')
     const scratch = new WebGLRenderTarget(4, 4)
     renderer.setRenderTarget(scratch)
     renderer.render(scene, camera)
     renderer.setRenderTarget(null)
     scratch.dispose()
+    terrainCaster.visible = false
     ocean.visible = true
     terrain.visible = hasLand(params.coast)
     bindShadow(ocean.material.uniforms, sun)

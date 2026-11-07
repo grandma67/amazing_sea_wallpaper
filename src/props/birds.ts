@@ -205,6 +205,7 @@ export function createBirds(ctx: PropContext): InstancedMesh[] {
       mesh.setColorAt(i, new Color(1, 1, 1))
     })
     mesh.castShadow = true
+    mesh.receiveShadow = true
     mesh.frustumCulled = false
     meshes.push(mesh)
   })
