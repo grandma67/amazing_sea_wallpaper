@@ -241,6 +241,11 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   static read of the shaders. Which file for what: TOOLS.md "Tests".
 - **CI** (`.github/workflows/pages.yml`): deploys on push and daily at 00:05 UTC renders
   `/latest.jpg` (1920×1080) and `/latest-portrait.jpg` (1290×2796) with SwiftShader (24 frames).
+- **Link previews:** `index.html` and `random/index.html` carry Open Graph / Twitter tags with an
+  absolute `og:image` (`https://grandma67.github.io/amazing_sea_wallpaper/og-image.jpg`, 1200×630,
+  `public/og-image.jpg`, keep < 300 KB for WhatsApp). Crawlers don't run JS, so the tags must be
+  static. Fixed image on purpose: `/latest.jpg` is near-black on night and polar days. A move to a
+  custom domain must update these URLs.
 
 ## Ideas (not planned)
 
