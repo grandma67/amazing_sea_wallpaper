@@ -1,6 +1,6 @@
 # Shadows and dark frames
 
-**Status: phases 0–5 done (0.109, 0.123, 0.124–0.127), phase 6 open.** Left from phase 2: terrain in the land map
+**Status: all phases done (0.109, 0.123, 0.124–0.128).** Left from phase 2: terrain in the land map
 (cliffs beyond ~470 m ahead cast nothing). Decided 2026-11-06: dark nights at ~×8; the
 long-exposure look turns on by itself when the shutter is long. Done before this plan: shade reaches the sea's
 seabed, foam and body (0.105), skylight from clouds (0.106), shadows start at the stem (0.107).
@@ -177,7 +177,30 @@ The plan as written:
 So no multi-light shadow system is needed. Revisit if a lit harbour or campfire is added, or for live
 mode.
 
-### 6. Dark frames: the long exposure
+### 6. Dark frames: the long exposure: done (0.128)
+
+What was built (arch/SKY.md): `frameMeter.ts`. **Step 1:** the frame's median is read after
+averaging and lifted to a floor. Measured first, every night and 60 days, with the boost off
+(exposed median): open starlit nights 0.008, open moonlit 0.016, **cloudy starlit 0.0035,
+cloudy moonlit 0.008**; sun-up days 0.04–1.3. So open nights are as dark by median as cloudy
+ones (stars carry them): only the 22 cloudy nights are lifted, to 0.03 (~×8 on a typical one,
+the level decided 2026-11-06; the plan's 0.05 would be ×14); sun-up days without a storm to 0.10
+(≤ 1.5 stops; 1 of 60 sampled). Blue hour and storms are left alone. All 22 cloudy nights read
+(14 were near-black) and still read as night. **Step 2:** `shutterSeconds` 2–130 s on the cloudy
+nights (`2025-11-13` 93 s, the plan reckoned ~100); past 0.5 s the sea goes glassy, foam to a haze,
+clouds streak along the wind (`cloudDrift` per accumulated frame); smooth, no stepped copies at 16
+frames. Star trails: not built (the stars are behind the cloud on those nights). +0% render time on
+other days, +5% on those nights.
+
+**Found and fixed on the way:** at night props got 1.35–3× the ground's sky light (airglow, Milky
+Way, aurora and the moon's disc in the env cube): the cube is dimmed to the ground's light
+(`passes.nightSkylight`). It also touches open nights, on purpose: props darker where they were too
+bright (aurora on sea ice 33% of pixels; 8 sampled open nights 0–33%, most < 1.3%). **Not fixed,
+for a decision** (ARCHITECTURE.md "Known issues"): the night white balance turns moonlit white sand
+deep blue; a starlit deck is lit blue, not by the airglow; birds stay sharp in the long shutter.
+The plan's sample date `2014-12-29` isn't a test day; the set was re-derived from the generator.
+
+The plan as written:
 
 **The problem.** `2014-12-29` (moonlit, overcast, Greenland) renders nearly black. Exposure is metered
 from the *clear* sky in the env cube, then lowered for night, and it doesn't see the deck. Sampled by

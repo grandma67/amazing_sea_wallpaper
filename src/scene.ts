@@ -65,6 +65,9 @@ import { glowScale, patchSkyNightGlow, type GlowFrame } from './nightGlow'
 import { eclipseSky } from './eclipse'
 import type { DebugPass } from './debug'
 import { ICE_REFLECTANCE, meterScene } from './exposure'
+import { frameBoost, frameBoostRule, FrameMeterPass, longExposureLook, shutterSeconds } from './frameMeter'
+import { cloudDrift } from './cloudArrangement'
+import { windDirection } from './props/wind'
 import { FogEffect } from './fog'
 import { fogSunTransmittance } from './fogLayer'
 import { LighthouseBeamEffect } from './lighthouse'
@@ -548,14 +551,19 @@ export async function renderScene(
   const ground = camera.position.y - params.camera.heightM
   const fineTexel = fineSun.castShadow ? fitFineShadow(fineSun, camera, lightDirectionWorld, Math.min(ground, 0) - 3, ground + 30) : 0
   if (fineSun.castShadow) scene.add(fineSun, fineSun.target)
-  if (starlitAmbient != null) scene.add(new AmbientLight(starlitAmbient, 1))
+  // Set again once the sky cube is drawn (below): the night's light less what
+  // the cube gives.
+  const starlitLight = starlitAmbient != null ? new AmbientLight(starlitAmbient, 1) : null
+  if (starlitLight != null) scene.add(starlitLight)
+  let auroraAmbient: AmbientLight | null = null
   // The aurora's own light on the ground: the display as drawn, integrated
   // over the sky (aurora.ts auroraLux), through the gaps in the cloud.
   if (aurora != null) {
     const auroraLight = new Color(...auroraLux(aurora)).multiplyScalar(renderPerLux(params.nightSky, elongation) * weather.sunVisibility)
     tu.skyIrradiance.value.add(auroraLight)
     u.skyIrradiance.value.add(auroraLight)
-    scene.add(new AmbientLight(auroraLight, 1))
+    auroraAmbient = new AmbientLight(auroraLight, 1)
+    scene.add(auroraAmbient)
   }
   setOceanRocks(ocean, props.userData.waterRocks ?? [], camera.position)
   setOceanIslands(ocean, props.userData.waterIslands ?? [], camera.position)
@@ -749,7 +757,8 @@ export async function renderScene(
   const rain = stormEffects(params, camera, exposure)
   if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
-  if (clouds != null) composer.addPass(new AccumulatePass())
+  const accumulate = clouds != null ? new AccumulatePass() : null
+  if (accumulate != null) composer.addPass(accumulate)
   // What the average leaves of the light-shaft noise in the clouds, smoothed
   // once on the final frame.
   const skyDenoise =
@@ -796,6 +805,12 @@ export async function renderScene(
     })
   )
   const allBoxes = [...probeBoxes, ...lineBoxes.flat()]
+  // The frame's own meter (frameMeter.ts): opens up a frame too dark to read,
+  // on the averaged frame before bloom; the probe sees the result. Off
+  // (passes.frameMeter) or with a pinned exposure it still reads, at ×1.
+  const boostRule = params.debug?.exposure == null && pass('frameMeter') ? frameBoostRule(params) : null
+  const meter = new FrameMeterPass(m => (boostRule == null ? 1 : frameBoost(m, boostRule)))
+  composer.addPass(meter)
   const probePass = allBoxes.length > 0 ? new ProbePass(allBoxes, height) : null
   if (probePass != null) composer.addPass(probePass)
   composer.addPass(finish)
@@ -813,9 +828,10 @@ export async function renderScene(
   }
   let shadeCoverage: ReturnType<typeof shadeProps> = {}
   cubeCamera.update(renderer, envScene)
-  // Daylight clouds only: dust gives its own light back (dustSkylight), and
-  // night and totality keep their own units.
-  const lightFromClouds = cloudAssets != null && pass('cloudLight') && !night && !totality && weather.formations.length > 0 && weather.dust == null
+  // Clouds by day and under the moon: dust gives its own light back
+  // (dustSkylight); starlit nights are set from the night's lux (below), and
+  // totality keeps its own units.
+  const lightFromClouds = cloudAssets != null && pass('cloudLight') && (!night || (moonlit && pass('nightSkylight'))) && !totality && weather.formations.length > 0 && weather.dust == null
   const clearSkylight = lightFromClouds ? measureSkylight(renderer, envTarget) : null
   let cloudSkylight: [number, number, number] | null = null
   if (cloudAssets != null) {
@@ -836,6 +852,8 @@ export async function renderScene(
       envFrames
     )
   }
+  // What the sky cube gives a level surface: the props' sky light.
+  const cubeSkylight = measureSkylight(renderer, envTarget)
   if (clearSkylight != null) {
     // The light the clouds scatter down, on what the clear sky gave.
     cloudSkylight = cloudSkylightRatio(clearSkylight, measureSkylight(renderer, envTarget))
@@ -843,6 +861,25 @@ export async function renderScene(
     for (const c of [u.skyIrradiance.value as Color, tu.skyIrradiance.value as Color]) c.setRGB(c.r * r, c.g * g, c.b * b)
     setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, u.skyIrradiance.value as Color)
   }
+  // At night props and ground must see the same sky light. The cube holds
+  // more than the ground's skyIrradiance: airglow and the Milky Way, and on
+  // moonlit nights the moon's (enlarged) disc, whose light the props already
+  // get from the directional light. Opened up for a cloudy night, palms lit
+  // 1.75–3× the sand around them went bright green (plans/SHADOWS.md phase 6).
+  // So dim the cube to the ground's light, and on a starlit night top the
+  // props up to it with the ambient light (the night's ~0.002 lux). An
+  // aurora's light is in both already: its own ambient light would count it
+  // twice (sea ice lit bright blue under one).
+  if (night && !totality && pass('nightSkylight')) {
+    const lum = (c: ArrayLike<number>): number => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    const want = lum((u.skyIrradiance.value as Color).toArray())
+    const cube = lum(cubeSkylight)
+    if (cube > want) scene.environmentIntensity = want / cube
+    // The aurora is in both the cube and the ground's light already.
+    if (auroraAmbient != null) auroraAmbient.intensity = 0
+    starlitLight?.color.copy(u.skyIrradiance.value as Color).multiplyScalar(Math.max(want - Math.min(cube, want), 0) / Math.max(want, 1e-12))
+  }
+
   {
     // Render the shadow map once with the props and terrain, then let the custom
     // terrain and ocean shaders sample it.
@@ -912,6 +949,24 @@ export async function renderScene(
   // averages out (worst at the grazing angles of beach views). Frame 0 is
   // unjittered: it is the one the still scene is cached from.
   const cloudPixel = clouds != null ? 1 / clouds.resolution.scale : 1
+  // The long exposure (frameMeter.ts): on a night whose frame may be lifted
+  // (stars hidden, so a photographer goes long), read the first frame, choose
+  // the shutter, and if it's long enough to show, draw again with its look:
+  // the sea averaged over the shutter, the clouds moving on frame by frame
+  // (a streak along the wind over the averaged frames).
+  const longShutter = night && boostRule != null && still != null && accumulate != null && pass('longExposure')
+  const wbLum = 0.2126 * whiteBalance.r + 0.7152 * whiteBalance.g + 0.0722 * whiteBalance.b
+  const cdPerUnit = 1 / renderPerLux(params.nightSky, elongationDeg(params))
+  const shutterOf = (medianExposed: number, boost: number): number => shutterSeconds((medianExposed / (exposure * wbLum)) * cdPerUnit, medianExposed * boost)
+  let look = 0
+  let lookShutter = 0
+  let restarted = false
+  const baseWeather = clouds?.localWeatherOffset.clone()
+  const baseShape = clouds?.shapeOffset.clone()
+  // Wind at the clouds: ~2× the surface wind (estimate), at least 3 m/s.
+  const aloft = Math.max(3, 2 * params.ocean.airWindSpeed)
+  const drift =
+    clouds != null ? cloudDrift(worldToECEF, windDirection(params), clouds.localWeatherRepeat, clouds.shapeRepeat, 1) : null
   // Wait for the frame before the last one: the GPU always has a frame
   // queued while the next is issued, and never more than two.
   let previousFrame: Promise<void> | null = null
@@ -922,10 +977,30 @@ export async function renderScene(
       camera.setViewOffset(width, height, dx, dy, width, height)
     }
     const last = i === frames - 1
+    const firstLook = longShutter && !restarted && i === 0
+    if (look > 0 && clouds != null && drift != null && baseWeather != null && baseShape != null) {
+      // Where the clouds are at this point of the shutter, centred on its middle.
+      const metres = aloft * lookShutter * look * (frames > 1 ? i / (frames - 1) - 0.5 : 0)
+      clouds.localWeatherOffset.copy(baseWeather).addScaledVector(drift.weather, metres)
+      clouds.shapeOffset.copy(baseShape).addScaledVector(drift.shape, metres)
+    }
     finish.enabled = last
+    meter.enabled = last || firstLook
     if (probePass != null) probePass.enabled = last
     if (skyDenoise != null) skyDenoise.enabled = last
     composer.render(1 / 60)
+    if (firstLook) {
+      restarted = true
+      lookShutter = shutterOf(meter.medianExposed, meter.boost)
+      look = longExposureLook(lookShutter)
+      if (look > 0) {
+        ocean.material.uniforms.longExposure.value = look
+        still!.reset()
+        accumulate!.reset()
+        i = -1
+        continue
+      }
+    }
     if (!last) {
       const done = gpuIdle(renderer.getContext() as WebGL2RenderingContext)
       if (previousFrame != null) await previousFrame
@@ -935,8 +1010,10 @@ export async function renderScene(
   camera.clearViewOffset()
 
   const gl = renderer.getContext()
+  // What the frame was exposed at in all: the sky's meter, then the frame's.
+  const exposed = exposure * meter.boost
   const probeGrade = {
-    exposure,
+    exposure: exposed,
     whiteBalance: whiteBalance.toArray() as [number, number, number],
     cdPerUnit: 1 / renderPerLux(params.nightSky, elongationDeg(params)),
     darkZenithCd: darkZenithLuminance()
@@ -965,7 +1042,20 @@ export async function renderScene(
   const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
   const debug = {
       gpu: debugInfo != null ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown',
-      exposure,
+      // In all (pin it with params.debug.exposure: diff.mjs --keep-exposure).
+      exposure: exposed,
+      // The frame's own meter (frameMeter.ts): its exposed median before the
+      // boost, and the boost.
+      frameMedian: meter.medianExposed,
+      // The props' sky light: what the cube gives a level surface, and the
+      // starlit top-up (ambient).
+      cubeSkylight,
+      starlitAmbient: starlitLight?.color.toArray() ?? null,
+      frameBoost: meter.boost,
+      // The shutter a photographer would have used (s), and how far its look
+      // went (0–1; only where the stars are hidden: longShutter).
+      shutterSeconds: shutterOf(meter.medianExposed, meter.boost),
+      longExposure: look,
       sceneLuminance,
       skyZenith: metered.zenith,
       whiteBalance: whiteBalance.toArray(),

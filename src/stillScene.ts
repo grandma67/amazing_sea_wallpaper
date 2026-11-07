@@ -166,6 +166,12 @@ export class StillScenePass extends Pass {
     renderer.setRenderTarget(null)
   }
 
+  /** Draw the scene afresh on the next frame (a uniform changed after the
+   * first: the long exposure's look, scene.ts). */
+  reset(): void {
+    this.cached = false
+  }
+
   override setSize(width: number, height: number): void {
     this.renderPass.setSize(width, height)
     this.cache.setSize(width, height)

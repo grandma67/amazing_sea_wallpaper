@@ -75,6 +75,26 @@ export function arrangementMatrix(
   return { matrix: new Vector4(m[0], m[1], m[2], m[3]), origin: cubeSphereUv(origin).multiply(repeat) }
 }
 
+/**
+ * The shift of takram's weather map (localWeatherOffset) and shape noise
+ * (shapeOffset) that moves the clouds `metres` along `windWorld` round the
+ * scene: a long exposure draws each accumulated frame a little further on.
+ */
+export function cloudDrift(
+  worldToECEF: Matrix4,
+  windWorld: Vector3,
+  weatherRepeat: Vector2,
+  shapeRepeat: Vector3,
+  metres: number
+): { weather: Vector2; shape: Vector3 } {
+  const origin = new Vector3().applyMatrix4(worldToECEF)
+  const step = 1000
+  const along = windWorld.clone().setY(0).normalize().transformDirection(worldToECEF)
+  const perMetre = cubeSphereUv(origin.clone().addScaledVector(along, step)).sub(cubeSphereUv(origin)).multiply(weatherRepeat).divideScalar(step)
+  // Sampling at p shows what was at p − d.
+  return { weather: perMetre.multiplyScalar(-metres), shape: along.clone().multiply(shapeRepeat).multiplyScalar(-metres) }
+}
+
 // takram's cube-sphere uv takes u = sqrt(a - sqrt(D)/2) with a = 1.5 + mx² -
 // my² and D/4 = a² - 6mx²: two numbers near 1.5 that cancel when mx -> 0. In
 // float32 u is then only good to ~sqrt(eps) = 3e-4, ×100 repeat = ~16 weather

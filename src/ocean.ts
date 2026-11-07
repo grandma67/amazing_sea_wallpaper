@@ -257,6 +257,8 @@ uniform vec3 flashRadiance;
 // scene units (irradiance at 1 m).
 uniform vec3 lampPositions[${MAX_LAMPS}];
 uniform vec3 lampIntensities[${MAX_LAMPS}];
+// 0 a short shutter … 1 past ~30 s (frameMeter.ts longExposureLook).
+uniform float longExposure;
 uniform int lampCount;
 uniform vec3 skyIrradiance;
 // Debug view (debug.ts): index in OCEAN_VIEWS, 0: none.
@@ -486,6 +488,10 @@ void main() {
   }
   variance *= 1.0 - 0.6 * slick;
   vec3 N = normalize(vec3(-slope.x, 1.0, -slope.y));
+  // A long exposure (frameMeter.ts longExposureLook) records the surface
+  // averaged over the shutter: past ~30 s the waves cancel out and the sea
+  // reads glassy, with a soft sheen instead of glints.
+  N = normalize(mix(N, vec3(0.0, 1.0, 0.0), 0.85 * longExposure));
 
   vec3 V = normalize(cameraPosition - vWorld);
   // Keep normals facing the viewer to avoid black fringes at grazing angles.
@@ -499,6 +505,7 @@ void main() {
   // its channel (and the channel is deeper, so darker, with fewer breakers).
   float rip = hasSurfZone() ? ripWater(sa) : 0.0;
   float alpha = clamp(sqrt(variance.x + variance.y + 0.0006 + rain * 0.006 + rip * 0.012), 0.02, 0.7);
+  alpha = mix(alpha, max(alpha, 0.3), longExposure);
 
   // Sky reflection.
   vec3 R = reflect(-V, N);
@@ -714,6 +721,8 @@ void main() {
   vec2 laceCoords = hasLand() ? vec2(sa.y, sa.x * 1.8) + noiseOffset : q;
   float foam = foamLace(laceCoords, clamp(coverage, 0.0, 1.0), footprint);
   foam = max(foam, rainDrops.z * 0.9);
+  // Over a long shutter the lace moves and blurs into a haze over where it was.
+  foam = mix(foam, 0.5 * clamp(coverage, 0.0, 1.0), longExposure);
   // Foam is matte but wet: diffuse light plus a little sky sheen.
   vec3 foamColor = vec3(0.85) * (sunReaching * max(NoL, 0.0) + skyIrradiance) / PI +
     0.25 * textureLod(envMap, vec3(R.x, max(R.y, 0.05), R.z), envMaxLod - 2.0).rgb;
@@ -843,6 +852,7 @@ export function createOcean(
       lampPositions: { value: Array.from({ length: MAX_LAMPS }, () => new Vector3()) },
       lampIntensities: { value: Array.from({ length: MAX_LAMPS }, () => new Vector3()) },
       lampCount: { value: 0 },
+      longExposure: { value: 0 },
       flashRadiance: { value: new Color(0, 0, 0) },
       skyIrradiance: { value: new Color(0, 0, 0) },
       deepColor: { value: new Color(...ocean.water.deep) },

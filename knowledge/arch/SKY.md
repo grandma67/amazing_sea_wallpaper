@@ -10,6 +10,28 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   real bearing; polar-night days lose solar eclipses. Titles: "Polar night", "Polar night
   twilight", "Midnight sun". Renders: `scenes/sun.json`.
 - `scene.ts`: atmosphere, env cube, post. `exposure.ts` meters a 32² sky cube (auto exposure).
+- **The frame's own meter** (`frameMeter.ts`, SHADOWS.md phase 6): after the frames are averaged and
+  before bloom, `FrameMeterPass` reads the exposed frame's median luminance (160×90 blocks) and
+  lifts it to a floor if it's under it (`frameBoostRule`): nights under broken or overcast cloud to
+  0.03 (~×8 on a typical one, up to 6 stops); sun-up days without a storm to 0.10 (≤ 1.5 stops,
+  ~1 day in 60: beaches in deep shade). Open nights (stars and glitter carry them though their median
+  is as low), blue hour and storms are left alone. `debug.frameMedian`, `frameBoost`;
+  `debug.exposure` is the total (pin it: `--keep-exposure`, then no boost). Off: `passes.frameMeter`.
+- **The long exposure** (phase 6 step 2): `shutterSeconds` is what a photographer at f/2.8, ISO 1600
+  would use (0.061 / L for mid-grey, scaled to the frame's final level): ~30–130 s on cloudy nights.
+  Only where the boost applies at night (stars hidden; with stars a photographer keeps under the
+  500 rule): the first frame is metered, then if `longExposureLook` (0 under 0.5 s, 1 past 30 s) is
+  above 0 the still and the accumulation restart with the sea averaged over the shutter (normals
+  flattened ×0.85, roughness ≥ 0.3, foam lace to a haze) and the clouds moved on along the wind
+  (~2× the surface wind, estimate) frame by frame (`cloudDrift`): soft streaks over the averaged
+  frames. +5% render time on those nights (one extra frame). `debug.shutterSeconds`,
+  `debug.longExposure`. Off: `passes.longExposure`.
+- **Props and ground under the same night sky** (`passes.nightSkylight`): the env cube holds airglow,
+  the Milky Way, the aurora and the moon's (enlarged) disc as well as the clear sky, so props got
+  1.35–3× the ground's sky light at night (palms bright green on a dark beach once opened up). At
+  night the cube is dimmed to the ground's `skyIrradiance` (`scene.environmentIntensity`), a starlit
+  night tops props up to it (the ambient light), the aurora's own ambient is dropped (it's in both),
+  and moonlit cloud nights get the cloud skylight ratio, as days do.
 - **Clouds** (`clouds.ts`, `cloudTypes.ts`): WMO genera and species (each has its `genus`);
   `pickFormations` draws one per étage, `pickSpecies` (own stream) refines and adds fractus,
   scud and duplicatus, ≤ 4 layers; `layerChannels` gives an étage's second layer the weather

@@ -21,7 +21,7 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   `timeOfDay`, `place`, `coast`, `weather`, …), and the render's numbers under **`debug`**
   (`j.debug.X`, not `j.X`): `exposure`, `sceneLuminance`, `skyZenith` (clear-sky zenith, render
   units), `sunIrradiance`, `skyIrradiance`, `cloudSkylight`, `nightScale`, `shadowCoverage`,
-  `fineShadowTexelM`, `skyOpenLeast`, `cameraGroundM`, `props`, `propTimes` (CPU ms per kind, plus
+  `fineShadowTexelM`, `skyOpenLeast`, `frameMedian`, `frameBoost`, `shutterSeconds`, `longExposure`, `cubeSkylight`, `cameraGroundM`, `props`, `propTimes` (CPU ms per kind, plus
   `sky-open`). `DEBUG=1` also prints `debug`. One field: `node -e "console.log(require('./out/NAME.json').debug.exposure)"`.
   Otherwise a temporary `console.warn('DBG …')` (snapshot echoes page and worker console errors
   and warnings; GL messages become ⚠ warnings, see below), removed before committing.

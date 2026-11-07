@@ -251,6 +251,16 @@ tool gotchas: TOOLS.md.
   height band over its own penumbra (`shadow.ts SOFT_SHADOW_GLSL`). A wide disc on a tilted receiver
   shades itself (stipple on grass blades): offset each band by the slope × its radius. Keep every disc
   ≥ 1.5 texels: a 1 cm texel is several pixels on a trunk a metre away, and one tap shows its steps.
+- Brightening a frame exposes every light that was wrong but too dark to see: opened ×8, cloudy nights
+  showed palms lit bright green on black sand (props took 1.75–3× the ground's sky light: the env cube
+  holds airglow, the Milky Way, the aurora and the moon's disc, which the ground's skyIrradiance
+  doesn't). Measure both lights (`debug.cubeSkylight` against `skyIrradiance`) before tuning a boost.
+- Check a plan's sample dates against the generator before using them: SHADOWS.md's `2014-12-29`
+  ("moonlit, overcast, Greenland") isn't a test day, and 2024-12-29 is a clear night in Scotland.
+  Re-derive the set (`params.mjs --list --where`) and measure it: the plan's "open nights are fine"
+  turned out to be open nights as dark by median as cloudy ones, carried by their stars.
+- A look that changes geometry or the sea can't wait for the frame's meter (the sea is drawn once, on
+  frame 0): meter frame 0, set the look, then restart the still and the accumulation (one frame).
 - A point light with a few fixed rays (a lighthouse's beams) needs no shadow map: march each ray on the
   CPU against the terrain and islands and pass a lit share along it. Count first: land cut a beam in
   frame on 1 day in 1095, so a spot map would have cost a render pass for nothing. Mind the beam's

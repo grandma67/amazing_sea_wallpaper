@@ -85,6 +85,11 @@ export class AccumulatePass extends Pass {
     renderer.render(this.scene, this.camera)
   }
 
+  /** Start the mean again from the next frame. */
+  reset(): void {
+    this.count = 0
+  }
+
   /** The running mean so far. */
   get texture(): Texture {
     return this.read.texture

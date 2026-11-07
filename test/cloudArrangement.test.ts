@@ -2,7 +2,7 @@ import { Ellipsoid, Geodetic, radians } from '@takram/three-geospatial'
 import { Matrix4, Vector2, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { arrangementMatrix, cubeSphereUv } from '../src/cloudArrangement'
+import { arrangementMatrix, cloudDrift, cubeSphereUv } from '../src/cloudArrangement'
 import { CLOUD_GENERA } from '../src/cloudTypes'
 import { dirFromAzEl } from '../src/params'
 import { allParams, scene, scenes, share } from './days'
@@ -99,3 +99,23 @@ describe('cloud arrangement', () => {
     }
   })
 })
+
+describe('cloudDrift', () => {
+  it('shifts the weather map so a cloud seen at p moves downwind by the distance asked', () => {
+    const anchor = new Geodetic(0, radians(40), 0).toECEF()
+    const worldToECEF = Ellipsoid.WGS84.getNorthUpEastFrame(anchor, new Matrix4())
+    const repeat = new Vector2(100, 100)
+    for (const heading of [0, 90, 200]) {
+      const wind = new Vector3(...dirFromAzEl(heading, 0))
+      const { weather, shape } = cloudDrift(worldToECEF, wind, repeat, new Vector3(3e-4, 3e-4, 3e-4), 500)
+      // The map coordinate at a point 500 m downwind, after the shift, is the one at the origin before.
+      const o = new Vector3().applyMatrix4(worldToECEF)
+      const p = o.clone().add(wind.clone().transformDirection(worldToECEF).multiplyScalar(500))
+      const before = cubeSphereUv(o).multiply(repeat)
+      const after = cubeSphereUv(p).multiply(repeat).add(weather)
+      expect(after.distanceTo(before)).toBeLessThan(1e-3 * weather.length() + 1e-9)
+      expect(shape.length()).toBeCloseTo(500 * 3e-4)
+    }
+  })
+})
+

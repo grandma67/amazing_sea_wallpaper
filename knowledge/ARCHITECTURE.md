@@ -258,6 +258,12 @@ December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
 
+- Night frames (found in SHADOWS.md phase 6, 2026-11-07): the night white balance (`NIGHT_WHITE_BALANCE_K`,
+  gains 0.67, 1.02, 1.77) turns moonlit white sand (raw 0.068, 0.060, 0.058) deep blue (exposed B/R 2.3);
+  at ~4000 K and moonlight's ~4100 K it should be near neutral. A starlit cloud deck is lit blue (raw B/R
+  2.4: the stand-in sun's Bruneton colour), not by the airglow's warm green. Birds stay sharp in a 30–130 s
+  exposure. All three show once a cloudy night is opened up; unchanged pending a decision (they touch all
+  nights).
 - Lighthouses (found 2026-11-07): on 14 of 92 lighthouse days (9 open sea, 4 beach, 1 rock shore) the
   title says "lighthouse" but `createLighthouse` finds no site and builds none (`2024-05-13`); the
   title should follow what's placed, or the site search widen. A rock lighthouse in fog with a beam
@@ -357,10 +363,9 @@ Tidal flats and salt marsh (PLAN_BIOMES 9):
 Light:
 - **Dark land** (symptoms: "beach renders dark blue", "land near-black", "marsh black"): partly
   fixed by skylight from clouds (`place: "western-med"`, 2024-05-08, along-beach is sand-coloured
-  now). Still dark and blue: `place: "brittany"`, 2025-07-10, along-beach, daylight, `weather:
-  "broken"`, sun 160°: shaded sand exposes to ~0.03 with the sky at ~0.11. Likely cause, untested:
-  exposure is metered from the clear sky, so it doesn't open up when the frame is in shade
-  (plans/SHADOWS.md phase 6).
+  now), then by the frame's own meter (0.128, `frameMeter.ts`): a sun-up frame under 0.10 exposed
+  opens up to 1.5 stops (`2024-11-05`, ×2.2). The Brittany case (`place: "brittany"`, 2025-07-10,
+  along-beach, daylight, `weather: "broken"`, sun 160°) now meters 0.108 and isn't lifted.
   That sand also reads less red than albedo × skylight predicts (raw 0.0069, 0.0076, 0.0112 against
   ~0.012 each); not traced.
 - **Meter zenith:** `meterScene`'s `zenith` (`debug.skyZenith`) reads ~3× the env cube's own zenith
