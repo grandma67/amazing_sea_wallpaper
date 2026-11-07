@@ -200,9 +200,35 @@ Biggest visible gains, roughly in order of (days touched × how much it changes 
 5. **Desert bloom** on the Atacama one year in three, and **fungi** (mostly for the move-around
    mode).
 
+## 8. Details for the plan (added 2026-11-07)
+
+| Topic | Finding | Evidence |
+|---|---|---|
+| Firefly brightness | 10¹⁰–10¹¹ photons per flash (upper bound, field lux meter + quantum-yield bound + re-analysis); the classic 10¹³–10¹⁴ (Coblentz 1912: 1/50–1/400 candle) is too high; "real fireflies look much dimmer than LEDs" | Silver 2026, *Am. J. Phys.* (AIP Scilight, read) |
+| → intensity | 10¹¹ × 3.5 × 10⁻¹⁹ J (562 nm) over 0.5 s = 7 × 10⁻⁸ W ≈ 4.8 × 10⁻⁵ lm; into a hemisphere **≈ 7.6 × 10⁻⁶ cd**; apparent magnitude +2.3 at 5 m, +5.3 at 20 m, +6.8 at 40 m (our arithmetic) | – |
+| Firefly flight | 2–5 ft/s (0.6–1.5 m/s); males fly slowly up to 3 m high; slow and arc while flashing | old photometry paper (biostor 8523), Creighton flight-path study, Lloyd |
+| Flamboyant timing | flowers after the dry season when almost leafless, through leaf emergence; India leafless Mar–May, flowering first week Apr – last week Jun; Yucatán peak as dry turns to wet (~May); Bangladesh Apr–May, S Florida and Egypt May–Jun; dry sites flower copiously, moist ones little; no clear season → individuals vary (Singapore) | World Agroforestry DB, Indian Forester, backyardnature Yucatán, NParks |
+| Rock rose range | Canaries and Madeira through the Mediterranean to the Caucasus and N Africa, most species in the west; not native to other Mediterranean-climate regions *(est. for that last part)* | Kew POWO, first-nature, Frontiers in Chemistry review |
+| Coastal heath | patchy on cooler aspects; a tight woody cover a few cm high on grazed, exposed cliff tops; Cornwall: western gorse with heather and bell heather locally; no cover percentages found | British Plant Communities (H7/H8), Natural England SSSI, geograph (Gwennap Head) |
+| Lichen zone height | the yellow-grey lichen splash zone is ~1 m high on very sheltered shores and extends "tens of metres up cliffs" on very exposed ones | JNCC supralittoral biotope, EUNIS B3.11 |
+| Laver | *Porphyra umbilicalis*: dense stands round high water on somewhat exposed rock along most of Norway's coast; northern Portugal to the Faroes; most abundant on the upper shore; *P. linearis* a winter annual | MarLIN, Store norske leksikon, Iceland–Iberia genetic study |
+| Fairy rings | darker, taller grass at the edge (nutrients), dead grass behind it; 20–30 cm a year; rings over 10 m; *Marasmius oreades* up to 365 m; can last centuries | RHS, Utah State herbarium, Britannica |
+| Atacama bloom | dominated by *Cistanthe longiscapa* (magenta; reddish, orange, yellow, pink forms; Caldera 2021 had big purple and yellow patches); *Nolana* white, bluish, lilac; ~200 species; mid-Sep to mid-Nov; big blooms every 5–10 years | Frontiers in Ecology and Evolution 2022, UC Chile |
+
 ## Sources
 
 All read through search summaries unless marked "read".
+
+- Details (§8): https://www.aip.org/scilights/how-much-light-comes-from-a-firefly ,
+  https://archive.org/download/biostor-8523/biostor-8523.pdf ,
+  https://researchworks.creighton.edu/esploro/outputs/journalArticle/Two-Dimensional-Flight-Paths-of-Mate-Searching-Male/991006029366802656 ;
+  https://apps.worldagroforestry.org/treedb/AFTPDFS/Delonix_regia.PDF , https://indianforester.co.in/index.php/indianforester/article/view/84367 ,
+  https://www.backyardnature.net/yucatan/101/royal_p.htm ; https://powo.science.kew.org/taxon/urn:lsid:ipni.org:names:168230-1 ,
+  https://first-nature.com/flowers/cistus-salviifolius.php ;
+  https://cambridge.org/core/books/british-plant-communities/calluna-vulgarisulex-gallii-heath/291C3AB55C89E1945B12F2FE02622986 ;
+  https://eunis.eea.europa.eu/habitats_codeEUNIS/B3.11/eunis2007 ; https://marlin.ac.uk/species/detail/1463 , https://snl.no/Porphyra ;
+  https://rhs.org.uk/advice/profile?pid=158 , https://artsci.usu.edu/herbarium/activities_fun-stuff/fun-facts-about-fungi/fairy-rings ;
+  https://www.frontiersin.org/articles/10.3389/fevo.2022.957318/full , https://www.uc.cl/noticias/desierto-florido-las-claves-para-entender-este-particular-fenomeno/
 
 - Fireflies: Japan, https://japantimes.co.jp/culture/2008/06/13/events/events-outside-tokyo/fireflies-set-the-nights-alight ,
   https://www.tokyoweekender.com/things-to-do-in-tokyo/where-to-see-fireflies-in-tokyo-2026/ ,
