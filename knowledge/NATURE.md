@@ -216,6 +216,9 @@ Biggest visible gains, roughly in order of (days touched × how much it changes 
 | Glow-worm range | *Lampyris noctiluca* to ~65°N in Finland, glowing even on the shortest summer nights; 453 Norwegian records 1991–2024; Welsh and Scottish valleys | Springer 2020 (Finland), NVSU paper, GBIF, Animal Diversity Web |
 | More firefly regions | eastern Australia: Queensland "up to six months a year", Illawarra mid-Nov – early Dec, a few weeks at any one site; forests and mangroves along the NSW, Queensland and NT coast. India: Konkan fireflies just before the monsoon (one May observation); Western Ghats hold ~25% of India's 92 species, coasts ~17%. No seasonal source for Sri Lanka, the Andamans, Brazil's Atlantic forest or Kenya | Illawarra Flame, Coffs Coast news, Down To Earth (2026 checklist), EarthSky photo |
 | Eye persistence | visible persistence ~20 ms plus ~20 ms decay, longer in scotopic vision, shorter for brighter stimuli: a moving light leaves a 2–10 cm streak to the eye, so a whole-flash streak is a camera-like (~½ s) look | ghost-imaging-with-the-eye study, UBC thesis, Di Lollo & Bischof |
+| Firefly density | *Photinus carolinus* emergence traps: one male per 13 m² (3.6 m apart, ~0.15 per m², season-long); displaying males cluster, so the field density looks higher; *P. collustrans* females 0.83 per m² over 360 m² | Psyche (Cambridge Entomological Club); UGA Allegheny survey |
+| Glow-worm density | glowing females per 100 m of walked path: 0.09 (Hatfield Forest) to 19.2 (One Tree Hill, Basildon); walks start 22:00–23:00 as most stop by midnight; ~78% at unlit sites, in grassy meadows and scrub; −3.5% a year in SE England 2001–18 | Essex Field Club surveys, Gardiner & Didham 2020 |
+| Fungi in the humid tropics | fruiting longer and less seasonal than temperate, but still tracks rain: Pasoh (Malaysia) a main spring flush and a second in late summer–autumn after dry spells; central Amazon lower in dry months; Yunnan tropical sites no significant fluctuation within the rainy season. No source for Florida | CIRAD Bois et Forêts des Tropiques, INPA, Acta Oecologica 2018 |
 | Namaqualand and the Cape West Coast | Namaqualand blooms every year Jul–Sep (orange *Ursinia*, white daisies), timed by winter rain; Postberg (West Coast NP, ~33°S) Aug 1 – Sep 30 every year, strong some years | SANParks flower reports, West Coast NP (Wikipedia), Business Day 2025 |
 | Atacama bloom | dominated by *Cistanthe longiscapa* (magenta; reddish, orange, yellow, pink forms; Caldera 2021 had big purple and yellow patches); *Nolana* white, bluish, lilac; ~200 species; mid-Sep to mid-Nov; big blooms every 5–10 years | Frontiers in Ecology and Evolution 2022, UC Chile |
 
@@ -237,6 +240,10 @@ All read through search summaries unless marked "read".
   Australia, https://www.theillawarraflame.com.au/the-magic-in-macquarie-pass-and-why-you-shouldnt-miss-it/ , https://newsofthearea.com.au/?p=78744 ;
   India, https://www.downtoearth.org.in/wildlife-biodiversity/counting-the-glow-indias-first-firefly-checklist-reveals-92-species , https://ecp.earthsky.org/community-photos/entry/82629 ;
   persistence, https://www.catalyzex.com/paper/ghost-imaging-with-the-human-eye , https://open.library.ubc.ca/cIRcle/collections/831/items/1.0088140 ;
+  firefly density, https://groups.csail.mit.edu/mac/projects/psyche/98/98-293.html ,
+  https://stanger-hall.franklinresearch.uga.edu/sites/default/files/Allegheny%20National%20Forest%20Firefly%20Survey%20Report%202012.pdf ;
+  glow-worm density, https://essexfieldclub.org.uk/archivetext.php/s/236/o/0168 , https://agris.fao.org/search/fr/records/65de680a4c5aef494fdbf47c ;
+  tropical fungi, https://revues.cirad.fr/index.php/BFT/article/view/20123/19882 , https://repositorio.inpa.gov.br/handle/1/17061 ;
   Namaqualand and Postberg, https://www.sanparks.org/news/namaqua-national-park-flower-report , https://en.wikipedia.org/wiki/West_Coast_National_Park ,
   https://www.businessday.co.za/bd/life/2025-09-10-when-its-time-to-say-it-with-flowers/
 
