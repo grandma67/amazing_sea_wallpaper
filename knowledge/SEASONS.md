@@ -24,7 +24,8 @@ seasons, turtle nesting (local months per place), waterspout season, the aurora'
 and the real polar sun (≥ 63°).
 
 Nothing followed the season on **trees, grass, ground cover, seabird colonies, whales, seals,
-crabs or lizards**. That is what this research is for.
+crabs or lizards**. That is what this research is for. Flowering shrubs and trees, fungi,
+fireflies, moss, seaweed and the phase-14 animals are in [NATURE.md](NATURE.md).
 
 ## 2. Plants
 

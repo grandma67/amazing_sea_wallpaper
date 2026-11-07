@@ -2,7 +2,8 @@
 
 Sources behind built features. Research for planned work lives with its plan: coasts in
 [COASTS.md](COASTS.md), regions/grain/tides/bioluminescence in [REGIONS.md](REGIONS.md), clouds
-(WMO atlas) in [CLOUDS.md](CLOUDS.md), biomes in [plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md).
+(WMO atlas) in [CLOUDS.md](CLOUDS.md), biomes in [plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md),
+blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATURE.md).
 
 ## Rendering
 

@@ -13,9 +13,11 @@ Docs in `knowledge/` (read what the task needs):
 - `ANIMALS.md`, `CLOUDS.md`, `COASTS.md`: what appears where and how often.
 - `SEASONS.md`: seasons by climate and hemisphere (leaves, grass, colonies, whales, seals,
   winter sleep, waterfowl): research and numbers.
+- `NATURE.md`: flowering shrubs and trees, fungi, fireflies, moss, seaweed and phase-14 animals
+  by place, climate and month: research and numbers (plan: `plans/NATURE_PLAN.md`).
 - `STARS.md`: the night sky (stars, meteors, Milky Way, planets, airglow, aurora): research and numbers.
 - `REGIONS.md`: research behind places, grain, tides; `REFERENCES.md`: sources.
-- `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons, snow, sea ice, live mode, shadows and dark frames).
+- `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons, nature, snow, sea ice, live mode, shadows and dark frames).
 
 Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5173 is other projects).
 
