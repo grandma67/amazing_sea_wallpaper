@@ -15,7 +15,7 @@
 
 import { chromium } from 'playwright'
 
-import { parseArgs, watchPage } from './lib.mjs'
+import { parseArgs, requireServer, watchPage } from './lib.mjs'
 
 const { option, rejectUnknown } = parseArgs()
 const baseUrl = option('url', 'http://localhost:5174/')
@@ -136,6 +136,7 @@ async function inPage({ steps, worker }) {
   return { ok: failures.length === 0, failures, rows: rows.filter(Boolean).map(r => `${r.label} ${r.date} ${r.heapMB}MB gpu ${JSON.stringify(r.gpu)} swept ${r.swept} ctx ${r.contexts} wk ${r.workers}`) }
 }
 
+await requireServer(baseUrl)
 const browser = await chromium.launch({
   channel: process.env.CI ? undefined : 'chrome',
   args: ['--js-flags=--expose-gc', '--enable-precise-memory-info', '--ignore-gpu-blocklist', '--enable-gpu', `--use-angle=${angle}`, '--enable-unsafe-swiftshader']

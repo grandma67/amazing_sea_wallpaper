@@ -221,3 +221,16 @@ export function spreadSample(items, key, n) {
   }
   return out
 }
+
+/** Exit with one clear line (not a browser stack trace) if the dev server
+ * isn't answering at `url`. */
+export async function requireServer(url) {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(3000) })
+    if (response.ok) return
+  } catch {
+    // Not listening, or too slow: same message.
+  }
+  console.error(`dev server not reachable at ${url}: start it with \`npx vite\` as a background task (port 5174, strictPort; TOOLS.md "Dev server"), or pass --url`)
+  process.exit(1)
+}

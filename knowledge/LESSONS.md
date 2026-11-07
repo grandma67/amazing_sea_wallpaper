@@ -254,7 +254,9 @@ tool gotchas: TOOLS.md.
 - Brightening a frame exposes every light that was wrong but too dark to see: opened ×8, cloudy nights
   showed palms lit bright green on black sand (props took 1.75–3× the ground's sky light: the env cube
   holds airglow, the Milky Way, the aurora and the moon's disc, which the ground's skyIrradiance
-  doesn't). Measure both lights (`debug.cubeSkylight` against `skyIrradiance`) before tuning a boost.
+  doesn't). Measure both lights (`debug.cubeSkylight` against `skyIrradiance`) before tuning a boost,
+  and in every case at once (starlit, moonlit, aurora, cloudy; ground, sea, props): fixed one by one
+  as renders showed them, the three causes took six renders where one table would have shown all.
 - Check a plan's sample dates against the generator before using them: SHADOWS.md's `2014-12-29`
   ("moonlit, overcast, Greenland") isn't a test day, and 2024-12-29 is a clear night in Scotland.
   Re-derive the set (`params.mjs --list --where`) and measure it: the plan's "open nights are fine"

@@ -15,7 +15,11 @@ node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields ti
 node scripts/params.mjs --scene '{"storm":"squall"}' --stats 'p => p.weather.formations'   # spec on every day
 node scripts/params.mjs --scene scenes/stony.json --fields title,place.id    # each scene of a file
 node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'   # prop choices
+node scripts/params.mjs --where 'p => p.lighthouse?.lit' --each 'p => [p.place.id, p.coast.type]'   # which days, each value
 ```
+
+`--stats` says how many; `--each` says which: one line per kept day, date and value (an error on its
+line). Don't loop `params.mjs` over dates in the shell: each call builds the modules (seconds).
 
 A sample to render: `--where 'p => p.seaIce' --sample 8 [--spread 'p => p.place.id']` prints 8 dates, one a line, spread over the groups (`snapshot.mjs --where` runs this for you).
 

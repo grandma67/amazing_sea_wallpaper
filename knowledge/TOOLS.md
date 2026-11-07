@@ -8,6 +8,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 |---|---|---|
 | How often, which days, what a spec gives, real dates | `params.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Which days did my change touch; did shares move | `params.mjs --ref HEAD` | [tools/PARAMS.md](tools/PARAMS.md) |
+| Which days give what (one line per day, from an expression) | `params.mjs --where … --each 'p => …'` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Expected share for a test target (no sampling) | `params.mjs --expect` | [tools/PARAMS.md](tools/PARAMS.md) |
 | How near is the ground; how many px is a thing | `params.mjs` `p.view` | [tools/PARAMS.md](tools/PARAMS.md) |
 | What a creator or helper does on real days | `params.mjs` `p.ctx`, `src.X`, `props.X` | [tools/PARAMS.md](tools/PARAMS.md) |
@@ -25,6 +26,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Render time vs a commit (10% rule); same image | `bench.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A new mesh alone | `mesh.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
+| A number over a folder of renders (median, quartiles by group; or counts) | `summary.mjs DIR 'j => j.debug.X' --by 'j => …'` | [tools/RENDER.md](tools/RENDER.md) |
 | Which pass, term or grid causes a look | `params.debug` switches and views | [tools/DEBUG.md](tools/DEBUG.md) |
 | How bright or what colour is X in the render (raw, cd/m², mag/″², final RGB) | `params.debug.probe` | [tools/DEBUG.md](tools/DEBUG.md) |
 | Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |
@@ -99,8 +101,10 @@ npx vite                                              # run_in_background, if no
 lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill            # stop it when done
 ```
 
-Needed by snapshot, diff, bench and mesh (not params, profile, animals). It answers in 1–2 s: cap
-a wait loop at ~10 s and treat longer as a fault. The first render after a start can take
+Needed by snapshot, diff, bench, mesh and restart (not params, profile, animals, summary); each
+says `dev server not reachable at …` in one line if it isn't up (`requireServer`, `lib.mjs`). Start it
+as a background task, not with `&` in a subshell: that one dies with the shell, mid-session. It
+answers in 1–2 s: cap a wait loop at ~10 s and treat longer as a fault. The first render after a start can take
 minutes (dep optimisation).
 
 ## Gotchas

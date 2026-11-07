@@ -83,6 +83,19 @@ node scripts/diff.mjs --a $SP/x/off --b $SP/x/on --match NAME --out $SP/x --crop
 - `--threshold N` (0–255, default 4): above JPEG noise; two renders of the same code on the same
   GPU are identical.
 
+## `scripts/summary.mjs`: one number over many renders
+
+```sh
+node scripts/summary.mjs $SP/nights 'j => j.debug.frameMedian' --by 'j => j.weather.kind'
+node scripts/summary.mjs $SP/d1/on 'j => j.debug.propTimes["sky-open"]' --each
+```
+
+Reads every `NAME.json` in a folder (for a `diff.mjs` folder give `OUT/on` or `OUT/off`). Numbers:
+n, min, p25, median, p75, max per `--by` group; anything else: how many of each value. `--each` lists
+every render by value. A render the expression throws on is named, not dropped silently. Use it
+instead of `node -e` loops over JSON files: phase 6 of SHADOWS.md measured 173 renders' medians this
+way to choose its floors.
+
 ## `scripts/bench.mjs`: speed
 
 ```sh

@@ -20,7 +20,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
-import { parseArgs, watchPage } from './lib.mjs'
+import { parseArgs, requireServer, watchPage } from './lib.mjs'
 
 const { args, option, rejectUnknown } = parseArgs()
 const baseUrl = option('url', 'http://localhost:5174/')
@@ -43,6 +43,7 @@ setTimeout(() => {
 }, 120_000).unref()
 
 await mkdir(outDir, { recursive: true })
+await requireServer(baseUrl)
 const browser = await chromium.launch({ channel: 'chrome', args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=metal'] })
 const page = await browser.newPage({ viewport: { width: Number(width), height: Number(height) } })
 const messages = await watchPage(page)

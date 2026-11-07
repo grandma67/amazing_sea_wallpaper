@@ -30,7 +30,7 @@ import { join } from 'node:path'
 import { chromium } from 'playwright'
 
 import { snapshotWarnings } from './checks.mjs'
-import { expandDates, parseArgs, readSpecs, watchPage } from './lib.mjs'
+import { expandDates, parseArgs, readSpecs, requireServer, watchPage } from './lib.mjs'
 import { serveRef } from './refServer.mjs'
 
 /** A row of characters showing a line's shape (as skyMirror.ts sparkline). */
@@ -108,6 +108,8 @@ if (ref != null) {
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(130))
   baseUrl = old.url
   console.log(`[snapshot] rendering ${ref} (${old.sha})`)
+} else {
+  await requireServer(baseUrl)
 }
 
 const browser = await chromium.launch({

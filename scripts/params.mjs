@@ -11,6 +11,8 @@
 //                  comparison to those fields.
 // --where EXPR     keep days where 'p => …' is true (with --ref: each side's own).
 // --stats EXPR     count the values 'p => …' returns (each array element), with shares.
+// --each EXPR      one line per day: the date and what 'p => …' returns (an error
+//                  says so on its line). With --where: from "how many" to "which".
 // --list           one line per day (with --ref: each changed day, before → after).
 // --limit N        lines listed (default all; 20 with --ref).
 // --sample N       print N dates of the days kept by --where, one per line, spread
@@ -51,6 +53,7 @@
 //   node scripts/params.mjs --scene '{"waterspout":true}' --fields waterspout,weather.formations 2024-09-06
 //   node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null'
 //   node scripts/params.mjs --ref HEAD --changed 'p => p.place.climate'
+//   node scripts/params.mjs --where 'p => p.lighthouse?.lit' --each 'p => [p.place.id, p.coast.type]'
 //   node scripts/params.mjs --scene scenes/aurora.json --line '{"az":-30,"el":[8,30]}' --sky aurora
 //   node scripts/params.mjs --scene '{"saltMarsh":true}' --stats 'p => props.saltMarsh.createSaltMarsh(p.ctx).length' 2025-07-01..2025-07-10
 
@@ -72,6 +75,7 @@ const fieldsArg = option('fields', null)
 const fields = (fieldsArg ?? 'title').split(',').filter(Boolean)
 const where = option('where', null)
 const stats = option('stats', null)
+const each = option('each', null)
 const ref = option('ref', null)
 const expect = option('expect', null)
 const changedArg = option('changed', null)
@@ -216,6 +220,22 @@ function printStatsVs(before, now, sha) {
   }
 }
 
+/** One line per day: its date and what `each` returns. */
+function printEach(days) {
+  const of = fn(each)
+  console.log(`${days.length} days`)
+  for (const p of days.slice(0, limit)) {
+    let value
+    try {
+      value = JSON.stringify(of(p)) ?? 'undefined'
+    } catch (error) {
+      value = `error: ${error instanceof Error ? error.message : String(error)}`
+    }
+    console.log(`${p.date}  ${value}`)
+  }
+  if (days.length > limit) console.log(`… ${days.length - limit} more days not shown (--limit ${limit})`)
+}
+
 function printDays(days) {
   if (list || days.length > 1) {
     console.log(`${days.length} days`)
@@ -303,7 +323,7 @@ const here = await load(process.cwd())
 // Expressions that name `src.X` or `props.X` get this tree's modules
 // (src/X.ts, src/props/X.ts) as globals, loaded up front (they're async to
 // load, expressions are not). Modules that need a browser are left out.
-if (/\b(src|props)\.\w/.test([where, stats, expect, changedArg].join(' '))) {
+if (/\b(src|props)\.\w/.test([where, stats, each, expect, changedArg].join(' '))) {
   const { readdir } = await import('node:fs/promises')
   const browserOnly = new Set(['main', 'renderWorker', 'spectrumWorker', 'assets', 'clouds', 'meshPreview', 'scene'])
   for (const [global, dir] of [['src', 'src'], ['props', 'src/props']]) {
@@ -433,6 +453,7 @@ try {
       continue
     }
     if (stats != null) printStats(days)
+    else if (each != null) printEach(days)
     else printDays(days)
   }
 } finally {

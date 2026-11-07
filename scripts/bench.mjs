@@ -13,7 +13,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
-import { expandDates, parseArgs, shortSha } from './lib.mjs'
+import { expandDates, parseArgs, requireServer, shortSha } from './lib.mjs'
 import { serveRef } from './refServer.mjs'
 
 const { args, option, rejectUnknown, rejectPositional } = parseArgs()
@@ -28,6 +28,7 @@ if (scene != null) rejectPositional('dates are ignored with --scene')
 const dates = expandDates(args.length > 0 ? args : ['2024-07-12', '2024-06-26', '2024-04-24', '2024-02-12'])
 
 const sha = shortSha(ref)
+await requireServer(url)
 
 /** Renders everything `runs` times; the fastest time per name, and the
  * spread (slowest / fastest) to tell a real change from a busy machine. */
