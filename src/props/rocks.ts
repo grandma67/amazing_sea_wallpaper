@@ -2,7 +2,6 @@ import {
   BufferAttribute,
   Color,
   Euler,
-  IcosahedronGeometry,
   InstancedMesh,
   Matrix4,
   MeshStandardMaterial,
@@ -10,7 +9,6 @@ import {
   Vector3,
   type BufferGeometry
 } from 'three'
-import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 
 import { isStony, type BeachMaterial } from '../beach'
 import type { Biome, RGB } from '../biome'
@@ -21,6 +19,7 @@ import { tideMarks } from '../tides'
 import type { PropContext } from './context'
 import { fbm3 } from './noise'
 import { snowCap, snowLook, type SnowLook } from './snowCap'
+import { unitSphere } from './sphere'
 
 // Procedural rocks: a noisy sphere sliced by a few random planes, which gives
 // the flat fractured faces of real boulders, with crevices darkened in the
@@ -51,7 +50,7 @@ function ridged(x: number, y: number, z: number, seed: number): number {
 
 export function rockGeometry(rng: Random, stack: boolean): BufferGeometry {
   // PolyhedronGeometry subdivides each face (detail + 1)² times: ~19k faces.
-  const geometry = mergeVertices(new IcosahedronGeometry(1, 30))
+  const geometry = unitSphere(30)
   const position = geometry.attributes.position as BufferAttribute
   const seed = rng.int(0, 1_000_000)
 

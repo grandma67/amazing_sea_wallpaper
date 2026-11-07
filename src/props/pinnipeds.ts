@@ -2,7 +2,6 @@ import {
   BufferAttribute,
   CatmullRomCurve3,
   Euler,
-  IcosahedronGeometry,
   InstancedMesh,
   Matrix4,
   Mesh,
@@ -12,8 +11,6 @@ import {
   type BufferGeometry,
   type Object3D
 } from 'three'
-
-import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 
 import { beachLines, isStony } from '../beach'
 import type { RGB } from '../biome'
@@ -25,6 +22,7 @@ import { stormy, type PropContext } from './context'
 import { fbm3 } from './noise'
 import { rockMaterial, type RockGrowth } from './rocks'
 import { snowLook } from './snowCap'
+import { unitSphere } from './sphere'
 
 // Seals and sea lions hauled out on the rocks (see PinnipedKind):
 //
@@ -227,7 +225,7 @@ export function swimmingHead(rng: Random, kind: PinnipedKind, pitch: number): Bu
  * smoothed by the sea into slabs and humps seals can lie on. Vertex colours
  * carry the rock shading like rockGeometry's. */
 function skerryGeometry(rng: Random): BufferGeometry {
-  const geometry = mergeVertices(new IcosahedronGeometry(1, 24))
+  const geometry = unitSphere(24)
   const position = geometry.attributes.position as BufferAttribute
   const seed = rng.int(0, 100_000)
   const colors = new Float32Array(position.count * 3)

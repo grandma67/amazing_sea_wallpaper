@@ -1,5 +1,5 @@
-import type { BufferGeometry } from 'three'
-import { describe, it } from 'vitest'
+import { Vector3, type BufferAttribute, type BufferGeometry } from 'three'
+import { describe, expect, it } from 'vitest'
 
 import type { Climate, RGB } from '../src/biome'
 import { phenologyFor, plantSeason } from '../src/phenology'
@@ -16,6 +16,8 @@ import { burrowGeometry, crabGeometry, FLOWERS, flowerGeometry, shellGeometry, s
 import { stoneGeometry } from '../src/props/stones'
 import * as trees from '../src/props/trees'
 import { crocodileGeometry, hippoGeometry, lizardGeometry, monkeyGeometry, turtleGeometry, type CrocodileKind, type LizardKind, type MonkeyKind, type TurtleSpecies } from '../src/props/wildlife'
+import { rockGeometry } from '../src/props/rocks'
+import { unitSphere } from '../src/props/sphere'
 import { Random } from '../src/random'
 import { expectMesh, type MeshRules } from './mesh'
 
@@ -36,6 +38,26 @@ function family(name: string, rules: MeshRules, rows: Row[]): void {
     it.each(rows)('%s', (_, build) => expectMesh(build, rules))
   })
 }
+
+// Instanced by the dozen; each on its own copy of the welded sphere.
+family('rocks', { base: [-0.8, -0.2], top: [0.7, 1.3], width: 2.6, length: 2.6, minTriangles: 19_000, maxTriangles: 20_000, maxVertices: 10_000, solid: true }, [
+  ['boulder', seed => rockGeometry(new Random(seed), false)],
+  ['sea stack', seed => rockGeometry(new Random(seed), true)]
+])
+
+describe('unitSphere', () => {
+  it('is welded, on the unit sphere, and a copy each time', () => {
+    const a = unitSphere(6)
+    expect(a.attributes.position.count).toBeLessThan(a.index!.count / 3)
+    expect(new Vector3().fromBufferAttribute(a.attributes.position as BufferAttribute, 5).length()).toBeCloseTo(1, 5)
+    const [x] = a.attributes.position.array
+    a.attributes.position.setX(0, x + 1)
+    a.index!.setX(0, 1)
+    const b = unitSphere(6)
+    expect(b.attributes.position.array[0]).toBe(x)
+    expect(b.index!.getX(0)).not.toBe(1)
+  })
+})
 
 const TREES = ['broadleaf', 'olive', 'birch', 'acacia', 'stonePine', 'bush', 'cypress', 'conifer', 'pandanus'] as const
 // Every tree is instanced hundreds of times.

@@ -116,6 +116,13 @@ tool gotchas: TOOLS.md.
 - **A memo of a search has to answer as the search does.** `SearchGlobalSolarEclipse` goes by the moon's phase: with a new
   moon just before midnight and the peak after, a search from that midnight misses the eclipse, so reuse stopped a day
   before the peak.
+- **A speed change is proved by fingerprints, kept by tests (0.120).** Hashes of every prop mesh on 60 days, of
+  `measureFrame` over three years and of 443k terrain heights against `HEAD` showed the noise and terrain shortcuts
+  changed no bit; but 9 of 10 bugs injected into them then passed the whole suite. The noise had no tests of its own
+  (`test/noise.test.ts`: cells meet at every edge) and rocks no mesh row. After any rewrite of low-level code, inject a
+  few bugs into it and add what catches them.
+- **Skip noise only where its weight is exactly 0, and keep the sum's order:** `sea + (land - sea) * 0` is `sea` to the
+  bit, `(land - sea) + sea` is not. Out at sea (`t === 0`) a beach height drops 16 noise lookups (`beachHeight`).
 - Module cycles: `tides.ts` importing `terrain.ts` (which imports `tides.ts`) left half the test
   files failing to load. Put shared helpers in a module with no imports (`reef.ts`).
 
@@ -541,6 +548,8 @@ tool gotchas: TOOLS.md.
   than the neck, short tapered muzzle, waterline at the throat; bottling tips about the skull.
 - Sheer walls on a polar grid read as drums (karst towers as canisters): vary the wall's foot with
   angle, cover with vegetation and dark streaks.
+- Welding a fine icosphere (`mergeVertices`, detail 30: 40 ms) cost three times the shaping of a rock: shape a copy of a
+  kept one (`props/sphere.ts` `unitSphere`), never the kept one itself.
 - Instanced repeats (trees) < ~100k triangles each; in-mesh randomness from `hash()`/`noise3()`,
   not `rng`, so added detail doesn't reshape every instance.
 

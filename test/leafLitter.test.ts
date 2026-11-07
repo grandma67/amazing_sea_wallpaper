@@ -135,6 +135,18 @@ describe('on a day', () => {
     }
   })
 
+  it('thins a crowded wood to the budget, not to nothing', () => {
+    // The tested days don't reach the cap, and a bug there would cost a frame's
+    // leaves or the instance budget: pile the same trees up until it bites.
+    const { ctx, plants, leaves } = near(spec({}), '2025-01-15')
+    const count = leaves.reduce((n, m) => n + m.count, 0)
+    const times = Math.ceil((3 * MAX_LEAVES) / count)
+    const crowded = createLeafLitter(ctx, Array.from({ length: times }, () => plants).flat()).reduce((n, m) => n + m.count, 0)
+    // Each leaf's own hash decides, so the budget holds on average, not exactly.
+    expect(crowded).toBeLessThanOrEqual(MAX_LEAVES * 1.05)
+    expect(crowded).toBeGreaterThan(MAX_LEAVES * 0.7)
+  })
+
   it('leaves the plants as they were', () => {
     const [on, off] = [near(spec({}), '2025-01-15').plants, near(spec({ props: { leafLitter: false } }), '2025-01-15').plants]
     expect(on.length).toBe(off.length)

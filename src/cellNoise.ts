@@ -21,9 +21,12 @@ export function vnoise(x: number, y: number): number {
   const fy = y - iy
   const ux = fx * fx * (3 - 2 * fx)
   const uy = fy * fy * (3 - 2 * fy)
-  const v = (dx: number, dy: number): number => hashCell(ix + dx, iy + dy) / 4294967295
-  const a = v(0, 0) + (v(1, 0) - v(0, 0)) * ux
-  const b = v(0, 1) + (v(1, 1) - v(0, 1)) * ux
+  const v00 = hashCell(ix, iy) / 4294967295
+  const v10 = hashCell(ix + 1, iy) / 4294967295
+  const v01 = hashCell(ix, iy + 1) / 4294967295
+  const v11 = hashCell(ix + 1, iy + 1) / 4294967295
+  const a = v00 + (v10 - v00) * ux
+  const b = v01 + (v11 - v01) * ux
   return a + (b - a) * uy
 }
 
@@ -37,6 +40,12 @@ export function fbm(x: number, y: number): number {
     amp *= 0.5
   }
   return sum / 0.9375
+}
+
+/** The hills inland of a shore, `mask` of the way in (0: no noise to pay for). */
+export function hillNoise(hillHeight: number, mask: number, qx: number, qz: number): number {
+  if (mask <= 0 || hillHeight === 0) return 0
+  return hillHeight * mask * (0.25 + 0.75 * fbm(qx / 450, qz / 450)) * smoothstep(-0.2, 1, fbm(qx / 1400 + 7, qz / 1400 + 7))
 }
 
 export function smoothstep(e0: number, e1: number, x: number): number {

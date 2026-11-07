@@ -1,4 +1,4 @@
-import { fbm, smoothstep, vnoise } from './cellNoise'
+import { fbm, hillNoise, smoothstep, vnoise } from './cellNoise'
 import type { RGB } from './biome'
 import type { Random } from './random'
 import { ROCK_MIN_FACE } from './rockShore'
@@ -200,7 +200,7 @@ export function flatSurface(coast: FlatCoast, s: number, a: number, x: number, z
   const dist = Math.hypot(x, z)
   let h = bareFlat(flat, marsh, coast.nearshoreSlope, coast.seabedDepth, s, dist)
   const back = marsh.width
-  h += coast.hillHeight * smoothstep(back + 30, back + 530, u) * (0.25 + 0.75 * fbm(qx / 450, qz / 450)) * smoothstep(-0.2, 1, fbm(qx / 1400 + 7, qz / 1400 + 7))
+  h += hillNoise(coast.hillHeight, smoothstep(back + 30, back + 530, u), qx, qz)
   // Low hummocks in the marsh and land, a few centimetres on the flat.
   h += (fbm(qx / 30, qz / 30) - 0.5) * (0.06 + 0.14 * smoothstep(0, 4, u))
   h -= flatCreeks(coast, s, a, dist) * (1 - smoothstep(back - 10, back, u))

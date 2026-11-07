@@ -11,7 +11,7 @@ import {
 } from 'three'
 
 import { BEACH_MATERIALS, beachLines, isStony, stoneMean } from './beach'
-import { fbm, smoothstep, vnoise } from './cellNoise'
+import { fbm, hillNoise, smoothstep, vnoise } from './cellNoise'
 import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
 import { TERRAIN_VIEWS } from './debug'
 import { createPolarGrid, ringStep, squareGrid, viewWedge } from './grid'
@@ -920,25 +920,24 @@ function beachHeight(coast: CoastParams, x: number, z: number): number {
     sea = -coast.seabedDepth * (1 - Math.exp(Math.min(sea / coast.seabedDepth, 10)))
     sea += barHeight(coast, sSea, a)
   }
+  const t = smoothstep(-1, 1, u)
+  // Out at sea the land counts for nothing: skip its noise, most of a height.
+  if (t === 0) return sea + cuspHeight(coast, u, a) + terraceStep(coast, s) - coast.tide.level
 
   const beach =
     (u > 0 ? coast.beachSlope * coast.beachWidth * (1 - Math.exp(-u / coast.beachWidth)) : u * coast.beachSlope) +
     highWater(coast) * smoothstep(0, coast.beachWidth, u)
   const duneMask = smoothstep(coast.beachWidth, coast.beachWidth + coast.duneWidth, u)
-  const dunes = coast.duneHeight * duneMask * (0.45 + 0.55 * fbm(qx / 40, qz / 40))
+  const dunes = duneMask > 0 ? coast.duneHeight * duneMask * (0.45 + 0.55 * fbm(qx / 40, qz / 40)) : 0
   const hillStart = coast.beachWidth + coast.duneWidth
-  const hills =
-    coast.hillHeight *
-    smoothstep(hillStart, hillStart + 500, u) *
-    (0.25 + 0.75 * fbm(qx / 450, qz / 450)) *
-    smoothstep(-0.2, 1, fbm(qx / 1400 + 7, qz / 1400 + 7))
-  const bumps = 0.35 * (fbm(qx / 7, qz / 7) - 0.5) * smoothstep(0, coast.beachWidth, u)
+  const hills = hillNoise(coast.hillHeight, smoothstep(hillStart, hillStart + 500, u), qx, qz)
+  const bumpMask = smoothstep(0, coast.beachWidth, u)
+  const bumps = bumpMask > 0 ? 0.35 * (fbm(qx / 7, qz / 7) - 0.5) * bumpMask : 0
   let land = beach + dunes + hills + bumps + ridgeHeight(coast, u, a)
   // A salt marsh behind the beach stands above the spring high water.
   const marsh = coast.marsh
   if (marsh != null && marsh.width > 1.5) land += Math.max(0, marsh.back - coast.terrace.height - beach) * smoothstep(marsh.start - 6, marsh.start + 4, u)
 
-  const t = smoothstep(-1, 1, u)
   return sea + (land - sea) * t + cuspHeight(coast, u, a) + terraceStep(coast, s) - coast.tide.level
 }
 

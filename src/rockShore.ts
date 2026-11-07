@@ -1,4 +1,4 @@
-import { fbm, hashCell, smoothstep, vnoise } from './cellNoise'
+import { fbm, hashCell, hillNoise, smoothstep, vnoise } from './cellNoise'
 import type { Biome, RGB } from './biome'
 import type { Random } from './random'
 
@@ -328,8 +328,9 @@ export function rockSurface(coast: RockCoast, s: number, a: number, x: number, z
   const width = rockEdge(coast, a, gully, dist)
   let h = bareRock(rock, coast.nearshoreSlope, coast.seabedDepth, s, width, dist)
   const back = rock.backWidth
-  h += coast.hillHeight * smoothstep(back + 20, back + 520, u) * (0.25 + 0.75 * fbm(qx / 450, qz / 450)) * smoothstep(-0.2, 1, fbm(qx / 1400 + 7, qz / 1400 + 7))
-  h += 0.35 * (fbm(qx / 7, qz / 7) - 0.5) * smoothstep(back, back + 10, u)
+  h += hillNoise(coast.hillHeight, smoothstep(back + 20, back + 520, u), qx, qz)
+  const bumps = smoothstep(back, back + 10, u)
+  if (bumps > 0) h += 0.35 * (fbm(qx / 7, qz / 7) - 0.5) * bumps
   const footS = width + Math.max(rock.scarp / rock.scarpSlope, ROCK_MIN_FACE * dist)
   const band = smoothstep(rock.boulder > 0 ? -back - 2 : -back - 25, -back + 1, s) * (1 - smoothstep(footS + 20, footS + 50, s))
   if (band > 0) {

@@ -160,6 +160,18 @@ describe('islands and big rocks in the sea', () => {
     expect(near).toBeGreaterThan(2)
   })
 
+  it('drops an island with no room left, and never stacks two', () => {
+    const p = scene({ coast: 'open-sea', islands: 'cay', colony: null }, '2025-07-10')
+    const first = p.islands!.islands[0]
+    const wide = Array.from({ length: 14 }, (_, seed) => ({ ...first, width: 2500, seed }))
+    // First one so far out the Earth's curve hides it on every try: the rest are still placed.
+    const ctx = viewOf({ ...p, islands: { ...p.islands!, islands: [{ ...first, distance: 5_000_000 }, ...wide] } })
+    const placed = createIslands(ctx, null).flatMap(o => (o.userData.waterline == null ? [] : [o.userData.waterline as WaterIsland]))
+    expect(placed.length).toBeGreaterThan(0)
+    expect(placed.length).toBeLessThan(wide.length)
+    for (const [i, a] of placed.entries()) for (const b of placed.slice(i + 1)) expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeGreaterThanOrEqual(2500 * 1.1)
+  })
+
   it('a lighthouse on a rock at sea is one; one on a point is not', () => {
     // A forced site falls back to the other kind when nothing fits the frame:
     // tell them by the water under the foot.

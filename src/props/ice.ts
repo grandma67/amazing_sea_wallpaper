@@ -2,7 +2,6 @@ import {
   BufferAttribute,
   Color,
   Euler,
-  IcosahedronGeometry,
   InstancedMesh,
   Matrix4,
   Mesh,
@@ -11,13 +10,13 @@ import {
   Vector3,
   type BufferGeometry
 } from 'three'
-import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 
 import type { RGB } from '../biome'
 import type { Random } from '../random'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { fbm3 } from './noise'
+import { unitSphere } from './sphere'
 
 // Sea ice for the polar oceans (see oceans.ts): Arctic pack ice — flat,
 // snow-covered floes with open leads between them — and icebergs: irregular,
@@ -94,7 +93,7 @@ function floe(rng: Random): BufferGeometry {
 
 /** An irregular Arctic glacier berg: domes and pinnacles, blue crevasses. */
 function glacierBerg(rng: Random): BufferGeometry {
-  const geometry = mergeVertices(new IcosahedronGeometry(1, 14))
+  const geometry = unitSphere(14)
   const position = geometry.attributes.position as BufferAttribute
   const seed = rng.int(0, 100_000)
   const peak = rng.range(1, 2.2)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ridgeHeight, shoreToWorld, surfBreakDepth, surfCycle, surfSets, terrainHeight, terrainNormal, worldToShore } from '../src/terrain'
+import type { SceneSpec } from '../src/sceneSpec'
 import { scene, scenes } from './days'
 
 // Every camera position on the shore, on days across the years.
@@ -36,6 +37,32 @@ describe('terrainHeight', () => {
       expect(at(w + 200)).toBeLessThan(0)
       expect(at(5000)).toBeGreaterThanOrEqual(-coast.seabedDepth - coast.terrace.height - coast.tide.level - 0.01)
       expect(Number.isFinite(at(-3000))).toBe(true)
+    }
+  })
+
+  // Height skips each noise where its mask is 0 (dunes, hills, bumps, all the
+  // land out at sea). A shortcut that skips too much shows as a step in the
+  // ground; real ground, at its steepest, climbs 7 mm in these 2 cm.
+  const SHORES: [name: string, spec: SceneSpec][] = [
+    ['sand', { eclipse: null, coast: 'beach', beachMaterial: 'sand' }],
+    ['a salt marsh', { eclipse: null, saltMarsh: true, place: 'wadden-north-sea' }],
+    ['a platform', { eclipse: null, rockShore: 'platform', place: 'scotland' }],
+    ['a cliff top', { eclipse: null, rockShore: 'cliff', place: 'scotland' }],
+    ['boulders', { eclipse: null, rockShore: 'boulder', place: 'scotland' }],
+    ['a tidal flat', { eclipse: null, coast: 'tidal-flat', place: 'wadden-north-sea' }]
+  ]
+  it.each(SHORES)('has no step from the waterline to the hills: %s', (_, spec) => {
+    for (const { coast } of scenes(spec, 3)) {
+      // A rock's face and rough band end 25 m behind its top; a flat's creeks at the marsh.
+      const back = coast.rock != null ? coast.rock.backWidth + 26 : coast.flat != null ? coast.marsh!.width : -2
+      for (const a of [30, -170]) {
+        let before = NaN
+        for (let s = -back - 620; s <= -back; s += 0.02) {
+          const h = terrainHeight(coast, ...shoreToWorld(coast, s, a))
+          if (Math.abs(h - before) > 0.012) expect.fail(`a step of ${Math.abs(h - before)} m at s = ${s}, a = ${a}`)
+          before = h
+        }
+      }
     }
   })
 

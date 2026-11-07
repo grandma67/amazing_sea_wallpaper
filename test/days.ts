@@ -54,7 +54,8 @@ export function scene(spec: SceneSpec, date = DAYS[0]): SceneParams {
 /** The same spec on `count` days spread over the three years, for checking
  * a case on many scenes without searching for days that have it. */
 export function scenes(spec: SceneSpec, count = 30): SceneParams[] {
-  return Array.from({ length: count }, (_, i) => scene(spec, DAYS[Math.floor((i * DAYS.length) / count)]))
+  parseSceneSpec(JSON.stringify(spec))
+  return Array.from({ length: count }, (_, i) => generateParams(DAYS[Math.floor((i * DAYS.length) / count)], 0, 16 / 9, spec))
 }
 
 /** A PropContext for a spec at `height` px, without WebGL (the first

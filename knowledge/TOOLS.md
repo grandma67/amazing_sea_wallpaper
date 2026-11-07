@@ -32,7 +32,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 
 ## Tests
 
-`npm test` is the typecheck and Vitest: logic, no GPU and no browser, ~7 s. Helpers: `test/days.ts`, `test/mesh.ts`
+`npm test` is the typecheck (~0.4 s) and Vitest: logic, no GPU and no browser, ~4 s. Helpers: `test/days.ts`, `test/mesh.ts`
 ([tools/PARAMS.md](tools/PARAMS.md)). `npm run test:times` prints the slowest files and tests.
 
 | To check | Add a row or test in |
@@ -42,6 +42,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Forcing a field keeps the rest of the day | `test/sceneSpec.test.ts` |
 | A prop's off switch | `test/propSwitches.test.ts` |
 | A new scene the prop tree should build (finite, tagged, freed, shaded) | `test/props.test.ts` `SCENES` |
+| Noise and the shortcuts that skip it | `test/noise.test.ts`, `test/terrain.test.ts` (no step in the ground) |
 | A rule of one feature: chances, rates, shapes | `test/<feature>.test.ts` |
 
 Shaders are read, not compiled: `test/glsl.test.ts` checks every `/* glsl */` for reserved names, brackets and
@@ -53,9 +54,13 @@ Keeping it fast:
   7.7 of the 7.9 s of the tree tests.
 - **Build once:** a test file's rules on one scene share the build (`test/props.test.ts` `build`).
 - **Samples spread over the years** (`i % N === 0`), not the first N days: fewer days see more seasons, and first-N
-  samples hid real cases (below). Prop creators cost ~50–400 ms a day, `measureFrame` ~80 ms, `generateParams` 0.1 ms.
+  samples hid real cases (below). A day's props cost ~160 ms (20–200 ms a creator), `measureFrame` ~25 ms, `generateParams` 0.1 ms. Threads or forks: the same.
 - `isolate: false` (`vite.config.ts`): modules load once per worker, so a test mustn't change a module's state or the
   shared `allParams()`. Check with `npx vitest run --sequence.shuffle.files`.
+
+Speed work on `src/`: hash its output before and after (every prop mesh, the framing, terrain heights against
+`HEAD` in a worktree), then `bench.mjs --ref HEAD` for pixels; then inject bugs into the new code (LESSONS.md
+"A speed change is proved by fingerprints").
 
 Coverage: `npm i --no-save @vitest/coverage-v8@5` (then `git checkout package-lock.json`), and `npx vitest run --exclude
 test/glsl.test.ts --coverage --coverage.reportOnFailure --coverage.include='src/**'`. The GLSL test's raw imports count

@@ -2,6 +2,7 @@ import { describe, it } from 'vitest'
 
 import type { SceneParams } from '../src/params'
 import { MAX_CONTRAILS } from '../src/contrails'
+import { OCEANS } from '../src/oceans'
 import { allParams, expectEvery } from './days'
 
 // What goes with what, over every real day: when the first holds, so must the
@@ -26,6 +27,14 @@ const RULES: Rule[] = [
   ['the night glow: exactly when the sun is down', always, iff(p => p.nightGlow != null, p => p.sunElevationDeg < 0)],
   ['planets: exactly when the sun is down', always, iff(p => p.planets.length > 0, p => p.sunElevationDeg < 0)],
   ['noctilucent clouds: never at midday or at night', p => p.timeOfDay === 'midday' || p.timeOfDay === 'night', p => p.noctilucent == null],
+
+  // The swell: the day's draw, by what the ocean's fetch makes of it.
+  ['the swell: 60–200 m long before its ocean, 320 m at most', always, p => {
+    const length = p.ocean.swellWavelength
+    const scale = OCEANS[p.sea.ocean].swellWavelength
+    return length <= 320 && length >= 60 * scale - 1e-9 && length <= 200 * scale + 1e-9
+  }],
+  ['the swell: up to 2 m before its ocean and monsoon', always, p => p.ocean.swellHeight >= 0 && p.ocean.swellHeight <= 2 * OCEANS[p.sea.ocean].swellHeight * 1.5],
 
   // Weather.
   ['a storm: by day', p => p.storm != null, p => p.timeOfDay !== 'night'],
