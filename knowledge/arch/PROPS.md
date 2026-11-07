@@ -105,6 +105,20 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   above it is lit (½ erfc(horizon / 2.2°)), 16 log-spaced samples per beam from 25 m to 8 km. A cliff
   stops a beam at once, a slope eats it from below, the sea takes the lower half bit by bit. No shadow
   map: the lantern is a point and its beams fixed rays. Off: `passes.beamShadow: false`.
+  **The lens turns over the shutter** (`setShutter`): a turn is the chart period × groups
+  (`lensTurnSeconds`; `periodS` in `LighthouseParams`), so a shutter of t s sweeps 360° · t / turn.
+  Under `SWEEP_MIN` (1.1°: every dusk, blue-hour and daytime-fog shutter, ≤ 0.03 s) the beams are
+  frozen rays as above. Past it (the nights, 2–40 s) they're the time average: `sweptWindow` gives each
+  azimuth's share of the sweep exactly (erf; whole turns light every azimuth alike, the part turn is
+  centred on the frame's beams; a point's shade has a soft ±6° edge), baked with the beam shadows
+  (`beamLight` every 5°) into a 720 × 16 half-float texture, azimuth × log distance. The shader finds
+  where the view ray runs through the beams' layer (|y − lamp| ≤ tan 7° × distance, a double cone:
+  up to two stretches, within 8 km) and sums 32 samples per stretch spaced evenly in angle round the
+  lantern (equiangular: the 1/r² near the lamp drops out), offset per pixel and frame (interleaved
+  gradient noise) so the sweep's and shade's edges leave grain, not bands. The flash is averaged the
+  same way, on the CPU (`sweptFlash`). The shutter is the sky meter's (the frame median cancels out of
+  `shutterOf`) × the frame's boost, set again after the first look restarts. Cost ~1% (≤ 4%).
+  Off: `passes.beamSweep: false` (frozen, as before 0.129).
 
 ## On the beach
 

@@ -73,6 +73,11 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
 
 ## Shore and animals
 
+- Lighthouse lens rotation (0.129): US Lighthouse Society, "Lens rotation" (uslhs.org/resources/
+  lighthouse-technology/lens-rotation): flashes per minute = lit panels × turns per minute; the
+  Cuckolds, Fl(2) 6s, two panels lit, 10 rpm. St Augustine Lighthouse, "Clockwork mechanism"
+  (staugustinelighthouse.org). From search summaries.
+
 - Savanna dry seasons (0.101; SEASONS.md has the links; from search summaries): Bureau of
   Meteorology and Greening Australia (northern savanna's rains and curing), Williams and Cook 2001
   (savanna fire regimes); Gahounsougbo et al. 2015 (Fortaleza and Recife rains, 1974–2008); rainfall

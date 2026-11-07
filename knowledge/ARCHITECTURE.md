@@ -266,9 +266,16 @@ December noon is 17° up; changes many winter days, ask first).
   nights).
 - Lighthouses (found 2026-11-07): on 14 of 92 lighthouse days (9 open sea, 4 beach, 1 rock shore) the
   title says "lighthouse" but `createLighthouse` finds no site and builds none (`2024-05-13`); the
-  title should follow what's placed, or the site search widen. A rock lighthouse in fog with a beam
-  sweeping the camera whites out ~90% of the frame (`{"date":"2025-07-10","timeOfDay":"night",
-  "lighthouse":"rock","fog":"advection"}`): inside the beam fog is blinding, but check the glare terms.
+  title should follow what's placed, or the site search widen. A beam frozen on the camera for a
+  night's whole shutter whited out the frame (`2015-02-22`, `2024-07-24`); since 0.129 the beams are
+  averaged over the shutter (arch/PROPS.md). Still bright, by the model's physics, not tuned: a camera
+  inside a beam's slow sweep (`2024-07-24`: 9.7° in 2.4 s) sees a wide glow round the lamp; a camera in
+  the beams' plane facing the lamp over whole turns (`2015-02-22`: 1.7° above it, 2.5 turns) sees the
+  air between it and the lamp forward-scatter a pale veil over the foreground; the forced rock light
+  in fog (`{"date":"2025-07-10","timeOfDay":"night","lighthouse":"rock","fog":"advection"}`) still
+  glows over the whole frame, much less than before. The beam power (`beamScale` in `scene.ts`, a
+  multiple of the sky's luminance) has no candela behind it: check it against a real lamp (~10⁵–10⁶ cd)
+  before tuning any of these.
 - Snow (0.111): limits in plans/SNOW.md (a foot's end beside a very close camera, plain white far low
   land, no falling snow).
 - Seasons (0.98): no leaves in the wrack; no larch (conifers stay green); tropical wet and dry seasons

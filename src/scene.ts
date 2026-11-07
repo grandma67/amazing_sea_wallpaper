@@ -958,6 +958,11 @@ export async function renderScene(
   const wbLum = 0.2126 * whiteBalance.r + 0.7152 * whiteBalance.g + 0.0722 * whiteBalance.b
   const cdPerUnit = 1 / renderPerLux(params.nightSky, elongationDeg(params))
   const shutterOf = (medianExposed: number, boost: number): number => shutterSeconds((medianExposed / (exposure * wbLum)) * cdPerUnit, medianExposed * boost)
+  // The lighthouse's lens turns while the shutter is open. The shutter is the
+  // sky meter's (the median cancels out of shutterOf) times the frame's boost,
+  // which is known only after the first look: until then ×1.
+  const sweepBeams = pass('beamSweep') ? (beams[0] ?? null) : null
+  sweepBeams?.setShutter(shutterOf(1, 1))
   let look = 0
   let lookShutter = 0
   let restarted = false
@@ -984,6 +989,7 @@ export async function renderScene(
       clouds.localWeatherOffset.copy(baseWeather).addScaledVector(drift.weather, metres)
       clouds.shapeOffset.copy(baseShape).addScaledVector(drift.shape, metres)
     }
+    sweepBeams?.setJitter(halton(i + 1, 5))
     finish.enabled = last
     meter.enabled = last || firstLook
     if (probePass != null) probePass.enabled = last
@@ -994,6 +1000,7 @@ export async function renderScene(
       lookShutter = shutterOf(meter.medianExposed, meter.boost)
       look = longExposureLook(lookShutter)
       if (look > 0) {
+        sweepBeams?.setShutter(lookShutter)
         ocean.material.uniforms.longExposure.value = look
         still!.reset()
         accumulate!.reset()

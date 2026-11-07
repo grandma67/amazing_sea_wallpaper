@@ -267,6 +267,13 @@ tool gotchas: TOOLS.md.
   CPU against the terrain and islands and pass a lit share along it. Count first: land cut a beam in
   frame on 1 day in 1095, so a spot map would have cost a render pass for nothing. Mind the beam's
   profile: a Gaussian keeps an upper tail, so an island a little above the lamp only dims it.
+- Anything that moves during the shutter is drawn as its time average over it, not frozen: a
+  lighthouse beam frozen on the camera for a 9 s night exposure whited out the frame, where a real
+  turning lens is on the camera ~2% of it (0.129). The shutter is known before the render
+  (`shutterOf`: the frame median cancels, leaving the sky meter × the frame's boost); average the
+  angle analytically on the CPU (erf of a Gaussian beam) and bake it, rather than sampling time in the
+  shader. A hard edge (a lamp's shade) sampled along a ray bands: give it its physical penumbra and
+  jitter the samples per pixel.
 - A debug switch that turns a feature off must give back the exact old path, not a simpler one:
   check it with this tree's switch off against `snapshot.mjs --ref HEAD` (`diff.mjs --a --b`).
 - Before blaming a too-bright result on convergence, measure it: 8 and 32 priming updates of the cloud

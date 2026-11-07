@@ -293,6 +293,8 @@ export interface LighthouseParams {
   height: number
   /** Chart character, e.g. "Fl(2) W 15s". */
   character: string
+  /** The character's period (s): one group to the next. */
+  periodS: number
   /** Beams in a group (flashes per group) and groups round the lens. */
   flashes: number
   groups: number
@@ -1474,13 +1476,15 @@ function pickLighthouse(
   const flashes = rng.weighted<number>([[1, 3], [2, 2], [3, 1]])
   const groups = rng.weighted<number>([[1, 2], [2, 2], [3, 1], [4, 1]])
   const period = Math.round(rng.range(2, 6) * flashes * groups / 1.5) * 1.5
-  const character = `${flashes > 1 ? `Fl(${flashes})` : 'Fl'} W ${Math.max(3, period)}s`
+  const periodS = Math.max(3, period)
+  const character = `${flashes > 1 ? `Fl(${flashes})` : 'Fl'} W ${periodS}s`
   const dark = timeOfDay === 'night' || timeOfDay === 'blue-hour' || timeOfDay === 'sun-on-horizon'
   return {
     site,
     paint,
     height,
     character,
+    periodS,
     flashes,
     groups,
     beamAzimuthDeg: rng.range(0, 360),
