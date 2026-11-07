@@ -9,12 +9,30 @@ Bring the remaining living things on a coast into the season. Research and numbe
 
 | Phase | What | Days touched (of 1095, est.) | Status |
 |---|---|---|---|
-| 1 | Blossom on plants we already draw: gorse, heather, rock rose, pōhutukawa, wattle, flamboyant | ~85 land days in a window; fewer with the plant in frame | planned |
-| 2 | Moss by wetness and season; upper-shore weed by season (*Ulva* spring green, *Porphyra* winter band) | every boulder and rock-shore day a little; count the clear changes before building | planned |
-| 3 | Fireflies and glow-worms on warm nights, by region | ≤ 56 eligible, ~15–25 in frame | planned |
+| 1 | Blossom on plants we already draw, the common rows first: flamboyant, rock rose, heather | ~81 land days in a window; fewer with the plant in frame | planned |
+| 2 | Moss by realistic rules on rock **and tree trunks** (wetness, spray, water-fed faces); upper-shore weed by season | every boulder, rock-shore and humid-forest day; count the clear changes before building | planned |
+| 3 | Fireflies and glow-worms on warm nights, by region, short flash streaks | ≤ 56 eligible, ~15–25 in frame | planned |
 | 4 | Seasons for PLAN_BIOMES 14 animals (polar bears and walrus on the sea ice's clock, waders, blacktip sharks, sea otters and kelp, monarchs) | per animal, counted when each is built | planned, with phase 14 |
-| 5 | Atacama desert bloom, one year in three | ~3–6 | planned, needs a yes |
-| 6 | Fungi near the camera | ~5 in frame (live mode: many) | planned, needs a yes |
+| 5 | Atacama desert bloom, one year in three: flowers near the camera, colour on far land | ~3–6 | planned |
+| 6 | Fungi near the camera; fairy rings as the far-off sign | ~5 in frame (live mode: many) | planned |
+
+## Answers (2026-11-07)
+
+1. **Common flowers first:** build the rows that land on the most days (flamboyant ~60, rock
+   rose ~13, heather ~8). Gorse, pōhutukawa and wattle stay researched in NATURE.md for later.
+2. **Moss follows nature's rules,** whatever they key on: if that's the weather, so be it. That
+   means climate wetness, today's wetness, spray from the sea and where water runs (NATURE.md
+   §4), not the rock's biome. Trunks get moss too.
+3. **Short streaks:** the scene isn't a long exposure (waves and leaves are sharp), so a firefly
+   draws as the trace of **one flash**: ½–1 s at walking-pace flight, ~0.15–0.6 m, J-shaped for
+   *Photinus*. That's what the eye sees, not a camera's long-exposure effect. Glow-worms and
+   perched fireflies are dots.
+4. **Near the viewer, and far-off land coloured:** desert bloom draws flowers near the camera
+   and tints far ground cover magenta (a real bloom colours whole hillsides). Fungi stay near
+   the camera. A mushroom can't colour land from far off, but **fairy rings** (rings of darker,
+   lusher grass, metres across) can, so they're the far-off sign of fungi in grass.
+5. **No towns:** confirmed, the code draws none. Only their light glow on the night horizon
+   (`nightGlow.ts`) and the lighthouse exist. Jacaranda and planted cherries stay out.
 
 Every count above is from `params.mjs --stats` windows (place, month, coast not open sea) before
 the "is it in frame" filter; re-count each one with `--rendered` before building.
@@ -63,15 +81,16 @@ Every share is *(est.)*. Before code:
 
 1. **Reference photos** (2–3 each): pōhutukawa on a cliff (near and from ~300 m), gorse on a
    headland, flamboyant on a tropical beach. Say what to match; photos decide crown shares.
-2. **Day count:** the windows give only ~1 gorse, ~8 heather, ~0 pōhutukawa, ~2 wattle,
-   ~13 rock rose and ~60 tropical days over three years: **single places bloom on very few
-   days**. That is real (a place's bloom is a few weeks), but raise it with the user before
-   building rows that land on almost no day.
+2. **Day count:** the windows give ~60 tropical, ~13 rock rose and ~8 heather days over three
+   years (gorse ~1, pōhutukawa ~0, wattle ~2: deferred, answer 1). Re-count with
+   `--rendered` and the plant in frame.
 3. Check the existing `FLOWERS` months against NATURE.md §1.1 (thrift [4, 8] agrees).
 
-**Done when:** a forced `new-zealand-north` December framed day shows red crowns near and a red
-tint on far cliffs; a Cornwall April overlook yellow gorse; a Scottish August heath purple; the
-same places in another month unchanged (`diff.mjs --off '{"props":{"bloom":false}}'`, a contact
+Built first (answer 1): flamboyant, rock rose, heather. Gorse, pōhutukawa and wattle rows wait.
+
+**Done when:** a forced tropical June framed day shows scarlet crowns near and a red fleck in
+far forest; a Mediterranean May beach white and pink rock roses; a Scottish August heath
+purple; the same places in another month unchanged (`diff.mjs --off '{"props":{"bloom":false}}'`, a contact
 sheet, front- and backlit). Cost: vertex colour only, expect 0% render time.
 
 **Tests:** `test/bloom.test.ts`: the table over every place × month (no sampling), hemisphere,
@@ -80,17 +99,28 @@ shares in 0..1, a crown fixed by its position, unchanged outside the window, off
 
 ## 2. Moss and weed by season
 
-**Moss** (`props/rocks.ts` `GROWTH`, rock shores' `terrain.ts`):
+**Moss** (`props/rocks.ts` `GROWTH`, rock shores' `terrain.ts`, `props/trees.ts` bark), by
+NATURE.md §4 (answer 2):
 
-- `mossWetness(params)` in `phenology.ts`: 1 (green) on rain, drizzle and fog days and in wet
-  climates; drying toward 0 in the Mediterranean dry season (the grass's `DRY_DAYS`), a
-  savanna `drySeason`, and arid coasts; polar moss under snow is already hidden.
-- Dry moss: mix `mossColor` ~50% toward a dark brown (NATURE.md §4, half because some mosses
-  stay green). A uniform; no draws.
-- **Key fix:** moss amount follows climate, not rock. Move `moss` from `GROWTH[biome]` to a
-  climate factor (temperate, boreal 1; Mediterranean 0.4; tropical 0.6; subtropical 0.5; arid 0;
-  polar 0.5 *(est.)*), keeping lichen and algae by biome. This changes the look on many days:
-  **ask first**, and measure with `params.mjs --ref HEAD`.
+- **Amount (climate, a place field where one place differs):** `MOSS` by climate: temperate
+  and boreal 1, polar 0.5, tropical 0.6, subtropical 0.5, Mediterranean 0.4, arid 0 *(est.)*;
+  the foggiest, wettest places higher (`se-alaska`, `british-columbia`, `pacific-northwest`,
+  `norway-west`, `ireland`, `scotland`, `new-zealand-south`, `patagonia-fjords`, `tasmania`
+  *(est.)*). Replaces `GROWTH[biome].moss`; lichen and algae stay by biome (they follow the
+  rock and the sea). Add `MOSS` to ARCHITECTURE.md "Biome, climate or place".
+- **Spray:** none in the splash and lichen zone, rising with height above the sea and distance
+  from the shore (rocks: their `s` and height; rock shores: above the lichen bands), lower on
+  exposed coasts (by swell) *(est. distances, ~10–30 m and ~5–15 m up)*. Trees within the
+  spray belt: lichen-grey bark instead of moss (Scilly).
+- **Face:** rocks: upward faces and the crevices water runs into. Trunks: the lower trunk, on
+  the side the tree leans (stemflow), denser near the base, from a hash of the tree, never "the
+  north side".
+- **Colour by today's wetness** (`mossWetness(params)`, `phenology.ts`): green on rain,
+  drizzle and fog days and through wet seasons; ~50% toward dark brown in the Mediterranean dry
+  season (`DRY_DAYS`), a savanna `drySeason` and on arid coasts. Under snow: hidden already.
+- No draws: amount and colour are uniforms and vertex colours. Changes the look on many days
+  (decided: answer 2); report it with `params.mjs --ref HEAD` and `diff.mjs` on a temperate
+  rock shore, a Mediterranean August boulder beach and a British Columbia framed forest.
 
 **Upper-shore weed** (`terrain.ts` rock-shore "weed, mussels and barnacles" band, rocks' algae
 band):
@@ -127,9 +157,13 @@ light the scene; 0.5–3 m above the plants (flash), on the ground (glow), in tr
 real firefly's luminance (research, 1–2 searches) and run it through the night exposure
 (`exposure.ts`) so a dot is neither clipped nor lost; check with `params.debug.probe`.
 
-**Still frame or streaks?** A short exposure shows dots, a long exposure streaks; the
-wallpaper's night look decides (open question 3). In the move-around mode, `flash` blinks
-(~0.5 s flash, 2–6 s cycle *(est.)*), `synchronous` blinks together, `glow` stays on.
+**Streaks (answer 3):** each `flash` light is the trace of one flash, not a long exposure: a
+thin additive ribbon (a few quads, or a line strip with width) ~0.15–0.6 m long, J-shaped
+(the upswing of a U arc: bottom first, then up), brightest in the middle and fading at both
+ends; a hashed share (~⅓ *(est.)*) are mid-flash in any frame, so the rest are off. `glow`
+and `synchronous` are dots. The 16 render frames see the same streak (it's geometry, not motion
+blur). In the move-around mode `flash` flashes ½–1 s every 5–7 s along its arc, `synchronous`
+together, `glow` stays on.
 
 **Before the first render:** count eligible days with `--rendered` and `ctx.visible` (the 56
 eligible days shrink once vegetation must be in frame), then `scripts/mesh.mjs` for the sprite,
@@ -156,14 +190,22 @@ Build with each animal of phase 14 (its own plan), with the season in `animalSea
 
 After each: `node scripts/animals.mjs`, paste into ANIMALS.md with its rule in "Seasons".
 
-## 5. Atacama desert bloom (needs a yes)
+## 5. Atacama desert bloom (answer 4)
 
 `desertBloomFor(params)`: on `atacama-peru` (local Sep–Nov, ±1 month) in a bloom year, chosen
 once per year from `Random.derive(year, 'desert-bloom')` at ~1 in 3 *(13 events in 35 years)*.
-Ground cover tinted magenta and purple at a distance, and `FLOWERS` rows (new kinds) on sand near
-the camera. Touches only a handful of days over three years: raise before building.
+**Near the viewer:** new `FLOWERS` kinds (magenta *Cistanthe*, yellow, white) on sand and
+ground near the camera, as the beach flowers are placed. **Far land:** the terrain's ground
+cover and the landforms' and islands' lower slopes tinted magenta-purple by the bloom's
+strength (as `canopyTint` and `groundCoverTint` do for autumn and dry grass), so distant hills
+read in colour. Touches a handful of days over three years (decided: realism).
 
-## 6. Fungi (needs a yes; mainly for the move-around mode)
+## 6. Fungi (answer 4: near the viewer; mainly for the move-around mode)
+
+**Far-off sign:** fairy rings in grass, rings of darker, lusher grass 2–20 m across *(est.)*,
+in the terrain's ground-cover colour (a world-space hash per cell, like `litterMap`), seen from
+tens of metres. Present all year as dark rings (the grass lives on), with the mushrooms on the
+ring only in the fruiting season *(est.)*. Mushrooms themselves never tint far land.
 
 `fungiFor(params, rng)`: season by climate (NATURE.md §2: temperate Sep–Nov, boreal Aug–Oct,
 Mediterranean Oct–Dec, tropical in the wet season, `drySeason` months none), ×1.5 on humid
@@ -173,18 +215,15 @@ milk caps under Mediterranean pine, field mushrooms and fairy rings in grass). I
 camera reads only the range and budget).
 
 A 10 cm cap shows only within ~15 m; a tree that near is in frame on ~14 of 1095 days, so a still
-frame shows fungi on perhaps 5 days. Worth building now only with the move-around mode in mind
-(CLAUDE.md "A move-around mode is planned"): **ask**.
+frame shows mushrooms on perhaps 5 days; fairy rings show on more grass days. Built for realism
+and the move-around mode (CLAUDE.md "A move-around mode is planned").
 
-## Open questions (one batch, before building)
+## Still open
 
-1. **Blossom rows that land on almost no day** (gorse ~1, pōhutukawa ~0, wattle ~2 days in
-   three years): build them for realism and the move-around mode, or only the rows with more days
-   (flamboyant, rock rose, heather)?
-2. **Moss by climate instead of biome** (phase 2) changes many days' rocks: yes or no?
-3. **Fireflies at night: dots (short exposure) or short streaks (a long exposure photo)?**
-4. **Desert bloom and fungi** (phases 5, 6): build now, or wait for the move-around mode?
-5. **Towns:** should planted jacaranda and cherries ever appear (that needs a town or harbour)?
+- Fairy rings' size, density and how dark: reference photos and 1–2 searches before phase 6.
+- Moss's spray distances and the wettest places' factors are *(est.)*: look for a measured moss
+  or lichen zonation profile (height above the sea) before phase 2's numbers are final.
+- Firefly flight speed and luminance: research before phase 3's render.
 
 ## Checks (all phases)
 

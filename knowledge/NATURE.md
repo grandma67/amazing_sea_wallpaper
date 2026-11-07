@@ -119,6 +119,12 @@ Light is yellow-green, peaking ~550–580 nm *(est.: known value range, not read
 | India, Sri Lanka, Andaman (`india`, `sri-lanka`, `andaman-lakshadweep`) | various | pre-monsoon and monsoon *(est.)* | – | – | no source read |
 | None | polar, most boreal, arid; Pacific Northwest and California have few flashing fireflies *(est.)*; New Zealand has none (its "glowworms" are cave fungus-gnat larvae, not coastal) | – | – | – | – |
 
+**The flash's shape:** *Photinus pyralis* males fly in U-shaped arcs and flash on the upswing, a
+J-shaped trace; the flash lasts **½–1 s**, every 5–7 s (Maryland field guide, Wikipedia; one
+article says every 4 s); females answer 1–2 s later from the grass. Flight speed wasn't found;
+~0.3–0.6 m/s is *(est.)*, so one flash traces ~0.15–0.6 m. Glow-worms and perched synchronous
+fireflies don't move: dots.
+
 Related, not fireflies: Toyama Bay's firefly squid wash up Mar–Jun (REGIONS.md §4).
 
 **Eligible days today** (`params.mjs --stats`): land, night or blue hour, in temperate,
@@ -134,6 +140,19 @@ third.
 | Some mosses stay green when dry | not all moss darkens: use a partial shift (~half) *(est.)* | 2017 desiccation study |
 | Moss is mostly a cool, humid-climate cover | the `GROWTH` table keys moss by **biome** (rock), but moss follows weather: by ARCHITECTURE.md "Biome, climate or place" it should key by climate | project rule |
 | Lichens are perennial and change little through the year | no seasonal change *(est.)*; maybe slightly brighter when wet | – |
+
+Where moss grows (what decides the amount, not just the colour):
+
+| Rule | Evidence |
+|---|---|
+| **Moisture first:** frequent rain or fog keeps moss going; dry climates have little | gardening and general pages only (weak), consistent with the desiccation work above |
+| **On trunks it follows the water, not the compass:** in a beech study moss was thicker on the *south* side, because trees on slopes lean downhill (~6°) and stemflow runs down that side. "Moss on the north side" is a myth as a rule; shade helps only by keeping bark wetter | 2010 beech stemflow study (GVSU / MSTA Journal) |
+| **Salt spray favours lichens over moss:** on the upper shore lichens rule (black *Verrucaria* band low, then yellow *Xanthoria*, white *Pertusaria*, grey-green *Ramalina*); flowering plants and ferns fail just above the splash zone; exposed Cornish coast has far fewer moss species (mean 54 taxa per tetrad against 79–93 sheltered and inland); on Scilly many trees lack moss because salt-tolerant lichens outcompete it | Te Ara (NZ coastal shoreline), JNCC supralittoral lichen biotope, Holyoak's Cornish bryophytes, Isles of Scilly bryophyte flora |
+| Salt tolerance is by species, not a hard line: woodland mosses also grow in open coastal places | Holyoak |
+| Rock type changes which mosses, more than whether there is moss *(est.)* | – |
+
+So moss amount = climate wetness × shelter from spray (distance and height above the sea,
+exposure) × an upward or water-fed face; colour = today's wetness.
 
 Season of wetness by climate *(est., from SEASONS.md §2.2's grass table)*: Mediterranean dry
 Jun–Oct, savanna places in their `drySeason`, arid always; temperate, boreal and polar wet or
@@ -218,6 +237,12 @@ All read through search summaries unless marked "read".
   https://publicaciones.inecol.mx/Record/repo-1005-73/Description?lng=en , https://ui.adsabs.harvard.edu/abs/2018AcO....91....7L/abstract ;
   Mediterranean, https://core.ac.uk/outputs/662020453 , https://www.unicohotels.com/en/blog/hotel-mas-de-torrent/autumn-mushroom-season/ ,
   https://www.tridge.com/news/extreme-heat-and-lack-of-humidity-delay-the--oxmyqm
+- Moss placement: https://www.gvsu.edu/cms4/asset/DE36066F-E528-CF94-8F079306A8293D59/moss_beech__stemflow.pdf ,
+  https://teara.govt.nz/en/coastal-shoreline/page-2 , https://mhc.jncc.gov.uk/biotopes/jnccmncr00000231 ,
+  https://cisfbr.org.uk/Bryo/Cornish_Bryophytes_Coastal.html ,
+  https://www.britishbryologicalsociety.org.uk/wp-content/uploads/2020/12/FB120_Bryophyte-Flora-of-the-Isles-of-Scilly.pdf
+- Firefly flash: https://en.wikipedia.org/wiki/Photinus_pyralis ,
+  https://www.humanegardener.com/wp-content/uploads/2023/05/Bioluminescent-Fireflies-of-Howard-County-MD-cheat-sheet_July-26-1.pdf
 - Moss: https://3dmoss.berkeley.edu/community-outreach/media ,
   https://www.tehachapinews.com/lifestyle/pen-in-hand-rain-turns-moss-into-a-lush-green-carpet-covering-rocks-and-other/article_9bb13bdc-3ab7-11e8-af27-4b9de33ac051.html ,
   https://core.ac.uk/download/303679459.pdf
