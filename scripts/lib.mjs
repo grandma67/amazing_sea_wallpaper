@@ -27,7 +27,12 @@ export function parseArgs(args = process.argv.slice(2)) {
     const unknown = args.find(a => a.startsWith('--'))
     if (unknown != null) throw new Error(`unknown option ${unknown} (see the script's header)`)
   }
-  return { args, option, flag, rejectUnknown }
+  /** Throws if positional arguments are left that this use ignores
+   * (e.g. a folder given without --dir, or dates beside --scene). */
+  const rejectPositional = why => {
+    if (args.length > 0) throw new Error(`unexpected argument${args.length > 1 ? 's' : ''} ${args.join(' ')}: ${why}`)
+  }
+  return { args, option, flag, rejectUnknown, rejectPositional }
 }
 
 /** Objects merge deeply, everything else replaces (as a spec's `params` patch). */
@@ -65,8 +70,10 @@ export const TEST_DAYS = Array.from({ length: 3 * 365 }, (_, i) => shiftDate('20
 
 /** YYYY-MM-DD, FROM..TO ranges and "today", expanded to dates. */
 export function expandDates(list) {
+  const day = /^\d{4}-\d{2}-\d{2}$/
   return list.flatMap(a => {
     if (a === 'today') return [new Date().toISOString().slice(0, 10)]
+    if (!a.split('..').every(d => day.test(d))) throw new Error(`not a date: ${a} (YYYY-MM-DD, FROM..TO or today; options take --)`)
     if (!a.includes('..')) return [a]
     const [from, to] = a.split('..')
     const out = []

@@ -22,7 +22,7 @@ import { chromium } from 'playwright'
 
 import { parseArgs, watchPage } from './lib.mjs'
 
-const { args, option } = parseArgs()
+const { args, option, rejectUnknown } = parseArgs()
 const baseUrl = option('url', 'http://localhost:5174/')
 const outDir = option('out', 'out/mesh')
 const seed = option('seed', 'preview')
@@ -32,6 +32,7 @@ const height = option('h', '1000')
 const material = option('material', null)
 const scale = option('scale', null)
 const sun = option('sun', null)
+rejectUnknown()
 if (args.length === 0) {
   console.log("usage: node scripts/mesh.mjs 'props/wildlife#hippoGeometry($rng, 0)' …")
   process.exit(1)

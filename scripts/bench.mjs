@@ -13,17 +13,19 @@ import { spawnSync } from 'node:child_process'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
-import { parseArgs, shortSha } from './lib.mjs'
+import { expandDates, parseArgs, shortSha } from './lib.mjs'
 import { serveRef } from './refServer.mjs'
 
-const { args, option } = parseArgs()
+const { args, option, rejectUnknown, rejectPositional } = parseArgs()
 const ref = option('ref', 'HEAD')
 const out = resolve(option('out', 'out/bench'))
 const runs = Number(option('runs', 3))
 const url = option('url', 'http://localhost:5174/')
 const scene = option('scene', null)
 const size = ['w', 'h', 'frames'].flatMap(k => [`--${k}`, option(k, { w: '1920', h: '1080', frames: '16' }[k])])
-const dates = args.length > 0 ? args : ['2024-07-12', '2024-06-26', '2024-04-24', '2024-02-12']
+rejectUnknown()
+if (scene != null) rejectPositional('dates are ignored with --scene')
+const dates = expandDates(args.length > 0 ? args : ['2024-07-12', '2024-06-26', '2024-04-24', '2024-02-12'])
 
 const sha = shortSha(ref)
 

@@ -14,7 +14,7 @@ import { chromium } from 'playwright'
 
 import { parseArgs } from './lib.mjs'
 
-const { option } = parseArgs()
+const { option, rejectUnknown, rejectPositional } = parseArgs()
 const dir = resolve(option('dir', 'out'))
 const colsArg = option('cols', null)
 const width = Number(option('width', 2400))
@@ -23,6 +23,9 @@ const compare = option('compare', null)
 const out = option('out', null)
 const REGIONS = { top: [0, 0, 1, 0.5], bottom: [0, 0.5, 1, 1], centre: [0.25, 0.25, 0.75, 0.75] }
 const regionArg = option('region', null)
+rejectUnknown()
+// A bare folder used to be ignored, and the sheet of out/ overwrote out/contact-sheet.jpg.
+rejectPositional('give the folder as --dir DIR')
 const region = regionArg == null ? null : (REGIONS[regionArg] ?? regionArg.split(',').map(Number))
 if (region != null && (region.length !== 4 || region.some(v => !(v >= 0 && v <= 1)))) throw new Error(`--region: top, bottom, centre or X0,Y0,X1,Y1 in 0..1`)
 

@@ -21,6 +21,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Animal shares table for ANIMALS.md | `animals.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
 | See a render; where props landed; prop build time | `snapshot.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Did a feature show up; was it already broken | `diff.mjs` | [tools/RENDER.md](tools/RENDER.md) |
+| Does a new off switch give back the old image exactly | `diff.mjs --ref HEAD --off PATCH --off-here` (expect "identical") | [tools/RENDER.md](tools/RENDER.md) |
 | Render time vs a commit (10% rule); same image | `bench.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A new mesh alone | `mesh.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
@@ -78,6 +79,12 @@ each source file as fully covered, so leave it out.
   stashing. If the script dies first (Ctrl+C, `kill -9`, a closed terminal),
   `worktreeReaper.mjs`, a detached watcher, stops its server and removes it within a second. Ports: bench 5175, snapshot/diff 5177 (`refServer.mjs`); params needs no server.
   Spec fields the ref doesn't know are dropped and named.
+- **Options are checked:** every script throws on an option it doesn't know (`--match` on
+  snapshot used to be ignored and the whole spec file rendered) and on a leftover argument
+  (`contact-sheet.mjs DIR` used to sheet `out/` and overwrite `out/contact-sheet.jpg`: it's
+  `--dir DIR`). Dates must be `YYYY-MM-DD`; dates beside `--scene` or `--where` are an error.
+  A new script calls `rejectUnknown()` (and `rejectPositional()` if it takes none) after its
+  last `option`/`flag` (`lib.mjs`).
 - Long outputs put the summary last (bench's table, params' "… N more not shown").
 - **Browser messages**: every script that opens a page uses `watchPage(page)` (`lib.mjs`): page
   errors, console errors and warnings, and GL messages grouped per render (`48× [.WebGL-0x…]

@@ -47,7 +47,7 @@ function sparkline(values, width = 60) {
 }
 
 
-const { args, option, flag } = parseArgs()
+const { args, option, flag, rejectUnknown, rejectPositional } = parseArgs()
 let baseUrl = option('url', 'http://localhost:5174/')
 const ref = option('ref', null)
 const dropUnknown = flag('drop-unknown') || ref != null
@@ -69,6 +69,10 @@ const list = value => (value == null ? [] : value.split(',').filter(Boolean))
 const cropKinds = list(option('crop', null))
 const propKinds = [...new Set([...list(option('props', null)), ...cropKinds])]
 const budget = Number(option('budget', 900))
+// A misspelt or unsupported option (e.g. --match) used to be ignored and the
+// whole spec file rendered.
+rejectUnknown()
+if (sceneArg != null || whereArg != null) rejectPositional('dates are ignored with --scene or --where')
 setTimeout(() => {
   console.log(`[snapshot] budget of ${budget}s used up; stopping`)
   process.exit(2)
