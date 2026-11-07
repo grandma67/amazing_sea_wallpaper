@@ -79,7 +79,7 @@ import type { SkyOpenField } from './props/skyOcclusion'
 import { reportProps } from './props/report'
 import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './props/shipLights'
 import { setGlowBrightness } from './props/storm'
-import { setSprayLighting } from './props/surf'
+import { setSprayLighting, type WaterIsland } from './props/surf'
 import { renderPlanarReflection } from './reflection'
 import { apply, ECLIPTIC_POLE, skyRotation, sunECI } from './skyClock'
 import { darkZenithLuminance, elongationDeg, renderPerLux, starScale, STARLIT_LUX } from './starLight'
@@ -94,7 +94,7 @@ import { bindCloudShadow, bindLandShadow, bindShadow, FINE_SHADOW_SIZE, fineShad
 import { cloudSkylightRatio, measureSkylight, skyOpenUniforms } from './skylight'
 import { SkyDenoiseEffect } from './skyDenoise'
 import { GpuResources, trackUploads } from './dispose'
-import { createTerrain, createTerrainCaster, hasLand } from './terrain'
+import { createTerrain, createTerrainCaster, hasLand, terrainHeight } from './terrain'
 import { NIGHT_WHITE_BALANCE_K, whiteBalanceGains } from './whiteBalance'
 import { probeResult, ProbePass, readCanvas, type ProbeBox } from './probe'
 import { lineDirections, lineStats } from './skyMirror'
@@ -722,7 +722,17 @@ export async function renderScene(
   }
   const beams =
     lantern != null && params.lighthouse?.lit === true
-      ? [new LighthouseBeamEffect(params.lighthouse, lantern, params.fog, camera, sceneLuminance * beamScale[params.timeOfDay])]
+      ? [
+          new LighthouseBeamEffect(
+            params.lighthouse,
+            lantern,
+            params.fog,
+            camera,
+            sceneLuminance * beamScale[params.timeOfDay],
+            pass('beamShadow') ? (x, z) => terrainHeight(params.coast, x, z) : null,
+            pass('beamShadow') ? ((props.userData.waterIslands ?? []) as WaterIsland[]) : []
+          )
+        ]
       : []
   if (params.fog != null) {
     // Sunlight the fog layer takes out of the direct beam comes back as

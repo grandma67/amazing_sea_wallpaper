@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { beamDirections } from '../src/lighthouse'
-import type { LighthouseParams } from '../src/params'
+import { Vector3 } from 'three'
+
+import { BEAM_MAX, BEAM_SAMPLES, beamDirections, beamLight, beamSampleAt } from '../src/lighthouse'
+import { EARTH_RADIUS, type LighthouseParams } from '../src/params'
 import { tower } from '../src/props/lighthouse'
 import { allParams, expectEvery } from './days'
 
@@ -48,6 +50,64 @@ describe('beamDirections', () => {
 
   it('never returns more beams than the shader takes', () => {
     expect(beamDirections(light(4, 4), null).length).toBeLessThanOrEqual(12)
+  })
+})
+
+describe('beamLight', () => {
+  const lantern = new Vector3(0, 30, 0)
+  const east = [new Vector3(1, 0, 0)]
+  const sea = (): number => -5
+  const samples = Array.from({ length: BEAM_SAMPLES }, (_, k) => beamSampleAt(k))
+  const at = (lit: number[], t: number): number => lit[samples.findIndex(s => s >= t)]
+
+  it('samples from near the lamp to BEAM_MAX', () => {
+    expect(samples[0]).toBeLessThan(50)
+    expect(samples.at(-1)).toBeCloseTo(BEAM_MAX)
+  })
+
+  it('over open sea, keeps nearly all of it near the lamp and loses the lower half bit by bit', () => {
+    const [lit] = beamLight(lantern, east, sea)
+    expect(lit).toHaveLength(BEAM_SAMPLES)
+    expect(lit[0]).toBeGreaterThan(0.99)
+    for (let k = 1; k < lit.length; k++) expect(lit[k]).toBeLessThanOrEqual(lit[k - 1])
+    // 30 m up, the sea at 8 km is 0.2° down plus the earth's drop: a bit over half is left.
+    expect(lit.at(-1)).toBeGreaterThan(0.5)
+    expect(lit.at(-1)).toBeLessThan(0.65)
+  })
+
+  it('is stopped at once by a cliff', () => {
+    const [lit] = beamLight(lantern, east, x => (x > 500 ? 200 : -5))
+    expect(at(lit, 300)).toBeGreaterThan(0.95)
+    expect(at(lit, 600)).toBeLessThan(1e-6)
+  })
+
+  it('is eaten from below by a rising slope, not all at once', () => {
+    const [lit] = beamLight(lantern, east, x => (x > 300 ? (x - 300) / 20 : -5))
+    const [open] = beamLight(lantern, east, sea)
+    expect(at(lit, 800)).toBeLessThan(at(open, 800))
+    expect(at(lit, 800)).toBeGreaterThan(0.1)
+    // The beam's upper tail clears the slope a while: 2° up at 3 km is still ~10%.
+    expect(at(lit, 3000)).toBeLessThan(0.15)
+    for (let k = 1; k < lit.length; k++) expect(lit[k]).toBeLessThanOrEqual(lit[k - 1])
+  })
+
+  it('is stopped by a high island, partly by one a little above the lamp, and kept past a low one', () => {
+    const outline = Array(32).fill(200)
+    const [high] = beamLight(lantern, east, sea, [{ x: 2000, z: 0, outline, top: 300, depth: 20 }])
+    expect(at(high, 2500)).toBeLessThan(1e-6)
+    // 30 m above the lamp at 1.8 km is +0.95°: the beam's upper ~quarter goes over.
+    const [mid] = beamLight(lantern, east, sea, [{ x: 2000, z: 0, outline, top: 60, depth: 20 }])
+    expect(at(mid, 2500)).toBeGreaterThan(0.2)
+    expect(at(mid, 2500)).toBeLessThan(0.35)
+    const [low] = beamLight(lantern, east, sea, [{ x: 2000, z: 0, outline, top: 8, depth: 20 }])
+    expect(at(low, 2500)).toBeGreaterThan(0.3)
+  })
+
+  it('lets the earth drop far land away as the terrain mesh does', () => {
+    expect((0.9 * 7000 ** 2) / (2 * EARTH_RADIUS)).toBeGreaterThan(3)
+    // Land at the lamp's height 7 km off is drawn ~3.5 m lower: under the beam's axis.
+    const [lit] = beamLight(lantern, east, x => (x > 7000 ? 30 : -5))
+    expect(lit.at(-1)).toBeGreaterThan(0.5)
   })
 })
 

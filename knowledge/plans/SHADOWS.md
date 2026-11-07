@@ -1,6 +1,6 @@
 # Shadows and dark frames
 
-**Status: phases 0–4 done (0.109, 0.123, 0.124–0.126), phases 5–6 open.** Left from phase 2: terrain in the land map
+**Status: phases 0–5 done (0.109, 0.123, 0.124–0.127), phase 6 open.** Left from phase 2: terrain in the land map
 (cliffs beyond ~470 m ahead cast nothing). Decided 2026-11-06: dark nights at ~×8; the
 long-exposure look turns on by itself when the shutter is long. Done before this plan: shade reaches the sea's
 seabed, foam and body (0.105), skylight from clouds (0.106), shadows start at the stem (0.107).
@@ -146,7 +146,25 @@ The plan as written (bake first, as this project prefers):
    so only if stones and grass feet still float. `stillScene` draws the scene once, so it runs once.
 3. **Softness by height** (a treetop's shadow softer than the trunk's): last, if at all.
 
-### 5. Other lights
+### 5. Other lights: done (0.127)
+
+Checked against the code: the only lights are the sun or moon (with the fine slice's shadow-only
+light), and ambient lights for starlight and aurora. Ship lamps and bright planets light the sea's
+glitter only (`ocean.ts` `lampPositions`, 12 at most); the lightning flash is a glow on the cloud
+base; the lighthouse is screen-space beams and a glare. So no multi-light shadow system.
+
+**Lighthouse:** no spot map. Its beams are horizontal, ±2.2°, aimed at the horizon, and the lantern
+stands ≥ 120 m from the camera: they light nothing near it. What a shadow could change is a beam
+running on through land: counted over 1095 days (`params.mjs --rendered`), 29 lit-lighthouse days,
+land cuts a beam on 3, **in frame on 1** (`2026-05-13`, the beam crossing a forested headland). Built
+instead (arch/PROPS.md): `beamLight` marches each beam on the CPU and gives its lit share along it
+(land, the sea's surface, islands, earth's curve). That day's beams now thin out over the headland;
+8 real lighthouse days change < 0.1% (the sea takes far beams' lower half, seen only far out).
+Render time 0%. Off: `passes.beamShadow`; with it off, identical to the commit before
+(`diff.mjs --off-here`). Found on the way (ARCHITECTURE.md "Known issues"): 14 of 92 lighthouse days
+build no lighthouse but the title names one; a rock lighthouse in fog can white out the frame.
+
+The plan as written:
 
 | Light | Shadow? | Why |
 |---|---|---|

@@ -258,6 +258,11 @@ December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
 
+- Lighthouses (found 2026-11-07): on 14 of 92 lighthouse days (9 open sea, 4 beach, 1 rock shore) the
+  title says "lighthouse" but `createLighthouse` finds no site and builds none (`2024-05-13`); the
+  title should follow what's placed, or the site search widen. A rock lighthouse in fog with a beam
+  sweeping the camera whites out ~90% of the frame (`{"date":"2025-07-10","timeOfDay":"night",
+  "lighthouse":"rock","fog":"advection"}`): inside the beam fog is blinding, but check the glare terms.
 - Snow (0.111): limits in plans/SNOW.md (a foot's end beside a very close camera, plain white far low
   land, no falling snow).
 - Seasons (0.98): no leaves in the wrack; no larch (conifers stay green); tropical wet and dry seasons

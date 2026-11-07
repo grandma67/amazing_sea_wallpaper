@@ -251,6 +251,10 @@ tool gotchas: TOOLS.md.
   height band over its own penumbra (`shadow.ts SOFT_SHADOW_GLSL`). A wide disc on a tilted receiver
   shades itself (stipple on grass blades): offset each band by the slope × its radius. Keep every disc
   ≥ 1.5 texels: a 1 cm texel is several pixels on a trunk a metre away, and one tap shows its steps.
+- A point light with a few fixed rays (a lighthouse's beams) needs no shadow map: march each ray on the
+  CPU against the terrain and islands and pass a lit share along it. Count first: land cut a beam in
+  frame on 1 day in 1095, so a spot map would have cost a render pass for nothing. Mind the beam's
+  profile: a Gaussian keeps an upper tail, so an island a little above the lamp only dims it.
 - A debug switch that turns a feature off must give back the exact old path, not a simpler one:
   check it with this tree's switch off against `snapshot.mjs --ref HEAD` (`diff.mjs --a --b`).
 - Before blaming a too-bright result on convergence, measure it: 8 and 32 priming updates of the cloud

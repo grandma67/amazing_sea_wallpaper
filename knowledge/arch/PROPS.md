@@ -99,7 +99,12 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   grouped by chart character (`Fl(2) W 15s` = 2 beams per group), landward side screened on a
   point; lit sunset to sunrise and in fog. `props/lighthouse.ts` builds it; `lighthouse.ts` draws
   beams in screen space (closest approach of view ray and beam axis, haze + fog scattering,
-  depth-occluded) and flash glare, before exposure.
+  depth-occluded) and flash glare, before exposure. **Beam shadows** (`beamLight`, SHADOWS.md phase 5):
+  walking out along each beam from the lamp, the highest angle of land, sea surface (both dropping with
+  the earth's curve) or island top passed so far is a horizon; the share of the beam's Gaussian profile
+  above it is lit (½ erfc(horizon / 2.2°)), 16 log-spaced samples per beam from 25 m to 8 km. A cliff
+  stops a beam at once, a slope eats it from below, the sea takes the lower half bit by bit. No shadow
+  map: the lantern is a point and its beams fixed rays. Off: `passes.beamShadow: false`.
 
 ## On the beach
 
