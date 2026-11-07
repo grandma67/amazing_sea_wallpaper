@@ -239,6 +239,15 @@ tool gotchas: TOOLS.md.
   shading the whole foreground: casters need their own mesh over everything between the receivers and
   the light. Force the light behind the caster (`sunAzimuthDeg` ≈ 175, low) to see it; real days with
   the sun ahead hid it.
+- A sharper shadow map exposes what a coarse one hid: at 1 cm texels, double-sided grass and fronds
+  hatched (three's normal offset uses the unflipped normal, so it pushes a sunlit back face into its
+  own shadow), and two meshes of one surface (the terrain drawn and the terrain casting) striped a
+  snowy beach. Zoom (`diff.mjs --crop --zoom`) on near grass, fronds and ground before trusting it.
+- A shadow map can light more than the ground. takram reads its cloud shadow map to light the clouds
+  too (`sampleShadowOpticalDepth`, 0 past `shadow.maxFar`): capping it near the horizon left far clouds
+  unshadowed and pink. Check the sky, not just the ground, after changing a shared map.
+- Before blaming a too-bright result on convergence, measure it: 8 and 32 priming updates of the cloud
+  map gave the same sunset, so the change was the finer map, not an unsettled one.
 - three's shadow pass tests the *main* camera's layers, so a layer can't hide a caster from the main
   render only; show it around the one shadow render instead. A `customDepthMaterial` needs a fragment
   output (`gl_FragColor`), or the draw is dropped with "missing fragment shader outputs" and nothing casts.

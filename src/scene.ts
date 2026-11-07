@@ -89,7 +89,7 @@ import { stormCells } from './stormCells'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
 import { dustSkylight, dustTransmittance } from './seaHaze'
 import { shadeProps } from './propShade'
-import { bindCloudShadow, bindLandShadow, bindShadow, landCloudUniforms, renderLandShadow } from './shadow'
+import { bindCloudShadow, bindLandShadow, bindShadow, FINE_SHADOW_SIZE, fitFineShadow, landCloudUniforms, renderLandShadow } from './shadow'
 import { cloudSkylightRatio, measureSkylight } from './skylight'
 import { SkyDenoiseEffect } from './skyDenoise'
 import { GpuResources, trackUploads } from './dispose'
@@ -538,6 +538,15 @@ export async function renderScene(
   sun.shadow.bias = -0.00005
   sun.shadow.normalBias = 0.03
   scene.add(sun, sun.target)
+  // The fine slice: no light of its own, only a shadow map over the view's
+  // first 40 m, a few cm a texel (shadow.ts fitFineShadow). Added after the
+  // sun so three lists it second (propShade.ts reads it as light 1).
+  const fineSun = new DirectionalLight(0x000000, 0)
+  fineSun.castShadow = pass('shadows')
+  fineSun.shadow.mapSize.set(FINE_SHADOW_SIZE, FINE_SHADOW_SIZE)
+  const ground = camera.position.y - params.camera.heightM
+  const fineTexel = fineSun.castShadow ? fitFineShadow(fineSun, camera, lightDirectionWorld, Math.min(ground, 0) - 3, ground + 30) : 0
+  if (fineSun.castShadow) scene.add(fineSun, fineSun.target)
   if (starlitAmbient != null) scene.add(new AmbientLight(starlitAmbient, 1))
   // The aurora's own light on the ground: the display as drawn, integrated
   // over the sky (aurora.ts auroraLux), through the gaps in the cloud.
@@ -837,8 +846,8 @@ export async function renderScene(
     terrainCaster.visible = false
     ocean.visible = true
     terrain.visible = hasLand(params.coast)
-    bindShadow(ocean.material.uniforms, sun)
-    bindShadow(terrain.material.uniforms, sun)
+    bindShadow(ocean.material.uniforms, sun, fineSun.castShadow ? fineSun : undefined)
+    bindShadow(terrain.material.uniforms, sun, fineSun.castShadow ? fineSun : undefined)
     if (clouds != null && pass('cloudShade')) {
       primeCloudShadow(clouds, renderer, composer.inputBuffer)
       for (const uniforms of [ocean.material.uniforms, terrain.material.uniforms, propUniforms]) bindCloudShadow(uniforms, clouds, camera, lightDirectionWorld)
@@ -945,6 +954,7 @@ export async function renderScene(
       skyIrradiance: skyIrradiance.toArray(),
       cloudSkylight,
       shadowCoverage: shadeCoverage,
+      fineShadowTexelM: fineTexel,
       pitchDeg: camera.rotation.x / DEG,
       // Ground under the camera (diff.mjs --keep-camera).
       cameraGroundM: camera.position.y - params.camera.heightM,

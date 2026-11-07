@@ -1,6 +1,6 @@
 # Shadows and dark frames
 
-**Status: phases 0–2 done (0.109, 0.123), phases 3–6 open.** Left from phase 2: terrain in the land map
+**Status: phases 0–3 done (0.109, 0.123, 0.124–0.125), phases 4–6 open.** Left from phase 2: terrain in the land map
 (cliffs beyond ~470 m ahead cast nothing). Decided 2026-11-06: dark nights at ~×8; the
 long-exposure look turns on by itself when the shutter is long. Done before this plan: shade reaches the sea's
 seabed, foam and body (0.105), skylight from clouds (0.106), shadows start at the stem (0.107).
@@ -100,7 +100,20 @@ The plan as written:
 **Done:** a cliff shades the beach below it (a low sun behind it); each caster shows with
 `diff.mjs --off`.
 
-### 3. Sharper and steadier maps
+### 3. Sharper and steadier maps: done (0.124, 0.125), except snapping for live mode
+
+What was built: the **fine slice** (arch/SKY.md): a second, shadow-only light fitted to the view's
+first 40 m, 0.8–1.0 cm a texel; grass blades, fronds, branches and ice blocks cast crisp shadows.
+**Offsets in metres** per map, and slope-scaled for props on the fine slice (normal offset off: it
+hatched double-sided blades). **Depth range** left alone: the map's depth is 24-bit, 0.4 mm over 6490 m,
+so precision was never the problem. **Cloud map:** 3 × 1024² split 0.9 instead of 3 × 512² split 0.6:
+the first cascade covers ~13 km at ~25 m a texel instead of ~53 km at ~200 m. That was the straight-edged
+wedge from 450 m (its edges were texels), and coarse texels spread each cloud's shade over a wide edge,
+so low-sun scattered days were over-shaded: their beaches and sunset clouds now come out lit
+(`2024-09-13`). `maxFar` stays at the 400 km far plane: takram lights the clouds from this map, and
+capped it left far clouds pink. +6% on cloudy days. **Not done:** snapping to texels (live mode only).
+
+The plan as written:
 
 - Bias in **texels** with slope-scaled normal offset, on our own samplers and props. Then terrain
   can enter the maps without acne.

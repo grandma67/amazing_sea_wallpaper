@@ -103,27 +103,46 @@ float propShade(vec3 world) {
 `
 
 export const SHADOW_GLSL = /* glsl */ `
+// The sun's near map (±320 m) and its fine slice (the view's first ~40 m,
+// a few cm a texel: fitFineShadow). Each has its own depth offset, in its own
+// depth units, set from metres (shadowBias): the sea isn't in either map, and
+// the terrain is by its back faces only (terrain.ts), so a slope lit by the
+// sun never meets itself in them. A bigger offset only cuts the shadow off
+// short of what casts it.
 uniform sampler2DShadow sunShadowMap;
 uniform mat4 sunShadowMatrix;
 uniform vec2 sunShadowTexel;
 uniform float sunShadowOn;
+uniform sampler2DShadow fineShadowMap;
+uniform mat4 fineShadowMatrix;
+uniform vec2 fineShadowTexel;
+uniform float fineShadowOn;
+// x: near map, y: fine slice.
+uniform vec2 shadowBias;
 
-// Depth offset as a fraction of the map's 6490 m range: ~0.13 m along the light.
-// The sea isn't in this map; the terrain is, by its back faces only (terrain.ts),
-// so a slope lit by the sun never meets itself in it. A bigger offset only cuts
-// the shadow off short of what casts it.
+float mapShadow(sampler2DShadow map, vec3 c, vec2 texel, float bias) {
+  float sum = 0.0;
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      sum += texture(map, vec3(c.xy + vec2(float(i), float(j)) * texel * 1.2, c.z - bias));
+    }
+  }
+  return sum / 9.0;
+}
+
 float sunShadow(vec3 world) {
   if (sunShadowOn < 0.5) return 1.0;
   vec4 c = sunShadowMatrix * vec4(world, 1.0);
   c.xyz /= c.w;
   if (c.x < 0.0 || c.x > 1.0 || c.y < 0.0 || c.y > 1.0 || c.z > 1.0) return 1.0;
-  float sum = 0.0;
-  for (int j = -1; j <= 1; j++) {
-    for (int i = -1; i <= 1; i++) {
-      sum += texture(sunShadowMap, vec3(c.xy + vec2(float(i), float(j)) * sunShadowTexel * 1.2, c.z - 0.00002));
-    }
-  }
-  return sum / 9.0;
+  float near = mapShadow(sunShadowMap, c.xyz, sunShadowTexel, shadowBias.x);
+  if (fineShadowOn < 0.5) return near;
+  vec4 f = fineShadowMatrix * vec4(world, 1.0);
+  f.xyz /= f.w;
+  // Fade into the near map over the slice's outer 8%: no seam where it ends.
+  float fine = f.z > 1.0 ? 0.0 : clamp(min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)) / 0.08, 0.0, 1.0);
+  if (fine <= 0.0) return near;
+  return mix(near, mapShadow(fineShadowMap, f.xyz, fineShadowTexel, shadowBias.y), fine);
 }
 
 ${LAND_CLOUD_GLSL}
@@ -187,7 +206,12 @@ export function shadowUniforms(): Record<string, { value: unknown }> {
     sunShadowMap: { value: noShadowMap() as Texture },
     sunShadowMatrix: { value: new Matrix4() },
     sunShadowTexel: { value: new Vector2(1, 1) },
-    sunShadowOn: { value: 0 }
+    sunShadowOn: { value: 0 },
+    fineShadowMap: { value: noShadowMap() as Texture },
+    fineShadowMatrix: { value: new Matrix4() },
+    fineShadowTexel: { value: new Vector2(1, 1) },
+    fineShadowOn: { value: 0 },
+    shadowBias: { value: new Vector2(0.00002, 0) }
   }
 }
 
@@ -211,10 +235,12 @@ export function bindCloudShadow(
   ;(uniforms.cloudShadowLight.value as Vector3).copy(lightDirection).normalize()
 }
 
-/** Point the shader uniforms at the light's (already rendered) shadow map. */
+/** Point the shader uniforms at the lights' (already rendered) shadow maps:
+ * the near map, and the fine slice if there is one. */
 export function bindShadow(
   uniforms: Record<string, { value: unknown }>,
-  light: DirectionalLight
+  light: DirectionalLight,
+  fine?: DirectionalLight
 ): void {
   const map = light.shadow.map
   if (map?.depthTexture == null) return
@@ -222,6 +248,90 @@ export function bindShadow(
   ;(uniforms.sunShadowMatrix.value as Matrix4).copy(light.shadow.matrix)
   ;(uniforms.sunShadowTexel.value as Vector2).set(1 / map.width, 1 / map.height)
   uniforms.sunShadowOn.value = 1
+  const bias = uniforms.shadowBias.value as Vector2
+  bias.x = depthUnits(light, NEAR_SHADOW_BIAS_M)
+  const fineMap = fine?.shadow.map
+  if (fine == null || fineMap?.depthTexture == null) return
+  setShadowMap(uniforms.fineShadowMap, fineMap.depthTexture)
+  ;(uniforms.fineShadowMatrix.value as Matrix4).copy(fine.shadow.matrix)
+  ;(uniforms.fineShadowTexel.value as Vector2).set(1 / fineMap.width, 1 / fineMap.height)
+  uniforms.fineShadowOn.value = 1
+  bias.y = depthUnits(fine, Math.max(fine.userData.biasM as number, FINE_GROUND_BIAS_M))
+}
+
+/** Metres along the light in a shadow camera's depth units. */
+function depthUnits(light: DirectionalLight, metres: number): number {
+  const camera = light.shadow.camera
+  return metres / (camera.far - camera.near)
+}
+
+/** The near map's offset for the sea and terrain (the old 0.00002 of 6490 m). */
+const NEAR_SHADOW_BIAS_M = 0.13
+/** The fine slice's least offset for the sea and terrain: the terrain casts
+ * through a coarser mesh than the one drawn (terrain.ts createTerrainCaster),
+ * and the two disagree by a few cm over ripples; a texel's 2 cm left moiré
+ * stripes on a snowy beach. */
+const FINE_GROUND_BIAS_M = 0.08
+
+/** How far into the view the fine slice reaches (m): the ground in frame is
+ * nearer than 15 m on most land days (params.mjs `p.view.nearest`). */
+export const FINE_SHADOW_DISTANCE = 40
+export const FINE_SHADOW_SIZE = 4096
+/** How far toward the light its casters may stand (m): a 100 m cliff under a 3° sun. */
+const FINE_SHADOW_REACH = 2000
+
+/**
+ * Fit the fine slice's light to the view's first `distance` metres: the
+ * frustum between the camera and that depth, cut to between `floor` and
+ * `ceiling` (world y), seen from the light. Sets the light, its target and
+ * its shadow camera as three will (DirectionalLightShadow.updateMatrices),
+ * and its biases from its texel. Returns the texel (m).
+ */
+export function fitFineShadow(
+  light: DirectionalLight,
+  camera: PerspectiveCamera,
+  lightDirection: Vector3,
+  floor: number,
+  ceiling: number,
+  distance = FINE_SHADOW_DISTANCE
+): number {
+  camera.updateMatrixWorld()
+  const L = lightDirection.clone().normalize()
+  const eye = camera.position
+  light.target.position.copy(eye)
+  light.position.copy(eye).addScaledVector(L, FINE_SHADOW_REACH)
+  light.target.updateMatrixWorld()
+  light.updateMatrixWorld()
+  const shadowCamera = light.shadow.camera
+  shadowCamera.position.copy(light.position)
+  if (Math.abs(L.y) > 0.999) shadowCamera.up.set(0, 0, -1)
+  shadowCamera.lookAt(light.target.position)
+  shadowCamera.updateMatrixWorld()
+  const view = shadowCamera.matrixWorldInverse
+
+  const tanY = Math.tan((camera.fov * Math.PI) / 360)
+  const tanX = tanY * camera.aspect
+  const lo = new Vector3(Infinity, Infinity, Infinity)
+  const hi = new Vector3(-Infinity, -Infinity, -Infinity)
+  const p = new Vector3()
+  for (const z of [camera.near, distance / 2, distance]) {
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1]]) {
+      p.set(sx * tanX * z, sy * tanY * z, -z).applyMatrix4(camera.matrixWorld)
+      p.y = Math.min(Math.max(p.y, floor), ceiling)
+      p.applyMatrix4(view)
+      lo.min(p)
+      hi.max(p)
+    }
+  }
+  Object.assign(shadowCamera, { left: lo.x, right: hi.x, bottom: lo.y, top: hi.y, near: 1, far: -lo.z + 1 })
+  shadowCamera.updateProjectionMatrix()
+  const texel = Math.max(hi.x - lo.x, hi.y - lo.y) / FINE_SHADOW_SIZE
+  // Props shade themselves: 1.5 texels of depth, scaled by the slope to the
+  // light in propShade.ts; no normal offset (three's ignores double sides).
+  light.shadow.bias = -(1.5 * texel) / (shadowCamera.far - shadowCamera.near)
+  light.shadow.normalBias = 0
+  light.userData.biasM = 2 * texel
+  return texel
 }
 
 const LAND_SHADOW_SIZE = 2048

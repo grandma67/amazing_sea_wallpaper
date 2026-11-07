@@ -14,6 +14,30 @@ const CLOUD_KINDS = new Set(['shelf-cloud', 'roll-cloud'])
 
 const SUN_LINE = 'getDirectionalLightInfo( directionalLight, directLight );'
 
+// three's shadow of directional light i; the sun is light 0 (scene.ts).
+const SHADOW_CALL =
+  'getShadow( directionalShadowMap[ i ], directionalLightShadow.shadowMapSize, directionalLightShadow.shadowIntensity, directionalLightShadow.shadowBias, directionalLightShadow.shadowRadius, vDirectionalShadowCoord[ i ] )'
+
+// The fine slice (light 1, no light of its own: shadow.ts fitFineShadow) takes
+// over from the sun's near map where it covers the point, fading out over its
+// outer 8% as SHADOW_GLSL's sunShadow does.
+const FINE_SLICE = `float fineSunShadow = 1.0;
+float fineSunWeight = 0.0;
+#if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 1
+{
+  vec3 fineCoord = vDirectionalShadowCoord[ 1 ].xyz / vDirectionalShadowCoord[ 1 ].w;
+  fineSunWeight = fineCoord.z > 1.0 ? 0.0 : clamp(min(min(fineCoord.x, 1.0 - fineCoord.x), min(fineCoord.y, 1.0 - fineCoord.y)) / 0.08, 0.0, 1.0);
+  // Depth offset scaled by the slope to the sun (tan, up to 8), from the face
+  // as lit (\`normal\` is flipped on back faces): grass blades and fronds
+  // are double-sided, and three's normal offset takes the unflipped normal,
+  // pushing a sunlit back face into its own shadow. Hatching at 1 cm texels.
+  float fineCos = max(abs(dot(normal, directionalLights[ 0 ].direction)), 0.124);
+  float fineBias = directionalLightShadows[ 1 ].shadowBias * (1.0 + sqrt(1.0 - fineCos * fineCos) / fineCos);
+  if (fineSunWeight > 0.0) fineSunShadow = getShadow( directionalShadowMap[ 1 ], directionalLightShadows[ 1 ].shadowMapSize, directionalLightShadows[ 1 ].shadowIntensity, fineBias, directionalLightShadows[ 1 ].shadowRadius, vDirectionalShadowCoord[ 1 ] );
+}
+#endif
+`
+
 /** What each prop kind has, for debug.shadowCoverage. */
 export interface ShadeCoverage {
   /** Objects with a lit material. */
@@ -64,10 +88,9 @@ export function shadeMaterial(material: Material, uniforms: Uniforms, view: bool
       .replace('#include <common>', `#include <common>\nvarying vec3 vShadeWorld;\n${LAND_CLOUD_GLSL}`)
       .replace(
         '#include <lights_fragment_begin>',
-        `float shadeHere = propShade(vShadeWorld);\n${ShaderChunk.lights_fragment_begin.replace(
-          SUN_LINE,
-          `${SUN_LINE}\n\t\tdirectLight.color *= shadeHere;`
-        )}`
+        `float shadeHere = propShade(vShadeWorld);\n${FINE_SLICE}${ShaderChunk.lights_fragment_begin
+          .replace(SUN_LINE, `${SUN_LINE}\n\t\tdirectLight.color *= shadeHere;`)
+          .replace(SHADOW_CALL, `mix( ${SHADOW_CALL}, fineSunShadow, UNROLLED_LOOP_INDEX == 0 ? fineSunWeight : 0.0 )`)}`
       )
     if (view) {
       shader.fragmentShader = shader.fragmentShader.replace(

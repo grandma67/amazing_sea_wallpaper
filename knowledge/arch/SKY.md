@@ -148,6 +148,17 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   cloud transmittance from takram's cascaded cloud shadow map (exp(−(maxOpticalDepth + tail)),
   primed by `primeCloudShadow` because the sea is drawn once at frame 0). `weather.sunVisibility`
   stays as the overall dimming.
+- **The fine slice** (`shadow.ts fitFineShadow`, 4096²): a second directional light with no light of its
+  own (black, intensity 0, added after the sun so three lists it second) whose shadow camera is fitted
+  to the view's first 40 m, cut to 3 m below the ground (or the sea) and 30 m above it: 0.8–1.0 cm a
+  texel against the near map's 15.6 cm. The sea and terrain read it in `sunShadow`, props in
+  `propShade.ts` (light 0's shadow mixed with light 1's); both fade into the near map over the slice's
+  outer 8%. Offsets are in metres per map (`shadowBias`, converted to each map's depth units): 0.13 m
+  on the near map, ≥ 8 cm on the fine slice for the sea and terrain (the terrain casts through a coarser
+  mesh than it draws, and they differ by cm over ripples), and for props 1.5 texels scaled by the slope
+  to the sun (tan, up to 8) from the face as lit, with no normal offset (three's takes the unflipped
+  normal on double-sided blades and fronds). Depth is 24-bit: 6490 m resolves to 0.4 mm, so the depth
+  range didn't need narrowing. Render time +0–1%.
 - **What casts in the near map** (±320 m, 4096²): every solid prop (birds, animals, colony, islands and
   mountains too, all receive as well), grass (+8% render time on grass scenes, ~2% overall), and the
   terrain through `createTerrainCaster` (back faces only: three flips the side, so a slope facing the

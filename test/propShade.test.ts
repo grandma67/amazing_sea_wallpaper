@@ -36,6 +36,16 @@ describe('shadeMaterial', () => {
     expect(vertexShader).toContain('vShadeWorld =')
   })
 
+  it("takes the fine slice over from the sun's near map, on the sun alone", () => {
+    const material = new MeshStandardMaterial()
+    shadeMaterial(material, uniforms, false)
+    const { fragmentShader } = compiled(material)
+    // The replacement must find three's call, or the slice silently does nothing.
+    expect(fragmentShader).toContain('mix( getShadow( directionalShadowMap[ i ]')
+    expect(fragmentShader).toContain('UNROLLED_LOOP_INDEX == 0 ? fineSunWeight : 0.0')
+    expect(fragmentShader.indexOf('float fineSunShadow')).toBeLessThan(fragmentShader.indexOf('#pragma unroll_loop_start'))
+  })
+
   it('leaves other lights and sky light alone', () => {
     const material = new MeshStandardMaterial()
     shadeMaterial(material, uniforms, false)
