@@ -266,6 +266,11 @@ December noon is 17° up; changes many winter days, ask first).
   against a sky of 0.159: the cloudy sky cube's horizon is ~3× darker than the frame's, so calm
   water is darker than the sky at the horizon and hazed mirror images come out too dark (island 1's
   ~50–80% of F × its own colour). Not traced; check a clear day before changing anything.
+- Mirror images in the shore's water films (0.134): a lightning bolt in the swash (2025-04-25) is
+  speckled and blocky, not a soft streak. The blur is sized from the mirror depth at the film's
+  unshifted point (trees tens of metres off), not the bolt kilometres away (plans/REFLECTION.md
+  phases 2 and 5). Storm days with a bolt in frame only. A near rock pool beside a boulder was not
+  yet seen in a render (the specs' pools are 50 m+ off).
 - Night frames (found in SHADOWS.md phase 6, 2026-11-07): the night white balance (`NIGHT_WHITE_BALANCE_K`,
   gains 0.67, 1.02, 1.77) turns moonlit white sand (raw 0.068, 0.060, 0.058) deep blue (exposed B/R 2.3);
   at ~4000 K and moonlight's ~4100 K it should be near neutral. A starlit cloud deck is lit blue (raw B/R

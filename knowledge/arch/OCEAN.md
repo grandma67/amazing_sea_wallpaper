@@ -105,6 +105,12 @@ surf".
   It fades toward `skyReflected` (the cube along R): land lost in haze leaves the sky reflection.
   The sea haze's inscatter is weighted (1 − T)², matching takram (it mixes an opacity-scaled
   colour by the opacity again); the air's (1 − T). Off: the `distant` cutoff, as 0.132.
+  **Shared with the shore (0.134):** the lookup, streaks and haze are `reflection.ts`
+  `MIRROR_GLSL`; the terrain's water films (pools, runnels, swash, damp sand) call it from their
+  own point and height, along a ray off their smooth surface, with their own roughness (pools
+  0.03, swash 0.08, damp sand 0.25; wet rock and stones none), fading out where the mirror
+  camera sees the film's own ground (`tSelf`). Bound after the mirror pass, which draws the
+  terrain. `passes.wetMirror`.
 - **Ships in the ocean shader:** `setOceanShips` (8 nearest) cuts the hull out of the sea and adds
   the Kelvin wake, foam and slick (PROPS.md "Ships").
 - **A frozen sea:** the ocean shader doesn't know. A floating sheet covers it (PROPS.md "Sea ice") and it runs calm below,

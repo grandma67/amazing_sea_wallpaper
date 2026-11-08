@@ -1,6 +1,6 @@
 # Reflections that follow the waves
 
-**Status: phases 0–4 done (2026-11-08; 0.130 ripple layers, 0.131 ray lookup + light-air onset, 0.132 streaks, 0.133 haze on the mirror image, no 5 km cutoff). Next: phase 5 (wet sand and rock pools).** Research and sources:
+**Status: done (2026-11-08; 0.130 ripple layers, 0.131 ray lookup + light-air onset, 0.132 streaks, 0.133 haze on the mirror image, no 5 km cutoff, 0.134 pools and wet sand). Open: the items under "Later", the dark cloudy cube horizon (ARCHITECTURE.md Known issues).** Research and sources:
 [../REFLECTION.md](../REFLECTION.md) (§ numbers below refer to it). How the reflection works
 today: [../arch/OCEAN.md](../arch/OCEAN.md) "Reflections". Estimates are marked; everything else
 was measured, read in the code or seen in the reference photos below.
@@ -358,7 +358,40 @@ already gets the haze over D from the main pass; the mirror image needs the haze
   `diff.mjs` vs the switch off shows the far islands' images on the far-object specs and
   nothing `⚠ invisible`.
 
-## Phase 5: wet sand and rock pools mirror the scene
+## Phase 5 (done 2026-11-08, 0.134): wet sand and rock pools mirror the scene
+
+**What was built and found:**
+- The ocean's ray lookup, streak taps and haze moved into `reflection.ts` `MIRROR_GLSL`
+  (`mirrorDistance`, `mirrorAlongRay`, `hazeMirror`); the ocean and the terrain both call it. The
+  refactor moves scattered single pixels at sharp mirror edges (≤ 0.27% of `near-objects-calm`,
+  float order), nothing visible.
+- Terrain films look up from their own point at their own height: the mirror camera sees the
+  real scene, so a hit point projects straight in whatever plane reflected it. Roughness
+  (estimates, from photos W1, W2, P below): pools 0.03, swash film 0.08, damp sand 0.25. The
+  mirror ray uses the film's smooth surface (`Nland` bent toward flat), not the ripples. Wet rock
+  and wet stones get no image (only their pools).
+- **Self-hits:** the film is above the mirror plane, so far off, on a slope steeper than the line
+  from the mirror camera, the mirror depth is the film itself and pixels hit or miss it by
+  precision (grey two-texel blocks along a far swash strip at golden hour). Where t is within
+  0.3 m + 0.3% of D of that (`tSelf`), the image fades out and the sky stays.
+- Binding: the terrain gets `planarMap` only after `renderPlanarReflection` (it is drawn into
+  the target); `planarOn` 0 until then. No `GL:` warnings.
+- Results (`scenes/wet-mirror.json`, `diff.mjs` vs `passes.wetMirror` off): runnels on a low-tide
+  terrace mirror the sunlit sand bank behind them; Brittany and Nova Scotia platform pools the
+  rocks (dark streaks; these specs' pools are all 50 m+ off: **a near pool beside a boulder was
+  not seen**); the swash under mangroves the trees (2025-04-25 without its storm); tidal flats
+  unchanged (nothing stands above them). Real days (8 beach and rock shore): 0–0.3% changed,
+  mostly faint. Switch off = 0.133 exactly (8 specs); 0% render time; 0 days' choices changed.
+- **Known limit:** lightning in the swash film (2025-04-25) is speckled and blocky, not a soft
+  streak: the blur is sized from the depth at the unshifted point (trees tens of metres off), not
+  the bolt kilometres away (phase 2's "one depth for the neighbourhood"). Storm days with a bolt
+  in frame only.
+- Reference photos (viewed 2026-11-08): W1 [Reflections on wet sand](https://commons.wikimedia.org/wiki/File:Reflections_on_wet_sand_-_geograph.org.uk_-_2130040.jpg)
+  (a walker's soft, drawn-out image, sharp at the feet); W2 [Whatipu Beach reflections](https://commons.wikimedia.org/wiki/File:Whatipu_Beach_reflections.jpg)
+  (a swash sheet mirroring clouds and cliffs, broken by ripples); P [Rock pool reflection at Urvaig](https://commons.wikimedia.org/wiki/File:Rock_pool_reflection_at_Urvaig_-_geograph.org.uk_-_317156.jpg)
+  (a still pool, a crisp image of the rock rim).
+
+Original plan:
 
 `terrain.ts` gloss reads only the env cube. Pools and the swash film are flat water at about
 sea level, so the same mirror target works near y = 0 (exact for pools at the plane; close for

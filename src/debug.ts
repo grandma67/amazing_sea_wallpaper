@@ -64,7 +64,7 @@ export interface ProbeLine {
   step?: number
 }
 
-export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze'] as const
+export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze', 'wetMirror'] as const
 export type DebugPass = (typeof DEBUG_PASSES)[number]
 export const TERRAIN_VIEWS = ['none', 'slope', 'relief', 'lines', 'shore'] as const
 export type TerrainView = (typeof TERRAIN_VIEWS)[number]

@@ -1,0 +1,13 @@
+{
+  "base": { "eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "brittany-pools", "date": "2024-07-12", "weather": "clear", "place": "brittany", "rockShore": "platform", "tide": "low", "composition": "along-beach" },
+    { "name": "platform-along", "date": "2024-07-12", "weather": "clear", "place": "nova-scotia", "rockShore": "platform", "composition": "along-beach" },
+    { "name": "peggys-cove-golden", "date": "2024-07-12", "weather": "clear", "place": "nova-scotia", "rockShore": "platform", "composition": "along-beach", "timeOfDay": "golden-hour", "sunAzimuthDeg": 120 },
+    { "name": "terrace-low", "date": "2024-05-08", "weather": "scattered", "coast": "beach", "beachMaterial": "sand", "place": "brittany", "tide": "low", "composition": "along-beach" },
+    { "name": "swash-golden-backlit", "date": "2024-05-08", "weather": "scattered", "coast": "beach", "beachMaterial": "sand", "place": "brittany", "tide": "low", "composition": "shoreline", "timeOfDay": "golden-hour", "sunAzimuthDeg": 20 },
+    { "name": "swash-rocks", "date": "2024-05-08", "weather": "scattered", "coast": "beach", "beachMaterial": "sand", "place": "brittany", "tide": "mid", "composition": "along-beach", "props": { "rocks": true } },
+    { "name": "wadden-golden", "date": "2025-07-10", "weather": "few", "place": "wadden-north-sea", "coast": "tidal-flat", "tide": "low", "composition": "shoreline", "timeOfDay": "golden-hour", "sunAzimuthDeg": 25 },
+    { "name": "msm-mid", "date": "2025-07-10", "weather": "scattered", "place": "mont-saint-michel", "coast": "tidal-flat", "tide": "mid", "composition": "along-beach" }
+  ]
+}

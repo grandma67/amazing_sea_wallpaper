@@ -952,6 +952,21 @@ export async function renderScene(
       const extinction = reflectionExtinction(params.visibilityKm, clouds != null)
       ;(ocean.material.uniforms.reflectionAir.value as Vector3).set(...extinction.air)
       ocean.material.uniforms.reflectionSeaHaze.value = extinction.haze
+      // Pools and the swash film mirror it too (plans/REFLECTION.md phase 5).
+      // Only now: the terrain is drawn into the target, and a target bound
+      // while it is drawn into is a feedback loop.
+      if (pass('wetMirror') && terrain.visible) {
+        const tu = terrain.material.uniforms
+        tu.planarMap.value = reflection.target.texture
+        ;(tu.planarMatrix.value as Matrix4).copy(reflection.textureMatrix)
+        tu.planarDepth.value = reflection.target.depthTexture
+        ;(tu.planarProjInv.value as Matrix4).copy(reflection.projectionInverse)
+        if (pass('reflectionHaze')) {
+          ;(tu.reflectionAir.value as Vector3).set(...extinction.air)
+          tu.reflectionSeaHaze.value = extinction.haze
+        }
+        tu.planarOn.value = 1
+      }
     }
   }
   // Volumetric clouds converge over frames (temporal upscaling and

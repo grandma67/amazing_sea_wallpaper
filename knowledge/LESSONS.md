@@ -445,6 +445,12 @@ tool gotchas: TOOLS.md.
   already scaled by the opacity a by a again, so the inscatter goes as a², not a. Measure it with
   `haze.mjs` (two objects, one haze colour) before trusting a formula. Probe by world point and
   check `covered by`: a guessed pixel on a palm frond once "proved" the textbook weighting.
+- A water film above the mirror plane (pools, swash) can see its own ground in the mirror target:
+  far off, on a slope steeper than the mirror camera's line to it, the depth there is the film
+  itself, and pixels hit or miss it by precision (two-texel grey blocks). Compare the depth's t
+  with the film's own (`tSelf`) and drop the image where they match.
+- A refactor of shader maths into a function can move single pixels at sharp edges (float
+  order): diff against HEAD and look at a zoomed crop before calling it a logic change.
 - Fade a mirrored object's haze toward the sky that same ray reflects, not a sampled "horizon"
   colour: anything lost in the haze must vanish into the sea around it, or a hidden 37 km
   volcano leaves a pale sheet on the water.

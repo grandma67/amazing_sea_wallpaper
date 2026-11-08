@@ -217,6 +217,8 @@ and salt marsh".
   moves.
 - Low-tide look: the terrain shader draws the wrack line at the spring high water, damp drained
   sand below today's high water (glossier near the water) and ponded runnels on a terrace;
+  since 0.134 these films, rock pools and the swash mirror the scene, not just the sky
+  (arch/OCEAN.md "Reflections", `passes.wetMirror`);
   `rockMaterial`'s `tideLine` gives rocks a dark weed and mussel band below the spring high water;
   mangroves keep to mean sea up to the spring high water.
 - With a spring range ≥ 2 m the beach state is tide-modified by RTR = range / Hb (`tideModified`,

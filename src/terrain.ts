@@ -1,5 +1,6 @@
 import {
   Color,
+  Matrix4,
   Mesh,
   ShaderMaterial,
   Vector2,
@@ -17,6 +18,7 @@ import { TERRAIN_VIEWS } from './debug'
 import { createPolarGrid, ringStep, squareGrid, viewWedge } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
+import { MIRROR_GLSL, MIRROR_UNIFORMS_GLSL } from './reflection'
 import { LICHEN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
 import { groundCoverTint, phenologyFor } from './phenology'
 import { snowLook } from './props/snowCap'
@@ -1067,6 +1069,11 @@ uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
 uniform vec3 skyIrradiance;
 uniform samplerCube envMap;
+// The mirror image (reflection.ts) for the water films: 0 while the mirror
+// target itself is drawn (the terrain is in it) and with passes.wetMirror off.
+uniform float planarOn;
+${MIRROR_UNIFORMS_GLSL}
+${MIRROR_GLSL}
 uniform vec3 sandAlbedo;
 uniform float runup;
 // World heights of today's high water and the spring high water (tides.ts).
@@ -1373,6 +1380,40 @@ void main() {
     vec3 R = reflect(-V, Nw);
     R.y = abs(R.y);
     vec3 reflected = textureLod(envMap, R, 2.0).rgb * skyOpenHere;
+    // The scene mirrored in the film (plans/REFLECTION.md phase 5): the
+    // sea's lookup along this film's own reflected ray, from the film's own
+    // height (the mirror camera sees the real scene, so a hit point projects
+    // straight in, whatever plane reflected it). Still pools are near
+    // mirrors (reference: a rock pool at Urvaig), the swash film a soft one
+    // (a walker's image on wet sand, sharp at the feet), damp sand barely
+    // one; roughness estimated. Wet rock stays a dull sheen and wet stones
+    // glint one by one: no image on either, only in their pools.
+    float mirror = 1.0 - hard * (1.0 - pools);
+    if (planarOn > 0.5 && mirror > 0.0) {
+      float filmAlpha = mix(mix(0.25, 0.08, wet), 0.03, pools);
+      // The film's own surface: smooth water over the ground's large shape,
+      // not the ripples and stone domes under it (those normals made each
+      // pixel's ray jump across the mirror image: a speckled lightning
+      // column, blocky white flecks at the waterline). Their roughness is
+      // in filmAlpha.
+      vec3 Rf = reflect(-V, normalize(mix(Nland, vec3(0.0, 1.0, 0.0), max(mix(0.7, 0.15, hard), pools))));
+      Rf.y = abs(Rf.y);
+      float D = length(vWorld - cameraPosition);
+      vec4 projected = planarMatrix * vec4(vWorld, 1.0);
+      float hazeT = mirrorDistance(projected.xy / projected.w, D);
+      float t = hazeT;
+      // The film sits above the mirror plane, so the mirror camera can see
+      // its own ground: far off, on a slope steeper than the line from the
+      // mirror camera, the depth there is the film itself (t ≈ tSelf) and
+      // pixels hit or miss it by precision (grey blocks along a far swash
+      // strip at golden hour). No image there: the sky reflection stays.
+      vec3 mirrorEye = vec3(cameraPosition.x, -cameraPosition.y, cameraPosition.z);
+      float tSelf = length(vWorld - mirrorEye) - D;
+      float own = 1.0 - smoothstep(0.0, 0.3 + 0.003 * D, t - tSelf);
+      vec4 planar = mirrorAlongRay(vWorld, D, t, Rf, filmAlpha, V.y, true, hazeT);
+      planar = hazeMirror(planar, hazeT, Rf, reflected) * mirror * (1.0 - own);
+      reflected = reflected * (1.0 - clamp(planar.a, 0.0, 1.0)) + planar.rgb;
+    }
     vec3 H = normalize(L + V);
     float NoH = max(dot(Nw, H), 0.0);
     // Widen the highlight where a pixel covers a lot of sand, so thin distant
@@ -1486,6 +1527,14 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       sunIrradiance: { value: new Color() },
       skyIrradiance: { value: new Color() },
       envMap: { value: null as Texture | null },
+      // The mirror image, bound after the mirror pass (scene.ts).
+      planarOn: { value: 0 },
+      planarMap: { value: null as Texture | null },
+      planarMatrix: { value: new Matrix4() },
+      planarDepth: { value: null as Texture | null },
+      planarProjInv: { value: new Matrix4() },
+      reflectionAir: { value: new Vector3() },
+      reflectionSeaHaze: { value: 0 },
       sandAlbedo: { value: new Color(...coast.sand.albedo) },
       ...stoneUniforms(coast),
       runup: { value: coast.runup },
