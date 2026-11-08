@@ -21,6 +21,8 @@
 //               land, islands and the sun's glitter
 // --els LIST    elevations (deg) to mirror (default 0.3,0.5,1,2,4)
 // --lod N       the blurred cube level to read beside the sharp one (default 5)
+// --half N      probe box half size (default 1: 3×3); 0 reads single pixels, to rule
+//               out mixing across the horizon line
 // --out DIR (out/horizon)  --w --h --frames --url   passed to snapshot.mjs
 //
 // Force calm water to read the reflection itself:
@@ -37,6 +39,7 @@ const sceneArg = option('scene', null)
 const az = Number(option('az', 0))
 const els = option('els', '0.3,0.5,1,2,4').split(',').map(Number)
 const lod = Number(option('lod', 5))
+const half = Number(option('half', 1))
 const outDir = resolve(option('out', 'out/horizon'))
 const defaults = { w: '1920', h: '1080', frames: '16' }
 const render = ['w', 'h', 'frames', 'url'].flatMap(k => {
@@ -52,7 +55,7 @@ const { specs } = await readSpecs(sceneArg)
 if (specs.length !== 1) throw new Error('horizon.mjs takes one spec')
 const probe = els.flatMap(el => [{ az, el }, { az, el: -el }])
 const cubeProbe = els.flatMap(el => [{ az, el, lod: 0 }, { az, el, lod }])
-const spec = merge(specs[0], { name: 'horizon', params: { debug: { probe, probeHalf: 1, cubeProbe } } })
+const spec = merge(specs[0], { name: 'horizon', params: { debug: { probe, probeHalf: half, cubeProbe } } })
 await mkdir(outDir, { recursive: true })
 const file = join(outDir, 'horizon.spec.json')
 await writeFile(file, JSON.stringify(spec))
