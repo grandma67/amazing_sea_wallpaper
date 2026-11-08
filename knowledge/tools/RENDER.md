@@ -62,7 +62,9 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
 ```
 
 - `NAME.diff.jpg`'s top panels are cropped to the changed box, not the frame: don't read pixel
-  positions off it (`OUT/on/NAME.jpg` is the full frame).
+  positions off it (`OUT/on/NAME.jpg` is the full frame). Every diff also saves `NAME.crop.jpg`:
+  that box at full size (`--crop X,Y,W,H` for another rectangle). To look closer at a spot,
+  `--zoom-at X,Y` (full-frame pixels; 320×120 around it, ×3): with `--a/--b`, no new render.
 - `--where EXPR [--sample N] [--spread EXPR]`: real days instead of `--scene` (as `snapshot.mjs`),
   with `--off` or `--ref`: the first render round's real days in one command.
 
@@ -108,6 +110,26 @@ node scripts/haze.mjs --scene $SP/day.json --points '[[841.2,40.9,2693.5],[1977.
 Two renders, ~1 min. Points at least two distances apart; under ~100 m high (T assumes the haze's
 sea-level density). 2003-03-11 (V 32 km): takram's sea haze fades with (1 − T)², to ≈ the frame's
 horizon sky (`--sky` prints it for reference).
+
+## `scripts/horizon.mjs`: does the sea reflect the sky it should?
+
+One render with probes at mirrored angles: the frame's sky at +el, the sea at −el, and the sky
+cube (`debug.cubeProbe`) at +el, sharp and at a rough sea's blur. Calm water at grazing angle el
+reads ≈ F(el) × the sky there.
+
+```sh
+node scripts/horizon.mjs --scene '{"date":"2003-03-11","coast":"open-sea","landform":null,"islands":null,"weather":"broken",
+  "timeOfDay":"daylight","eclipse":null,"storm":null,"fog":null,"params":{"ocean":{"windSpeed":0.5,"airWindSpeed":0.5,"swellHeight":0.2}}}' --az -10
+#     el     sky (G)    sea (G)     F   sea/(F·sky)  cube/sky  cube lod 5/sky
+#    0.5   1.47e-1   9.52e-2    0.96        0.68       1.00         0.36     ← 0.30 before phase 6
+```
+
+- `sea/(F·sky)` low near the horizon while `cube/sky` ≈ 1: the sea's reflected ray is wrong
+  (phase 6: aimed 5.7° high), not the cube. `cube/sky` off 1: the cube. `cube lod N/sky` ≪ 1 near
+  the horizon: blurred lookups pull in the cube's ground (the water reads `foldedSkyCube`).
+- Force calm water (`windSpeed` 0.5) to test the reflection itself; rough water sits below 1 by
+  design (it mirrors a spread of sky that darkens with height). Aim `--az` at open sea, away from
+  land and the sun's glitter.
 
 ## `scripts/summary.mjs`: one number over many renders
 

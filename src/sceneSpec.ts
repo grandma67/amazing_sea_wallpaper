@@ -473,7 +473,9 @@ function checkDebug(value: unknown, path: string): void {
       if (!Array.isArray(v)) fail(p, 'must be a list of {az, el}')
       ;(v as unknown[]).forEach((e, i) => {
         const o = e as Record<string, unknown>
-        if (o === null || typeof o !== 'object' || typeof o.az !== 'number' || typeof o.el !== 'number' || Object.keys(o).length !== 2) fail(`${p}[${i}]`, 'must be {az, el} in degrees')
+        const keys = o === null || typeof o !== 'object' ? [] : Object.keys(o)
+        if (typeof o?.az !== 'number' || typeof o?.el !== 'number' || keys.some(k => !['az', 'el', 'lod'].includes(k)) || (o.lod !== undefined && (typeof o.lod !== 'number' || o.lod < 0 || o.lod > 10)))
+          fail(`${p}[${i}]`, 'must be {az, el} in degrees, with an optional lod 0–10')
       })
     },
     cubeProbeLod: (v, p) => {

@@ -40,7 +40,7 @@ node scripts/snapshot.mjs --out $SP/p --w 1920 --h 1080 --frames 16 \
   with its mirror image (× Fresnel). Take the points from `params.mjs --project KIND --above M`
   (x, y, z and both pixels), and skip rows with a `covered by`: the probe reads whatever is in
   front. Out of frame: "out of frame". The render's JSON has `debug.cameraPosition`.
-- The sky cube: `cubeProbe: [{az, el}]` (and `cubeProbeLod`, default 0) reads the env cube in
+- The sky cube: `cubeProbe: [{az, el, lod?}]` (`lod` per entry, else `cubeProbeLod`, else 0) reads the env cube in
   those directions with the same `textureLod` the sea uses, into `debug.cubeProbe` (snapshot
   prints `cube az … el …: raw …`). Beside `probe` at the same directions it answers "is what the
   water reflects the sky the frame shows?" (it is, within a few %); at a high lod, how much a rough

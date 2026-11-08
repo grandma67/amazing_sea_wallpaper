@@ -21,14 +21,18 @@
 // --keep-exposure   "on" first, then each "off" uses its exposure (debug.exposure):
 //                   for sky, weather, haze and sun changes, which re-meter the frame
 // --threshold N     luminance change that counts, 0–255 (default 4, above JPEG noise)
-// --crop X,Y,W,H    also save OUT/NAME.crop.jpg: off | on side by side at full size,
-//                   not shrunk (`box`: the changed box). With --a/--b, no new render.
-// --zoom N          enlarge that crop N times, pixels kept sharp (default 1)
+// --crop X,Y,W,H    OUT/NAME.crop.jpg: off | on side by side at full size, not shrunk,
+//                   of this rectangle in full-frame pixels (default `box`: the changed box,
+//                   always saved). With --a/--b, no new render.
+// --zoom-at X,Y     a 320×120 crop centred on full-frame pixel X,Y, ×3 unless --zoom says:
+//                   "look closer at what I saw", in the frame's own coordinates
+// --zoom N          enlarge the crop N times, pixels kept sharp (default 1)
 //
 // Renders at 1920×1080 and 16 frames unless --w --h --frames say otherwise
 // (snapshot.mjs alone defaults to 4K: pass --w 1920 --h 1080 to probe a diff's frame).
-// NAME.diff.jpg's top panels are cropped to the changed box, not the whole frame:
-// read pixel positions from OUT/off and OUT/on, not from it.
+// NAME.diff.jpg's top panels are cropped to the changed box, not the whole frame: never
+// read pixel positions from it. NAME.crop.jpg (the box at full size) is saved with every
+// diff, and the printed box is its full-frame rectangle; --zoom-at X,Y takes frame pixels.
 
 import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
@@ -54,9 +58,15 @@ const keepCamera = flag('keep-camera')
 const keepExposure = flag('keep-exposure')
 const onFirst = keepCamera || keepExposure
 const cropArg = option('crop', null)
-const crop = cropArg == null || cropArg === 'box' ? cropArg : cropArg.split(',').map(Number)
+const zoomAt = option('zoom-at', null)
+let crop = cropArg == null || cropArg === 'box' ? 'box' : cropArg.split(',').map(Number)
+if (zoomAt != null) {
+  const [x, y] = zoomAt.split(',').map(Number)
+  if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error('--zoom-at is X,Y in full-frame pixels')
+  crop = [Math.max(0, Math.round(x - 160)), Math.max(0, Math.round(y - 60)), 320, 120]
+}
 if (Array.isArray(crop) && (crop.length !== 4 || crop.some(v => !Number.isFinite(v)))) throw new Error('--crop is X,Y,W,H in pixels, or box')
-const zoom = Number(option('zoom', 1))
+const zoom = Number(option('zoom', zoomAt != null ? 3 : 1))
 const defaults = { w: '1920', h: '1080', frames: '16' }
 const render = ['w', 'h', 'frames', 'url'].flatMap(k => {
   const v = option(k, defaults[k] ?? null)

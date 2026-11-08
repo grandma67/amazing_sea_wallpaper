@@ -203,7 +203,7 @@ for (const { date, spec: asked, name } of todo) {
     )
   }
   // The sky cube (params.debug.cubeProbe): what the sea reflects there.
-  for (const r of params.debug?.cubeProbe ?? []) console.log(`  cube az ${r.at.az} el ${r.at.el}: raw ${r.raw.map(x => x.toExponential(2)).join(' ')}`)
+  for (const r of params.debug?.cubeProbe ?? []) console.log(`  cube az ${r.at.az} el ${r.at.el}${r.at.lod != null ? ` lod ${r.at.lod}` : ''}: raw ${r.raw.map(x => x.toExponential(2)).join(' ')}`)
   // The line probe (params.debug.probeLine): its stats and shape.
   for (const pl of params.debug?.probeLine ?? []) {
     const what = `az ${JSON.stringify(pl.line.az)} el ${JSON.stringify(pl.line.el)}`

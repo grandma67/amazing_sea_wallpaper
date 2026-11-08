@@ -379,7 +379,7 @@ already gets the haze over D from the main pass; the mirror image needs the haze
 - Results (`scenes/wet-mirror.json`, `diff.mjs` vs `passes.wetMirror` off): runnels on a low-tide
   terrace mirror the sunlit sand bank behind them; Brittany and Nova Scotia platform pools the
   rocks (dark streaks; these specs' pools are all 50 m+ off: **a near pool beside a boulder was
-  not seen**); the swash under mangroves the trees (2025-04-25 without its storm); tidal flats
+  not seen**; finding one needs plans/WATER_VIEW.md); the swash under mangroves the trees (2025-04-25 without its storm); tidal flats
   unchanged (nothing stands above them). Real days (8 beach and rock shore): 0–0.3% changed,
   mostly faint. Switch off = 0.133 exactly (8 specs); 0% render time; 0 days' choices changed.
 - **Known limit:** lightning in the swash film (2025-04-25) is speckled and blocky, not a soft

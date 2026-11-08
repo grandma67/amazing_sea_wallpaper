@@ -258,6 +258,17 @@ December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
 
+Each entry says how its cause was found: **measured** (which probe, script or diff, on which
+date or spec) or **suspected** (inferred, not yet checked). A suspected cause is a lead, not a
+fact: REFLECTION phase 4 wrote "the cloudy cube's horizon is ~3× darker" from sea pixels, and
+phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed the cube was right.
+
+- The sea near the horizon (measured with `horizon.mjs`, 2003-03-11 broken, calm sea, 0.135): sea
+  / (F × sky) is 0.62–0.77 within 1° of the horizon (1.0 expected on calm water; was 0.30–0.36
+  before phase 6) and ~1 at 2°. Cause **suspected**: the 0.2 m swell tilting facets toward higher,
+  darker sky, or the probe box mixing pixels at the horizon line. And under broken cloud the cube
+  is 1.3× the frame's sky at +4° (1.0 at ≤ 1°); cause **suspected**: the cube's clouds drawn at
+  `medium` quality with fewer frames (`renderCloudyEnvironment`).
 - Sea haze (found in REFLECTION.md phase 4, 2026-11-08, 2003-03-11 `calm-islands`): takram's haze
   fades objects with (1 − T)² instead of (1 − T) (it mixes an inscatter already scaled by the
   opacity, by the opacity again), so mid-distance land is darker than Koschmieder's haze would

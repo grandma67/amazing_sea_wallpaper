@@ -30,6 +30,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Which pass, term or grid causes a look | `params.debug` switches and views | [tools/DEBUG.md](tools/DEBUG.md) |
 | How bright or what colour is X in the render (raw, cd/m², mag/″², final RGB) | `params.debug.probe` | [tools/DEBUG.md](tools/DEBUG.md) |
 | An object and its mirror image on the sea, by world point (not a guessed pixel) | `params.mjs --project KIND --above M` → probe `{world}` / `{mirror}` | [tools/PARAMS.md](tools/PARAMS.md), [tools/DEBUG.md](tools/DEBUG.md) |
+| Does the sea reflect the sky it should near the horizon (calm water ≈ F × sky; is the cube right) | `horizon.mjs --scene --az` | [tools/RENDER.md](tools/RENDER.md) |
 | What the water reflects: the sky cube in a direction, vs the frame's sky there | `params.debug.cubeProbe` (+ `probe` at the same az/el) | [tools/DEBUG.md](tools/DEBUG.md) |
 | How the frame hazes objects (T, haze colour, which weighting) before matching it | `haze.mjs --scene --points` | [tools/RENDER.md](tools/RENDER.md) |
 | Did a feature show up on real days (not specs) | `diff.mjs --where --sample --off` | [tools/RENDER.md](tools/RENDER.md) |
@@ -115,7 +116,9 @@ minutes (dep optimisation).
 
 - **Probing a render you saw in a diff:** `snapshot.mjs` defaults to 4K, `diff.mjs` to 1080p, so the
   same spec frames differently; pass `--w 1920 --h 1080`. `NAME.diff.jpg`'s top panels are cropped
-  to the changed box: read positions from `OUT/on/NAME.jpg`, or better probe by world point
+  to the changed box: never read positions from it (it happened again in REFLECTION phase 5, a
+  session after this line was written). `diff.mjs` now saves `NAME.crop.jpg` (the box at full
+  size) every time, and `--zoom-at X,Y` takes full-frame pixels; or probe by world point
   (`{world}`/`{mirror}` from `params.mjs --project`). Check `covered by` there: a world point
   behind a palm frond reads the frond (it gave a "far island" its colour in REFLECTION phase 4).
   Three probe renders were lost to these before the tools existed.

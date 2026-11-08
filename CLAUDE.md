@@ -18,7 +18,7 @@ Docs in `knowledge/` (read what the task needs):
 - `STARS.md`: the night sky (stars, meteors, Milky Way, planets, airglow, aurora): research and numbers.
 - `REFLECTION.md`: when water, wet sand and ice mirror (Fresnel, wave slopes vs wind, slicks, lee calm), how GPUs draw it, and the gaps in ours.
 - `REGIONS.md`: research behind places, grain, tides; `REFERENCES.md`: sources.
-- `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons, nature, snow, sea ice, live mode, shadows and dark frames, reflections).
+- `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons, nature, snow, sea ice, live mode, shadows and dark frames, reflections, a water-film debug view).
 
 Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5173 is other projects).
 
@@ -69,6 +69,8 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - After any shader edit, `npx vitest run test/glsl` (reserved names like `flat`, brackets, `#include`s of everything tagged `/* glsl */`), then render `--w 320 --h 180 --frames 1` (any other GLSL error shows only at render time).
 - Sky and light features: place and check positions with `skyFrame.ts` (`params.mjs` `src.skyFrame`); write a TS mirror of the shader (`skyMirror.ts`: same frame, `airTransmittance`, integer noise hash `hashGlsl`/`hashCell`) and compare it with the night sky's own mirror (`nightGlow.ts` `nightSkyCd`) before rendering; then measure the render with `params.debug.probe` (points) and `probeLine` (lines: bands vs grain) and run the same line through `params.mjs --line` to validate the mirror. Bands or stripes: switch the feature's pass off on the same frame first.
 - A console message the user sees but a script doesn't: first check the script sees that kind of message (TOOLS.md "Gotchas": GPU and worker GL messages need `watchPage`), then try 4K with default frames, before changing render conditions.
+- Fixing a value's misuse in one place (a normal, a ray, a distance)? Grep its other readers in the same shader and check each: REFLECTION phase 2 moved only the mirror lookup off a tilted normal, and the sky reflection three lines down kept it for four phases.
+- Writing a known issue: say how the cause was found (measured with what, or suspected). Water's sky reflection: `horizon.mjs`; the sky cube itself: `debug.cubeProbe`.
 - Debugging a look: first grep ARCHITECTURE.md "Known issues" for the symptom. Probe creators and helpers with `params.mjs` (`p.ctx`, `src.X`, `props.X`), not throwaway tests; `profile.mjs` maps the view cone and warns when dry land floods. Then switches and false-colour views in `params.debug` (`tools/DEBUG.md`: grid density, props off, markers, passes, fixed exposure, terrain and sea views) before editing code to test a guess.
 - Prove visibility with `scripts/diff.mjs` before the first full render (`⚠ invisible` = fix before looking): props with `--off '{"props":{"<kind>":false}}'`; sky, light, haze and weather features with their spec field off (`'{"dust":null}'`) on a clear **and** a cloudy sky (clear days skip the clouds pass, so haze and cloud-lit effects can vanish there). Read a contact sheet, not single frames.
 - A new off switch (`passes.X`, a spec field set to null) must give back the old image exactly: before rendering, read your diff (`git diff`) for every condition and value you changed and check each is under the switch; then `diff.mjs --scene … --ref HEAD --off PATCH --off-here` says "identical". (Missed in three phases running.)

@@ -145,9 +145,10 @@ export function probeResult(
 }
 
 /** What the sky cube holds in these world directions (render units, the
- * frame's raw): the same textureLod the sea's sky reflection reads, at `lod`.
+ * frame's raw): the same textureLod the sea's sky reflection reads, at each
+ * direction's mip level.
  * For "is the cube's sky what the frame's sky is?" (`debug.cubeProbe`). */
-export function readCube(renderer: WebGLRenderer, cube: Texture, dirs: Vector3[], lod = 0): [number, number, number][] {
+export function readCube(renderer: WebGLRenderer, cube: Texture, dirs: Vector3[], lods: number[]): [number, number, number][] {
   if (dirs.length === 0) return []
   const target = new WebGLRenderTarget(dirs.length, 1, { type: FloatType })
   const material = new ShaderMaterial({
@@ -155,14 +156,15 @@ export function readCube(renderer: WebGLRenderer, cube: Texture, dirs: Vector3[]
     fragmentShader: /* glsl */ `
       uniform samplerCube envMap;
       uniform vec3 dirs[${dirs.length}];
-      uniform float lod;
+      uniform float lods[${dirs.length}];
       void main() {
         int i = int(gl_FragCoord.x);
         vec3 d = dirs[0];
-        for (int k = 0; k < ${dirs.length}; k++) if (k == i) d = dirs[k];
+        float lod = lods[0];
+        for (int k = 0; k < ${dirs.length}; k++) if (k == i) { d = dirs[k]; lod = lods[k]; }
         gl_FragColor = vec4(textureLod(envMap, d, lod).rgb, 1.0);
       }`,
-    uniforms: { envMap: { value: cube }, dirs: { value: dirs }, lod: { value: lod } },
+    uniforms: { envMap: { value: cube }, dirs: { value: dirs }, lods: { value: lods } },
     depthTest: false,
     depthWrite: false
   })

@@ -1089,7 +1089,12 @@ export async function renderScene(
   const cubeRead =
     cubeProbe == null
       ? undefined
-      : readCube(renderer, envTarget.texture, cubeProbe.map(at => new Vector3(...skyDir(params.camera.headingDeg + at.az, at.el))), params.debug?.cubeProbeLod ?? 0).map((raw, k) => ({ at: cubeProbe[k], raw }))
+      : readCube(
+          renderer,
+          envTarget.texture,
+          cubeProbe.map(at => new Vector3(...skyDir(params.camera.headingDeg + at.az, at.el))),
+          cubeProbe.map(at => at.lod ?? params.debug?.cubeProbeLod ?? 0)
+        ).map((raw, k) => ({ at: cubeProbe[k], raw }))
   const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
   const debug = {
       gpu: debugInfo != null ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown',

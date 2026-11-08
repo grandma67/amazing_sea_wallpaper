@@ -52,8 +52,9 @@ export interface DebugParams {
   /** Read the sky cube (what the sea and wet sand reflect) in these sky
    * directions ({az: from the view, deg; el: deg}), raw, in
    * `debug.cubeProbe`: compare with `probe` at the same directions. */
-  cubeProbe?: { az: number; el: number }[]
-  /** Mip level of cubeProbe's lookups (0: sharpest, as calm water). */
+  cubeProbe?: { az: number; el: number; lod?: number }[]
+  /** Mip level of cubeProbe's lookups without their own `lod` (0: sharpest,
+   * as calm water; ~5: a rough sea's blur). */
   cubeProbeLod?: number
   /** Half size of each probe's box (px): 0 a single pixel, default 2 (5×5). */
   probeHalf?: number
