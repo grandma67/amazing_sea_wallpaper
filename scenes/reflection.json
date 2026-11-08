@@ -1,0 +1,141 @@
+{
+ "base": {
+  "timeOfDay": "daylight",
+  "eclipse": null,
+  "storm": null,
+  "fog": null,
+  "seaIce": null,
+  "rainbow": false
+ },
+ "scenes": [
+  {
+   "name": "windy-islands",
+   "date": "2003-03-11",
+   "weather": "broken"
+  },
+  {
+   "name": "windy-islands-front",
+   "date": "2003-03-11",
+   "weather": "broken",
+   "sunAzimuthDeg": 160
+  },
+  {
+   "name": "calm-islands",
+   "date": "2003-03-11",
+   "weather": "broken",
+   "params": {
+    "ocean": {
+     "windSpeed": 0.5,
+     "airWindSpeed": 0.5,
+     "swellHeight": 0.2
+    }
+   }
+  },
+  {
+   "name": "mid-islands",
+   "date": "2003-03-11",
+   "weather": "broken",
+   "params": {
+    "ocean": {
+     "windSpeed": 5,
+     "airWindSpeed": 5
+    }
+   }
+  },
+  {
+   "name": "clear-islands",
+   "date": "2024-05-16",
+   "weather": "clear",
+   "params": {
+    "ocean": {
+     "windSpeed": 0.5,
+     "airWindSpeed": 0.5,
+     "swellHeight": 0.2
+    }
+   },
+   "composition": "shoreline"
+  },
+  {
+   "name": "clear-islands-windy",
+   "date": "2024-05-16",
+   "weather": "clear",
+   "params": {
+    "ocean": {
+     "windSpeed": 10,
+     "airWindSpeed": 10
+    }
+   },
+   "composition": "shoreline"
+  },
+  {
+   "name": "mountain-calm",
+   "date": "2025-04-25",
+   "weather": "clear",
+   "landform": "range",
+   "params": {
+    "ocean": {
+     "windSpeed": 0.5,
+     "airWindSpeed": 0.5,
+     "swellHeight": 0.2
+    }
+   }
+  },
+  {
+   "name": "mountain-windy",
+   "date": "2025-04-25",
+   "weather": "clear",
+   "landform": "range",
+   "params": {
+    "ocean": {
+     "windSpeed": 12,
+     "airWindSpeed": 12
+    }
+   }
+  },
+  {
+   "name": "near-objects",
+   "date": "2024-10-07",
+   "weather": "clear",
+   "rockShore": "cliff",
+   "params": {
+    "ocean": {
+     "windSpeed": 5,
+     "airWindSpeed": 5
+    }
+   }
+  },
+  {
+   "name": "boats",
+   "date": "2024-03-22",
+   "weather": "clear",
+   "coast": "beach",
+   "composition": "shoreline",
+   "props": {
+    "ships": true
+   },
+   "params": {
+    "ocean": {
+     "windSpeed": 3,
+     "airWindSpeed": 3
+    }
+   }
+  },
+  {
+   "name": "harbour-night",
+   "date": "2024-03-22",
+   "timeOfDay": "night",
+   "weather": "clear",
+   "coast": "beach",
+   "composition": "shoreline",
+   "props": {
+    "ships": true
+   },
+   "params": {
+    "ocean": {
+     "windSpeed": 3,
+     "airWindSpeed": 3
+    }
+   }
+  }
+ ]
+}

@@ -1,6 +1,6 @@
 # Reflections that follow the waves
 
-**Status: planned (2026-11-08), nothing built.** Research and sources:
+**Status: phase 0 done (2026-11-08): numbers, scene file, baseline renders. Phase 2 (short-wave roughness) needs a yes before building: it changes the sea's look on every day.** Research and sources:
 [../REFLECTION.md](../REFLECTION.md) (§ numbers below refer to it). How the reflection works
 today: [../arch/OCEAN.md](../arch/OCEAN.md) "Reflections". Estimates are marked; everything else
 was measured, read in the code or seen in the reference photos below.
@@ -21,16 +21,16 @@ reflected ray leaves it, compared with how tall the object looks, plus the haze 
 
 | | Photo | What it shows | Match |
 |---|---|---|---|
-| A | [Calm sea, San Antonio, Ibiza](https://commons.wikimedia.org/wiki/File:Calm_sea,_San_Antonio,_Ibiza,_panoramic.jpg) | glassy bay: hotels, boats and a far headland mirrored. The far headland's image is as pale and hazy as the headland; mast reflections are thin wiggly vertical lines, longer than the masts' sharp part | calm: haze on the image (phase 1), streaks (phase 2) |
+| A | [Calm sea, San Antonio, Ibiza](https://commons.wikimedia.org/wiki/File:Calm_sea,_San_Antonio,_Ibiza,_panoramic.jpg) | glassy bay: hotels, boats and a far headland mirrored. The far headland's image is as pale and hazy as the headland; mast reflections are thin wiggly vertical lines, longer than the masts' sharp part | calm: haze on the image (phase 1), streaks (phase 3) |
 | B | [Stade, Hansehafen](https://commons.wikimedia.org/wiki/File:Stade,_Hansehafen_--_2018_--_2961.jpg) | still harbour water at dusk: a near-perfect mirror of houses and lamps, lamps slightly drawn out downward | the glassy limit; contact line at the quay |
-| C | [Lupins, whitecaps and Pigeon Island](https://commons.wikimedia.org/wiki/File:Lupins,_whitecaps_and_Pigeon_Island._-_panoramio.jpg) (Lake Wakatipu, NZ) | strong wind, whitecaps: **no** image of the island or the 2 km mountains; the water is deep blue, darker than the sky at the horizon, flecked white | windy: phase 2's target |
+| C | [Lupins, whitecaps and Pigeon Island](https://commons.wikimedia.org/wiki/File:Lupins,_whitecaps_and_Pigeon_Island._-_panoramio.jpg) (Lake Wakatipu, NZ) | strong wind, whitecaps: **no** image of the island or the 2 km mountains; the water is deep blue, darker than the sky at the horizon, flecked white | windy: phases 2–3's target |
 | D | [Rough seas around the island](https://commons.wikimedia.org/wiki/File:Rough_seas_around_the_island_-_geograph.org.uk_-_5790981.jpg) (geograph) | a fresh breeze off rocky points: no mirror image of the dark headland, only foam at its foot; the far sea is a flat dark blue | windy, rock shore |
-| E | [Sydney, Darling Harbour at night](https://commons.wikimedia.org/wiki/File:Sydney_(AU),_Darling_Harbour_--_2019_--_3193-5.jpg) | lights drawn into long vertical columns, ~3–6× longer than wide; a building's image is a vertical smear in its colours (a long exposure: the columns are smoother than one instant would be) | streaks (phases 2–3), night lamps |
+| E | [Sydney, Darling Harbour at night](https://commons.wikimedia.org/wiki/File:Sydney_(AU),_Darling_Harbour_--_2019_--_3193-5.jpg) | lights drawn into long vertical columns, ~3–6× longer than wide; a building's image is a vertical smear in its colours (a long exposure: the columns are smoother than one instant would be) | streaks (phases 3–4), night lamps |
 | F | [Vassholmen island, Kungshamn](https://commons.wikimedia.org/wiki/File:Vassholmen_island_outside_V%C3%A4jern_harbor,_Kungshamn_4.jpg) | a snowy island over thin new sea ice: a soft, blurred image of the island in the ice | ice that mirrors (later) |
 
 What the photos add to the research: in C and D the darkening under the island that §1.2
 allows (~5%, estimate) is **not visible at all**, and rough water reads darker and bluer than
-calm water, because tilted facets reflect higher, bluer sky. So phase 2's windy target is "no
+calm water, because tilted facets reflect higher, bluer sky. So phases 2–3's windy target is "no
 visible image", not "a faint column".
 
 ## Where we stand (read in the code, 2026-11-08)
@@ -70,43 +70,89 @@ Read in `seaHaze.ts`, `scene.ts` and takram's atmosphere (2026-11-08):
 ## Scope
 
 - 41.6% of test days have a far object (a landform or an island past 5 km): phase 1.
-- Phase 2: every day with a mirror image: 65.3% shore days + 20.4% open-sea days with far land
+- Phase 3: every day with a mirror image: 65.3% shore days + 20.4% open-sea days with far land
   = at least **85.7%**, plus open-sea days with only ships or animals.
 - Wind over the test days: 0–2.5 m/s 20.5%, 2.5–5 24.7%, 5–7.5 23.7%, 7.5–10 12.4%,
   ≥ 10 m/s 18.6% (`params.mjs --stats`). About a fifth of days should keep a near-mirror,
   about a fifth should lose the mirror images of small objects.
-- Lenses: 20–40 mm on 69% of days, up to 90 mm (`camera.focalLengthMm`). Phase 2 must not
+- Lenses: 20–40 mm on 69% of days, up to 90 mm (`camera.focalLengthMm`). Phase 3 must not
   depend on one.
 - Views: shoreline, along-beach, framed, overlook and open sea; all coasts. Night: lamps
   (`lampSprites`, mirrored as point lights) and the moon's glitter stay as they are.
 - Live mode: everything here is decided per sea pixel from world positions and slopes, with no
   rule that reads the camera distance. That's the right way round for a moving viewer.
 
-## Phase 0: numbers first
+## Phase 0 (done 2026-11-08): what the numbers say
 
-1. **Total slope variance vs Cox–Munk.** The FFT cascades draw part of the slope and `variance`
-   carries the rest. Add a debug output (`params.debug.probe` line or a false-colour view,
-   tools/DEBUG.md) of σ² = resolved + unresolved, at 50 m, 500 m and 3 km. Resolved: the
-   variance of the drawn slope over a patch (e.g. 32×32 sea pixels round the probe, or the
-   slope textures' own mip moments at a coarse level); unresolved: `variance.x + variance.y`.
-   For wind 1, 5, 10, 15 m/s (`wind` spec field). Target: §1.2 (0.008, 0.029, 0.054, 0.080),
-   with calm days below the fit (it overstates them). If the spectrum is far off, that is a
-   waves issue (glitter, sky reflection and foam too): raise it before going on.
-2. **Scene file** `scenes/reflection.json`, base `timeOfDay: "daylight"`, `weather: "clear"`,
-   `eclipse: null`:
-   - `windy-islands`: 2003-03-11 as it is (and `sunAzimuthDeg: 160` front-lit);
-   - `calm-islands`: the same, `wind: 1`, `swellHeight: 0.2`;
-   - `mid-islands`: `wind: 5`;
-   - `mountain-calm` / `mountain-windy`: a `landform: "range"` day at wind 1 and 12;
-   - `cliff-near`: a rock-shore cliff top, wind 5 (contact hardening must stay);
-   - `boats`: ships near and far, wind 3;
-   - `harbour-night`: lamps on a boat or pier, wind 3 (photo E);
-   - `cloudy-islands`: `windy-islands` under broken cloud, and `clear-islands` under a clear sky
-     without dust: the two haze paths above.
-   Pick the dates with `params.mjs --where … --sample` and write them into the file.
-3. **Mirror the expected numbers in TS** before any render: for `calm-islands` and
-   `windy-islands`, the haze T over t (above) and the slope spread vs each island's angular
-   height (§1.2). These become the probe targets of phases 1–2.
+### Our waves are 4–16× too smooth
+
+Slope variance of the drawn spectrum (`spectrum.ts` `synthesizeOcean`, the mean of the C
+textures' (∂h/∂x)² + (∂h/∂z)² per cascade, summed; at weight 1, deep water) + the shader's
+constant 0.0006, against Cox–Munk (§1.2). Measured with `params.mjs --each` on 2003-03-11's
+ocean, wind forced:
+
+| Wind | ours, this day (development 0.49) | ours, fully developed (1.0), no swell | Cox–Munk | ratio (this day / developed) |
+|---|---|---|---|---|
+| 1 m/s | 0.0020 | 0.0065 | 0.0081 | 0.25 / 0.80 |
+| 2 m/s | 0.0027 | | 0.0132 | 0.21 |
+| 5 m/s | 0.0037 | 0.0135 | 0.0286 | 0.13 / 0.47 |
+| 10 m/s | 0.0051 | 0.0191 | 0.0542 | 0.09 / 0.35 |
+| 15 m/s | 0.0049 | 0.0184 | 0.0798 | 0.06 / 0.23 |
+
+Two causes, both in `spectrum.ts`:
+
+1. **No short waves.** The finest cascade (10.9 m patch, 256 texels: 4.3 cm texels, shortest
+   wave ~8.5 cm) stops where most of the sea's slope starts: the gravity-capillary waves of
+   1 mm–10 cm, which follow the wind and set Cox–Munk's linear growth. JONSWAP's tail gives a
+   slope variance that grows only with log k and saturates near 0.018 (the table's right
+   column), whatever the wind. Elfouhaily et al. 1997 built their spectrum's short-wave part to
+   match Cox–Munk for this reason.
+2. **`seaDevelopment` scales the short waves too.** `windHeight · seaDevelopment` scales every
+   cascade, so slope variance goes with development² (0.12–0.81; 0.35–0.9 drawn,
+   `params.ts:611`). Short waves come to equilibrium with the local wind in seconds to minutes;
+   fetch and duration limit only the long ones *(general)*.
+
+So on 2003-03-11 the reflected rays spread ±4° (ours) instead of ±23° (Cox–Munk). That, more
+than the lookup's maths, is why the mirror images ignore the wind. It also means the sun's
+glitter path and the sky reflection are too narrow and sharp on windy days: a change here
+moves the look of the whole sea, not just reflections (phase 2).
+
+Below ~2 m/s Cox–Munk overstates (its 0.003 intercept; a still sea is a mirror), and we already
+reach 0.002–0.006: leave light winds as they are.
+
+### Baseline renders (`scenes/reflection.json`, 1080p, 16 frames)
+
+12 scenes, all render clean (no ⚠ besides backlit). Wind is forced through
+`params.ocean.windSpeed` (a patch over the finished params): the `wind` spec field re-draws
+the day and moved the camera into the bushes. What they show today:
+
+- **`clear-islands` (0.5 m/s) and `clear-islands-windy` (10 m/s), 2024-05-16:** identical
+  dark-green reflections under the 2.6 and 3.3 km islands; the 6.4 km stack has none. The
+  clearest picture of both problems in one frame.
+- `calm-islands` / `mid-islands` / `windy-islands` (2003-03-11 at 0.5, 5, 14.9 m/s): the
+  same dark blob under island 1 in all three; nothing under island 2.
+- `mountain-calm` / `-windy` (2025-04-25): the range at 34 km is a pale band on the horizon
+  (T = 0.71/0.55/0.28 on a clear day) and has no reflection.
+- `near-objects` (2024-10-07, cliff overlook): skerries and a lighthouse in the water, for the
+  contact line. `boats` / `harbour-night` (2024-03-22): a sloop, a motor boat and lamps.
+- Seen in passing, not a reflection matter: on 2024-05-16 a pale, semi-transparent smear sits
+  on the right edge of the big island (also before this work). Check it separately.
+
+### Targets (TS, before any render)
+
+From `params.mjs --each` with the extinctions above and Cox–Munk:
+
+| Scene | Wind | spread ±1σ | Objects: angular height, T (R/G/B) over the path |
+|---|---|---|---|
+| windy-islands | 14.9 | 22.5° | 2.26° 0.72/0.70/0.66; 2.02° 0.43/0.41/0.35; volcano 2.77° 0.01 |
+| calm-islands | 0.5 | ~2–4° (ours) | as above (V 37 km): 0.75/0.74/0.70; 0.49/0.46/0.40 |
+| clear-islands | 0.5 | ~2–4° (ours) | 5.76° 0.97/0.95/0.91; 4.40° 0.97/0.94/0.88; 2.12° 0.94/0.89/0.79 |
+| clear-islands-windy | 10 | 18.7° | same objects |
+| mountain-calm / -windy | 0.5 / 12 | ~2–4° / 20.4° | 2.14° 0.71/0.55/0.28 |
+
+Expected after phases 1–3: `clear-islands` and `calm-islands` show all islands mirrored, the
+far ones paler; `clear-islands-windy` and `windy-islands` show none (photos C, D); the 5.8°
+island on a 10 m/s sea (θ ≈ ⅓ of the spread) leaves at most a soft column.
 
 ## Phase 1: haze on the mirror path, no distance cutoff
 
@@ -135,7 +181,32 @@ already gets the haze over D from the main pass; the mirror image needs the haze
   `diff.mjs` vs the switch off shows the far islands' images on the far-object specs and
   nothing `⚠ invisible`.
 
-## Phase 2: project the reflected ray (the wave shift and the drawn waves' blur)
+## Phase 2: short-wave roughness (needs a yes: changes the whole sea)
+
+Add the slope the spectrum can't draw, as unresolved variance, so that drawn + unresolved
+follows Cox–Munk above ~2 m/s:
+
+- `tail(U) = max(0, CoxMunk(U) − drawnFullyDeveloped(U))`, with `drawnFullyDeveloped` from a
+  table measured as in phase 0 (or computed once per day on the CPU from the spectrum, which
+  `synthesizeOcean` already loops over). Roughly 0.002 at 1 m/s, 0.015 at 5, 0.035 at 10,
+  0.061 at 15. Into `alpha` in place of the constant 0.0006, split upwind/crosswind as Cox–Munk
+  (3.16 : 1.92 per m/s).
+- `seaDevelopment` should scale only the long waves: either keep it off the finest cascade, or
+  measure the drawn variance at the day's own development and let the tail make up the rest.
+  Pick whichever leaves the wave heights (`significantHeight`) unchanged.
+- Damping stays as it is: shelter, shallow water, rain (more roughness), slicks and gusts
+  already scale `variance`; the tail gets the same factors (`shortDamp · gust`, `slick`).
+- What it changes: the sun's glitter path widens and dims on windy days (Cox–Munk's own
+  measurement, so the right direction), the sky reflection blurs toward a darker, bluer mean
+  (photo C), foam is untouched. Every day with wind > ~2 m/s: ~75% of days.
+- Switch: `passes.shortWaves` (off = today's sea).
+- **Done when:** the phase 0 table, re-measured with the tail, is within ~20% of Cox–Munk from
+  3 to 15 m/s; the glitter path on a 10 m/s day at sun 20° is as wide as Cox–Munk predicts
+  (§1.2: ±2σ of slope around the sun's mirror point, by `params.mjs --line` or a probe line);
+  real days (`--where 'p => p.ocean.windSpeed > 8' --sample 8`) look like photos C and D, not
+  like a sheet of grey metal; `bench.mjs` +0%.
+
+## Phase 3: project the reflected ray (the wave shift and the drawn waves' blur)
 
 Instead of nudging the lookup by `N.xz · 0.04`, follow the ray the sea already computes for the
 sky, `R = reflect(−V, N)`:
@@ -160,7 +231,7 @@ mips and α smooth it: the far sea at 4K is the place to look for sparkle.
   it: a box average of premultiplied colour is the "mean of sky and object over the band" of
   §1.2.
 - Masked facets: if R points down after the turn, keep today's `R.y = abs(R.y)`, as the sky does.
-- Switch: `passes.reflectionRay` (off = phase 1's image).
+- Switch: `passes.reflectionRay` (off = phase 2's image).
 - Risks: the hit estimate uses one depth for the whole neighbourhood, so near edges (a boat's
   bow, a cliff's foot) a ray that should miss can land on the object; compare `cliff-near` and
   `boats` before and after with `--crop`.
@@ -168,24 +239,27 @@ mips and α smooth it: the far sea at 4K is the place to look for sparkle.
   - `windy-islands`: no recognizable image of either island; the sea under them within ~3% of
     the sea beside them (`probeLine` down the column vs beside it; photos C, D);
   - `calm-islands`: a full image, its outline readable (photo A);
+  - `clear-islands` vs `clear-islands-windy`: all three islands mirrored at 0.5 m/s, the 6.4 km
+    stack paler; none recognizable at 10 m/s (today both are identical);
   - `mid-islands`: a vertical smear of the island's colour, longer than the island is tall;
   - `cliff-near`: the contact line stays sharp;
   - `harbour-night`: lamp columns 3–6× longer than wide (photo E; ours are point lights, so
     check they still match the mirrored hull);
   - render time within +2% (`bench.mjs`).
 
-## Phase 3: anisotropic blur for the unresolved waves (only if phase 2 needs it)
+## Phase 4: anisotropic blur for the unresolved waves (only if phase 3 needs it)
 
-Phase 2 streaks the drawn waves. The unresolved ones still blur round (one `textureLod`). If
-the far sea shows round smudges under islands at 1080p, add 3–5 taps along the screen's
-vertical with the sideways blur × sin γ (§1.3). Arch/OCEAN.md's 10-31 note found it not worth
-it then; decide from the phase 2 renders, not before.
+Phase 3 streaks the drawn waves. The unresolved ones (most of the slope after phase 2) still
+blur round (one `textureLod`). If the far sea shows round smudges under islands at 1080p, add
+3–5 taps along the screen's vertical with the sideways blur × sin γ (§1.3). Arch/OCEAN.md's
+10-31 note found it not worth it then; decide from the phase 3 renders, not before. Phase 2
+makes it more likely to be needed.
 
-## Phase 4: wet sand and rock pools mirror the scene
+## Phase 5: wet sand and rock pools mirror the scene
 
 `terrain.ts` gloss reads only the env cube. Pools and the swash film are flat water at about
 sea level, so the same mirror target works near y = 0 (exact for pools at the plane; close for
-the swash film, a few cm to ~1 m above it at the shore *(estimate)*). Use the phase 2 lookup
+the swash film, a few cm to ~1 m above it at the shore *(estimate)*). Use the phase 3 lookup
 there with the film's own roughness (`alpha` in terrain gloss). Wet rock stays a dull sheen.
 
 The terrain is itself drawn into the mirror target, so it must not read that target while
@@ -200,7 +274,8 @@ only after `renderPlanarReflection`, and give the mirror pass an "off" value (`p
 
 - **Calm in the lee of islands and headlands** (§1.4: 7–15× the obstacle's height downwind):
   a wind-shadow mask beside `shelter.ts`'s swell mask, damping the short cascade and the
-  unresolved variance. With phases 1–2 done, mirror patches behind islands come for free.
+  unresolved variance and phase 2's tail. With phases 1–3 done, mirror patches behind islands
+  come for free.
 - **Natural slicks**: glassy bands on light-wind days (surfactants; Cox–Munk's slick fit is
   about a third of the clean slope at 10 m/s).
 - **Mirroring ice**: thin new ice and melt ponds (photo F; Malinka 2018: ponds up to 60% of
@@ -214,10 +289,12 @@ only after `renderPlanarReflection`, and give the mirror pass an "off" value (`p
 
 - `test/glsl` after every shader edit; then `--w 320 --h 180 --frames 1`.
 - `propSwitches.test.ts` / `sceneSpec.test.ts` rows for the new switches.
-- A unit test of the phase 2 lookup's maths in TS: a flat sea gives today's uv; a tilt β turns
+- A unit test of the phase 3 lookup's maths in TS: a flat sea gives today's uv; a tilt β turns
   the hit by 2β; the result is the same in angle for a 20 mm and a 90 mm lens.
 - A unit test of the phase 1 haze: T and the haze colour for 2003-03-11 (V = 32 km) match the
   numbers above; a clear day without dust uses only the air's extinction.
+- A unit test of phase 2: drawn (from `synthesizeOcean`) + tail is within 20% of Cox–Munk at
+  3, 5, 10, 15 m/s for development 0.35 and 0.9; the tail is ~0 below 1 m/s.
 - Real days in the first render round: `snapshot.mjs --where 'p => p.landform || p.islands' --sample 8`.
 - Before commit: `npm test`, `npx tsc --noEmit`, `params.mjs --ref HEAD` (should be 0 days:
   no choice changes), `bench.mjs` (≤ +2% per phase, 10% overall).
@@ -226,14 +303,15 @@ only after `renderPlanarReflection`, and give the mirror pass an "off" value (`p
 
 | Phase | Work | Sessions |
 |---|---|---|
-| 0 | slope debug output, scene file, TS mirror of the targets | ~1 |
+| 0 | done: slope numbers, scene file, baseline renders, targets | 1 |
 | 1 | haze uniforms and shader, off switch, 3 render rounds | ~1 |
-| 2 | the ray lookup, lod, edges and sparkle | 1–2 |
-| 3 | only if phase 2 shows round smudges | 0–½ |
-| 4 | terrain binding order, 2 coasts | ~1 |
+| 2 | short-wave tail, development on long waves only, glitter check on real days | ~1–1½ |
+| 3 | the ray lookup, lod, edges and sparkle | 1–2 |
+| 4 | only if phase 3 shows round smudges | 0–½ |
+| 5 | terrain binding order, 2 coasts | ~1 |
 
-About 4–6 sessions. If phase 0 finds the waves' slopes far from Cox–Munk, fixing that comes
-first and adds its own time.
+About 4–6 more sessions. Phases 1 and 2 are independent; 3 needs 2 (without the tail it has
+almost nothing to spread on windy days).
 
 ## Docs to update as phases land
 
