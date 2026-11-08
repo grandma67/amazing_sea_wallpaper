@@ -2,7 +2,7 @@
 
 Research for mirror images in the sea, wet sand, pools and ice (2026-11-08). How the
 reflection works today: [arch/OCEAN.md](arch/OCEAN.md) "Reflections". The plan this doc
-leads to isn't written yet (§6 sketches it).
+leads to: [plans/REFLECTION.md](plans/REFLECTION.md) (§6 is the short version).
 
 Sourced numbers have a source in the last section. Lines marked *(general)* are textbook
 knowledge or my own working that I didn't re-read in a source: check them before you turn them
@@ -20,7 +20,8 @@ Real water has no distance cutoff. What it has is roughness: a wind-blown sea sp
 reflected ray over a band of directions, and an object much smaller than that band leaves only a
 faint darkening. On a 14.9 m/s sea that band is about ±23° (§1.2). Both islands are about 2°
 tall, so **neither** should show a recognizable image: the near island's crisp one is the
-bigger error. Distance matters only because far things are small and low in the sky, and the
+bigger error. Photos of islands on windy water show no image at all, not even a visible
+darkening (§1.5). Distance matters only because far things are small and low in the sky, and the
 same haze that hides the object also hides its reflection.
 
 ## 1. The sea
@@ -111,6 +112,32 @@ optical number for this *(general; worth a source before building on it)*.
   is back *(general)*.
 - **Rain** roughens the surface into rings and kills the mirror image; foam and whitecaps cover
   it *(general)*.
+
+### 1.5 What photos show (viewed 2026-11-08)
+
+Six Wikimedia Commons photos, listed with links in [plans/REFLECTION.md](plans/REFLECTION.md)
+"Reference photos":
+
+- **Glassy bay (Ibiza):** a far headland's image is as pale and hazy as the headland; masts
+  become thin wiggly vertical lines, longer than the masts' sharp part.
+- **Still harbour (Stade):** a near-perfect mirror; lamps slightly drawn out downward.
+- **Windy lake (Wakatipu) and a fresh breeze off rocks (geograph):** no image of the island,
+  headland or 2 km mountains at all. The water is a deep, dark blue, darker than the sky at the
+  horizon, flecked with whitecaps: tilted facets mirror higher, bluer sky, and Fresnel is lower
+  on them.
+- **Harbour at night (Sydney):** lights drawn into vertical columns ~3–6× longer than wide
+  (a long exposure, so smoother than an instant).
+- **Thin new sea ice (Kungshamn):** a soft, blurred image of a snowy island in the ice.
+
+So the darkening §1.2 allows for a small object on a windy sea (~5%, my estimate) is below what
+a photo shows. Treat "no visible image" as the target.
+
+### 1.6 Whitecaps
+
+Monahan & O'Muircheartaigh 1980 (robust fit, U at 10 m): W = 3.84·10⁻⁶ U^3.41, a fraction of
+the surface: 1% at 10 m/s (their worked value), ~3.8% at 14.9 m/s *(my arithmetic)*. Wave age,
+wave height and water temperature also matter. Beaufort 6: whitecaps everywhere; 7: foam blown
+in streaks.
 
 ## 2. Haze and distance
 
@@ -230,5 +257,9 @@ water film over a bright bottom is my own *(general)*.
   Transitions from Geometry to BRDF*: https://hal.archives-ouvertes.fr/inria-00443630v3
 - LEAN mapping (Olano & Baker 2010): https://userpages.cs.umbc.edu/olano/papers/lean/;
   Ubisoft's ocean: https://www.ubisoft.com/en-us/studio/laforge/news/5WHMK3tLGMGsqhxmWls1Jw
+- Whitecaps: Monahan & O'Muircheartaigh 1980 via https://pmc.ncbi.nlm.nih.gov/articles/PMC6209970
+  and https://researchportal.hw.ac.uk/en/publications/marine-condensation-nucleus-generation-inferred-from-whitecap-sim/;
+  Beaufort descriptions: https://www.weather.gov/media/pqr/beaufort/beaufort.pdf
+- Reference photos: Wikimedia Commons, listed in plans/REFLECTION.md
 - Planar vs screen-space reflections, contact hardening: https://manual.notch.one/0.9.23/en/topic/reflections-a-practical-guide,
   https://www.fab.com/listings/62177197-5a1b-429d-8670-9cad724e3901
