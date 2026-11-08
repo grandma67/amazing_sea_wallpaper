@@ -62,6 +62,8 @@ surf".
   read as vertical columns under each object, and `textureGrad` alone only blurs more both ways
   without anisotropic filtering, so it would need 3–5 vertical taps per sea pixel for slightly
   crisper column sides. Revisit for rough seas with near objects, if a render shows round smudges.
+  The wave shift and blur are far below the physical spread on a windy sea, and the 5 km `distant`
+  cutoff stands in for missing haze: [REFLECTION.md](../REFLECTION.md) §5–6.
 - **Ships in the ocean shader:** `setOceanShips` (8 nearest) cuts the hull out of the sea and adds
   the Kelvin wake, foam and slick (PROPS.md "Ships").
 - **A frozen sea:** the ocean shader doesn't know. A floating sheet covers it (PROPS.md "Sea ice") and it runs calm below,

@@ -11,6 +11,7 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
 - jbouny/fft-ocean — https://github.com/jbouny/fft-ocean
 - Ocean Rendering with FFT for Real-Time Applications — https://dspace.zcu.cz/items/a04534b1-2a3b-4457-96ca-0bc326a2b72b/full
 - Cloud noise: handmade.network "Fast High-Quality Cloudscape through Noise and Reprojection"
+- Reflections (Cox–Munk slopes, Fresnel, slicks, wet sand, melt ponds, Bruneton 2010, LEAN): [REFLECTION.md](REFLECTION.md) "Sources"
 
 ## Sea
 

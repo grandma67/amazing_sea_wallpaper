@@ -16,6 +16,7 @@ Docs in `knowledge/` (read what the task needs):
 - `NATURE.md`: flowering shrubs and trees, fungi, fireflies, moss, seaweed and phase-14 animals
   by place, climate and month: research and numbers (plan: `plans/NATURE_PLAN.md`).
 - `STARS.md`: the night sky (stars, meteors, Milky Way, planets, airglow, aurora): research and numbers.
+- `REFLECTION.md`: when water, wet sand and ice mirror (Fresnel, wave slopes vs wind, slicks, lee calm), how GPUs draw it, and the gaps in ours.
 - `REGIONS.md`: research behind places, grain, tides; `REFERENCES.md`: sources.
 - `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons, nature, snow, sea ice, live mode, shadows and dark frames).
 
