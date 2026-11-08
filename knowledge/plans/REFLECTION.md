@@ -52,7 +52,9 @@ mirror is 0% (2.1/2.3/2.0/2.6 s before and after).
    say so.
 2. **Total slope variance vs Cox–Munk.** The FFT cascades draw part of the slope and `variance`
    carries the rest. Add a debug output (`params.debug.probe` line or a false-colour view,
-   tools/DEBUG.md) of σ² = resolved (over the pixel) + unresolved, at 50 m, 500 m and 3 km, for
+   tools/DEBUG.md) of σ² = resolved + unresolved, at 50 m, 500 m and 3 km. Resolved: the
+   variance of the drawn slope over a patch (e.g. 32×32 sea pixels round the probe, or the
+   slope textures' own mip moments at a coarse level); unresolved: `variance.x + variance.y`. For
    wind 1, 5, 10, 15 m/s (`wind` spec field). Target: §1.2 (0.008, 0.029, 0.054, 0.080), with
    calm days below the fit (it overstates them). If the spectrum is far off, that is a waves
    issue, not a reflection one: raise it before going on.
@@ -103,8 +105,11 @@ sky, `R = reflect(−V, N)`:
 What this gives, with no tuned constants *(my working, check in phase 0's numbers)*:
 the 2β turn of the ray; contact hardening (small t → small move); the lens (the projection
 handles it); and the vertical streaks, since R swings up and down far more than sideways at low
-grazing (§1.3). The drawn waves then spread the image the way they already spread the sky
-reflection, and the frames' averaging and the normals' mips smooth it.
+grazing (§1.3). The drawn waves then break up the image the way they already break up the sky
+reflection: a wobbly, broken mirror image near the camera, as in a photo. Nothing averages it
+afterwards: the sea is drawn once, in frame 0 (`StillScenePass`), and only the clouds converge
+over the 16–64 frames. Where waves get near a pixel in size it can only be smoothed by the
+normals' mips and by α, so the far sea at 4K is the place to look for sparkle.
 
 - Unresolved waves: blur by their angle, converted to texels of the mirror target:
   `lod = log2(2·atan(α/√2)·t/(D+t) / φ · targetHeight)`, φ the vertical field of view. The
@@ -116,10 +121,11 @@ reflection, and the frames' averaging and the normals' mips smooth it.
 - Switch: `passes.reflectionRay` (off = phase 1's image).
 - Risks: the hit estimate uses one depth for the whole neighbourhood, so near edges (a boat's
   bow, a cliff's foot) a ray that should miss can land on the object; compare `cliff-near` and
-  `boats` before and after with `--crop`. Sparkle where waves are smaller than a pixel: the
-  normals there come from mips, so check the far sea at 4K.
+  `boats` before and after with `--crop`. Sparkle on the far sea (above).
 - **Done when:** `windy-islands` shows a soft darker column under island 1, ~5% darker than the
-  sea beside it at the waterline (`probeLine` down the column vs beside it; §0 estimate);
+  sea beside it at the waterline (`probeLine` down the column vs beside it). The 5% is an
+  estimate (island 2.3° tall over a ±23° spread, REFLECTION.md §1.2): refine it from phase 0's
+  measured slopes before using it as a test;
   `calm-islands` keeps a sharp image; `cliff-near` keeps its contact line; render time within
   +2% (`bench.mjs`).
 
@@ -136,6 +142,10 @@ it then; decide from the phase 2 renders, not before.
 sea level, so the same mirror target works near y = 0 (exact for pools at the plane, close for
 the swash film a few cm to ~1 m up *(estimate)*). Use the phase 2 lookup there with the film's
 own roughness (`alpha` in terrain gloss). Wet rock stays a dull sheen.
+
+The terrain is itself drawn into the mirror target, so it must not read that target while
+being drawn (a feedback loop: WebGL warns or reads garbage). Bind `planarMap` to the terrain
+only after `renderPlanarReflection`, and give the mirror pass an "off" value (`planarOn = 0`).
 
 - **Done when:** a rock-shore day with pools mirrors the nearby boulders and the cliff, and a
   beach day at low sun mirrors people and posts in the swash; `diff.mjs` with the switch off
