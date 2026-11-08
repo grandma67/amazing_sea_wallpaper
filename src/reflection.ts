@@ -100,6 +100,9 @@ export function renderPlanarReflection(
   })
   // Depth of what each mirrored ray hits: the ocean blurs the reflection by
   // how far the ray travels past the water (sharp where an object meets it).
+  // The ocean blurs it along vertical streaks (textureGrad): let the GPU
+  // filter anisotropically. Explicit-lod lookups are unaffected.
+  renderTarget.texture.anisotropy = renderer.capabilities.getMaxAnisotropy()
   renderTarget.depthTexture = new DepthTexture(renderTarget.width, renderTarget.height, FloatType)
 
   const visibility = hide.map(o => o.visible)

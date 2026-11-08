@@ -197,7 +197,7 @@ water film over a bright bottom is my own *(general)*.
    small to draw (plus capillaries, rain, rips). Near the camera the drawn waves carry most of
    the slope, and they only shift the lookup (item 1), so a 15 m/s sea still holds a crisp
    island. The spread that matters is the full Cox–Munk one: drawn and unresolved together.
-3. **Isotropic blur** (one `textureLod`): round smudges where the physics gives vertical streaks
+3. **Fixed in 0.132 (anisotropic streaks). Was: isotropic blur** (one `textureLod`): round smudges where the physics gives vertical streaks
    (§1.3). Skipped on 10-31 as not worth the taps; the fix for items 1–2 makes it matter more.
 4. **The 5 km cutoff** (`userData.distant`, `islands.ts`, `landforms.ts`) stands in for the
    missing haze (§2).

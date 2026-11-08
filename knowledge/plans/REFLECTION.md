@@ -1,6 +1,6 @@
 # Reflections that follow the waves
 
-**Status: phases 0–2 done (2026-11-08; 0.130 ripple layers, 0.131 ray lookup + light-air onset). Next: phase 3 (streaks), judged from phase 2's renders: see its note.** Research and sources:
+**Status: phases 0–3 done (2026-11-08; 0.130 ripple layers, 0.131 ray lookup + light-air onset, 0.132 streaks). Next: phase 4 (haze on the mirror image, no 5 km cutoff).** Research and sources:
 [../REFLECTION.md](../REFLECTION.md) (§ numbers below refer to it). How the reflection works
 today: [../arch/OCEAN.md](../arch/OCEAN.md) "Reflections". Estimates are marked; everything else
 was measured, read in the code or seen in the reference photos below.
@@ -268,7 +268,19 @@ mips and α smooth it: the far sea at 4K is the place to look for sparkle.
     check they still match the mirrored hull);
   - render time within +2% (`bench.mjs`).
 
-## Phase 3: vertical streaks for the unresolved waves (expected to be needed)
+## Phase 3 (done 2026-11-08, 0.132): vertical streaks
+
+**What was found and built:** the check (light air, 1.5–3.5 m/s, tall objects) showed the
+5.8° islands of `clear-islands` vanishing entirely at 1.5 m/s, where ±6.4° of spread should
+leave ~25–45% of their tone. The square mip blur was ~250 px wide sideways over a ~50 px island.
+Built: three `textureGrad` taps along the streak, ×sin γ across, with anisotropic filtering on
+the mirror target (16× in headless Chrome). Results: `near-objects-calm` at 1.5 m/s keeps the
+skerry as a dark soft band with the pines as vertical streaks, at 3.5 m/s a soft column at its
+foot; 2024-02-26 (12.7 m/s) a faint column under the tall karst island; the storm of 2025-04-25
+a vertical lightning glow. The `clear-islands` columns stay faint (sunlit islands close to the
+sky's tone). Switch `passes.reflectionStreaks` = 0.131 exactly; +1% render time; 0 choices.
+
+Original note:
 
 Phase 2 streaks the drawn waves, but after phase 1 most of a windy sea's slope is in the
 unresolved tail, which phase 2 blurs round (one `textureLod`). So mid-wind images (photo A's

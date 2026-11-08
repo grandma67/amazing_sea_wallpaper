@@ -83,12 +83,20 @@ surf".
   target pixels × 3.5 → lod (up to 9). Calm water mirrors sharply (bands where incoming waves
   tilt the surface, wiggly streaks under thin things); past ~3 m/s 2–6°-tall islands leave
   nothing, as photos show. With it off, the old nudge below.
+  **Streaks (0.132, `passes.reflectionStreaks`, phase 3):** the blur runs along the streak (the
+  lookup's move when R tilts up, × 3.5) and only × sin γ (≥ 1 texel) across it: three
+  `textureGrad` taps along the streak on a target with anisotropic filtering
+  (`texture.anisotropy` = the GPU's max, 16 in headless Chrome), up to ~48:1. The square mip blur
+  had smeared a 50 px island ~250 px sideways and lost it; now light air (1.5–3.5 m/s) keeps a
+  soft column under tall objects with pines as vertical streaks, and a storm's lightning a
+  vertical glow. +1% render time. Explicit-lod lookups ignore the anisotropy (switch off is exact).
   The old blur is isotropic (one `textureLod`). Real reflections on a wavy sea streak vertically
   (≈ 1/sin(grazing) taller than wide), but anisotropic streaking was tried on paper and skipped
   (10-31): renders of `scenes/islands-water.json` (colony calm/rough, karst islands, iceberg) already
   read as vertical columns under each object, and `textureGrad` alone only blurs more both ways
   without anisotropic filtering, so it would need 3–5 vertical taps per sea pixel for slightly
-  crisper column sides. Revisit for rough seas with near objects, if a render shows round smudges.
+  crisper column sides. (Superseded: with the 0.130 roughness the square blur lost whole
+  reflections; the fix was turning anisotropic filtering on, above.)
   The wave shift and blur are far below the physical spread on a windy sea, and the 5 km `distant`
   cutoff stands in for missing haze: [REFLECTION.md](../REFLECTION.md) §5–6.
 - **Ships in the ocean shader:** `setOceanShips` (8 nearest) cuts the hull out of the sea and adds

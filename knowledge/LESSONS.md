@@ -446,6 +446,9 @@ tool gotchas: TOOLS.md.
   wave's own normal; it hid a 2.3°-tall island's whole reflection.
 - JONSWAP's short waves keep their level at any wind (α is constant): a 0.5 m/s sea is not
   glassy until the wind sea fades in with an onset (`windWaveOnset`).
+- `textureGrad` only gives an elongated footprint if the texture has `anisotropy` > 1 (render
+  targets default to 1); explicit-lod lookups ignore it. A square mip blur sized for the
+  vertical spread dilutes narrow objects sideways to nothing.
 - Check a plan's look targets against its own physics before building: "a vertical smear at
   5 m/s" contradicted ±14° of spread over a 2° island (nothing left, as photos show).
 - Before tuning anything that follows the wind (glitter width, reflections), measure the slope

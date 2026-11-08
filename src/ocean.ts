@@ -216,6 +216,7 @@ uniform sampler2D planarMap;
 uniform mat4 planarMatrix;
 uniform float planarOn;
 uniform float reflectionRay;
+uniform float reflectionStreaks;
 // Depth of the mirror image and the mirror camera's (oblique) inverse
 // projection: how far each reflected ray travels (reflection.ts).
 uniform sampler2D planarDepth;
@@ -603,8 +604,25 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
       float spread = 2.0 * atan(mirrorAlpha * 0.70710678);
       vec3 tilted = normalize(Rm + normalize(up + vec3(1e-6, 0.0, 0.0)) * tan(spread));
       vec4 hit2 = planarMatrix * vec4(P + tilted * t, 1.0);
-      float offsetPx = length(hit2.xy / hit2.w - uv) * float(textureSize(planarMap, 0).y);
-      planar = textureLod(planarMap, uv, clamp(log2(3.5 * offsetPx + 1e-3), 0.0, 9.0));
+      vec2 streak = hit2.xy / hit2.w - uv;
+      float offsetPx = length(streak) * float(textureSize(planarMap, 0).y);
+      if (reflectionStreaks > 0.5) {
+        // Waves tilted sideways turn the ray only ~sin(grazing) as far as
+        // tilts toward the eye (REFLECTION.md §1.3): blur along the streak,
+        // ×sin γ across it (at least a texel), with anisotropic filtering
+        // (up to 16 samples along) and three taps: up to ~48:1. A square
+        // mip blur smeared a 50 px island over ~250 px sideways and lost it.
+        vec2 along = streak * (3.5 / 3.0);
+        vec2 texel = 1.0 / vec2(textureSize(planarMap, 0));
+        vec2 side = vec2(-along.y, along.x);
+        float sideLength = max(length(side) * 3.0 * max(V.y, 0.0), texel.y);
+        side = side * sideLength / max(length(side), 1e-9);
+        planar = (textureGrad(planarMap, uv - along, along, side) +
+          textureGrad(planarMap, uv, along, side) +
+          textureGrad(planarMap, uv + along, along, side)) / 3.0;
+      } else {
+        planar = textureLod(planarMap, uv, clamp(log2(3.5 * offsetPx + 1e-3), 0.0, 9.0));
+      }
     } else {
       vec2 uv = base + N.xz * 0.04 * k;
       planar = textureLod(planarMap, uv, clamp(log2(alpha * 300.0 * k + 1e-3), 0.0, 6.0));
@@ -905,6 +923,8 @@ export function createOcean(
       planarOn: { value: 0 },
       // Follow the reflected ray into the mirror image (0: the old nudge).
       reflectionRay: { value: params.debug?.passes?.reflectionRay === false ? 0 : 1 },
+      // Blur the mirror image along its streak, not round (0: one mip lookup).
+      reflectionStreaks: { value: params.debug?.passes?.reflectionStreaks === false ? 0 : 1 },
       planarDepth: { value: null as Texture | null },
       planarProjInv: { value: new Matrix4() },
       envMaxLod: { value: 8 },
