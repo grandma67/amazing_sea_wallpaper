@@ -28,6 +28,19 @@ surf".
   Surf: `surfIncoming` = sets × (1 − m) (TS: `surfWave(…, shelter)`), so waves past a reef re-form
   at 1 − strength; spray, `waveOnRock` (surf and open-sea crest) and shore foam (× 1 − 0.7 m)
   follow. Test with `params.coast.shelter` (`scenes/shelter.json`).
+- **Short waves** (`spectrum.ts` `shortWaveVariance`, `rippleSlopeScale`, ocean.ts "Ripples";
+  plans/REFLECTION.md phase 1, 0.130): the cascades stop at ~8.5 cm waves and their slope
+  saturates near 0.018 (JONSWAP's tail), 6–25% of Cox–Munk on windy days, so glitter, sky
+  reflection and mirror images ignored the wind. `synthesizeOcean` returns the drawn
+  `slopeVariance` (and per cascade); the tail = ramp(1→3 m/s) × max(0, Cox–Munk(U) − drawn −
+  0.0006) is drawn as two **ripple layers**: the finest cascade's B and C textures again at
+  1/6.37 and 1/3.91 of its size, turned 0.83 and 2.27 rad, slopes scaled so the two carry the
+  tail (each 1/√2), weighted `shortDamp · gust · (1 − 0.6 rain)` and slicked like the shortest
+  cascade. Near the camera they add slope (glints, ripple texture); far off their mips add GGX
+  variance. Slopes only, not the Jacobian (no foam). Computed per day from the day's own drawn
+  variance, so an undeveloped sea's missing slope is made up by ripples (they follow the wind,
+  not fetch); wave heights unchanged. A flat variance term was tried first: a uniform grey sheet
+  and a hazy glitter near the camera (LESSONS.md). Off: `passes.shortWaves`. 0% render time.
 - **Rip water:** `ripWater(sa)` (COAST.md "Bars, rips, cusps") makes the water over a channel
   rougher (+GGX variance) with half the breaking foam.
 - **Reefs:** `reefCover` gives the seabed `coralAlbedo` under water; white water over the crest;

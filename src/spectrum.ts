@@ -30,6 +30,52 @@ export interface Cascade {
 export interface OceanSurface {
   cascades: Cascade[]
   significantHeight: number
+  /** Mean square slope the cascades draw (resolved + their mips' unresolved
+   * part), deep water at full weight: Σ over cascades of the mean (∂h/∂x)² +
+   * (∂h/∂z)². The short-wave tail makes up the rest (shortWaveVariance). */
+  slopeVariance: number
+  /** The same, per cascade (the finest one is reused for the ripples). */
+  cascadeSlopeVariance: number[]
+}
+
+/** The shader's floor for capillary ripples finer than the last cascade
+ * (ocean.ts `alpha`). */
+export const RIPPLE_FLOOR = 0.0006
+
+/** Cox & Munk 1954, clean surface: total mean square slope at wind U (m/s,
+ * 12.5 m), σ² = 0.003 + 5.12·10⁻³ U (knowledge/REFLECTION.md §1.2). */
+export function coxMunkVariance(windSpeed: number): number {
+  return 0.003 + 5.12e-3 * windSpeed
+}
+
+/** The ripple layers (ocean.ts): the finest cascade again at 1/shrink of its
+ * size (waves of ~1.3–30 cm and ~2–45 cm instead of ~8.5 cm–1.8 m), turned,
+ * their slopes scaled to carry the short-wave variance between them. Near the camera it draws them (glints, texture);
+ * where a pixel covers many, its mips turn them into roughness. */
+export const RIPPLE_LAYERS: readonly { shrink: number; turn: number }[] = [
+  // Two layers that never line up (incommensurate sizes and angles), each
+  // with half the variance: one alone tiles visibly (every ~1.7 m).
+  { shrink: 6.37, turn: 0.83 },
+  { shrink: 3.91, turn: 2.27 }
+]
+
+/** Slope scale of all the ripple layers together: √(tail / the finest
+ * cascade's variance); each layer takes 1/√(layers) of it. */
+export function rippleSlopeScale(windSpeed: number, surface: Pick<OceanSurface, 'slopeVariance' | 'cascadeSlopeVariance'>): number {
+  const finest = surface.cascadeSlopeVariance[surface.cascadeSlopeVariance.length - 1]
+  const tail = shortWaveVariance(windSpeed, surface.slopeVariance)
+  return finest > 0 ? Math.sqrt(tail / finest) : 0
+}
+
+/** Mean square slope of the waves too short to draw (gravity-capillary, 1 mm
+ * to ~8 cm), which follow the local wind whatever the sea's development:
+ * whatever the cascades and the ripple floor leave short of Cox–Munk. Ramped
+ * in from 1 to 3 m/s: below ~2 m/s Cox–Munk overstates (its intercept; still
+ * water is a mirror) and the drawn waves already reach it.
+ * plans/REFLECTION.md phase 0–1. */
+export function shortWaveVariance(windSpeed: number, drawn: number): number {
+  const ramp = Math.min(1, Math.max(0, (windSpeed - 1) / 2))
+  return ramp * Math.max(0, coxMunkVariance(windSpeed) - drawn - RIPPLE_FLOOR)
 }
 
 function jonswap(omega: number, omegaPeak: number, alpha: number, gamma: number): number {
@@ -161,6 +207,7 @@ export function synthesizeOcean(ocean: SceneParams['ocean']): OceanSurface {
   const swellScale = swellVariance > 0 ? Math.sqrt((ocean.swellHeight / 4) ** 2 / swellVariance) : 0
   const lambda = ocean.choppiness
 
+  const cascadeSlopeVariance = sizes.map(() => 0)
   const cascades = sizes.map((size, c): Cascade => {
     const dk = (2 * Math.PI) / size
     // Eight real fields packed pairwise into four complex inverse FFTs:
@@ -245,13 +292,16 @@ export function synthesizeOcean(ocean: SceneParams['ocean']): OceanSurface {
       cm[o] = hx * hx
       cm[o + 1] = hz * hz
       cm[o + 2] = hx * hz
+      cascadeSlopeVariance[c] += (hx * hx + hz * hz) / cells
     }
     return { size, a: toHalf(a), b: toHalf(b), c: toHalf(cm) }
   })
 
   return {
     cascades,
-    significantHeight: 4 * Math.sqrt((windHeight / 4) ** 2 + (ocean.swellHeight / 4) ** 2)
+    significantHeight: 4 * Math.sqrt((windHeight / 4) ** 2 + (ocean.swellHeight / 4) ** 2),
+    slopeVariance: cascadeSlopeVariance.reduce((a, b) => a + b, 0),
+    cascadeSlopeVariance
   }
 }
 

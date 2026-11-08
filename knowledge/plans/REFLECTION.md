@@ -1,6 +1,6 @@
 # Reflections that follow the waves
 
-**Status: phase 0 done (2026-11-08): numbers, scene file, baseline renders. Next: phase 1 (short-wave roughness), which needs a yes: it changes the sea's look on ~75% of days (wind > 2 m/s).** Research and sources:
+**Status: phases 0–1 done (2026-11-08; 1 is 0.130: ripple layers). Next: phase 2 (follow the reflected ray).** Research and sources:
 [../REFLECTION.md](../REFLECTION.md) (§ numbers below refer to it). How the reflection works
 today: [../arch/OCEAN.md](../arch/OCEAN.md) "Reflections". Estimates are marked; everything else
 was measured, read in the code or seen in the reference photos below.
@@ -161,7 +161,20 @@ Expected after phases 1–4: `clear-islands` and `calm-islands` show all islands
 far ones paler; `clear-islands-windy` and `windy-islands` show none (photos C, D); the 5.8°
 island on a 10 m/s sea (θ ≈ ⅓ of the spread) leaves at most a soft column.
 
-## Phase 1: short-wave roughness (needs a yes: changes the whole sea)
+## Phase 1 (done 2026-11-08, 0.130): short-wave roughness
+
+**What was built** (differs from the plan below): the tail is not GGX variance but two ripple
+layers (the finest cascade again at 1/6.37 and 1/3.91 of its size, turned), whose slopes carry
+the tail near the camera and whose mips turn it into variance far off. Round 1 with plain
+variance gave a flat grey sheet at 15 m/s and a hazy glitter at 3 m/s; one layer tiled visibly.
+Results (`diff.mjs`, switch `passes.shortWaves`): 2024-02-26 (12.7 m/s) the karst island's crisp
+dark mirror image became a faint soft darkening (photos C, D); a 21.8 m/s storm's lightning
+reflection broke into streaks; 3.3 m/s days barely change; light-wind specs identical; the off
+switch reproduces HEAD exactly; 0% render time; 0 days' choices changed. Glitter width was
+judged by eye, not measured against Cox–Munk (left for phase 2's probe lines). The sea at 15 m/s
+reads lower-contrast and greyer under a grey sky, as the wider averaging predicts.
+
+Original plan:
 
 Add the slope the spectrum can't draw, as unresolved variance, so that drawn + unresolved
 follows Cox–Munk above ~2 m/s:

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { PropContext } from '../src/props/context'
 import { windDirection, windStrength } from '../src/props/wind'
-import { CASCADE_SIZE, synthesizeOcean } from '../src/spectrum'
+import { CASCADE_SIZE, coxMunkVariance, RIPPLE_FLOOR, rippleSlopeScale, shortWaveVariance, synthesizeOcean } from '../src/spectrum'
 import { scene } from './days'
 
 const base = scene({ date: '2026-10-15' })
@@ -71,5 +71,45 @@ describe('wind', () => {
     expect(at(14)).toBeCloseTo(1)
     expect(at(6)).toBeLessThan(at(10))
     expect(at(40)).toBeCloseTo(1.69)
+  })
+})
+
+describe('short waves (plans/REFLECTION.md phase 1)', () => {
+  /** A wind sea at a given development (0.35–0.9 drawn), next to no swell. */
+  const sea = (wind: number, development: number) =>
+    synthesizeOcean({ ...withWind(wind), seaDevelopment: development })
+
+  it('draws far less slope than Cox–Munk on a windy sea: the gap the ripples fill', () => {
+    const drawn = sea(10, 0.9).slopeVariance
+    expect(drawn).toBeGreaterThan(0.003)
+    expect(drawn).toBeLessThan(coxMunkVariance(10) / 2)
+  })
+
+  it('makes drawn + ripples + floor equal Cox–Munk from 3 m/s, at any development', () => {
+    for (const development of [0.35, 0.9]) {
+      for (const wind of [3, 5, 10, 15]) {
+        const s = sea(wind, development)
+        const total = s.slopeVariance + shortWaveVariance(wind, s.slopeVariance) + RIPPLE_FLOOR
+        expect(total / coxMunkVariance(wind)).toBeCloseTo(1, 2)
+        // The ripple layers carry exactly the tail.
+        const finest = s.cascadeSlopeVariance[s.cascadeSlopeVariance.length - 1]
+        expect(rippleSlopeScale(wind, s) ** 2 * finest).toBeCloseTo(shortWaveVariance(wind, s.slopeVariance), 6)
+      }
+    }
+  })
+
+  it('adds nothing in light air, where the drawn waves are already enough', () => {
+    const s = sea(1, 0.6)
+    expect(shortWaveVariance(1, s.slopeVariance)).toBe(0)
+    expect(shortWaveVariance(0.5, s.slopeVariance)).toBe(0)
+    expect(rippleSlopeScale(1, s)).toBe(0)
+    // Half way in at 2 m/s.
+    expect(shortWaveVariance(2, 0)).toBeCloseTo((coxMunkVariance(2) - RIPPLE_FLOOR) / 2, 6)
+  })
+
+  it('sums the cascades into the drawn variance', () => {
+    const s = sea(5, 0.6)
+    expect(s.cascadeSlopeVariance.length).toBe(3)
+    expect(s.cascadeSlopeVariance.reduce((a, b) => a + b, 0)).toBeCloseTo(s.slopeVariance, 10)
   })
 })

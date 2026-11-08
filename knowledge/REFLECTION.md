@@ -203,7 +203,7 @@ water film over a bright bottom is my own *(general)*.
    missing haze (§2).
 5. **Wet sand and pools** reflect only the sky (env map). Pools and the swash film should also
    mirror rocks, cliffs and people (`planarMap` is already rendered; terrain could read it).
-6. **The waves are too smooth for any of this to follow the wind** (measured 2026-11-08,
+6. **Fixed in 0.130 (ripple layers, arch/OCEAN.md "Short waves"). Was: the waves were too smooth for any of this to follow the wind** (measured 2026-11-08,
    plans/REFLECTION.md phase 0): drawn + unresolved slope variance is 6–25% of Cox–Munk on
    2003-03-11 (0.005 vs 0.080 at 15 m/s). The spectrum stops at ~8 cm waves, JONSWAP's tail
    saturates near 0.018, and `seaDevelopment` scales the short waves too. Real seas get most of

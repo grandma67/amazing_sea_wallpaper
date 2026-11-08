@@ -22,7 +22,7 @@ import { seabedAlbedo } from './beach'
 import { middleCascadeLongest, SHELTER_GLSL, shelterUniforms } from './shelter'
 import { TERRAIN_GLSL, terrainUniforms } from './terrain'
 import { EARTH_RADIUS, type SceneParams } from './params'
-import { CASCADE_SIZE, type OceanSurface } from './spectrum'
+import { CASCADE_SIZE, type OceanSurface, RIPPLE_LAYERS, rippleSlopeScale } from './spectrum'
 import type { ShipWake } from './props/ships'
 
 /** How many rocks the ocean shader foams round (the nearest). */
@@ -266,6 +266,7 @@ uniform int oceanView;
 uniform vec3 deepColor;
 uniform vec3 scatterColor;
 uniform float whitecaps;
+uniform float shortWaves;
 uniform float waveHeight;
 uniform float rain;
 
@@ -384,6 +385,24 @@ void main() {
   cascade(a1, b1, c1, cascadeSize.y, damping * (1.0 - sheltered * (1.0 - shelterChop)) * mix(1.0, gust, 0.5), derivatives, dxz, variance);
   // Rain stirs a thin turbulent layer that damps the shortest gravity waves.
   cascade(a2, b2, c2, cascadeSize.z, shortDamp * gust * (1.0 - 0.6 * rain), derivatives, dxz, variance);
+  // Ripples (1 cm to ~30 cm) carry most of a windy sea's slope (Cox–Munk;
+  // spectrum.ts shortWaveVariance): the finest cascade again, shrunk and
+  // turned, its slopes scaled up. Drawn near the camera (glints), roughness
+  // far off (its mips). Slopes only: they don't fold into foam.
+  if (shortWaves > 0.0) {
+    float w = shortWaves * shortDamp * gust * (1.0 - 0.6 * rain) * ${(1 / Math.sqrt(RIPPLE_LAYERS.length)).toFixed(6)};
+${RIPPLE_LAYERS.map(({ shrink, turn }) => {
+    const c = Math.cos(turn).toFixed(6), s = Math.sin(turn).toFixed(6), m = (-Math.sin(turn)).toFixed(6)
+    return `    {
+      vec2 uv = mat2(${c}, ${s}, ${m}, ${c}) * vGrid / (cascadeSize.z / ${shrink.toFixed(2)});
+      vec4 bs = texture(b2, uv);
+      vec4 cs = texture(c2, uv);
+      // h(x) = h₂(s·R·x) / s: same slopes, turned back into the world frame.
+      derivatives.xy += mat2(${c}, ${m}, ${s}, ${c}) * bs.xy * w;
+      variance += vec2(max(cs.x + cs.y - dot(bs.xy, bs.xy), 0.0) * 0.5 * w * w);
+    }`
+  }).join('\n')}
+  }
 
   // Surf slope by finite differences.
   float e = 0.15;
@@ -858,6 +877,8 @@ export function createOcean(
       deepColor: { value: new Color(...ocean.water.deep) },
       scatterColor: { value: new Color(...ocean.water.scatter) },
       whitecaps: { value: Math.min(1, Math.max(0, (ocean.windSpeed - 5) / 6)) },
+      // Slope scale of the ripple layer (0: none).
+      shortWaves: { value: params.debug?.passes?.shortWaves === false ? 0 : rippleSlopeScale(ocean.windSpeed, surface) },
       waveHeight: { value: Math.max(0.05, surface.significantHeight) },
       rain: { value: params.storm?.rain ?? 0 },
       rockData: { value: Array.from({ length: MAX_ROCKS }, () => new Vector4()) },

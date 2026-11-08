@@ -436,6 +436,14 @@ tool gotchas: TOOLS.md.
 
 ## Sea and surf
 
+- Roughness that a pixel can resolve must be drawn, not blurred: the missing short-wave slope
+  added as GGX variance everywhere turned a 15 m/s sea into a flat grey sheet and 3 m/s glitter
+  into a haze. Add it as a layer of slopes whose mips become variance (the cascades' own LEAN
+  trick). One shrunk copy of a cascade tiles visibly (1.7 m ≈ 25 px at 50 m): use two at
+  incommensurate sizes and angles.
+- Before tuning anything that follows the wind (glitter width, reflections), measure the slope
+  variance the spectrum actually draws (`synthesizeOcean().slopeVariance`) against Cox–Munk.
+
 - Anything at mean sea level (splashes, foam) hides behind crests at grazing angles: place it on
   `seaLevel()` and lift it a little. Search for sea points over the whole frame's NDC range (a low
   horizon leaves no sea below NDC 0).
