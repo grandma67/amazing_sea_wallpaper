@@ -111,6 +111,12 @@ surf".
   0.03, swash 0.08, damp sand 0.25; wet rock and stones none), fading out where the mirror
   camera sees the film's own ground (`tSelf`). Bound after the mirror pass, which draws the
   terrain. `passes.wetMirror`.
+- **The sky reflection near the horizon (0.135, phase 6):** `R` uses the wave's own normal, lifted
+  toward the viewer only where a facet faces away (0.005), not the shading's face-the-viewer
+  normal (which lifts every facet within 2.9° of grazing and aimed `R` up to 5.7° high);
+  `passes.skyRay`. The sea and the terrain's films read `foldedSkyCube` (`reflection.ts`): the sky
+  cube with its lower half mirrored up, so blurred (rough-water) lookups near the horizon don't
+  average in the cube's dark ground; props keep the real cube. `passes.skyFold`.
 - **Ships in the ocean shader:** `setOceanShips` (8 nearest) cuts the hull out of the sea and adds
   the Kelvin wake, foam and slick (PROPS.md "Ships").
 - **A frozen sea:** the ocean shader doesn't know. A floating sheet covers it (PROPS.md "Sea ice") and it runs calm below,

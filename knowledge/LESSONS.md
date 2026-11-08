@@ -445,6 +445,13 @@ tool gotchas: TOOLS.md.
   already scaled by the opacity a by a again, so the inscatter goes as a², not a. Measure it with
   `haze.mjs` (two objects, one haze colour) before trusting a formula. Probe by world point and
   check `covered by`: a guessed pixel on a palm frond once "proved" the textbook weighting.
+- Calm water at grazing should be ~0.9 × the sky at the mirrored angle. Check it by probing the
+  sky at +x° and the sea at −x° on a calm open sea before blaming a texture: it matched the sky
+  at +4° (a shading normal fix had aimed the ray 5.7° high), and the suspected "dark cube" read
+  the same as the frame once probed directly (`cubeProbe`). A wrong diagnosis sat in Known issues
+  for a phase.
+- A cube's mips mix above and below the horizon: anything that reads it blurred near grazing
+  (rough water) averages in the ground. Fold the lower half up for water (`foldedSkyCube`).
 - A water film above the mirror plane (pools, swash) can see its own ground in the mirror target:
   far off, on a slope steeper than the mirror camera's line to it, the depth there is the film
   itself, and pixels hit or miss it by precision (two-texel grey blocks). Compare the depth's t

@@ -30,6 +30,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Which pass, term or grid causes a look | `params.debug` switches and views | [tools/DEBUG.md](tools/DEBUG.md) |
 | How bright or what colour is X in the render (raw, cd/m², mag/″², final RGB) | `params.debug.probe` | [tools/DEBUG.md](tools/DEBUG.md) |
 | An object and its mirror image on the sea, by world point (not a guessed pixel) | `params.mjs --project KIND --above M` → probe `{world}` / `{mirror}` | [tools/PARAMS.md](tools/PARAMS.md), [tools/DEBUG.md](tools/DEBUG.md) |
+| What the water reflects: the sky cube in a direction, vs the frame's sky there | `params.debug.cubeProbe` (+ `probe` at the same az/el) | [tools/DEBUG.md](tools/DEBUG.md) |
 | How the frame hazes objects (T, haze colour, which weighting) before matching it | `haze.mjs --scene --points` | [tools/RENDER.md](tools/RENDER.md) |
 | Did a feature show up on real days (not specs) | `diff.mjs --where --sample --off` | [tools/RENDER.md](tools/RENDER.md) |
 | Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |

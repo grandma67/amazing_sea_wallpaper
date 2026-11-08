@@ -49,6 +49,12 @@ export interface DebugParams {
    * radiance, cd/m², mag/arcsec², exposed and final colour, in
    * `debug.probe` (probe.ts). */
   probe?: ProbeAt[]
+  /** Read the sky cube (what the sea and wet sand reflect) in these sky
+   * directions ({az: from the view, deg; el: deg}), raw, in
+   * `debug.cubeProbe`: compare with `probe` at the same directions. */
+  cubeProbe?: { az: number; el: number }[]
+  /** Mip level of cubeProbe's lookups (0: sharpest, as calm water). */
+  cubeProbeLod?: number
   /** Half size of each probe's box (px): 0 a single pixel, default 2 (5×5). */
   probeHalf?: number
   /** Read a line of sky pixels ({az, el, step}: az from the view, one of
@@ -64,7 +70,7 @@ export interface ProbeLine {
   step?: number
 }
 
-export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze', 'wetMirror'] as const
+export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze', 'wetMirror', 'skyRay', 'skyFold'] as const
 export type DebugPass = (typeof DEBUG_PASSES)[number]
 export const TERRAIN_VIEWS = ['none', 'slope', 'relief', 'lines', 'shore'] as const
 export type TerrainView = (typeof TERRAIN_VIEWS)[number]

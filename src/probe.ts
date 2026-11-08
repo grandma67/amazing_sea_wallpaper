@@ -1,5 +1,18 @@
 import { Pass } from 'postprocessing'
-import { DataUtils, FloatType, HalfFloatType, type WebGLRenderer, type WebGLRenderTarget } from 'three'
+import {
+  DataUtils,
+  FloatType,
+  HalfFloatType,
+  Mesh,
+  OrthographicCamera,
+  PlaneGeometry,
+  Scene,
+  ShaderMaterial,
+  Vector3,
+  WebGLRenderTarget,
+  type Texture,
+  type WebGLRenderer
+} from 'three'
 
 import type { ProbeAt } from './debug'
 
@@ -129,4 +142,41 @@ export function probeResult(
     final: { mean: final.mean.map(Math.round) as [number, number, number], peak: final.peak.map(Math.round) as [number, number, number] },
     clipped: Math.max(...exposed.peak) >= 39.9
   }
+}
+
+/** What the sky cube holds in these world directions (render units, the
+ * frame's raw): the same textureLod the sea's sky reflection reads, at `lod`.
+ * For "is the cube's sky what the frame's sky is?" (`debug.cubeProbe`). */
+export function readCube(renderer: WebGLRenderer, cube: Texture, dirs: Vector3[], lod = 0): [number, number, number][] {
+  if (dirs.length === 0) return []
+  const target = new WebGLRenderTarget(dirs.length, 1, { type: FloatType })
+  const material = new ShaderMaterial({
+    vertexShader: /* glsl */ `void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader: /* glsl */ `
+      uniform samplerCube envMap;
+      uniform vec3 dirs[${dirs.length}];
+      uniform float lod;
+      void main() {
+        int i = int(gl_FragCoord.x);
+        vec3 d = dirs[0];
+        for (int k = 0; k < ${dirs.length}; k++) if (k == i) d = dirs[k];
+        gl_FragColor = vec4(textureLod(envMap, d, lod).rgb, 1.0);
+      }`,
+    uniforms: { envMap: { value: cube }, dirs: { value: dirs }, lod: { value: lod } },
+    depthTest: false,
+    depthWrite: false
+  })
+  const quad = new Mesh(new PlaneGeometry(2, 2), material)
+  quad.frustumCulled = false
+  const scene = new Scene().add(quad)
+  const previous = renderer.getRenderTarget()
+  renderer.setRenderTarget(target)
+  renderer.render(scene, new OrthographicCamera())
+  const values = new Float32Array(dirs.length * 4)
+  renderer.readRenderTargetPixels(target, 0, 0, dirs.length, 1, values)
+  renderer.setRenderTarget(previous)
+  target.dispose()
+  material.dispose()
+  quad.geometry.dispose()
+  return dirs.map((_, k) => [values[k * 4], values[k * 4 + 1], values[k * 4 + 2]].map(v => +v.toPrecision(4)) as [number, number, number])
 }

@@ -469,6 +469,16 @@ function checkDebug(value: unknown, path: string): void {
         } else fail(at, 'must be [x, y], {az, el}, {world} or {mirror}')
       })
     },
+    cubeProbe: (v, p) => {
+      if (!Array.isArray(v)) fail(p, 'must be a list of {az, el}')
+      ;(v as unknown[]).forEach((e, i) => {
+        const o = e as Record<string, unknown>
+        if (o === null || typeof o !== 'object' || typeof o.az !== 'number' || typeof o.el !== 'number' || Object.keys(o).length !== 2) fail(`${p}[${i}]`, 'must be {az, el} in degrees')
+      })
+    },
+    cubeProbeLod: (v, p) => {
+      if (typeof v !== 'number' || v < 0 || v > 10) fail(p, 'must be a number 0–10')
+    },
     probeHalf: (v, p) => {
       if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 20) fail(p, 'must be an integer 0–20')
     },

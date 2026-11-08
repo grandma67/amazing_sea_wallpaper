@@ -45,6 +45,14 @@ describe('probe spec', () => {
   })
 })
 
+describe('cube probe spec', () => {
+  it('takes sky directions and a mip level', () => {
+    expect(() => parseSceneSpec({ params: { debug: { cubeProbe: [{ az: 0, el: -1 }], cubeProbeLod: 5 } } } as never)).not.toThrow()
+    expect(() => parseSceneSpec({ params: { debug: { cubeProbe: [[0.5, 0.5]] } } } as never)).toThrow(/az, el/)
+    expect(() => parseSceneSpec({ params: { debug: { cubeProbeLod: 12 } } } as never)).toThrow(/0–10/)
+  })
+})
+
 describe('probe line spec', () => {
   it('takes a line or a list, one range each', () => {
     expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: 0, el: [2, 40] } } } })).not.toThrow()

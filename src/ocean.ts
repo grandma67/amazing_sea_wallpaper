@@ -219,6 +219,7 @@ uniform float planarOn;
 uniform float reflectionRay;
 uniform float reflectionStreaks;
 uniform float reflectionHaze;
+uniform float skyRay;
 uniform vec3 reflectionAir;
 uniform float reflectionSeaHaze;
 // Depth of the mirror image and the mirror camera's (oblique) inverse
@@ -542,8 +543,16 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
   // The mirror image needs no floor for the sun's size: glassy water is sharp.
   float mirrorAlpha = mix(min(roughness, 0.7), max(alpha, 0.3), longExposure);
 
-  // Sky reflection.
-  vec3 R = reflect(-V, N);
+  // Sky reflection. The face-the-viewer fix above (for Fresnel and the
+  // sun's highlight) lifts every facet within ~3° of grazing, which aimed
+  // the ray up to ~5.7° high: a calm sea under a cloud deck mirrored the
+  // dark cloud base at ~4° instead of the bright band at the horizon (~3×
+  // too dark; plans/REFLECTION.md phase 6). Here only facets that face
+  // away are lifted, just to the viewer (0.005): hidden behind the next
+  // wave in reality, their ray would else flip (abs) back to the sky
+  // behind the camera (dark stripes along wave backs at dusk).
+  vec3 skyNormal = normalize(waveNormal + V * max(0.0, -dot(waveNormal, V) + 0.005));
+  vec3 R = reflect(-V, skyRay > 0.5 ? skyNormal : N);
   R.y = abs(R.y);
   float lod = clamp(log2(alpha * 164.0), 0.0, envMaxLod);
   vec3 reflected = textureLod(envMap, R, lod).rgb;
@@ -905,6 +914,9 @@ export function createOcean(
       // Haze the mirror image over its path to the water (0: none, as in
       // 0.132); scene.ts sets the extinctions (seaHaze.ts reflectionExtinction).
       reflectionHaze: { value: params.debug?.passes?.reflectionHaze === false ? 0 : 1 },
+      // The sky reflection along the wave's own normal (0: the viewer-facing
+      // one, as before 0.135).
+      skyRay: { value: params.debug?.passes?.skyRay === false ? 0 : 1 },
       reflectionAir: { value: new Vector3() },
       reflectionSeaHaze: { value: 0 },
       planarDepth: { value: null as Texture | null },

@@ -258,14 +258,13 @@ December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
 
-- Sea haze and the sky cube (found in REFLECTION.md phase 4, 2026-11-08, 2003-03-11 `calm-islands`):
-  (1) takram's haze fades objects with (1 − T)² instead of (1 − T) (it mixes an inscatter already
-  scaled by the opacity, by the opacity again), so mid-distance land is darker than Koschmieder's
-  haze would leave it; the mirror image matches it (ocean.ts `reflectionHaze`), so a fix there must
-  change both. (2) On that broken-sky day the sea at the horizon (F ≈ 0.97) reads 0.046 green
-  against a sky of 0.159: the cloudy sky cube's horizon is ~3× darker than the frame's, so calm
-  water is darker than the sky at the horizon and hazed mirror images come out too dark (island 1's
-  ~50–80% of F × its own colour). Not traced; check a clear day before changing anything.
+- Sea haze (found in REFLECTION.md phase 4, 2026-11-08, 2003-03-11 `calm-islands`): takram's haze
+  fades objects with (1 − T)² instead of (1 − T) (it mixes an inscatter already scaled by the
+  opacity, by the opacity again), so mid-distance land is darker than Koschmieder's haze would
+  leave it; the mirror image matches it (ocean.ts `reflectionHaze`), so a fix there must change
+  both. (Phase 4 also blamed a "dark cloudy cube horizon" for too-dark water at the horizon: wrong.
+  `debug.cubeProbe` shows the cube equals the frame's sky; the sea's sky ray was aimed up to 5.7°
+  high and its blurred lookups averaged in the cube's dark ground. Fixed in 0.135, phase 6.)
 - Mirror images in the shore's water films (0.134): a lightning bolt in the swash (2025-04-25) is
   speckled and blocky, not a soft streak. The blur is sized from the mirror depth at the film's
   unshifted point (trees tens of metres off), not the bolt kilometres away (plans/REFLECTION.md

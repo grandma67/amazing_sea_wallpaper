@@ -83,7 +83,7 @@ import { reportProps } from './props/report'
 import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './props/shipLights'
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting, type WaterIsland } from './props/surf'
-import { renderPlanarReflection } from './reflection'
+import { foldedSkyCube, renderPlanarReflection } from './reflection'
 import { apply, ECLIPTIC_POLE, skyRotation, sunECI } from './skyClock'
 import { darkZenithLuminance, elongationDeg, renderPerLux, starScale, STARLIT_LUX } from './starLight'
 import { createStarsMaterial } from './stars'
@@ -99,7 +99,7 @@ import { SkyDenoiseEffect } from './skyDenoise'
 import { GpuResources, trackUploads } from './dispose'
 import { createTerrain, createTerrainCaster, hasLand, terrainHeight } from './terrain'
 import { NIGHT_WHITE_BALANCE_K, whiteBalanceGains } from './whiteBalance'
-import { probeResult, ProbePass, readCanvas, type ProbeBox } from './probe'
+import { probeResult, ProbePass, readCanvas, readCube, type ProbeBox } from './probe'
 import { lineDirections, lineStats } from './skyMirror'
 import { dirFromAzEl as skyDir, pixelOf } from './skyFrame'
 
@@ -890,6 +890,15 @@ export async function renderScene(
     starlitLight?.color.copy(u.skyIrradiance.value as Color).multiplyScalar(Math.max(want - Math.min(cube, want), 0) / Math.max(want, 1e-12))
   }
 
+  // The sea and the shore's water films reflect the sky with its lower half
+  // folded up (reflection.ts foldedSkyCube; plans/REFLECTION.md phase 6).
+  if (pass('skyFold')) {
+    const folded = foldedSkyCube(renderer, envTarget.texture, ENV_SIZE)
+    gpu.add(folded)
+    u.envMap.value = folded.texture
+    tu.envMap.value = folded.texture
+  }
+
   {
     // Render the shadow map once with the props and terrain, then let the custom
     // terrain and ocean shaders sample it.
@@ -1075,6 +1084,12 @@ export async function renderScene(
           offset += linePoints[n].length
           return { line, samples, stats: samples.length > 0 ? lineStats(samples.map(s => s.cdm2), line.step ?? 0.05) : null }
         })
+  // The sky cube in the asked directions, beside the frame's probes.
+  const cubeProbe = params.debug?.cubeProbe
+  const cubeRead =
+    cubeProbe == null
+      ? undefined
+      : readCube(renderer, envTarget.texture, cubeProbe.map(at => new Vector3(...skyDir(params.camera.headingDeg + at.az, at.el))), params.debug?.cubeProbeLod ?? 0).map((raw, k) => ({ at: cubeProbe[k], raw }))
   const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
   const debug = {
       gpu: debugInfo != null ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown',
@@ -1097,6 +1112,7 @@ export async function renderScene(
       whiteBalance: whiteBalance.toArray(),
       ...(probe != null ? { probe } : {}),
       ...(probeLine != null ? { probeLine } : {}),
+      ...(cubeRead != null ? { cubeProbe: cubeRead } : {}),
       nightScale,
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),

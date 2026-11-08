@@ -1,18 +1,25 @@
 import {
+  BackSide,
+  BoxGeometry,
   Color,
+  CubeCamera,
   DepthTexture,
   FloatType,
   HalfFloatType,
   LinearFilter,
   LinearMipmapLinearFilter,
   Matrix4,
+  Mesh,
   PerspectiveCamera,
   Plane,
+  Scene,
+  ShaderMaterial,
   Vector3,
   Vector4,
+  WebGLCubeRenderTarget,
   WebGLRenderTarget,
   type Object3D,
-  type Scene,
+  type Texture,
   type WebGLRenderer
 } from 'three'
 
@@ -210,4 +217,46 @@ export function renderPlanarReflection(
   hide.forEach((o, i) => (o.visible = visibility[i]))
 
   return { target: renderTarget, textureMatrix, projectionInverse: mirror.projectionMatrixInverse.clone() }
+}
+
+/**
+ * The sky cube as water sees it: its lower half replaced by the upper half
+ * mirrored (y → |y|). The cube holds a dark "ground" below the horizon
+ * (30× darker than the horizon at dusk), and a blurred lookup near the
+ * horizon (a rough sea's high mip level) averaged it in: a windy sea's
+ * horizon reflection came out several times too dark. Water's facets that
+ * would reflect downward are hidden behind the next wave, which the shaders
+ * already mimic per sample with abs(R.y); this makes the mips agree. Only
+ * the sea and the shore's water films read it; props keep the real cube
+ * (their undersides do face the ground). plans/REFLECTION.md phase 6.
+ */
+export function foldedSkyCube(renderer: WebGLRenderer, sky: Texture, size: number): WebGLCubeRenderTarget {
+  const target = new WebGLCubeRenderTarget(size, { type: HalfFloatType, generateMipmaps: true, minFilter: LinearMipmapLinearFilter })
+  const material = new ShaderMaterial({
+    vertexShader: /* glsl */ `
+      varying vec3 vDir;
+      void main() {
+        vDir = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform samplerCube sky;
+      varying vec3 vDir;
+      void main() {
+        vec3 d = normalize(vDir);
+        d.y = abs(d.y);
+        gl_FragColor = vec4(textureLod(sky, d, 0.0).rgb, 1.0);
+      }`,
+    uniforms: { sky: { value: sky } },
+    side: BackSide,
+    depthTest: false,
+    depthWrite: false
+  })
+  const box = new Mesh(new BoxGeometry(2, 2, 2), material)
+  box.frustumCulled = false
+  const camera = new CubeCamera(0.1, 10, target)
+  camera.update(renderer, new Scene().add(box))
+  material.dispose()
+  box.geometry.dispose()
+  return target
 }

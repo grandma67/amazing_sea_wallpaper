@@ -214,6 +214,9 @@ water film over a bright bottom is my own *(general)*.
 7. **Local calm**: `shelter.ts` (fetch-limited calm), `slick` (ship wakes) and `gust` (fbm)
    already change the waves. Once the reflection follows the full slope spread, they'll give
    mirror patches in the lee and glassy wake streaks for free.
+8. **Fixed in 0.135 (phase 6): the sea's sky reflection near the horizon.** It was aimed up to
+   5.7° high by the shading's face-the-viewer normal, and rough water's blurred lookups averaged
+   in the cube's dark ground: the sea at the horizon was up to ~3× too dark under cloud decks.
 
 ## 6. Next steps (a sketch for a plan)
 

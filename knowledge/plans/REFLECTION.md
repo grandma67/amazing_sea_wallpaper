@@ -1,6 +1,6 @@
 # Reflections that follow the waves
 
-**Status: done (2026-11-08; 0.130 ripple layers, 0.131 ray lookup + light-air onset, 0.132 streaks, 0.133 haze on the mirror image, no 5 km cutoff, 0.134 pools and wet sand). Open: the items under "Later", the dark cloudy cube horizon (ARCHITECTURE.md Known issues).** Research and sources:
+**Status: done (2026-11-08; 0.130 ripple layers, 0.131 ray lookup + light-air onset, 0.132 streaks, 0.133 haze on the mirror image, no 5 km cutoff, 0.134 pools and wet sand, 0.135 the sea's horizon reflection). Open: the items under "Later".** Research and sources:
 [../REFLECTION.md](../REFLECTION.md) (§ numbers below refer to it). How the reflection works
 today: [../arch/OCEAN.md](../arch/OCEAN.md) "Reflections". Estimates are marked; everything else
 was measured, read in the code or seen in the reference photos below.
@@ -405,6 +405,36 @@ only after `renderPlanarReflection`, and give the mirror pass an "off" value (`p
 - **Done when:** a rock-shore day with pools mirrors the nearby boulders and the cliff, and a
   beach day at low sun mirrors people and posts in the swash (photo B is the look of still
   water); `diff.mjs` with the switch off on both; no `GL:` warnings.
+
+## Phase 6 (done 2026-11-08, 0.135): the sea's sky reflection near the horizon
+
+Phase 4 left the far islands' images too dark and blamed the sky cube's horizon (~3× darker than
+the frame's on 2003-03-11). Measured, it was two other things:
+
+- **The cube is right.** `debug.cubeProbe` (new: reads the cube with the sea's own lookup) equals
+  the frame's sky within a few % at +0.3° to +8°, on a clear, a broken and an overcast-twilight
+  sky.
+- **The sky ray was aimed too high** (the main cause, calm water). Calm open sea, sky vs sea at
+  mirrored angles: the sea at −0.5° to −1° matched Fresnel × the sky at **+4°**, on every sky. The
+  shader's face-the-viewer fix (`N + V·max(0, −N·V + 0.05)`, for Fresnel and the sun's highlight)
+  lifts every facet within 2.9° of grazing, turning the ray up to 5.7°. Phase 2 had moved only the
+  mirror image's lookup off it. Now the sky ray uses the wave's own normal, lifted only where a
+  facet faces away (0.005: those are hidden behind the next wave, and their flipped ray would read
+  the sky behind the camera). Sea/sky at 1° grazing: clear 0.67 → 0.85, broken 0.33 → 0.69 (the
+  rest is the swell averaging the steep sky gradient under a deck). `passes.skyRay`.
+- **Blurred lookups averaged in the cube's ground** (rough water). Below the horizon the cube
+  holds a dark ground (3.8·10⁻⁵ at dusk on 2024-12-07, 30× under the horizon); at mip 5 the
+  horizon read 1.84·10⁻⁴ instead of 1.28·10⁻³. The sea and the shore's films now read a cube with
+  the lower half folded up (`reflection.ts` `foldedSkyCube`, |y|, as `abs(R.y)` does per sample);
+  props keep the real cube. `passes.skyFold`. On that 8.6 m/s dusk the sea under the horizon band
+  +15%; it stays ~5.6× under the band, as a rough sea mirroring ±15–20° of a sky whose bright band
+  is 1° tall should (photo C).
+- **Phase 4's done-when, re-measured** (`calm-islands`, world/mirror probes): island 1 (2.8 km)
+  image vs F × island −20/−8/+5% (R/G/B; was −56/−42/−24%), island 2 (7.5 km) −14/−5/+9% (was
+  −70/−61/−40%). The blue excess: the mirrored sky is bluer than takram's haze colour.
+- Results: real days (8, all kinds) 0–15% of the frame changes, all brighter, the sea near the
+  horizon carrying more of the horizon's light (a dusk sea takes the orange band on its wave
+  backs). Both switches off = 0.134 exactly (20 specs); +1% render time; 0 days' choices changed.
 
 ## Later (separate plans)
 
