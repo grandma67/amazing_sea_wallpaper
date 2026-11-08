@@ -432,21 +432,41 @@ export function lizardGeometry(rng: Random, kind: LizardKind): BufferGeometry {
     return c
   }
   b.tube(spine, (t, angle) => girth * profile(t) * (1 - 0.3 * Math.cos(angle) ** 2), colorAt, 12)
-  // Legs: out from the shoulders and hips, elbows up, feet on the ground.
-  for (const at of [0.14, (1 - spec.tail) * 0.92]) {
-    const p = spine[Math.round(at * steps)]
+  // Legs sprawl: upper arm or thigh out sideways to an elbow or knee at
+  // back height, the lower leg down to a flat hand or foot with five long,
+  // clawed toes fanned out. Hands point forward and out; hind feet out and
+  // back, the fourth toe the longest.
+  const limb = shade(spec.color, 0.8)
+  for (const hind of [false, true]) {
+    const p = spine[Math.round((hind ? (1 - spec.tail) * 0.92 : 0.14) * steps)]
+    const fwd = hind ? -1 : 1
+    const toes = hind ? [0.45, 0.65, 0.85, 1.05, 0.55] : [0.35, 0.5, 0.6, 0.55, 0.35]
     for (const side of [-1, 1]) {
-      const reach = girth * 1.6
+      const wrist = new Vector3(p.x + fwd * girth * 0.4, 0.012, p.z + side * girth * 2)
       b.tube(
-        [
-          new Vector3(p.x, p.y * 0.9, p.z + side * girth * 0.5),
-          new Vector3(p.x + girth * 0.1, p.y * 0.95, p.z + side * reach * 0.65),
-          new Vector3(p.x + girth * 0.4, 0.01, p.z + side * reach)
-        ],
-        t => girth * 0.36 * (1 - 0.45 * t),
-        () => shade(spec.color, 0.8),
+        [new Vector3(p.x, p.y * 0.85, p.z + side * girth * 0.6), new Vector3(p.x - fwd * girth * 0.25, p.y * 0.8, p.z + side * girth * 1.7), wrist],
+        t => girth * (0.3 - 0.13 * t),
+        () => limb,
         5
       )
+      toes.forEach((reach, i) => {
+        // Front toes fan from straight ahead to sideways, hind ones from
+        // sideways to straight back.
+        const angle = (hind ? 1.75 : 0.2) + (i / 4) * 1.4
+        const dx = Math.cos(angle)
+        const dz = side * Math.sin(angle)
+        const len = girth * reach * 0.9
+        b.tube(
+          [
+            wrist,
+            new Vector3(wrist.x + dx * len * 0.5, 0.014, wrist.z + dz * len * 0.5),
+            new Vector3(wrist.x + dx * len, 0.003, wrist.z + dz * len)
+          ],
+          t => girth * 0.075 * (1 - 0.7 * t),
+          () => limb,
+          3
+        )
+      })
     }
   }
   // Crest of spines down the back.
