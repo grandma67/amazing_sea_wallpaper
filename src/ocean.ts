@@ -217,6 +217,9 @@ uniform mat4 planarMatrix;
 uniform float planarOn;
 uniform float reflectionRay;
 uniform float reflectionStreaks;
+uniform float reflectionHaze;
+uniform vec3 reflectionAir;
+uniform float reflectionSeaHaze;
 // Depth of the mirror image and the mirror camera's (oblique) inverse
 // projection: how far each reflected ray travels (reflection.ts).
 uniform sampler2D planarDepth;
@@ -542,6 +545,8 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
   R.y = abs(R.y);
   float lod = clamp(log2(alpha * 164.0), 0.0, envMaxLod);
   vec3 reflected = textureLod(envMap, R, lod).rgb;
+  // What the mirror image's haze fades to (below): the sky this ray sees.
+  vec3 skyReflected = reflected;
   // The flash on the cloud base is added after the clouds (a screen effect),
   // so it isn't in the environment map: mirror its glow here, the same soft
   // patch, wider than tall, round each bolt's top.
@@ -577,6 +582,13 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
       k = clamp(1.0 - D / max(L, D), 0.0, 1.0);
     }
     vec4 planar;
+    // How far the mirrored light crossed the air from what it left to the
+    // water (for the haze below): at the unshifted point unless the ray says.
+    float hazeT = 1e5;
+    if (hitDepth < 1.0) {
+      vec4 view = planarProjInv * vec4(base * 2.0 - 1.0, hitDepth * 2.0 - 1.0, 1.0);
+      hazeT = max(length(view.xyz / view.w) - length(vWorld - cameraPosition), 0.0);
+    }
     if (reflectionRay > 0.5) {
       // Follow the sea's own reflected ray R (the one the sky reflection
       // reads) for t, the length of the mirrored ray past the water, and
@@ -596,6 +608,13 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
       Rm.y = abs(Rm.y);
       vec4 hit = planarMatrix * vec4(P + Rm * t, 1.0);
       vec2 uv = hit.xy / hit.w;
+      // The object the ray lands on (a wave can turn it onto one the
+      // unshifted point misses): its own distance sets the haze.
+      float landDepth = textureLod(planarDepth, uv, 0.0).r;
+      if (landDepth < 1.0) {
+        vec4 view = planarProjInv * vec4(uv * 2.0 - 1.0, landDepth * 2.0 - 1.0, 1.0);
+        hazeT = max(length(view.xyz / view.w) - D, 0.0);
+      }
       // Waves finer than the pixel: their slopes (α, per axis α/√2) turn
       // the ray by ~2·atan(α/√2) more. Tilt R up by that, see how far the
       // lookup moves, and blur over it (a box ~3.5× the offset has the
@@ -626,6 +645,32 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
     } else {
       vec2 uv = base + N.xz * 0.04 * k;
       planar = textureLod(planarMap, uv, clamp(log2(alpha * 300.0 * k + 1e-3), 0.0, 6.0));
+    }
+    if (reflectionHaze > 0.5) {
+      // The mirror image's light crossed the air twice: object → water
+      // (hazeT) and water → eye. The main pass hazes the second leg with
+      // the sea pixel; the first leg is hazed here (plans/REFLECTION.md
+      // phase 4): the air's extinction per colour plus the sea haze, which
+      // thins with height (takram's 1 km scale height, averaged over the
+      // ray's rise R.y·t; seaHaze.ts reflectionTransmittance). It fades
+      // toward the sky this ray mirrors: far land's image sits just under
+      // the horizon, where that is the horizon sky in its azimuth (on haze
+      // days the cube is drawn through the same haze), and land lost in
+      // the haze leaves exactly the sky reflection, no patch. (The cube's
+      // horizon at +1.4° and lod 2 was far paler than the sea's own sky
+      // reflection: a 37 km volcano gone in the haze left a bright sheet.)
+      // The sea haze fades its share by (1 − T)², as the main pass does
+      // (takram mixes in a haze colour already scaled by its opacity, by
+      // that opacity again: measured on 2003-03-11's islands at 2.9 and
+      // 7.35 km, both solve to one haze colour only that way); with
+      // (1 − T) the image came out brighter than its island.
+      // Premultiplied: the coverage stays.
+      float x = max(R.y * hazeT, 0.0) / 1000.0;
+      float thin = x < 1e-3 ? 1.0 - 0.5 * x : (1.0 - exp(-x)) / x;
+      vec3 airT = exp(-reflectionAir * hazeT);
+      float seaT = exp(-reflectionSeaHaze * thin * hazeT);
+      vec3 fade = 1.0 - airT + (1.0 - seaT) * (1.0 - seaT);
+      planar.rgb = planar.rgb * airT * seaT + clamp(planar.a, 0.0, 1.0) * skyReflected * min(fade, vec3(1.0));
     }
     reflected = reflected * (1.0 - clamp(planar.a, 0.0, 1.0)) + planar.rgb;
   }
@@ -925,6 +970,11 @@ export function createOcean(
       reflectionRay: { value: params.debug?.passes?.reflectionRay === false ? 0 : 1 },
       // Blur the mirror image along its streak, not round (0: one mip lookup).
       reflectionStreaks: { value: params.debug?.passes?.reflectionStreaks === false ? 0 : 1 },
+      // Haze the mirror image over its path to the water (0: none, as in
+      // 0.132); scene.ts sets the extinctions (seaHaze.ts reflectionExtinction).
+      reflectionHaze: { value: params.debug?.passes?.reflectionHaze === false ? 0 : 1 },
+      reflectionAir: { value: new Vector3() },
+      reflectionSeaHaze: { value: 0 },
       planarDepth: { value: null as Texture | null },
       planarProjInv: { value: new Matrix4() },
       envMaxLod: { value: 8 },

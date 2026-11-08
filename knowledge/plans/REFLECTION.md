@@ -1,6 +1,6 @@
 # Reflections that follow the waves
 
-**Status: phases 0–3 done (2026-11-08; 0.130 ripple layers, 0.131 ray lookup + light-air onset, 0.132 streaks). Next: phase 4 (haze on the mirror image, no 5 km cutoff).** Research and sources:
+**Status: phases 0–4 done (2026-11-08; 0.130 ripple layers, 0.131 ray lookup + light-air onset, 0.132 streaks, 0.133 haze on the mirror image, no 5 km cutoff). Next: phase 5 (wet sand and rock pools).** Research and sources:
 [../REFLECTION.md](../REFLECTION.md) (§ numbers below refer to it). How the reflection works
 today: [../arch/OCEAN.md](../arch/OCEAN.md) "Reflections". Estimates are marked; everything else
 was measured, read in the code or seen in the reference photos below.
@@ -293,7 +293,41 @@ small α; phase 1 changes that. Confirm on the phase 2 renders before building.
 - **Done when:** `mid-islands` and `harbour-night` show vertical columns 3–6× taller than
   wide (photo E), not round blurs; `bench.mjs` within +2%.
 
-## Phase 4: haze on the mirror path, no distance cutoff
+## Phase 4 (done 2026-11-08, 0.133): haze on the mirror path, no distance cutoff
+
+**What was built and found** (differs from the plan below in two places):
+- As planned: `T = exp(−(air + seaHaze·thin)·t)` per colour in the ocean shader, t the object →
+  water path from the mirror depth *where the ray lands* (`hazeT`), the sea haze thinned with
+  height like takram's (1 km scale height, averaged over the ray's rise R.y·t). Uniforms
+  `reflectionAir`, `reflectionSeaHaze` from `seaHaze.ts` `reflectionExtinction` (the same
+  `seaHazeExtinction` the clouds pass uses; 0 sea haze when the clouds pass doesn't run).
+  `distant` no longer hides anything; shelf and roll clouds got `userData.skyLike` and stay out.
+- **Haze colour = the sky this ray mirrors** (`textureLod(envMap, R, lod)`), not the cube at
+  +0.02 rad × `hazeLight` × `hazeTint`. On haze days the cube is drawn through the same clouds pass
+  and haze, so its horizon already is the haze; ×`hazeLight` would dim it twice. And the cube at
+  +1.4°, lod 2 was far paler than the sea's own sky reflection: the 37 km volcano on 2003-03-11
+  (T ≈ 0.01) left a bright sheet and pale ovals on the near water. Now land lost in the haze
+  leaves exactly the sky reflection.
+- **(1 − T)² for the sea haze, as the main pass does.** Probes on `calm-islands` (raw, aerial and
+  clouds passes off, vs on) give island 1 (2.9 km) and island 2 (7.35 km) one haze colour (green
+  ≈ 0.129) only with the plan's T (0.70, 0.41) *and* an inscatter weight of (1 − T)²: takram
+  mixes a haze colour already scaled by its opacity, by that opacity again. With (1 − T) the
+  image was brighter than its own island. The air's share keeps (1 − T).
+- Done-when, `calm-islands` (F ≈ 0.89 at 1.3° grazing): island 1's image middle is
+  (0.0069, 0.0086, 0.0109) raw against F × island (0.0151, 0.0145, 0.0139); 0.132 gave
+  (0.0047, 0.0057, 0.0047). **Not within 5%**: the haze share is ~2.5× too dark because on this
+  day the sky cube's horizon is ~3× darker than the frame's own (sea at F ≈ 0.97 just under the
+  horizon 0.046 green vs sky 0.159). That is the cube, not this phase (Known issues).
+- Results (`diff.mjs` vs 0.132): `clear-islands` mirrors the 6.4 km stack, paler than the near
+  islands; `mountain-calm` the 34 km range, broken into bands by the incoming swell; windy specs
+  ≤ 0.3% changed (`windy-islands`, `clear-islands-windy`, `mid-islands`; `mountain-windy`
+  0.07%): nothing recognizable, no wedge under the volcano. Real days (8 with land or islands):
+  soft, faint changes under far headlands on windy seas, near boats and lighthouses barely
+  hazed. Switch off = 0.132 exactly (12 specs); 0% render time; 0 days' choices changed.
+- Earth curvature: the mirror is the plane y = 0, so far land's feet below it (82 m at 34 km) are
+  clipped and the rest mirrored about y = 0, not the curved sea. Not visible at these distances.
+
+Original plan:
 
 The reflected light travels object → water (t, from `planarDepth`) → eye (D). The sea pixel
 already gets the haze over D from the main pass; the mirror image needs the haze over t (§2).

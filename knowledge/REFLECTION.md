@@ -199,8 +199,10 @@ water film over a bright bottom is my own *(general)*.
    island. The spread that matters is the full Cox–Munk one: drawn and unresolved together.
 3. **Fixed in 0.132 (anisotropic streaks). Was: isotropic blur** (one `textureLod`): round smudges where the physics gives vertical streaks
    (§1.3). Skipped on 10-31 as not worth the taps; the fix for items 1–2 makes it matter more.
-4. **The 5 km cutoff** (`userData.distant`, `islands.ts`, `landforms.ts`) stands in for the
-   missing haze (§2).
+4. **Fixed in 0.133 (haze over the mirror path). Was: the 5 km cutoff** (`userData.distant`,
+   `islands.ts`, `landforms.ts`) stood in for the missing haze (§2). The haze fades toward the sky
+   the ray mirrors and weights the sea haze (1 − T)², as takram's main pass does
+   (plans/REFLECTION.md phase 4).
 5. **Wet sand and pools** reflect only the sky (env map). Pools and the swash film should also
    mirror rocks, cliffs and people (`planarMap` is already rendered; terrain could read it).
 6. **Fixed in 0.130 (ripple layers, arch/OCEAN.md "Short waves"). Was: the waves were too smooth for any of this to follow the wind** (measured 2026-11-08,

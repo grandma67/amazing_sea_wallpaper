@@ -2,6 +2,7 @@ import { PerspectiveCamera, Vector3, Vector4 } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import { mirrorCamera } from '../src/reflection'
+import { reflectionExtinction, reflectionTransmittance } from '../src/seaHaze'
 
 // The ocean shader's mirror lookup (ocean.ts, plans/REFLECTION.md phase 2),
 // mirrored in TS: follow the reflected ray R from the sea point P for t (the
@@ -64,5 +65,39 @@ describe('mirror lookup along the reflected ray', () => {
       return Math.abs(lookup(cam, 300, 0.002, 2000)[1] - lookup(cam, 300, 0, 2000)[1]) * vFov
     }
     expect(angle(15) / angle(60)).toBeCloseTo(1, 1)
+  })
+})
+
+// Phase 4: the mirror image hazed over its path from the object to the water
+// (ocean.ts reflectionHaze, seaHaze.ts reflectionTransmittance).
+describe('reflection haze', () => {
+  it('matches the plan for 2003-03-11 (visibility 32 km, sea haze)', () => {
+    const ext = reflectionExtinction(32, true)
+    expect(ext.haze + ext.air[1]).toBeCloseTo(3.912 / 32000, 8)
+    expect(reflectionTransmittance(ext, 2900)[1]).toBeCloseTo(0.7, 2)
+    expect(reflectionTransmittance(ext, 7350)[1]).toBeCloseTo(0.41, 2)
+    expect(reflectionTransmittance(ext, 37000)[1]).toBeLessThan(0.015)
+    // Blue fades first.
+    const [r, g, b] = reflectionTransmittance(ext, 7350)
+    expect(r).toBeGreaterThan(g)
+    expect(g).toBeGreaterThan(b)
+  })
+
+  it('has only the air on clear days without the sea haze', () => {
+    const ext = reflectionExtinction(32, false)
+    expect(ext.haze).toBe(0)
+    const T = reflectionTransmittance(ext, 34000)
+    // The plan's clear-day mountain at 34 km: 0.71 / 0.55 / 0.28.
+    expect(T[0]).toBeCloseTo(0.71, 2)
+    expect(T[1]).toBeCloseTo(0.54, 1)
+    expect(T[2]).toBeCloseTo(0.28, 2)
+  })
+
+  it('thins the sea haze with height, as takram does', () => {
+    const ext = reflectionExtinction(20, true)
+    const low = reflectionTransmittance(ext, 5000, 0)[1]
+    const high = reflectionTransmittance(ext, 5000, 1000)[1]
+    expect(high).toBeGreaterThan(low)
+    expect(-Math.log(high) / 5000 - ext.air[1]).toBeCloseTo(ext.haze * (1 - Math.exp(-1)), 8)
   })
 })

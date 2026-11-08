@@ -96,7 +96,8 @@ export function createShelfCloud(ctx: PropContext): Object3D[] {
   }
   const mesh = new Mesh(shelfGeometry(shelf, toStorm, origin, cloudBase(ctx.params.weather.formations, 'cumulonimbus')).build(), material)
   mesh.frustumCulled = false
-  mesh.userData.distant = true
+  // Cloud-like: the sky cube mirrors clouds, so the planar mirror leaves it out.
+  mesh.userData.skyLike = true
   return [mesh]
 }
 
@@ -158,7 +159,8 @@ export function createRollCloud(ctx: PropContext): Object3D[] {
   if (new Vector3(axis.z, 0, -axis.x).dot(new Vector3(hx, 0, hz)) < 0) axis.negate()
   const mesh = new Mesh(rollGeometry(roll, axis, centre).build(), new MeshStandardMaterial({ vertexColors: true, roughness: 1 }))
   mesh.frustumCulled = false
-  mesh.userData.distant = true
+  // Cloud-like: the sky cube mirrors clouds, so the planar mirror leaves it out.
+  mesh.userData.skyLike = true
   return [mesh]
 }
 

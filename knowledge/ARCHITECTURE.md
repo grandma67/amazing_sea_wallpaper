@@ -258,6 +258,14 @@ December noon is 17° up; changes many winter days, ask first).
 
 ## Known issues
 
+- Sea haze and the sky cube (found in REFLECTION.md phase 4, 2026-11-08, 2003-03-11 `calm-islands`):
+  (1) takram's haze fades objects with (1 − T)² instead of (1 − T) (it mixes an inscatter already
+  scaled by the opacity, by the opacity again), so mid-distance land is darker than Koschmieder's
+  haze would leave it; the mirror image matches it (ocean.ts `reflectionHaze`), so a fix there must
+  change both. (2) On that broken-sky day the sea at the horizon (F ≈ 0.97) reads 0.046 green
+  against a sky of 0.159: the cloudy sky cube's horizon is ~3× darker than the frame's, so calm
+  water is darker than the sky at the horizon and hazed mirror images come out too dark (island 1's
+  ~50–80% of F × its own colour). Not traced; check a clear day before changing anything.
 - Night frames (found in SHADOWS.md phase 6, 2026-11-07): the night white balance (`NIGHT_WHITE_BALANCE_K`,
   gains 0.67, 1.02, 1.77) turns moonlit white sand (raw 0.068, 0.060, 0.058) deep blue (exposed B/R 2.3);
   at ~4000 K and moonlight's ~4100 K it should be near neutral. A starlit cloud deck is lit blue (raw B/R

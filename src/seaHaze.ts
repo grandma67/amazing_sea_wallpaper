@@ -24,6 +24,34 @@ import { monthInSeason } from './seasons'
 
 /** Extinction of the Bruneton sky's own air at sea level (1/m, ~550 nm). */
 const SKY_EXTINCTION = 1.8e-5
+/** The same per colour: Rayleigh (5.80, 13.56, 33.1)·10⁻⁶ + Mie 4.44·10⁻⁶
+ * (Bruneton's sea-level coefficients, which takram's aerial perspective uses);
+ * the green one is SKY_EXTINCTION. */
+export const AIR_EXTINCTION: RGB = [1.024e-5, 1.8e-5, 3.754e-5]
+/** takram's haze falls off with height as exp(−h · hazeExponent): 1 km. */
+export const HAZE_SCALE_HEIGHT_M = 1000
+
+/** Extinction (1/m) the sea haze adds to the air's for this visibility
+ * (Koschmieder: the two together are 3.912 / V at ~550 nm). */
+export function seaHazeExtinction(visibilityM: number): number {
+  return Math.max(3.912 / visibilityM - SKY_EXTINCTION, 0)
+}
+
+/** Extinction along the mirror image's path (object → water) per colour, at
+ * sea level: the air's, plus the sea haze on the days the clouds pass draws it
+ * (any cloud, or dust: clear days have only the air). The ocean shader thins
+ * the haze part with height (HAZE_SCALE_HEIGHT_M), as the clouds pass does. */
+export function reflectionExtinction(visibilityKm: number, seaHaze: boolean): { air: RGB; haze: number } {
+  return { air: AIR_EXTINCTION, haze: seaHaze ? seaHazeExtinction(visibilityKm * 1000) : 0 }
+}
+
+/** Share of the light (per colour) that crosses a mirror path of length t
+ * (m) rising to height y (m): what the ocean shader applies (ocean.ts). */
+export function reflectionTransmittance(ext: { air: RGB; haze: number }, t: number, y = 0): RGB {
+  const x = Math.max(y, 0) / HAZE_SCALE_HEIGHT_M
+  const thin = x < 1e-3 ? 1 - 0.5 * x : (1 - Math.exp(-x)) / x
+  return ext.air.map(a => Math.exp(-(a + ext.haze * thin) * t)) as RGB
+}
 
 /** Visibility range (km), drawn log-uniform, by biome; polar oceans override. */
 const VISIBILITY: Record<Biome['name'], [number, number]> = {
@@ -167,5 +195,5 @@ export function applySeaHaze(clouds: CloudsEffect, visibilityM: number, weather:
   material.uniforms.hazeFromHorizon = new Uniform(weather.dust != null)
   material.needsUpdate = true
   clouds.haze = true
-  clouds.clouds.hazeDensityScale = Math.max(3.912 / visibilityM - SKY_EXTINCTION, 0)
+  clouds.clouds.hazeDensityScale = seaHazeExtinction(visibilityM)
 }

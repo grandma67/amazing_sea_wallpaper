@@ -441,6 +441,13 @@ tool gotchas: TOOLS.md.
   into a haze. Add it as a layer of slopes whose mips become variance (the cascades' own LEAN
   trick). One shrunk copy of a cascade tiles visibly (1.7 m ≈ 25 px at 50 m): use two at
   incommensurate sizes and angles.
+- A haze added beside takram's must match takram, not the textbook: its haze mixes a colour
+  already scaled by the opacity a by a again, so the inscatter goes as a², not a. Solve two
+  objects at known distances for one haze colour (raw with `aerial`/`clouds` off, then on) before
+  trusting a formula: the textbook one made the mirror image brighter than its island.
+- Fade a mirrored object's haze toward the sky that same ray reflects, not a sampled "horizon"
+  colour: anything lost in the haze must vanish into the sea around it, or a hidden 37 km
+  volcano leaves a pale sheet on the water.
 - Normals "fixed" for shading are not the surface: `N + V·(0.05 − N·V)` tilts a flat sea ~3°
   toward the viewer at grazing angles. Anything geometric (the mirror lookup) must use the
   wave's own normal; it hid a 2.3°-tall island's whole reflection.

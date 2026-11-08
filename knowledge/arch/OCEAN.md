@@ -97,8 +97,14 @@ surf".
   without anisotropic filtering, so it would need 3–5 vertical taps per sea pixel for slightly
   crisper column sides. (Superseded: with the 0.130 roughness the square blur lost whole
   reflections; the fix was turning anisotropic filtering on, above.)
-  The wave shift and blur are far below the physical spread on a windy sea, and the 5 km `distant`
-  cutoff stands in for missing haze: [REFLECTION.md](../REFLECTION.md) §5–6.
+  **Haze (0.133, `passes.reflectionHaze`, phase 4):** far land is mirrored (no 5 km cutoff; only
+  `userData.skyLike` shelf and roll clouds are hidden, the cube mirrors clouds) and the image is
+  hazed over its object → water leg (the main pass hazes water → eye): `T = exp(−(air +
+  seaHaze·thin)·hazeT)`, `hazeT` from the mirror depth where the ray lands, `thin` takram's 1 km
+  scale height averaged over the rise R.y·t, uniforms from `seaHaze.ts` `reflectionExtinction`.
+  It fades toward `skyReflected` (the cube along R): land lost in haze leaves the sky reflection.
+  The sea haze's inscatter is weighted (1 − T)², matching takram (it mixes an opacity-scaled
+  colour by the opacity again); the air's (1 − T). Off: the `distant` cutoff, as 0.132.
 - **Ships in the ocean shader:** `setOceanShips` (8 nearest) cuts the hull out of the sea and adds
   the Kelvin wake, foam and slick (PROPS.md "Ships").
 - **A frozen sea:** the ocean shader doesn't know. A floating sheet covers it (PROPS.md "Sea ice") and it runs calm below,

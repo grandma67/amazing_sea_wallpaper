@@ -91,7 +91,7 @@ import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
-import { dustSkylight, dustTransmittance } from './seaHaze'
+import { dustSkylight, dustTransmittance, reflectionExtinction } from './seaHaze'
 import { shadeProps } from './propShade'
 import { bindCloudShadow, bindLandShadow, bindShadow, FINE_SHADOW_SIZE, fineShadowScale, fitFineShadow, landCloudUniforms, renderLandShadow } from './shadow'
 import { cloudSkylightRatio, measureSkylight, skyOpenUniforms } from './skylight'
@@ -924,10 +924,11 @@ export async function renderScene(
       const hide = [
         ocean,
         ...scene.children.filter(o => o.userData.sky === true),
-        // Distant mountains are hazed by aerial perspective, which the
-        // reflection pass doesn't apply: their mirror image would be far too
-        // dark and sharp.
-        ...props.children.filter(o => o.userData.distant === true),
+        // Cloud-like props (shelf clouds, roll clouds): the sky cube
+        // mirrors clouds. Far land is mirrored and hazed over its path to
+        // the water (ocean.ts reflectionHaze); with that off, as before
+        // 0.133: everything distant left out, the haze's stand-in.
+        ...props.children.filter(o => o.userData.skyLike === true || (!pass('reflectionHaze') && o.userData.distant === true)),
         // Lamps: the sea mirrors them as point lights (ocean.ts).
         ...lampSprites(props)
       ]
@@ -938,6 +939,9 @@ export async function renderScene(
       ocean.material.uniforms.planarDepth.value = reflection.target.depthTexture
       ocean.material.uniforms.planarProjInv.value.copy(reflection.projectionInverse)
       ocean.material.uniforms.planarOn.value = 1
+      const extinction = reflectionExtinction(params.visibilityKm, clouds != null)
+      ;(ocean.material.uniforms.reflectionAir.value as Vector3).set(...extinction.air)
+      ocean.material.uniforms.reflectionSeaHaze.value = extinction.haze
     }
   }
   // Volumetric clouds converge over frames (temporal upscaling and

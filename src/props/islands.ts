@@ -344,8 +344,8 @@ export function createIslands(ctx: PropContext, avoid: Object3D | null): Object3
       // The near map too, where an island is inside it: props on it in its shade.
       o.castShadow = true
       o.receiveShadow = true
-      // Far islands are hazed by aerial perspective, which the reflection
-      // pass doesn't apply (see scene.ts): leave them out of the mirror.
+      // Far islands: no foam band (props/index.ts); with passes.reflectionHaze
+      // off they're also left out of the mirror (scene.ts).
       if (at.distanceTo(ctx.camera.position) > 5000) o.userData.distant = true
       objects.push(o)
     }

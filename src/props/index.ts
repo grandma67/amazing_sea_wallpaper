@@ -100,7 +100,7 @@ export function createProps(ctx: PropContext): Group {
  * (`userData.waterline`), for the ocean's foam round them
  * (ocean.ts setOceanIslands), spray against them and a wash of white water
  * on their faces. None past 5 km: no foam band resolves there, and their
- * faces are hazed (they're left out of the reflection too). */
+ * faces are hazed. */
 export function waterIslandsOf(ctx: PropContext, objects: Object3D[]): IslandWater[] {
   const out: IslandWater[] = []
   for (const o of objects) {
