@@ -442,9 +442,9 @@ tool gotchas: TOOLS.md.
   trick). One shrunk copy of a cascade tiles visibly (1.7 m ≈ 25 px at 50 m): use two at
   incommensurate sizes and angles.
 - A haze added beside takram's must match takram, not the textbook: its haze mixes a colour
-  already scaled by the opacity a by a again, so the inscatter goes as a², not a. Solve two
-  objects at known distances for one haze colour (raw with `aerial`/`clouds` off, then on) before
-  trusting a formula: the textbook one made the mirror image brighter than its island.
+  already scaled by the opacity a by a again, so the inscatter goes as a², not a. Measure it with
+  `haze.mjs` (two objects, one haze colour) before trusting a formula. Probe by world point and
+  check `covered by`: a guessed pixel on a palm frond once "proved" the textbook weighting.
 - Fade a mirrored object's haze toward the sky that same ray reflects, not a sampled "horizon"
   colour: anything lost in the haze must vanish into the sea around it, or a hidden 37 km
   volcano leaves a pale sheet on the water.

@@ -5,6 +5,9 @@
 //
 //   node scripts/diff.mjs --scene SPEC --off PATCH [--out out/diff]   feature on vs off
 //   node scripts/diff.mjs --scene SPEC --ref HEAD [--off PATCH]       REF (off) vs this tree (on)
+//   node scripts/diff.mjs --where EXPR [--sample N] [--spread EXPR] --off PATCH | --ref HEAD
+//                     real days instead of specs: N (8) of the days 'p => …' keeps,
+//                     spread as params.mjs --sample does; named by date
 //   node scripts/diff.mjs --a DIR --b DIR [--match REGEX]             two folders, same names
 //   node scripts/diff.mjs --scene SPEC --ref HEAD --off PATCH --off-here
 //                     REF as it was (off) vs this tree with PATCH (on): does a new
@@ -22,9 +25,12 @@
 //                   not shrunk (`box`: the changed box). With --a/--b, no new render.
 // --zoom N          enlarge that crop N times, pixels kept sharp (default 1)
 //
-// Renders at 1920×1080 and 16 frames unless --w --h --frames say otherwise.
+// Renders at 1920×1080 and 16 frames unless --w --h --frames say otherwise
+// (snapshot.mjs alone defaults to 4K: pass --w 1920 --h 1080 to probe a diff's frame).
+// NAME.diff.jpg's top panels are cropped to the changed box, not the whole frame:
+// read pixel positions from OUT/off and OUT/on, not from it.
 
-import { spawnSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { chromium } from 'playwright'
@@ -33,7 +39,10 @@ import { createServer } from 'vite'
 import { merge, parseArgs, readJson, readSpecs } from './lib.mjs'
 
 const { option, flag, rejectUnknown, rejectPositional } = parseArgs()
-const sceneArg = option('scene', null)
+let sceneArg = option('scene', null)
+const whereArg = option('where', null)
+const sampleArg = option('sample', '8')
+const spreadArg = option('spread', null)
 const offArg = option('off', null)
 const refArg = option('ref', null)
 const outDir = resolve(option('out', 'out/diff'))
@@ -57,6 +66,18 @@ const offHere = flag('off-here')
 rejectUnknown()
 rejectPositional('diff.mjs takes only options')
 if (offHere && (refArg == null || offArg == null)) throw new Error('--off-here needs --ref REF and --off PATCH')
+if (whereArg != null) {
+  if (sceneArg != null) throw new Error('give --scene or --where, not both')
+  const asked = ['--where', whereArg, '--sample', sampleArg, ...(spreadArg != null ? ['--spread', spreadArg] : [])]
+  const dates = execFileSync(process.execPath, [new URL('./params.mjs', import.meta.url).pathname, ...asked], { encoding: 'utf8' })
+    .split('\n')
+    .filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l))
+  if (dates.length === 0) throw new Error(`--where kept no days: ${whereArg}`)
+  console.log(`[diff] real days: ${dates.join(' ')}`)
+  await mkdir(outDir, { recursive: true })
+  sceneArg = join(outDir, 'real-days.json')
+  await writeFile(sceneArg, JSON.stringify(dates.map(date => ({ name: date, date }))))
+}
 
 if (sceneArg != null) {
   if (offArg == null && refArg == null) throw new Error('--scene needs --off (the patch that turns the feature off) or --ref (a commit to compare with)')

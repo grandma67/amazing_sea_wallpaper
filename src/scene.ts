@@ -650,6 +650,9 @@ export async function renderScene(
     cloudAssets != null
       ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells)
       : null
+  // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
+  // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).
+  if (clouds != null && !pass('seaHaze')) clouds.haze = false
   // Accumulated frames only redraw what changes: the spray sprites.
   const spray: Object3D[] = []
   props.traverse(o => {
@@ -787,10 +790,17 @@ export async function renderScene(
   const probes = params.debug?.probe ?? []
   const probeBoxes: (ProbeBox | null)[] = probes.map(at => {
     const half = params.debug?.probeHalf ?? 2
-    const px: [number, number] | null = Array.isArray(at)
-      ? [at[0] * (width - 1), at[1] * (height - 1)]
-      : // The render's own aspect (createCamera), not the composed one.
-        pixelOf({ camera: { ...params.camera, aspect: width / height } }, skyDir(params.camera.headingDeg + at.az, at.el), width, height, dip)
+    let px: [number, number] | null
+    if (Array.isArray(at)) px = [at[0] * (width - 1), at[1] * (height - 1)]
+    else if ('world' in at || 'mirror' in at) {
+      // A world point, or its mirror image in the sea plane, through the render camera.
+      const [x, y, z] = 'world' in at ? at.world : at.mirror
+      camera.updateMatrixWorld()
+      const n = new Vector3(x, 'world' in at ? y : -y, z).project(camera)
+      px = n.z < 1 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1 ? [((n.x + 1) / 2) * (width - 1), ((1 - n.y) / 2) * (height - 1)] : null
+    } else
+      // The render's own aspect (createCamera), not the composed one.
+      px = pixelOf({ camera: { ...params.camera, aspect: width / height } }, skyDir(params.camera.headingDeg + at.az, at.el), width, height, dip)
     if (px == null) return null
     const clampPx = (v: number, n: number): number => Math.min(n - 1 - half, Math.max(half, v))
     return { pixel: [clampPx(px[0], width), clampPx(px[1], height)], half }
@@ -1083,6 +1093,8 @@ export async function renderScene(
       pitchDeg: camera.rotation.x / DEG,
       // Ground under the camera (diff.mjs --keep-camera).
       cameraGroundM: camera.position.y - params.camera.heightM,
+      // World position (m): distances to probed world points (scripts/haze.mjs).
+      cameraPosition: camera.position.toArray().map(v => +v.toFixed(2)),
       props: reportProps(props, camera, width, height),
       // CPU time (ms) each prop kind took to build.
       propTimes: Object.fromEntries(Object.entries(props.userData.times as Record<string, number>).map(([k, ms]) => [k, Math.round(ms)])),

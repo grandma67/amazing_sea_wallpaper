@@ -190,7 +190,7 @@ for (const { date, spec: asked, name } of todo) {
   if (process.env.DEBUG) console.log(JSON.stringify(params.debug))
   // The pixel probe (params.debug.probe): one line per point.
   for (const r of params.debug?.probe ?? []) {
-    const at = Array.isArray(r.at) ? `[${r.at.join(', ')}]` : `az ${r.at.az} el ${r.at.el}`
+    const at = Array.isArray(r.at) ? `[${r.at.join(', ')}]` : r.at.world != null ? `world ${r.at.world.join(',')}` : r.at.mirror != null ? `mirror of ${r.at.mirror.join(',')}` : `az ${r.at.az} el ${r.at.el}`
     if (r.pixel == null) {
       console.log(`  probe ${at}: out of frame`)
       continue

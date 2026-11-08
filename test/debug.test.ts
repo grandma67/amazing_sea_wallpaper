@@ -36,6 +36,15 @@ describe('debug switches', () => {
   })
 })
 
+describe('probe spec', () => {
+  it('takes image points, sky directions, world points and their mirror images', () => {
+    const probe = [[0.5, 0.5], { az: 0, el: 1 }, { world: [10, 2, -300] }, { mirror: [10, 2, -300] }]
+    expect(() => parseSceneSpec({ params: { debug: { probe } } } as never)).not.toThrow()
+    expect(() => parseSceneSpec({ params: { debug: { probe: [{ world: [1, 2] }] } } } as never)).toThrow(/world: \[x, y, z\]/)
+    expect(() => parseSceneSpec({ params: { debug: { probe: [{ mirror: [1, 2, 3], az: 0 }] } } } as never)).toThrow(/mirror/)
+  })
+})
+
 describe('probe line spec', () => {
   it('takes a line or a list, one range each', () => {
     expect(() => parseSceneSpec({ params: { debug: { probeLine: { az: 0, el: [2, 40] } } } })).not.toThrow()

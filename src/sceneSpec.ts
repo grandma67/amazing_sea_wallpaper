@@ -274,7 +274,9 @@ const object = (fields: Record<string, Check>, nullable = false): Check => (valu
   if (value === null || typeof value !== 'object' || Array.isArray(value)) fail(path, `must be an object${nullable ? ' or null' : ''}`)
   for (const [key, v] of Object.entries(value as object)) {
     const check = fields[key]
-    if (check == null) fail(`${path}.${key}`, `is not a known field (known: ${Object.keys(fields).join(', ')})`)
+    // Debug switches are params, not spec fields: the commonest slip in an --off patch.
+    const hint = key === 'debug' && path === 'spec' ? '; debug switches go under params: {"params":{"debug":{…}}}' : ''
+    if (check == null) fail(`${path}.${key}`, `is not a known field${hint} (known: ${Object.keys(fields).join(', ')})`)
     check(v, `${path}.${key}`)
   }
 }
@@ -459,8 +461,12 @@ function checkDebug(value: unknown, path: string): void {
           if (e.length !== 2 || !e.every(x => typeof x === 'number' && x >= 0 && x <= 1)) fail(at, 'must be [x, y] with each in 0–1')
         } else if (e !== null && typeof e === 'object') {
           const o = e as Record<string, unknown>
-          if (typeof o.az !== 'number' || typeof o.el !== 'number' || Object.keys(o).length !== 2) fail(at, 'must be {az, el} in degrees')
-        } else fail(at, 'must be [x, y] or {az, el}')
+          const point = o.world ?? o.mirror
+          if (point !== undefined) {
+            if (Object.keys(o).length !== 1 || !Array.isArray(point) || point.length !== 3 || !point.every(x => typeof x === 'number' && Number.isFinite(x)))
+              fail(at, 'must be {world: [x, y, z]} or {mirror: [x, y, z]} in metres')
+          } else if (typeof o.az !== 'number' || typeof o.el !== 'number' || Object.keys(o).length !== 2) fail(at, 'must be {az, el} in degrees')
+        } else fail(at, 'must be [x, y], {az, el}, {world} or {mirror}')
       })
     },
     probeHalf: (v, p) => {

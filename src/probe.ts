@@ -1,6 +1,8 @@
 import { Pass } from 'postprocessing'
 import { DataUtils, FloatType, HalfFloatType, type WebGLRenderer, type WebGLRenderTarget } from 'three'
 
+import type { ProbeAt } from './debug'
+
 // The pixel probe (`params.debug.probe`, knowledge/tools/DEBUG.md): what the
 // render really holds at a few pixels or sky directions, in three stages:
 // - raw: the scene's radiance before exposure and white balance (render
@@ -12,9 +14,7 @@ import { DataUtils, FloatType, HalfFloatType, type WebGLRenderer, type WebGLRend
 // JPEG. Each probe reads a small box: mean and peak (a star or a planet is
 // a peak, a sky a mean).
 
-/** A probe: a point as fractions of the image (x right, y down), or a sky
- * direction: azimuth from the view (deg, + right) and elevation (deg). */
-export type ProbeAt = [number, number] | { az: number; el: number }
+export type { ProbeAt }
 
 export interface ProbeBox {
   /** Pixel centre (x right, y down from the top-left). */

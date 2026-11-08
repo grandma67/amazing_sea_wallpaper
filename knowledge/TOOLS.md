@@ -29,6 +29,9 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | A number over a folder of renders (median, quartiles by group; or counts) | `summary.mjs DIR 'j => j.debug.X' --by 'j => …'` | [tools/RENDER.md](tools/RENDER.md) |
 | Which pass, term or grid causes a look | `params.debug` switches and views | [tools/DEBUG.md](tools/DEBUG.md) |
 | How bright or what colour is X in the render (raw, cd/m², mag/″², final RGB) | `params.debug.probe` | [tools/DEBUG.md](tools/DEBUG.md) |
+| An object and its mirror image on the sea, by world point (not a guessed pixel) | `params.mjs --project KIND --above M` → probe `{world}` / `{mirror}` | [tools/PARAMS.md](tools/PARAMS.md), [tools/DEBUG.md](tools/DEBUG.md) |
+| How the frame hazes objects (T, haze colour, which weighting) before matching it | `haze.mjs --scene --points` | [tools/RENDER.md](tools/RENDER.md) |
+| Did a feature show up on real days (not specs) | `diff.mjs --where --sample --off` | [tools/RENDER.md](tools/RENDER.md) |
 | Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |
 | Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
@@ -108,6 +111,15 @@ answers in 1–2 s: cap a wait loop at ~10 s and treat longer as a fault. The fi
 minutes (dep optimisation).
 
 ## Gotchas
+
+- **Probing a render you saw in a diff:** `snapshot.mjs` defaults to 4K, `diff.mjs` to 1080p, so the
+  same spec frames differently; pass `--w 1920 --h 1080`. `NAME.diff.jpg`'s top panels are cropped
+  to the changed box: read positions from `OUT/on/NAME.jpg`, or better probe by world point
+  (`{world}`/`{mirror}` from `params.mjs --project`). Check `covered by` there: a world point
+  behind a palm frond reads the frond (it gave a "far island" its colour in REFLECTION phase 4).
+  Three probe renders were lost to these before the tools existed.
+- **`--off` patches are spec fields:** debug switches go under `params`:
+  `--off '{"params":{"debug":{"passes":{"X":false}}}}'` (the spec check now says so).
 
 - The browser's DevTools console shows more than Playwright's `console` event: the render
   worker's WebGL warnings and every GPU-process message (`[.WebGL-0x…] GL_INVALID_…`) come only

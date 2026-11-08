@@ -222,6 +222,8 @@ describe('parseSceneSpec', () => {
 
   it('names the bad field', () => {
     expect(() => parseSceneSpec({ timeofday: 'night' })).toThrow(/spec\.timeofday is not a known field/)
+    // The commonest slip in a diff.mjs --off patch.
+    expect(() => parseSceneSpec({ debug: { passes: { aerial: false } } } as never)).toThrow(/debug switches go under params/)
     expect(() => parseSceneSpec({ biome: 'arctic' })).toThrow(/spec\.biome must be one of/)
     expect(() => parseSceneSpec({ props: { marine: 'shark' } })).toThrow(/spec\.props\.marine/)
     expect(() => parseSceneSpec({ props: { ships: ['submarine'] } })).toThrow(/spec\.props\.ships\[0\]/)

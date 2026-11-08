@@ -40,11 +40,17 @@ beside the camera". Kinds: `props/index.ts`, comma-separated, or `all`.
 ```sh
 node scripts/params.mjs --scene scenes/snow.json --project ice-foot,rocks --rows 6
 #   ice-foot: 1/1 in frame, nearest 2946 m, box [0,492,1730,510]     ← box centre of one long mesh
-#       dist       s       a       y  above   px
-#        6.4    -4.6     6.4     0.4     0.0   1259,776              ← its real nearest point
+#       dist       s       a       y  above        x        z   px         mirror px  covered by
+#        6.4    -4.6     6.4     0.4     0.0    …        …     1259,776   1259,790   -     ← its real nearest point
 ```
 
 Points are a mesh's vertices or an instance's origin, so a big instanced piece is measured at its origin.
+Also per point: world `x`, `z` and `mirror px` (where the sea shows its reflection) for
+`params.debug.probe` `{world: [x, y, z]}` / `{mirror: …}`, and `covered by`: the first prop between
+the camera and the point (its kind and distance; props only, not the terrain; checked up to 20000
+rows, ~25 s), which a probe there would read instead. `--above M` keeps points at least M above the
+sea: an island's face, not its underwater skirt. Far points come after all nearer ones: use a large
+`--rows` and grep by distance.
 
 ### Which camera: `--rendered`
 

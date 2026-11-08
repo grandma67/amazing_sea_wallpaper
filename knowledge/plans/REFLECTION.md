@@ -312,7 +312,9 @@ small α; phase 1 changes that. Confirm on the phase 2 renders before building.
   clouds passes off, vs on) give island 1 (2.9 km) and island 2 (7.35 km) one haze colour (green
   ≈ 0.129) only with the plan's T (0.70, 0.41) *and* an inscatter weight of (1 − T)²: takram
   mixes a haze colour already scaled by its opacity, by that opacity again. With (1 − T) the
-  image was brighter than its own island. The air's share keeps (1 − T).
+  image was brighter than its own island. The air's share keeps (1 − T). Rechecked afterwards with
+  `haze.mjs` on uncovered world points (2.8 and 7.5 km): H green 0.139 / 0.126 with (1 − T)², 0.041 /
+  0.076 with (1 − T). The first try's island 2 point was behind a palm frond.
 - Done-when, `calm-islands` (F ≈ 0.89 at 1.3° grazing): island 1's image middle is
   (0.0069, 0.0086, 0.0109) raw against F × island (0.0151, 0.0145, 0.0139); 0.132 gave
   (0.0047, 0.0057, 0.0047). **Not within 5%**: the haze share is ~2.5× too dark because on this

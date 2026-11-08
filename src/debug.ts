@@ -4,6 +4,16 @@
 // How to use them: knowledge/tools/DEBUG.md. No imports:
 // params.ts and sceneSpec.ts both use it.
 
+/** A probe: a point as fractions of the image (x right, y down), a sky
+ * direction: azimuth from the view (deg, + right) and elevation (deg), a
+ * world point (m; `params.mjs --project` prints a prop's), or where the sea
+ * mirrors a world point (its image in the plane y = 0: the point at −y). */
+export type ProbeAt =
+  | [number, number]
+  | { az: number; el: number }
+  | { world: [number, number, number] }
+  | { mirror: [number, number, number] }
+
 /** Render-only debugging (SceneParams.debug). */
 export interface DebugParams {
   /** Terrain grid density × (rings and segments): 2 halves the spacing, so
@@ -34,10 +44,11 @@ export interface DebugParams {
    * 'foam' (coverage). */
   oceanView?: OceanView
   /** Read the render at these points (fractions of the image, x right, y
-   * down) or sky directions ({az: from the view, deg; el: deg}): raw
+   * down), sky directions ({az: from the view, deg; el: deg}), world points
+   * ({world: [x, y, z]}) or their mirror images ({mirror: [x, y, z]}): raw
    * radiance, cd/m², mag/arcsec², exposed and final colour, in
    * `debug.probe` (probe.ts). */
-  probe?: ([number, number] | { az: number; el: number })[]
+  probe?: ProbeAt[]
   /** Half size of each probe's box (px): 0 a single pixel, default 2 (5×5). */
   probeHalf?: number
   /** Read a line of sky pixels ({az, el, step}: az from the view, one of
@@ -53,7 +64,7 @@ export interface ProbeLine {
   step?: number
 }
 
-export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze'] as const
+export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze'] as const
 export type DebugPass = (typeof DEBUG_PASSES)[number]
 export const TERRAIN_VIEWS = ['none', 'slope', 'relief', 'lines', 'shore'] as const
 export type TerrainView = (typeof TERRAIN_VIEWS)[number]

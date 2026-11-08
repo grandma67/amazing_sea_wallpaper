@@ -1,4 +1,4 @@
-# Render tools: snapshot, diff, bench, mesh, contact sheet
+# Render tools: snapshot, diff, haze, bench, mesh, contact sheet
 
 Index, dev server and shared conventions: [TOOLS.md](../TOOLS.md). Debug switches:
 [DEBUG.md](DEBUG.md).
@@ -58,7 +58,13 @@ node scripts/diff.mjs --scene $SP/specs.json --off '{"props":{"rocks":false}}' -
 node scripts/diff.mjs --scene S --ref HEAD --out $SP/change   # S at the ref (off) vs now (on)
 node scripts/diff.mjs --a $SP/before --b $SP/after            # two folders, same names
 node scripts/diff.mjs --a $SP/x/off --b $SP/x/on --match NAME --out $SP/x --crop 0,700,180,90 --zoom 4   # look closer, no new render
+node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH --out $SP/real   # real days, named by date
 ```
+
+- `NAME.diff.jpg`'s top panels are cropped to the changed box, not the frame: don't read pixel
+  positions off it (`OUT/on/NAME.jpg` is the full frame).
+- `--where EXPR [--sample N] [--spread EXPR]`: real days instead of `--scene` (as `snapshot.mjs`),
+  with `--off` or `--ref`: the first render round's real days in one command.
 
 - Renders at 1920×1080 and 16 frames unless `--w --h --frames` say otherwise (`snapshot.mjs` alone
   defaults to 4K).
@@ -82,6 +88,26 @@ node scripts/diff.mjs --a $SP/x/off --b $SP/x/on --match NAME --out $SP/x --crop
   was a simpler filter than the old one, and the plain diff (off vs on, both this tree) hid it.
 - `--threshold N` (0–255, default 4): above JPEG noise; two renders of the same code on the same
   GPU are identical.
+
+## `scripts/haze.mjs`: how does the frame haze these objects?
+
+Before writing anything that must match the frame's haze (a reflection, a sprite, a far mesh):
+render the spec as is and with the haze off (`passes.aerial` and `passes.seaHaze`; clouds and their
+light stay), probe world points on the objects, and solve `pixel = T·raw + w·H` for the haze colour H
+each point implies, with T = Koschmieder's over the distance and w = 1 − T or (1 − T)². The weighting
+whose H agrees across distances is the one the frame uses.
+
+```sh
+node scripts/params.mjs --scene $SP/day.json --project islands --rows 100000 --above 40 > $SP/proj.txt  # pick points, not covered
+node scripts/haze.mjs --scene $SP/day.json --points '[[841.2,40.9,2693.5],[1977.9,42.9,7266.7]]'
+#   dist m   T (R G B)          raw        hazed       H if 1−T               H if (1−T)²
+#     2822   0.724 0.708 0.670  …          …           0.0484 0.0407 0.0388   0.1751 0.1394 0.1176
+#     7531   0.422 0.398 0.343  …          …           0.0948 0.0756 0.0624   0.1639 0.1255 0.0950   ← (1−T)² agrees
+```
+
+Two renders, ~1 min. Points at least two distances apart; under ~100 m high (T assumes the haze's
+sea-level density). 2003-03-11 (V 32 km): takram's sea haze fades with (1 − T)², to ≈ the frame's
+horizon sky (`--sky` prints it for reference).
 
 ## `scripts/summary.mjs`: one number over many renders
 

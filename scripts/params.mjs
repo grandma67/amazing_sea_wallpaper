@@ -29,12 +29,17 @@
 //                  camera (p.ctx, p.view) get a warning when the page's framing
 //                  differs (first 40 days checked). A re-roll changes only coast and
 //                  camera height, so choices and frequencies don't need it.
-// --project KINDS  where props land, without a render: builds the props on the
+// --project KINDS  where props land, without a render (with each point's x, z and its
+//                  mirror image's pixel, for params.debug.probe {world}/{mirror}): builds the props on the
 //                  params the page renders (implies --rendered). Per kind (from
 //                  props/index.ts, comma-separated, or all): pieces, in frame, pixel
 //                  box, nearest; then the --rows nearest points in frame (default
 //                  12): distance, shore s and a, height, height above the ground,
 //                  pixel. For "where does this end / what's next to the camera".
+// --above M        with --project: only points at least M above the sea (a face, not
+//                  the underwater skirt), e.g. to probe an island and its mirror image.
+//                  "covered by": a prop between the camera and the point (props only,
+//                  not the terrain; checked when ≤ 20000 rows): don't probe it there.
 // --line LINE      a line of sky pixels through the CPU mirrors of the sky
 //                  shaders (skyMirror.ts): '{"az":0,"el":[2,40],"step":0.05}' or a
 //                  list of them, az
@@ -82,6 +87,9 @@ const changedArg = option('changed', null)
 const list = flag('list')
 const lineArg = option('line', null)
 const projectArg = option('project', null)
+// --project: only points at least this high above the sea (m): a face, not a skirt.
+const aboveArg = option('above', null)
+const above = aboveArg == null ? null : Number(aboveArg)
 const rendered = flag('rendered') || projectArg != null
 const rows = Number(option('rows', 12))
 const skyArg = option('sky', 'aurora,glow')
@@ -406,15 +414,37 @@ if (projectArg != null) {
           for (const object of group.children) if (object.userData.prop === kind) propPoints(object, three, {}, points)
           const near = points
             .map(v => ({ v, n: v.clone().project(camera) }))
-            .filter(({ n }) => n.z < 1 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1)
+            .filter(({ v, n }) => n.z < 1 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1 && (above == null || v.y >= above))
             .map(({ v, n }) => ({ v, n, d: Math.hypot(v.x - camera.position.x, v.z - camera.position.z) }))
             .sort((a, b) => a.d - b.d)
             .slice(0, rows)
-          if (near.length > 0) console.log('      dist       s       a       y  above   px')
+          if (near.length > 0) console.log('      dist       s       a       y  above        x        z   px         mirror px  covered by')
+          const pixel = n => `${Math.round(((n.x + 1) / 2) * W)},${Math.round(((1 - n.y) / 2) * H)}`
+          // Is the point hidden behind a prop (or its own front)? A probe at a
+          // covered point reads the cover: a palm frond read as a far island.
+          // Props only (not the terrain); up to 20000 rows (a ray each, ~25 s).
+          group.updateMatrixWorld(true)
+          const ray = new three.Raycaster()
+          const kindOf = o => {
+            for (let q = o; q != null; q = q.parent) if (q.userData?.prop != null) return q.userData.prop
+            return '?'
+          }
+          const cover = (v, toward) => {
+            if (near.length > 20000) return 'unchecked'
+            const dist = v.distanceTo(camera.position)
+            ray.set(camera.position, v.clone().sub(camera.position).normalize())
+            ray.far = dist - Math.max(1, dist * 0.002)
+            const hit = ray.intersectObject(group, true)[0]
+            return hit == null ? '-' : `${kindOf(hit.object)} at ${hit.distance.toFixed(0)} m${toward}`
+          }
           for (const { v, n, d } of near) {
             const [s, a] = p.coast != null ? worldToShore(p.coast, v.x, v.z) : [NaN, NaN]
             const cells = [d, s, a, v.y, v.y - terrainHeight(p.coast, v.x, v.z)].map(x => x.toFixed(1).padStart(7))
-            console.log(`   ${cells.join(' ')}   ${Math.round(((n.x + 1) / 2) * W)},${Math.round(((1 - n.y) / 2) * H)}`)
+            const xz = [v.x, v.z].map(x => x.toFixed(1).padStart(8))
+            // Where the sea mirrors it (the point at −y): params.debug.probe {mirror: [x, y, z]}.
+            const m = new three.Vector3(v.x, -v.y, v.z).project(camera)
+            const mirror = v.y > 0 && m.z < 1 && Math.abs(m.x) <= 1 && Math.abs(m.y) <= 1 ? pixel(m) : '-'
+            console.log(`   ${cells.join(' ')} ${xz.join(' ')}   ${pixel(n).padEnd(10)} ${mirror.padEnd(10)} ${cover(v, '')}`)
           }
         }
       }
