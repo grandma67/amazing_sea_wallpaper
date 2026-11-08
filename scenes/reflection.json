@@ -105,6 +105,19 @@
    }
   },
   {
+   "name": "near-objects-calm",
+   "date": "2024-10-07",
+   "weather": "clear",
+   "rockShore": "cliff",
+   "params": {
+    "ocean": {
+     "windSpeed": 0.5,
+     "airWindSpeed": 0.5,
+     "swellHeight": 0.2
+    }
+   }
+  },
+  {
    "name": "boats",
    "date": "2024-03-22",
    "weather": "clear",

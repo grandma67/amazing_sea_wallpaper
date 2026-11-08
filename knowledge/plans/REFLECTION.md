@@ -1,6 +1,6 @@
 # Reflections that follow the waves
 
-**Status: phases 0–1 done (2026-11-08; 1 is 0.130: ripple layers). Next: phase 2 (follow the reflected ray).** Research and sources:
+**Status: phases 0–2 done (2026-11-08; 0.130 ripple layers, 0.131 ray lookup + light-air onset). Next: phase 3 (streaks), judged from phase 2's renders: see its note.** Research and sources:
 [../REFLECTION.md](../REFLECTION.md) (§ numbers below refer to it). How the reflection works
 today: [../arch/OCEAN.md](../arch/OCEAN.md) "Reflections". Estimates are marked; everything else
 was measured, read in the code or seen in the reference photos below.
@@ -204,7 +204,30 @@ follows Cox–Munk above ~2 m/s:
   real days (`--where 'p => p.ocean.windSpeed > 8' --sample 8`) look like photos C and D, not
   like a sheet of grey metal; `bench.mjs` +0%.
 
-## Phase 2: project the reflected ray (the wave shift and the blur)
+## Phase 2 (done 2026-11-08, 0.131): project the reflected ray
+
+**What was built and found:**
+- The lookup as planned, with the blur measured by tilting R and seeing how far the lookup
+  moves (no field-of-view uniform). `mirrorCamera` split out of `renderPlanarReflection`;
+  `test/reflection.test.ts` checks flat → sea point, 2β·t/(D+t), and lens independence.
+- Round 1 erased every reflection, calm ones too. Two causes: (1) at 0.5 m/s the sea still had
+  σ² 0.0006–0.0015 (JONSWAP's short waves don't shrink with the wind) plus the 0.0006 floor:
+  added a light-air onset (wind sea and floor fade in from 0.6 to 1.6 m/s, Kahma & Donelan 1988;
+  under `passes.shortWaves`, 11% of days in the band); (2) the shader's face-the-viewer normal
+  fix tilts a flat sea ~3° at grazing angles: the lookup now uses the wave's own normal.
+- Results: `calm-islands` / `clear-islands` / `near-objects-calm` (new): sharp images, bands
+  where incoming waves tilt the surface, pines as wiggly vertical streaks (photo A), contact
+  lines sharp. All windy scenes and real days ≥ 5 m/s: no recognizable image (2024-02-26's
+  remaining smudge gone; photos C, D). Both switches off = 8be43d9 exactly; 0% render time;
+  0 days' choices changed.
+- **A done-when was wrong:** "`mid-islands` (5 m/s): a vertical smear" contradicts §1.2 (±14° of
+  spread over a 2.3° island): nothing is left, which is what the photos show. Streaks belong to
+  calm-to-light air (< ~3 m/s) and to tall near objects.
+- **For phase 3:** at 5 m/s and above most reflections are already gone, and below 2 m/s the
+  drawn waves streak them. Round smudges would only show for tall objects in 2–4 m/s air:
+  check `mid-islands` at 2.5 m/s and a cliff before building the taps.
+
+Original plan:
 
 Instead of nudging the lookup by `N.xz · 0.04`, follow the ray the sea already computes for the
 sky, `R = reflect(−V, N)`:

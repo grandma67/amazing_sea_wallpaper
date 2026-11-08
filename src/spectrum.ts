@@ -124,7 +124,20 @@ function toHalf(data: Float32Array): Uint16Array {
   return half
 }
 
-export function synthesizeOcean(ocean: SceneParams['ocean']): OceanSurface {
+/** How much of the wind sea a light wind raises, 0..1. Waves start to grow
+ * at a friction velocity of ~2 cm/s and are readily visible at ~5 cm/s
+ * (Kahma & Donelan 1988, a wind-wave tank); with u* ≈ 0.032 U (C_d ≈ 10⁻³,
+ * light winds) that's ~0.6 and ~1.6 m/s. Below, only swell: a mirror.
+ * JONSWAP alone keeps its short waves at any wind (their level doesn't
+ * depend on U), so a 0.5 m/s sea still blurred every reflection by ±3–4°. */
+export function windWaveOnset(windSpeed: number): number {
+  const x = Math.min(1, Math.max(0, (windSpeed - 0.6) / 1.0))
+  return x * x * (3 - 2 * x)
+}
+
+/** `calm`: wind waves fade in with `windWaveOnset` (off: as before 0.130,
+ * `passes.shortWaves`). */
+export function synthesizeOcean(ocean: SceneParams['ocean'], calm = true): OceanSurface {
   const rng = new Random(ocean.waveSeed)
   const n = CASCADE_SIZE
   const U = Math.max(ocean.windSpeed, 0.5)
@@ -202,7 +215,7 @@ export function synthesizeOcean(ocean: SceneParams['ocean']): OceanSurface {
     }
   })
 
-  const windHeight = ((0.21 * U * U) / G) * ocean.seaDevelopment
+  const windHeight = ((0.21 * U * U) / G) * ocean.seaDevelopment * (calm ? windWaveOnset(ocean.windSpeed) : 1)
   const windScale = windVariance > 0 ? Math.sqrt((windHeight / 4) ** 2 / windVariance) : 0
   const swellScale = swellVariance > 0 ? Math.sqrt((ocean.swellHeight / 4) ** 2 / swellVariance) : 0
   const lambda = ocean.choppiness
@@ -307,13 +320,13 @@ export function synthesizeOcean(ocean: SceneParams['ocean']): OceanSurface {
 
 /** synthesizeOcean() on a worker thread, so it overlaps the GPU's work on the
  * main thread. Falls back to the main thread if workers aren't available. */
-export function synthesizeOceanAsync(ocean: SceneParams['ocean']): Promise<OceanSurface> {
+export function synthesizeOceanAsync(ocean: SceneParams['ocean'], calm = true): Promise<OceanSurface> {
   return new Promise(resolve => {
     let worker: Worker
     try {
       worker = new Worker(new URL('./spectrumWorker.ts', import.meta.url), { type: 'module' })
     } catch {
-      resolve(synthesizeOcean(ocean))
+      resolve(synthesizeOcean(ocean, calm))
       return
     }
     worker.onmessage = (event: MessageEvent<OceanSurface>) => {
@@ -322,9 +335,9 @@ export function synthesizeOceanAsync(ocean: SceneParams['ocean']): Promise<Ocean
     }
     worker.onerror = event => {
       event.preventDefault()
-      resolve(synthesizeOcean(ocean))
+      resolve(synthesizeOcean(ocean, calm))
       worker.terminate()
     }
-    worker.postMessage(ocean)
+    worker.postMessage({ ocean, calm })
   })
 }

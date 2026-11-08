@@ -22,7 +22,7 @@ import { seabedAlbedo } from './beach'
 import { middleCascadeLongest, SHELTER_GLSL, shelterUniforms } from './shelter'
 import { TERRAIN_GLSL, terrainUniforms } from './terrain'
 import { EARTH_RADIUS, type SceneParams } from './params'
-import { CASCADE_SIZE, type OceanSurface, RIPPLE_LAYERS, rippleSlopeScale } from './spectrum'
+import { CASCADE_SIZE, type OceanSurface, RIPPLE_LAYERS, rippleSlopeScale, windWaveOnset } from './spectrum'
 import type { ShipWake } from './props/ships'
 
 /** How many rocks the ocean shader foams round (the nearest). */
@@ -215,6 +215,7 @@ uniform float envMaxLod;
 uniform sampler2D planarMap;
 uniform mat4 planarMatrix;
 uniform float planarOn;
+uniform float reflectionRay;
 // Depth of the mirror image and the mirror camera's (oblique) inverse
 // projection: how far each reflected ray travels (reflection.ts).
 uniform sampler2D planarDepth;
@@ -267,6 +268,7 @@ uniform vec3 deepColor;
 uniform vec3 scatterColor;
 uniform float whitecaps;
 uniform float shortWaves;
+uniform float windWaves;
 uniform float waveHeight;
 uniform float rain;
 
@@ -513,6 +515,10 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
   N = normalize(mix(N, vec3(0.0, 1.0, 0.0), 0.85 * longExposure));
 
   vec3 V = normalize(cameraPosition - vWorld);
+  // The wave's own normal, for the mirror image: the fix below tilts a flat
+  // sea up to ~3° toward the viewer within ~3° of grazing (most of a beach
+  // view's sea), which would aim every reflected ray ~6° over the land.
+  vec3 waveNormal = N;
   // Keep normals facing the viewer to avoid black fringes at grazing angles.
   N = normalize(N + V * max(0.0, -dot(N, V) + 0.05));
   float NoV = clamp(dot(N, V), 1e-4, 1.0);
@@ -523,8 +529,12 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
   // A rip current running out against the waves roughens the water over
   // its channel (and the channel is deeper, so darker, with fewer breakers).
   float rip = hasSurfZone() ? ripWater(sa) : 0.0;
-  float alpha = clamp(sqrt(variance.x + variance.y + 0.0006 + rain * 0.006 + rip * 0.012), 0.02, 0.7);
+  // The capillary floor waits for the wind too (spectrum.ts windWaveOnset).
+  float roughness = sqrt(variance.x + variance.y + 0.0006 * windWaves + rain * 0.006 + rip * 0.012);
+  float alpha = clamp(roughness, 0.02, 0.7);
   alpha = mix(alpha, max(alpha, 0.3), longExposure);
+  // The mirror image needs no floor for the sun's size: glassy water is sharp.
+  float mirrorAlpha = mix(min(roughness, 0.7), max(alpha, 0.3), longExposure);
 
   // Sky reflection.
   vec3 R = reflect(-V, N);
@@ -565,8 +575,40 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
       float D = length(vWorld - cameraPosition);
       k = clamp(1.0 - D / max(L, D), 0.0, 1.0);
     }
-    vec2 uv = base + N.xz * 0.04 * k;
-    vec4 planar = textureLod(planarMap, uv, clamp(log2(alpha * 300.0 * k + 1e-3), 0.0, 6.0));
+    vec4 planar;
+    if (reflectionRay > 0.5) {
+      // Follow the sea's own reflected ray R (the one the sky reflection
+      // reads) for t, the length of the mirrored ray past the water, and
+      // look up where it lands (plans/REFLECTION.md phase 2). The mirror
+      // camera sees what's above the water itself, so the hit projects
+      // straight in. A wave's tilt turns R by twice its slope; the image
+      // moves by that angle × t / (D + t) as the mirror camera sees it:
+      // contact hardening and the lens come out of the projection.
+      vec3 P = vec3(vWorld.x, 0.0, vWorld.z);
+      float D = length(vWorld - cameraPosition);
+      float t = 1e5;
+      if (hitDepth < 1.0) {
+        vec4 view = planarProjInv * vec4(base * 2.0 - 1.0, hitDepth * 2.0 - 1.0, 1.0);
+        t = max(length(view.xyz / view.w) - D, 0.0);
+      }
+      vec3 Rm = reflect(-V, waveNormal);
+      Rm.y = abs(Rm.y);
+      vec4 hit = planarMatrix * vec4(P + Rm * t, 1.0);
+      vec2 uv = hit.xy / hit.w;
+      // Waves finer than the pixel: their slopes (α, per axis α/√2) turn
+      // the ray by ~2·atan(α/√2) more. Tilt R up by that, see how far the
+      // lookup moves, and blur over it (a box ~3.5× the offset has the
+      // same spread as a Gaussian of that σ).
+      vec3 up = vec3(0.0, 1.0, 0.0) - Rm * Rm.y;
+      float spread = 2.0 * atan(mirrorAlpha * 0.70710678);
+      vec3 tilted = normalize(Rm + normalize(up + vec3(1e-6, 0.0, 0.0)) * tan(spread));
+      vec4 hit2 = planarMatrix * vec4(P + tilted * t, 1.0);
+      float offsetPx = length(hit2.xy / hit2.w - uv) * float(textureSize(planarMap, 0).y);
+      planar = textureLod(planarMap, uv, clamp(log2(3.5 * offsetPx + 1e-3), 0.0, 9.0));
+    } else {
+      vec2 uv = base + N.xz * 0.04 * k;
+      planar = textureLod(planarMap, uv, clamp(log2(alpha * 300.0 * k + 1e-3), 0.0, 6.0));
+    }
     reflected = reflected * (1.0 - clamp(planar.a, 0.0, 1.0)) + planar.rgb;
   }
   float F = fresnel(NoV);
@@ -861,6 +903,8 @@ export function createOcean(
       planarMap: { value: null as Texture | null },
       planarMatrix: { value: new Matrix4() },
       planarOn: { value: 0 },
+      // Follow the reflected ray into the mirror image (0: the old nudge).
+      reflectionRay: { value: params.debug?.passes?.reflectionRay === false ? 0 : 1 },
       planarDepth: { value: null as Texture | null },
       planarProjInv: { value: new Matrix4() },
       envMaxLod: { value: 8 },
@@ -879,6 +923,8 @@ export function createOcean(
       whitecaps: { value: Math.min(1, Math.max(0, (ocean.windSpeed - 5) / 6)) },
       // Slope scale of the ripple layer (0: none).
       shortWaves: { value: params.debug?.passes?.shortWaves === false ? 0 : rippleSlopeScale(ocean.windSpeed, surface) },
+      // Share of the wind sea a light wind raises (1: before 0.130).
+      windWaves: { value: params.debug?.passes?.shortWaves === false ? 1 : windWaveOnset(ocean.windSpeed) },
       waveHeight: { value: Math.max(0.05, surface.significantHeight) },
       rain: { value: params.storm?.rain ?? 0 },
       rockData: { value: Array.from({ length: MAX_ROCKS }, () => new Vector4()) },

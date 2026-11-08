@@ -39,7 +39,10 @@ surf".
   cascade. Near the camera they add slope (glints, ripple texture); far off their mips add GGX
   variance. Slopes only, not the Jacobian (no foam). Computed per day from the day's own drawn
   variance, so an undeveloped sea's missing slope is made up by ripples (they follow the wind,
-  not fetch); wave heights unchanged. A flat variance term was tried first: a uniform grey sheet
+  not fetch); wave heights unchanged. **Light air:** the wind sea fades in from 0.6 to 1.6 m/s
+  (`windWaveOnset`, Kahma & Donelan 1988's onset u* ≈ 2–5 cm/s; 0.131), and so does the
+  0.0006 capillary floor (`windWaves`): JONSWAP's short waves don't shrink with the wind, so a
+  0.5 m/s sea still spread reflections ±3–4°. Same switch. A flat variance term was tried first: a uniform grey sheet
   and a hazy glitter near the camera (LESSONS.md). Off: `passes.shortWaves`. 0% render time.
 - **Rip water:** `ripWater(sa)` (COAST.md "Bars, rips, cusps") makes the water over a channel
   rougher (+GGX variance) with half the breaking foam.
@@ -69,7 +72,18 @@ surf".
   ray's length past the water (from the depth, unprojected with the oblique `planarProjInv`; not
   `perspectiveDepthToViewZ`): sharp where an object meets the water, the full roughness blur
   (`log2(α·300)` mips) far up its face and on far land; rays that hit nothing keep k = 1.
-  The blur is isotropic (one `textureLod`). Real reflections on a wavy sea streak vertically
+  **Since 0.131 (`passes.reflectionRay`, plans/REFLECTION.md phase 2)** the lookup follows the
+  reflected ray instead: `uv = planarMatrix · (P + R·t)`, P the sea point at y = 0, R reflected
+  about the wave's own normal (`waveNormal`, before the face-the-viewer fix, which tilts a flat
+  sea up to ~3° within ~3° of grazing and aimed every ray ~6° over the land), t = the mirrored
+  ray's length past the water (miss: 1e5, a direction). A flat sea lands on the sea point for
+  any t; a tilt β turns the image by 2β·t/(D+t) as the mirror camera sees it, lens included
+  (`test/reflection.test.ts` against `mirrorCamera`). Blur: R tilted up by 2·atan(α/√2), α the
+  unfloored roughness (`mirrorAlpha`: no 0.02 floor for the sun's size), the lookup's move in
+  target pixels × 3.5 → lod (up to 9). Calm water mirrors sharply (bands where incoming waves
+  tilt the surface, wiggly streaks under thin things); past ~3 m/s 2–6°-tall islands leave
+  nothing, as photos show. With it off, the old nudge below.
+  The old blur is isotropic (one `textureLod`). Real reflections on a wavy sea streak vertically
   (≈ 1/sin(grazing) taller than wide), but anisotropic streaking was tried on paper and skipped
   (10-31): renders of `scenes/islands-water.json` (colony calm/rough, karst islands, iceberg) already
   read as vertical columns under each object, and `textureGrad` alone only blurs more both ways

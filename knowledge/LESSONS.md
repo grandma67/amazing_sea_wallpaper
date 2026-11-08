@@ -441,6 +441,13 @@ tool gotchas: TOOLS.md.
   into a haze. Add it as a layer of slopes whose mips become variance (the cascades' own LEAN
   trick). One shrunk copy of a cascade tiles visibly (1.7 m ≈ 25 px at 50 m): use two at
   incommensurate sizes and angles.
+- Normals "fixed" for shading are not the surface: `N + V·(0.05 − N·V)` tilts a flat sea ~3°
+  toward the viewer at grazing angles. Anything geometric (the mirror lookup) must use the
+  wave's own normal; it hid a 2.3°-tall island's whole reflection.
+- JONSWAP's short waves keep their level at any wind (α is constant): a 0.5 m/s sea is not
+  glassy until the wind sea fades in with an onset (`windWaveOnset`).
+- Check a plan's look targets against its own physics before building: "a vertical smear at
+  5 m/s" contradicted ±14° of spread over a 2° island (nothing left, as photos show).
 - Before tuning anything that follows the wind (glitter width, reflections), measure the slope
   variance the spectrum actually draws (`synthesizeOcean().slopeVariance`) against Cox–Munk.
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { PropContext } from '../src/props/context'
 import { windDirection, windStrength } from '../src/props/wind'
-import { CASCADE_SIZE, coxMunkVariance, RIPPLE_FLOOR, rippleSlopeScale, shortWaveVariance, synthesizeOcean } from '../src/spectrum'
+import { CASCADE_SIZE, coxMunkVariance, RIPPLE_FLOOR, rippleSlopeScale, shortWaveVariance, synthesizeOcean, windWaveOnset } from '../src/spectrum'
 import { scene } from './days'
 
 const base = scene({ date: '2026-10-15' })
@@ -111,5 +111,24 @@ describe('short waves (plans/REFLECTION.md phase 1)', () => {
     const s = sea(5, 0.6)
     expect(s.cascadeSlopeVariance.length).toBe(3)
     expect(s.cascadeSlopeVariance.reduce((a, b) => a + b, 0)).toBeCloseTo(s.slopeVariance, 10)
+  })
+})
+
+describe('wind waves wait for the wind (Kahma & Donelan 1988)', () => {
+  it('fades the wind sea in from ~0.6 to ~1.6 m/s', () => {
+    expect(windWaveOnset(0.3)).toBe(0)
+    expect(windWaveOnset(0.6)).toBe(0)
+    expect(windWaveOnset(1.1)).toBeCloseTo(0.5, 6)
+    expect(windWaveOnset(1.6)).toBe(1)
+    expect(windWaveOnset(10)).toBe(1)
+  })
+
+  it('leaves a glassy sea in light air, and the old sea with the switch off', () => {
+    const glassy = synthesizeOcean(withWind(0.5))
+    const before = synthesizeOcean(withWind(0.5), false)
+    expect(glassy.slopeVariance).toBeLessThan(1e-5)
+    expect(before.slopeVariance).toBeGreaterThan(glassy.slopeVariance * 50)
+    // At 3 m/s nothing changes.
+    expect(synthesizeOcean(withWind(3), false).significantHeight).toBe(synthesizeOcean(withWind(3)).significantHeight)
   })
 })

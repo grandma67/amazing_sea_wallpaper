@@ -33,14 +33,10 @@ export interface PlanarReflection {
   projectionInverse: Matrix4
 }
 
-export function renderPlanarReflection(
-  renderer: WebGLRenderer,
-  scene: Scene,
-  camera: PerspectiveCamera,
-  width: number,
-  height: number,
-  hide: Object3D[]
-): PlanarReflection {
+/** The camera mirrored in the sea plane (y = 0) with an oblique near plane
+ * at the water, and its world → reflection-texture matrix. No GPU: the
+ * ocean shader's lookup is tested against it (test/reflection.test.ts). */
+export function mirrorCamera(camera: PerspectiveCamera): { mirror: PerspectiveCamera; textureMatrix: Matrix4 } {
   const normal = new Vector3(0, 1, 0)
   const planePoint = new Vector3(0, 0, 0)
 
@@ -82,6 +78,18 @@ export function renderPlanarReflection(
   p[10] = clip.z + 1 - 0.003
   p[14] = clip.w
   mirror.projectionMatrixInverse.copy(mirror.projectionMatrix).invert()
+  return { mirror, textureMatrix }
+}
+
+export function renderPlanarReflection(
+  renderer: WebGLRenderer,
+  scene: Scene,
+  camera: PerspectiveCamera,
+  width: number,
+  height: number,
+  hide: Object3D[]
+): PlanarReflection {
+  const { mirror, textureMatrix } = mirrorCamera(camera)
 
   const renderTarget = new WebGLRenderTarget(Math.ceil(width / 2), Math.ceil(height / 2), {
     type: HalfFloatType,

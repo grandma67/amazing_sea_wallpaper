@@ -244,7 +244,7 @@ export async function renderScene(
 
   // The ocean spectrum is synthesized on a worker and the props are built
   // here while the GPU precomputes the atmosphere.
-  const oceanSurface = synthesizeOceanAsync(params.ocean)
+  const oceanSurface = synthesizeOceanAsync(params.ocean, params.debug?.passes?.shortWaves !== false)
   const generator = new PrecomputedTexturesGenerator(renderer, { combinedScattering: false })
   const atmosphere = precomputeAtmosphere(renderer, generator)
   // The clouds pass also draws the sea haze: dust days need it under a clear sky.

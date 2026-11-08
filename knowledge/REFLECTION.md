@@ -189,11 +189,11 @@ water film over a bright bottom is my own *(general)*.
 
 `ocean.ts` lines ~527–552, `scene.ts` ~920–939:
 
-1. **Wave shift is far too small.** `uv = base + N.xz * 0.04 * k` moves the lookup by 0.04 of
+1. **Fixed in 0.131 (follow the reflected ray). Was: wave shift far too small.** `uv = base + N.xz * 0.04 * k` moves the lookup by 0.04 of
    the screen per unit of slope. A real tilt β turns the ray 2β radians; across a mirror
    camera with vertical field of view φ that's Δuv ≈ 2β·k/φ *(my working)*. With a 63 mm lens
    (φ ≈ 0.38 rad) that's ~5.3 per unit slope, about 130× more, and it should depend on the lens.
-2. **The blur counts only the unresolved waves.** `alpha` is the slope variance of waves too
+2. **Fixed in 0.130–0.131. Was: the blur counted only the unresolved waves.** `alpha` is the slope variance of waves too
    small to draw (plus capillaries, rain, rips). Near the camera the drawn waves carry most of
    the slope, and they only shift the lookup (item 1), so a 15 m/s sea still holds a crisp
    island. The spread that matters is the full Cox–Munk one: drawn and unresolved together.
