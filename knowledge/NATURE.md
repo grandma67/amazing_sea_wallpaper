@@ -67,8 +67,20 @@ only if the scene has a town. Wild yamazakura could tint distant Japanese forest
 | Atacama coast (`atacama-peru`, local) | **Sep–Nov**, peaking about two months after rain; 2024 bloomed in July (winter) | 13 events 1981–2015 (satellite), ~15 in 40 years: **about one year in three**, tied to El Niño rain; widespread only in 1997 and 2015 | Wikipedia "Desert bloom", RBGE Chilean endemics, CNN 2024 |
 
 Colours: magenta and purple carpets (*Cistanthe*, "pata de guanaco"), with yellow and white
-*(est.: well known, not read)*. Other arid coasts (Namaqualand is on the `cape`'s border, Baja)
-weren't researched.
+*(est.: well known, not read)*. Baja wasn't researched.
+
+**Where, in latitude (added 2026-11-12):** at its height the bloom runs from just north of
+Copiapó to just south of Vallenar through the coastal valleys and Coast Range (Wikipedia); most
+often around Copiapó, Huasco and Caldera (UC Chile); the 2026 season's sectors were Huasco,
+Freirina, Vallenar, Caldera, Copiapó and Chañaral (Chile Travel). That's ~26–29°S, **south of
+`atacama-peru`'s −27° edge and north of `central-chile`'s −30°**: a gap in the place table.
+Namaqualand (Kleinzee 29.7°S, Hondeklip Bay 30.3°S) and the Sandveld (to ~32.5°S) are likewise
+between `namibia` (−29°) and `cape` (−33°). NATURE_PLAN 5a closes both.
+
+| Where | When | How often | Evidence |
+|---|---|---|---|
+| **Peru's lomas** (fog oases on the coastal hills, ~200–1000 m, Peru and northern Chile) | green **Jun/Jul–Nov** under the winter *garúa*, best Sep–Oct; brown Dec–Apr; yellow *amancaes* (*Ismene amancaes*) at the start of the wet season | **every year** | Wikipedia "Lomas", TNC Atiquipa (blooms every year Jul–Nov), Lachay pages |
+| Namaqualand coast | Jul – late Oct officially, best late Aug – early Sep; the cooler coast flowers late in the season; rain starting only in July pushes it into October | every year, strength by rain | SANParks Namaqua NP, siyabona, Northern Cape tourism |
 
 ## 2. Fungi
 
@@ -127,7 +139,17 @@ fireflies don't move: dots.
 
 Related, not fireflies: Toyama Bay's firefly squid wash up Mar–Jun (REGIONS.md §4).
 
-**Eligible days today** (`params.mjs --stats`): land, night or blue hour, in temperate,
+**Wind and rain (added 2026-11-12):** no study gives a wind threshold for flashing. For
+glow-worms, **wind and rain stop the flying males, not the glowing females**: more unmated
+females are seen glowing in wet and windy weather (Burgess, Isle of Wight, citing Tyler 2011 and
+Hopkins et al. 2015); surveys still note lower counts on cold, wet or windy nights (Essex Field
+Club, citing Alexander 1992). Light starts the display (*Photinus scintillans* at a threshold
+illuminance; earlier, at lower light, when cool).
+
+**Recount (2026-11-12, NATURE_PLAN phase 3 table and the glow-worm dusk rule):** 11 eligible
+land nights of 1095; 2 of the 6 `synchronous` have mangroves drawn; ~4 after the wind rule.
+
+**Eligible days (first count)** (`params.mjs --stats`): land, night or blue hour, in temperate,
 Mediterranean, subtropical or tropical climate and May–Aug outside the tropics: **56 of 1095
 (5%)**, before the "vegetation in frame" and per-region filters, which will cut it to perhaps a
 third.
@@ -220,11 +242,27 @@ Biggest visible gains, roughly in order of (days touched × how much it changes 
 | Glow-worm density | glowing females per 100 m of walked path: 0.09 (Hatfield Forest) to 19.2 (One Tree Hill, Basildon); walks start 22:00–23:00 as most stop by midnight; ~78% at unlit sites, in grassy meadows and scrub; −3.5% a year in SE England 2001–18 | Essex Field Club surveys, Gardiner & Didham 2020 |
 | Fungi in the humid tropics | fruiting longer and less seasonal than temperate, but still tracks rain: Pasoh (Malaysia) a main spring flush and a second in late summer–autumn after dry spells; central Amazon lower in dry months; Yunnan tropical sites no significant fluctuation within the rainy season. No source for Florida | CIRAD Bois et Forêts des Tropiques, INPA, Acta Oecologica 2018 |
 | Namaqualand and the Cape West Coast | Namaqualand blooms every year Jul–Sep (orange *Ursinia*, white daisies), timed by winter rain; Postberg (West Coast NP, ~33°S) Aug 1 – Sep 30 every year, strong some years | SANParks flower reports, West Coast NP (Wikipedia), Business Day 2025 |
+| Glow-worms in wind and rain (2026-11-12) | females keep glowing; males don't fly, so more unmated females show; counts lower on cold, wet or windy nights | Burgess (IWNHAS, Wight Studies 36), Essex Field Club |
+| Desert bloom latitudes (2026-11-12) | Copiapó–Vallenar, Caldera, Huasco, Chañaral (~26–29°S); a gap in our places | Wikipedia "Desert bloom", UC Chile, Chile Travel 2026 |
+| Lomas (2026-11-12) | Peru's fog hills green Jun–Nov every year, best Sep–Oct; Atiquipa blooms Jul–Nov | Wikipedia "Lomas", TNC, Lachay |
+| Fab Standard License (2026-11-12) | projects may be distributed commercially; no standalone redistribution; end users mustn't be able to extract the asset (summary; the full EULA wasn't readable): a web build can't satisfy that, so excluded | Fab licence docs, Unreal forum (unanswered) |
 | Atacama bloom | dominated by *Cistanthe longiscapa* (magenta; reddish, orange, yellow, pink forms; Caldera 2021 had big purple and yellow patches); *Nolana* white, bluish, lilac; ~200 species; mid-Sep to mid-Nov; big blooms every 5–10 years | Frontiers in Ecology and Evolution 2022, UC Chile |
 
 ## Sources
 
 All read through search summaries unless marked "read".
+
+- Added 2026-11-12: glow-worms in weather, https://iwnhas.org/wp-content/uploads/2025/12/Burgess-Glow-worms-Isle-of-Wight-Wight-Studies-Vol-36.pdf ,
+  https://www.essexfieldclub.org.uk/archivetext.php/s/236/o/0168 ; firefly light threshold,
+  https://springerlink.bibliotecabuap.elogim.com/content/pdf/10.1007/BF00348090.pdf ;
+  desert bloom latitudes, https://www.wikipedia.org/wiki/Desert_bloom ,
+  https://www.uc.cl/noticias/el-despertar-del-desierto-de-atacama/ ,
+  https://www.chile.travel/diario-de-viajes/desierto-florido-el-mas-arido-del-mundo-se-llena-de-flores/ ;
+  lomas, https://en.wikipedia.org/wiki/Lomas , https://nature.org/en-us/about-us/where-we-work/latin-america/peru/lomas-de-atiquipa ,
+  https://www.internationalparks.org/peru/Lachay ; Namaqualand, https://www.siyabona.com/namaqualand-flower-season.html ,
+  https://www.sanparks.org/travel/guide/flower-season , https://www.experiencenortherncape.com/namakwa-coastal-route/ ;
+  Fab, https://dev.epicgames.com/documentation/fab/licenses-and-pricing-in-fab ,
+  https://forums.unrealengine.com/t/can-i-use-3d-assets-from-fab-s-standard-license-in-a-revenue-generating-web-app/2453541
 
 - Details (§8): https://www.aip.org/scilights/how-much-light-comes-from-a-firefly ,
   https://archive.org/download/biostor-8523/biostor-8523.pdf ,

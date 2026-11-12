@@ -11,19 +11,20 @@ Bring the remaining living things on a coast into the season. Research and numbe
 |---|---|---|---|---|
 | 1 | Blossom: flamboyant, rock rose, heather | flamboyant **24** land days in full bloom, **109** with scattered trees; rock rose ~13; heath near the camera on **14** rock-shore days, on far slopes on the heath places' 9 beach days when a landform or island is in frame | 3–4 h | planned |
 | 2 + 2b | Moss on rock and trunks by realistic rules; upper-shore weed by season (built together: both edit the rock-shore shader) | every boulder, rock-shore and forest day a little; weed on European Atlantic rock shores | 5–7 h | planned |
-| 3 | Fireflies and glow-worms, single-flash streaks | **13** eligible nights (glow-worms night only; night and evening blue hour are ~17% of days); fewer after weather, moon and in-frame filters | 5–7 h | planned, **scope question** |
+| 3 | Fireflies and glow-worms, single-flash streaks | **11** eligible land nights (recounted 2026-11-12 with the dusk rule); **~4** after the wind, rain and mangrove rules; fewer after moon and in-frame filters | 5–7 h | planned (build: real on those nights) |
 | 4 | Seasons for PLAN_BIOMES 14 animals | per animal | ~0.5 h each + the animal (2–4 h each, own plan) | with phase 14 |
-| 5 | Desert or spring bloom | **~1** (Atacama: 1 land day Sep–Nov, ×0.37; Cape West Coast: 1 Atlantic land day Aug–Sep; Namaqualand isn't a place) | 1.5–2.5 h | **scope question**: recommend research only |
+| 5 | Coast blooms: Peru's lomas (yearly), the Atacama's *desierto florido* (El Niño years), Namaqualand and the Cape West Coast (yearly); first close the two place gaps that hold them | lomas **3** land days Jun–Nov; desert bloom and Namaqualand ~1 between them after 5a | 4–6 h (5a ~1 h, its own commit) | planned (build) |
 | 6 | Fairy rings (far) and mushrooms (near) | rings: **124** land days in a growing season (before grass-in-frame); mushrooms: **80** in season; under trees ~5–10 with a tree within 15 m in frame *(leaf-litter analogue: 14)*, on grass more (count with `--project fungi` once built) | 3–5 h | planned |
-| 0 | Real assets: CC0 scans and photos for plants and animals, baked to our vertex-colour meshes | every phase's meshes and colours | 1–2 h setup + ~1 h per asset | before phase 1 |
+| 0 | Real assets: CC0 scans and photos for plants and animals, baked to our vertex-colour meshes (Fab/Megascans excluded) | every phase's meshes and colours | 1–2 h setup + ~1 h per asset | before phase 1 |
 
 Estimates are my working hours including research, tests, ~3 render rounds and docs, from past
 commits (leaf litter ~1 h after its plan, snow and ice foot 1–2 h, Baltic sea ice ~6 h). Phases
-1–3 and 6: about 16–24 h, plus review between phases.
+0–3, 5 and 6: about 22–33 h, plus review between phases. Every phase is a build phase; phase 4
+builds with each PLAN_BIOMES phase-14 animal.
 
 **Order:** 0 (the pipeline, then each phase's assets with it) → 1 → 2 + 2b → 6 (fairy rings avoid phase 1's heath mask; mushrooms sit under trees whose
-trunks phase 2 changes) → 3 (independent; can move anywhere once its scope is decided) → 4 and 5
-as decided. Counts are `params.mjs --stats` windows
+trunks phase 2 changes) → 3 (independent of the others) → 5 (5a's place change re-rolls
+days, so it goes in last, in its own commit) → 4 with each phase-14 animal. Counts are `params.mjs --stats` windows
 (place, month, not open sea). In-frame counts for a new prop need its choice to exist
 (`params.mjs --project KIND`, `--rendered`): the first step of each phase.
 
@@ -37,10 +38,30 @@ as decided. Counts are `params.mjs --stats` windows
    somewhat longer in the dark) would give a 2–10 cm streak; a full ½–1 s flash is what a camera
    holds at ~½ s exposure or more. We draw the whole flash (~0.3–0.8 m) as chosen: a stylised
    choice, not eye-accurate, while waves and leaves stay sharp.
-4. **Near the viewer, and far-off land coloured:** the bloom tints far ground (phase 5, if built);
+4. **Near the viewer, and far-off land coloured:** the bloom tints far ground (phase 5);
    mushrooms stay near the camera; **fairy rings** are the far-off sign of fungi.
 5. **No towns:** confirmed in the code (only the night horizon's town glow, `nightGlow.ts`, and the
    lighthouse). Jacaranda and planted cherries stay out.
+
+## Answers (2026-11-12)
+
+**Rule for every open question: whatever is more realistic.** A thing that happens on a real
+coast on that date gets built, however rarely it's in frame (the move-around mode will see more
+of it). So:
+
+1. **Phase 3 is built.** Recount: 11 eligible land nights in three years (the glow-worm dusk rule
+   added none: no Atlantic-Europe evening blue hour in May–Sep falls on a test day). Research
+   changed the weather rules (glow-worm females glow in wind and rain; only flying males stop),
+   see phase 3.
+2. **Phase 5 is built, and wider:** Peru's lomas bloom every winter (Jun–Nov); the Atacama's
+   desert bloom and Namaqualand's lie in two **gaps in the place table** (26–30°S Chile, 29–33°S
+   South Africa: real coast that no place draws). Closing them is more realistic, so 5a does it.
+3. **Phase 0 uses CC0 only; Fab/Megascans excluded.** Not a realism question but a licence one:
+   Fab's Standard License forbids standalone redistribution and requires that end users can't
+   extract the asset; a public web build serves every mesh to the browser, so nothing in it can
+   be made unextractable. CC0 (Poly Haven, ambientCG, Smithsonian CC0) covers every row.
+4. **The *(est.)* values stay estimates until each phase's photo and render steps check them**:
+   those are build steps, not open questions.
 
 ## Decisions
 
@@ -48,7 +69,7 @@ as decided. Counts are `params.mjs --stats` windows
   date, climate, place and hemisphere: thresholds and colours, no new draws (as phenology). Which
   crown blooms comes from `hash()` of its position, like autumn leaves.
 - **New randomness gets its own stream:** fireflies `ctx.rng('fireflies')`, fungi
-  `ctx.rng('fungi')`, the bloom year (if built) `Random.derive(\`amazing-sea:${year}\`,
+  `ctx.rng('fungi')`, the bloom year `Random.derive(\`amazing-sea:${year}\`,
   'desert-bloom')` (`Random.derive(seed: string, stream)`; one draw per calendar year, so every
   day of a year agrees; a spec `seed` doesn't change it). Nothing draws from the main `rng`.
 - **Keys** (ARCHITECTURE.md "Biome, climate or place"; add each table there): flamboyant, rock rose
@@ -67,9 +88,9 @@ as decided. Counts are `params.mjs --stats` windows
   | `fireflies` | `boolean \| 'flash' \| 'glow' \| 'synchronous' \| null` | true: the place's kind at its peak count, `flash` where the place has none; a kind: that kind (`synchronous` needs mangroves: on trees or bushes otherwise); null: none | `props.fireflies: false` |
   | `fungi` | `boolean \| null` | true: mushrooms under the trees and on the grass near the camera, as in the peak month | `props.fungi: false` |
   | `fairyRings` | `boolean \| null` | true: rings on the grass near and far, as in the growing season | `props.fairyRings: false` |
-  | `desertBloom` (phase 5, if built) | `boolean \| number \| null` | true: a strong bloom; 0..1: its strength | via `props.phenology` |
+  | `desertBloom` (phase 5) | `boolean \| number \| null` | true: a strong bloom; 0..1: its strength | via `props.phenology` |
 
-  `props.phenology: false` also turns off phases 1, 2 (colour by wetness), 2b and 5.
+  `props.phenology: false` also turns off phases 1, 2 (colour by wetness), 2b and 5 (lomas included).
 - **Ready for the move-around mode:** what a thing is comes from its world position (a crown's
   hash, a fungus or ring cell's hash); only the choice of what to draw reads the camera
   (`props/leafLitter.ts` pattern).
@@ -93,7 +114,7 @@ textures are **inputs to an offline bake**, not files the page streams.
 | [Smithsonian 3D, CC0 filter](https://3d.si.edu/cc0) (bulk: [Source Cooperative mirror](https://source.coop/harvard-lil/smithsonian-open-access)) | natural-history specimens, OBJ/glTF | CC0 **per object** (some, e.g. Human Origins, are non-commercial: skip) | animal proportions and sizes (phase 4) |
 | Sketchfab CC-BY scans | fungi, animals, flowers | CC-BY (attribution in REFERENCES.md and the page credits) | only where no CC0 exists |
 | iNaturalist research-grade / Wikimedia Commons photos | the 2–3 reference photos per row | CC-BY / CC0 per photo | colours and shapes (the *(est.)* values below) |
-| Fab / Megascans | high-quality scans | Fab Standard licence: product use allowed, **raw asset redistribution not**; a public web build serves the files, so not used until the EULA's web wording is checked ([forum](https://forums.unrealengine.com/t/can-i-use-3d-assets-from-fab-s-standard-license-in-a-revenue-generating-web-app/2453541): no official answer) | – |
+| Fab / Megascans | high-quality scans | Fab Standard licence: product use allowed, **raw asset redistribution not**; the licence summary also requires that end users can't extract the asset, and a public web build serves every mesh to the browser: **excluded** (Answers 2026-11-12; [Fab licences](https://dev.epicgames.com/documentation/fab/licenses-and-pricing-in-fab), [forum](https://forums.unrealengine.com/t/can-i-use-3d-assets-from-fab-s-standard-license-in-a-revenue-generating-web-app/2453541): no official answer) | – |
 
 **Pipeline** (`scripts/asset.mjs`, new; sources in a git-ignored `assets-src/`, only outputs
 committed):
@@ -300,11 +321,11 @@ test/glsl` after the shader edits.
 
 ## 3. Fireflies and glow-worms (TODO 22)
 
-**Scope:** 13 eligible nights in three years with the table below (SE Asia and north Australia
-7, of which only those with mangroves drawn count; Mediterranean 2; India, eastern North America,
-Japan 1 each; glow-worms 1) (night and evening blue hour are
-~17% of days, and firefly months are short), before weather, moon and "plants in frame". That's
-real; build it anyway (rare showpiece, PLAN_BIOMES decision 4) or defer: **ask before building**.
+**Scope (built, Answers 2026-11-12):** 11 eligible land nights in three years with the table
+and the dusk rule below (`synchronous` 6, `flash` 4, `glow` 1). Of the 6 `synchronous`, mangroves
+are drawn on 2 (2024-12-22 north Australia, 2026-01-09 Philippines); of the `flash` nights, 3 have
+air wind ≥ 10 m/s and drop out; Japan 2026-06-25 (5.1 m/s, moon up at 0.83) stays at a reduced
+chance. So **~4 nights** before moon and "plants in frame". Rare and real: built as designed.
 
 **Choice:** `firefliesFor(params, rng)` in `props/fireflies.ts` (in `props/choices.ts`).
 
@@ -337,13 +358,20 @@ coast of North America, New Zealand, Africa, South America: no seasonal source, 
     earlier, not modelled)*. At 60°N in June the lowest sun is −6.6°, so Norway's south and the
     southern Baltic get a few glow-worm dusks, as the Finland study's "shortest nights"; north of
     ~62°N in June–July none, which is real.
-  - **Recount** the eligible nights with this rule before the scope question: the 13 above used
-    `night` only for glow-worms.
+  - Recounted with this rule (2026-11-12): it adds no night on the test days, but it's what real
+    evenings at 50–60°N in June–July do, so it stays.
 - **Moon:** ×0.3 when `moonElevationDeg > 2` and `moonIllumination > 0.7` (the same "moon up" test
   `params.ts` uses for moonlit nights; glow-worm guides, Sabah).
-- **Weather:** none in rain, drizzle, storm (`stormy`) or snow; ×0.3 in fog; none with
-  `ocean.airWindSpeed > 4` m/s (air over land, not the iced or calmed sea wind) *(est.: still, warm
-  evenings)*.
+- **Weather, by kind** (`ocean.airWindSpeed` is the 10 m wind over the sea; in grass at ~1 m it's
+  ~0.6 of that by the log profile *(est.: z₀ 3 cm)*):
+  - `flash` (flying males): none in rain, drizzle, storm (`stormy`) or snow; ×0.3 in fog; wind ×1
+    up to 4 m/s, linear to 0 at 8 m/s (~2.5–5 m/s at flight height) *(est.: no wind threshold
+    found in the literature; insects stop flying in wind, UK glow-worm surveys)*.
+  - `synchronous` (perched in mangrove crowns along sheltered creeks): as `flash`, but the wind
+    ramp runs 6 → 10 m/s *(est.)*.
+  - `glow` (females on the grass, not flying): **not stopped by wind or rain** (more unmated
+    females glow in wet and windy weather because males don't fly: Burgess, Isle of Wight, citing
+    Tyler 2011 and Hopkins et al. 2015); none in snow or a storm (`stormy`, est.); fog ×1.
 - **On what:** land with grass or bushes 5–60 m away and in frame (`ctx.visible`): `flash` 0.5–3 m
   above grass and bushes, `glow` on the grass, `synchronous` in mangrove crowns. Never over sand,
   bare rock or water.
@@ -394,8 +422,9 @@ the ribbon; a forced spec (`fireflies: 'flash'`, `timeOfDay: 'night'`, `eclipse:
 hide those behind them; none by day, at dawn blue hour, in rain or on open sea; ≤ 5% render time
 (`bench.mjs`).
 
-**Tests:** `test/fireflies.test.ts`: the table over every place × month; none by day, at dawn, in
-rain, wind, on open sea or snow; fewer under a full moon (`expectShare`); placements over
+**Tests:** `test/fireflies.test.ts`: the table over every place × month; none by day, at dawn,
+on open sea or in snow; `flash` none in rain and none at ≥ 8 m/s wind, `glow` still there in
+drizzle and at 8 m/s; fewer under a full moon (`expectShare`); placements over
 vegetation only; `synchronous` only with mangroves; `glow` in evening blue hour only at
 `sunElevationDeg ≤ −6`, never at dawn, and a June 60°N dusk eligible while 64°N isn't; magnitude by distance; deterministic; off switch
 (`propSwitches.test.ts`), spec field (`sceneSpec.test.ts`).
@@ -421,25 +450,86 @@ monarchs' own plan.
 
 After each: `node scripts/animals.mjs`, paste into ANIMALS.md with its rule in "Seasons".
 
-## 5. Desert or spring bloom — recommend research only
+## 5. Coast blooms: lomas, desert bloom, Namaqualand and the Cape West Coast
 
-**The counts:** Atacama has 1 land day in Sep–Nov in three years, × a 0.37 chance of a bloom year
-(13 events in 35 years): ~0.4 days. Namaqualand (yearly bloom Jul–Sep, orange *Ursinia* and white
-daisies; SANParks) is at ~29–31°S, between `namibia` (to −29°) and `cape` (−33° to −35°): **no place
-draws it**. The Cape's West Coast (Postberg, ~33°S, inside `cape`: daisies every Aug–Sep, strong
-some years; West Coast NP) has 1 Atlantic land day in Aug–Sep in three years.
+Built (Answers 2026-11-12). Research: NATURE.md §1.3 and §8.
 
-So either version shows on about one day in three years (the move-around mode doesn't change it:
-it's the date). Recommendation: keep it researched only, unless a place is added for Namaqualand or
-the Cape gets more days. If built anyway, the design stays:
+### 5a. Close the two place gaps (own commit, first)
 
-- Atacama: `desertBloomFor(params)`, local ramp 1–20 Sep, full 20 Sep – 31 Oct, fading to 20 Nov;
-  a bloom year at 0.37 from the per-year stream, 1 in 3 of them strong.
-- Cape West Coast: every Aug–Sep, strength drawn per year (0.3–1).
-- Near the viewer: new `FLOWERS` kinds (Atacama *Cistanthe* magenta `[0.46, 0.02, 0.26]` and yellow
-  `[0.65, 0.44, 0.02]`, *Nolana* lilac `[0.38, 0.35, 0.60]`; Cape orange daisy `[0.75, 0.25, 0.02]`
-  and white `[0.72, 0.70, 0.66]` *(est.)*). Far land: ground cover and lower slopes tinted by
-  strength × 0.5 in noise patches.
+The table (`places.ts`) has `atacama-peru` to −27°, `central-chile` from −30°; `namibia` to
+−29°, `cape` from −33°. The coasts between are real and are where the two big blooms happen:
+the *desierto florido* from just north of Copiapó (27.4°S) to just south of Vallenar (28.6°S),
+with Caldera, Huasco and Chañaral (26.3°S) (Wikipedia "Desert bloom", UC Chile, Chile Travel
+2026); Namaqualand's coast from Kleinzee (29.7°S) and Hondeklip Bay (30.3°S) south through the
+Sandveld (Lamberts and Elands Bay, ~32°S) (SANParks, Northern Cape tourism).
+
+| Place | Latitude now → after | km now → after | Why |
+|---|---|---|---|
+| `atacama-peru` | [−27, −5] → **[−30, −5]** | 3 900 → **4 230** | Atacama Region's coast is the same desert to ~30°S (WWF ecoregion) |
+| `namibia` | [−29, −17] → **[−33, −17]** | 2 000 → **2 440** | Namaqualand's coast (Succulent Karoo) and the Sandveld (Lamberts Bay is BWk, ~230 mm a year): arid, foggy, Atlantic only; comment "and Namaqualand, the Sandveld" |
+| `cape` | [−35, −33], unchanged | 1 000 | the ocean is drawn before the latitude and independently (`pickOcean` then `latitudeIn`, `params.ts`), so `cape` north of −33° would get Indian-Ocean days: the Sandveld goes to `namibia` instead |
+
+*(km est.: straight coast at ~111 km per degree.)*
+
+- **This re-rolls days:** `km` is a choose-one weight, so every day's place pick can move.
+  `params.mjs --ref HEAD --stats 'p => p.place.id'` (expect ⚠ only on these three) and
+  `--changed`; then `npm test` and fix date-pinned specs and tests (SCENE_SPECS.md "fixed dates")
+  that move. Count the bloom days on the new table before building 5b–5d.
+- Other readers of latitude in these places (snow, sea ice, `drySeason`, reefs, grain): grep
+  `atacama-peru`, `namibia`, `cape` and check each still holds at the new edge.
+
+### 5b. Peru's lomas: yearly green and flowers on the fog-facing hills
+
+Lomas are fog-watered plant communities on the coastal hills of Peru and northern Chile, ~200–
+1000 m up, facing the sea. Green **Jun/Jul–Nov** under the winter *garúa*; brown and bare Dec–Apr
+(Lachay: June–November, best Sep–Oct; Atiquipa: blooms every year Jul–Nov). The yellow
+*amancaes* (*Ismene amancaes*) flowers at the start of the wet season (Wikipedia "Lomas", TNC
+Atiquipa, Lachay pages).
+
+- **Where:** `atacama-peru` from 6°S to 30°S *(lomas are discontinuous; est.: every hill in that
+  range)*; far land only, on slopes 200–1000 m above the sea in frame (the coastal hills and any
+  landform); never the beach or the camera's ground (lomas start inland of the shore).
+- **Colour by local month:** Jul–Oct full: mix the far ground toward an olive green
+  `[0.07, 0.09, 0.035]` by 0.5 in noise patches (~50% cover) *(est.)*; Jun and Nov ×0.5;
+  Jun–Jul a yellow fleck `[0.55, 0.40, 0.03]` at 0.1 of the green's weight (amancaes) *(est.)*;
+  Dec–May none.
+- **Counts:** 3 `atacama-peru` land days in Jun–Nov on today's table (2024-07-23, 2024-08-16,
+  2025-11-30); recount after 5a and with `--rendered` for hills in frame.
+
+### 5c. The Atacama's *desierto florido* (El Niño years)
+
+- **When and where:** in a bloom year, `atacama-peru` south of 26°S (Chañaral to Vallenar):
+  local ramp 1–20 Sep, full 20 Sep – 31 Oct, fading to 20 Nov.
+- **Bloom year:** 0.37 from the per-year stream (13 events in 35 years), 1 in 3 of them strong
+  (widespread blooms 1997, 2015; big ones every 5–10 years).
+- **Near the viewer:** new `FLOWERS` kinds (`props/shoreLife.ts`): *Cistanthe longiscapa* magenta
+  `[0.46, 0.02, 0.26]` (with yellow `[0.65, 0.44, 0.02]` forms), *Nolana* lilac
+  `[0.38, 0.35, 0.60]` *(est.)*, on sand and gravel behind the beach.
+- **Far land:** ground cover and lower slopes tinted by strength × 0.5 in noise patches.
+
+### 5d. Namaqualand and the Cape West Coast (every year)
+
+- **When:** every year, strength drawn per year 0.3–1 (per-year stream). Namaqualand and the
+  Sandveld (`namibia` south of 29°S): Aug–Sep full, Jul and Oct ×0.4; the coast flowers late in
+  the season, so the coastal peak is late Aug – mid Sep (SANParks; Northern Cape tourism). Cape
+  West Coast (`cape` on an Atlantic day, north of 33.5°S: Postberg): Aug 1 – Sep 30 (West
+  Coast NP).
+- **Near the viewer:** orange daisy `[0.75, 0.25, 0.02]` (*Ursinia*, *Dimorphotheca*) and white
+  `[0.72, 0.70, 0.66]` *(est.)*, new `FLOWERS` kinds, dense patches.
+- **Far land:** as 5c. Daisies close when cloudy and open in the sun (well known; *est.*: ×0.3
+  colour on overcast and rain days).
+
+**Spec and switch:** `desertBloom: boolean | number | null` (true strong, 0..1 strength) forces
+5c and 5d where the place has them; lomas follow the month only (no draw). All under
+`props.phenology: false`.
+
+**Done when:** a forced Atacama October (strong) shows magenta near and a tint far; a September
+Namaqualand rock shore orange and white; a Peruvian August beach green hills behind; the same
+places in February bare (`diff.mjs --off '{"desertBloom":null}'` and the phenology switch).
+
+**Tests:** `test/coastBloom.test.ts`: the tables over every place × month; the bloom year the same
+on every day of a year and independent of the spec seed; lomas only Jun–Nov and only in their
+latitudes; 5a's new latitudes in `places.test.ts` if one exists.
 
 ## 6. Fungi and fairy rings (answer 4)
 
@@ -498,12 +588,9 @@ the Cape gets more days. If built anyway, the design stays:
 
 ## Still open
 
-- **Phase 3:** build or defer? Recount first with the glow-worm dusk rule (the 13 used `night` only).
-- **Phase 0:** Fab/Megascans only after reading the EULA's wording on public web builds; CC0
-  sources first.
-- **Phase 5:** research only (recommended), or build for ~1 day?
-- Every *(est.)* above: shares, colours, widths, moss factors, firefly counts. Photos and `mesh.mjs`
-  decide colours; renders decide shares.
+Nothing blocks a build (Answers 2026-11-12). Checked during the phases, not asked:
+- Every *(est.)*: shares, colours, widths, moss factors, firefly counts and wind ramps. Photos and
+  `mesh.mjs` decide colours; renders decide shares.
 
 ## Checks (all phases)
 
