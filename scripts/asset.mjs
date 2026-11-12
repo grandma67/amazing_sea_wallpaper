@@ -8,6 +8,12 @@
 //   node scripts/asset.mjs grid SOURCE|ID      the image with a labelled 10% grid
 //                                              (assets-src/<id>/grid.jpg): read --region off it
 //   node scripts/asset.mjs list
+//   node scripts/asset.mjs bake ID [--lods 5000:0.003,1500:0.012] [--texel 2] [--threshold 0.5]
+//        a fetched model (polyhaven:) → src/props/scans/<id>.ts: each glTF node a
+//        variant, cut along its alpha map, the albedo baked into vertex colours,
+//        simplified per level of detail to TRIANGLES at most or ERROR (a share
+//        of its size), whichever comes first (scripts/assetBake.mjs; NATURE_PLAN
+//        phase 11). Recorded in scripts/asset-bakes.json; `replay` bakes again.
 //   node scripts/asset.mjs replay [ID]         measure again everything recorded in
 //                                              scripts/asset-measures.json (committed; every
 //                                              measure records its options there), fetching
@@ -47,6 +53,7 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { chromium } from 'playwright'
 
+import { alphaCut, quantise, readNodes, sampler, seat, simplify, weld } from './assetBake.mjs'
 import { parseArgs } from './lib.mjs'
 
 const ROOT = resolve('assets-src')
@@ -64,10 +71,14 @@ const authorArg = option('author', null)
 const pageArg = option('page', null)
 const anchorArg = option('anchor', null)
 const hueArg = option('hue', null)
+const lodsArg = option('lods', '5000:0.003,1500:0.012').split(',').map(s => { const [triangles, error] = s.split(':').map(Number); if (!(triangles > 0 && error > 0)) throw new Error('--lods TRIANGLES:ERROR,…'); return { triangles, error } })
+const texelArg = Number(option('texel', 2))
+const thresholdArg = Number(option('threshold', 0.5))
 rejectUnknown()
 const [command, source, ...rest] = args
 if (rest.length > 0) throw new Error(`unexpected arguments ${rest.join(' ')}`)
 const MANIFEST = resolve('scripts/asset-measures.json')
+const BAKES = resolve('scripts/asset-bakes.json')
 
 /** A measure's options, checked: from the command line or the manifest. */
 function measureOptions(o) {
@@ -125,7 +136,11 @@ async function resolveSource(src) {
     const pick = key => files[key]?.['1k']?.jpg?.url ?? files[key]?.['1k']?.png?.url
     const dl = { 'albedo.jpg': pick('Diffuse') ?? pick('diffuse') }
     if (isModel && pick('Alpha')) dl['alpha.jpg'] = pick('Alpha')
-    if (isModel && files.gltf?.['1k']?.gltf?.url) dl['model.gltf'] = files.gltf['1k'].gltf.url
+    if (isModel && files.gltf?.['1k']?.gltf?.url) {
+      dl['model.gltf'] = files.gltf['1k'].gltf.url
+      // The geometry beside it (textures come from the 1k maps above).
+      for (const [path, f] of Object.entries(files.gltf['1k'].gltf.include ?? {})) if (path.endsWith('.bin')) dl[path] = f.url
+    }
     if (dl['albedo.jpg'] == null) throw new Error(`polyhaven:${ref}: no 1k diffuse map`)
     // Poly Haven gives dimensions in mm: textures [w, h], models [x, y, z].
     const sizeM = info.dimensions?.map(d => +(d / 1000).toFixed(3))
@@ -406,6 +421,57 @@ async function grid(src) {
   console.log(out)
 }
 
+/** Steps 3–5 of NATURE_PLAN §1 on a fetched model (scripts/assetBake.mjs). */
+async function bake(id, { lods, texel, threshold }) {
+  const dir = join(ROOT, id)
+  const record = JSON.parse(await readFile(join(dir, 'source.json'), 'utf8'))
+  if (record.kind !== 'model') throw new Error(`${id}: not a model`)
+  const gltf = JSON.parse(await readFile(join(dir, 'model.gltf'), 'utf8'))
+  const binFile = join(dir, gltf.buffers[0].uri)
+  // Fetched before .bin files were: fetch again (only what's missing downloads).
+  if (!existsSync(binFile)) await fetchSource(record.source)
+  const bin = await readFile(binFile)
+  const browser = await chromium.launch()
+  const image = await decode(browser, join(dir, 'albedo.jpg'), existsSync(join(dir, 'alpha.jpg')) ? join(dir, 'alpha.jpg') : null)
+  await browser.close()
+  const albedo = sampler(image.w, image.h, image.rgba)
+  const alphaAt = image.alpha == null ? null : sampler(image.w, image.h, image.alpha)
+  const variants = [], sizes = []
+  for (const node of readNodes(gltf, bin)) {
+    const cut = alphaCut(node.prims, {
+      w: image.w, h: image.h, texel, threshold,
+      albedo: (u, v, c) => albedo(u, v, c) / 255,
+      alpha: alphaAt && ((u, v) => alphaAt(u, v, 0) / 255)
+    })
+    const welded = weld(cut)
+    // Every level seated on the finest one's base and centre.
+    const levels = []
+    for (const lod of lods) levels.push(await simplify(welded, lod.triangles, lod.error))
+    const seated = seat(levels[0])
+    const shift = levels[0].pos.slice(0, 3).map((v, k) => v - seated.pos[k])
+    variants.push({ lods: levels.map(m => quantise({ ...m, pos: m.pos.map((v, i) => v - shift[i % 3]) })) })
+    sizes.push(seated.size.map(v => +v.toFixed(3)))
+    const source = node.prims.reduce((n, p) => n + p.index.length / 3, 0)
+    console.log(`  ${node.name}: ${source} source → ${cut.index.length / 3} cut → ${levels.map(m => `${m.index.length / 3} (error ${m.error.toFixed(4)})`).join(', ')} triangles; ${sizes.at(-1).join(' × ')} m`)
+  }
+  const out = resolve(`src/props/scans/${id}.ts`)
+  const body = `// Baked by \`node scripts/asset.mjs bake ${id}\` (--lods ${lods.map(l => `${l.triangles}:${l.error}`).join(',')} --texel ${texel} --threshold ${threshold}).
+// ${record.name}: ${record.page} (${record.licence}, ${record.author}). Do not edit.
+
+import type { Scan } from './scan'
+
+const scan: Scan = ${JSON.stringify({ id, source: { page: record.page, licence: record.licence, author: record.author }, sizes, variants })}
+
+export default scan
+`
+  await mkdir(resolve('src/props/scans'), { recursive: true })
+  await writeFile(out, body)
+  console.log(`${id}: ${variants.length} variants → ${out} (${(body.length / 1024).toFixed(0)} kB)`)
+  const bakes = existsSync(BAKES) ? JSON.parse(await readFile(BAKES, 'utf8')) : []
+  const entry = { id, source: record.source, lods, texel, threshold }
+  await writeFile(BAKES, JSON.stringify([...bakes.filter(e => e.id !== id), entry].sort((a, b) => a.id.localeCompare(b.id)), null, 2) + '\n')
+}
+
 if (command === 'fetch') {
   if (source == null) throw new Error('fetch SOURCE')
   const { id, dir, record } = await fetchSource(source)
@@ -423,6 +489,14 @@ if (command === 'fetch') {
     if (!existsSync(join(ROOT, e.id, 'source.json'))) await fetchSource(e.source)
     await measure(e.id, measureOptions({ minShare: 0.02, petal: false, anchor: null, hue: null, ...e }))
   }
+  const bakes = existsSync(BAKES) ? JSON.parse(await readFile(BAKES, 'utf8')) : []
+  for (const e of bakes.filter(e => source == null || e.id === source)) {
+    if (!existsSync(join(ROOT, e.id, 'source.json'))) await fetchSource(e.source)
+    await bake(e.id, e)
+  }
+} else if (command === 'bake') {
+  if (source == null) throw new Error('bake ID')
+  await bake(source, { lods: lodsArg, texel: texelArg, threshold: thresholdArg })
 } else if (command === 'list') {
   if (!existsSync(ROOT)) process.exit(0)
   for (const id of (await readdir(ROOT)).sort()) {

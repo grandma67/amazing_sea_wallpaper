@@ -23,8 +23,8 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 8 | ✅ Shore zonation: the spray belt, laver, sea lettuce, 2026-11-12 | rock-shore shader, `phenology.ts` `sprayBelt`, `shoreWeed` | every rock-shore day (belt); weed on 55 real rock-shore days (not night) | done | 7 |
 | 9 | ✅ Moss and lichen on trunks, 2026-11-12 | `props/builder.ts` bark weight, `props/trunkMoss.ts` (shader), `phenology.ts` `trunkGrowth`, `props/vegetation.ts` | 0 params; trees in frame with moss on 337 days, mostly lichen on 324 (fringe trees) | done | 7, 8 (belt), 6 |
 | 10 | ✅ Fairy rings, 2026-11-12 | `fairyRings.ts` (new), terrain ground-cover shader, `phenology.ts` `FAIRY_SEASON` | 0 params; rings at some strength on 323 land days (temperate, boreal, Mediterranean, subtropical); grass in frame within 300 m on ~67 of the 259 non-subtropical ones; real days 2 of 8 changed | done | 5 (heath mask) |
-| 11 | Real assets: bake (reduce, vertex colours, emit, check), proved on one mushroom | `scripts/asset.mjs`, `src/props/scans/` | none (meshes for 12 and 17) | 1–1.5 h + ~1 h per asset | 1 |
-| 12 | Mushrooms under trees and on grass | `props/fungi.ts` (new) | **80** land days in season (temperate, boreal, Mediterranean, polar; tropical and subtropical more) | 2–3 h | 9, 10, 11 |
+| 11 | ✅ Real assets: bake (reduce, vertex colours, emit, check), proved on Poly Haven's *Ursinia* (no CC0 mushroom scan exists), 2026-11-12 | `scripts/asset.mjs`, `scripts/assetBake.mjs`, `src/props/scans/` | none (a mesh for phase 16; nothing draws it yet) | done | 1 |
+| 12 | Mushrooms under trees and on grass | `props/fungi.ts` (new) | **80** land days in season (temperate, boreal, Mediterranean, polar; tropical and subtropical more) | 2–3 h | 9, 10 |
 | 13 | Fireflies: the choice table, weather rules, placement and counts (no drawing) | `props/fireflies.ts` `firefliesFor`, `props/choices.ts` | **11** eligible land nights, **~4** after wind, rain and mangroves | 2–3 h | – |
 | 14 | Fireflies: drawing (sprites and ribbons, brightness by magnitude, streaks) | `props/fireflies.ts` meshes, star magnitude code | as 13 | 3–4 h | 13 |
 | 15 | Lomas: yearly green on Peru's fog hills | `props/landforms.ts` colour by height; later TERRAIN_FORMS's wall | 3 land days Jun–Nov, **~0.5** with hills high enough in frame | 1–1.5 h | 2 |
@@ -753,6 +753,38 @@ colours, its licence recorded; one scan (a mushroom) through every step to prove
 Then a fly agaric, a bolete and a field mushroom for phase 12; PLAN_BIOMES phase-14 animals from Smithsonian
 specimens (proportions) and photos (colour) for phase 17.
 
+**Built (0.150):**
+- **No CC0 mushroom scan exists** (searched 2026-11-12: Poly Haven's models, ambientCG's, the
+  Smithsonian open-access API); Sketchfab's CC-BY ones need an account. Decided (2026-11-12):
+  prove the pipeline on Poly Haven's *Ursinia* daisy (CC0, already fetched in phase 1), which phase
+  16's Namaqualand bloom uses; phase 12's mushrooms stay procedural (cap + stem, ~200 triangles,
+  sizes and colours from photos), where a scan buys little. Poly Haven also has *Gazania*,
+  *Heliophila*, stinkkruid, *Empodium* (more Namaqualand flowers) and a *Lambis* shell.
+- `asset.mjs fetch` also downloads a model's `.bin`; `asset.mjs bake ID` (`scripts/assetBake.mjs`):
+  each glTF node a variant (its translation dropped, base on y = 0, centred); **alpha cut**:
+  every edge longer than `--texel` (2) texels split at its midpoint, pass after pass, then the
+  triangles whose alpha (corners and centre ×3) averages ≥ 0.5 kept: 2–10k source triangles →
+  0.3–2.3M; albedo (calibrated, sRGB → linear) at each vertex; weld; **simplify**
+  (meshoptimizer `simplifyWithAttributes`, colour weighted, `Prune`) per level of detail to its
+  triangles or error, whichever first: 5000 / 0.3% and 1500 / 1.2% by default; emit Int16
+  positions over the box, Int8 normals, sRGB Uint8 colours, Uint16 indices, base64, in
+  `src/props/scans/<id>.ts` (`scripts/asset-bakes.json` records the options; `replay` rebakes the
+  same bytes).
+- **Plan changes:** meshoptimizer directly, not `@gltf-transform` (only its simplifier was
+  needed); a TS module per scan loaded by **dynamic import** (`src/props/scans/index.ts`
+  `loadScan`), not `public/assets/*.bin`: the same on-demand fetch on the page (Vite splits a
+  chunk), and Node, tests and `params.mjs` import it with no second loader. Two levels of detail,
+  not one budget: a 5k plant is right within a few metres; a dense patch needs the 1.5k level
+  further off (its stalks go, sub-pixel past ~8 m).
+- Ursinia: 5 plants, 0.14–0.42 m across, 0.07–0.16 m tall (the scan's own size), 686 kB module
+  (469 kB gzipped); petals average `[0.46, 0.16, 0.03]` linear (phase 1's brightest cluster
+  `[0.61, 0.19, 0.02]`: same hue), leaves `[0.03, 0.03, 0.02]`.
+- **Seen** (`mesh.mjs`, also `--sun 8`): at 1.5k triangles a fixed count cut the big plant's
+  flowers off and simplification dropped every stalk (leaves floating); at 5k / 0.3% stalks, buds
+  and divided leaves are there. Not in any scene yet (phase 16 places it).
+- Tests: `test/scans.test.ts` (every variant and level at its real size, base on y = 0, in budget,
+  coarser levels coarser; bake recorded; licence shippable; colours linear and plausible).
+
 ## 12. Mushrooms
 
 `fungiFor(params, rng)`:
@@ -788,8 +820,8 @@ specimens (proportions) and photos (colour) for phase 17.
     fairy ring's dark band. *Marasmius* shrivels when dry and revives after rain, so on grass the
     rain ×1.5 is ×2 and a dry Mediterranean day ×0.3 *(est.)*.
   - Field mushrooms also have a spring flush in some regions (temperate May–Jun ×0.2, as above).
-- **Meshes:** cap + stem, base at y = 0, ~200 tris, instanced; sizes and colours from phase 11's
-  scans and phase 1's photos.
+- **Meshes:** procedural cap + stem, base at y = 0, ~200 tris, instanced; sizes and colours from
+  reference photos (`asset.mjs measure`): no CC0 mushroom scan exists (phase 11, 2026-11-12).
 - **Spec:** `fungi: true` forces both placements (under trees and on grass) as in the peak month.
 - **Day count:** grass mushrooms reach many more days than the under-tree 5–10 (grass is near the
   camera on most land days): count with `--project fungi` as the first step.

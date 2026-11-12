@@ -64,6 +64,14 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   gone past ~3 m footprints. Strength by climate (`FAIRY_SEASON`, northern-equivalent days): full
   in the growing season, a third (subtropical half) otherwise; none tropical, arid, polar.
   `props.fairyRings`: true forces at full strength, false is the switch.
+- **Baked scans** (`src/props/scans/`, 0.150, plans/NATURE_PLAN.md phase 11): CC0 scans baked
+  offline (`asset.mjs bake`) into vertex-coloured, quantised meshes at real size, base on y = 0,
+  each glTF node a variant at two levels of detail (5k and ~1.5k triangles). Plant cards are cut
+  along their alpha map (edges split to 2 texels, so the cut stays connected), coloured from the
+  calibrated albedo, welded and simplified (meshoptimizer). Each scan is a dynamic import (a chunk
+  fetched only by a day that draws it: `loadScan(id)` before building, then `scanGeometry` sync).
+  First: Poly Haven's *Ursinia* daisy (5 plants, 0.14–0.42 m), for phase 16's Namaqualand bloom;
+  nothing draws it yet.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ph_flower_ursinia",
+    "source": "polyhaven:flower_ursinia",
+    "lods": [
+      {
+        "triangles": 5000,
+        "error": 0.003
+      },
+      {
+        "triangles": 1500,
+        "error": 0.012
+      }
+    ],
+    "texel": 2,
+    "threshold": 0.5
+  }
+]

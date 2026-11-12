@@ -710,6 +710,13 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **Subdivide by edge, not by triangle, before cutting (baked scans, 0.150):** splitting each
+  card triangle into its own grid left T-joins between neighbours (their grids didn't line up),
+  so the alpha cut fell into hundreds of islands per card; the simplifier then couldn't get under
+  ~6.7k triangles without pruning, and pruning dropped whole flower heads. Split every edge longer
+  than the texel at its midpoint, decided per edge: both neighbours agree, and 1.5k triangles held
+  the plant's full size. Then simplify by **error** with a triangle cap: a 3 mm stalk is cheaper
+  than a 1.2% (5 mm) error and goes, leaving leaves floating; 0.3% kept them.
 - **Detail from world noise needs low contrast (sea ice, 0.116):** cloudy ice at ±24% over a short scale read as granite, and evenly spaced frost layers as candy stripes. Start subtle, at the object's own scale,
   and read the near render, not the sheet.
 - **Big level things have no business being tilted (sea ice, 0.115):** floes 0.5–1° apart read as paving stones near a grazing sun, where brightness goes with the angle. Fine at noon; every low-sun polar

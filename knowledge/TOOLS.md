@@ -42,7 +42,8 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |
 | Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
-| A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded | header; "Real colours" below; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §1 |
+| A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded |
+| A scanned model as a prop mesh (vertex colours, levels of detail) | `asset.mjs bake ID` → `src/props/scans/ID.ts`; `mesh.mjs 'props/scans/index#scanVariant(…)'` | "Real colours" below; NATURE_PLAN.md §11 | header; "Real colours" below; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §1 |
 
 ## Tests
 
@@ -116,6 +117,13 @@ each source file as fully covered, so leave it out.
 - **Record:** every measure goes into `scripts/asset-measures.json` (committed); `assets-src/` isn't.
   `asset.mjs replay [ID]` measures them all again. Commons rate-limits after ~5 quick requests (the
   script retries).
+- **Bake a scanned model** (NATURE_PLAN phase 11): `asset.mjs fetch polyhaven:ID` (glTF and its
+  `.bin`), then `asset.mjs bake ph_ID [--lods 5000:0.003,1500:0.012] [--texel 2]` →
+  `src/props/scans/ph_ID.ts` (each glTF node a variant, levels of detail finest first; recorded in
+  `scripts/asset-bakes.json`, which `replay` rebakes byte for byte). Register it in
+  `src/props/scans/index.ts`; preview with `mesh.mjs --material 'props/vegetation#plantMaterial()'
+  'props/scans/index#scanVariant("ph_ID", 0, 0)'`. Each level stops at its triangles or its error
+  (a share of the plant's size), whichever comes first: thin stalks need an error below their width.
 
 Anchors (linear albedo; Rec. 709 luminance is what `--anchor` matches):
 

@@ -170,6 +170,9 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   LH046 (https://edis.ifas.ufl.edu/lh046), K-State lawn problem solver
   (https://www.k-state.edu/turf/resources/lawn-problem-solver/problem-solver/off-color/dark/fairy-ring/index.html).
   No photo measured: the band's colour and width are estimates.
+- Baked scans (0.150; `src/props/scans/`): Poly Haven "Flower Ursinia"
+  (https://polyhaven.com/a/flower_ursinia, CC0, Jenelle van Heerden, Rico Cilliers): geometry,
+  alpha and albedo. Simplified with meshoptimizer (MIT, devDependency).
 
 ## Sea ice
 
