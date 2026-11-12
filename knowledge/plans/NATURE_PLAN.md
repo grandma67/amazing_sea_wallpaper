@@ -15,7 +15,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 |---|---|---|---|---|---|
 | 1 | ✅ Real assets: measure (fetch CC0 photos, textures, scans; sizes and colours), 2026-11-12 | `scripts/asset.mjs` (new) | none (data for every later phase) | done | – |
 | 2 | ✅ Close two place gaps (Atacama 26–30°S, Namaqualand and the Sandveld 29–33°S), 2026-11-12 | `places.ts`, one test | **95** days change, 67 to another place | done | – |
-| 3 | Bush blossom: rock rose, gorse, wattle; the `BLOOM` table and far tint | `phenology.ts`, `props/trees.ts` `leaves()` | rock rose ~13; gorse **6** full, 14 at ×0.4, 16 at ×0.1; wattle **2** full, 1 at ×0.3 | 2.5–3.5 h | 1 |
+| 3 | ✅ Bush blossom: rock rose, gorse, wattle; the `BLOOM` table and far tint, 2026-11-12 | `phenology.ts`, `props/trees.ts` `leaves()` | **50** land days with bushes in the pool: rock rose 12 full + 1; gorse 4 full + 30 part; wattle 2 full + 2 | done | 1 |
 | 4 | Tree blossom: flamboyant (per-crown thinning, dry-season window), pōhutukawa | `phenology.ts`, `places.ts` `onDryCoast`, `props/trees.ts` | flamboyant **24** full, **109** scattered; pōhutukawa **1** | 2.5–3.5 h | 3 |
 | 5 | Heath: heather on ground cover by month, near and far | terrain ground-cover shader, landforms, islands | **14** rock-shore days near; far slopes on the heath places' 9 beach days | 1.5–2 h | 1 |
 | 6 | `eucalyptus` kind (Australia native, California groves) | `props/trees.ts`, `props/vegetation.ts`, `places.ts` `PLACE_PLANTS` | every Australian and Californian land day with trees (count first) | 2–3 h | 1 |
@@ -91,7 +91,7 @@ see more of it). Choices made before that rule stay as made (the stylised firefl
 
   | Phase | Spec field | Type | Meaning | Off switch |
   |---|---|---|---|---|
-  | 3, 4 | `bloom` | `boolean \| BloomKind[] \| null` | true: every row that grows here, in full flower (nothing where no row grows: the plant isn't there); a list: those rows, also where they don't grow (for testing a look); null/false: none | `props.bloom: false` |
+  | 3, 4 | `props.bloom` (one field: force and switch, as `props.iceFoot`) | `boolean \| BloomKind[]` | true: every row that grows here, in full flower (nothing where no row grows: the plant isn't there); a list: those rows, also where they don't grow (for testing a look); false: none | `props.bloom: false` |
   | 5 | `heath` | `boolean \| 'flower' \| 'brown' \| 'green' \| null` | true: heath where a place has it, today's colour; a stage: that colour; null: none | `props.heath: false` |
   | 6 | – (`vegetation` kinds already force) | – | – | `PLACE_PLANTS` row off: `props.eucalyptus: false` |
   | 7, 9 | – (no draw) | – | – | `props.moss: false` (back to `GROWTH[biome].moss`, no trunk moss) |
@@ -174,7 +174,7 @@ are CC-BY / CC-BY-SA on Commons (colours only, nothing redistributed); scans CC0
 | Rock rose pink (3) | `[0.41, 0.13, 0.41]` (*C. albidus* `[0.46, 0.10, 0.38]`, *C. creticus* `[0.37, 0.16, 0.44]`) | `[0.55, 0.17, 0.36]` | petal | `wc_cistus_albidus_flowers`, `wc_cistus_creticus_rf` |
 | Rock rose white (3) | `[0.59, 0.62, 0.58]` | `[0.70, 0.68, 0.65]` | petal | `wc_cistus_salviifolius_sage_leaved_cistus_02` |
 | Gorse (3) | `[0.62, 0.33, 0.01]`: golden, redder than the estimate | `[0.70, 0.50, 0.02]` | petal | `wc_ulex_europaeus_flowers` (and `…_mynydd_carningli_flowers`, `[0.46, 0.31, 0.07]`, backlit) |
-| Wattle (3) | `[0.47, 0.51, 0.17]`: pale lemon (fluffy stamen balls), greener than gorse | `[0.72, 0.55, 0.03]` | petal | `wc_acacia_pycnantha_golden_wattle` (*A. longifolia* `[0.48, 0.48, 0.27]`, paler still) |
+| Wattle (3) | `[0.52, 0.55, 0.09]`: lemon, greener than gorse (the flower balls alone: two regions agree, phase 3; the whole photo's `[0.47, 0.51, 0.17]` mixed in pale highlights) | `[0.72, 0.55, 0.03]` | petal | `wc_acacia_pycnantha_golden_wattle` (*A. longifolia* `[0.48, 0.48, 0.27]`, paler still) |
 | Flamboyant (4) | `[0.41, 0.03, 0.02]` | `[0.55, 0.02, 0.01]` | petal | `wc_delonix_regia_4226` |
 | Pōhutukawa (4) | `[0.47, 0.02, 0.02]` | `[0.45, 0.02, 0.03]` | petal | `wc_metrosideros_excelsa_kz05` |
 | Heather flowers, near (5) | `[0.25, 0.14, 0.26]` (bell heather) | `[0.26, 0.09, 0.24]` | anchor: its own foliage = the trees' leaf `[0.05, 0.10, 0.03]` | `wc_heather_bonny_bl_ing_geograph_org_uk_31279` |
@@ -305,8 +305,8 @@ only; `bareOn` is phase 4.
   `canaries` (native from Macaronesia through the Mediterranean to the Caucasus and N Africa; not
   California, Chile, the Cape or SW Australia: Kew POWO, first-nature).
 - **Months:** May–Jul (local), peak late May – mid Jun *(est.)*; April ×0.3.
-- **Share:** 0.4 of `bush` crowns, 0.25 of their leaf cards *(est.: speckled, not solid; each flower
-  lasts a day)*.
+- **Share:** 0.4 of `bush` crowns, 0.4 of their leaf cards at 0.6 of a leaf's length *(est.: speckled, not solid; each flower
+  lasts a day; 0.25 at half size were specks at 6 m in `mesh.mjs`)*.
 - **Colours:** pink `[0.41, 0.13, 0.41]` and white `[0.59, 0.62, 0.58]` (measured, §1; half each by crown hash).
 - **Far tint:** mix the far canopy colour toward the crown's mean flower colour by
   0.4 × 0.25 × `bushShare`, where `bushShare` = the `bush` weight ÷ the total non-grass weight of
@@ -318,7 +318,7 @@ only; `bareOn` is phase 4.
 | Plant | Our kind | Places | Months (local) | Share | Colour (measured, §1) | Source |
 |---|---|---|---|---|---|---|
 | Common gorse (*Ulex europaeus*) | `bush` | `cornwall-wales`, `brittany`, `ireland`, `scotland`, `bristol-channel`, `morecambe-bay`; invasive in `new-zealand-south`, `new-zealand-north`, `tasmania`, `central-chile` | full Apr–May; Jan–Mar and Jun ×0.4; Jul–Dec ×0.1 (a few flowers all year in mild winters; two strains) | 0.5 of `bush` crowns, 0.5 of their leaf cards (gorse is dense with flowers) | golden `[0.62, 0.33, 0.01]` | Woodland Trust, Dorset Nature, Lincolnshire Life |
-| Coastal and golden wattle (*Acacia longifolia*, *A. pycnantha*) | `bush` | `east-australia`, `tasmania`, `sw-australia` *(est.)* | full late Aug – Sep; Jul and Oct–Nov ×0.3 | 0.35 of `bush` crowns, 0.5 of their leaf cards | pale lemon `[0.47, 0.51, 0.17]` | Australian floral emblem page, lawn.com.au |
+| Coastal and golden wattle (*Acacia longifolia*, *A. pycnantha*) | `bush` | `east-australia`, `tasmania`, `sw-australia` *(est.)* | full late Aug – Sep; Jul and Oct–Nov ×0.3 | 0.35 of `bush` crowns, 0.5 of their leaf cards | lemon `[0.52, 0.55, 0.09]` | Australian floral emblem page, lawn.com.au |
 
 
 - **Far tint:** gorse and wattle as rock rose (0.4 × leaf share × `bushShare`).
@@ -337,6 +337,31 @@ Cost ~0% render time.
 **Tests:** `test/bloom.test.ts`: the table over every place × month (no sampling), shares in 0..1,
 a crown fixed by its position, unchanged outside the window, the off switch;
 `realDays.test.ts` "no bloom outside its months"; `sceneSpec.test.ts` the `bloom` field.
+
+**Built (0.140):**
+- `BLOOM` rows by place and local calendar month (`phenology.ts`); `phenologyFor(day).bloom` lists
+  the rows flowering today; `plantSeason` carries them; `canopyTint` adds the far tint
+  (crowns × cards × the kind's share of the pool).
+- **Gorse in the south got its own row:** the plan's Apr–May are northern months, but NZ gorse
+  flowers May–Nov, spring and autumn flushes (NZ Flora, APWT, Hawke's Bay RC): full Aug–Oct
+  *(spring peak est.)*, May–Jul and Nov ×0.4, else ×0.1.
+- **Crowns by variant, not by hash:** bushes are 5 instanced variants, so a hashed 0.4 share left
+  all five bare on 0.6⁵ ≈ 8% of full-bloom days. `blossomFor(season, v, variants)` lays the rows'
+  crown shares end to end over the variants (2 of 5 rock roses, one pink, one white). A flowering
+  crown is evergreen (none of the three drops its leaves).
+- Flowers are smaller cards (`size`: rock rose 0.6, gorse 0.7, wattle 0.8 of a leaf), darkened
+  inside the crown less than leaves; scaled after the draws, so a bush keeps its shape.
+- `props.bloom` is both the force and the switch (one field, as `props.iceFoot`); `phenology:
+  false` turns it off too. `diff.mjs --ref HEAD --off '{"props":{"bloom":false}}' --off-here`:
+  identical on all four views of `scenes/bloom.json`.
+- Seen: `mesh.mjs --sun 8` (pink, white, gold, lemon all read); `scenes/bloom.json` (Cornish gorse
+  and NSW wattle read; the Med cove's flowering bush stood in the framing trees' shade, so its
+  white flowers were grey; backlit, a silhouette either way); real days (8, `diff.mjs --where`): 6
+  changed, the Canaries overlook's maquis speckled pink and white; 2 invisible (southern gorse at
+  ×0.4 with few bushes in frame). Render time −1% (`bench.mjs`, noise).
+- Rock shores: bushes stand behind the shore (3 in frame on a forced Cornish platform or boulder
+  shore, none on a cliff overlook), so the plan's "Cornish cliff top" look needs heath (phase 5)
+  and TERRAIN_FORMS's land; the spec uses a framed beach.
 
 ## 4. Tree blossom: flamboyant and pōhutukawa
 

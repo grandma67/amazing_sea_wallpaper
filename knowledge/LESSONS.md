@@ -165,6 +165,16 @@ tool gotchas: TOOLS.md.
   `--date` to cover days that have the feature (`params.mjs --list --where`).
 - A pale, even colour under a tree reads as a stain, and a map's discs as neat ellipses from above:
   fainter, warped, and in drifts; the leaves on top carry the look.
+- **A share of a few instanced variants can't be a hash** (blossom, 0.140): bushes are 5 meshes, so a
+  hashed 0.4 crown share flowers none of them on 0.6⁵ ≈ 8% of days. Spread the share over the
+  variants (`blossomFor`). Autumn's per-tree hash has the same variance, unnoticed because its
+  share is mostly 0 or 1.
+- **A plan's months for one row over both hemispheres are a bug:** gorse "Apr–May" was written for
+  Europe and listed New Zealand too, where April is autumn. Split the row or read
+  `seasonMonth`.
+- **A colour from "the brightest cluster" of a whole photo can mix in highlights** (wattle: blue 0.17
+  from sunlit leaves and sky glints; the flower balls alone gave 0.09). Measure a region of the
+  target only, and check two regions agree.
 - The `southern` hemisphere shift is half a year: 2 July south is day 365, 3 July day 1
   (`seasonDay`), not 2 July.
 

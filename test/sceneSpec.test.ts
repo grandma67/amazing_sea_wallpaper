@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createCamera } from '../src/camera'
 import { generateSceneParams } from '../src/composition'
 import { generateParams, type SceneParams } from '../src/params'
+import { phenologyFor } from '../src/phenology'
 import { debrisFor } from '../src/props/debris'
 import { shoreLifeFor } from '../src/props/shoreLife'
 import { Random } from '../src/random'
@@ -154,6 +155,12 @@ describe('scene specs', () => {
     const none = scene({ coast: 'beach', props: { debris: null, shoreLife: null } })
     expect(debrisFor(none, new Random('x'))).toBeNull()
     expect(shoreLifeFor(none, new Random('x'))).toBeNull()
+    // Blossom: forced in December, the rest of the day as drawn.
+    const plain = scene({ place: 'western-med', coast: 'beach' }, '2025-12-15')
+    const bloom = scene({ place: 'western-med', coast: 'beach', props: { bloom: true } }, '2025-12-15')
+    expect(phenologyFor(plain).bloom).toEqual([])
+    expect(phenologyFor(bloom).bloom.map(b => b.row.kind)).toEqual(['rock-rose'])
+    expect({ ...bloom, overrides: undefined }).toEqual({ ...plain, overrides: undefined })
   })
 })
 
@@ -227,6 +234,7 @@ describe('parseSceneSpec', () => {
     expect(() => parseSceneSpec({ biome: 'arctic' })).toThrow(/spec\.biome must be one of/)
     expect(() => parseSceneSpec({ props: { marine: 'shark' } })).toThrow(/spec\.props\.marine/)
     expect(() => parseSceneSpec({ props: { ships: ['submarine'] } })).toThrow(/spec\.props\.ships\[0\]/)
+    expect(() => parseSceneSpec({ props: { bloom: ['heather'] } })).toThrow(/spec\.props\.bloom\[0\]/)
     expect(() => parseSceneSpec({ date: '12/07/2024' })).toThrow(/YYYY-MM-DD/)
     expect(() => parseSceneSpec({ wind: '5' })).toThrow(/must be a number/)
     expect(() => parseSceneSpec([])).toThrow(/must be an object/)

@@ -5,6 +5,7 @@ import type { EclipseType } from './celestial'
 import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './biome'
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
+import type { BloomKind } from './phenology'
 import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
 import { ROCK_KINDS, type RockKind } from './rockShore'
 import type { SeaIceForce } from './seaIce'
@@ -80,6 +81,10 @@ export interface PropOverrides {
   /** false: no fallen leaves or litter colour under deciduous trees
    * (props/leafLitter.ts). */
   leafLitter?: boolean
+  /** Bush blossom (phenology.ts BLOOM): true, every row that grows here in
+   * full flower (none where none grows); a list, those rows in full flower
+   * wherever the day is (to test a look); false: none. */
+  bloom?: boolean | BloomKind[]
   /** null: nothing washed up; fields replace the drawn ones. */
   debris?: Partial<DebrisSpec> | null
   /** null: no crabs, shells or flowers; fields replace the drawn ones. */
@@ -380,6 +385,7 @@ const SPEC = object({
     vegetation: listOf(oneOf(...PLANTS)),
     phenology: boolean,
     leafLitter: boolean,
+    bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf('rock-rose', 'gorse', 'wattle'))(value, path)),
     iceFoot: boolean,
     seaIce: boolean,
     debris: object(

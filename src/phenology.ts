@@ -12,7 +12,7 @@ import { seasonDay, type Day } from './seasons'
 /** What phenology reads from a day (SceneParams has all of it). */
 export interface PhenologyDay extends Day {
   place: { id: string; climate: Climate }
-  overrides?: { phenology?: boolean }
+  overrides?: { phenology?: boolean; bloom?: boolean | readonly BloomKind[] }
   sea?: { ocean: string }
 }
 
@@ -33,6 +33,8 @@ export interface Phenology {
   litterFresh: number
   placeId: string
   south: boolean
+  /** Bush and tree blossom flowering today (`BLOOM`), with its strength. */
+  bloom: readonly { row: BloomRow; strength: number }[]
 }
 
 /** What a plant builder needs: the leaves of a deciduous tree (`deciduous`
@@ -44,10 +46,148 @@ export interface PlantSeason {
   dry: number
   deciduous: number
   autumn: readonly RGB[]
+  /** The blossom rows flowering on this kind today (`bloomFor`); a builder's
+   * mesh takes one of them (`blossomFor`). */
+  bloom?: readonly Blossom[]
+  /** This mesh's blossom: set per variant by `blossomFor`, so a crown share
+   * of 0.4 is 2 of 5 variants, not a hash that can miss all five. */
+  blossom?: Blossom
+}
+
+export type BloomKind = 'rock-rose' | 'gorse' | 'wattle'
+
+/** A plant in flower on a kind's crowns (NATURE_PLAN phase 3). */
+export interface BloomRow {
+  kind: BloomKind
+  plant: VegetationKind
+  /** Where it grows (place ids). */
+  places: readonly string[]
+  /** Strength by local calendar month, January first (a place row: its own
+   * months, as turtle nesting; LESSONS.md "Seasons"). */
+  months: readonly number[]
+  /** Share of the kind's crowns in flower, and of a flowering crown's leaf
+   * cards that are flowers at strength 1. */
+  crowns: number
+  leaves: number
+  /** Flower colours (linear albedo, measured: NATURE_PLAN §1), one per crown. */
+  colors: readonly RGB[]
+  /** A flower card's length as a share of a leaf card's (est.: cistus
+   * flowers 4–6 cm, gorse 1.5–2.5 cm in clusters, wattle in sprays, against
+   * 8–13 cm leaf cards). */
+  size: number
+}
+
+/** One flowering crown's look: `leaves` already scaled by the day's strength. */
+export interface Blossom {
+  kind: BloomKind
+  leaves: number
+  color: RGB
+  size: number
+}
+
+const MED = ['western-med', 'adriatic', 'aegean', 'north-africa-levant', 'portugal-morocco', 'canaries']
+
+/**
+ * Bush blossom by place (NATURE.md §1; colours measured, NATURE_PLAN §1).
+ * Rock rose: native Macaronesia to the eastern Mediterranean, not
+ * California, Chile, the Cape or SW Australia (Kew POWO). Gorse: Atlantic
+ * Europe, full Apr–May with flowers all year in mild winters (Woodland
+ * Trust); invasive in New Zealand, Tasmania and Chile, where it flowers
+ * May–Nov, spring and autumn flushes (NZ Flora, APWT, Hawke's Bay RC; the
+ * spring peak est.). Wattle: late Aug – Sep, Jul and Oct–Nov a little.
+ */
+export const BLOOM: readonly BloomRow[] = [
+  {
+    kind: 'rock-rose',
+    plant: 'bush',
+    places: MED,
+    months: [0, 0, 0, 0.3, 1, 1, 1, 0, 0, 0, 0, 0],
+    crowns: 0.4,
+    // 0.25 of the cards at half size covered ~6% of the crown: specks at 6 m,
+    // where cistus in flower is spotted all over (mesh.mjs, 2026-11-12).
+    leaves: 0.4,
+    colors: [
+      [0.41, 0.13, 0.41],
+      [0.59, 0.62, 0.58]
+    ],
+    size: 0.6
+  },
+  {
+    kind: 'gorse',
+    plant: 'bush',
+    places: ['cornwall-wales', 'brittany', 'ireland', 'scotland', 'bristol-channel', 'morecambe-bay'],
+    months: [0.4, 0.4, 0.4, 1, 1, 0.4, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+    crowns: 0.5,
+    leaves: 0.5,
+    colors: [[0.62, 0.33, 0.01]],
+    size: 0.7
+  },
+  {
+    kind: 'gorse',
+    plant: 'bush',
+    places: ['new-zealand-south', 'new-zealand-north', 'tasmania', 'central-chile'],
+    months: [0.1, 0.1, 0.1, 0.1, 0.4, 0.4, 0.4, 1, 1, 1, 0.4, 0.1],
+    crowns: 0.5,
+    leaves: 0.5,
+    colors: [[0.62, 0.33, 0.01]],
+    size: 0.7
+  },
+  {
+    kind: 'wattle',
+    plant: 'bush',
+    places: ['east-australia', 'tasmania', 'sw-australia'],
+    months: [0, 0, 0, 0, 0, 0, 0.3, 1, 1, 0.3, 0.3, 0],
+    crowns: 0.35,
+    leaves: 0.5,
+    // The flower balls alone (two regions of the golden-wattle photo agree).
+    colors: [[0.52, 0.55, 0.09]],
+    size: 0.8
+  }
+]
+
+/** The rows in flower today: by place and local month, or as a spec forces
+ * (`props.bloom`: true, every row that grows here at full strength; a list,
+ * those rows at full strength wherever the day is; false, none). */
+function bloomToday(day: PhenologyDay): { row: BloomRow; strength: number }[] {
+  const force = day.overrides?.bloom
+  if (force === false) return []
+  if (Array.isArray(force)) {
+    // One row per kind (the first: the northern gorse), wherever the day is.
+    return force.map(kind => ({ row: BLOOM.find(r => r.kind === kind)!, strength: 1 }))
+  }
+  const month = Number(day.date.slice(5, 7))
+  return BLOOM.filter(r => r.places.includes(day.place.id))
+    .map(row => ({ row, strength: force === true ? 1 : row.months[month - 1] }))
+    .filter(b => b.strength > 0)
+}
+
+/** The blossom rows on `kind` today, each with its crown share. */
+export function bloomFor(kind: VegetationKind, phen: Phenology): readonly (Blossom & { crowns: number; colors: readonly RGB[] })[] {
+  return phen.bloom
+    .filter(b => b.row.plant === kind)
+    .map(({ row, strength }) => ({ kind: row.kind, crowns: row.crowns, leaves: row.leaves * strength, color: row.colors[0], colors: row.colors, size: row.size }))
+}
+
+/** Variant `v` of `variants`'s blossom: the rows' crown shares laid end to end
+ * over the variants (stratified, so a share always shows), colours taking
+ * turns within a row. Undefined: this variant doesn't flower. */
+export function blossomFor(season: PlantSeason | undefined, v: number, variants: number): PlantSeason | undefined {
+  const rows = season?.bloom
+  if (season == null || rows == null || rows.length === 0) return season
+  const u = (v + 0.5) / variants
+  let start = 0
+  for (const r of rows as readonly (Blossom & { crowns: number; colors: readonly RGB[] })[]) {
+    if (u < start + r.crowns) {
+      const i = Math.floor((u - start) * variants)
+      return { ...season, blossom: { kind: r.kind, leaves: r.leaves, color: r.colors[i % r.colors.length], size: r.size } }
+    }
+    start += r.crowns
+  }
+  return season
 }
 
 /** Plants in full summer leaf: what every day looked like before. */
-export const SUMMER: Omit<Phenology, 'climate' | 'placeId' | 'south'> = { on: 1, turned: 0, fresh: 0, dry: 0, tropical: { on: 1, turned: 0 }, litter: 0, litterFresh: 0 }
+export const SUMMER: Omit<Phenology, 'climate' | 'placeId' | 'south'> = { on: 1, turned: 0, fresh: 0, dry: 0, tropical: { on: 1, turned: 0 }, litter: 0, litterFresh: 0, bloom: [] }
 
 /**
  * A value that rises from 0 at day `a` to 1 at `b`, holds, and falls back to
@@ -143,7 +283,7 @@ export function phenologyFor(day: PhenologyDay): Phenology {
   const fall = LITTER_DAYS[climate]
   const litter = climate === 'tropical' ? almond : fall == null ? 0 : band(d, fall.a, fall.b, fall.c, fall.e)
   const litterFresh = climate === 'tropical' || fall == null ? 1 : Math.max(0, 1 - ((((d - fall.a) % 365) + 365) % 365) / LITTER_WEATHERS)
-  return { ...base, on, turned, fresh, dry, tropical: { on: 1 - 0.5 * almond, turned: almond }, litter, litterFresh }
+  return { ...base, on, turned, fresh, dry, tropical: { on: 1 - 0.5 * almond, turned: almond }, litter, litterFresh, bloom: bloomToday(day) }
 }
 
 /** Coasts that don't follow the Caribbean's sargassum months: West Africa has
@@ -225,8 +365,17 @@ export function plantSeason(kind: VegetationKind, phen: Phenology): PlantSeason 
   const deciduous = deciduousShare(kind, phen)
   const leaves = phen.climate === 'tropical' ? { ...phen.tropical, fresh: 0 } : phen
   const leafy = deciduous > 0 && (leaves.on < 1 || leaves.turned > 0 || leaves.fresh > 0)
-  if (!leafy && phen.dry === 0) return undefined
-  return { on: leaves.on, turned: leaves.turned, fresh: leaves.fresh, dry: phen.dry, deciduous: leafy ? deciduous : 0, autumn: autumnColors(kind, phen) }
+  const bloom = bloomFor(kind, phen)
+  if (!leafy && phen.dry === 0 && bloom.length === 0) return undefined
+  return {
+    on: leaves.on,
+    turned: leaves.turned,
+    fresh: leaves.fresh,
+    dry: phen.dry,
+    deciduous: leafy ? deciduous : 0,
+    autumn: autumnColors(kind, phen),
+    ...(bloom.length > 0 ? { bloom } : {})
+  }
 }
 
 const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
@@ -245,11 +394,21 @@ export function canopyTint(foliage: RGB, phen: Phenology, plants: readonly (read
   const total = trees.reduce((s, [, w]) => s + w, 0)
   if (total === 0) return foliage
   const share = trees.reduce((s, [k, w]) => s + w * deciduousShare(k, phen), 0) / total
-  if (share === 0) return foliage
+  if (share === 0) return blossomTint(foliage, phen, trees, total)
   const leaves = phen.climate === 'tropical' ? phen.tropical : phen
   // Far away the turned crowns are dimmer than a lit leaf (shade inside the crown).
   const turned = mix(foliage, mean(autumnColors('broadleaf', phen)).map(v => v * 0.6) as RGB, share * leaves.on * leaves.turned)
-  return mix(turned, BARE, share * (1 - leaves.on))
+  return blossomTint(mix(turned, BARE, share * (1 - leaves.on)), phen, trees, total)
+}
+
+/** Far crowns in flower: mixed toward the flowers' mean colour by the share
+ * of the plant pool's crowns and cards in flower (a faint haze on far maquis). */
+function blossomTint(color: RGB, phen: Phenology, trees: readonly (readonly [VegetationKind, number])[], total: number): RGB {
+  let out = color
+  for (const [kind, w] of trees) {
+    for (const b of bloomFor(kind, phen)) out = mix(out, mean(b.colors), b.crowns * b.leaves * (w / total))
+  }
+  return out
 }
 
 /**

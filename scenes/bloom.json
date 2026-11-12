@@ -1,0 +1,7 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null },
+  "scenes": [
+    { "name": "med-rockrose-front", "date": "2025-06-01", "place": "western-med", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160 },
+    { "name": "med-rockrose-back", "date": "2025-06-01", "place": "western-med", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour" },
+    { "name": "cornwall-gorse", "date": "2025-05-01", "place": "cornwall-wales", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 150 },
+    { "name": "nsw-wattle-headland", "date": "2025-09-05", "place": "east-australia", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 200 }
+  ] }

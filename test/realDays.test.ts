@@ -3,6 +3,7 @@ import { describe, it } from 'vitest'
 import type { SceneParams } from '../src/params'
 import { MAX_CONTRAILS } from '../src/contrails'
 import { OCEANS } from '../src/oceans'
+import { phenologyFor } from '../src/phenology'
 import { allParams, expectEvery } from './days'
 
 // What goes with what, over every real day: when the first holds, so must the
@@ -35,6 +36,10 @@ const RULES: Rule[] = [
     return length <= 320 && length >= 60 * scale - 1e-9 && length <= 200 * scale + 1e-9
   }],
   ['the swell: up to 2 m before its ocean and monsoon', always, p => p.ocean.swellHeight >= 0 && p.ocean.swellHeight <= 2 * OCEANS[p.sea.ocean].swellHeight * 1.5],
+
+  // Bush blossom (phenology.ts BLOOM): a place row in its own months.
+  ['bush blossom: only in a row’s places and months', p => phenologyFor(p).bloom.length > 0, p =>
+    phenologyFor(p).bloom.every(b => b.row.places.includes(p.place.id) && b.row.months[Number(p.date.slice(5, 7)) - 1] > 0)],
 
   // Weather.
   ['a storm: by day', p => p.storm != null, p => p.timeOfDay !== 'night'],

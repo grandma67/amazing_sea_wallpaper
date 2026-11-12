@@ -285,7 +285,9 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
   // Deciduous or not, and how early it turns, per tree (hashed from its
   // shape, not drawn).
   const key = hash(tips[0].p.x * 13.1 + tips.length, tips[0].p.z * 7.7 + tips[0].p.y)
-  const season = f.season != null && key < f.season.deciduous ? f.season : undefined
+  // A crown in flower (blossomFor) is one of the evergreen shrubs that bloom.
+  const blossom = f.season?.blossom
+  const season = f.season != null && blossom == null && key < f.season.deciduous ? f.season : undefined
   const early = (hash(key * 91.3, 3.3) - 0.5) * 0.3
   // For what falls from it (props/leafLitter.ts).
   b.userData.deciduous = season != null
@@ -339,9 +341,20 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
           color = mix(color, scale([0.12, 0.2, 0.03], shade), 0.5 * season.fresh)
         }
       }
+      // Blossom (after every draw): a share of the cards are flowers, the
+      // outside of the crown first, smaller than a leaf.
+      let size = 1
+      if (blossom != null) {
+        const exposed = 0.5 * height + 0.5 * depth
+        if (hash(base.z * 19.3 + k * 0.53, base.x * 27.1 - base.y * 4.3) * 0.7 + (1 - exposed) * 0.3 < blossom.leaves) {
+          // Flowers sit on the crown's surface: darkened inside less than leaves.
+          color = scale(blossom.color, (0.7 + 0.3 * depth) * (0.85 + 0.3 * hash(k * 3.1, base.z)))
+          size = blossom.size
+        }
+      }
       const tipColor = scale(color, 1.12)
 
-      blade(b, f.shape, base, dir, normal, side, length, width, color, tipColor)
+      blade(b, f.shape, base, dir, normal, side, length * size, width * size, color, tipColor)
     }
   }
 }

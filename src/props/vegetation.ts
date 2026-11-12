@@ -10,7 +10,7 @@ import {
 } from 'three'
 
 import type { RGB, VegetationKind } from '../biome'
-import { phenologyFor, plantSeason, type PlantSeason } from '../phenology'
+import { blossomFor, phenologyFor, plantSeason, type PlantSeason } from '../phenology'
 import { placeNamed } from '../places'
 import type { Random } from '../random'
 import { hasLand, shoreToWorld, terrainNormal } from '../terrain'
@@ -498,7 +498,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     for (let v = 0; v < spec.variants; v++) {
       const indices = placed.map((_, i) => i).filter(i => i % spec.variants === v)
       if (indices.length === 0) continue
-      const mesh = new InstancedMesh(spec.build(rng, biome.foliage, plantSeason(kind, phenology)), bent.material, indices.length)
+      const mesh = new InstancedMesh(spec.build(rng, biome.foliage, blossomFor(plantSeason(kind, phenology), v, spec.variants)), bent.material, indices.length)
       mesh.customDepthMaterial = bent.depth
       mesh.userData.plantKind = kind
       indices.forEach((i, j) => {

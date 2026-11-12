@@ -64,7 +64,8 @@ Allowed values are in `sceneSpec.ts`.
   `haulOut`.
 - **Camera:** `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`. `horizonFraction` = how far
   **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
-- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,leafLitter,debris,shoreLife,mangroves,wildlife}`.
+- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,leafLitter,bloom,debris,shoreLife,mangroves,wildlife}`.
+  `bloom` (bush blossom, `phenology.ts` `BLOOM`): `true` every row that grows here in full flower, a list (`["gorse"]`) those rows anywhere, `false` none (`scenes/bloom.json`).
   Off for `diff.mjs`: `false` (booleans and kinds), `[]` (`vegetation`), `null` (`debris`,
   `shoreLife`, `wildlife`). `iceFoot`: `false` none, `true` on any snow day (needs `snow`). `leafLitter: false`: no fallen leaves or litter colour. `phenology: false` keeps plants and ground in their summer look
   (no autumn leaves, bare trees or dry grass, and the mountains' snow line as drawn; `phenology.ts`); the season itself comes from the
