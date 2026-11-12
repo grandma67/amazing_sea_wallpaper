@@ -64,7 +64,7 @@ Allowed values are in `sceneSpec.ts`.
   `haulOut`.
 - **Camera:** `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`. `horizonFraction` = how far
   **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
-- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,leafLitter,bloom,heath,fairyRings,fungi,eucalyptus,moss,shoreWeed,debris,shoreLife,mangroves,wildlife}`.
+- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,leafLitter,bloom,heath,fairyRings,fungi,fireflies,eucalyptus,moss,shoreWeed,debris,shoreLife,mangroves,wildlife}`.
   `bloom` (blossom, `phenology.ts` `BLOOM`): `true` every row that grows here in full flower, a list (`["gorse"]`, `["flamboyant"]`; kinds `rock-rose`, `gorse`, `wattle`, `flamboyant`, `pohutukawa`) those rows anywhere, `false` none (`scenes/bloom.json`; `look-flamboyant` forces it on a wood with many broadleaves, since tropical days place few).
   `shoreWeed: false` drops laver and sea lettuce from the rocky shore (the spray belt stays) (`scenes/shoreZone.json`).
   `moss: false` gives back moss as before phase 7 (the biome's amount, green; none on the rock-shore terrain) (`scenes/moss.json`).
@@ -72,6 +72,7 @@ Allowed values are in `sceneSpec.ts`.
   `heath` (heather on the ground cover, `phenology.ts` `heathFor`): `true` heath in today's colour wherever the day is, a stage (`flower`, `brown`, `green`) in that colour, `false` none (the switch; `phenology: false` turns it off too). Near only behind a rocky shore; far on landforms' and islands' green slopes (`scenes/heath.json`).
   `fairyRings` (rings of dark grass on the turf, `phenology.ts` `fairyRingsFor`, `fairyRings.ts`): `true` at full strength wherever the day is, `false` none (the switch; `phenology: false` turns it off too). Only where the terrain has dense ground cover (`scenes/fairyRings.json`).
   `fungi` (mushrooms, `props/fungi.ts` `fungiFor`): `true` the climate's kinds (the temperate ones where it has none) under their trees and on the turf as at the peak, `false` none (the switch; `phenology: false` turns it off too). Grass tufts hide them from a 1.6 m eye: the specs force trees without grass (`scenes/fungi.json`).
+  `fireflies` (`props/fireflies.ts` `firefliesFor`): `true` the place's kind (or `flash`) at its peak, a kind (`flash`, `glow`, `synchronous`) that kind, `false` none. Still only at night or in an evening blue hour, on land; `synchronous` sits in mangrove crowns (trees or bushes without them).
   Off for `diff.mjs`: `false` (booleans and kinds), `[]` (`vegetation`), `null` (`debris`,
   `shoreLife`, `wildlife`). `iceFoot`: `false` none, `true` on any snow day (needs `snow`). `leafLitter: false`: no fallen leaves or litter colour. `phenology: false` keeps plants and ground in their summer look
   (no autumn leaves, bare trees or dry grass, and the mountains' snow line as drawn; `phenology.ts`); the season itself comes from the

@@ -4,6 +4,9 @@ import type { SceneParams } from '../src/params'
 import { MAX_CONTRAILS } from '../src/contrails'
 import { OCEANS } from '../src/oceans'
 import { fungiFor } from '../src/props/fungi'
+import { firefliesFor } from '../src/props/fireflies'
+import { mangroveFor } from '../src/props/mangroves'
+import { Random } from '../src/random'
 import { FAIRY_SEASON, fairyRingsFor, fungiSeason, HEATH_PLACES, heathFor, phenologyFor } from '../src/phenology'
 import { allParams, expectEvery } from './days'
 
@@ -45,6 +48,8 @@ const RULES: Rule[] = [
   ['heath: only on the heath coasts', p => heathFor(p) != null, p => HEATH_PLACES.includes(p.place.id)],
   // Fairy rings (phenology.ts fairyRingsFor): only in climates with a season row.
   ['fairy rings: only where the climate has a season', p => fairyRingsFor(p) > 0, p => FAIRY_SEASON[p.place.climate] != null],
+  // Fireflies (props/fireflies.ts firefliesFor): night or an evening blue hour, on land.
+  ['fireflies: only at night or an evening blue hour, on land', p => firefliesFor(p, Random.derive(p.seed, 'props/fireflies'), mangroveFor(p, Random.derive(p.seed, 'props/mangroves'))) != null, p => p.coast.type !== 'open-sea' && (p.timeOfDay === 'night' || (p.timeOfDay === 'blue-hour' && p.evening))],
   // Mushrooms (props/fungi.ts fungiFor): in season, never on arid coasts.
   ['mushrooms: only in their season, not arid', p => fungiFor(p) != null, p => fungiSeason(p) > 0 && p.place.climate !== 'arid'],
 

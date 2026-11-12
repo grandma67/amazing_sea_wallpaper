@@ -25,7 +25,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 10 | ✅ Fairy rings, 2026-11-12 | `fairyRings.ts` (new), terrain ground-cover shader, `phenology.ts` `FAIRY_SEASON` | 0 params; rings at some strength on 323 land days (temperate, boreal, Mediterranean, subtropical); grass in frame within 300 m on ~67 of the 259 non-subtropical ones; real days 2 of 8 changed | done | 5 (heath mask) |
 | 11 | ✅ Real assets: bake (reduce, vertex colours, emit, check), proved on Poly Haven's *Ursinia* (no CC0 mushroom scan exists), 2026-11-12 | `scripts/asset.mjs`, `scripts/assetBake.mjs`, `src/props/scans/` | none (a mesh for phase 16; nothing draws it yet) | done | 1 |
 | 12 | ✅ Mushrooms under trees and on grass, 2026-11-13 | `props/fungi.ts`, `groundCover.ts` (new), `phenology.ts` `fungiSeason` | **96** land days in season (temperate, boreal, Mediterranean, polar) + 236 tropical and subtropical (false parasol); in frame on ~15 of the 332 | done | 9, 10 |
-| 13 | Fireflies: the choice table, weather rules, placement and counts (no drawing) | `props/fireflies.ts` `firefliesFor`, `props/choices.ts` | **11** eligible land nights, **~4** after wind, rain and mangroves | 2–3 h | – |
+| 13 | ✅ Fireflies: the choice table, weather rules, placement and counts (no drawing), 2026-11-13 | `props/fireflies.ts` `firefliesFor`, `fireflyLights`, `props/choices.ts` | **13** land evenings in a region's months; **1** night out (2025-07-30, Norway glow-worms) after wind, moon and the 0.7 chance | done | – |
 | 14 | Fireflies: drawing (sprites and ribbons, brightness by magnitude, streaks) | `props/fireflies.ts` meshes, star magnitude code | as 13 | 3–4 h | 13 |
 | 15 | Lomas: yearly green on Peru's fog hills | `props/landforms.ts` colour by height; later TERRAIN_FORMS's wall | 3 land days Jun–Nov, **~0.5** with hills high enough in frame | 1–1.5 h | 2 |
 | 16 | Bloom years: the Atacama's desert bloom, Namaqualand and the Cape West Coast, Baja | per-year streams, `props/shoreLife.ts` `FLOWERS`, far ground tint | desert bloom **0** Sep–Nov; Namaqualand **1** (July, ×0.4); Baja **0** | 2.5–3.5 h | 2 |
@@ -952,6 +952,25 @@ drizzle and at 8 m/s; fewer under a full moon (`expectShare`); placements over
 vegetation only; `synchronous` only with mangroves; `glow` in evening blue hour only at
 `sunElevationDeg ≤ −6`, never at dawn, and a June 60°N dusk eligible while 64°N isn't; magnitude by distance; deterministic; off switch
 (`propSwitches.test.ts`), spec field (`sceneSpec.test.ts`).
+
+**Built (0.152):**
+- `FIREFLY_REGIONS` as the table (local calendar months, peak ×1 else ×0.4; rows without a peak
+  full all their months); `firefliesFor(params, rng, mangroves)`: one draw always (stream
+  `props/fireflies`), the evening (night; evening blue hour, glow only at ≤ −6° and ×0.5), moon
+  ×0.3, `fireflyWeather` by kind, 0.7 at the peak; synchronous rows only with a mangrove stand
+  (the mangrove stream's own choice), Sri Lanka flash without. `props.fireflies`: true / a kind
+  forces (still night or evening blue hour, on land), false is the switch.
+- `fireflyLights(ctx, tonight, plants, mangroves)`: 1 m cells 5–60 m off, each with a hashed
+  chance from the density (flash 0.15/m² × 15% lit × a 20 m patch noise ×0.5–2; glow 0.05/m² ×
+  a 200 m site hash 0.01–1, log-uniform), over turf (`groundCoverAt` ≥ 0.3) or, for flash, in a
+  bush crown; flash 0.5–3 m up, glow 4 cm. Synchronous: 1 crown in 5 a display tree, 20–200 lights
+  × the month in its outer crown, **out to 400 m** (plan: 5–60 m; mangrove stands grow 80–300 m
+  along the shore and a display tree's flashes together are seen across a creek; phase 14's
+  magnitudes decide what shows). At most 400, thinned by hash.
+- **Counts:** 13 land evenings fall in a region's months on the test days, 1 out (above). Forced
+  specs: a framed Maine night 0–28 flash lights (7 of 8 dates some, nearest 5–30 m); Irish
+  glow-worms 0–9 (site factor; turf near the camera rare); an Indonesian mangrove stand 388 at
+  230–400 m on 1 date of 4. As with mushrooms, the turf near a sea-facing camera is rarely in frame.
 
 ## 14. Fireflies: drawing
 
