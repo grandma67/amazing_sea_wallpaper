@@ -1,6 +1,16 @@
 # Finding the shore's water films before rendering
 
-**Status: planned (2026-11-08).** From the REFLECTION phase 5–6 retrospective.
+**Status: step 1 done (2026-11-12); steps 2–3 planned.** From the REFLECTION phase 5–6
+retrospective.
+
+**Step 1 as built:** `debug.terrainView: 'water'` (`terrain.ts`, last branch of the views). Dry
+ground near black (lit by a warm sun it reads dark brown), `exposed × (1 − hard)` green,
+`wet × hard` grey, `wet × (1 − hard)` blue, `pools` cyan (terrace runnels, reef hollows, rock
+pools, flat creeks and sheets); brightness 0.4–1 by `mirrorW = gloss × mirror × (1 − own)`, a
+variable the reflection code now fills (only `mirror` when `passes.wetMirror`/reflection is off).
+Rendered on all 8 `scenes/wet-mirror.json` scenes (1080p, 16 frames): the films sit where the
+phase 5 renders put their reflections. View off: identical to HEAD on all 8 (`diff.mjs --ref
+HEAD`). Test: every `TERRAIN_VIEWS` value parses (`test/debug.test.ts`).
 
 ## Why
 

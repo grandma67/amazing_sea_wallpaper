@@ -38,7 +38,9 @@ export interface DebugParams {
   /** False colour on the terrain: 'slope' (grey by steepness, red where the
    * height bends within ~2 grid cells: aliasing), 'relief' (each relief term
    * in its own channel), 'lines' (today's water, run-up, high waters, beach
-   * lines), 'shore' (s and a every 10 m). */
+   * lines), 'shore' (s and a every 10 m), 'water' (the shore's films: damp
+   * sand green, wet rock grey, swash blue, pools cyan; brighter where they
+   * mirror more). */
   terrainView?: TerrainView
   /** False colour on the sea: 'shelter', 'breaking', 'depth' (1 m bands),
    * 'foam' (coverage). */
@@ -73,7 +75,7 @@ export interface ProbeLine {
 
 export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze', 'wetMirror', 'skyRay', 'skyFold'] as const
 export type DebugPass = (typeof DEBUG_PASSES)[number]
-export const TERRAIN_VIEWS = ['none', 'slope', 'relief', 'lines', 'shore'] as const
+export const TERRAIN_VIEWS = ['none', 'slope', 'relief', 'lines', 'shore', 'water'] as const
 export type TerrainView = (typeof TERRAIN_VIEWS)[number]
 export const OCEAN_VIEWS = ['none', 'shelter', 'breaking', 'depth', 'foam'] as const
 export type OceanView = (typeof OCEAN_VIEWS)[number]

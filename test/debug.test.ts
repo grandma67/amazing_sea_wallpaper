@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { TERRAIN_VIEWS } from '../src/debug'
 import { generateParams } from '../src/params'
 import { parseSceneSpec } from '../src/sceneSpec'
 import { DAYS } from './days'
@@ -33,6 +34,7 @@ describe('debug switches', () => {
     expect(() => parseSceneSpec({ params: { debug: { markers: ['rocks'] } } })).toThrow(/props:KIND/)
     expect(() => parseSceneSpec({ params: { debug: { terrainGrid: 8 } } })).toThrow(/terrainGrid/)
     expect(() => parseSceneSpec({ params: { debug: all } })).not.toThrow()
+    for (const view of TERRAIN_VIEWS) expect(() => parseSceneSpec({ params: { debug: { terrainView: view } } })).not.toThrow()
   })
 })
 

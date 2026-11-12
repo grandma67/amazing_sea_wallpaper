@@ -1369,6 +1369,9 @@ void main() {
   float skyOpenHere = skyOpen(vWorld);
   vec3 diffuse = albedo / PI * (sunIrradiance * NoL + skyIrradiance * skyOpenHere * (0.6 + 0.4 * N.y));
   vec3 color = diffuse;
+  // How much of the scene the film mirrors (phase 5's weight), for
+  // debug.terrainView 'water'.
+  float mirrorW = 0.0;
 
   if (gloss > 0.0) {
     // A film of water: mirror-like reflection of the sky and the sun.
@@ -1389,6 +1392,7 @@ void main() {
     // one; roughness estimated. Wet rock stays a dull sheen and wet stones
     // glint one by one: no image on either, only in their pools.
     float mirror = 1.0 - hard * (1.0 - pools);
+    mirrorW = gloss * mirror;
     if (planarOn > 0.5 && mirror > 0.0) {
       float filmAlpha = mix(mix(0.25, 0.08, wet), 0.03, pools);
       // The film's own surface: smooth water over the ground's large shape,
@@ -1410,6 +1414,7 @@ void main() {
       vec3 mirrorEye = vec3(cameraPosition.x, -cameraPosition.y, cameraPosition.z);
       float tSelf = length(vWorld - mirrorEye) - D;
       float own = 1.0 - smoothstep(0.0, 0.3 + 0.003 * D, t - tSelf);
+      mirrorW *= 1.0 - own;
       vec4 planar = mirrorAlongRay(vWorld, D, t, Rf, filmAlpha, V.y, true, hazeT);
       planar = hazeMirror(planar, hazeT, Rf, reflected) * mirror * (1.0 - own);
       reflected = reflected * (1.0 - clamp(planar.a, 0.0, 1.0)) + planar.rgb;
@@ -1481,7 +1486,7 @@ void main() {
       dbg = mix(dbg, vec3(0.95, 0.9, 0.1), dbgLine(h - tideSpring, w));
       dbg = mix(dbg, vec3(0.9, 0.1, 0.8), dbgLine(-sa.x - debugLines.x, wu));
       dbg = mix(dbg, vec3(0.8, 0.05, 0.05), dbgLine(-sa.x - debugLines.y, wu));
-    } else {
+    } else if (terrainView == 4) {
       // Shore frame: s blue and a orange every 10 m, s = 0 white, today's
       // water on the bare profile (waterline) cyan.
       float ws = max(0.1, 1.5 * footprint);
@@ -1489,6 +1494,17 @@ void main() {
       dbg = mix(dbg, vec3(0.9, 0.5, 0.1), dbgLine(sa.y - 10.0 * floor(sa.y / 10.0 + 0.5), ws));
       dbg = mix(dbg, vec3(1.0), dbgLine(sa.x, 2.0 * ws));
       dbg = mix(dbg, vec3(0.0, 0.9, 0.9), dbgLine(sa.x - waterline, 2.0 * ws));
+    } else {
+      // Water films (plans/WATER_VIEW.md): dry ground dark, damp drained
+      // sand green, wet rock and stones grey, the swash film blue, pools
+      // and runnels cyan; brighter where the film mirrors more of the
+      // scene (gloss × mirror × (1 − own)).
+      dbg = vec3(0.08);
+      dbg = mix(dbg, vec3(0.1, 0.75, 0.15), exposed * (1.0 - hard));
+      dbg = mix(dbg, vec3(0.6), wet * hard);
+      dbg = mix(dbg, vec3(0.1, 0.3, 0.95), wet * (1.0 - hard));
+      dbg = mix(dbg, vec3(0.0, 0.9, 0.9), pools);
+      dbg *= mix(0.4, 1.0, clamp(mirrorW, 0.0, 1.0));
     }
     color = dbg / PI * (sunIrradiance * max(dot(N, L), 0.0) + skyIrradiance * (0.6 + 0.4 * N.y));
   }
