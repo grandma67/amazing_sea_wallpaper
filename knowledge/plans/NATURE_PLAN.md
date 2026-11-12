@@ -18,7 +18,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 3 | ✅ Bush blossom: rock rose, gorse, wattle; the `BLOOM` table and far tint, 2026-11-12 | `phenology.ts`, `props/trees.ts` `leaves()` | **50** land days with bushes in the pool: rock rose 12 full + 1; gorse 4 full + 30 part; wattle 2 full + 2 | done | 1 |
 | 4 | ✅ Tree blossom: flamboyant (per-crown thinning, dry-season window), pōhutukawa, 2026-11-12 | `phenology.ts` `onDryCoast`, `props/trees.ts`, `props/vegetation.ts` (flowering twins) | land days with broadleaf in the pool: flamboyant **19** full, 7 part, **146** scattered; pōhutukawa **1**; in frame rarely (below) | done | 3 |
 | 5 | ✅ Heath: heather on ground cover by month, near and far, 2026-11-12 | `phenology.ts` `heathFor`, terrain ground-cover shader, landforms, islands | **14** rock-shore days (rendered framing); far slopes on 7 of the 9 beach days (a range or islands); in frame: cliff tops along the coast, not at the camera's feet (below) | done | 1 |
-| 6 | `eucalyptus` kind (Australia native, California groves) | `props/trees.ts`, `props/vegetation.ts`, `places.ts` `PLACE_PLANTS` | every Australian and Californian land day with trees (count first) | 2–3 h | 1 |
+| 6 | ✅ `eucalyptus` kind (Australia native, California groves), 2026-11-12 | `props/trees.ts`, `props/vegetation.ts`, `places.ts` `PLACE_PLANTS` | **36** days change (pools); in frame on **17** of 25 land days in the four places (median 32 trees, nearest 10 m) | done | 1 |
 | 7 | Moss on rock: amount by climate and place, colour by today's wetness | `props/rocks.ts` `GROWTH`, rock-shore shader, `phenology.ts` | every boulder and rock-shore day a little | 2–3 h | 1 |
 | 8 | Shore zonation: the spray belt, laver, sea lettuce | rock-shore shader, `places.ts` `sprayBelt` | every rock-shore day (belt); weed on Atlantic, NE Pacific and Japanese rock shores | 2.5–3.5 h | 7 |
 | 9 | Moss and lichen on trunks | `props/trees.ts` trunk colours, `props/vegetation.ts` | every forest day a little | 1.5–2 h | 7, 8 (belt), 6 |
@@ -497,6 +497,33 @@ vegetation`); `params.mjs --ref HEAD` (the pools change a prop choice, not param
 
 - **Done when:** an `east-australia` framed day shows eucalypts beside the bush; a `california`
   day rarely; `mesh.mjs` beside a reference photo; `meshes.test.ts` row (real size, budget).
+
+**Built (0.145):**
+- `eucalyptus(rng, foliage, season)` (`props/trees.ts`): 15–24 m at scale 1 (×0.8–1.25 placed),
+  a straight trunk to about half the height, 4–5 steep limbs, an open crown of hanging lance leaves
+  (facing 0.1: edge-on to the sky), 28–46k triangles. Leaves the measured adult colour mixed per
+  tree up to 70% toward the grey-green estimate; 60% smooth gum bark (pale `[0.34, 0.31, 0.26]`
+  *(est.)* mottled with the measured fresh bark and salmon patches, ribbons low on the trunk), 40%
+  rough (the measured `[0.09, 0.06, 0.03]`, furrowed). Heights: ABARES (medium eucalypt forest
+  10–30 m), California blue gum records (15–45 m, narrow irregular crown, drooping leaves).
+- **Pools (`PLACE_PLANTS`), wider than the plan:** Australia's pools replace the Mediterranean
+  preset, which drew stone pines, olives and cypresses there (none grows wild on those coasts):
+  `east-australia` eucalyptus 4, grass 4, bush 4, broadleaf 1.5, pandanus 1; `sw-australia`
+  eucalyptus 3, bush 5, grass 3, broadleaf 1.5 (peppermint); `tasmania` eucalyptus 4, grass 4,
+  bush 3, which also lifts the Southern Ocean tundra filter there (Tasmania's south and west have
+  forest to the shore). `california`: the preset plus eucalyptus 1. 36 days change
+  (`params.mjs --ref HEAD`), 12 of them open sea (the list only).
+- **Not a framing hero:** a 15–25 m gum 9–30 m off shows only its trunk, so it's last in the hero
+  order (broadleaf or bush frame the view); gums near the camera stand at the frame's sides and
+  read as trunks, as at a real forest edge.
+- **`props.eucalyptus: false`** builds and draws for the gums but leaves them out, so every other
+  plant stays as it was (tested: counts and positions).
+- Seen: `mesh.mjs` at 40–150 m, low sun (crowns too thin twice; leaf cards 28–34 → 34–40 per tip,
+  more limbs); `scenes/eucalyptus.json` (NSW framed and overlook, WA along-beach, Tasmania framed,
+  a forced California grove); real days 5 of 8 changed (a Californian cobble beach's gum group the
+  clearest). **Known issue:** from an overlook the gums stand apart like a young open stand; the
+  vegetation's shared density (count, clumping), not the mesh: real headland forest there is a
+  closed canopy (PLAN_BIOMES' question, as the flamboyant's few broadleaves).
 
 ## 7. Moss on rock
 

@@ -19,7 +19,7 @@ import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { noise3 } from './noise'
 import { windDirection, windMaterials, type Bend } from './wind'
-import { acacia, birch, broadleaf, bush, conifer, cypress, olive, pandanus, stonePine } from './trees'
+import { acacia, birch, broadleaf, bush, conifer, cypress, eucalyptus, olive, pandanus, stonePine } from './trees'
 import { snowCap, snowLook, type SnowLook } from './snowCap'
 
 // Procedural plants, generated per scene from the seed, then scattered over
@@ -343,6 +343,21 @@ const KINDS: Record<VegetationKind, KindSpec> = {
     variants: 5,
     bend: { height: 6, flex: 0.07 }
   },
+  // Coastal gums: tall, behind the dunes, in open forest (NATURE_PLAN phase 6).
+  eucalyptus: {
+    build: eucalyptus,
+    inland: (bw, dw) => [bw + dw * 0.6, 3000],
+    maxDistance: 3000,
+    count: 260,
+    scale: [0.8, 1.25],
+    clumping: 0.5,
+    tilt: 0.06,
+    leanSeaward: false,
+    minSlope: 0.75,
+    castShadow: true,
+    variants: 6,
+    bend: { height: 20, flex: 0.1 }
+  },
   pandanus: {
     build: pandanus,
     inland: (bw, dw) => [bw * 0.5, bw + dw + 120],
@@ -424,7 +439,9 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     'pandanus',
     'conifer',
     'cypress',
-    'bush'
+    'bush',
+    // Last: a 15–25 m gum 9–30 m off shows only its trunk.
+    'eucalyptus'
   ]
   const heroKind =
     coast.composition === 'framed' ? order.find(k => kinds.some(([kind]) => kind === k)) : undefined
@@ -577,6 +594,9 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
         mesh.castShadow = spec.castShadow
         mesh.receiveShadow = true
         mesh.frustumCulled = false
+        // The eucalypts' off switch: built and drawn for (the stream moves on
+        // as with them), left out, so diff.mjs shows only what they add.
+        if (kind === 'eucalyptus' && params.overrides?.eucalyptus === false) continue
         meshes.push(mesh)
       }
     }

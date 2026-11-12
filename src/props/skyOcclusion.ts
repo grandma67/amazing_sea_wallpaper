@@ -30,6 +30,8 @@ export const CROWN: Partial<Record<VegetationKind, { opacity: number; height: nu
   palm: { opacity: 0.5, height: 0.9 },
   pandanus: { opacity: 0.6, height: 0.75 },
   acacia: { opacity: 0.5, height: 0.8 },
+  // Open crowns of hanging leaves on the top ~40% (est.).
+  eucalyptus: { opacity: 0.5, height: 0.4 },
   bush: { opacity: 0.7, height: 0.55 }
 }
 /** A bare deciduous crown (twigs and branches) stops this share of what it

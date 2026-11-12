@@ -78,11 +78,12 @@ describe('plants', () => {
     expect(arctic.some(p => Math.abs(p.latitudeDeg) < HIGH_ARCTIC_DEG && has(p, 'birch'))).toBe(true)
   })
 
-  it('has trees on Southern Ocean coasts only in Tierra del Fuego (southern beech, wind-bent)', () => {
+  it('has trees on Southern Ocean coasts only in Tierra del Fuego (southern beech, wind-bent) and Tasmania (eucalypts)', () => {
     const southern = allParams().filter(p => p.sea.ocean === 'southern')
     for (const p of southern) {
       const trees = p.biome.vegetation.filter(([k]) => k !== 'grass' && k !== 'bush')
       if (p.place.id === 'tierra-del-fuego') expect(trees.map(([k]) => k)).toEqual(['broadleaf'])
+      else if (p.place.id === 'tasmania') expect(trees.map(([k]) => k)).toEqual(['eucalyptus'])
       else expect(trees).toEqual([])
     }
     expect(scenes({ place: 'tierra-del-fuego' }, 10).every(p => has(p, 'broadleaf') && !has(p, 'conifer'))).toBe(true)

@@ -101,7 +101,8 @@ describe('climate', () => {
             if (frost.includes(climate)) expect(kinds, where).not.toContain('pandanus')
             if (climate === 'tropical') expect(kinds, where).not.toContain('conifer')
             if (climate === 'tropical') expect(kinds, where).not.toContain('birch')
-            if (climate === 'polar' || polar != null) expect(kinds.every(k => ['grass', 'bush', 'birch', 'broadleaf'].includes(k)), where).toBe(true)
+            // Tasmania's own pool: eucalypt forest to the Southern Ocean's shore.
+            if (climate === 'polar' || polar != null) expect(kinds.every(k => ['grass', 'bush', 'birch', 'broadleaf', ...(place.id === 'tasmania' ? ['eucalyptus'] : [])].includes(k)), where).toBe(true)
           }
         }
       }

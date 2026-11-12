@@ -59,7 +59,7 @@ describe('unitSphere', () => {
   })
 })
 
-const TREES = ['broadleaf', 'olive', 'birch', 'acacia', 'stonePine', 'bush', 'cypress', 'conifer', 'pandanus'] as const
+const TREES = ['broadleaf', 'olive', 'birch', 'acacia', 'stonePine', 'bush', 'cypress', 'conifer', 'pandanus', 'eucalyptus'] as const
 // Every tree is instanced hundreds of times.
 family(
   'trees',

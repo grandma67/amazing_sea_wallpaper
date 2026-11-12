@@ -235,7 +235,42 @@ const PLACE_PLANTS: Record<string, Plants> = {
     ['bush', 2]
   ],
   // Tussock grass only.
-  'south-georgia': [['grass', 1]]
+  'south-georgia': [['grass', 1]],
+  // Australia's coasts (NATURE_PLAN phase 6; weights est.): spinifex and
+  // grass on the dunes, banksia, tea-tree and wattle scrub behind, then open
+  // eucalypt forest; littoral rainforest and pandanus in the north-east;
+  // peppermint (broadleaf) in the south-west; no olives, cypresses or stone
+  // pines (the Mediterranean preset's). Tasmania's own pool, not the Southern
+  // Ocean's tundra filter: blue gum and stringybark forest to the shore.
+  'east-australia': [
+    ['eucalyptus', 4],
+    ['grass', 4],
+    ['bush', 4],
+    ['broadleaf', 1.5],
+    ['pandanus', 1]
+  ],
+  'sw-australia': [
+    ['eucalyptus', 3],
+    ['bush', 5],
+    ['grass', 3],
+    ['broadleaf', 1.5]
+  ],
+  tasmania: [
+    ['eucalyptus', 4],
+    ['grass', 4],
+    ['bush', 3]
+  ],
+  // California: the Mediterranean preset with planted blue gum groves (a small
+  // weight: the groves are local, mostly on the central coast).
+  california: [
+    ['stone-pine', 4],
+    ['olive', 3],
+    ['cypress', 2],
+    ['broadleaf', 1.5],
+    ['bush', 4],
+    ['grass', 1],
+    ['eucalyptus', 1]
+  ]
 }
 const WIND_BENT: Record<string, readonly VegetationKind[]> = { 'tierra-del-fuego': ['broadleaf'] }
 

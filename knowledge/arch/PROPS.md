@@ -31,6 +31,10 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   turns a share of a flowering crown's cards into flower cards, outside first, after the draws,
   and thins its leaves to `on` (flamboyant); the crown is evergreen. Far crowns: `canopyTint`
   mixes toward the bush rows' flowers. `props.bloom`: true / a list forces, false is the switch.
+- **Eucalyptus** (`props/trees.ts` `eucalyptus`, 0.145, NATURE_PLAN phase 6): coastal gums, 15–24 m,
+  hanging leaves, smooth pale or rough dark bark; in the Australian place pools (`PLACE_PLANTS`) and
+  a small weight in California. Last in the framed hero order (a near gum shows only its trunk).
+  `props.eucalyptus: false` leaves them out after their draws.
 - **Heath** (`phenology.ts` `heathFor`, 0.144, plans/NATURE_PLAN.md phase 5): heather in the heath
   places, brown Oct–Mar, green Apr–Jun, mauve in flower Jul–Sep. Near: the terrain's ground cover
   on rock-shore days (arch/COAST.md). Far: landforms' and islands' green slopes mix toward its far

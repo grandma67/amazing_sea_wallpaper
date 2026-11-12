@@ -89,6 +89,9 @@ export interface PropOverrides {
    * today's colour wherever the day is (near on a rocky shore, far on slopes
    * and islands); a stage, in that colour; false: none. */
   heath?: boolean | HeathStage
+  /** false: no eucalypts drawn (still placed, so the other plants don't
+   * move; props/vegetation.ts). */
+  eucalyptus?: boolean
   /** null: nothing washed up; fields replace the drawn ones. */
   debris?: Partial<DebrisSpec> | null
   /** null: no crabs, shells or flowers; fields replace the drawn ones. */
@@ -295,7 +298,7 @@ const TIMES = ['golden-hour', 'sun-on-horizon', 'blue-hour', 'daylight', 'midday
 const BIOMES = ['tropical', 'mediterranean', 'nordic', 'volcanic', 'desert']
 const OCEANS = ['pacific', 'atlantic', 'indian', 'southern', 'arctic']
 const GENERA = Object.keys(CLOUD_GENERA)
-const PLANTS = ['palm', 'pandanus', 'stone-pine', 'olive', 'cypress', 'broadleaf', 'conifer', 'birch', 'acacia', 'bush', 'grass']
+const PLANTS = ['palm', 'pandanus', 'stone-pine', 'olive', 'cypress', 'broadleaf', 'conifer', 'birch', 'acacia', 'eucalyptus', 'bush', 'grass']
 const FLOWERS = ['morning-glory', 'bindweed', 'sea-holly', 'sea-daffodil', 'ice-plant', 'thrift', 'sea-rocket', 'oysterplant']
 
 const SPEC = object({
@@ -390,6 +393,7 @@ const SPEC = object({
     phenology: boolean,
     leafLitter: boolean,
     bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf(...BLOOM_KINDS))(value, path)),
+    eucalyptus: boolean,
     heath: (value, path) => (typeof value === 'boolean' ? undefined : oneOf(...HEATH_STAGES)(value, path)),
     iceFoot: boolean,
     seaIce: boolean,

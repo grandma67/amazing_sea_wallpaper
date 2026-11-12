@@ -86,7 +86,7 @@ describe('phenology', () => {
 })
 
 describe('which plants change', () => {
-  const kinds: VegetationKind[] = ['palm', 'pandanus', 'stone-pine', 'olive', 'cypress', 'conifer', 'acacia']
+  const kinds: VegetationKind[] = ['palm', 'pandanus', 'stone-pine', 'olive', 'cypress', 'conifer', 'acacia', 'eucalyptus']
   it('leaves evergreens alone everywhere', () => {
     for (const climate of CLIMATES) {
       const p = phenologyFor(day('2025-11-15', climate))

@@ -71,6 +71,29 @@ function birchBark(seed: number): Bark {
   }
 }
 
+/** Smooth-barked gum (blue gum, spotted gum, scribbly gum): pale and
+ * mottled where old bark has shed in patches, fresh bark darker and warmer,
+ * ribbons of old bark hanging on the lower trunk. Pale est. (smooth gums are
+ * cream to grey: not measured, NATURE_PLAN §1); fresh = the measured blue gum
+ * bark. Nearly smooth: a little relief at the ribbons only. */
+function gumBark(seed: number): Bark {
+  const pale: RGB = [0.34, 0.31, 0.26]
+  const fresh: RGB = [0.11, 0.08, 0.05]
+  const salmon: RGB = [0.27, 0.17, 0.11]
+  const ribbon = (h: number, a: number): number => Math.max(0, 1 - h / 3) * Math.max(0, ridged(Math.cos(a) * 4, h * 0.25, Math.sin(a) * 4, seed + 3) - 0.75) * 4
+  return {
+    color: (h, a, r) => {
+      if (r < 0.03) return [0.16, 0.12, 0.08]
+      const patch = fbm3(Math.cos(a) * 2.2, h * 0.9, Math.sin(a) * 2.2, seed)
+      const warm = fbm3(Math.cos(a) * 1.3, h * 0.5, Math.sin(a) * 1.3, seed + 1)
+      let c = patch > 0.56 ? mix(fresh, salmon, warm) : mix(pale, scale(pale, 0.75), fbm3(Math.cos(a) * 6, h * 3, Math.sin(a) * 6, seed + 2))
+      c = mix(c, [0.13, 0.1, 0.07], Math.min(1, ribbon(h, a)))
+      return c
+    },
+    relief: (h, a) => -0.3 * Math.min(1, ribbon(h, a))
+  }
+}
+
 /** Pine: rusty orange plates separated by dark cracks. */
 export function platedBark(seed: number): Bark {
   const crack = (h: number, a: number): number => ridged(Math.cos(a) * 3.5, h * 1.2, Math.sin(a) * 3.5, seed) ** 4
@@ -644,6 +667,61 @@ export function stonePine(rng: Random, foliage: RGB): BufferGeometry {
     facing: 0.3,
     flatten: 0.7,
     colors: palette(rng, scale(foliage, 0.9), [0.05, 0.08, 0.04], 0.3)
+  })
+  return b.build()
+}
+
+/** Eucalyptus leaves (NATURE_PLAN §1): adult leaf, measured (dark, glossy);
+ * grey-leaved and juvenile foliage paler, est. Rough bark: the measured
+ * eucalyptus bark (stringybark, ironbark, the stocking of a blackbutt). */
+const EUCALYPT_LEAF: RGB = [0.026, 0.065, 0.002]
+const EUCALYPT_GREY: RGB = [0.06, 0.08, 0.05]
+const EUCALYPT_ROUGH: RGB = [0.09, 0.06, 0.03]
+
+/**
+ * Eucalyptus (coastal gums: blue gum, blackbutt, spotted gum): a tall
+ * straight trunk to about half the height, a few steep limbs and an open,
+ * narrow crown of hanging, edge-on leaves. 15–24 m at scale 1 (medium eucalypt
+ * forest is 10–30 m, ABARES; blue gum groves 15–45 m). Smooth pale bark on
+ * most, rough dark bark on the rest. Evergreen: `season` only dries nothing.
+ */
+export function eucalyptus(rng: Random, _foliage: RGB, season?: PlantSeason): BufferGeometry {
+  const b = new MeshBuilder()
+  const height = rng.range(15, 24)
+  const seed = rng.int(0, 1e6)
+  const bark = rng.chance(0.6) ? gumBark(seed) : furrowed(EUCALYPT_ROUGH, seed, 0.5)
+  const tips = growTree(
+    b,
+    rng,
+    {
+      levels: 4,
+      trunkLength: height * 0.55,
+      trunkRadius: height * rng.range(0.016, 0.022),
+      children: level => (level === 0 ? rng.int(4, 5) : level === 1 ? 3 : rng.int(2, 3)),
+      childStart: 0.65,
+      // Limbs climb steeply; the outer twigs hang.
+      spread: level => (level === 0 ? 0.5 : level === 1 ? 0.55 : 0.7),
+      lengthRatio: 0.5,
+      radiusRatio: 0.6,
+      upward: level => (level < 2 ? 0.12 : level === 2 ? 0 : -0.25),
+      gnarl: 0.1,
+      tipsAlong: 0.8,
+      bark
+    },
+    new Vector3(),
+    new Vector3(rng.normal(0, 0.05), 1, rng.normal(0, 0.05))
+  )
+  leaves(b, rng, tips, {
+    shape: LEAF.lance,
+    perTip: rng.int(34, 40),
+    cluster: 1.2,
+    length: [0.2, 0.32],
+    width: 0.24,
+    // Hanging, edge-on to the sky: a eucalypt crown's open, grey look.
+    facing: 0.1,
+    flatten: 0,
+    colors: palette(rng, mix(EUCALYPT_LEAF, EUCALYPT_GREY, rng.range(0, 0.7)), EUCALYPT_GREY, 0.3),
+    season
   })
   return b.build()
 }

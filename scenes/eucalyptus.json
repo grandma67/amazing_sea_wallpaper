@@ -1,0 +1,9 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null, "coast": "beach" },
+  "scenes": [
+    { "name": "nsw-framed-front", "date": "2025-10-15", "place": "east-australia", "composition": "framed", "sunAzimuthDeg": 160 },
+    { "name": "nsw-framed-back", "date": "2025-10-15", "place": "east-australia", "composition": "framed", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour" },
+    { "name": "nsw-overlook", "date": "2025-10-15", "place": "east-australia", "composition": "overlook", "sunAzimuthDeg": 150 },
+    { "name": "wa-along-beach", "date": "2025-03-10", "place": "sw-australia", "composition": "along-beach", "sunAzimuthDeg": 160 },
+    { "name": "tasmania-framed", "date": "2025-02-10", "place": "tasmania", "composition": "framed", "sunAzimuthDeg": 160 },
+    { "name": "look-california-grove", "note": "a forced look: California's blue gum groves (a small weight on real days)", "date": "2025-11-20", "place": "california", "composition": "framed", "sunAzimuthDeg": 160, "props": { "vegetation": ["eucalyptus", "bush", "grass"] } }
+  ] }

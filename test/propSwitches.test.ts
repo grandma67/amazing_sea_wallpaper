@@ -55,11 +55,20 @@ describe('off switches', () => {
     ['ships', { ...BEACH, coast: 'open-sea', props: { ships: ['container-ship'] } }, { ships: false }, createShips, '2024-09-30'],
     ['gulls', { ...BEACH, props: { birds: true } }, { birds: false }, createBirds],
     ['marine life', { ...BEACH, coast: 'open-sea', props: { marine: 'dolphin' } }, { marine: null }, createMarineLife, '2024-09-30'],
-    ['migratory birds', { ...BEACH, props: { migratory: 'goose' } }, { migratory: null }, createMigratoryBirds]
+    ['migratory birds', { ...BEACH, props: { migratory: 'goose' } }, { migratory: null }, createMigratoryBirds],
+    ['eucalyptus', { ...BEACH, place: 'east-australia', composition: 'framed', props: { vegetation: ['eucalyptus'] } }, { vegetation: ['eucalyptus'], eucalyptus: false }, createVegetation]
   ]
 
   it.each(rows)('%s', (_, on, off, create, date) => {
     expect(create(view(on, 1080, date)).length, 'none to switch off').toBeGreaterThan(0)
     expect(create(view({ ...on, props: { ...on.props, ...off } }, 1080, date))).toEqual([])
+  })
+
+  it('eucalyptus off leaves the other plants as they were', () => {
+    const on = { ...BEACH, place: 'east-australia', composition: 'overlook' } as const
+    const kinds = (spec: SceneSpec) => createVegetation(view(spec, 1080)).map(m => [m.userData.plantKind, m.count, m.instanceMatrix.array[12]])
+    const all = kinds(on)
+    expect(all.some(([k]) => k === 'eucalyptus')).toBe(true)
+    expect(kinds({ ...on, props: { eucalyptus: false } })).toEqual(all.filter(([k]) => k !== 'eucalyptus'))
   })
 })

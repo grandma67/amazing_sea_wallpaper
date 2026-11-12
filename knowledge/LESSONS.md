@@ -199,6 +199,12 @@ tool gotchas: TOOLS.md.
   forced Scottish and Cornish specs changed 0–0.3% of the frame. "Near" ground-cover looks on rock
   days show on the far cliff tops, not at the camera's feet; render the spec before promising a
   near look, and count `diff.mjs` changes, not the plan's day count.
+- **A tall tree as a framing hero shows only its trunk (eucalyptus, 0.145):** framed shots put
+  2–4 hero plants 9–30 m off at the frame's edges; a 15–25 m gum's crown is then above the frame.
+  Check a new kind's height against the hero distance before it can be first in the hero order.
+- **A crown that reads up close can vanish far off:** leaf cards go sub-pixel, so a sparse crown
+  becomes a pale stick at 150 m. Preview `mesh.mjs --eye 150` as well as near, and add branch tips
+  (where cards sit) rather than only cards per tip.
 - **A mean-preserving speck:** to show detail up close that averages to the far colour, vary the
   share by a noise symmetric about 0.5 (`s + close · 2 min(s, 1 − s) · (smoothstep(0.3, 0.7, n) −
   0.5)`): no clamp, so the mean stays `s` at every distance (heath flowers, `terrain.ts`).

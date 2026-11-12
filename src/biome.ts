@@ -68,6 +68,7 @@ export type VegetationKind =
   | 'conifer'
   | 'birch'
   | 'acacia'
+  | 'eucalyptus'
   | 'bush'
   | 'grass'
 
@@ -234,6 +235,8 @@ export type Climate = 'polar' | 'boreal' | 'temperate' | 'mediterranean' | 'subt
 // Places' own pools (places.ts PLACE_SAND, PLACE_PLANTS) override on top.
 // Kinds stand in for species: `broadleaf` = oak, beech, live oak, pohutukawa;
 // `bush` = gorse, saw palmetto, sea grape; `grass` = marram, sea oats;
+// `eucalyptus` = coastal gums (blue gum, blackbutt, spotted gum: Australia's
+// place pools, California's groves);
 // `palm` = cabbage (sabal) and Canary palms; `stone-pine` = maritime and
 // slash pine. Florida's zones run sea oats on the foredune, a saw palmetto
 // and cabbage palm strand behind, then live oak hammock (FNAI coastal strand).
