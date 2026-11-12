@@ -3,7 +3,7 @@ import { describe, it } from 'vitest'
 import type { SceneParams } from '../src/params'
 import { MAX_CONTRAILS } from '../src/contrails'
 import { OCEANS } from '../src/oceans'
-import { phenologyFor } from '../src/phenology'
+import { HEATH_PLACES, heathFor, phenologyFor } from '../src/phenology'
 import { allParams, expectEvery } from './days'
 
 // What goes with what, over every real day: when the first holds, so must the
@@ -40,6 +40,8 @@ const RULES: Rule[] = [
   // Bush blossom (phenology.ts BLOOM): a place row in its own months.
   ['bush blossom: only in a row’s places and months', p => phenologyFor(p).bloom.length > 0, p =>
     phenologyFor(p).bloom.every(b => b.row.places.includes(p.place.id) && b.row.today(p).strength > 0)],
+  // Heath (phenology.ts heathFor): the heath places only.
+  ['heath: only on the heath coasts', p => heathFor(p) != null, p => HEATH_PLACES.includes(p.place.id)],
 
   // Weather.
   ['a storm: by day', p => p.storm != null, p => p.timeOfDay !== 'night'],

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createCamera } from '../src/camera'
 import { generateSceneParams } from '../src/composition'
 import { generateParams, type SceneParams } from '../src/params'
-import { BLOOM, BLOOM_KINDS, phenologyFor } from '../src/phenology'
+import { BLOOM, BLOOM_KINDS, heathFor, phenologyFor } from '../src/phenology'
 import { debrisFor } from '../src/props/debris'
 import { shoreLifeFor } from '../src/props/shoreLife'
 import { Random } from '../src/random'
@@ -161,6 +161,11 @@ describe('scene specs', () => {
     expect(phenologyFor(plain).bloom).toEqual([])
     expect(phenologyFor(bloom).bloom.map(b => b.row.kind)).toEqual(['rock-rose'])
     expect({ ...bloom, overrides: undefined }).toEqual({ ...plain, overrides: undefined })
+    // Heath: forced on the Aegean in flower, the rest of the day as drawn.
+    const heath = scene({ place: 'aegean', coast: 'beach', props: { heath: 'flower' } }, '2025-12-15')
+    expect(heathFor(plain)).toBeUndefined()
+    expect(heathFor(heath)?.specks).toBeGreaterThan(0)
+    expect({ ...heath, overrides: undefined }).toEqual({ ...scene({ place: 'aegean', coast: 'beach' }, '2025-12-15'), overrides: undefined })
   })
 })
 
@@ -235,6 +240,7 @@ describe('parseSceneSpec', () => {
     expect(() => parseSceneSpec({ props: { marine: 'shark' } })).toThrow(/spec\.props\.marine/)
     expect(() => parseSceneSpec({ props: { ships: ['submarine'] } })).toThrow(/spec\.props\.ships\[0\]/)
     expect(() => parseSceneSpec({ props: { bloom: ['heather'] } })).toThrow(/spec\.props\.bloom\[0\]/)
+    expect(() => parseSceneSpec({ props: { heath: 'purple' } })).toThrow(/spec\.props\.heath/)
     // Every BLOOM row's kind parses, and every listed kind has a row.
     expect(() => parseSceneSpec({ props: { bloom: [...new Set(BLOOM.map(r => r.kind))] } })).not.toThrow()
     expect(new Set(BLOOM.map(r => r.kind))).toEqual(new Set(BLOOM_KINDS))

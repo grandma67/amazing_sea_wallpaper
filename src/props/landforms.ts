@@ -10,7 +10,7 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
-import { canopyTint, phenologyFor } from '../phenology'
+import { canopyTint, HEATH_MASK_EDGE, HEATH_MASK_FAR, heathFor, phenologyFor } from '../phenology'
 import { dirFromAzEl, EARTH_RADIUS, type LandformParams } from '../params'
 import { Random } from '../random'
 import { MeshBuilder } from './builder'
@@ -33,6 +33,8 @@ export const curvatureDrop = (x: number, z: number): number => (0.9 * (x * x + z
 interface Palette {
   rock: RGB
   vegetation: RGB | null
+  /** Heath's far colour on the green slopes, in patches (phenology.ts heathFor). */
+  heath: RGB | null
   snow: RGB
   /** Snow to the shore today: the woods show dark through it. */
   snowDay: boolean
@@ -51,9 +53,17 @@ function palette(ctx: PropContext, rng: Random): Palette {
   return {
     rock: rng.pick(biome.rockColors),
     vegetation: polar || vegetation[biome.name] == null ? null : canopyTint(vegetation[biome.name]!, phenologyFor(ctx.params), biome.vegetation),
+    heath: heathFor(ctx.params)?.color ?? null,
     snow: [0.8, 0.82, 0.86],
     snowDay: ctx.params.snow != null
   }
+}
+
+/** Heath's share at a point of far land from its patch noise (`fbm3`): about
+ * HEATH_COVER of the land. Shared with the islands. */
+export function heathPatch(noise: number): number {
+  const t = Math.max(0, Math.min(1, (noise - HEATH_MASK_FAR + HEATH_MASK_EDGE) / (2 * HEATH_MASK_EDGE)))
+  return t * t * (3 - 2 * t)
 }
 
 /** Colour of a point on the mountain from its height, slope and noise. */
@@ -63,7 +73,8 @@ function surfaceColor(
   h: number,
   steep: number,
   n: number,
-  craterAsh: number
+  craterAsh: number,
+  heath = 0
 ): RGB {
   // Rock strata, scree and old lava flows: uneven tone.
   let c = p.rock.map(v => v * (0.65 + 0.7 * n)) as RGB
@@ -72,8 +83,10 @@ function surfaceColor(
   if (p.vegetation != null) {
     const treeline = land.height * 0.45
     const green = Math.max(0, Math.min(1, (treeline - h) / (treeline * 0.3) + (n - 0.5))) * (1 - steep * 0.8)
-    if (p.snowDay) woods = green
-    c = c.map((v, i) => v + (p.vegetation![i] - v) * green) as RGB
+    if (p.snowDay) woods = green * (1 - heath)
+    // Heath patches: low, so no shade between crowns.
+    const cover = p.heath == null || heath === 0 ? p.vegetation : (p.vegetation.map((v, i) => v + (p.heath![i] * (0.8 + 0.4 * n) - v) * heath) as RGB)
+    c = c.map((v, i) => v + (cover[i] - v) * green) as RGB
   }
   // Snow, deeper in the hollows, thinning on steep faces. Its edge wanders
   // (a few hundred metres on a big mountain): a low winter line would
@@ -113,7 +126,7 @@ function range(land: LandformParams, frame: Frame, p: Palette): BufferGeometry {
       const steep = Math.min(1, dh / (W / cols) / 1.2)
       const n = fbm3(u / 900, v / 900, 2.1, seed + 3)
       const world = frame.toWorld(u - W / 2, v, h)
-      row.push(b.vertex(world, surfaceColor(p, land, h, steep, n, 0)))
+      row.push(b.vertex(world, surfaceColor(p, land, h, steep, n, 0, p.heath == null ? 0 : heathPatch(fbm3(u / 700, v / 700, 9.7, seed + 5)))))
     }
     grid.push(row)
   }
@@ -156,7 +169,8 @@ function volcano(land: LandformParams, frame: Frame, p: Palette): BufferGeometry
       const gully = ridged(angle * 9, (r / R) * 5, land.seed + 7)
       const n = fbm3((Math.cos(angle) * r) / 800, (Math.sin(angle) * r) / 800, 4.4, land.seed + 2) * 0.6 + (1 - gully) * 0.4
       const ash = land.plume != null ? Math.max(0, 1 - r / (R * 0.25)) : 0
-      row.push(b.vertex(frame.toWorld(Math.cos(angle) * r, R + Math.sin(angle) * r, h), surfaceColor(p, land, h, steep, n, ash)))
+      const heath = p.heath == null ? 0 : heathPatch(fbm3((Math.cos(angle) * r) / 700, (Math.sin(angle) * r) / 700, 9.7, land.seed + 5))
+      row.push(b.vertex(frame.toWorld(Math.cos(angle) * r, R + Math.sin(angle) * r, h), surfaceColor(p, land, h, steep, n, ash, heath)))
     }
     grid.push(row)
   }

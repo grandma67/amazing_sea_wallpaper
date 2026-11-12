@@ -5,7 +5,7 @@ import type { EclipseType } from './celestial'
 import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './biome'
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
-import { BLOOM_KINDS, type BloomKind } from './phenology'
+import { BLOOM_KINDS, HEATH_STAGES, type BloomKind, type HeathStage } from './phenology'
 import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
 import { ROCK_KINDS, type RockKind } from './rockShore'
 import type { SeaIceForce } from './seaIce'
@@ -85,6 +85,10 @@ export interface PropOverrides {
    * full flower (none where none grows); a list, those rows in full flower
    * wherever the day is (to test a look); false: none. */
   bloom?: boolean | BloomKind[]
+  /** Heath on the ground cover (phenology.ts heathFor): true, heath in
+   * today's colour wherever the day is (near on a rocky shore, far on slopes
+   * and islands); a stage, in that colour; false: none. */
+  heath?: boolean | HeathStage
   /** null: nothing washed up; fields replace the drawn ones. */
   debris?: Partial<DebrisSpec> | null
   /** null: no crabs, shells or flowers; fields replace the drawn ones. */
@@ -386,6 +390,7 @@ const SPEC = object({
     phenology: boolean,
     leafLitter: boolean,
     bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf(...BLOOM_KINDS))(value, path)),
+    heath: (value, path) => (typeof value === 'boolean' ? undefined : oneOf(...HEATH_STAGES)(value, path)),
     iceFoot: boolean,
     seaIce: boolean,
     debris: object(

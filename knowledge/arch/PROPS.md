@@ -31,6 +31,11 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   turns a share of a flowering crown's cards into flower cards, outside first, after the draws,
   and thins its leaves to `on` (flamboyant); the crown is evergreen. Far crowns: `canopyTint`
   mixes toward the bush rows' flowers. `props.bloom`: true / a list forces, false is the switch.
+- **Heath** (`phenology.ts` `heathFor`, 0.144, plans/NATURE_PLAN.md phase 5): heather in the heath
+  places, brown Oct–Mar, green Apr–Jun, mauve in flower Jul–Sep. Near: the terrain's ground cover
+  on rock-shore days (arch/COAST.md). Far: landforms' and islands' green slopes mix toward its far
+  colour in `heathPatch` patches (`fbm3`, ~35%), unshaded (low, no gaps between crowns).
+  `props.heath`: true / a stage forces, false is the switch.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

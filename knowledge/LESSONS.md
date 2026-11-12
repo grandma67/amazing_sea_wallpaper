@@ -194,6 +194,14 @@ tool gotchas: TOOLS.md.
 - **A colour from "the brightest cluster" of a whole photo can mix in highlights** (wattle: blue 0.17
   from sunlit leaves and sky glints; the flower balls alone gave 0.09). Measure a region of the
   target only, and check two regions agree.
+- **A rock-shore camera looks away from the land (heath, 0.144):** every rock composition faces the
+  sea, so the ground cover behind the shore is behind the camera or a thin strip along the coast:
+  forced Scottish and Cornish specs changed 0–0.3% of the frame. "Near" ground-cover looks on rock
+  days show on the far cliff tops, not at the camera's feet; render the spec before promising a
+  near look, and count `diff.mjs` changes, not the plan's day count.
+- **A mean-preserving speck:** to show detail up close that averages to the far colour, vary the
+  share by a noise symmetric about 0.5 (`s + close · 2 min(s, 1 − s) · (smoothstep(0.3, 0.7, n) −
+  0.5)`): no clamp, so the mean stays `s` at every distance (heath flowers, `terrain.ts`).
 - The `southern` hemisphere shift is half a year: 2 July south is day 365, 3 July day 1
   (`seasonDay`), not 2 July.
 

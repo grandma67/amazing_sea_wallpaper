@@ -1,0 +1,10 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null, "place": "scotland", "coast": "rock-shore" },
+  "scenes": [
+    { "name": "scotland-cliff-august", "date": "2025-08-15", "rockShore": "cliff", "sunAzimuthDeg": 160 },
+    { "name": "scotland-cliff-august-back", "date": "2025-08-15", "rockShore": "cliff", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour" },
+    { "name": "scotland-cliff-january", "date": "2025-01-15", "rockShore": "cliff", "sunAzimuthDeg": 160 },
+    { "name": "scotland-cliff-may", "date": "2025-05-15", "rockShore": "cliff", "sunAzimuthDeg": 160 },
+    { "name": "scotland-platform-august", "date": "2025-08-15", "rockShore": "platform", "composition": "framed", "sunAzimuthDeg": 160 },
+    { "name": "cornwall-cliff-may-gorse", "note": "gorse (phase 3) beside heath in May: a framed platform, where bushes stand", "date": "2025-05-01", "place": "cornwall-wales", "rockShore": "platform", "composition": "framed", "sunAzimuthDeg": 150 },
+    { "name": "norway-beach-range-august", "note": "far heath only: a beach day with a range", "date": "2025-08-15", "place": "norway-west", "coast": "beach", "landform": "range", "sunAzimuthDeg": 160 }
+  ] }

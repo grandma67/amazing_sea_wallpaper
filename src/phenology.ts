@@ -12,7 +12,7 @@ import { seasonDay, type Day } from './seasons'
 /** What phenology reads from a day (SceneParams has all of it). */
 export interface PhenologyDay extends Day {
   place: { id: string; climate: Climate }
-  overrides?: { phenology?: boolean; bloom?: boolean | readonly BloomKind[] }
+  overrides?: { phenology?: boolean; bloom?: boolean | readonly BloomKind[]; heath?: boolean | HeathStage }
   sea?: { ocean: string }
 }
 
@@ -562,6 +562,64 @@ export function seasonalSnowLine(land: { snowLine: number; height: number; kind:
   const level = Math.min(low + (high - low) * (hashCell(land.seed, 5) / 4294967295), peak * 0.85)
   // Starts above the peak, past the reach of the snow edge's noise (landforms.ts).
   return peak * 1.3 + (level - peak * 1.3) * winter
+}
+
+/** Heath coasts: heather (*Calluna*, with bell heather) on the land behind
+ * a rocky shore and on far slopes (NATURE_PLAN phase 5, NATURE.md §1.1).
+ * Norway's coastal heath *(est.)*; not the Baltic. */
+export const HEATH_PLACES: readonly string[] = ['cornwall-wales', 'brittany', 'ireland', 'scotland', 'norway-west']
+export const HEATH_STAGES = ['flower', 'brown', 'green'] as const
+export type HeathStage = (typeof HEATH_STAGES)[number]
+
+/** Share of the ground cover that is heath (est.): the patch masks' thresholds
+ * are this share's quantile of their noise (terrain `fbm` mix, props `fbm3`). */
+export const HEATH_COVER = 0.35
+export const HEATH_MASK_TERRAIN = 0.537
+export const HEATH_MASK_FAR = 0.545
+/** Half-width of the masks' soft edge (in noise units). */
+export const HEATH_MASK_EDGE = 0.03
+
+/** Heath in full flower from afar: hue measured (mauve, not purple), the
+ * brightness est.; the flowers seen near (bell heather, measured); dead
+ * flowers and wiry stems Oct–Mar, the foliage Apr–Jun (est.). NATURE_PLAN §1. */
+const HEATH_FAR: RGB = [0.16, 0.07, 0.08]
+const HEATH_FLOWER: RGB = [0.25, 0.14, 0.26]
+const HEATH_BROWN: RGB = [0.08, 0.04, 0.034]
+const HEATH_GREEN: RGB = [0.06, 0.08, 0.04]
+/** In full flower, the share of a near patch that is flowers (est.); the
+ * stems and foliage between them make up the far colour. */
+const HEATH_SPECKS = 0.3
+const HEATH_STEMS = HEATH_FAR.map((v, i) => Math.max(0.005, (v - HEATH_SPECKS * HEATH_FLOWER[i]) / (1 - HEATH_SPECKS))) as RGB
+/** A stage forced by a spec: its day of the calendar year. */
+const HEATH_STAGE_DAY: Record<HeathStage, number> = { flower: 228, brown: 15, green: 135 }
+
+/** Heath's look today: the stems' and foliage's colour, the flowers' and
+ * their share of a near patch; `color` the mean, what far slopes show. */
+export interface Heath {
+  stems: RGB
+  flower: RGB
+  specks: number
+  color: RGB
+}
+
+/**
+ * Heath in today's colour (local calendar months: every heath place is
+ * northern), or undefined where there's none. Foliage green from April,
+ * brown from mid-September to March; flowers July–September, full in
+ * August. No draws. `overrides.heath` forces (true: heath here in today's
+ * colour, whatever the place; a stage: in that colour) or switches it off
+ * (false); `phenology: false` switches it off too.
+ */
+export function heathFor(day: PhenologyDay): Heath | undefined {
+  const force = day.overrides?.heath
+  if (force === false || day.overrides?.phenology === false) return undefined
+  if (force == null && !HEATH_PLACES.includes(day.place.id)) return undefined
+  const d = typeof force === 'string' ? HEATH_STAGE_DAY[force] : dayOfYear(day.date)
+  const foliage = mix(HEATH_BROWN, HEATH_GREEN, band(d, 91, 121, 258, 288))
+  const f = band(d, 182, 213, 243, 274)
+  const stems = mix(foliage, HEATH_STEMS, f)
+  const specks = HEATH_SPECKS * f
+  return { stems, flower: HEATH_FLOWER, specks, color: mix(stems, HEATH_FLOWER, specks) }
 }
 
 /** Ground cover (terrain) with the grass dried toward straw. */

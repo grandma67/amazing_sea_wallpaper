@@ -17,7 +17,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 2 | ✅ Close two place gaps (Atacama 26–30°S, Namaqualand and the Sandveld 29–33°S), 2026-11-12 | `places.ts`, one test | **95** days change, 67 to another place | done | – |
 | 3 | ✅ Bush blossom: rock rose, gorse, wattle; the `BLOOM` table and far tint, 2026-11-12 | `phenology.ts`, `props/trees.ts` `leaves()` | **50** land days with bushes in the pool: rock rose 12 full + 1; gorse 4 full + 30 part; wattle 2 full + 2 | done | 1 |
 | 4 | ✅ Tree blossom: flamboyant (per-crown thinning, dry-season window), pōhutukawa, 2026-11-12 | `phenology.ts` `onDryCoast`, `props/trees.ts`, `props/vegetation.ts` (flowering twins) | land days with broadleaf in the pool: flamboyant **19** full, 7 part, **146** scattered; pōhutukawa **1**; in frame rarely (below) | done | 3 |
-| 5 | Heath: heather on ground cover by month, near and far | terrain ground-cover shader, landforms, islands | **14** rock-shore days near; far slopes on the heath places' 9 beach days | 1.5–2 h | 1 |
+| 5 | ✅ Heath: heather on ground cover by month, near and far, 2026-11-12 | `phenology.ts` `heathFor`, terrain ground-cover shader, landforms, islands | **14** rock-shore days (rendered framing); far slopes on 7 of the 9 beach days (a range or islands); in frame: cliff tops along the coast, not at the camera's feet (below) | done | 1 |
 | 6 | `eucalyptus` kind (Australia native, California groves) | `props/trees.ts`, `props/vegetation.ts`, `places.ts` `PLACE_PLANTS` | every Australian and Californian land day with trees (count first) | 2–3 h | 1 |
 | 7 | Moss on rock: amount by climate and place, colour by today's wetness | `props/rocks.ts` `GROWTH`, rock-shore shader, `phenology.ts` | every boulder and rock-shore day a little | 2–3 h | 1 |
 | 8 | Shore zonation: the spray belt, laver, sea lettuce | rock-shore shader, `places.ts` `sprayBelt` | every rock-shore day (belt); weed on Atlantic, NE Pacific and Japanese rock shores | 2.5–3.5 h | 7 |
@@ -457,6 +457,30 @@ near and far; gorse (phase 3) beside it in May (`diff.mjs --off '{"props":{"heat
 
 **Tests:** the heath places and months; the mask deterministic and ~35% cover; not on dunes,
 machair or under trees; `sceneSpec.test.ts` the `heath` field.
+
+**Built (0.144):**
+- `heathFor(day)` (`phenology.ts`, `HEATH_PLACES`): foliage brown → green over April, green →
+  brown from mid-September to mid-October; flowers ramp in over July, full in August, out by
+  the end of September. Stems in flower are derived so that 30% flower specks
+  `[0.25, 0.14, 0.26]` over them average to the measured far mauve `[0.16, 0.07, 0.08]`.
+- Terrain (rock-shore days only): heath replaces the ground cover's colour in a world-space mask
+  (`fbm` at 40 m and 6 m, threshold its 65th percentile: 35% cover, tested on the TS mirror);
+  up close (pixel footprint < 1–8 cm) the specks vary around their mean without clamping, so near
+  and far agree. Landforms and islands: the green slopes mix toward the far colour in `heathPatch`
+  patches (`fbm3`, same 35%), unshaded.
+- **Not "under trees":** heather is the understorey of open pinewood in Scotland (Caledonian
+  pinewood), so the mask ignores the trees.
+- **`props.heath`** is one field (as `props.bloom`): true / a stage forces anywhere, false is the
+  switch. `diff.mjs --ref HEAD --off '{"props":{"heath":false}}' --off-here`: identical on all 7
+  views of `scenes/heath.json` (one pixel at Δ 4).
+- **Seen, and how little:** every rock composition faces the sea, so the land behind the shore is
+  behind the camera or a strip of cliff top along the coast. Specs changed 0–0.3% of the frame
+  (Cornish framed platform and Scottish January cliff: none; Scottish August cliff: mauve-brown
+  patches on the far cliff top, zoomed). Real days (8 sampled, heath places, not night): 3
+  visible (2024-01-30 Norway in snow, brown heath between the drifts, 0.28%; 2024-02-21, 2024-04-18
+  ~0.05%), 4 under the `diff.mjs` threshold, 1 identical; the one flowering day (2024-08-31, a
+  cliff overlook) is invisible. A near heath look needs TERRAIN_FORMS's land in front of the camera
+  or the move-around mode.
 
 ## 6. Eucalyptus kind
 

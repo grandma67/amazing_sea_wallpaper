@@ -21,7 +21,7 @@ import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { MIRROR_GLSL, MIRROR_UNIFORMS_GLSL } from './reflection'
 import { LICHEN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
-import { groundCoverTint, phenologyFor } from './phenology'
+import { groundCoverTint, HEATH_MASK_EDGE, HEATH_MASK_TERRAIN, heathFor, phenologyFor } from './phenology'
 import { snowLook } from './props/snowCap'
 import { seasonMonth } from './seasons'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
@@ -1082,6 +1082,11 @@ uniform float tideHigh;
 uniform float tideSpring;
 uniform vec3 groundCover;
 uniform float groundCoverAmount;
+// Heath (phenology.ts heathFor) on a rocky shore's ground cover: the stems'
+// and foliage's colour and the flowers' share of a near patch; the flowers'
+// colour and whether there is heath (0 or 1).
+uniform vec4 heathStems;
+uniform vec4 heathFlower;
 // Fallen leaves' colour under deciduous trees (props/leafLitter.ts): a map of
 // the crowns' ground in world space; rect = x0, z0, 1/width, 1/depth.
 uniform sampler2D litterMap;
@@ -1290,6 +1295,16 @@ void main() {
   cover *= smoothstep(0.25, 0.65, fbm(q / 25.0) * 0.6 + fbm(q / 4.0) * 0.4 + cover * 0.25);
   cover *= smoothstep(0.75, 0.9, N.y) * groundCoverAmount;
   vec3 coverAlbedo = groundCover * (0.6 + 0.8 * fbm(q / 9.0 + 4.0));
+  if (heathFlower.w > 0.0) {
+    // Heath in patches (HEATH_COVER of the cover, fixed in the world); up
+    // close, flowers in specks among the stems, whose mean is the far colour.
+    float m = fbm(q / 40.0 + 113.0) * 0.65 + fbm(q / 6.0 + 127.0) * 0.35;
+    float heath = smoothstep(${(HEATH_MASK_TERRAIN - HEATH_MASK_EDGE).toFixed(4)}, ${(HEATH_MASK_TERRAIN + HEATH_MASK_EDGE).toFixed(4)}, m) * heathFlower.w;
+    float close = 1.0 - smoothstep(0.01, 0.08, footprint);
+    float speck = heathStems.w + close * 2.0 * min(heathStems.w, 1.0 - heathStems.w) * (smoothstep(0.3, 0.7, vnoise(q * 18.0 + 131.0)) - 0.5);
+    vec3 heathC = mix(heathStems.rgb, heathFlower.rgb, speck) * (0.75 + 0.5 * fbm(q / 3.0 + 137.0));
+    coverAlbedo = mix(coverAlbedo, heathC, heath);
+  }
   albedo = mix(albedo, coverAlbedo, cover);
   if (litterAmount > 0.0) {
     // Warped, so a crown's ground has no neat outline.
@@ -1537,6 +1552,8 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
   const { rings, segments } = squareGrid(TERRAIN_GRID_VERTICES * density * density, wedge.span, TERRAIN_INNER_RADIUS, TERRAIN_OUTER_RADIUS)
   const { coast } = params
   const snowHere = snowLook(params)
+  // Near heath only behind a rocky shore (not dunes or machair).
+  const heath = coast.rock != null ? heathFor(params) : undefined
   const material = new ShaderMaterial({
     vertexShader,
     fragmentShader,
@@ -1562,6 +1579,8 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       tideSpring: { value: tideMarks(coast).spring },
       groundCover: { value: new Color(...groundCoverTint(params.biome.groundCover, phenologyFor(params))) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
+      heathStems: { value: new Vector4(...(heath?.stems ?? [0, 0, 0]), heath?.specks ?? 0) },
+      heathFlower: { value: new Vector4(...(heath?.flower ?? [0, 0, 0]), heath != null ? 1 : 0) },
       ...skyOpenUniforms(),
       litterMap: { value: null as Texture | null },
       litterRect: { value: new Vector4(0, 0, 0, 0) },

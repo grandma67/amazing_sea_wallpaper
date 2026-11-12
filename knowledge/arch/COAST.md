@@ -123,6 +123,10 @@ Plan and research: [plans/ROCK_SHORE.md](../plans/ROCK_SHORE.md); shares: COASTS
   spring high water; black lichen in the splash zone; lichen crusts (`LICHEN` by biome) higher;
   cobbles on gully floors; pools in hollows and gullies between today's sea and the spring high
   water (mirror-flat); wet rock a dull sheen; ground cover from 1 m behind the top over 8 m.
+  Heath on that ground cover in the heath places (`heathFor`, NATURE_PLAN phase 5): a world-space
+  patch mask (`HEATH_COVER` 35%), flower specks up close whose mean is the far colour; only on
+  rock-shore days (no dunes or machair), so on beach days heath shows only on far slopes
+  (`props/landforms.ts`, `props/islands.ts`, `heathPatch`).
   `seabedAlbedo` gives the ocean a weedy rock colour.
 
 ## Tidal flats and salt marsh (`tidalFlat.ts`, PLAN_BIOMES 9)

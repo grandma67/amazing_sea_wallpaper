@@ -12,12 +12,12 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
-import { canopyTint, phenologyFor } from '../phenology'
+import { canopyTint, heathFor, phenologyFor } from '../phenology'
 import type { IslandKind, IslandParams } from '../params'
 import { Random } from '../random'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
-import { curvatureDrop } from './landforms'
+import { curvatureDrop, heathPatch } from './landforms'
 import { fbm3 } from './noise'
 import { OUTLINE_POINTS, type WaterIsland } from './surf'
 import { palm } from './vegetation'
@@ -130,6 +130,8 @@ export function outlineOfIsland(shape: Shape, across: { x: number; z: number }, 
 interface Palette {
   rock: RGB
   vegetation: RGB | null
+  /** Heath's far colour on the green slopes, in patches (phenology.ts heathFor). */
+  heath: RGB | null
   sand: RGB
   snow: boolean
   /** Snow to the shore today: its cover (0–1), else 0. */
@@ -138,7 +140,7 @@ interface Palette {
 
 const mix = (a: RGB, b: RGB, t: number): RGB => a.map((v, i) => v + (b[i] - v) * Math.max(0, Math.min(1, t))) as RGB
 
-function surfaceColor(shape: Shape, p: Palette, h: number, steep: number, n: number): RGB {
+function surfaceColor(shape: Shape, p: Palette, h: number, steep: number, n: number, heath = 0): RGB {
   const H = shape.height
   let c = p.rock.map(v => v * (0.7 + 0.6 * n)) as RGB
   // Wet, dark rock and weed at the waterline; bleached above the splash.
@@ -159,7 +161,9 @@ function surfaceColor(shape: Shape, p: Palette, h: number, steep: number, n: num
     const slope = shape.kind === 'karst' ? 0.6 + 0.4 * (1 - steep) : 1 - smoothstep(0.55, 0.9, steep)
     const green = above * slope * smoothstep(0.25, 0.55, n * cover + 0.35 * cover)
     // Forest seen from afar is darker than its leaves: shadow between crowns.
-    c = mix(c, p.vegetation.map(v => v * (0.55 + 0.5 * n)) as RGB, green)
+    // Heath patches are low: no shade between crowns.
+    const scrub = p.vegetation.map(v => v * (0.55 + 0.5 * n)) as RGB
+    c = mix(c, p.heath == null || heath === 0 ? scrub : mix(scrub, p.heath.map(v => v * (0.8 + 0.4 * n)) as RGB, heath), green)
   }
   if (p.snow) {
     const snow = smoothstep(H * 0.25, H * 0.45, h + (n - 0.5) * H * 0.3) * (1 - smoothstep(0.5, 0.85, steep))
@@ -196,7 +200,8 @@ function islandGeometry(shape: Shape, palette: Palette, toWorld: ToWorld): Buffe
       const h = islandHeight(shape, x, y)
       const steep = Math.min(1, Math.hypot(islandHeight(shape, x + e, y) - h, islandHeight(shape, x, y + e) - h) / e / 1.5)
       const n = fbm3(x / 40, y / 40, 8.2, shape.seed) * 0.6 + fbm3(x / 9, y / 9, 2.9, shape.seed) * 0.4
-      row.push(b.vertex(toWorld(x, y, h), surfaceColor(shape, palette, h, steep, n)))
+      const heath = palette.heath == null || shape.kind === 'cay' ? 0 : heathPatch(fbm3(x / 150, y / 150, 6.3, shape.seed + 7))
+      row.push(b.vertex(toWorld(x, y, h), surfaceColor(shape, palette, h, steep, n, heath)))
     }
     grid.push(row)
   }
@@ -299,6 +304,7 @@ export function createIslands(ctx: PropContext, avoid: Object3D | null): Object3
     rock: rng.pick(biome.rockColors),
     // Bare in the polar seas and on desert coasts; dark forest elsewhere.
     vegetation: polar || biome.name === 'desert' ? null : canopyTint(biome.foliage, phenologyFor(ctx.params), biome.vegetation),
+    heath: heathFor(ctx.params)?.color ?? null,
     sand: params.kind === 'cay' ? [0.7, 0.66, 0.56] : ctx.params.coast.sand.albedo,
     snow: polar && params.kind !== 'cay',
     lying: ctx.params.snow?.cover ?? 0
