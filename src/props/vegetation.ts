@@ -10,10 +10,10 @@ import {
 } from 'three'
 
 import type { RGB, VegetationKind } from '../biome'
-import { blossomFor, phenologyFor, plantSeason, type PlantSeason } from '../phenology'
+import { phenologyFor, plantSeason, withBlossom, type Blooming, type PlantSeason } from '../phenology'
 import { placeNamed } from '../places'
-import type { Random } from '../random'
-import { hasLand, shoreToWorld, terrainNormal } from '../terrain'
+import { Random } from '../random'
+import { hasLand, shoreToWorld, terrainNormal, worldToShore } from '../terrain'
 import { tideMarks } from '../tides'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
@@ -167,6 +167,39 @@ interface KindSpec {
   variants: number
   /** How the plant bends in the wind. */
   bend: Bend
+}
+
+/** A hash of a world position in [0, 1) (not a draw). */
+function positionHash(x: number, z: number, salt: number): number {
+  const h = Math.sin(x * 12.9898 + z * 78.233 + salt * 37.719) * 43758.5453
+  return h - Math.floor(h)
+}
+
+/** Which row (if any) a tree at (x, z) flowers with, and its colour: the
+ * rows' crown shares laid end to end over one position hash; a row with a
+ * shore limit only on the coast's first trees, within that many metres of
+ * where the kind starts inland (`treeline`, m inland of s = 0). */
+export function crownBlossom(
+  bloom: readonly Blooming[] | undefined,
+  kind: VegetationKind,
+  x: number,
+  z: number,
+  coast: Parameters<typeof worldToShore>[0],
+  treeline = 0
+): { b: Blooming; color: number } | undefined {
+  if (bloom == null || bloom.length === 0) return undefined
+  const salt = kind.length * 7.1
+  const u = positionHash(x, z, salt)
+  let start = 0
+  for (const b of bloom) {
+    if (b.row.plant !== kind) continue
+    if (u < start + b.crowns) {
+      if (b.row.nearShoreM != null && -worldToShore(coast, x, z)[0] - treeline > b.row.nearShoreM) return undefined
+      return { b, color: Math.floor(positionHash(z, x, salt + 1) * b.row.colors.length) }
+    }
+    start += b.crowns
+  }
+  return undefined
 }
 
 const KINDS: Record<VegetationKind, KindSpec> = {
@@ -495,23 +528,57 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
 
     const bent = windMaterials(material, params, spec.bend)
 
+    const season = plantSeason(kind, phenology)
+    // Blossom: each tree flowers or not by its position (a hash, no draw), so
+    // any share shows and a moving camera sees the same trees in flower.
+    const flowers = placed.map(t => crownBlossom(season?.bloom, kind, t.elements[12], t.elements[14], coast, uMin))
     for (let v = 0; v < spec.variants; v++) {
       const indices = placed.map((_, i) => i).filter(i => i % spec.variants === v)
       if (indices.length === 0) continue
-      const mesh = new InstancedMesh(spec.build(rng, biome.foliage, blossomFor(plantSeason(kind, phenology), v, spec.variants)), bent.material, indices.length)
-      mesh.customDepthMaterial = bent.depth
-      mesh.userData.plantKind = kind
-      indices.forEach((i, j) => {
-        m.copy(placed[i])
-        // Blades under the snow (drawn all the same: the draws stay).
-        if (kind === 'grass' && params.snow != null && grassBuried(m.elements[12], m.elements[14], params.snow.cover)) m.scale(new Vector3(0, 0, 0))
-        mesh.setMatrixAt(j, m)
-        mesh.setColorAt(j, colors[i])
+      // A flowering twin repeats the variant's draws: the same shape, and the
+      // vegetation stream moves on exactly as without blossom.
+      const drawn: number[] = []
+      const recorder = Random.from(() => {
+        const x = rng.float()
+        drawn.push(x)
+        return x
       })
-      mesh.castShadow = spec.castShadow
-      mesh.receiveShadow = true
-      mesh.frustumCulled = false
-      meshes.push(mesh)
+      const groups = new Map<string, number[]>([['', []]])
+      for (const i of indices) {
+        const f = flowers[i]
+        const key = f == null ? '' : `${f.b.row.kind}:${f.color}`
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key)!.push(i)
+      }
+      const plain = spec.build(recorder, biome.foliage, season)
+      for (const [key, members] of groups) {
+        if (members.length === 0) continue
+        let geometry = plain
+        if (key !== '') {
+          const f = flowers[members[0]]!
+          let k = 0
+          const replay = Random.from(() => {
+            if (k >= drawn.length) throw new Error(`blossom twin of ${kind} drew more than its variant`)
+            return drawn[k++]
+          })
+          geometry = spec.build(replay, biome.foliage, withBlossom(season!, f.b, f.color))
+        }
+        const mesh = new InstancedMesh(geometry, bent.material, members.length)
+        mesh.customDepthMaterial = bent.depth
+        mesh.userData.plantKind = kind
+        if (key !== '') mesh.userData.blossom = key
+        members.forEach((i, j) => {
+          m.copy(placed[i])
+          // Blades under the snow (drawn all the same: the draws stay).
+          if (kind === 'grass' && params.snow != null && grassBuried(m.elements[12], m.elements[14], params.snow.cover)) m.scale(new Vector3(0, 0, 0))
+          mesh.setMatrixAt(j, m)
+          mesh.setColorAt(j, colors[i])
+        })
+        mesh.castShadow = spec.castShadow
+        mesh.receiveShadow = true
+        mesh.frustumCulled = false
+        meshes.push(mesh)
+      }
     }
   }
   return meshes

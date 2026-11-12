@@ -16,7 +16,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 1 | ✅ Real assets: measure (fetch CC0 photos, textures, scans; sizes and colours), 2026-11-12 | `scripts/asset.mjs` (new) | none (data for every later phase) | done | – |
 | 2 | ✅ Close two place gaps (Atacama 26–30°S, Namaqualand and the Sandveld 29–33°S), 2026-11-12 | `places.ts`, one test | **95** days change, 67 to another place | done | – |
 | 3 | ✅ Bush blossom: rock rose, gorse, wattle; the `BLOOM` table and far tint, 2026-11-12 | `phenology.ts`, `props/trees.ts` `leaves()` | **50** land days with bushes in the pool: rock rose 12 full + 1; gorse 4 full + 30 part; wattle 2 full + 2 | done | 1 |
-| 4 | Tree blossom: flamboyant (per-crown thinning, dry-season window), pōhutukawa | `phenology.ts`, `places.ts` `onDryCoast`, `props/trees.ts` | flamboyant **24** full, **109** scattered; pōhutukawa **1** | 2.5–3.5 h | 3 |
+| 4 | ✅ Tree blossom: flamboyant (per-crown thinning, dry-season window), pōhutukawa, 2026-11-12 | `phenology.ts` `onDryCoast`, `props/trees.ts`, `props/vegetation.ts` (flowering twins) | land days with broadleaf in the pool: flamboyant **19** full, 7 part, **146** scattered; pōhutukawa **1**; in frame rarely (below) | done | 3 |
 | 5 | Heath: heather on ground cover by month, near and far | terrain ground-cover shader, landforms, islands | **14** rock-shore days near; far slopes on the heath places' 9 beach days | 1.5–2 h | 1 |
 | 6 | `eucalyptus` kind (Australia native, California groves) | `props/trees.ts`, `props/vegetation.ts`, `places.ts` `PLACE_PLANTS` | every Australian and Californian land day with trees (count first) | 2–3 h | 1 |
 | 7 | Moss on rock: amount by climate and place, colour by today's wetness | `props/rocks.ts` `GROWTH`, rock-shore shader, `phenology.ts` | every boulder and rock-shore day a little | 2–3 h | 1 |
@@ -426,6 +426,33 @@ Christmas `new-zealand-north` beach crimson crowns along the shore; other places
 **Tests:** in `test/bloom.test.ts`: dry-season windows in both hemispheres, `bareOn` only on
 blooming crowns, `onDryCoast` the same answer as `savannaDry`'s old test, the pōhutukawa shore
 limit.
+
+**Built (0.141):**
+- **Flowering twins, by position (replaces phase 3's variant spread):** a tree flowers or not by a
+  hash of its world position (`crownBlossom`, `props/vegetation.ts`), so any share shows (flamboyant
+  is 0.03–0.15 of broadleaf crowns, which 5–6 variants can't hold) and a moving camera sees the same
+  trees in flower. Each variant's draws are recorded (`Random.from`) and replayed to build its
+  flowering twin, only when a tree takes it: the same shape, and the vegetation stream moves on as
+  without blossom (the twins' instance matrices equal the plain ones: tested). Bushes moved to this
+  too.
+- `BloomRow.today(day)` gives strength, and for flamboyant `on` and the card share; rows scale
+  crowns (flamboyant) or cards (the rest). `onDryCoast` is shared with `savannaDry`. A thinned
+  crown drops leaves, never flowers (80% of its cards are flowers when bare).
+- **Pōhutukawa's 60 m is from the treeline, not s = 0:** `broadleaf` starts behind the beach and
+  dunes (35–110 m inland), so "within 60 m of the shore" left almost none; it's now within 60 m of
+  where the kind's trees start (the coast's first trees). Cards 0.45, not 0.7: 0.7 was a solid
+  red ball in `mesh.mjs`, where photos show crimson heads among the leaves *(est.)*.
+- No far tint for either (`far: false`).
+- Seen: `mesh.mjs` (scarlet umbrella, bare at peak and greener as the leaves return; pōhutukawa);
+  `look-flamboyant` (a forced row on a wood with broadleaves): a scarlet crown; Northland at
+  Christmas: crimson crowns along the first trees behind the beach (5 of 19 broadleaves, nearest
+  197 m). Off on both sides: identical to HEAD on all views of `scenes/bloom.json`. Render time +2%
+  (twin builds).
+- **Flamboyant is rarely in frame on real days** (8 sampled in-window days: 6 identical, 2 at
+  0.005%): tropical days draw `broadleaf` about half the time and place few (0 on 6 of the 8; 35 and
+  7 where drawn, of which 6 and 2 flowered). The plan's "one per framed view" assumed more
+  broadleaves. The blossom works where the tree is; how many broadleaves a tropical coast has is the
+  vegetation pool's question (PLAN_BIOMES), not changed here.
 
 ## 5. Heath: heather on ground cover
 

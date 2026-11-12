@@ -6,7 +6,7 @@
 
 import type { Climate, RGB, VegetationKind } from './biome'
 import { hashCell } from './cellNoise'
-import { PLACES } from './places'
+import { PLACES, type DrySeason } from './places'
 import { seasonDay, type Day } from './seasons'
 
 /** What phenology reads from a day (SceneParams has all of it). */
@@ -33,8 +33,8 @@ export interface Phenology {
   litterFresh: number
   placeId: string
   south: boolean
-  /** Bush and tree blossom flowering today (`BLOOM`), with its strength. */
-  bloom: readonly { row: BloomRow; strength: number }[]
+  /** Bush and tree blossom flowering today (`BLOOM`). */
+  bloom: readonly Blooming[]
 }
 
 /** What a plant builder needs: the leaves of a deciduous tree (`deciduous`
@@ -46,62 +46,146 @@ export interface PlantSeason {
   dry: number
   deciduous: number
   autumn: readonly RGB[]
-  /** The blossom rows flowering on this kind today (`bloomFor`); a builder's
-   * mesh takes one of them (`blossomFor`). */
-  bloom?: readonly Blossom[]
-  /** This mesh's blossom: set per variant by `blossomFor`, so a crown share
-   * of 0.4 is 2 of 5 variants, not a hash that can miss all five. */
+  /** The blossom flowering on this kind today (`bloomFor`). Each tree takes
+   * one row or none by its position (props/vegetation.ts); its mesh is the
+   * variant's flowering twin (`withBlossom`). */
+  bloom?: readonly Blooming[]
+  /** This mesh's blossom (a flowering twin's). */
   blossom?: Blossom
 }
 
-export type BloomKind = 'rock-rose' | 'gorse' | 'wattle'
+export type BloomKind = 'rock-rose' | 'gorse' | 'wattle' | 'flamboyant' | 'pohutukawa'
 
-/** A plant in flower on a kind's crowns (NATURE_PLAN phase 3). */
+/** A plant in flower on a kind's crowns (NATURE_PLAN phases 3–4). */
 export interface BloomRow {
   kind: BloomKind
   plant: VegetationKind
   /** Where it grows (place ids). */
   places: readonly string[]
-  /** Strength by local calendar month, January first (a place row: its own
-   * months, as turtle nesting; LESSONS.md "Seasons"). */
-  months: readonly number[]
+  /** Today's flowering: `strength` 0–1 scales the crowns in flower
+   * (`scales: 'crowns'`) or the cards in flower on each (`'leaves'`); `on`
+   * thins a flowering crown's leaves (flamboyant flowers nearly bare);
+   * `leaves` overrides the row's card share. A place row reads local
+   * calendar months (as turtle nesting; LESSONS.md "Seasons"). */
+  today: (day: PhenologyDay) => { strength: number; on?: number; leaves?: number }
+  scales: 'crowns' | 'leaves'
   /** Share of the kind's crowns in flower, and of a flowering crown's leaf
-   * cards that are flowers at strength 1. */
+   * cards that are flowers, at strength 1. */
   crowns: number
   leaves: number
   /** Flower colours (linear albedo, measured: NATURE_PLAN §1), one per crown. */
   colors: readonly RGB[]
   /** A flower card's length as a share of a leaf card's (est.: cistus
    * flowers 4–6 cm, gorse 1.5–2.5 cm in clusters, wattle in sprays, against
-   * 8–13 cm leaf cards). */
+   * 8–13 cm leaf cards; flamboyant and pōhutukawa clusters a leaf's size). */
   size: number
+  /** Only trees this near the shore (m inland of s = 0): pōhutukawa lines
+   * the coast's first trees. */
+  nearShoreM?: number
+  /** Tints the far woods (false: too few crowns, or only along the shore). */
+  far: boolean
 }
 
-/** One flowering crown's look: `leaves` already scaled by the day's strength. */
+/** A row in flower today, ready for a crown. */
+export interface Blooming {
+  row: BloomRow
+  strength: number
+  /** Share of the kind's trees in flower, and of a flowering crown's cards. */
+  crowns: number
+  leaves: number
+  /** A flowering crown's leaves on (1: as usual). */
+  on: number
+}
+
+/** One flowering crown's look. */
 export interface Blossom {
   kind: BloomKind
   leaves: number
   color: RGB
   size: number
+  on: number
 }
 
 const MED = ['western-med', 'adriatic', 'aegean', 'north-africa-levant', 'portugal-morocco', 'canaries']
+const monthly =
+  (months: readonly number[]) =>
+  (day: PhenologyDay): { strength: number } => ({ strength: months[Number(day.date.slice(5, 7)) - 1] })
+
+/** Day of the calendar year (1–365) and the first of a month. */
+const dayOfYear = (date: string): number => seasonDay({ date, latitudeDeg: 1 })
+const firstOf = (month: number): number => dayOfYear(`2025-${String(month).padStart(2, '0')}-01`)
+
+/** The place's dry season if this day is on its dry coast (its latitudes,
+ * not the wetter coast on another ocean): what savanna grass and the
+ * flamboyant's window read. */
+export function onDryCoast(day: PhenologyDay): DrySeason | undefined {
+  const season = PLACES.find(p => p.id === day.place.id)?.drySeason
+  if (season == null) return undefined
+  const [south, north] = season.latitudeDeg ?? [-90, 90]
+  if (day.latitudeDeg < south || day.latitudeDeg > north) return undefined
+  const wet = season.wetCoast
+  if (wet != null && day.sea?.ocean === wet.ocean && day.latitudeDeg >= wet.latitudeDeg[0] && day.latitudeDeg <= wet.latitudeDeg[1]) return undefined
+  return season
+}
+
+/** Days after `end` (the first day of the rains), wrapped to −182…182. */
+const sinceEnd = (d: number, end: number): number => ((((d - end) % 365) + 365 + 182) % 365) - 182
+
+const SCATTERED = 0.2
+const FLAMBOYANT_DRY = ['north-australia', 'nw-australia', 'west-africa', 'central-america', 'east-africa', 'northeast-brazil', 'indonesia', 'india']
+const FLAMBOYANT_CARIBBEAN = ['antilles', 'lesser-antilles-volcanic', 'bahamas-bermuda', 'yucatan-belize']
+const FLAMBOYANT_SCATTERED = ['philippines', 'pacific-islands', 'hawaii', 'sri-lanka', 'andaman-lakshadweep', 'sumatra-java-south', 'maldives', 'comoros', 'reunion-mauritius']
 
 /**
- * Bush blossom by place (NATURE.md §1; colours measured, NATURE_PLAN §1).
+ * Flamboyant (NATURE.md §1.2, §8): on a dry coast it flowers at the end of
+ * the dry season, nearly leafless, and on as the rains bring new leaves:
+ * ramping in 45–30 days before the rains (`end`), full to 30 days after,
+ * out by 45 (est. ramps); bare (on 0.4, est.) until the rains, its leaves back
+ * by +45; flowers 0.8 of the cards, 0.5 as the leaves return (est.). The
+ * Caribbean May–Sep, peak June; mainland SE Asia May–Jul; where there's no
+ * clear dry season (and a dry place's wetter coasts) each tree keeps its own
+ * rhythm: 0.2 any month, leaves on. Galápagos: none (planted in towns only).
+ */
+function flamboyantToday(day: PhenologyDay): { strength: number; on?: number; leaves?: number } {
+  const id = day.place.id
+  if (FLAMBOYANT_DRY.includes(id)) {
+    const season = onDryCoast(day)
+    if (season == null) return { strength: SCATTERED }
+    const end = firstOf((season.months[1] % 12) + 1)
+    const t = sinceEnd(dayOfYear(day.date), end)
+    const strength = t < -45 || t > 45 ? 0 : t < -30 ? (t + 45) / 15 : t <= 30 ? 1 : (45 - t) / 15
+    if (strength === 0) return { strength: SCATTERED }
+    const back = Math.min(1, Math.max(0, t / 45))
+    return { strength: Math.max(SCATTERED, strength), on: 0.4 + 0.6 * back, leaves: 0.8 - 0.3 * back }
+  }
+  if (FLAMBOYANT_CARIBBEAN.includes(id)) return monthly([0, 0, 0, 0, 0.7, 1, 1, 0.7, 0.5, 0, 0, 0])(day)
+  if (id === 'mainland-se-asia') return monthly([0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0])(day)
+  return { strength: SCATTERED }
+}
+
+/** Pōhutukawa (RNZ, Te Papa, NZ Herald): full 15 Dec – 5 Jan, ramping in
+ * from 15 Nov and out by 15 Jan. */
+function pohutukawaToday(day: PhenologyDay): { strength: number } {
+  return { strength: band(dayOfYear(day.date), firstOf(11) + 14, firstOf(12) + 14, 5, 15) }
+}
+
+/**
+ * Blossom by place (NATURE.md §1; colours measured, NATURE_PLAN §1).
  * Rock rose: native Macaronesia to the eastern Mediterranean, not
  * California, Chile, the Cape or SW Australia (Kew POWO). Gorse: Atlantic
  * Europe, full Apr–May with flowers all year in mild winters (Woodland
  * Trust); invasive in New Zealand, Tasmania and Chile, where it flowers
  * May–Nov, spring and autumn flushes (NZ Flora, APWT, Hawke's Bay RC; the
  * spring peak est.). Wattle: late Aug – Sep, Jul and Oct–Nov a little.
+ * Flamboyant and pōhutukawa on `broadleaf` (phase 4).
  */
 export const BLOOM: readonly BloomRow[] = [
   {
     kind: 'rock-rose',
     plant: 'bush',
     places: MED,
-    months: [0, 0, 0, 0.3, 1, 1, 1, 0, 0, 0, 0, 0],
+    today: monthly([0, 0, 0, 0.3, 1, 1, 1, 0, 0, 0, 0, 0]),
+    scales: 'leaves',
     crowns: 0.4,
     // 0.25 of the cards at half size covered ~6% of the crown: specks at 6 m,
     // where cistus in flower is spotted all over (mesh.mjs, 2026-11-12).
@@ -110,80 +194,113 @@ export const BLOOM: readonly BloomRow[] = [
       [0.41, 0.13, 0.41],
       [0.59, 0.62, 0.58]
     ],
-    size: 0.6
+    size: 0.6,
+    far: true
   },
   {
     kind: 'gorse',
     plant: 'bush',
     places: ['cornwall-wales', 'brittany', 'ireland', 'scotland', 'bristol-channel', 'morecambe-bay'],
-    months: [0.4, 0.4, 0.4, 1, 1, 0.4, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+    today: monthly([0.4, 0.4, 0.4, 1, 1, 0.4, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]),
+    scales: 'leaves',
     crowns: 0.5,
     leaves: 0.5,
     colors: [[0.62, 0.33, 0.01]],
-    size: 0.7
+    size: 0.7,
+    far: true
   },
   {
     kind: 'gorse',
     plant: 'bush',
     places: ['new-zealand-south', 'new-zealand-north', 'tasmania', 'central-chile'],
-    months: [0.1, 0.1, 0.1, 0.1, 0.4, 0.4, 0.4, 1, 1, 1, 0.4, 0.1],
+    today: monthly([0.1, 0.1, 0.1, 0.1, 0.4, 0.4, 0.4, 1, 1, 1, 0.4, 0.1]),
+    scales: 'leaves',
     crowns: 0.5,
     leaves: 0.5,
     colors: [[0.62, 0.33, 0.01]],
-    size: 0.7
+    size: 0.7,
+    far: true
   },
   {
     kind: 'wattle',
     plant: 'bush',
     places: ['east-australia', 'tasmania', 'sw-australia'],
-    months: [0, 0, 0, 0, 0, 0, 0.3, 1, 1, 0.3, 0.3, 0],
+    today: monthly([0, 0, 0, 0, 0, 0, 0.3, 1, 1, 0.3, 0.3, 0]),
+    scales: 'leaves',
     crowns: 0.35,
     leaves: 0.5,
     // The flower balls alone (two regions of the golden-wattle photo agree).
     colors: [[0.52, 0.55, 0.09]],
-    size: 0.8
+    size: 0.8,
+    far: true
+  },
+  {
+    kind: 'flamboyant',
+    plant: 'broadleaf',
+    places: [...FLAMBOYANT_DRY, ...FLAMBOYANT_CARIBBEAN, 'mainland-se-asia', ...FLAMBOYANT_SCATTERED],
+    today: flamboyantToday,
+    scales: 'crowns',
+    // Tropical broadleaf is ~1.5 of 14.5 of the plant weight, so ~1 tree in 70
+    // at full strength: about one flamboyant per framed view (est.).
+    crowns: 0.15,
+    leaves: 0.8,
+    colors: [[0.41, 0.03, 0.02]],
+    size: 1,
+    far: false
+  },
+  {
+    kind: 'pohutukawa',
+    plant: 'broadleaf',
+    places: ['new-zealand-north'],
+    today: pohutukawaToday,
+    scales: 'leaves',
+    crowns: 0.6,
+    // 0.7 made a solid red ball (mesh.mjs); in photos the crimson heads sit
+    // among the leaves (a quarter of a close-up, more of a whole tree; est.).
+    leaves: 0.45,
+    colors: [[0.47, 0.02, 0.02]],
+    size: 1,
+    nearShoreM: 60,
+    far: false
   }
 ]
 
-/** The rows in flower today: by place and local month, or as a spec forces
+function blooming(row: BloomRow, strength: number, extra: { on?: number; leaves?: number } = {}): Blooming {
+  const leaves = extra.leaves ?? row.leaves
+  return {
+    row,
+    strength,
+    crowns: row.scales === 'crowns' ? row.crowns * strength : row.crowns,
+    leaves: row.scales === 'leaves' ? leaves * strength : leaves,
+    on: extra.on ?? 1
+  }
+}
+
+/** The rows in flower today: by place and date, or as a spec forces
  * (`props.bloom`: true, every row that grows here at full strength; a list,
  * those rows at full strength wherever the day is; false, none). */
-function bloomToday(day: PhenologyDay): { row: BloomRow; strength: number }[] {
+function bloomToday(day: PhenologyDay): Blooming[] {
   const force = day.overrides?.bloom
   if (force === false) return []
   if (Array.isArray(force)) {
     // One row per kind (the first: the northern gorse), wherever the day is.
-    return force.map(kind => ({ row: BLOOM.find(r => r.kind === kind)!, strength: 1 }))
+    return force.map(kind => blooming(BLOOM.find(r => r.kind === kind)!, 1))
   }
-  const month = Number(day.date.slice(5, 7))
-  return BLOOM.filter(r => r.places.includes(day.place.id))
-    .map(row => ({ row, strength: force === true ? 1 : row.months[month - 1] }))
-    .filter(b => b.strength > 0)
+  return BLOOM.filter(r => r.places.includes(day.place.id)).flatMap(row => {
+    const t = row.today(day)
+    if (force === true) return [blooming(row, 1, t.strength === 1 ? t : {})]
+    return t.strength > 0 ? [blooming(row, t.strength, t)] : []
+  })
 }
 
-/** The blossom rows on `kind` today, each with its crown share. */
-export function bloomFor(kind: VegetationKind, phen: Phenology): readonly (Blossom & { crowns: number; colors: readonly RGB[] })[] {
-  return phen.bloom
-    .filter(b => b.row.plant === kind)
-    .map(({ row, strength }) => ({ kind: row.kind, crowns: row.crowns, leaves: row.leaves * strength, color: row.colors[0], colors: row.colors, size: row.size }))
+/** The blossom on `kind` today. */
+export function bloomFor(kind: VegetationKind, phen: Phenology): readonly Blooming[] {
+  return phen.bloom.filter(b => b.row.plant === kind)
 }
 
-/** Variant `v` of `variants`'s blossom: the rows' crown shares laid end to end
- * over the variants (stratified, so a share always shows), colours taking
- * turns within a row. Undefined: this variant doesn't flower. */
-export function blossomFor(season: PlantSeason | undefined, v: number, variants: number): PlantSeason | undefined {
-  const rows = season?.bloom
-  if (season == null || rows == null || rows.length === 0) return season
-  const u = (v + 0.5) / variants
-  let start = 0
-  for (const r of rows as readonly (Blossom & { crowns: number; colors: readonly RGB[] })[]) {
-    if (u < start + r.crowns) {
-      const i = Math.floor((u - start) * variants)
-      return { ...season, blossom: { kind: r.kind, leaves: r.leaves, color: r.colors[i % r.colors.length], size: r.size } }
-    }
-    start += r.crowns
-  }
-  return season
+/** `season` as a flowering twin of a crown: `row`'s blossom in colour `color`. */
+export function withBlossom(season: PlantSeason, b: Blooming, color: number): PlantSeason {
+  return { ...season, blossom: { kind: b.row.kind, leaves: b.leaves, color: b.row.colors[color % b.row.colors.length], size: b.row.size, on: b.on } }
 }
 
 /** Plants in full summer leaf: what every day looked like before. */
@@ -247,14 +364,8 @@ const SAVANNA_DRY = 0.8
  * weeks of the dry season, holds, and greens in the month after it. Other
  * places: 0. */
 function savannaDry(day: PhenologyDay): number {
-  const season = PLACES.find(p => p.id === day.place.id)?.drySeason
+  const season = onDryCoast(day)
   if (season == null) return 0
-  const [south, north] = season.latitudeDeg ?? [-90, 90]
-  if (day.latitudeDeg < south || day.latitudeDeg > north) return 0
-  const wet = season.wetCoast
-  if (wet != null && day.sea?.ocean === wet.ocean && day.latitudeDeg >= wet.latitudeDeg[0] && day.latitudeDeg <= wet.latitudeDeg[1]) return 0
-  const dayOfYear = (date: string): number => seasonDay({ date, latitudeDeg: 1 })
-  const firstOf = (month: number): number => dayOfYear(`2025-${String(month).padStart(2, '0')}-01`)
   const start = firstOf(season.months[0])
   const end = firstOf((season.months[1] % 12) + 1)
   return SAVANNA_DRY * band(dayOfYear(day.date), start, start + 45, end, end + 30)
@@ -406,7 +517,7 @@ export function canopyTint(foliage: RGB, phen: Phenology, plants: readonly (read
 function blossomTint(color: RGB, phen: Phenology, trees: readonly (readonly [VegetationKind, number])[], total: number): RGB {
   let out = color
   for (const [kind, w] of trees) {
-    for (const b of bloomFor(kind, phen)) out = mix(out, mean(b.colors), b.crowns * b.leaves * (w / total))
+    for (const b of bloomFor(kind, phen)) if (b.row.far) out = mix(out, mean(b.row.colors), b.crowns * b.leaves * (w / total))
   }
   return out
 }

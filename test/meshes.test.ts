@@ -2,7 +2,7 @@ import { Vector3, type BufferAttribute, type BufferGeometry } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import type { Climate, RGB } from '../src/biome'
-import { blossomFor, phenologyFor, plantSeason } from '../src/phenology'
+import { bloomFor, phenologyFor, plantSeason, withBlossom } from '../src/phenology'
 import { slabGeometry as beachrockSlab } from '../src/props/beachrock'
 import { restingGull } from '../src/props/birds'
 import { branchGeometry, logGeometry } from '../src/props/debris'
@@ -80,13 +80,19 @@ family(
   ] satisfies Row[])
 )
 
-/** In flower (phenology.ts BLOOM): forced rows on a crown that flowers. */
-const inFlower = (kind: 'rock-rose' | 'gorse' | 'wattle') =>
-  blossomFor(plantSeason('bush', phenologyFor({ date: '2025-06-01', latitudeDeg: 40, place: { id: 'x', climate: 'mediterranean' }, overrides: { bloom: [kind] } })), 0, 5)
+/** In flower (phenology.ts BLOOM): a forced row's flowering twin. */
+const inFlower = (plant: 'bush' | 'broadleaf', kind: 'rock-rose' | 'gorse' | 'wattle' | 'flamboyant' | 'pohutukawa') => {
+  const phen = phenologyFor({ date: '2025-06-01', latitudeDeg: 18, place: { id: 'india', climate: 'tropical' }, overrides: { bloom: [kind] } })
+  const b = bloomFor(plant, phen)[0]
+  return withBlossom(plantSeason(plant, phen)!, kind === 'flamboyant' ? { ...b, on: 0.4 } : b, 0)
+}
 family(
-  'bushes in flower',
+  'plants in flower',
   { base: [-0.5, INF], top: [0.5, INF], maxTriangles: 100_000 },
-  (['rock-rose', 'gorse', 'wattle'] as const).map((kind): Row => [kind, seed => trees.bush(new Random(seed), FOLIAGE, inFlower(kind))])
+  [
+    ...(['rock-rose', 'gorse', 'wattle'] as const).map((kind): Row => [kind, seed => trees.bush(new Random(seed), FOLIAGE, inFlower('bush', kind))]),
+    ...(['flamboyant', 'pohutukawa'] as const).map((kind): Row => [kind, seed => trees.broadleaf(new Random(seed), FOLIAGE, inFlower('broadleaf', kind))])
+  ]
 )
 
 // About 100k at most: 1 seed in 60 runs up to 109k (either kind, 60 seeds).

@@ -23,12 +23,14 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   draws; as the leaves go, 0–3 fine twigs per tip show (`TWIG`). Spring's `fresh` leaves are
   paler. `grass()` turns more blades straw with `dry`. Colony birds, crabs, lizards, humpbacks,
   waterfowl and gulls read `animalSeasons.ts`.
-- **Blossom** (`phenology.ts` `BLOOM`, 0.140, plans/NATURE_PLAN.md phase 3): rock rose, gorse and
-  wattle on `bush` by place and local month. `createVegetation` gives each variant its crown with
-  `blossomFor(season, v, variants)` (the rows' crown shares spread over the variants, not hashed:
-  5 variants are too few for a hash); `leaves()` turns a share of a flowering crown's cards into
-  smaller flower cards, outside first, after the draws; the crown is evergreen. Far crowns:
-  `canopyTint` mixes toward the flowers. `props.bloom`: true / a list forces, false is the switch.
+- **Blossom** (`phenology.ts` `BLOOM`, 0.140–0.141, plans/NATURE_PLAN.md phases 3–4): rock rose,
+  gorse and wattle on `bush`; flamboyant (dry-season window, bare crowns) and pōhutukawa (the first
+  trees behind the shore) on `broadleaf`. A tree flowers by a hash of its position
+  (`crownBlossom`); its mesh is its variant's flowering twin, built by replaying the variant's
+  recorded draws (`Random.from`), so shapes and the vegetation stream don't change. `leaves()`
+  turns a share of a flowering crown's cards into flower cards, outside first, after the draws,
+  and thins its leaves to `on` (flamboyant); the crown is evergreen. Far crowns: `canopyTint`
+  mixes toward the bush rows' flowers. `props.bloom`: true / a list forces, false is the switch.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

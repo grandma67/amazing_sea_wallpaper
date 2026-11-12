@@ -166,9 +166,15 @@ tool gotchas: TOOLS.md.
 - A pale, even colour under a tree reads as a stain, and a map's discs as neat ellipses from above:
   fainter, warped, and in drifts; the leaves on top carry the look.
 - **A share of a few instanced variants can't be a hash** (blossom, 0.140): bushes are 5 meshes, so a
-  hashed 0.4 crown share flowers none of them on 0.6⁵ ≈ 8% of days. Spread the share over the
-  variants (`blossomFor`). Autumn's per-tree hash has the same variance, unnoticed because its
-  share is mostly 0 or 1.
+  hashed 0.4 crown share flowers none of them on 0.6⁵ ≈ 8% of days; spreading it over the variants
+  (0.140) can't hold a share under 1/variants (flamboyant 0.03). Decide per instance by world
+  position and build the look as a twin of the variant, replaying its recorded draws
+  (`Random.from`, 0.141): any share, the same shape, no draw added. Autumn's per-tree hash has the
+  same variance, unnoticed because its share is mostly 0 or 1.
+- **Measure "near the shore" from where the thing can be:** pōhutukawa's 60 m from s = 0 caught
+  almost no tree, because broadleaves start 35–110 m inland (behind the beach and dunes). Count the
+  instances that pass a placement rule (`params.mjs` `props.vegetation.createVegetation(p.ctx)`)
+  before rendering it.
 - **A plan's months for one row over both hemispheres are a bug:** gorse "Apr–May" was written for
   Europe and listed New Zealand too, where April is autumn. Split the row or read
   `seasonMonth`.

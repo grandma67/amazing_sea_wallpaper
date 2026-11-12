@@ -58,6 +58,15 @@ export class Random {
     return new Random(`${seed}/${stream}`)
   }
 
+  /** A Random over any source of floats in [0, 1): to record what a builder
+   * drew and replay it (a seasonal twin of a mesh with the same shape,
+   * props/vegetation.ts). */
+  static from(next: () => number): Random {
+    const r = Object.create(Random.prototype) as { next: () => number }
+    r.next = next
+    return r as unknown as Random
+  }
+
   float(): number {
     return this.next()
   }

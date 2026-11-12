@@ -39,7 +39,7 @@ const RULES: Rule[] = [
 
   // Bush blossom (phenology.ts BLOOM): a place row in its own months.
   ['bush blossom: only in a row’s places and months', p => phenologyFor(p).bloom.length > 0, p =>
-    phenologyFor(p).bloom.every(b => b.row.places.includes(p.place.id) && b.row.months[Number(p.date.slice(5, 7)) - 1] > 0)],
+    phenologyFor(p).bloom.every(b => b.row.places.includes(p.place.id) && b.row.today(p).strength > 0)],
 
   // Weather.
   ['a storm: by day', p => p.storm != null, p => p.timeOfDay !== 'night'],

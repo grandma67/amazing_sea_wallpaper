@@ -385,7 +385,7 @@ const SPEC = object({
     vegetation: listOf(oneOf(...PLANTS)),
     phenology: boolean,
     leafLitter: boolean,
-    bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf('rock-rose', 'gorse', 'wattle'))(value, path)),
+    bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf('rock-rose', 'gorse', 'wattle', 'flamboyant', 'pohutukawa'))(value, path)),
     iceFoot: boolean,
     seaIce: boolean,
     debris: object(

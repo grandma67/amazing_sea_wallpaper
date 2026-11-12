@@ -342,7 +342,8 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
         }
       }
       // Blossom (after every draw): a share of the cards are flowers, the
-      // outside of the crown first, smaller than a leaf.
+      // outside of the crown first, smaller than a leaf; a crown that flowers
+      // bare (flamboyant) drops leaves first, inside first.
       let size = 1
       if (blossom != null) {
         const exposed = 0.5 * height + 0.5 * depth
@@ -350,7 +351,7 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
           // Flowers sit on the crown's surface: darkened inside less than leaves.
           color = scale(blossom.color, (0.7 + 0.3 * depth) * (0.85 + 0.3 * hash(k * 3.1, base.z)))
           size = blossom.size
-        }
+        } else if (blossom.on < 1 && hash(base.x * 41.3 + k * 0.29, base.y * 13.7 - base.z * 6.1) * 0.8 + (1 - exposed) * 0.2 >= blossom.on) continue
       }
       const tipColor = scale(color, 1.12)
 

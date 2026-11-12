@@ -175,7 +175,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | leaf colour and fall, grass dryness, deciduous share | `phenology.ts` | climate × hemisphere; `AUTUMN_RED` and the deciduous lenga by place | right |
 | snow line by season | `phenology.ts` `SNOW_SEASON` | climate × hemisphere | right (the drawn line under it is the `pickLandform` leftover above) |
 | fallen leaves by season | `phenology.ts` `LITTER_DAYS` | climate × hemisphere | right |
-| bush blossom (rock rose, gorse, wattle) | `phenology.ts` `BLOOM` | place × local calendar month (gorse: a northern and a southern row) | right |
+| blossom (rock rose, gorse, wattle; flamboyant, pōhutukawa) | `phenology.ts` `BLOOM` | place × local calendar month (gorse: a northern and a southern row); flamboyant by the place's dry season (`onDryCoast`) | right |
 | lying snow, ice foot | `snow.ts` `SNOW_COVER`, `SNOW_PLACES`, `ICE_FOOT_PLACES` | climate × hemisphere, a place's own chance | right |
 | sea ice | `seaIce.ts` `SEA_ICE_PLACES` | place × latitude, northern-equivalent day | right |
 | colony birds, humpbacks, haul-outs, crab and lizard dormancy, waterfowl, gulls by season | `animalSeasons.ts` | climate × season (colonies, seals by kind) | right |

@@ -3,5 +3,9 @@
     { "name": "med-rockrose-front", "date": "2025-06-01", "place": "western-med", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160 },
     { "name": "med-rockrose-back", "date": "2025-06-01", "place": "western-med", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour" },
     { "name": "cornwall-gorse", "date": "2025-05-01", "place": "cornwall-wales", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 150 },
+    { "name": "antilles-flamboyant", "date": "2025-06-15", "place": "antilles", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160 },
+    { "name": "india-flamboyant-bare", "date": "2025-05-15", "place": "india", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160, "props": { "vegetation": ["palm", "broadleaf", "grass"] } },
+    { "name": "northland-pohutukawa", "date": "2025-12-25", "place": "new-zealand-north", "coast": "beach", "composition": "along-beach", "sunAzimuthDeg": 150 },
+    { "name": "look-flamboyant", "note": "a forced look: flamboyant on a temperate wood's many broadleaves", "date": "2025-06-15", "place": "brittany", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160, "props": { "vegetation": ["broadleaf", "grass"], "bloom": ["flamboyant"] } },
     { "name": "nsw-wattle-headland", "date": "2025-09-05", "place": "east-australia", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 200 }
   ] }
