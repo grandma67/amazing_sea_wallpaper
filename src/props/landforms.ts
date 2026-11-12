@@ -10,7 +10,7 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
-import { canopyTint, HEATH_MASK_EDGE, HEATH_MASK_FAR, heathFor, phenologyFor } from '../phenology'
+import { canopyTint, HEATH_MASK_EDGE, HEATH_MASK_FAR, heathFor, LOMAS, lomasFor, phenologyFor } from '../phenology'
 import { dirFromAzEl, EARTH_RADIUS, type LandformParams } from '../params'
 import { Random } from '../random'
 import { MeshBuilder } from './builder'
@@ -35,6 +35,8 @@ interface Palette {
   vegetation: RGB | null
   /** Heath's far colour on the green slopes, in patches (phenology.ts heathFor). */
   heath: RGB | null
+  /** Lomas on a range's fog belt today (phenology.ts lomasFor). */
+  lomas: { strength: number; fleck: number } | null
   snow: RGB
   /** Snow to the shore today: the woods show dark through it. */
   snowDay: boolean
@@ -54,6 +56,7 @@ function palette(ctx: PropContext, rng: Random): Palette {
     rock: rng.pick(biome.rockColors),
     vegetation: polar || vegetation[biome.name] == null ? null : canopyTint(vegetation[biome.name]!, phenologyFor(ctx.params), biome.vegetation),
     heath: heathFor(ctx.params)?.color ?? null,
+    lomas: lomasFor(ctx.params) ?? null,
     snow: [0.8, 0.82, 0.86],
     snowDay: ctx.params.snow != null
   }
@@ -66,6 +69,12 @@ export function heathPatch(noise: number): number {
   return t * t * (3 - 2 * t)
 }
 
+/** Lomas' share from its patch noise: about half the fog belt (est.). */
+export function lomasPatch(noise: number): number {
+  const t = Math.max(0, Math.min(1, (noise - 0.47) / 0.06))
+  return t * t * (3 - 2 * t)
+}
+
 /** Colour of a point on the mountain from its height, slope and noise. */
 function surfaceColor(
   p: Palette,
@@ -74,7 +83,8 @@ function surfaceColor(
   steep: number,
   n: number,
   craterAsh: number,
-  heath = 0
+  heath = 0,
+  lomas = 0
 ): RGB {
   // Rock strata, scree and old lava flows: uneven tone.
   let c = p.rock.map(v => v * (0.65 + 0.7 * n)) as RGB
@@ -87,6 +97,15 @@ function surfaceColor(
     // Heath patches: low, so no shade between crowns.
     const cover = p.heath == null || heath === 0 ? p.vegetation : (p.vegetation.map((v, i) => v + (p.heath![i] * (0.8 + 0.4 * n) - v) * heath) as RGB)
     c = c.map((v, i) => v + (cover[i] - v) * green) as RGB
+  }
+  // Lomas: the fog belt 200–1000 m up greening in patches (~50% cover),
+  // mixed halfway toward olive (est.), the amancaes' yellow flecks in it.
+  if (lomas > 0 && p.lomas != null) {
+    const belt = Math.max(0, Math.min(1, (h - 200) / 100)) * Math.max(0, Math.min(1, (1000 - h) / 150))
+    const w = 0.5 * lomas * belt * p.lomas.strength * (1 - steep * 0.5)
+    // A vertex is ~100 m of slope: amancaes in drifts on that share of them.
+    const green = (n * 97.13) % 1 < p.lomas.fleck ? LOMAS.fleck : LOMAS.green
+    c = c.map((v, i) => v + (green[i] * (0.8 + 0.4 * n) - v) * w) as RGB
   }
   // Snow, deeper in the hollows, thinning on steep faces. Its edge wanders
   // (a few hundred metres on a big mountain): a low winter line would
@@ -126,7 +145,8 @@ function range(land: LandformParams, frame: Frame, p: Palette): BufferGeometry {
       const steep = Math.min(1, dh / (W / cols) / 1.2)
       const n = fbm3(u / 900, v / 900, 2.1, seed + 3)
       const world = frame.toWorld(u - W / 2, v, h)
-      row.push(b.vertex(world, surfaceColor(p, land, h, steep, n, 0, p.heath == null ? 0 : heathPatch(fbm3(u / 700, v / 700, 9.7, seed + 5)))))
+      const lomas = p.lomas == null ? 0 : lomasPatch(fbm3(u / 1500, v / 1500, 4.3, seed + 9))
+      row.push(b.vertex(world, surfaceColor(p, land, h, steep, n, 0, p.heath == null ? 0 : heathPatch(fbm3(u / 700, v / 700, 9.7, seed + 5)), lomas)))
     }
     grid.push(row)
   }

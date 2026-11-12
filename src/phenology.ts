@@ -12,7 +12,7 @@ import { seasonDay, seasonMonth, type Day } from './seasons'
 /** What phenology reads from a day (SceneParams has all of it). */
 export interface PhenologyDay extends Day {
   place: { id: string; climate: Climate }
-  overrides?: { phenology?: boolean; bloom?: boolean | readonly BloomKind[]; heath?: boolean | HeathStage; fairyRings?: boolean; fungi?: boolean }
+  overrides?: { phenology?: boolean; bloom?: boolean | readonly BloomKind[]; heath?: boolean | HeathStage; fairyRings?: boolean; fungi?: boolean; lomas?: boolean }
   sea?: { ocean: string }
 }
 
@@ -620,6 +620,29 @@ export function heathFor(day: PhenologyDay): Heath | undefined {
   const stems = mix(foliage, HEATH_STEMS, f)
   const specks = HEATH_SPECKS * f
   return { stems, flower: HEATH_FLOWER, specks, color: mix(stems, HEATH_FLOWER, specks) }
+}
+
+/** Lomas (NATURE_PLAN phase 15): Peru's and northern Chile's fog-watered
+ * hills, green Jun/Jul–Nov under the winter garúa, bare Dec–May (Lachay,
+ * Atiquipa); the yellow amancaes at the start of the season. Every hill of
+ * `atacama-peru` from 6°S to 30°S (est.: lomas are discontinuous). */
+export const LOMAS = { place: 'atacama-peru', latitudeDeg: [-30, -6] as const, green: [0.07, 0.09, 0.035] as RGB, fleck: [0.55, 0.4, 0.03] as RGB }
+
+/**
+ * The lomas today, or undefined: `strength` 0..1 (ramping in over June, full
+ * July–October, out over November; local calendar days) and `fleck`, the
+ * amancaes' share of the green (0.1 in June–July, est.). `overrides.lomas`
+ * forces them at full strength with flowers (true) or switches them off.
+ */
+export function lomasFor(day: PhenologyDay): { strength: number; fleck: number } | undefined {
+  const force = day.overrides?.lomas
+  if (force === false || day.overrides?.phenology === false) return undefined
+  if (force === true) return { strength: 1, fleck: 0.1 }
+  if (day.place.id !== LOMAS.place || day.latitudeDeg < LOMAS.latitudeDeg[0] || day.latitudeDeg > LOMAS.latitudeDeg[1]) return undefined
+  const d = dayOfYear(day.date)
+  const strength = band(d, 152, 182, 304, 334)
+  if (strength <= 0) return undefined
+  return { strength, fleck: 0.1 * band(d, 152, 166, 196, 212) }
 }
 
 /** Fairy rings' season by climate (NATURE_PLAN phase 10; northern-equivalent

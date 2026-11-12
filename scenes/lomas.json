@@ -1,0 +1,7 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "place": "atacama-peru", "coast": "beach", "landform": "range" },
+  "scenes": [
+    { "name": "peru-august", "note": "the fog belt 200–1000 m up green in patches; the range at 14 km", "date": "2025-08-08", "sunAzimuthDeg": 160 },
+    { "name": "peru-june-flowers", "note": "the season starting, amancaes in it", "date": "2025-06-25", "sunAzimuthDeg": 160 },
+    { "name": "peru-august-back", "date": "2025-08-23", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour" },
+    { "name": "peru-february", "note": "bare: nothing changes with lomas off", "date": "2025-02-16", "sunAzimuthDeg": 160 }
+  ] }

@@ -96,6 +96,9 @@ export interface PropOverrides {
   /** Mushrooms (props/fungi.ts fungiFor): true, the climate's kinds under
    * their trees and on the turf as at the peak; false: none. */
   fungi?: boolean
+  /** Lomas on a range's fog belt (phenology.ts lomasFor): true, green with
+   * flowers wherever the day is (on a range); false: none. */
+  lomas?: boolean
   /** Fireflies (props/fireflies.ts firefliesFor): true, the place's kind (or
    * flash) at its peak; a kind, that kind; false: none. Still only at night
    * or in an evening blue hour, on land. */
@@ -416,6 +419,7 @@ const SPEC = object({
     heath: (value, path) => (typeof value === 'boolean' ? undefined : oneOf(...HEATH_STAGES)(value, path)),
     fairyRings: boolean,
     fungi: boolean,
+    lomas: boolean,
     fireflies: (value, path) => (typeof value === 'boolean' ? undefined : oneOf(...FIREFLY_KINDS)(value, path)),
     iceFoot: boolean,
     seaIce: boolean,

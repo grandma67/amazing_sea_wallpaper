@@ -27,7 +27,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 12 | ✅ Mushrooms under trees and on grass, 2026-11-13 | `props/fungi.ts`, `groundCover.ts` (new), `phenology.ts` `fungiSeason` | **96** land days in season (temperate, boreal, Mediterranean, polar) + 236 tropical and subtropical (false parasol); in frame on ~15 of the 332 | done | 9, 10 |
 | 13 | ✅ Fireflies: the choice table, weather rules, placement and counts (no drawing), 2026-11-13 | `props/fireflies.ts` `firefliesFor`, `fireflyLights`, `props/choices.ts` | **13** land evenings in a region's months; **1** night out (2025-07-30, Norway glow-worms) after wind, moon and the 0.7 chance | done | – |
 | 14 | ✅ Fireflies: drawing (streaks and dots, brightness by intensity, streaks), 2026-11-13 | `props/fireflies.ts` meshes, `scene.ts` | as 13 | done | 13 |
-| 15 | Lomas: yearly green on Peru's fog hills | `props/landforms.ts` colour by height; later TERRAIN_FORMS's wall | 3 land days Jun–Nov, **~0.5** with hills high enough in frame | 1–1.5 h | 2 |
+| 15 | ✅ Lomas: yearly green on Peru's fog hills, 2026-11-13 | `phenology.ts` `lomasFor`, `props/landforms.ts` range colour by height; later TERRAIN_FORMS's wall | **2** land days Jun–Nov, neither with a landform (0 in frame until the escarpment) | done | 2 |
 | 16 | Bloom years: the Atacama's desert bloom, Namaqualand and the Cape West Coast, Baja | per-year streams, `props/shoreLife.ts` `FLOWERS`, far ground tint | desert bloom **0** Sep–Nov; Namaqualand **1** (July, ×0.4); Baja **0** | 2.5–3.5 h | 2 |
 | 17 | Animal seasons for PLAN_BIOMES phase 14 (monarchs on eucalyptus) | `animalSeasons.ts` | per animal | ~0.5 h each (+ the animal's own plan) | 6, 11, phase 14 |
 
@@ -1055,6 +1055,24 @@ Atiquipa, Lachay pages).
 - **Done when:** a forced Peruvian August day with a range in frame shows green lower slopes; the
   same day in February bare.
 - **Tests:** lomas only Jun–Nov and only in their latitudes.
+
+**Built (0.154):**
+- `lomasFor(day)` (`phenology.ts`, `LOMAS`): `atacama-peru` from 6°S to 30°S, local calendar days:
+  ramping in over June, full July–October, out over November (`band`, so June and November are
+  the plan's ×0.5 on average); amancaes 0.1 of the green from mid-June to July. `props.lomas`:
+  true forces (green with flowers, on a range anywhere), false is the switch; `phenology: false`
+  off. No draws.
+- `props/landforms.ts`: a range's vertices 200–1000 m up (soft edges 100–150 m) mix halfway toward
+  olive in patches (`lomasPatch`, `fbm3` at 1.5 km, ~50% cover, tested), less on steep faces; a
+  vertex (~100 m of slope) yellow on the fleck share. Range only (strato and shield untouched).
+- **Counted:** 2 land days in season on the test days (2025-11-30, the plan's third, is now the
+  last day of the ramp), neither with a landform: 0 in frame, as planned; TERRAIN_FORMS phase 2's
+  escarpment is what will show them.
+- Seen (`scenes/lomas.json`, forced range): August with the range at 14 and 24 km, a muted olive
+  cast on the lower slopes through the coastal haze (0.9–1.6% of the frame, Δ ≤ 25); June's range
+  at 42 km barely (0.01%); February identical. A first spec date's range was out of frame
+  (`--project landforms`'s box is the whole mesh's: a low-res diff over 4 dates found ones that
+  show). Off: identical to HEAD.
 
 ## 16. Bloom years: desert bloom, Namaqualand and the Cape West Coast, Baja
 
