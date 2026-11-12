@@ -160,6 +160,12 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   width and slope vs sediment and tide range, 2,538 Chinese transects), a LiDAR study of creek
   size by zone on Chinese flats
 
+- Blossom (0.140–0.141; `phenology.ts` `BLOOM`): rock rose (Kew POWO, first-nature), gorse (Woodland
+  Trust, Dorset Nature, Lincolnshire Life; New Zealand: NZ Flora, APWT, Hawke's Bay RC), wattle,
+  flamboyant (World Agroforestry DB, Indian Forester, NParks, a Caribbean table), pōhutukawa (RNZ, Te
+  Papa, NZ Herald): links in NATURE.md "Sources". Colours measured from the photos and scans listed
+  in plans/NATURE_PLAN.md §1 (`scripts/asset-measures.json`).
+
 ## Sea ice
 
 Sources and photos: [SEASONS.md](SEASONS.md) §4.2, [plans/SEA_ICE.md](plans/SEA_ICE.md).

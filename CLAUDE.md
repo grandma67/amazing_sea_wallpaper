@@ -81,6 +81,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - A wrong look: find its cause before the next render (grep every term that feeds it, `params.debug`), so one render tests one idea.
 - Check front-lit first, then backlit. Act on snapshot ⚠ warnings before reading images.
 - One render command per step, 16 frames at 1080p. ~3 render rounds per feature (see, fix everything, confirm) on the same dates. If a 4th seems needed, reason from numbers, `--props` and `diff.mjs` instead.
+- Renders (`snapshot`, `diff`, `bench`) go in the background (`run_in_background`), not behind a long foreground timeout: a 1080p render is 2–3 s, so a run that takes minutes is stuck. `snapshot.mjs` now stops itself within seconds when its server dies (a 10-minute wait in the 0.142 review was a dead `--ref` server). Don't filter a run's output down to lines with "error": keep it whole until it has passed.
 - Stop the dev server when done: `lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`.
 
 ## 4. Tests and finishing

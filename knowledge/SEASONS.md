@@ -120,7 +120,9 @@ Left out, or wrong within a place:
 ### 2.3 Already done: flowers and salt marsh
 
 Beach flowers bloom in their months (`FLOWERS`, `shoreLife.ts`); salt marsh turns from green to
-straw, glasswort red in autumn (`marshLook`).
+straw, glasswort red in autumn (`marshLook`). Bush and tree blossom (rock rose, gorse, wattle,
+flamboyant, pōhutukawa: `phenology.ts` `BLOOM`, 0.140–0.141) is researched in NATURE.md §1 and built
+in plans/NATURE_PLAN.md phases 3–4.
 
 ### 2.4 Sargassum on the beach
 

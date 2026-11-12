@@ -102,6 +102,21 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
 - `--threshold N` (0–255, default 4): above JPEG noise; two renders of the same code on the same
   GPU are identical.
 
+### When a render hangs (0.143)
+
+- `snapshot.mjs` checks its server every 1–2 s: when the dev server stops answering or the `--ref`
+  server exits, it stops at once (exit 3) and prints the end of the ref server's log
+  (`/private/tmp/claude-ref-PORT.log`, overwritten each run). Before, the page waited on modules
+  from a dead server until the 30-minute page timeout or the 15-minute budget.
+- The page timeout is 5 minutes (`--timeout MS`).
+- `--ref` refuses a port another server already answers on ("port 5177 is already taken"):
+  before, with `--strictPort` the new server failed and the run rendered against the old one.
+- Each run's worktree path is its own (`/private/tmp/claude-TAG-SHA-PID`): with one path per
+  commit, a previous run's reaper could remove the next run's tree.
+- Found in the 0.142 review: a ref render hung for 10 minutes with no ref server alive. The cause
+  of the server's exit is unknown (its output went to `ignore`; it couldn't be reproduced: the
+  same command took 11.7 s on a fresh server). The next one will leave a log.
+
 ## `scripts/haze.mjs`: how does the frame haze these objects?
 
 Before writing anything that must match the frame's haze (a reflection, a sprite, a far mesh):

@@ -108,12 +108,14 @@ export function removeWorktree(tree) {
   git('worktree', 'prune')
 }
 
-/** A temporary git worktree of `ref` at /private/tmp/claude-TAG-SHA, sharing
+/** A temporary git worktree of `ref` at /private/tmp/claude-TAG-SHA-PID, sharing
  * this tree's node_modules. `remove()` is synchronous (safe in 'exit'); if the
- * script dies first, worktreeReaper.mjs removes it. */
+ * script dies first, worktreeReaper.mjs removes it. The pid makes the path this
+ * run's own: with a path per commit, a previous run's reaper (it polls every
+ * 250 ms) could find its tree recreated by the next run and remove that. */
 export function worktree(ref, tag) {
   const sha = shortSha(ref)
-  const tree = resolve(`/private/tmp/claude-${tag}-${sha}`)
+  const tree = resolve(`/private/tmp/claude-${tag}-${sha}-${process.pid}`)
   // Forget worktrees whose folder is gone (a cleared /tmp after a reboot).
   git('worktree', 'prune')
   if (!git('worktree', 'list', '--porcelain').stdout.includes(`worktree ${tree}\n`)) {

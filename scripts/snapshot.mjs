@@ -17,7 +17,11 @@
 // --props KINDS|all   per prop: placed, in frame, nearest m, pixel box, CPU build
 //                     time; then the three slowest kinds
 // --crop KINDS|all    also save NAME.KIND.jpg cropped to that prop's box
-// --budget S (900)    exit after S seconds in all; --timeout MS per page (30 min)
+// --budget S (900)    exit after S seconds in all; --timeout MS per page (5 min: a
+//                     1080p render takes 2–3 s, 4K ~10 s, the first after a server
+//                     start up to a minute or two). The server is checked every
+//                     second: if it stops answering (or the --ref server exits),
+//                     the run stops at once, with the ref server's log.
 // --water             count the shore's water films (params.debug.water): share of
 //                     the frame per kind, nearest pool/swash/damp/wet rock (m, at);
 //                     one line per render. Find near-pool days: --where … --water,
@@ -63,7 +67,7 @@ const frames = option('frames', null)
 const channel = option('channel', process.env.CI ? undefined : 'chrome')
 // 'metal' uses the Mac's GPU; 'swiftshader' is software WebGL (CI has no GPU).
 const angle = option('angle', process.env.CI ? 'swiftshader' : 'metal')
-const timeoutMs = Number(option('timeout', 30 * 60_000))
+const timeoutMs = Number(option('timeout', 5 * 60_000))
 const sceneArg = option('scene', null)
 const whereArg = option('where', null)
 const sampleArg = option('sample', whereArg != null ? '8' : null)
@@ -117,8 +121,27 @@ if (ref != null) {
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(130))
   baseUrl = old.url
   console.log(`[snapshot] rendering ${ref} (${old.sha})`)
+  // A dead server leaves the page waiting on its modules until the timeout:
+  // stop at once instead, with its log.
+  setInterval(() => {
+    if (old.alive()) return
+    console.error(`[snapshot] the ${ref} server stopped during the run; its log (${old.log}):\n${old.tail()}`)
+    process.exit(3)
+  }, 1000).unref()
 } else {
   await requireServer(baseUrl)
+  // This tree's server: two missed answers in a row (stopped, restarted) stop the run.
+  let missed = 0
+  setInterval(async () => {
+    try {
+      await fetch(baseUrl, { signal: AbortSignal.timeout(3000) })
+      missed = 0
+    } catch {
+      if (++missed < 2) return
+      console.error(`[snapshot] the dev server at ${baseUrl} stopped answering during the run`)
+      process.exit(3)
+    }
+  }, 2000).unref()
 }
 
 const browser = await chromium.launch({

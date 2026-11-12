@@ -54,6 +54,9 @@ sea: an island's face, not its underwater skirt. Far points come after all neare
 
 ### Which camera: `--rendered`
 
+Slower: over all 1095 days a `--rendered` query (and `--count`, `--project`, which imply it) takes
+1–5 minutes. Narrow with `--where` first, or run it in the background.
+
 `generateParams` is attempt 0; the page renders `generateSceneParams`, which re-rolls a bad framing. Measured over
 the 1095 test days (2026-11-06): a re-roll happens on **214 days, 30% of the 715 land days (19.5% of all)**, and changes
 **only `coast` and `camera.heightM`**; heading, lens, place, weather, snow and prop choices stay. The composition moves,
@@ -117,7 +120,7 @@ node scripts/params.mjs --count vegetation --by 'o => o.userData.blossom ?? ""' 
 
 Run it before the first render of anything placed (CLAUDE.md §1): phase 4's flamboyant took a render
 round to find that tropical days place few broadleaves (none on 6 of 8 days); `--count` says so in
-seconds. ~0.2 s a day.
+seconds. ~0.3 s a day (266 days: 82 s): over many days, run it in the background.
 
 ### What the camera sees: `p.view`
 

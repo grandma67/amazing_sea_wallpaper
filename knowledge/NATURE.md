@@ -40,7 +40,7 @@ crown, a hillside of shrubs, a heath. Single small flowers are already handled b
 
 | Plant | Stands in for (our kind) | Where (places) | Months | Colour | Evidence |
 |---|---|---|---|---|---|
-| Common gorse (*Ulex europaeus*) | `bush`, nordic temperate | Atlantic Europe: `cornwall-wales`, `brittany`, `ireland`, `scotland`, `bristol-channel`, `morecambe-bay`, `wadden-north-sea` *(est. for the last)*; invasive in `new-zealand-south`, `new-zealand-north`, `tasmania`, `central-chile` *(est.)* | peak **Apr–May**, Jan–Jun; a few flowers all year in mild winters (two strains flower at different times) | bright yellow | Woodland Trust (Jan–Jun, peak Apr–May), Dorset Nature (peak April), Lincolnshire Life (two strains) |
+| Common gorse (*Ulex europaeus*) | `bush`, nordic temperate | Atlantic Europe: `cornwall-wales`, `brittany`, `ireland`, `scotland`, `bristol-channel`, `morecambe-bay`, `wadden-north-sea` *(est. for the last)*; invasive in `new-zealand-south`, `new-zealand-north`, `tasmania`, `central-chile` *(est.)* | peak **Apr–May**, Jan–Jun; a few flowers all year in mild winters (two strains flower at different times). **New Zealand: May–Nov** (occasionally all year), spring and autumn flushes (checked 2026-11-12, NATURE_PLAN phase 3: the Apr–May row isn't local months there) | bright yellow | Woodland Trust (Jan–Jun, peak Apr–May), Dorset Nature (peak April), Lincolnshire Life (two strains); NZ: NZ Flora, APWT factsheet, Hawke's Bay RC |
 | Heather, ling (*Calluna vulgaris*) | ground cover on heath and cliff tops | `scotland`, `ireland`, `norway-west`, `cornwall-wales`, `brittany`, `baltic` *(est. for the last)* | **Jul–Sep**; Lüneburg Heath Aug–Sep | purple-pink | Dorset Nature, Cornwall record (Jul–Sep); Naturpark Lüneburger Heide (Aug–Sep) |
 | Thrift, sea pink (*Armeria maritima*) | already in `FLOWERS` ([4, 8]) | – | Apr–Sep, most May–Jul; on cliff tops from April | pink | Irish Wildflowers, Dorset Nature (May–Sep); Welsh blog (from April). `FLOWERS` agrees. |
 | Rock roses (*Cistus*) | `bush`, Mediterranean | Mediterranean-climate places of the Mediterranean Sea and `portugal-morocco` | **May–Jul** (spring to early summer); each flower lasts a day | white, pink | nursery and garden pages only (May–Jul); no field source |
@@ -328,7 +328,9 @@ All read through search summaries unless marked "read".
 - Pōhutukawa: https://www.rnz.co.nz/news/top/580962/are-pohutukawa-trees-flowering-early-this-year-a-botanist-explains ,
   https://blog.tepapa.govt.nz/?p=3792 , https://nzherald.co.nz/nz/pohutukawa-trees-flower-right-on-time/6QIOMLS32OBDFTR27MMRWYLL5A
 - Gorse: https://www.woodlandtrust.org.uk/trees-woods-and-wildlife/plants/wild-flowers/gorse/ ,
-  https://dorsetnature.co.uk/pages-flower/wf-123.html , https://www.lincolnshirelife.co.uk/heritage/gorse/
+  https://dorsetnature.co.uk/pages-flower/wf-123.html , https://www.lincolnshirelife.co.uk/heritage/gorse/ ;
+  New Zealand, https://nzflora.info/factsheet/Taxon/Ulex-europaeus.html , https://www.apwt.org.nz/weeds/pdf/gorse.pdf ,
+  https://www.hbrc.govt.nz/environment/pest-control/pest-hub/pests/pest/77?rule=14
 - Heather and thrift: https://dorsetnature.co.uk/pages-flower/wf-70.html ,
   https://naturpark-lueneburger-heide.de/en/nature-and-culture/heathland/heather-blossoming ,
   https://www.dorsetnature.co.uk/pages-flower/wf-54.html , https://www.irishwildflowers.ie/pages/224a.html

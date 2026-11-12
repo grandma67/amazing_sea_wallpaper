@@ -25,6 +25,12 @@ tool gotchas: TOOLS.md.
   written four times in phases 3–4 (one failed on `require` in an ESM eval). It's `params.mjs
   --count` now.
 
+- **A hung run is a fault, not a slow one** (0.142 review): a 1080p render is 2–3 s, yet a ref
+  render waited 10 minutes behind a foreground timeout, then took turns to diagnose because the
+  output had been grepped down to "rror" lines (the real message, and which of two runs hung, were
+  thrown away) and the server's output went to `ignore`. Keep a failing run's whole output; give
+  every long-lived child a log; check the thing you wait on is still alive.
+
 ## Debugging approach
 
 - **Reflection on sea ice (0.114–0.116, about 14 render batches against ~9 allowed).** Most of it was process, not missing knowledge: required docs grepped rather than read, a nearby mesh reused against the photos just viewed, real days rendered only after several rounds on specs, a guess at a cause instead of finding every term behind it, and the scope raised after building rather than when the day count showed it. What was missing is now tools: `snapshot --where --sample`, `--seeds`, `mesh --material --scale --sun`, `pdftotext`, and the checklist in CLAUDE.md.
