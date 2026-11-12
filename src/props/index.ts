@@ -5,6 +5,7 @@ import { createBeachrock } from './beachrock'
 import { createBirds } from './birds'
 import { createRollCloud, createShelfCloud } from './cloudEvents'
 import { createColony } from './colony'
+import { createDesertBloom } from './bloomYears'
 import { createDebris } from './debris'
 import { createFireflies } from './fireflies'
 import { createFungi } from './fungi'
@@ -67,6 +68,7 @@ export function createProps(ctx: PropContext): Group {
   add('beachrock', () => createBeachrock(ctx))
   add('debris', () => createDebris(ctx))
   add('shore-life', () => createShoreLife(ctx))
+  add('desert-bloom', () => createDesertBloom(ctx))
   add('wildlife', () => createWildlife(ctx))
   const colony = add('colony', () => createColony(ctx))
   const island = (colony.find(o => o.userData.island === true) as Mesh | undefined) ?? null

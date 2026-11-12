@@ -10,6 +10,7 @@ import {
 } from 'three'
 
 import type { RGB } from '../biome'
+import { desertBloomFor } from '../bloomYears'
 import { canopyTint, HEATH_MASK_EDGE, HEATH_MASK_FAR, heathFor, LOMAS, lomasFor, phenologyFor } from '../phenology'
 import { dirFromAzEl, EARTH_RADIUS, type LandformParams } from '../params'
 import { Random } from '../random'
@@ -37,6 +38,8 @@ interface Palette {
   heath: RGB | null
   /** Lomas on a range's fog belt today (phenology.ts lomasFor). */
   lomas: { strength: number; fleck: number } | null
+  /** A bloom year's flowers on a range's lower slopes (bloomYears.ts). */
+  bloom: { color: RGB; strength: number } | null
   snow: RGB
   /** Snow to the shore today: the woods show dark through it. */
   snowDay: boolean
@@ -57,6 +60,7 @@ function palette(ctx: PropContext, rng: Random): Palette {
     vegetation: polar || vegetation[biome.name] == null ? null : canopyTint(vegetation[biome.name]!, phenologyFor(ctx.params), biome.vegetation),
     heath: heathFor(ctx.params)?.color ?? null,
     lomas: lomasFor(ctx.params) ?? null,
+    bloom: (b => (b == null ? null : { color: b.far, strength: b.strength }))(desertBloomFor(ctx.params)),
     snow: [0.8, 0.82, 0.86],
     snowDay: ctx.params.snow != null
   }
@@ -107,6 +111,13 @@ function surfaceColor(
     const green = (n * 97.13) % 1 < p.lomas.fleck ? LOMAS.fleck : LOMAS.green
     c = c.map((v, i) => v + (green[i] * (0.8 + 0.4 * n) - v) * w) as RGB
   }
+  // A bloom year: the lower slopes (to ~600 m) flowering in the same
+  // patches as lomas, half toward the flowers' colour at full bloom (est.).
+  if (lomas > 0 && p.bloom != null) {
+    const low = Math.max(0, Math.min(1, (600 - h) / 200)) * Math.min(1, h / 30)
+    const w = 0.5 * lomas * low * p.bloom.strength * (1 - steep * 0.6)
+    c = c.map((v, i) => v + (p.bloom!.color[i] * (0.8 + 0.4 * n) - v) * w) as RGB
+  }
   // Snow, deeper in the hollows, thinning on steep faces. Its edge wanders
   // (a few hundred metres on a big mountain): a low winter line would
   // otherwise cross the slopes as straight as a cloud's shadow.
@@ -145,7 +156,7 @@ function range(land: LandformParams, frame: Frame, p: Palette): BufferGeometry {
       const steep = Math.min(1, dh / (W / cols) / 1.2)
       const n = fbm3(u / 900, v / 900, 2.1, seed + 3)
       const world = frame.toWorld(u - W / 2, v, h)
-      const lomas = p.lomas == null ? 0 : lomasPatch(fbm3(u / 1500, v / 1500, 4.3, seed + 9))
+      const lomas = p.lomas == null && p.bloom == null ? 0 : lomasPatch(fbm3(u / 1500, v / 1500, 4.3, seed + 9))
       row.push(b.vertex(world, surfaceColor(p, land, h, steep, n, 0, p.heath == null ? 0 : heathPatch(fbm3(u / 700, v / 700, 9.7, seed + 5)), lomas)))
     }
     grid.push(row)

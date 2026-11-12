@@ -64,6 +64,10 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   gone past ~3 m footprints. Strength by climate (`FAIRY_SEASON`, northern-equivalent days): full
   in the growing season, a third (subtropical half) otherwise; none tropical, arid, polar.
   `props.fairyRings`: true forces at full strength, false is the switch.
+- **Bloom years** (`bloomYears.ts`, `props/bloomYears.ts`, 0.155, NATURE_PLAN phase 16): per
+  region and year a bloom (Atacama, Namaqualand and the Cape West Coast, Baja); flowering annuals
+  in patches behind the shore by hash (the orange daisy the baked Ursinia scan, `loadScan` in
+  scene.ts); far, `bloomTint` on the terrain and the range's lower slopes. `props.desertBloom`.
 - **Lomas** (`phenology.ts` `lomasFor`, `props/landforms.ts`, 0.154, NATURE_PLAN phase 15): a
   range's 200–1000 m belt mixes halfway toward olive in `lomasPatch` patches (~50%) on
   `atacama-peru` days Jun–Nov, amancaes' yellow on some vertices in June–July. `props.lomas`.

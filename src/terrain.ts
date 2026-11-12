@@ -21,6 +21,7 @@ import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { MIRROR_GLSL, MIRROR_UNIFORMS_GLSL } from './reflection'
 import { LICHEN, MOSS_COLOR, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
+import { desertBloomFor } from './bloomYears'
 import { FAIRY_DARK, FAIRY_DEAD_COLOR, FAIRY_RING_GLSL } from './fairyRings'
 import { BELT_FADE, BELT_RUNUP, fairyRingsFor, groundCoverTint, HEATH_MASK_EDGE, HEATH_MASK_TERRAIN, heathFor, LAVER_COLOR, MOSS_DRY, mossEdge, mossLook, phenologyFor, SEA_LETTUCE_COLOR, shoreWeed, sprayBelt } from './phenology'
 import { snowLook } from './props/snowCap'
@@ -1091,6 +1092,11 @@ uniform vec4 heathFlower;
 // Fairy rings on the turf (fairyRings.ts, phenology.ts fairyRingsFor): today's
 // strength, 0 for none.
 uniform float fairyRings;
+// A bloom year (bloomYears.ts desertBloomFor): the flowers' mean colour and
+// how much of the ground they tint (0 for none).
+uniform vec4 bloomTint;
+// The other flowers' colour and their share of the patches.
+uniform vec4 bloomTint2;
 ${FAIRY_RING_GLSL}
 // Fallen leaves' colour under deciduous trees (props/leafLitter.ts): a map of
 // the crowns' ground in world space; rect = x0, z0, 1/width, 1/depth.
@@ -1354,6 +1360,19 @@ void main() {
     }
   }
   albedo = mix(albedo, coverAlbedo, cover);
+  if (bloomTint.w > 0.0) {
+    // Annuals carpet the land behind the shore in patches (about half of
+    // it), on the gentle ground, coming up from the bare desert floor.
+    float behind = smoothstep(coverStart, coverStart + 15.0, inland);
+    float bloomPatch = smoothstep(0.42, 0.66, fbm(q / 25.0 + 301.0) * 0.7 + fbm(q / 6.0 + 311.0) * 0.3);
+    // Flowers with ground between them, not paint: speckled by a fine noise
+    // (the first render's solid sheets read as snow and salt).
+    float speck = 0.45 + 0.55 * smoothstep(0.3, 0.7, vnoise(q * 3.1 + 337.0) * 0.6 + vnoise(q * 0.9 + 347.0) * 0.4);
+    float bloomW = bloomTint.w * behind * bloomPatch * speck * smoothstep(0.75, 0.9, N.y);
+    // Patches mostly of one flower (sheets of orange, of white), blending at their edges.
+    vec3 bloomC = mix(bloomTint.rgb, bloomTint2.rgb, smoothstep(-0.12, 0.12, bloomTint2.w - fbm(q / 9.0 + 331.0)));
+    albedo = mix(albedo, bloomC * (0.8 + 0.4 * vnoise(q * 1.7 + 317.0)), bloomW);
+  }
   if (litterAmount > 0.0) {
     // Warped, so a crown's ground has no neat outline.
     vec2 warp = 7.0 * (vec2(vnoise(q / 6.0 + 41.0), vnoise(q / 6.0 + 53.0)) - 0.5) + 2.0 * (vec2(vnoise(q / 1.4 + 61.0), vnoise(q / 1.4 + 67.0)) - 0.5);
@@ -1632,6 +1651,9 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       heathStems: { value: new Vector4(...(heath?.stems ?? [0, 0, 0]), heath?.specks ?? 0) },
       heathFlower: { value: new Vector4(...(heath?.flower ?? [0, 0, 0]), heath != null ? 1 : 0) },
       fairyRings: { value: fairyRingsFor(params) },
+      // Far: up to 0.55 of the land's colour toward the flowers' at full bloom (est.).
+      bloomTint: { value: new Vector4(...(desertBloomFor(params)?.farMain ?? [0, 0, 0]), 0.55 * (desertBloomFor(params)?.strength ?? 0)) },
+      bloomTint2: { value: new Vector4(...(desertBloomFor(params)?.farRest ?? [0, 0, 0]), desertBloomFor(params)?.restShare ?? 0) },
       ...skyOpenUniforms(),
       litterMap: { value: null as Texture | null },
       litterRect: { value: new Vector4(0, 0, 0, 0) },

@@ -99,6 +99,10 @@ export interface PropOverrides {
   /** Lomas on a range's fog belt (phenology.ts lomasFor): true, green with
    * flowers wherever the day is (on a range); false: none. */
   lomas?: boolean
+  /** A bloom year (props/bloomYears.ts desertBloomFor): true, a strong bloom
+   * where the place has a bloom region; a number 0..1, that strength;
+   * false: none. */
+  desertBloom?: boolean | number
   /** Fireflies (props/fireflies.ts firefliesFor): true, the place's kind (or
    * flash) at its peak; a kind, that kind; false: none. Still only at night
    * or in an evening blue hour, on land. */
@@ -420,6 +424,7 @@ const SPEC = object({
     fairyRings: boolean,
     fungi: boolean,
     lomas: boolean,
+    desertBloom: (value, path) => (typeof value === 'boolean' ? undefined : number(value, path)),
     fireflies: (value, path) => (typeof value === 'boolean' ? undefined : oneOf(...FIREFLY_KINDS)(value, path)),
     iceFoot: boolean,
     seaIce: boolean,

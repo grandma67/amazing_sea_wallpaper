@@ -1,6 +1,7 @@
 import type { SceneParams } from '../params'
 import { Random } from '../random'
 import { gullsFor } from './birds'
+import { desertBloomFor } from '../bloomYears'
 import { debrisFor } from './debris'
 import { firefliesFor } from './fireflies'
 import { fungiFor } from './fungi'
@@ -31,7 +32,8 @@ export function propChoices(params: SceneParams) {
     fireflies: firefliesFor(params, rng('fireflies'), mangroveFor(params, rng('mangroves'))),
     saltMarsh: saltMarshFor(params, rng('salt-marsh')),
     leafLitter: litterFor(params),
-    fungi: fungiFor(params)
+    fungi: fungiFor(params),
+    desertBloom: desertBloomFor(params)
   }
 }
 

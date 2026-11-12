@@ -80,7 +80,9 @@ import { createProps } from './props'
 import type { LitterField } from './props/leafLitter'
 import type { SkyOpenField } from './props/skyOcclusion'
 import { reportProps } from './props/report'
+import { desertBloomFor } from './bloomYears'
 import { setFireflyBrightness } from './props/fireflies'
+import { loadScan } from './props/scans'
 import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './props/shipLights'
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting, type WaterIsland } from './props/surf'
@@ -285,6 +287,8 @@ export async function renderScene(
   // order, and equal-depth pixels (sand under props) depend on it.
   const ocean = createOcean(params, surface, renderer.capabilities.getMaxAnisotropy())
   const terrain = createTerrain(params, camera)
+  // A bloom year's orange daisies are Poly Haven's Ursinia scan (a chunk of its own).
+  if (desertBloomFor(params)?.plants.some(([p]) => p === 'orange-daisy')) await loadScan('ph_flower_ursinia')
   const props = createProps(new PropContext(params, camera, surface, vfov / height))
   const [textures, cloudAssets, milkyWayMap] = await Promise.all([atmosphere.textures, cloudAssetsLoaded, milkyWayLoaded])
   // The sky clock turns the catalogue so the real sun for the date lands on

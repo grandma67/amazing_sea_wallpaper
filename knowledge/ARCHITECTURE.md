@@ -176,6 +176,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | snow line by season | `phenology.ts` `SNOW_SEASON` | climate × hemisphere | right (the drawn line under it is the `pickLandform` leftover above) |
 | fallen leaves by season | `phenology.ts` `LITTER_DAYS` | climate × hemisphere | right |
 | blossom (rock rose, gorse, wattle; flamboyant, pōhutukawa) | `phenology.ts` `BLOOM` | place × local calendar month (gorse: a northern and a southern row); flamboyant by the place's dry season (`onDryCoast`) | right |
+| bloom years (desert bloom, Namaqualand, Baja) | `bloomYears.ts` `bloomRegion`, `bloomYear`, `desertBloomFor` | place × ocean × latitude; one draw per region and calendar year; local calendar months | right |
 | lomas (fog-hill green) | `phenology.ts` `LOMAS`, `lomasFor` | place (`atacama-peru`, 6–30°S) × local calendar day | right |
 | fireflies and glow-worms | `props/fireflies.ts` `FIREFLY_REGIONS`, `firefliesFor`, `fireflyWeather` | place × local calendar month (peak ×1, else ×0.4); the evening, moon and weather by kind | right |
 | mushrooms: season and kinds | `phenology.ts` `FUNGUS_SEASON`, `fungiSeason`; `props/fungi.ts` `FUNGI` | season by climate × hemisphere (subtropical by month, tropics by the place's dry season); kinds by climate and host plant | right |

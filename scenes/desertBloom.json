@@ -1,0 +1,9 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight" },
+  "scenes": [
+    { "name": "atacama-bloom", "note": "a strong desierto florido: magenta Cistanthe, yellow forms, lilac Nolana behind the beach", "date": "2025-09-02", "place": "atacama-peru", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160, "props": { "desertBloom": true } },
+    { "name": "atacama-bloom-back", "date": "2025-09-02", "place": "atacama-peru", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour", "props": { "desertBloom": true } },
+    { "name": "atacama-bloom-overcast", "date": "2025-09-02", "place": "atacama-peru", "coast": "beach", "composition": "framed", "weather": "overcast", "props": { "desertBloom": true } },
+    { "name": "namaqualand-rock-shore", "note": "orange Ursinia (the baked scan) and white daisies behind a rocky shore", "date": "2025-09-08", "place": "namibia", "coast": "rock-shore", "sunAzimuthDeg": 160, "props": { "desertBloom": true } },
+    { "name": "namaqualand-overlook", "date": "2025-09-08", "place": "namibia", "coast": "beach", "composition": "overlook", "sunAzimuthDeg": 160, "props": { "desertBloom": true } },
+    { "name": "atacama-february", "note": "bare: nothing in bloom", "date": "2025-02-02", "place": "atacama-peru", "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160 }
+  ] }

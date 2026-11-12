@@ -710,6 +710,10 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **A far colour averaged from several is often the ground's own (bloom years, 0.155):** orange
+  and white daisies plus their leaves made a salmon as pale as Namaqualand's soil, so the tint
+  vanished; real fields are sheets of one colour. Choose a colour per patch, then soften (speckle,
+  soft edges): solid sheets read as snow.
 - **Faint point lights: check the physics before chasing visibility (fireflies, 0.153):** a
   synchronous tree at 300 m was "invisible" because 200 fireflies there sum to ~+8, fainter than
   the stars; extending its range had bought nothing. Work out the magnitude at the distance first

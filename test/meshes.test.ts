@@ -9,6 +9,7 @@ import { branchGeometry, logGeometry } from '../src/props/debris'
 import { cakeGeometry } from '../src/props/iceFoot'
 import { fallenLeafGeometry } from '../src/props/leafLitter'
 import { FUNGUS_KINDS, mushroomGeometry } from '../src/props/fungi'
+import { BLOOM_PLANTS, bloomPlantGeometry } from '../src/props/bloomYears'
 import { pinniped, swimmingHead } from '../src/props/pinnipeds'
 import { glasswortGeometry, grassTuftGeometry } from '../src/props/saltMarsh'
 import { lumpGeometry, slabGeometry as iceSlab } from '../src/props/seaIce'
@@ -121,6 +122,11 @@ family('shore life, small on the ground', { base: [-0.05, INF], top: [-INF, 0.6]
 // foot just under the ground, ~200 triangles each age.
 family('mushrooms (cap 1 across)', { base: [-0.03, 0], top: [0.3, 2.2], width: 1.02, length: 1.02, maxTriangles: 400 },
   FUNGUS_KINDS.flatMap((kind): Row[] => [0, 1, 2].map((age): Row => [`${kind} age ${age}`, () => mushroomGeometry(kind, age)]))
+)
+
+// Bloom-year annuals (phase 16): low rosettes, flowers on short stalks.
+family('bloom-year annuals', { base: [-0.01, 0.01], top: [0.04, 0.35], width: 0.45, length: 0.45, maxTriangles: 800 },
+  BLOOM_PLANTS.flatMap((p): Row[] => [0, 1, 2].map((v): Row => [`${p} ${v}`, () => bloomPlantGeometry(p, v)]))
 )
 
 family('animals standing on the ground', { base: [-0.15, 0.05], maxVertices: 50_000 }, [

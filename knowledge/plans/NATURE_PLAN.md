@@ -28,7 +28,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 13 | ✅ Fireflies: the choice table, weather rules, placement and counts (no drawing), 2026-11-13 | `props/fireflies.ts` `firefliesFor`, `fireflyLights`, `props/choices.ts` | **13** land evenings in a region's months; **1** night out (2025-07-30, Norway glow-worms) after wind, moon and the 0.7 chance | done | – |
 | 14 | ✅ Fireflies: drawing (streaks and dots, brightness by intensity, streaks), 2026-11-13 | `props/fireflies.ts` meshes, `scene.ts` | as 13 | done | 13 |
 | 15 | ✅ Lomas: yearly green on Peru's fog hills, 2026-11-13 | `phenology.ts` `lomasFor`, `props/landforms.ts` range colour by height; later TERRAIN_FORMS's wall | **2** land days Jun–Nov, neither with a landform (0 in frame until the escarpment) | done | 2 |
-| 16 | Bloom years: the Atacama's desert bloom, Namaqualand and the Cape West Coast, Baja | per-year streams, `props/shoreLife.ts` `FLOWERS`, far ground tint | desert bloom **0** Sep–Nov; Namaqualand **1** (July, ×0.4); Baja **0** | 2.5–3.5 h | 2 |
+| 16 | ✅ Bloom years: the Atacama's desert bloom, Namaqualand and the Cape West Coast, Baja, 2026-11-13 | `bloomYears.ts` (per-year streams), `props/bloomYears.ts` (plants), terrain and range tint | **2** real days: Namaqualand 2025-07-03 (July ×0.4), the Atacama 2024-08-16 (2024's early flush); Baja 0 | done | 2 |
 | 17 | Animal seasons for PLAN_BIOMES phase 14 (monarchs on eucalyptus) | `animalSeasons.ts` | per animal | ~0.5 h each (+ the animal's own plan) | 6, 11, phase 14 |
 
 Estimates are my working hours including research, tests, ~3 render rounds and docs, from past
@@ -1120,6 +1120,34 @@ Namaqualand rock shore orange and white; the same places in February bare
 
 **Tests:** `test/coastBloom.test.ts`: the tables over every place × month; each region's bloom year
 the same on every day of a year and independent of the spec seed.
+
+**Built (0.155):**
+- `bloomYears.ts` (a leaf module, so the terrain can read it): `bloomRegion` (atacama-peru ≤ 26°S;
+  namibia ≤ 29°S and cape on an Atlantic day north of 33.5°S; baja-sonora on a Pacific day),
+  `bloomYear(region, year)` on `Random.derive('amazing-sea:<year>', 'bloom:<region>')` (Atacama
+  0.37, strong 1 in 3, an early Jul–Aug flush at 0.3 in 1 bloom year in 4; Namaqualand every year
+  0.3–1; Baja 0.3 at 0.6–1), the plan's local-calendar windows, daisies ×0.3 on a wet day, none
+  under snow. **Spec field `props.desertBloom`** (true / a strength / false), not the plan's
+  top-level `desertBloom`, as every phase before it; forced, a day takes its place's region
+  whatever its latitude.
+- **Not in `FLOWERS`:** shore life's flowers are a beach's strandline on the shore-life stream;
+  the bloom is its own prop (`props/bloomYears.ts`, stream-free: cells by hash) on the land behind
+  a beach or a rocky shore (the plan's "Namaqualand rock shore"). Plants: *Cistanthe* magenta and
+  its yellow form, *Nolana* lilac, orange and white daisies, Baja gold and purple (a procedural
+  rosette with 5–24 flowers, 150–400 triangles); the orange daisy is **phase 11's baked Ursinia
+  scan** (loaded in `scene.ts` before the props on a day that needs it; the procedural plant
+  stands in where it isn't loaded, as in Node). Patches by a 25 m noise (~half the land), up to 7
+  plants per 1.5 m cell × strength, within 80 m, ≥ 2 px, ≤ 5000.
+- **Far:** the terrain behind the shore (`bloomTint`, `bloomTint2`) and a range's slopes below
+  ~600 m (`props/landforms.ts`, the lomas patches) toward the flowers' colour, up to 0.55 at full
+  bloom, speckled, each patch mostly one flower's colour.
+- **Four render rounds:** dark weedy rosettes (fewer, greyer leaves; bigger, more flowers); a far
+  tint averaging orange, white and leaves into a salmon as pale as Namaqualand's soil (one
+  flower's colour per patch, 85% flower); solid sheets that read as snow and salt (speckle, soft
+  edges, 0.55). Seen: the Atacama framed magenta and yellow over the sand (7–8.6% of the frame),
+  backlit and overcast too; Namaqualand overlook soft orange and white drifts (8%), rock shore with
+  the scan's daisies up close; February identical; both real days changed (0.08%, 0.02%). Off:
+  identical to HEAD on all six views.
 
 ## 17. Animal seasons for PLAN_BIOMES phase 14
 
