@@ -108,8 +108,9 @@ Every new random feature gets one. Always make the draw, then apply the force vi
   - 2024-02-26: tropical golden hour (indonesia);
   - 2024-09-06: Mediterranean waterspout season (western-med, open sea);
   - 2024-04-24: storm + shelf cloud (norway-west).
-  - 2024-03-21: nordic boulder shore at golden hour, seals; 2024-03-25: mediterranean boulder
-    shore at midday; 2024-03-23: sea cliffs at sunset; 2024-03-08: rock platform, morning
+  - 2024-03-21: nordic boulder shore at golden hour, seals; 2025-09-18: western-Med boulder
+    shore at golden hour; 2024-03-23: sea cliffs at sunset; 2026-08-31: rock platform, morning
+    (Patagonia)
     (`scenes/rock.json` for forced kinds: Peggy's Cove, Big Sur, Iceland storm).
   - Tidal flats (`scenes/tidal.json`): Wadden low tide golden hour (2025-07-10 shoreline), Fundy
     red mud (2025-08-12 framed), Wadden high tide marsh beach (2025-07-13 along-beach, eye 1.7 m),
@@ -123,7 +124,8 @@ Every new random feature gets one. Always make the draw, then apply the force vi
     a forced `timeOfDay` the sun can't reach still wins (debugging), and so does
     `sunElevationDeg`: the heading of a midnight-sun day follows the forced elevation.
   - Real days (found 2026-11-04): PEI red sand beach 2025-01-30 (morning, temperate, skerries);
-    Maldives reef 2026-03-20 (morning overlook, palm islet; also 2026-09-26 shoreline at dawn);
+    Maldives reef: no unforced day since 0.139 (its 3 went to Sri Lanka when `atacama-peru` and
+    `namibia` grew), so force `place: "maldives"` (`scenes/coasts.json`);
     California marine layer 2025-09-17 (the only one in the test years: June gloom days at
     `california` are rare, so force `marineLayer: true` on a June date).
   - Coasts, climates and weather together (`scenes/coasts.json`, for regression renders): PEI

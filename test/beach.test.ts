@@ -4,17 +4,21 @@ import { BEACH_MATERIALS, beachLines, FUNDY_STONES, materialChances, MATERIAL_CH
 import { hasBeach } from '../src/coastKind'
 import { PLACES, placeNamed } from '../src/places'
 import { bareBeach, highWater } from '../src/tides'
-import { allParams, scene, scenes, share } from './days'
+import { allParams, expectShare, scene, scenes, share } from './days'
 
 describe('beach material', () => {
   const days = allParams()
   const beaches = days.filter(p => hasBeach(p.coast))
   const stony = (p: (typeof days)[number]): boolean => p.coast.material !== 'sand'
 
-  it('is about 59% sand, 17% mixed, 24% shingle or cobble on beach days', () => {
-    expect(share(beaches, p => p.coast.material === 'sand')).toBeCloseTo(0.59, 1)
-    expect(share(beaches, p => p.coast.material === 'mixed')).toBeCloseTo(0.17, 1)
-    expect(share(beaches, p => p.coast.material === 'shingle' || p.coast.material === 'cobble')).toBeCloseTo(0.24, 1)
+  // Targets over the place table, no sampling: Σ weight × beach share ×
+  // material chance ÷ Σ weight × beach share (a tidal flat is a beach on
+  // the half of days at or above mid tide), with `params.mjs --expect` and
+  // `src.beach.materialChances` averaged over each place's climates.
+  it('is about 64% sand, 15% mixed, 20% shingle or cobble on beach days', () => {
+    expectShare(beaches, p => p.coast.material === 'sand', 0.644)
+    expectShare(beaches, p => p.coast.material === 'mixed', 0.153)
+    expectShare(beaches, p => p.coast.material === 'shingle' || p.coast.material === 'cobble', 0.203)
   })
 
   it('follows the place: stony in the north, sandy in the tropics', () => {

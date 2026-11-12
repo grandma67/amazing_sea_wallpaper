@@ -580,10 +580,10 @@ const ROWS: readonly PlaceRow[] = [
   { id: 'persian-gulf', region: 'arabia', biome: 'desert', latitude: [24, 30], km: 4_800, ocean: { indian: 1 }, climate: { arid: 1 } }, // UAE, Qatar, Kuwait, Bahrain, Saudi Gulf, south Iran
   { id: 'horn-of-africa', biome: 'desert', latitude: [-2, 18], km: 5_500, ocean: { indian: 1 }, climate: { arid: 1 } }, // Somalia, Eritrea, Djibouti
   { id: 'western-australia-desert', biome: 'desert', latitude: [-27, -20], km: 4_000, ocean: { indian: 1 }, climate: { arid: 1 } }, // Shark Bay, Ningaloo, Pilbara
-  { id: 'atacama-peru', biome: 'desert', latitude: [-27, -5], km: 3_900, ocean: { pacific: 1 }, climate: { arid: 1 } }, // Atacama, Peru
+  { id: 'atacama-peru', biome: 'desert', latitude: [-30, -5], km: 4_230, ocean: { pacific: 1 }, climate: { arid: 1 } }, // Atacama to Coquimbo's north (the desert bloom coast, Chañaral–Vallenar), Peru
   { id: 'baja-sonora', biome: 'desert', latitude: [23, 31], km: 4_500, ocean: { pacific: 1 }, climate: { arid: 1 } }, // Baja California, Gulf of California
   { id: 'sahara-atlantic', biome: 'desert', latitude: [18, 29], km: 2_400, ocean: { atlantic: 1 }, climate: { arid: 1 } }, // Mauritania, Western Sahara, south Morocco
-  { id: 'namibia', biome: 'desert', latitude: [-29, -17], km: 2_000, ocean: { atlantic: 1 }, climate: { arid: 1 } }, // Skeleton Coast, Walvis Bay
+  { id: 'namibia', biome: 'desert', latitude: [-33, -17], km: 2_440, ocean: { atlantic: 1 }, climate: { arid: 1 } }, // Skeleton Coast, Walvis Bay, and Namaqualand, the Sandveld (Lamberts Bay): `cape` stops at −33° because its days draw the Indian Ocean too
 ]
 
 // Overrides of the region pools.

@@ -75,7 +75,8 @@ often around Copiapó, Huasco and Caldera (UC Chile); the 2026 season's sectors 
 Freirina, Vallenar, Caldera, Copiapó and Chañaral (Chile Travel). That's ~26–29°S, **south of
 `atacama-peru`'s −27° edge and north of `central-chile`'s −30°**: a gap in the place table.
 Namaqualand (Kleinzee 29.7°S, Hondeklip Bay 30.3°S) and the Sandveld (to ~32.5°S) are likewise
-between `namibia` (−29°) and `cape` (−33°). NATURE_PLAN phase 2 closes both.
+between `namibia` (−29°) and `cape` (−33°). NATURE_PLAN phase 2 closed both (0.139):
+`atacama-peru` now runs to −30°, `namibia` to −33°.
 
 | Where | When | How often | Evidence |
 |---|---|---|---|

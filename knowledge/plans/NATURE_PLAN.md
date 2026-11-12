@@ -14,7 +14,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | # | Phase | Code it touches | Days touched (of 1095, measured) | Estimate | Needs |
 |---|---|---|---|---|---|
 | 1 | ✅ Real assets: measure (fetch CC0 photos, textures, scans; sizes and colours), 2026-11-12 | `scripts/asset.mjs` (new) | none (data for every later phase) | done | – |
-| 2 | Close two place gaps (Atacama 26–30°S, Namaqualand and the Sandveld 29–33°S) | `places.ts`, one test | **95** days change, 67 to another place | ~1 h | – |
+| 2 | ✅ Close two place gaps (Atacama 26–30°S, Namaqualand and the Sandveld 29–33°S), 2026-11-12 | `places.ts`, one test | **95** days change, 67 to another place | done | – |
 | 3 | Bush blossom: rock rose, gorse, wattle; the `BLOOM` table and far tint | `phenology.ts`, `props/trees.ts` `leaves()` | rock rose ~13; gorse **6** full, 14 at ×0.4, 16 at ×0.1; wattle **2** full, 1 at ×0.3 | 2.5–3.5 h | 1 |
 | 4 | Tree blossom: flamboyant (per-crown thinning, dry-season window), pōhutukawa | `phenology.ts`, `places.ts` `onDryCoast`, `props/trees.ts` | flamboyant **24** full, **109** scattered; pōhutukawa **1** | 2.5–3.5 h | 3 |
 | 5 | Heath: heather on ground cover by month, near and far | terrain ground-cover shader, landforms, islands | **14** rock-shore days near; far slopes on the heath places' 9 beach days | 1.5–2 h | 1 |
@@ -280,6 +280,16 @@ Sandveld (Lamberts and Elands Bay, ~32°S) (SANParks, Northern Cape tourism).
   (2024-07-23, 2024-08-16, 2025-11-30), see phase 15.
 - Other readers of latitude in these places (snow, sea ice, `drySeason`, reefs, grain): grep
   `atacama-peru`, `namibia`, `cape` and check each still holds at the new edge.
+
+**Built (0.139):** both rows as above; 95 days changed, 67 to another place (as measured).
+`atacama-peru` keeps 15 days (10 on land) and `namibia` 13: the km shift moves other places'
+days, not theirs, on the test years. Readers checked: only `MARINE_LAYER` (by month, not
+latitude), `ROCK`, `BORTLE` and the swell test's forced `namibia` name these places; no sea ice,
+snow, `drySeason` or reef row covers them. `test/beach.test.ts`'s material shares now use
+`expectShare` against place-table targets (sand 0.644, mixed 0.153, shingle or cobble 0.203:
+`params.mjs --expect` with `src.beach.materialChances`, a tidal flat a beach half the time).
+SCENE_SPECS.md's real days that moved got new ones; the Maldives lost its 3 test days (small
+place, sampling): force it.
 
 ## 3. Bush blossom: rock rose, gorse, wattle
 
