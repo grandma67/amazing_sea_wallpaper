@@ -571,7 +571,7 @@ Atiquipa, Lachay pages).
   17% of `atacama-peru` land days. So lomas colour the range's vertices between 200 and 1000 m
   (`props/landforms.ts`, by height, in the season), ~0.5 of the 3 days. The real coast has a
   500–1000 m escarpment just behind the shore on most of its length (the Coastal Cordillera):
-  that's a terrain gap, not this plan's (Still open).
+  that's a terrain gap, planned in [TERRAIN_FORMS.md](TERRAIN_FORMS.md).
 - **Colour by local month:** Jul–Oct full: mix the far ground toward an olive green
   `[0.07, 0.09, 0.035]` by 0.5 in noise patches (~50% cover) *(est.)*; Jun and Nov ×0.5;
   Jun–Jul a yellow fleck `[0.55, 0.40, 0.03]` at 0.1 of the green's weight (amancaes) *(est.)*;
@@ -695,8 +695,8 @@ Nothing blocks a build. Outside this plan, found while checking 5b:
 - **The Atacama's coastal escarpment isn't drawn.** Real: a 500–1000 m wall of the Coastal
   Cordillera rises a few km behind most of the Peru–Chile desert coast; ours has 15–45 m hills
   and a far range on 17% of days. It's realistic and changes every `atacama-peru` day, so it
-  needs its own terrain plan (`arch/COAST.md`, the readers of hill height). Lomas (5b) gain all
-  3 days with it.
+  has its own plan: [TERRAIN_FORMS.md](TERRAIN_FORMS.md) phase 2 (decided 2026-11-12). Lomas
+  (5b) gain all 3 days with it; build 5b's tint on the range now and on the wall once it exists.
 
 Checked during the phases, not asked: every *(est.)*: shares, colours, widths, moss factors,
 firefly counts and wind ramps, bloom-year chances. Photos (0a) and `mesh.mjs` decide colours;

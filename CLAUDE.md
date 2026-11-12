@@ -18,7 +18,7 @@ Docs in `knowledge/` (read what the task needs):
 - `STARS.md`: the night sky (stars, meteors, Milky Way, planets, airglow, aurora): research and numbers.
 - `REFLECTION.md`: when water, wet sand and ice mirror (Fresnel, wave slopes vs wind, slicks, lee calm), how GPUs draw it, and the gaps in ours.
 - `REGIONS.md`: research behind places, grain, tides; `REFERENCES.md`: sources.
-- `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons, nature, snow, sea ice, live mode, shadows and dark frames, reflections, a water-film debug view).
+- `plans/`: open plans (biomes, phone app, waterspout fix, night sky, seasons, nature, snow, sea ice, live mode, shadows and dark frames, reflections, a water-film debug view, terrain forms).
 
 Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5173 is other projects).
 

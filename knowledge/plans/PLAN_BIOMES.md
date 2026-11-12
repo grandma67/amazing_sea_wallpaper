@@ -114,6 +114,8 @@ seasonal colour and tufts. Spec `coast: "tidal-flat"`, `saltMarsh`.
 
 ### 10. Landforms: barrier lagoon, spit, fjord (later, own plan)
 
+**Own plan:** [TERRAIN_FORMS.md](TERRAIN_FORMS.md) phase 5 (2026-11-12); the design below moves there when it starts.
+
 These vary in plan view, so they are **separate heightfield meshes** (like `islands.ts`),
 laid over or beside the cross-section terrain, with lagoons calmed by the shelter mask (6).
 
