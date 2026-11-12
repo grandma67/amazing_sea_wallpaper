@@ -519,6 +519,15 @@ tool gotchas: TOOLS.md.
 
 ## Coast and terrain
 
+- A CPU mirror can drift from its shader for many versions while every test passes: the tests
+  check the mirror against itself. TS `bareRock` sloped the platform over the ragged width, GLSL
+  over the nominal one, so the camera and props stood up to ~0.6 m off the drawn rock on
+  platform days (0.137). Found only when a CPU pool search (WATER_VIEW step 3) missed a pool the
+  GPU count saw. How: the render's encode pass (`waterCount.ts`) written temporarily to output
+  one term per channel (bare profile, width, bed planes, noise) along a pixel column, against
+  the TS terms at the same world points (ray from the camera at each pixel's distance). Compare
+  the drawn `h` with the TS height on a new rock or terrain term before trusting the mirror.
+
 - A biome-keyed table is wrong for some of its places: the `mediterranean` preset is also
   Florida, Taiwan and Natal, `volcanic` is Hawaii and Kamchatka. Key what follows the weather
   (plants, clouds, fog, wrack, crabs, seals) by the day's `place.climate`, what follows the rock

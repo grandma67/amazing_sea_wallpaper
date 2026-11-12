@@ -63,6 +63,21 @@ describe('rock shore shape', () => {
       expect(h(5000)).toBeGreaterThan(-seabedDepth - 0.01)
     }
   })
+
+  it('keeps one platform plane when its edge is ragged (as the shader: slope over the nominal width)', () => {
+    // A narrower or wider ragged edge cuts the same plane: the TS mirror
+    // once sloped it over the ragged width, up to ~0.6 m off the drawn rock.
+    for (const p of shores) {
+      const { rock, nearshoreSlope, seabedDepth } = p.coast
+      const r = rock!
+      if (r.width <= 0) continue
+      for (const ragged of [0.75 * r.width, 1.25 * r.width]) {
+        for (const s of [0.2 * r.width, 0.5 * r.width, 0.7 * r.width]) {
+          expect(bareRock(r, nearshoreSlope, seabedDepth, s, ragged)).toBeCloseTo(bareRock(r, nearshoreSlope, seabedDepth, s), 9)
+        }
+      }
+    }
+  })
 })
 
 describe('rock shore days', () => {

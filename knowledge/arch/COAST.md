@@ -95,8 +95,10 @@ Plan and research: [plans/ROCK_SHORE.md](../plans/ROCK_SHORE.md); shares: COASTS
   stays `sand` (unused).
 - **Land frame:** s = 0 is the back of the platform (the back face's foot), at `top` above mean
   sea. Bare profile (`bareRock`, GLSL `bareRock`): plateau | back face (smoothstep: rounded
-  crest and foot) | platform from `top` to `edge` over `width` (ragged: ±25% along `a`, cut back
-  8 m where a gully meets it) | scarp down `scarp` | seabed at the nearshore slope toward
+  crest and foot) | platform: one plane from `top` falling to `edge` over the nominal `width`, cut
+  at a ragged edge (±25% along `a`, cut back 8 m where a gully meets it; a narrower edge ends
+  higher, a wider one lower: the plane doesn't tilt with it, TS and GLSL alike since 0.137) |
+  scarp down `scarp` | seabed at the nearshore slope toward
   −seabedDepth. `rockWaterline` inverts it for `coast.waterline`.
 - **Relief** (`rockHeightAt` GLSL, `rockSurface` TS, in `rockShore.ts` so `params.ts` can use
   it without a cycle): in the rock band, the surface `h + n` (n: fbm relief at 18 m) is

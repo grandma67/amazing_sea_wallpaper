@@ -201,7 +201,7 @@ export function bareRock(rock: RockShore, nearshoreSlope: number, seabedDepth: n
     const t = -s / backWidth
     return rock.top + rock.backHeight * t * t * (3 - 2 * t)
   }
-  if (s <= width) return width > 0 ? rock.top + ((rock.edge - rock.top) * s) / width : rock.top
+  if (s <= width) return rock.width > 0 ? rock.top + ((rock.edge - rock.top) * s) / rock.width : rock.top
   const edge = rock.top + (rock.edge - rock.top) * (rock.width > 0 ? width / rock.width : 0)
   const run = Math.max(rock.scarp / rock.scarpSlope, ROCK_MIN_FACE * distance)
   const footS = width + run
