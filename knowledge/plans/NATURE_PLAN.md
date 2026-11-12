@@ -10,19 +10,21 @@ Bring the remaining living things on a coast into the season. Research and numbe
 | Phase | What | Days touched (of 1095, measured) | Estimate | Status |
 |---|---|---|---|---|
 | 1 | Blossom: flamboyant, rock rose, heather | flamboyant **24** land days in full bloom, **109** with scattered trees; rock rose ~13; heath near the camera on **14** rock-shore days, on far slopes on the heath places' 9 beach days when a landform or island is in frame | 3–4 h | planned |
+| 1b | Blossom: gorse, pōhutukawa, wattle (Answers 2026-11-12 b) | count first (`--stats` windows: gorse Atlantic Europe Jan–Jun, pōhutukawa `new-zealand-north` Nov–Jan, wattle SE Australia Jul–Nov) | 2–3 h | planned |
 | 2 + 2b | Moss on rock and trunks by realistic rules; upper-shore weed by season (built together: both edit the rock-shore shader) | every boulder, rock-shore and forest day a little; weed on European Atlantic rock shores | 5–7 h | planned |
 | 3 | Fireflies and glow-worms, single-flash streaks | **11** eligible land nights (recounted 2026-11-12 with the dusk rule); **~4** after the wind, rain and mangrove rules; fewer after moon and in-frame filters | 5–7 h | planned (build: real on those nights) |
-| 4 | Seasons for PLAN_BIOMES 14 animals | per animal | ~0.5 h each + the animal (2–4 h each, own plan) | with phase 14 |
-| 5 | Coast blooms: Peru's lomas (yearly), the Atacama's *desierto florido* (El Niño years), Namaqualand and the Cape West Coast (yearly); first close the two place gaps that hold them | lomas **3** land days Jun–Nov; desert bloom and Namaqualand ~1 between them after 5a | 4–6 h (5a ~1 h, its own commit) | planned (build) |
+| 4 | Seasons for PLAN_BIOMES 14 animals; a `eucalyptus` kind (Australia native, California groves) for the monarchs | per animal; eucalyptus on every Australian and Californian land day with trees | ~0.5 h each + the animal (2–4 h each, own plan); eucalyptus 2–3 h | with phase 14 |
+| 5 | Coast blooms: Peru's lomas (yearly), the Atacama's *desierto florido* (El Niño years), Namaqualand and the Cape West Coast (yearly); first close the two place gaps that hold them | measured with 5a applied: lomas 3 land days Jun–Nov, **~0.5** with hills high enough in frame; desert bloom **0** Sep–Nov; Namaqualand **1** (July, ×0.4); 5a changes 95 days | 4–6 h (5a ~1 h, its own commit) | planned (build) |
 | 6 | Fairy rings (far) and mushrooms (near) | rings: **124** land days in a growing season (before grass-in-frame); mushrooms: **80** in season; under trees ~5–10 with a tree within 15 m in frame *(leaf-litter analogue: 14)*, on grass more (count with `--project fungi` once built) | 3–5 h | planned |
-| 0 | Real assets: CC0 scans and photos for plants and animals, baked to our vertex-colour meshes (Fab/Megascans excluded) | every phase's meshes and colours | 1–2 h setup + ~1 h per asset | before phase 1 |
+| 0a | Real assets, measure only: fetch CC0 photos, textures and scans and measure sizes and colours (Fab/Megascans excluded) | every phase's colours | ~0.5–1 h + ~15 min per asset | before phase 1 |
+| 0b | Real assets, mesh bake: reduce, bake to vertex colours, emit, check; proved on one mushroom | phase 6 meshes, phase 4 animals | 1–1.5 h + ~1 h per asset | before phase 6 |
 
 Estimates are my working hours including research, tests, ~3 render rounds and docs, from past
 commits (leaf litter ~1 h after its plan, snow and ice foot 1–2 h, Baltic sea ice ~6 h). Phases
 0–3, 5 and 6: about 22–33 h, plus review between phases. Every phase is a build phase; phase 4
 builds with each PLAN_BIOMES phase-14 animal.
 
-**Order:** 0 (the pipeline, then each phase's assets with it) → 1 → 2 + 2b → 6 (fairy rings avoid phase 1's heath mask; mushrooms sit under trees whose
+**Order:** 0a → 1 → 1b → 2 + 2b → 0b → 6 (fairy rings avoid phase 1's heath mask; mushrooms sit under trees whose
 trunks phase 2 changes) → 3 (independent of the others) → 5 (5a's place change re-rolls
 days, so it goes in last, in its own commit) → 4 with each phase-14 animal. Counts are `params.mjs --stats` windows
 (place, month, not open sea). In-frame counts for a new prop need its choice to exist
@@ -62,6 +64,19 @@ of it). So:
    be made unextractable. CC0 (Poly Haven, ambientCG, Smithsonian CC0) covers every row.
 4. **The *(est.)* values stay estimates until each phase's photo and render steps check them**:
    those are build steps, not open questions.
+
+## Answers (2026-11-12, second round)
+
+1. **Gorse, pōhutukawa and wattle are built** as phase 1b, after phase 1 (common flowers).
+2. **Monarchs get a `eucalyptus` kind**, which Australia needs anyway: the eucalypts are its
+   native coast trees, and today no Australian coast draws one.
+3. **Phase 0 is split:** 0a (fetch and measure) before phase 1, 0b (reduce, bake, emit) before
+   phase 6, where the first scanned mesh is needed.
+4. **Research gaps closed** (NATURE.md §8, 2026-11-12 rows): Pacific laver (2b), sea lettuce's
+   season (2b), subtropical and polar fungi (6), fireflies in Sri Lanka, Brazil and the Pacific
+   Northwest and their colour (3), desert-bloom timing and Baja (5).
+5. **Checked in the code:** lomas need hills that the terrain doesn't draw (5b); 5a's re-roll
+   measured (5a).
 
 ## Decisions
 
@@ -141,8 +156,14 @@ flamboyant flower and cistus flower colour from photos (phase 1); heather albedo
 (phase 2, 2b); a fly agaric, a bolete, a field mushroom scan (phase 6); phase 14 animals from
 Smithsonian specimens (proportions) and photos (colour).
 
-**Done when:** `node scripts/asset.mjs <url>` produces a baked mesh with its measured size and
-colours, its licence recorded; one scan (a mushroom) through every step to prove the pipeline.
+**Split (Answers 2026-11-12 b):**
+- **0a, before phase 1:** steps 1–2 only (fetch, measure). Phases 1, 1b, 2 and 2b need colours
+  and sizes, not meshes. **Done when:** `node scripts/asset.mjs measure <url>` writes
+  `source.json` and the measured size and linear colour mean and spread per region; flamboyant,
+  cistus and heather measured and their *(est.)* colours replaced.
+- **0b, before phase 6:** steps 3–6 (reduce, bake, emit, check), adding `@gltf-transform` then.
+  **Done when:** `node scripts/asset.mjs <url>` produces a baked mesh with its measured size and
+  colours, its licence recorded; one scan (a mushroom) through every step to prove the pipeline.
 
 ## 1. Blossom on plants we already draw (TODO 24)
 
@@ -240,6 +261,29 @@ windows in both hemispheres, shares in 0..1, a crown fixed by its position, `bar
 blooming crowns, unchanged outside the window, the heath mask deterministic, off switches;
 `realDays.test.ts` "no bloom outside its months"; `sceneSpec.test.ts` the `bloom` field.
 
+## 1b. Gorse, pōhutukawa, wattle (Answers 2026-11-12 b)
+
+Same machinery as phase 1 (`BLOOM` rows, hashed crowns, far tint by `bushShare` or the
+broadleaf share). Research: NATURE.md §1.1–1.2.
+
+| Plant | Our kind | Places | Months (local) | Share | Colour *(est.)* | Source |
+|---|---|---|---|---|---|---|
+| Common gorse (*Ulex europaeus*) | `bush` | `cornwall-wales`, `brittany`, `ireland`, `scotland`, `bristol-channel`, `morecambe-bay`; invasive in `new-zealand-south`, `new-zealand-north`, `tasmania`, `central-chile` | full Apr–May; Jan–Mar and Jun ×0.4; Jul–Dec ×0.1 (a few flowers all year in mild winters; two strains) | 0.5 of `bush` crowns, 0.5 of their leaf cards (gorse is dense with flowers) | yellow `[0.70, 0.50, 0.02]` | Woodland Trust, Dorset Nature, Lincolnshire Life |
+| Pōhutukawa (*Metrosideros excelsa*) | `broadleaf` | `new-zealand-north`, on the coast's first trees (s within 60 m of the shore) | full 15 Dec – 5 Jan; ramps 15 Nov → 15 Dec and 5 → 15 Jan | 0.6 of near-shore `broadleaf` crowns, 0.7 of their leaf cards | crimson `[0.45, 0.02, 0.03]` | RNZ, Te Papa, NZ Herald |
+| Coastal and golden wattle (*Acacia longifolia*, *A. pycnantha*) | `bush` | `east-australia`, `tasmania`, `sw-australia` *(est.)* | full late Aug – Sep; Jul and Oct–Nov ×0.3 | 0.35 of `bush` crowns, 0.5 of their leaf cards | yellow `[0.72, 0.55, 0.03]` | Australian floral emblem page, lawn.com.au |
+
+- **Gorse and phase 1's heath** overlap in Atlantic Europe: gorse is on `bush`, heath on ground
+  cover, so both show (Cornish cliff tops: western gorse with heather, NATURE.md §8).
+- **Far tint:** gorse and wattle as rock rose (0.4 × leaf share × `bushShare`); pōhutukawa a
+  crimson line along the near coast, so no far tint beyond 60 m.
+- **First step:** count the land days in each window (`--stats`) and the in-frame share with
+  `--project vegetation`; colours from phase 0a.
+- **Done when:** a forced Cornish May cliff top yellow gorse beside green heath; a Christmas
+  `new-zealand-north` beach crimson crowns along the shore; a September NSW headland yellow
+  wattle; other months and places unchanged.
+- **Tests:** in `test/bloom.test.ts`: the rows over every place × month, the pōhutukawa shore
+  limit, gorse and heath on the same day.
+
 ## 2. Moss on rock and trunks
 
 **Rules** (NATURE.md §4): amount = climate × place factor × spray shelter × face; colour = today's
@@ -308,16 +352,28 @@ test/glsl` after the shader edits.
 
 - **Laver** (*Porphyra umbilicalis*: dense stands round high water on exposed rock along most of
   Norway's coast; northern Portugal to the Faroes; MarLIN, SNL): a dark purple-brown
-  `[0.05, 0.025, 0.03]` patchy band in the littoral fringe just below the black lichen.
+  `[0.05, 0.025, 0.03]` patchy band in the littoral fringe just below the black lichen (the
+  Atlantic row; Pacific below).
   **All year** on `norway-west`, `norway-north`, `iceland-faroe`, `scotland`; **Nov–Apr** on
   `ireland`, `cornwall-wales`, `brittany`, `bristol-channel`, and `portugal-morocco` **north of
-  41°N** only (its range ends in northern Portugal; absent in summer in the south: MarLIN). No row
-  elsewhere (other oceans' Bangiales unresearched).
-- **Sea lettuce** (*Ulva*): a brighter green fleck `[0.06, 0.16, 0.03]` on the same rock, Mar–May,
-  ×0.3 otherwise *(est.; sources conflict, NATURE.md §5)*.
+  41°N** only (its range ends in northern Portugal; absent in summer in the south: MarLIN).
+- **Pacific laver** (researched 2026-11-12): NE Pacific *Pyropia* (*P. columbiensis*,
+  *Porphyra mumfordii*, black seaweed *P. abbottiae*) grows in the upper mid to high intertidal on
+  bare rock, mainly **winter and early spring** (Calvert Island, BC, to Cape Mendocino; a few to
+  midsummer: Lindstrom 2015, UBC, Hakai). Rows: `british-columbia`, `pacific-northwest`,
+  `se-alaska` *(est.: black seaweed is harvested in Alaska in spring)*, `california` north of
+  40°N: **Dec–Apr**, May–Jun ×0.3. Japan: wild iwanori thalli come up in autumn and early winter
+  on high rocky shore (FAO): `japan`, `south-japan` **Nov–Mar** *(est.: no wild calendar found)*.
+  Same colour as the Atlantic row.
+- **Sea lettuce** (*Ulva*): a brighter green fleck `[0.06, 0.16, 0.03]` on the same rock,
+  **Apr–Sep** ×1, ×0.3 otherwise. Resolved 2026-11-12: English Channel wrack is mostly *Ulva* in
+  spring and summer (Lemesle et al. 2023) and *Ulva* mats bloom in summer (Franklin et al. 2025);
+  subarctic shores grow fast from early spring (Murman coast); the earlier conflict came from an
+  outfall site and a UK prediction, not seasonal surveys.
 - **Done when:** `diff.mjs --crop` on a Scottish and a Cornish rock-shore platform, January and
-  July: the band in both in January, only in Scotland in July. Tests: the table over every place ×
-  month, the 41°N limit.
+  July: the band in both in January, only in Scotland in July; a British Columbia platform in
+  February with the band, in August without. Tests: the table over every place × month, the 41°N
+  and 40°N limits.
 
 ## 3. Fireflies and glow-worms (TODO 22)
 
@@ -340,9 +396,15 @@ chance. So **~4 nights** before moon and "plants in frame". Rare and real: built
 | Eastern Australia: `east-australia` | `flash` | Oct–Mar (Queensland "up to six months"; Illawarra mid-Nov – early Dec) | Nov–Dec | Illawarra and Coffs Coast reports |
 | Northern Australia mangroves: `north-australia` | `synchronous` where mangroves are drawn | Nov–Mar *(est.: wet season)* | – | coastal mangroves of Qld and NT (Illawarra source) |
 | India: `india` (Konkan) | `flash` | May–Jun (pre-monsoon) | late May | one Sindhudurg observation; Western Ghats richest region (2026 checklist) |
+| Sri Lanka: `sri-lanka` | `flash`; `synchronous` where mangroves are drawn | May–Jul *(est.)* | Jun ("an important breeding season") | Mongabay 2023, Jetwing; mangroves a main coastal habitat |
+| Brazil's Atlantic forest: `south-brazil` | `flash` | Nov–Mar (south-east Brazil's rainy season) *(est.: the review says "rainy season" only)* | – | Bechara & Stevani 2018 review; REGUA (rains from November) |
+| Brazil's north-east: `northeast-brazil` | `flash` | Apr–Jul (its rainy season) *(est.)* | – | as above |
 
-Months outside the peak ×0.4 *(est.)*. Everything else: none (polar, most boreal, arid, the Pacific
-coast of North America, New Zealand, Africa, South America: no seasonal source, NATURE.md §3).
+Months outside the peak ×0.4 *(est.)*. Everything else: none. Polar, most boreal and arid
+coasts; New Zealand (its glowworms are cave gnats); **the Pacific coast of North America,
+confirmed** (its fireflies are day-active and don't flash, Ellychnia: UW entomologist via KUOW,
+Xerces); Kenya and the rest of Africa (searched 2026-11-12, nothing found). Sri Lanka and Brazil
+add no night on the test days (counted 2026-11-12).
 
 - **When:** `timeOfDay === 'night'`, or `'blue-hour'` with `evening` (`params.ts`).
   - **`glow` and our `night`:** `night` is the sun 16–30° down (`SUN_ELEVATION`), which the
@@ -398,7 +460,8 @@ coast of North America, New Zealand, Africa, South America: no seasonal source, 
 is ~1000× too high, and "real fireflies look much dimmer than LEDs"). At 562 nm over a 0.5 s
 flash, into a hemisphere: **I ≈ 7.6 × 10⁻⁶ cd** (upper bound; ×0.1 at the low end). Seen from the
 camera: magnitude **+0.3 at 2 m, +2.3 at 5 m, +3.8 at 10 m, +5.3 at 20 m, +6.8 at 40 m**
-(m = −13.99 − 2.5 log₁₀(I / d²)). `glow` the same, steady. Colour `[0.66, 1.0, 0.035]` (~562 nm).
+(m = −13.99 − 2.5 log₁₀(I / d²)). `glow` the same, steady. Colour `[0.66, 1.0, 0.035]` (~560 nm; *Photinus pyralis* in vivo 557 nm, the luciferase 560–562
+nm, longer toward orange in some populations: PubMed 16125663, BMC Evol Biol 2018).
 
 **Drawing:** stars sit on the sky dome at infinity and can't be hidden by plants, so fireflies are
 **their own depth-tested additive sprites and ribbons** in the scene (as `props/shipLights.ts`),
@@ -443,10 +506,16 @@ Build with each animal of phase 14 (its own plan); the season goes in `animalSea
 | Reef blacktips | reef lagoons, all year | – |
 | Monarchs (new) | `california` late Oct – Feb, clustered on trees near the camera | place, month |
 
-Monarchs roost on eucalyptus at 75% of California's sites, but the project draws no eucalyptus
-(California has stone pine and cypress): either add a eucalyptus kind for `california` (its own
-small task) or cluster them on the pines (Pacific Grove is pine and eucalyptus). Decide in the
-monarchs' own plan.
+**Eucalyptus kind (decided 2026-11-12):** monarchs roost on eucalyptus at 75% of California's
+sites, and the project draws no eucalyptus anywhere, Australia included, where eucalypts are
+the native coast trees. Add `eucalyptus` (`props/trees.ts` builder, `props/vegetation.ts`
+`KINDS`): a tall pale or mottled trunk, open crown of hanging grey-green leaf clumps
+`[0.06, 0.08, 0.05]` *(est.; colour from 0a)*, evergreen (no autumn), real heights from photos
+(coastal eucalypts ~10–30 m *(est.)*). Pools by `PLACE_PLANTS` (`places.ts`): `east-australia`,
+`sw-australia`, `tasmania` as a main kind *(weights est.)*; `california` a small weight (planted
+groves). Monarchs cluster on it near the camera Oct–Feb, on cypress and pine where none stands.
+Wattle (1b) keeps `bush`. Count first: land days with the new kind in frame (`--project
+vegetation`); `params.mjs --ref HEAD` (the pools change a prop choice, not params).
 
 After each: `node scripts/animals.mjs`, paste into ANIMALS.md with its rule in "Seasons".
 
@@ -471,10 +540,17 @@ Sandveld (Lamberts and Elands Bay, ~32°S) (SANParks, Northern Cape tourism).
 
 *(km est.: straight coast at ~111 km per degree.)*
 
-- **This re-rolls days:** `km` is a choose-one weight, so every day's place pick can move.
-  `params.mjs --ref HEAD --stats 'p => p.place.id'` (expect ⚠ only on these three) and
-  `--changed`; then `npm test` and fix date-pinned specs and tests (SCENE_SPECS.md "fixed dates")
-  that move. Count the bloom days on the new table before building 5b–5d.
+- **This re-rolls days, measured 2026-11-12** (the two rows applied, `params.mjs --ref HEAD`, then
+  reverted): **95 of 1095 days change** (8.7%), 67 of them to another place; the rest keep their
+  place and move only latitude and what follows it (moon, sun, sea, snow). `npm test`: **1 of 942
+  fails**, `test/beach.test.ts` "is about 59% sand, 17% mixed, 24% shingle or cobble" (shingle
+  0.19 vs 0.24 ± 0.05): it samples real days with `toBeCloseTo`; replace with `expectShare`
+  against a `params.mjs --expect` target (CLAUDE.md §4), don't retune the number. Also check
+  SCENE_SPECS.md's fixed dates against the 95 (`--list`).
+- **Bloom days on the new table** (measured, land days): desert bloom south of 26°S in Sep–Nov
+  **0**; Namaqualand and the Sandveld Jul–Oct **1** (2025-07-03, −32.3°, rock shore, a range in
+  frame; July ×0.4); Cape West Coast Atlantic Aug–Sep **0**; lomas Jun–Nov **3**
+  (2024-07-23, 2024-08-16, 2025-11-30), see 5b.
 - Other readers of latitude in these places (snow, sea ice, `drySeason`, reefs, grain): grep
   `atacama-peru`, `namibia`, `cape` and check each still holds at the new edge.
 
@@ -487,19 +563,29 @@ Lomas are fog-watered plant communities on the coastal hills of Peru and norther
 Atiquipa, Lachay pages).
 
 - **Where:** `atacama-peru` from 6°S to 30°S *(lomas are discontinuous; est.: every hill in that
-  range)*; far land only, on slopes 200–1000 m above the sea in frame (the coastal hills and any
-  landform); never the beach or the camera's ground (lomas start inland of the shore).
+  range)*; far land only, on slopes 200–1000 m above the sea; never the beach or the camera's
+  ground (lomas start inland of the shore).
+- **What draws those slopes (checked 2026-11-12):** the terrain's hills behind the shore are 15–45
+  m (`coast.hillHeight`, `params.ts` 'hills' stream; `terrain.ts` `hills`), below the lomas belt.
+  Only a `range` landform (900–2600 m at 12–45 km, `pickLandform`, desert chance 0.2) reaches it:
+  17% of `atacama-peru` land days. So lomas colour the range's vertices between 200 and 1000 m
+  (`props/landforms.ts`, by height, in the season), ~0.5 of the 3 days. The real coast has a
+  500–1000 m escarpment just behind the shore on most of its length (the Coastal Cordillera):
+  that's a terrain gap, not this plan's (Still open).
 - **Colour by local month:** Jul–Oct full: mix the far ground toward an olive green
   `[0.07, 0.09, 0.035]` by 0.5 in noise patches (~50% cover) *(est.)*; Jun and Nov ×0.5;
   Jun–Jul a yellow fleck `[0.55, 0.40, 0.03]` at 0.1 of the green's weight (amancaes) *(est.)*;
   Dec–May none.
-- **Counts:** 3 `atacama-peru` land days in Jun–Nov on today's table (2024-07-23, 2024-08-16,
-  2025-11-30); recount after 5a and with `--rendered` for hills in frame.
+- **Counts:** 3 `atacama-peru` land days in Jun–Nov (same with 5a); none has a landform on the
+  test days, so 0 in frame today and ~0.5 expected; with the escarpment, all 3.
 
 ### 5c. The Atacama's *desierto florido* (El Niño years)
 
 - **When and where:** in a bloom year, `atacama-peru` south of 26°S (Chañaral to Vallenar):
-  local ramp 1–20 Sep, full 20 Sep – 31 Oct, fading to 20 Nov.
+  local ramp 1–20 Sep, full 20 Sep – 31 Oct, fading to 20 Nov. It needs rain in Jun–Jul and over
+  ~15 mm (Conaf, Universidad de Chile, 2024). The July 2024 flowers came early from El Niño rain
+  and weren't extensive enough to count as a *desierto florido* (Conaf): so an early bloom, Jul–Aug
+  at 0.3 strength, in 1 bloom year in 4 *(est.)*.
 - **Bloom year:** 0.37 from the per-year stream (13 events in 35 years), 1 in 3 of them strong
   (widespread blooms 1997, 2015; big ones every 5–10 years).
 - **Near the viewer:** new `FLOWERS` kinds (`props/shoreLife.ts`): *Cistanthe longiscapa* magenta
@@ -519,8 +605,19 @@ Atiquipa, Lachay pages).
 - **Far land:** as 5c. Daisies close when cloudy and open in the sun (well known; *est.*: ×0.3
   colour on overcast and rain days).
 
+### 5e. Baja's Pacific coast after a wet winter
+
+- **When:** a bloom year at 0.3 *(est.: southern California's desert superblooms 2017, 2019,
+  2023, 2024; no Baja frequency found)* from the per-year stream: Feb–Mar full, Apr ×0.4
+  (hillsides "painted" in Feb–Mar in good years; gone in the 2011–16 drought: a Baja local account;
+  rain "consistently over several months", cool nights, seed bank: National Geographic).
+- **Where:** `baja-sonora`, Pacific ocean days only (the Gulf side is hyper-arid, flowering after
+  hurricanes: Desert Museum); far slopes and ground cover as 5c, with yellow and orange
+  `[0.70, 0.45, 0.03]` and purple `[0.30, 0.10, 0.35]` *(est.)*.
+- Count first (`--stats` on `baja-sonora` Feb–Apr land days).
+
 **Spec and switch:** `desertBloom: boolean | number | null` (true strong, 0..1 strength) forces
-5c and 5d where the place has them; lomas follow the month only (no draw). All under
+5c, 5d and 5e where the place has them; lomas follow the month only (no draw). All under
 `props.phenology: false`.
 
 **Done when:** a forced Atacama October (strong) shows magenta near and a tint far; a September
@@ -552,17 +649,22 @@ latitudes; 5a's new latitudes in `places.test.ts` if one exists.
 **Mushrooms (near the viewer):** `fungiFor(params, rng)`:
 
 - **Season** by climate (NATURE.md §2): temperate Sep–Nov (+ a weak May–Jun flush ×0.2), boreal
-  Aug–Oct, Mediterranean Oct–Dec, polar Jul–Aug, arid none.
+  Aug–Oct, Mediterranean Oct–Dec, polar Jul–Aug (Greenland fruiting peaks Jul–Aug, cited in an
+  Arctic fly study, 2026-11-12), arid none.
   - Tropical with a `drySeason`: its wet months ×1, none in the dry months (Thai study; Amazon
     secondary forest lower in dry months).
   - Tropical without one: all year ×0.5 (fruiting more continuous than temperate, but still with
     rain: Yunnan, Pasoh's main and second flushes) *(est.)*.
-  - Subtropical: Jun–Oct ×1 (Xalapa's rainy season), else ×0.3 *(est. for Florida, Natal, south
-    Japan: no source found)*.
+  - Subtropical: **May–Oct ×1**, Mar–Apr and Nov ×0.5, Dec–Feb ×0.3 (Xalapa's rainy season
+    Jun–Oct; Florida: "summer" mushrooms Mar–Nov, prime in the rainy summer, "winter" mushrooms
+    late Nov – Feb when wet, water-limited all year: UF/IFAS). *Est. for Natal and south Japan*
+    (rain-led as Florida: Natal's summer rains, Japan's tsuyu and autumn).
   - ×1.5 on rain, drizzle or fog days everywhere *(est.)*.
   - Counted: 80 land days in the temperate, boreal, Mediterranean and polar seasons; the tropical
     and subtropical rows add more, to count when built.
-- **Kinds by ground:** fly agaric (red cap with white warts, 8–20 cm) under birch and conifer;
+- **Kinds by ground** (seasons checked 2026-11-12: fly agaric Aug–Dec, field mushroom May–Nov in
+  the UK, Wild Food UK; host trees field-guide knowledge): fly agaric (red cap with white warts,
+  8–20 cm) under birch and conifer;
   brown boletes (10–20 cm) under conifer, birch and broadleaf; saffron milk caps (orange, 5–10 cm)
   under Mediterranean pines; field and fairy-ring mushrooms (white or tan, 3–8 cm) on grass, on a
   ring's dark band when one is near *(est.: field-guide knowledge)*.
@@ -588,9 +690,16 @@ latitudes; 5a's new latitudes in `places.test.ts` if one exists.
 
 ## Still open
 
-Nothing blocks a build (Answers 2026-11-12). Checked during the phases, not asked:
-- Every *(est.)*: shares, colours, widths, moss factors, firefly counts and wind ramps. Photos and
-  `mesh.mjs` decide colours; renders decide shares.
+Nothing blocks a build. Outside this plan, found while checking 5b:
+- **The Atacama's coastal escarpment isn't drawn.** Real: a 500–1000 m wall of the Coastal
+  Cordillera rises a few km behind most of the Peru–Chile desert coast; ours has 15–45 m hills
+  and a far range on 17% of days. It's realistic and changes every `atacama-peru` day, so it
+  needs its own terrain plan (`arch/COAST.md`, the readers of hill height). Lomas (5b) gain all
+  3 days with it.
+
+Checked during the phases, not asked: every *(est.)*: shares, colours, widths, moss factors,
+firefly counts and wind ramps, bloom-year chances. Photos (0a) and `mesh.mjs` decide colours;
+renders decide shares.
 
 ## Checks (all phases)
 

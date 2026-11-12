@@ -184,7 +184,7 @@ frozen most of the year (polar moss is under snow when `snow` is set).
 
 | Weed | Look | Season | Evidence |
 |---|---|---|---|
-| Green sea lettuce (*Ulva*), upper shore | bright green film on rock, mats on freshwater-influenced or unstable rock | **conflicting**: Mediterranean (at an outfall) max early spring, falling from May; north Patagonia spring–summer; Washington summer bloom washing up; UK upper-shore Ulva expected to thrive in winter | MarLIN biotope 104; Mediterranean, Patagonian, San Juan Island studies (summaries) |
+| Green sea lettuce (*Ulva*), upper shore | bright green film on rock, mats on freshwater-influenced or unstable rock | **spring–summer** (resolved 2026-11-12, §8); earlier summaries conflicted: Mediterranean (at an outfall) max early spring, falling from May; north Patagonia spring–summer; Washington summer bloom washing up; UK upper-shore Ulva expected to thrive in winter | MarLIN biotope 104; Mediterranean, Patagonian, San Juan Island studies (summaries) |
 | Laver (*Porphyra*), littoral fringe | dark purple-brown slippery film high on the rock | **winter weed**: late autumn to spring; may be absent in summer in southern Britain, all year in the cooler north; South Africa big summer and winter biomass; NZ peak spring | MarLIN; UCT thesis; Otago study (summaries) |
 | Giant kelp (*Macrocystis*) canopy | golden-brown mat floating at the surface offshore | California: **maximum in mid-summer**; winter losses grow with wave height; spring recovery slower in warm water | Point Loma 2024 (wave attenuation, max kelp cover mid-summer); Santa Barbara Channel |
 | Sargassum | done (SEASONS.md §2.4) | – | – |
@@ -242,6 +242,16 @@ Biggest visible gains, roughly in order of (days touched × how much it changes 
 | Glow-worm density | glowing females per 100 m of walked path: 0.09 (Hatfield Forest) to 19.2 (One Tree Hill, Basildon); walks start 22:00–23:00 as most stop by midnight; ~78% at unlit sites, in grassy meadows and scrub; −3.5% a year in SE England 2001–18 | Essex Field Club surveys, Gardiner & Didham 2020 |
 | Fungi in the humid tropics | fruiting longer and less seasonal than temperate, but still tracks rain: Pasoh (Malaysia) a main spring flush and a second in late summer–autumn after dry spells; central Amazon lower in dry months; Yunnan tropical sites no significant fluctuation within the rainy season. No source for Florida | CIRAD Bois et Forêts des Tropiques, INPA, Acta Oecologica 2018 |
 | Namaqualand and the Cape West Coast | Namaqualand blooms every year Jul–Sep (orange *Ursinia*, white daisies), timed by winter rain; Postberg (West Coast NP, ~33°S) Aug 1 – Sep 30 every year, strong some years | SANParks flower reports, West Coast NP (Wikipedia), Business Day 2025 |
+| Pacific laver (2026-11-12) | NE Pacific *Pyropia* (*P. columbiensis*, *P. lanceolata* complex, *Porphyra mumfordii*) in the upper mid to high intertidal on bare rock, mainly winter and early spring, Calvert Island BC to Cape Mendocino, a few to midsummer; black seaweed (*P. abbottiae*) collapsed in the 2016 heatwave; Japan: wild thalli emerge in autumn or early winter on high rocky shore (no wild calendar found) | Lindstrom 2015 (Plazi), UBC Expedition, Hakai; FAO nori fact sheet |
+| Sea lettuce season (2026-11-12) | spring–summer: English Channel wrack dominated by *Ulva* in spring and summer; *Ulva* mats bloom in summer; subarctic intertidal algae grow fast from early spring. Resolves §5's conflict (the earlier "max early spring" was an outfall site) | Lemesle et al. 2023 (Luc-sur-Mer), Franklin et al. 2025 (Bournemouth), Murman coast study |
+| Subtropical fungi (2026-11-12) | Florida: "summer" mushrooms Mar–Nov, prime in the rainy summer; "winter" mushrooms late Nov – Feb when wet; water-limited, a 2–3 week dry spell stops fruiting | UF/IFAS (2023 Q&A, 2018, 2020) |
+| Polar fungi (2026-11-12) | Greenland fruiting peaks Jul–Aug (cited in an Arctic insect study); Svalbard ~600 non-lichenised species, ecology tentative | openpolar (UiO journal), explorersweb |
+| Fungi seasons UK (2026-11-12) | fly agaric Aug–Dec; field mushroom (*Agaricus campestris*) May–Nov; host trees not confirmed by what was read | Wild Food UK |
+| More firefly regions (2026-11-12) | Sri Lanka: June best, a breeding season; mangroves a main coastal habitat. Brazil's Atlantic forest: flashing "after sunset during the rainy season" (no months); south-east Brazil's rains from November. Pacific North America: fireflies there are day-active and don't flash (*Ellychnia*); flashing populations rare, east of the Cascades. Kenya: nothing found | Mongabay 2023, Jetwing; Bechara & Stevani 2018, World Land Trust; KUOW (UW entomologist), Xerces |
+| Firefly colour (2026-11-12) | *Photinus pyralis* in vivo 557 nm; the luciferase 560–562 nm; populations vary toward orange | PubMed 16125663, EBI M-CSA, BMC Evol Biol 2018 |
+| Desert bloom timing (2026-11-12) | needs rain in Jun–Jul and over ~15 mm; July 2024's flowers were early (El Niño rain) and not extensive enough to count as a *desierto florido* (Conaf) | Radio Agricultura, CNN Chile, GMA 2024 |
+| Baja bloom (2026-11-12) | Pacific Baja hillsides flower Feb–Mar after good winter rains, absent in the 2011–16 drought (one local account); superblooms need rain spread over months, cool nights, a seed bank; the Gulf side is hyper-arid, blooming after hurricanes | Terra Peninsular (Mediterranews), National Geographic, Arizona-Sonora Desert Museum |
+| Atacama escarpment (2026-11-12) | lomas grow at ~200–1000 m on the coastal hills; our terrain's hills behind the shore are 15–45 m, a far range on 17% of `atacama-peru` land days | `params.ts` (hills, `pickLandform`), measured |
 | Glow-worms in wind and rain (2026-11-12) | females keep glowing; males don't fly, so more unmated females show; counts lower on cold, wet or windy nights | Burgess (IWNHAS, Wight Studies 36), Essex Field Club |
 | Desert bloom latitudes (2026-11-12) | Copiapó–Vallenar, Caldera, Huasco, Chañaral (~26–29°S); a gap in our places | Wikipedia "Desert bloom", UC Chile, Chile Travel 2026 |
 | Lomas (2026-11-12) | Peru's fog hills green Jun–Nov every year, best Sep–Oct; Atiquipa blooms Jul–Nov | Wikipedia "Lomas", TNC, Lachay |
@@ -252,6 +262,24 @@ Biggest visible gains, roughly in order of (days touched × how much it changes 
 
 All read through search summaries unless marked "read".
 
+- Added 2026-11-12 (second round): Pacific laver, https://tb.plazi.org/GgServer/html/EAC2B667E71E59E1A3B26C16A0634F44 ,
+  https://ojs.library.ubc.ca/index.php/expedition/article/view/197333/192107 , https://hakai.org/stories/investigating-the-mysterious-seaweed-die-off ,
+  https://www.fao.org/fishery/docs/CDrom/aquaculture/I1129m/file/en/en_nori.htm ;
+  sea lettuce, https://borea.mnhn.fr/sites/default/files/pdfs/Lemesle%20S.%2C%20Rusig%2C%20A.%20M.%2C%20%26%20Mussio%2C%20I.%202023.%20Local%20scale%20high%20frequency%20monitoring%20of%20seaweed%20strandings%20along%20an%20intertidal%20shore%20of%20the%20English%20Channel%20%28Luc-sur-Mer%2C%20Normandy%20France_0.pdf ,
+  https://eprints.bournemouth.ac.uk/41126/1/Macroalgal%20mat%20species%20diversity%20%20composition%20%20and%20seasonality%20at%20four%20coastal%20sites%20across%20the%20English%20Channel%20La%20Manche%20region.pdf ,
+  https://openpolar.no/Record/ftunigroningenpu:oai:pure.rug.nl:publications%2F445ccad2-d37b-48a6-bfdb-1734dd1581a0 ;
+  fungi, https://blogs.ifas.ufl.edu/news/2023/10/13/florida-mushroom-season-q-a/ , https://blogs.ifas.ufl.edu/orangeco/2018/05/24/mushrooms-are-popping-up-everywhere/ ,
+  https://openpolar.no/Record/ftosloiunivojs:oai:ojs.www.journals.uio.no:article%2F11683 , https://explorersweb.com/northern-mushrooms-myths/ ,
+  https://wildfooduk.com/mushroom-guide/fly-agaric , https://wildfooduk.com/mushroom-guide ;
+  fireflies, https://news.mongabay.com/2023/07/new-research-shines-a-light-on-sri-lanka-fireflies/ , https://www.jetwinghotels.com/islandinsider/spotting-flamingos-at-vankalai-sanctuary/ ,
+  https://zin.ru/ANIMALIA/coleoptera/pdf/bechara_stevani_2018_brazilian_bioluminescent_beetles.pdf , https://www.worldlandtrust.org/news-and-stories/hidden-life-of-regua/ ,
+  https://archive.kuow.org/more-from-kuow/2017-08-31/why-you-dont-see-fireflies-in-the-northwest , https://www.xerces-dev.org/blog/supporting-firefly-conservation-from-coast-to-coast ;
+  firefly colour, https://pubmed.ncbi.nlm.nih.gov/16125663/ , https://www.ebi.ac.uk/thornton-srv/m-csa/entry/128 ,
+  https://bmcevolbiol.biomedcentral.com/articles/10.1186/s12862-018-1251-9/figures/1 ;
+  desert bloom, https://www.radioagricultura.cl/noticias/dato-practico/especialistas-explican-si-habra-desierto-florido-y-por-que-florecio-en-invierno_20240712/ ,
+  https://www.cnnchile.com/pais/desierto-florido-atacama-fotos-registro_20240709/ ;
+  Baja, https://issuu.com/terrapeninsular/docs/mediterranews-15-issue/s/105461 , https://www.nationalgeographic.com/science/article/california-desert-anza-borrego-super-bloom ,
+  https://desertmuseum.org/programs/flw_baja.php
 - Added 2026-11-12: glow-worms in weather, https://iwnhas.org/wp-content/uploads/2025/12/Burgess-Glow-worms-Isle-of-Wight-Wight-Studies-Vol-36.pdf ,
   https://www.essexfieldclub.org.uk/archivetext.php/s/236/o/0168 ; firefly light threshold,
   https://springerlink.bibliotecabuap.elogim.com/content/pdf/10.1007/BF00348090.pdf ;
