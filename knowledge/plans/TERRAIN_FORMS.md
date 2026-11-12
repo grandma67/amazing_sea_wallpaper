@@ -8,7 +8,7 @@ Real coasts differ a lot in what rises behind them, and some have a signature fo
 always shows. This plan makes the backland follow the place, measured from real elevation data,
 and takes over PLAN_BIOMES phase 10 (barrier lagoon, spit, fjord), which was "later, own plan".
 
-Started 2026-11-12 from NATURE_PLAN 5b: Peru's lomas grow at 200–1000 m on the coastal hills,
+Started 2026-11-12 from NATURE_PLAN phase 15 (lomas): Peru's lomas grow at 200–1000 m on the coastal hills,
 which our terrain doesn't draw.
 
 ## Status
@@ -68,7 +68,7 @@ Numbers before shapes: for each place, sample real coasts and measure what rises
   attribution list): record in REFERENCES.md; only derived numbers are committed, never tiles.
 - **Coast points:** Natural Earth 10 m coastline (public domain), clipped to each place's
   latitude range and ocean, ~40 points per place, spaced along the line, fetched into a git-ignored
-  `relief-src/` (same rule as NATURE_PLAN phase 0's `assets-src/`).
+  `relief-src/` (same rule as NATURE_PLAN phase 1's `assets-src/`).
 - **Per point:** the land normal from the coastline's direction; heights along it at 0.1, 0.25,
   0.5, 1, 2, 3, 5, 10, 20 km inland. Derived: max height within 2, 5 and 10 km; distance to the
   100, 300 and 600 m contours; the steepest 500 m of the profile (face slope); a kind:
@@ -139,7 +139,7 @@ profile"):**
   (`seaHaze.ts`: measure on a render with `haze.mjs` first, CLAUDE.md "Matching what an existing
   pass draws").
 - **Colour:** the face is bare rock and scree: the biome's rock colours with the desert's ground
-  colour; lomas tint (NATURE_PLAN 5b) by height in the season.
+  colour; lomas tint (NATURE_PLAN phase 15) by height in the season.
 - **Grid:** the polar grid reaches 120 km with cells ~0.3–0.6% of r: at 3 km that's ~10–20 m,
   enough for a 700 m face. Check the silhouette for stair-steps with `--w 320` first.
 - **Counts first:** land days in `atacama-peru` (10 in the test set) and how many show the wall in

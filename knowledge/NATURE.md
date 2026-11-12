@@ -75,7 +75,7 @@ often around Copiapó, Huasco and Caldera (UC Chile); the 2026 season's sectors 
 Freirina, Vallenar, Caldera, Copiapó and Chañaral (Chile Travel). That's ~26–29°S, **south of
 `atacama-peru`'s −27° edge and north of `central-chile`'s −30°**: a gap in the place table.
 Namaqualand (Kleinzee 29.7°S, Hondeklip Bay 30.3°S) and the Sandveld (to ~32.5°S) are likewise
-between `namibia` (−29°) and `cape` (−33°). NATURE_PLAN 5a closes both.
+between `namibia` (−29°) and `cape` (−33°). NATURE_PLAN phase 2 closes both.
 
 | Where | When | How often | Evidence |
 |---|---|---|---|
@@ -146,7 +146,7 @@ Hopkins et al. 2015); surveys still note lower counts on cold, wet or windy nigh
 Club, citing Alexander 1992). Light starts the display (*Photinus scintillans* at a threshold
 illuminance; earlier, at lower light, when cool).
 
-**Recount (2026-11-12, NATURE_PLAN phase 3 table and the glow-worm dusk rule):** 11 eligible
+**Recount (2026-11-12, NATURE_PLAN phase 13 table and the glow-worm dusk rule):** 11 eligible
 land nights of 1095; 2 of the 6 `synchronous` have mangroves drawn; ~4 after the wind rule.
 
 **Eligible days (first count)** (`params.mjs --stats`): land, night or blue hour, in temperate,
