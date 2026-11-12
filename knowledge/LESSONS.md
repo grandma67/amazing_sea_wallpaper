@@ -18,6 +18,13 @@ tool gotchas: TOOLS.md.
   photo (`asset.mjs --anchor`). A far anchor fails: turf 1 km off is hazed pale, and moorland
   "grass" is often dry straw. White paper behind a specimen is the best anchor found.
 
+- **Ask the schema, don't guess field names** (NATURE_PLAN phase 2): `coast.rockShore` (it's
+  `coast.rock`) and `timeOfDay === "morning"` (no such value) each kept 0 days without an error, and
+  each cost a full run, one of them a 2-minute `--rendered` one. `params.mjs --schema PREFIX`.
+- **A count you'll need twice is a tool:** the same "trees placed, in flower, nearest" expression was
+  written four times in phases 3–4 (one failed on `require` in an ESM eval). It's `params.mjs
+  --count` now.
+
 ## Debugging approach
 
 - **Reflection on sea ice (0.114–0.116, about 14 render batches against ~9 allowed).** Most of it was process, not missing knowledge: required docs grepped rather than read, a nearby mesh reused against the photos just viewed, real days rendered only after several rounds on specs, a guess at a cause instead of finding every term behind it, and the scope raised after building rather than when the day count showed it. What was missing is now tools: `snapshot --where --sample`, `--seeds`, `mesh --material --scale --sun`, `pdftotext`, and the checklist in CLAUDE.md.

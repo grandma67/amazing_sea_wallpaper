@@ -77,13 +77,16 @@ function pieces(object: Object3D, camera: Camera, width: number, height: number)
   return out
 }
 
-/** Report on everything under `props`, by each object's userData.prop. */
-export function reportProps(props: Object3D, camera: Camera, width: number, height: number): Record<string, PropReport> {
+/** Report on everything under `props`, by each object's userData.prop, or by
+ * `by(object)` within it ("kind/key", for scripts/params.mjs --count). */
+export function reportProps(props: Object3D, camera: Camera, width: number, height: number, by?: (object: Object3D) => unknown): Record<string, PropReport> {
   props.updateMatrixWorld(true)
   camera.updateMatrixWorld()
   const report: Record<string, PropReport> = {}
   for (const object of props.children) {
-    const kind = (object.userData.prop as string | undefined) ?? 'other'
+    const prop = (object.userData.prop as string | undefined) ?? 'other'
+    const key = by?.(object)
+    const kind = key == null || key === '' ? prop : `${prop}/${String(key)}`
     const entry = (report[kind] ??= { placed: 0, inFrame: 0, nearest: -1, box: null })
     entry.placed += object instanceof InstancedMesh ? object.count : 1
     const found = pieces(object, camera, width, height)

@@ -12,9 +12,13 @@
 //   node scripts/diff.mjs --scene SPEC --ref HEAD --off PATCH --off-here
 //                     REF as it was (off) vs this tree with PATCH (on): does a new
 //                     off switch give back the old image? Expect "identical".
+//   node scripts/diff.mjs --scene SPEC --ref HEAD --off PATCH --off-both
+//                     REF with PATCH vs this tree with PATCH: when REF already has the
+//                     feature (a later phase of it), does its switch still give back
+//                     REF's image with it off? Expect "identical".
 //
 // --off is merged deeply into each spec (with --ref it patches only the ref side,
-// or with --off-here only this tree's).
+// with --off-here only this tree's, with --off-both both).
 // --w --h --frames --url   passed to snapshot.mjs (renders go to OUT/off, OUT/on)
 // --keep-camera     "on" first, then each "off" stands at its ground height
 //                   (camera.groundM): for terrain changes, which move the camera
@@ -73,9 +77,11 @@ const render = ['w', 'h', 'frames', 'url'].flatMap(k => {
   return v == null ? [] : [`--${k}`, v]
 })
 const offHere = flag('off-here')
+const offBoth = flag('off-both')
 rejectUnknown()
 rejectPositional('diff.mjs takes only options')
-if (offHere && (refArg == null || offArg == null)) throw new Error('--off-here needs --ref REF and --off PATCH')
+if ((offHere || offBoth) && (refArg == null || offArg == null)) throw new Error('--off-here and --off-both need --ref REF and --off PATCH')
+if (offHere && offBoth) throw new Error('give --off-here or --off-both, not both')
 if (whereArg != null) {
   if (sceneArg != null) throw new Error('give --scene or --where, not both')
   const asked = ['--where', whereArg, '--sample', sampleArg, ...(spreadArg != null ? ['--spread', spreadArg] : [])]
@@ -100,7 +106,7 @@ if (sceneArg != null) {
     const { parseSceneSpec } = await checker.ssrLoadModule('/src/sceneSpec.ts')
     for (const s of specs) {
       parseSceneSpec(s)
-      if (refArg == null || offHere) parseSceneSpec(merge(s, off))
+      if (refArg == null || offHere || offBoth) parseSceneSpec(merge(s, off))
     }
   } finally {
     await checker.close()
@@ -110,11 +116,12 @@ if (sceneArg != null) {
   await mkdir(outDir, { recursive: true })
   const named = specs.map((s, i) => ({ ...s, name: s.name ?? s.date ?? `scene-${i + 1}` }))
   // --off-here: this tree carries the patch, the ref renders the specs as they are.
-  await writeFile(join(outDir, 'on.json'), JSON.stringify(offHere ? named.map(s => merge(s, off)) : named))
+  // --off-both: both sides carry it.
+  await writeFile(join(outDir, 'on.json'), JSON.stringify(offHere || offBoth ? named.map(s => merge(s, off)) : named))
   const snapshot = (dir, file) => {
     const atRef = refArg != null && file === 'off.json' ? ['--ref', refArg] : []
     const run = spawnSync('node', ['scripts/snapshot.mjs', '--out', dir, ...render, ...atRef, '--scene', join(outDir, file)], { encoding: 'utf8' })
-    process.stdout.write(run.stdout.split('\n').filter(l => /\.jpg|⚠|rror/.test(l)).map(l => `${l}\n`).join(''))
+    process.stdout.write(run.stdout.split('\n').filter(l => /\.jpg|⚠|rror|left out/.test(l)).map(l => `${l}\n`).join(''))
     if (run.status !== 0) throw new Error(`snapshot.mjs failed:\n${run.stderr}`)
   }
   if (onFirst) snapshot(dirB, 'on.json')

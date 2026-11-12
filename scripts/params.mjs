@@ -21,6 +21,19 @@
 // --spread EXPR    what to spread a --sample over: 'p => …', any value.
 // --expect EXPR    over the place table, weighted by share of days: numbers
 //                  averaged, the rest counted, null skips the place. No sampling.
+// --weight EXPR    with --expect: weigh each place by its share of days × 'pl => …'
+//                  as well: a share on a subset of days ("sand on beach days": weight
+//                  by pl.coast.beach). Prints the subset's share of all days.
+// --schema PREFIX  every field path over the test days (or the given days/spec), with
+//                  its type, values (strings, ≤ 12) or range (numbers), and on how many
+//                  days it's set: for writing --where without guessing names. PREFIX
+//                  narrows ("coast", "props.debris"); "all" for everything.
+// --count KINDS    what a prop places, by piece (implies --rendered): per kind
+//                  (comma-separated, or all) and sub-kind (userData.plantKind, .kind,
+//                  or --by 'o => …' over each mesh, e.g. 'o => o.userData.blossom'),
+//                  pieces placed and in frame and the nearest in frame. Over many days
+//                  (> --limit, default 12 here): only the summary (days with any in
+//                  frame, median and max in frame). For "is it in frame on real days".
 // --ref REF        compare with a commit (temporary worktree): days changed per
 //                  top-level param; with --stats, shares side by side (⚠ ≥ 5 pts).
 // --changed EXPR   with --ref: count 'p => …' over the changed days (now's params).
@@ -90,17 +103,24 @@ const changedArg = option('changed', null)
 const list = flag('list')
 const lineArg = option('line', null)
 const projectArg = option('project', null)
+const weightArg = option('weight', null)
+const schemaArg = option('schema', null)
+const countArg = option('count', null)
+const byArg = option('by', null)
 // --project: only points at least this high above the sea (m): a face, not a skirt.
 const aboveArg = option('above', null)
 const above = aboveArg == null ? null : Number(aboveArg)
-const rendered = flag('rendered') || projectArg != null
+const rendered = flag('rendered') || projectArg != null || countArg != null
 const rows = Number(option('rows', 12))
 const skyArg = option('sky', 'aurora,glow')
 const jitters = Number(option('jitters', 8))
-const limit = Number(option('limit', ref != null ? 20 : 1e9))
+const limitArg = option('limit', null)
+const limit = Number(limitArg ?? (ref != null ? 20 : 1e9))
 const sample = Number(option('sample', 0))
 const spreadArg = option('spread', 'p => [p.place.id, p.coast.type, p.timeOfDay]')
 rejectUnknown()
+if (weightArg != null && expect == null) throw new Error('--weight goes with --expect')
+if (byArg != null && countArg == null) throw new Error('--by goes with --count')
 
 const given = expandDates(args)
 const FRAMING_CHECKS = 40
@@ -327,10 +347,11 @@ function printChanges(pairs, sha) {
 /** Weighted over the place table: numbers averaged, the rest counted. */
 function printExpect(places) {
   const of = fn(expect)
-  const rows = places.map(pl => [of(pl), pl.weight]).filter(([v]) => v != null)
+  const by = fn(weightArg) ?? (() => 1)
+  const rows = places.map(pl => [of(pl), pl.weight * by(pl)]).filter(([v, w]) => v != null && w > 0)
   const total = rows.reduce((t, [, w]) => t + w, 0)
   const share = places.reduce((t, pl) => t + pl.weight, 0)
-  console.log(`${rows.length} of ${places.length} places, ${(100 * total / share).toFixed(1)}% of days`)
+  console.log(`${rows.length} of ${places.length} places, ${(100 * total / share).toFixed(1)}% of days${weightArg != null ? ` (weighted by ${weightArg})` : ''}`)
   if (rows.every(([v]) => typeof v === 'number')) {
     console.log(`weighted mean ${(rows.reduce((t, [v, w]) => t + v * w, 0) / total).toFixed(4)}`)
     return
@@ -394,6 +415,102 @@ if (lineArg != null) {
 if (expect != null) {
   try {
     printExpect(here.places)
+  } finally {
+    await here.server.close()
+  }
+  process.exit(0)
+}
+if (schemaArg != null) {
+  // Every leaf path: types, values or range, days set.
+  const paths = new Map()
+  const note = (path, v) => {
+    const e = paths.get(path) ?? { days: new Set(), types: new Set(), strings: new Map(), min: Infinity, max: -Infinity }
+    paths.set(path, e)
+    return e
+  }
+  const walk = (v, path, date, depth) => {
+    if (depth > 6) return
+    if (Array.isArray(v)) {
+      const e = note(path)
+      e.days.add(date)
+      e.types.add(`array`)
+      for (const x of v.slice(0, 40)) walk(x, `${path}[]`, date, depth + 1)
+      return
+    }
+    if (v != null && typeof v === 'object') {
+      for (const [k, x] of Object.entries(v)) walk(x, path === '' ? k : `${path}.${k}`, date, depth + 1)
+      return
+    }
+    const e = note(path)
+    e.days.add(date)
+    e.types.add(v === null ? 'null' : typeof v)
+    if (typeof v === 'string' || typeof v === 'boolean') e.strings.set(String(v), (e.strings.get(String(v)) ?? 0) + 1)
+    if (typeof v === 'number') (e.min = Math.min(e.min, v)), (e.max = Math.max(e.max, v))
+  }
+  try {
+    let total = 0
+    for (const { spec: raw } of await specs()) {
+      here.parseSceneSpec(raw)
+      const { spec, dates } = datesFor(raw)
+      for (const p of dates.map(d => here.day(d, spec)).filter(p => keep(p))) {
+        total++
+        walk(p, '', p.date + total, 0)
+      }
+    }
+    const prefix = schemaArg === 'all' ? '' : schemaArg
+    const num = v => (Math.abs(v) >= 100 || Number.isInteger(v) ? String(Math.round(v * 10) / 10) : v.toPrecision(3))
+    console.log(`${total} days; path  set on  type  values or range`)
+    for (const [path, e] of [...paths].filter(([k]) => k.startsWith(prefix)).sort((a, b) => a[0].localeCompare(b[0]))) {
+      const types = [...e.types].join('|')
+      const values =
+        e.strings.size > 0
+          ? [...e.strings].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([v]) => JSON.stringify(v)).join(' ') + (e.strings.size > 12 ? ` … (${e.strings.size})` : '')
+          : Number.isFinite(e.min)
+            ? `${num(e.min)} … ${num(e.max)}`
+            : ''
+      console.log(`${path}  ${e.days.size === total ? 'all' : `${e.days.size}/${total}`}  ${types}  ${values}`)
+    }
+  } finally {
+    await here.server.close()
+  }
+  process.exit(0)
+}
+if (countArg != null) {
+  const { createProps } = await here.mod('/src/props/index.ts')
+  const { reportProps } = await here.mod('/src/props/report.ts')
+  const by = fn(byArg) ?? (o => o.userData.plantKind ?? o.userData.kind ?? '')
+  const perDay = Number(limitArg ?? 12)
+  try {
+    for (const { name, spec: raw } of await specs()) {
+      here.parseSceneSpec(raw)
+      const { spec, dates } = datesFor(raw)
+      if (name != null) console.log(`== ${name}`)
+      const days = dates.map(d => here.day(d, spec)).filter(p => keep(p))
+      const summary = new Map()
+      for (const p of days) {
+        const report = reportProps(createProps(p.ctx), p.ctx.camera, 1920, 1080, by)
+        const wanted = countArg.split(',')
+        const rowsHere = Object.entries(report).filter(([k]) => countArg === 'all' || wanted.includes(k.split('/')[0]))
+        if (days.length <= perDay) {
+          console.log(`${p.date}  ${p.place.id}, ${p.coast?.type} ${p.coast?.composition}`)
+          if (rowsHere.length === 0) console.log(`  nothing placed`)
+          for (const [k, r] of rowsHere) console.log(`  ${k.padEnd(28)} ${String(r.placed).padStart(5)} placed ${String(r.inFrame).padStart(5)} in frame   nearest ${r.nearest < 0 ? '-' : `${r.nearest} m`}`)
+        }
+        for (const [k, r] of rowsHere) {
+          const s = summary.get(k) ?? { days: 0, seen: 0, inFrame: [], nearest: Infinity }
+          s.days++
+          if (r.inFrame > 0) s.seen++
+          s.inFrame.push(r.inFrame)
+          if (r.nearest >= 0) s.nearest = Math.min(s.nearest, r.nearest)
+          summary.set(k, s)
+        }
+      }
+      console.log(`${days.length} days: kind  placed on  in frame on  in frame median / max  nearest`)
+      for (const [k, s] of [...summary].sort((a, b) => a[0].localeCompare(b[0]))) {
+        const sorted = [...s.inFrame].sort((a, b) => a - b)
+        console.log(`  ${k.padEnd(28)} ${String(s.days).padStart(5)} ${String(s.seen).padStart(10)}   ${String(sorted[Math.floor(sorted.length / 2)]).padStart(6)} / ${sorted.at(-1)}   ${Number.isFinite(s.nearest) ? `${s.nearest} m` : '-'}`)
+      }
+    }
   } finally {
     await here.server.close()
   }

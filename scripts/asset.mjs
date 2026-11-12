@@ -4,8 +4,14 @@
 //
 //   node scripts/asset.mjs fetch SOURCE [--id ID]
 //   node scripts/asset.mjs measure SOURCE|ID [--id ID] [--k 3] [--region X0,Y0,X1,Y1]
-//        [--name NAME] [--petal] [--min-share 0.02] [--anchor NAME=R,G,B]
+//        [--name NAME] [--petal] [--min-share 0.02] [--anchor NAME=R,G,B] [--hue H0,H1[,S]]
+//   node scripts/asset.mjs grid SOURCE|ID      the image with a labelled 10% grid
+//                                              (assets-src/<id>/grid.jpg): read --region off it
 //   node scripts/asset.mjs list
+//   node scripts/asset.mjs replay [ID]         measure again everything recorded in
+//                                              scripts/asset-measures.json (committed; every
+//                                              measure records its options there), fetching
+//                                              what's missing: assets-src/ isn't committed
 //
 // SOURCE:
 //   polyhaven:<id>            a Poly Haven texture or model (CC0); size from its metadata
@@ -29,6 +35,11 @@
 // leaves: --name grass --region …), then --anchor grass=0.08,0.13,0.05 scales
 // this region's colours by known ÷ measured luminance (Rec. 709 Y) of that
 // region. Hue stays the photo's.
+//
+// --hue H0,H1[,S]: keep only pixels whose hue is in H0…H1 degrees (wrapping:
+// 300,20 is magenta to orange) and HSV saturation ≥ S (default 0.3): the
+// flowers alone, not the sunlit leaves and sky glints a k-means cluster mixes
+// in (phase 3's wattle). Then --k 1 or 2 gives their colour.
 
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -52,13 +63,40 @@ const licenceArg = option('licence', null)
 const authorArg = option('author', null)
 const pageArg = option('page', null)
 const anchorArg = option('anchor', null)
+const hueArg = option('hue', null)
 rejectUnknown()
 const [command, source, ...rest] = args
 if (rest.length > 0) throw new Error(`unexpected arguments ${rest.join(' ')}`)
-const region = regionArg == null ? [0, 0, 1, 1] : regionArg.split(',').map(Number)
-if (region.length !== 4 || region.some(v => !(v >= 0 && v <= 1)) || region[0] >= region[2] || region[1] >= region[3])
-  throw new Error('--region X0,Y0,X1,Y1 in 0..1, X0 < X1, Y0 < Y1')
-if (!(k >= 1 && k <= 12 && Number.isInteger(k))) throw new Error('--k: an integer 1..12')
+const MANIFEST = resolve('scripts/asset-measures.json')
+
+/** A measure's options, checked: from the command line or the manifest. */
+function measureOptions(o) {
+  const region = o.region ?? [0, 0, 1, 1]
+  if (region.length !== 4 || region.some(v => !(v >= 0 && v <= 1)) || region[0] >= region[2] || region[1] >= region[3])
+    throw new Error('--region X0,Y0,X1,Y1 in 0..1, X0 < X1, Y0 < Y1')
+  if (!(o.k >= 1 && o.k <= 12 && Number.isInteger(o.k))) throw new Error('--k: an integer 1..12')
+  if (o.hue != null && (o.hue.length < 2 || o.hue.length > 3 || o.hue.some(v => !Number.isFinite(v)))) throw new Error('--hue H0,H1[,S]: degrees, and a saturation 0..1')
+  return { ...o, region }
+}
+const cli = measureOptions({
+  id: idArg,
+  k,
+  region: regionArg == null ? null : regionArg.split(',').map(Number),
+  name,
+  petal,
+  minShare,
+  anchor: anchorArg,
+  hue: hueArg == null ? null : hueArg.split(',').map(Number)
+})
+
+/** Hue (degrees) and HSV saturation of an sRGB pixel (0..1). */
+function hueSat(r, g, b) {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
+  if (d === 0) return [0, 0]
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+  return [(h * 60 + 360) % 360, d / max]
+}
+const inHue = ([h0, h1], h) => (h0 <= h1 ? h >= h0 && h <= h1 : h >= h0 || h <= h1)
 
 async function get(url, as = 'json') {
   let res
@@ -239,8 +277,10 @@ function clusters(px, k) {
   return label
 }
 
-async function measure(src) {
-  const known = idArg ?? (existsSync(join(ROOT, src)) ? src : null)
+async function measure(src, o) {
+  const { k, region, name, petal, minShare, hue } = o
+  const anchorArg = o.anchor
+  const known = o.id ?? (existsSync(join(ROOT, src)) ? src : null)
   const { id, dir, record } = known != null && existsSync(join(ROOT, known, 'source.json'))
     ? { id: known, dir: join(ROOT, known), record: JSON.parse(await readFile(join(ROOT, known, 'source.json'), 'utf8')) }
     : await fetchSource(src)
@@ -252,7 +292,7 @@ async function measure(src) {
 
   const [x0, y0, x1, y1] = [region[0] * w, region[1] * h, region[2] * w, region[3] * h].map(Math.round)
   const kept = []
-  let clipped = 0, transparent = 0, total = 0
+  let clipped = 0, transparent = 0, offHue = 0, total = 0
   for (let y = y0; y < y1; y++)
     for (let x = x0; x < x1; x++) {
       const i = (y * w + x) * 4
@@ -260,6 +300,10 @@ async function measure(src) {
       if (alpha != null && alpha[i] < 128) { transparent++; continue }
       const r = rgba[i], g = rgba[i + 1], b = rgba[i + 2]
       if (r >= 250 || g >= 250 || b >= 250 || (r <= 5 && g <= 5 && b <= 5)) { clipped++; continue }
+      if (hue != null) {
+        const [hh, ss] = hueSat(r / 255, g / 255, b / 255)
+        if (!inHue(hue, hh) || ss < (hue[2] ?? 0.3)) { offHue++; continue }
+      }
       kept.push(r / 255, g / 255, b / 255)
     }
   const px = Float32Array.from(kept)
@@ -304,16 +348,62 @@ async function measure(src) {
   const all = { share: 1, mean: [0, 1, 2].map(c => r4(stats.reduce((s, st) => s + st.s[c], 0) / n)) }
 
   saved.sizeM = record.gltfBoxM ?? record.sizeM ?? null
-  saved.regions[name] = { region, k, petal, pixels: n, anchor, clippedShare: +(clipped / total).toFixed(3), transparentShare: +(transparent / total).toFixed(3), mean: all.mean, clusters: result }
+  saved.regions[name] = { region, k, petal, hue, pixels: n, anchor, offHueShare: +(offHue / total).toFixed(3), clippedShare: +(clipped / total).toFixed(3), transparentShare: +(transparent / total).toFixed(3), mean: all.mean, clusters: result }
   await writeFile(file, JSON.stringify(saved, null, 2) + '\n')
 
   console.log(`${id}  ${record.kind}, ${record.licence}${record.author ? `, ${record.author}` : ''}${record.calibrated ? '' : ' (photo: exposure and white balance uncalibrated)'}`)
   console.log(`  ${record.page}`)
   if (saved.sizeM != null) console.log(`  size ${saved.sizeM.join(' × ')} m${record.gltfBoxM ? ' (glTF box)' : ''}`)
-  console.log(`  ${name}: ${n} px in [${region.join(', ')}], clipped ${(clipped / total * 100).toFixed(1)}%${alpha ? `, transparent ${(transparent / total * 100).toFixed(1)}%` : ''}${petal ? ', ×0.8 petal' : ''}${anchor ? `, ×${anchor.factor} by ${anchor.region}` : ''}`)
+  console.log(`  ${name}: ${n} px in [${region.join(', ')}], clipped ${(clipped / total * 100).toFixed(1)}%${alpha ? `, transparent ${(transparent / total * 100).toFixed(1)}%` : ''}${hue ? `, hue ${hue[0]}–${hue[1]}° (${(offHue / total * 100).toFixed(1)}% left out)` : ''}${petal ? ', ×0.8 petal' : ''}${anchor ? `, ×${anchor.factor} by ${anchor.region}` : ''}`)
   console.log(`  mean linear [${all.mean.join(', ')}]`)
   for (const c of result) console.log(`  ${(c.share * 100).toFixed(1).padStart(5)}%  ${c.srgb}  linear [${c.mean.join(', ')}]  ± [${c.spread.join(', ')}]`)
   console.log(`  → ${file}`)
+
+  // Recorded, so it can be measured again (assets-src/ isn't committed).
+  const manifest = existsSync(MANIFEST) ? JSON.parse(await readFile(MANIFEST, 'utf8')) : []
+  const entry = { source: record.source, id, name, k, region, ...(petal ? { petal } : {}), ...(minShare !== 0.02 ? { minShare } : {}), ...(anchorArg != null ? { anchor: anchorArg } : {}), ...(hue != null ? { hue } : {}) }
+  const at = manifest.findIndex(e => e.id === id && e.name === name)
+  if (at >= 0) manifest[at] = entry
+  else manifest.push(entry)
+  await writeFile(MANIFEST, '[\n' + manifest.map(e => '  ' + JSON.stringify(e)).join(',\n') + '\n]\n')
+}
+
+/** The image with a labelled grid every 10%, to read a --region off. */
+async function grid(src) {
+  const known = idArg ?? (existsSync(join(ROOT, src)) ? src : null)
+  const { dir } = known != null && existsSync(join(ROOT, known, 'source.json')) ? { dir: join(ROOT, known) } : await fetchSource(src)
+  const image = ['albedo.jpg', 'photo.jpg'].map(f => join(dir, f)).find(existsSync)
+  const browser = await chromium.launch()
+  const page = await browser.newPage()
+  const data = await page.evaluate(async url => {
+    const img = await createImageBitmap(await (await fetch(url)).blob())
+    const scale = Math.min(1, 1400 / img.width)
+    const w = Math.round(img.width * scale), h = Math.round(img.height * scale)
+    const c = new OffscreenCanvas(w, h)
+    const g = c.getContext('2d')
+    g.drawImage(img, 0, 0, w, h)
+    g.font = `${Math.max(12, Math.round(w / 70))}px sans-serif`
+    for (let i = 1; i < 10; i++) {
+      for (const [x0, y0, x1, y1] of [[(i / 10) * w, 0, (i / 10) * w, h], [0, (i / 10) * h, w, (i / 10) * h]]) {
+        g.strokeStyle = i === 5 ? 'rgba(255,255,0,0.9)' : 'rgba(255,255,255,0.7)'
+        g.lineWidth = i === 5 ? 2 : 1
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke()
+      }
+      g.fillStyle = 'black'
+      g.fillRect((i / 10) * w + 2, 2, g.font.length * 1.4, 18); g.fillRect(2, (i / 10) * h + 2, g.font.length * 1.4, 18)
+      g.fillStyle = 'white'
+      g.fillText((i / 10).toFixed(1), (i / 10) * w + 4, 16); g.fillText((i / 10).toFixed(1), 4, (i / 10) * h + 16)
+    }
+    const blob = await c.convertToBlob({ type: 'image/jpeg', quality: 0.85 })
+    const bytes = new Uint8Array(await blob.arrayBuffer())
+    let s = ''
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+    return btoa(s)
+  }, `data:image/jpeg;base64,${(await readFile(image)).toString('base64')}`)
+  await browser.close()
+  const out = join(dir, 'grid.jpg')
+  await writeFile(out, Buffer.from(data, 'base64'))
+  console.log(out)
 }
 
 if (command === 'fetch') {
@@ -322,7 +412,17 @@ if (command === 'fetch') {
   console.log(`${id}: ${record.kind}, ${record.licence}, ${record.author}\n  ${record.page}\n  → ${dir}`)
 } else if (command === 'measure') {
   if (source == null && idArg == null) throw new Error('measure SOURCE|ID')
-  await measure(source ?? idArg)
+  await measure(source ?? idArg, cli)
+} else if (command === 'grid') {
+  if (source == null && idArg == null) throw new Error('grid SOURCE|ID')
+  await grid(source ?? idArg)
+} else if (command === 'replay') {
+  const manifest = existsSync(MANIFEST) ? JSON.parse(await readFile(MANIFEST, 'utf8')) : []
+  for (const e of manifest.filter(e => source == null || e.id === source)) {
+    // The source first (fetches it if missing), then by id.
+    if (!existsSync(join(ROOT, e.id, 'source.json'))) await fetchSource(e.source)
+    await measure(e.id, measureOptions({ minShare: 0.02, petal: false, anchor: null, hue: null, ...e }))
+  }
 } else if (command === 'list') {
   if (!existsSync(ROOT)) process.exit(0)
   for (const id of (await readdir(ROOT)).sort()) {
@@ -333,5 +433,5 @@ if (command === 'fetch') {
     console.log(`${id.padEnd(40)} ${r.kind.padEnd(8)} ${r.licence.padEnd(14)} ${m.join(', ')}`)
   }
 } else {
-  throw new Error('command: fetch, measure or list (see the header)')
+  throw new Error('command: fetch, measure, grid, list or replay (see the header)')
 }

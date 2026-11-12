@@ -79,7 +79,45 @@ counted; null leaves a place out. Use it for a test's `expectShare` target inste
 ```sh
 node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null'   # 0.46
 node scripts/params.mjs --stats 'p => p.coast.reef != null' --where 'p => p.placeData.reef > 0.5'
+# A share on a subset of days: weigh each place by its beach share too (sand on beach days: 0.645, first climate).
+node scripts/params.mjs --expect 'pl => src.beach.materialChances(pl, Object.keys(pl.climate)[0]).sand / 100' --weight 'pl => (pl.coast.beach ?? 0) + 0.5 * (pl.coast["tidal-flat"] ?? 0)'
 ```
+
+`--weight 'pl => …'` multiplies each place's share of days, and the first line says what share of
+all days the weighted subset is. A test over `allParams()` filtered to that subset uses the result as
+its `expectShare` target.
+
+### Field names and values: `--schema`
+
+`--schema PREFIX` walks the days (the test days, or given dates and `--scene`) and prints every field
+path under PREFIX (`all` for everything) with how many days set it, its type and its values (strings,
+the 12 commonest) or range (numbers). Use it before writing `--where`: a wrong name or value
+(`coast.rockShore` for `coast.rock`, `timeOfDay === "morning"`) silently keeps 0 days.
+
+```sh
+node scripts/params.mjs --schema coast.rock      # coast.rock.kind  280/1095  string  "platform" "boulder" "cliff"
+node scripts/params.mjs --schema timeOfDay       # the six values
+node scripts/params.mjs --schema props.debris    # the props' choices too
+```
+
+### How many in frame: `--count`
+
+`--count KINDS` builds the props on the params the page renders (implies `--rendered`) and counts,
+per prop kind (`props/index.ts` names, comma-separated, or `all`) and sub-kind (`userData.plantKind`
+or `.kind`, or `--by 'o => …'` over each mesh), pieces placed, in frame (box overlaps the frame) and
+the nearest in frame. Up to `--limit` days (default 12) it prints each day; always a summary: on how
+many days each sub-kind was placed and was in frame, the median and max in frame, the nearest.
+
+```sh
+# Flowering trees on Northland at Christmas (blossom twins carry userData.blossom):
+node scripts/params.mjs --count vegetation --by 'o => [o.userData.plantKind, o.userData.blossom].filter(Boolean).join(" ")' --scene '{"place":"new-zealand-north","coast":"beach"}' 2025-12-25
+# On real days: how often is a flowering broadleaf in frame at all?
+node scripts/params.mjs --count vegetation --by 'o => o.userData.blossom ?? ""' --where 'p => src.phenology.phenologyFor(p).bloom.some(b => b.row.plant === "broadleaf")'
+```
+
+Run it before the first render of anything placed (CLAUDE.md §1): phase 4's flamboyant took a render
+round to find that tropical days place few broadleaves (none on 6 of 8 days); `--count` says so in
+seconds. ~0.2 s a day.
 
 ### What the camera sees: `p.view`
 

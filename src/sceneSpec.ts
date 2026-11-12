@@ -5,7 +5,7 @@ import type { EclipseType } from './celestial'
 import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './biome'
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
-import type { BloomKind } from './phenology'
+import { BLOOM_KINDS, type BloomKind } from './phenology'
 import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
 import { ROCK_KINDS, type RockKind } from './rockShore'
 import type { SeaIceForce } from './seaIce'
@@ -385,7 +385,7 @@ const SPEC = object({
     vegetation: listOf(oneOf(...PLANTS)),
     phenology: boolean,
     leafLitter: boolean,
-    bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf('rock-rose', 'gorse', 'wattle', 'flamboyant', 'pohutukawa'))(value, path)),
+    bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf(...BLOOM_KINDS))(value, path)),
     iceFoot: boolean,
     seaIce: boolean,
     debris: object(

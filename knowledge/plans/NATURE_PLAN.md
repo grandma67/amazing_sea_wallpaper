@@ -186,8 +186,9 @@ are CC-BY / CC-BY-SA on Commons (colours only, nothing redistributed); scans CC0
 | Laver (8) | `[0.073, 0.028, 0.026]`, wet; red-brown | `[0.05, 0.025, 0.03]` | anchor: granite = `grey` sand `[0.26, 0.24, 0.22]` *(est.)* | `wc_membranous_porphyra_umbilicalis_and_wrack_laverbread_irvine_` |
 | Ursinia (16) | `[0.61, 0.19, 0.02]`; plant 0.43 × 0.17 × 0.34 m | `[0.75, 0.25, 0.02]` | cal. | `ph_flower_ursinia` |
 
-**Sources and how to measure them again** (`assets-src/` is git-ignored; each command fetches
-what's missing, Commons at ~1 request a second):
+**Sources, and measuring them again:** every measure's options are in
+`scripts/asset-measures.json` (committed; `assets-src/` is git-ignored), and `node scripts/asset.mjs
+replay [ID]` fetches what's missing and measures them all again (checked: the same numbers).
 
 - `acg_moss002`: [view?id=Moss002](https://ambientcg.com/view?id=Moss002) (CC0, ambientCG (Lennart Demes))
 - `ph_bark_bluegum`: [bark_bluegum](https://polyhaven.com/a/bark_bluegum) (CC0, Dimitrios Savva)
@@ -211,33 +212,6 @@ what's missing, Commons at ~1 request a second):
 - `wc_metrosideros_excelsa_kz05`: [Metrosideros_excelsa_kz05.jpg](https://commons.wikimedia.org/wiki/File:Metrosideros_excelsa_kz05.jpg) (CC BY-SA 4.0, Krzysztof Ziarnek, Kenraiz)
 - `wc_ulex_europaeus_flowers`: [Ulex_europaeus_flowers.jpg](https://commons.wikimedia.org/wiki/File:Ulex_europaeus_flowers.jpg) (CC BY-SA 4.0, PaleCloudedWhite)
 - `wc_ulex_europaeus_mynydd_carningli_flowers`: [Ulex_europaeus_Mynydd_Carningli_flowers.jpg](https://commons.wikimedia.org/wiki/File:Ulex_europaeus_Mynydd_Carningli_flowers.jpg) (CC BY 4.0, Kieran Roy Powell)
-
-```sh
-node scripts/asset.mjs measure polyhaven:eucalyptus_bark --name bark
-node scripts/asset.mjs measure polyhaven:bark_bluegum --name bark
-node scripts/asset.mjs measure ambientcg:Moss002 --name moss
-node scripts/asset.mjs measure polyhaven:moss_01 --name moss
-node scripts/asset.mjs measure polyhaven:lichen_rock --name lichen --k 4
-node scripts/asset.mjs measure polyhaven:mossy_rock --name moss --k 4
-node scripts/asset.mjs measure polyhaven:flower_ursinia --name flower --k 4
-node scripts/asset.mjs measure 'commons:File:Cistus albidus flowers.jpg' --name petal --petal --k 4 --region 0.05,0.1,0.95,0.7
-node scripts/asset.mjs measure 'commons:File:Cistus creticus RF.jpg' --name petal --petal --k 4 --region 0.25,0.05,0.95,0.8
-node scripts/asset.mjs measure 'commons:File:Cistus salviifolius - Sage-leaved cistus 02.jpg' --name petal --petal --region 0.38,0.18,0.86,0.36
-node scripts/asset.mjs measure 'commons:File:Ulex europaeus flowers.jpg' --name petal --petal --k 4
-node scripts/asset.mjs measure 'commons:File:Acacia pycnantha Golden Wattle.jpg' --name petal --petal --k 4
-node scripts/asset.mjs measure 'commons:File:Delonix regia 4226.jpg' --name petal --petal --k 4 --region 0.15,0.05,0.85,0.8
-node scripts/asset.mjs measure 'commons:File:Metrosideros excelsa kz05.jpg' --name petal --petal --k 5 --region 0.2,0.2,0.85,0.75
-H='commons:File:Heather (Bonny Bl***ing) - geograph.org.uk - 31279.jpg'
-node scripts/asset.mjs measure "$H" --name foliage --k 2 --region 0.07,0.2,0.33,0.6
-node scripts/asset.mjs measure "$H" --name flower --k 5 --region 0.3,0.35,0.95,0.95 --anchor foliage=0.05,0.1,0.03
-node scripts/asset.mjs measure 'commons:File:A carpet of heather and gorse on the cliff top near Maen Castle - geograph.org.uk - 2588305.jpg' --name heath --k 5 --region 0,0.6,1,1
-E='commons:File:Eucalyptus robusta - adult leaves 02.jpg'
-node scripts/asset.mjs measure "$E" --name paper --k 1 --region 0.72,0.1,0.95,0.35
-node scripts/asset.mjs measure "$E" --name leaf --region 0.25,0.15,0.75,0.75 --anchor paper=0.8,0.8,0.8
-L='commons:File:Membranous Porphyra umbilicalis and wrack. Laverbread. Irvine, North Ayrshire.jpg'
-node scripts/asset.mjs measure "$L" --name rock --k 2 --region 0.66,0.6,0.93,0.88
-node scripts/asset.mjs measure "$L" --name laver --region 0.62,0.1,1,0.48 --anchor rock=0.26,0.24,0.22
-```
 
 **Not measured:** sea lettuce (the photos found are under water, blue-shifted, or a herbarium
 sheet); heath brown (Oct–Mar) and green (Apr–Jun); dry moss brown. They stay *(est.)*.

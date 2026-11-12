@@ -9,7 +9,9 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | How often, which days, what a spec gives, real dates | `params.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Which days did my change touch; did shares move | `params.mjs --ref HEAD` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Which days give what (one line per day, from an expression) | `params.mjs --where … --each 'p => …'` | [tools/PARAMS.md](tools/PARAMS.md) |
-| Expected share for a test target (no sampling) | `params.mjs --expect` | [tools/PARAMS.md](tools/PARAMS.md) |
+| Expected share for a test target (no sampling) | `params.mjs --expect` (`--weight` for a subset of days) | [tools/PARAMS.md](tools/PARAMS.md) |
+| Which fields exist, their values or range (before writing `--where`) | `params.mjs --schema PREFIX` | [tools/PARAMS.md](tools/PARAMS.md) |
+| How many of a prop are in frame, per sub-kind, on real days (before rendering) | `params.mjs --count KIND [--by]` | [tools/PARAMS.md](tools/PARAMS.md) |
 | How near is the ground; how many px is a thing | `params.mjs` `p.view` | [tools/PARAMS.md](tools/PARAMS.md) |
 | What a creator or helper does on real days | `params.mjs` `p.ctx`, `src.X`, `props.X` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Where a prop lands, what's beside the camera, where it ends (no render) | `params.mjs --project KIND` | [tools/PARAMS.md](tools/PARAMS.md) |
@@ -22,7 +24,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Animal shares table for ANIMALS.md | `animals.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
 | See a render; where props landed; prop build time | `snapshot.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Did a feature show up; was it already broken | `diff.mjs` | [tools/RENDER.md](tools/RENDER.md) |
-| Does a new off switch give back the old image exactly | `diff.mjs --ref HEAD --off PATCH --off-here` (expect "identical") | [tools/RENDER.md](tools/RENDER.md) |
+| Does a new off switch give back the old image exactly | `diff.mjs --ref HEAD --off PATCH --off-here` (expect "identical"); when HEAD already has the feature (a later phase), `--off-both` | [tools/RENDER.md](tools/RENDER.md) |
 | Render time vs a commit (10% rule); same image | `bench.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A new mesh alone | `mesh.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
@@ -40,7 +42,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |
 | Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
-| A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs measure SOURCE` | header; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §1 |
+| A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded | header; "Real colours" below; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §1 |
 
 ## Tests
 
@@ -101,6 +103,30 @@ each source file as fully covered, so leave it out.
   errors, console errors and warnings, and GL messages grouped per render (`48× [.WebGL-0x…]
   GL_…`). snapshot (so diff and bench) turns GL messages into ⚠ warnings, mesh prints them,
   restart fails on them. A new script that opens a page uses it too.
+
+## Real colours from photos and scans (`asset.mjs`)
+
+- **Brightness:** a photo's is the camera's (auto-exposure put a moor at ~0.23 linear; heath is
+  ~0.05–0.1). Take hue from photos; brightness from a calibrated scan (Poly Haven, ambientCG), or
+  `--anchor` a known material **next to the target, in the same light**. Petals with no anchor:
+  the brightest unclipped cluster ×0.8 (`--petal`), ±30%.
+- **Region:** `asset.mjs grid ID` writes the image with a labelled 10% grid; read `--region` off it,
+  don't guess from a contact sheet. `--hue H0,H1[,S]` keeps only the target's pixels (flowers, not
+  the sunlit leaves and glints a cluster mixes in); check two regions agree.
+- **Record:** every measure goes into `scripts/asset-measures.json` (committed); `assets-src/` isn't.
+  `asset.mjs replay [ID]` measures them all again. Commons rate-limits after ~5 quick requests (the
+  script retries).
+
+Anchors (linear albedo; Rec. 709 luminance is what `--anchor` matches):
+
+| Anchor | Albedo | Note |
+|---|---|---|
+| White copy paper behind a specimen | 0.8, 0.8, 0.8 | the best found (eucalyptus leaf, phase 1); check it isn't clipped |
+| Photographer's grey card | 0.18 | if a photo has one |
+| The plant's own green foliage | the trees' leaf `[0.05, 0.10, 0.03]` (`props/trees.ts`) | a consistency anchor: matches the scene, not a lab value |
+| Green turf, near | ground cover `[0.08, 0.13, 0.05]` (`biome.ts`) | not dry or straw grass, not far turf |
+| Sand, granite | the scene's `golden` `[0.46, 0.36, 0.23]`, `grey` `[0.26, 0.24, 0.22]` (`biome.ts`) | consistency anchors |
+| **Don't:** turf or rock ≥ ~300 m off (hazed pale), dry moorland grass, sky, wet or specular surfaces | | phase 1's heath anchors failed on the first two |
 
 ## Dev server
 

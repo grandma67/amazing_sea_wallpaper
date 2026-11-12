@@ -54,7 +54,9 @@ export interface PlantSeason {
   blossom?: Blossom
 }
 
-export type BloomKind = 'rock-rose' | 'gorse' | 'wattle' | 'flamboyant' | 'pohutukawa'
+/** Every blossom kind (the spec validator reads this list: sceneSpec.ts). */
+export const BLOOM_KINDS = ['rock-rose', 'gorse', 'wattle', 'flamboyant', 'pohutukawa'] as const
+export type BloomKind = (typeof BLOOM_KINDS)[number]
 
 /** A plant in flower on a kind's crowns (NATURE_PLAN phases 3–4). */
 export interface BloomRow {

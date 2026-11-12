@@ -152,12 +152,15 @@ async function knownFields(spec) {
         parseSceneSpec(spec)
         return { kept: spec, dropped }
       } catch (error) {
-        const m = /scene spec: spec\.([\w.]+) is not a known field/.exec(error.message)
+        // A field this commit doesn't have, or a value it doesn't know yet
+        // (a kind added since: props.bloom ["flamboyant"]): leave the field out.
+        const m = /scene spec: spec\.([\w.]+) is not a known field/.exec(error.message) ?? /scene spec: spec\.([\w.]+)(?:\[\d+\])* must be one of/.exec(error.message)
         if (m == null) throw error
         const path = m[1].split('.')
         const owner = path.slice(0, -1).reduce((o, k) => o[k], spec)
+        if (owner == null || !(path.at(-1) in owner)) throw error
         delete owner[path.at(-1)]
-        dropped.push(m[1])
+        dropped.push(/must be one of/.test(error.message) ? `${m[1]} (a value it doesn't know)` : m[1])
       }
     }
   }, structuredClone(spec))

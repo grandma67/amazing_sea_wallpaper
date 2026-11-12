@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createCamera } from '../src/camera'
 import { generateSceneParams } from '../src/composition'
 import { generateParams, type SceneParams } from '../src/params'
-import { BLOOM, phenologyFor } from '../src/phenology'
+import { BLOOM, BLOOM_KINDS, phenologyFor } from '../src/phenology'
 import { debrisFor } from '../src/props/debris'
 import { shoreLifeFor } from '../src/props/shoreLife'
 import { Random } from '../src/random'
@@ -235,8 +235,9 @@ describe('parseSceneSpec', () => {
     expect(() => parseSceneSpec({ props: { marine: 'shark' } })).toThrow(/spec\.props\.marine/)
     expect(() => parseSceneSpec({ props: { ships: ['submarine'] } })).toThrow(/spec\.props\.ships\[0\]/)
     expect(() => parseSceneSpec({ props: { bloom: ['heather'] } })).toThrow(/spec\.props\.bloom\[0\]/)
-    // Every BLOOM kind parses (the validator lists them by hand).
+    // Every BLOOM row's kind parses, and every listed kind has a row.
     expect(() => parseSceneSpec({ props: { bloom: [...new Set(BLOOM.map(r => r.kind))] } })).not.toThrow()
+    expect(new Set(BLOOM.map(r => r.kind))).toEqual(new Set(BLOOM_KINDS))
     expect(() => parseSceneSpec({ date: '12/07/2024' })).toThrow(/YYYY-MM-DD/)
     expect(() => parseSceneSpec({ wind: '5' })).toThrow(/must be a number/)
     expect(() => parseSceneSpec([])).toThrow(/must be an object/)

@@ -92,6 +92,13 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
   they are. For a new debug switch or pass: with it off, the image must match the commit before
   the feature ("identical" on every scene). Phase 4 of SHADOWS.md needed this: its first off path
   was a simpler filter than the old one, and the plain diff (off vs on, both this tree) hid it.
+- `--ref HEAD --off PATCH --off-both`: the patch goes on both sides. For a later phase of a
+  feature HEAD already has (blossom phase 4 after phase 3): `--off-here` would compare HEAD *with*
+  the feature against this tree without it, and differ on every scene that has it. With
+  `--off-both`, "identical" means the switch still gives back HEAD's image with the feature off.
+- At a ref, `snapshot.mjs` leaves out fields the ref doesn't have **and values it doesn't know
+  yet** (a kind added since: `props.bloom: ["flamboyant"]`), and says so; before 0.142 the second
+  crashed the run (`bench.mjs --ref`).
 - `--threshold N` (0–255, default 4): above JPEG noise; two renders of the same code on the same
   GPU are identical.
 
