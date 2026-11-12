@@ -29,7 +29,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 14 | ✅ Fireflies: drawing (streaks and dots, brightness by intensity, streaks), 2026-11-13 | `props/fireflies.ts` meshes, `scene.ts` | as 13 | done | 13 |
 | 15 | ✅ Lomas: yearly green on Peru's fog hills, 2026-11-13 | `phenology.ts` `lomasFor`, `props/landforms.ts` range colour by height; later TERRAIN_FORMS's wall | **2** land days Jun–Nov, neither with a landform (0 in frame until the escarpment) | done | 2 |
 | 16 | ✅ Bloom years: the Atacama's desert bloom, Namaqualand and the Cape West Coast, Baja, 2026-11-13 | `bloomYears.ts` (per-year streams), `props/bloomYears.ts` (plants), terrain and range tint | **2** real days: Namaqualand 2025-07-03 (July ×0.4), the Atacama 2024-08-16 (2024's early flush); Baja 0 | done | 2 |
-| 17 | Animal seasons for PLAN_BIOMES phase 14 (monarchs on eucalyptus) | `animalSeasons.ts` | per animal | ~0.5 h each (+ the animal's own plan) | 6, 11, phase 14 |
+| 17 | ⏸ Animal seasons for PLAN_BIOMES phase 14 (monarchs on eucalyptus): **blocked**, none of phase 14's animals exists yet (PLAN_BIOMES: "later"; checked 2026-11-13) | `animalSeasons.ts` | per animal | ~0.5 h each (+ the animal's own plan) | 6, 11, phase 14 |
 
 Estimates are my working hours including research, tests, ~3 render rounds and docs, from past
 commits (leaf litter ~1 h after its plan, snow and ice foot 1–2 h, Baltic sea ice ~6 h). Phases
@@ -1167,7 +1167,9 @@ After each: `node scripts/animals.mjs`, paste into ANIMALS.md with its rule in "
 
 ## Still open
 
-Nothing blocks a build. Outside this plan: the Atacama's coastal escarpment
+Phases 1–16 are built (0.139–0.155). Phase 17 waits on PLAN_BIOMES phase 14: each animal (polar
+bears, walrus, sea otters and kelp, waders, blacktips, monarchs) needs its own plan and meshes
+first; its season row goes in `animalSeasons.ts` when it's built. Outside this plan: the Atacama's coastal escarpment
 ([TERRAIN_FORMS.md](TERRAIN_FORMS.md) phase 2), which gives phase 15's lomas all 3 days.
 
 ## Checks (all phases)
