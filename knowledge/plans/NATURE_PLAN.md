@@ -124,7 +124,7 @@ textures are **inputs to an offline bake**, not files the page streams.
 |---|---|---|---|
 | [Poly Haven](https://polyhaven.com/license) models and textures | scanned plants, rocks, ground, bark | CC0 | shrub and ground-cover shapes, bark and moss albedo |
 | [ambientCG](https://ambientcg.com) | PBR materials (moss, lichen, bark, ground, sand) | CC0 | albedo means and variation for moss, lichen, heath, turf |
-| [Smithsonian 3D, CC0 filter](https://3d.si.edu/cc0) (bulk: [Source Cooperative mirror](https://source.coop/harvard-lil/smithsonian-open-access)) | natural-history specimens, OBJ/glTF | CC0 **per object** (some, e.g. Human Origins, are non-commercial: skip) | animal proportions and sizes (phase 4) |
+| [Smithsonian 3D, CC0 filter](https://3d.si.edu/cc0) (bulk: [Source Cooperative mirror](https://source.coop/harvard-lil/smithsonian-open-access)) | natural-history specimens, OBJ/glTF | CC0 **per object** (some, e.g. Human Origins, are non-commercial: skip) | animal proportions and sizes (phase 17, baked in phase 11) |
 | Sketchfab CC-BY scans | fungi, animals, flowers | CC-BY (attribution in REFERENCES.md and the page credits) | only where no CC0 exists |
 | iNaturalist research-grade / Wikimedia Commons photos | the 2–3 reference photos per row | CC-BY / CC0 per photo | colours and shapes (the *(est.)* values below) |
 | Fab / Megascans | high-quality scans | Fab Standard licence: product use allowed, **raw asset redistribution not**; the licence summary also requires that end users can't extract the asset, and a public web build serves every mesh to the browser: **excluded** (Answers 2026-11-12; [Fab licences](https://dev.epicgames.com/documentation/fab/licenses-and-pricing-in-fab), [forum](https://forums.unrealengine.com/t/can-i-use-3d-assets-from-fab-s-standard-license-in-a-revenue-generating-web-app/2453541): no official answer) | – |
@@ -758,7 +758,7 @@ Nothing blocks a build. Outside this plan: the Atacama's coastal escarpment
 - Before the first render, per phase: the docs named in CLAUDE.md §1 opened, real sizes from photos,
   the in-frame count with `--project` / `--rendered`.
 - `diff.mjs` for visibility with each off switch on a clear and a cloudy day; real days in the first
-  render round; `bench.mjs` (phase 3 ≤ 5%; every other phase ~0%).
+  render round; `bench.mjs` (phase 14 ≤ 5%; every other phase ~0%).
 - `npm test` and `npx tsc --noEmit`; `params.mjs --ref HEAD` for the changelog row.
 - Docs: changelog.md, ARCHITECTURE.md (new tables in "Biome, climate or place"), `arch/PROPS.md`,
   SEASONS.md pointer, ANIMALS.md, SCENE_SPECS.md, REFERENCES.md, NATURE.md for new numbers.
