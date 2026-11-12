@@ -7,12 +7,20 @@ export class MeshBuilder {
   private readonly positions: number[] = []
   private readonly colors: number[] = []
   private readonly indices: number[] = []
+  /** Per vertex: how much moss or lichen the surface can carry (bark 0..1;
+   * 0 elsewhere). Written by `vertex()` from `mossy`; built as the `barkMoss`
+   * attribute only when some vertex has it. */
+  private readonly barkMoss: number[] = []
+  /** The bark weight `vertex()` gives the vertices it adds (trees.ts sets it
+   * round a trunk or limb). */
+  mossy = 0
   /** Copied to the built geometry (what a reader needs to know of its shape). */
   readonly userData: Record<string, unknown> = {}
 
   vertex(p: Vector3, color: [number, number, number]): number {
     this.positions.push(p.x, p.y, p.z)
     this.colors.push(...color)
+    this.barkMoss.push(this.mossy)
     return this.positions.length / 3 - 1
   }
 
@@ -152,6 +160,7 @@ export class MeshBuilder {
       this.positions.push(other.positions[i] + offset.x, other.positions[i + 1] + offset.y, other.positions[i + 2] + offset.z)
     }
     this.colors.push(...other.colors)
+    this.barkMoss.push(...other.barkMoss)
     Object.assign(this.userData, other.userData)
     for (const index of other.indices) this.indices.push(index + base)
   }
@@ -161,6 +170,7 @@ export class MeshBuilder {
     Object.assign(geometry.userData, this.userData)
     geometry.setAttribute('position', new BufferAttribute(new Float32Array(this.positions), 3))
     geometry.setAttribute('color', new BufferAttribute(new Float32Array(this.colors), 3))
+    if (this.barkMoss.some(m => m > 0)) geometry.setAttribute('barkMoss', new BufferAttribute(new Float32Array(this.barkMoss), 1))
     geometry.setIndex(this.indices)
     geometry.computeVertexNormals()
     // Blob poles only touch zero-area triangles, leaving zero normals that

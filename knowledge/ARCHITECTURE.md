@@ -187,6 +187,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | visibility, summer haze, dust season | `seaHaze.ts` | biome | leftover: humid subtropical summers get the Mediterranean's dry haze |
 | moss amount and wetness | `phenology.ts` `MOSS`, `MOSS_WET_PLACES`, `mossWetness` | climate × a wet-place factor; wetness by weather, drought (Mediterranean curve, savanna dry season) | right |
 | spray belt; laver and sea lettuce | `phenology.ts` `sprayBelt`, `LAVER`, `shoreWeed` | place (sheltered and exposed lists, else the main climate's default); weed by place × local calendar month, latitude limits | right |
+| trunk moss and spray lichen | `phenology.ts` `trunkGrowth`, `props/trunkMoss.ts` | amount by climate (`MOSS`); lichen by the place's belt and the tree's height and distance inland; colours by biome (moss green, lichen hue at the measured brightness) | right |
 | rock growth chance, lichen, algae, moss green | `props/rocks.ts` `GROWTH`, `rockShore.ts` `LICHEN`, `MOSS_COLOR` | biome (the species follow the rock) | right (moss amount moved to climate, 0.146) |
 | landform vegetation tint | `props/landforms.ts` | biome (own table) | leftover: should read `biome.foliage` like islands |
 | night-sky darkness (Bortle) | `places.ts` `BORTLE` | place (default 2) | right |

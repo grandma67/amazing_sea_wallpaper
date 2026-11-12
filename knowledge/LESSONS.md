@@ -5,6 +5,11 @@ tool gotchas: TOOLS.md.
 
 ## Scripts
 
+- **Before the first render of a session, check the dev server** (`lsof -tiTCP:5174 -sTCP:LISTEN`):
+  `diff.mjs --ref` renders REF first and only then fails on this tree's missing server, a lost round
+  (trunk moss, 0.148).
+- **Test targets from a measured probe, not a guess:** a "> 50% of trees grey" target failed at 42%;
+  Float32 attributes don't equal decimal literals (0.3 → 0.30000001): round before comparing.
 - Cleanup in `finally` or a signal handler doesn't survive every stop: Ctrl+C skips `finally` unless
   a handler exits, `kill -9` runs nothing, and a handler waits for a synchronous loop. For anything
   that must not be left behind, use a detached watcher that polls the owner's pid
@@ -203,6 +208,17 @@ tool gotchas: TOOLS.md.
   0.147):** the plan's belt sat on spring high water + today's run-up and was also to stay put in a
   storm. Fix the base (spring + a typical run-up) and test it over forced tide × composition × swell.
   World heights move with the tide (tides lower the land): compare in the land's frame.
+- **A rock-shore height rule needs a distance when it moves inland (trunk lichen, 0.148):** the
+  spray belt is metres above the spring high water; a tree at that height 150 m inland isn't in it.
+  A flat reach of 40–160 m still greyed every framed hero (they stand within 40 m of the shore).
+  Count the in-frame trees by outcome (`--count --by`) before rendering a rule that reads where they
+  stand, and scale the reach with the exposure the rule already has (the belt).
+- **Check a reused colour against phase 1's measures (trunk lichen, 0.148):** the rocks' `LICHEN`
+  (0.45–0.55) is ~2.5× the calibrated crust, flagged in NATURE_PLAN §1; on a near trunk it read as
+  whitewash. Keep the biome's hue at the measured brightness.
+- **A smooth height band makes a sock (trunk moss, 0.148):** moss faded over height alone, with
+  patches coarser than the trunk, filled the foot solid with a level top edge. Push the edge with
+  noise (±30% of the height) and use patches smaller than the trunk's girth.
 - **One patch threshold doesn't fit two surfaces (moss, 0.146):** the boulders' mask edge, reused on
   the rock-shore terrain, covered a crest in an even carpet: the terrain's noise is broader, and a
   near crest fills a strip of the frame. Give each surface its own edge and look at a crop, not a

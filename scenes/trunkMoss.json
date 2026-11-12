@@ -1,0 +1,9 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null, "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "bc-framed", "date": "2025-06-10", "place": "british-columbia" },
+    { "name": "bc-framed-back", "date": "2025-06-10", "place": "british-columbia", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour" },
+    { "name": "scotland-framed-exposed", "date": "2025-07-10", "place": "scotland" },
+    { "name": "med-framed-august-dry", "date": "2025-08-15", "place": "western-med" },
+    { "name": "nsw-framed-gums", "date": "2025-10-15", "place": "east-australia" },
+    { "name": "namibia-framed-arid", "date": "2025-03-10", "place": "namibia", "props": { "vegetation": ["broadleaf", "bush", "grass"] } }
+  ] }

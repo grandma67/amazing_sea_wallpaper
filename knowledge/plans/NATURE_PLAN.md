@@ -21,7 +21,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 6 | ✅ `eucalyptus` kind (Australia native, California groves), 2026-11-12 | `props/trees.ts`, `props/vegetation.ts`, `places.ts` `PLACE_PLANTS` | **36** days change (pools); in frame on **17** of 25 land days in the four places (median 32 trees, nearest 10 m) | done | 1 |
 | 7 | ✅ Moss on rock: amount by climate and place, colour by today's wetness, 2026-11-12 | `props/rocks.ts` `GROWTH`, rock-shore shader, `phenology.ts` | every land day with rocks (uniforms only: 0 params change); dry-moss look on 57 land days | done | 1 |
 | 8 | ✅ Shore zonation: the spray belt, laver, sea lettuce, 2026-11-12 | rock-shore shader, `phenology.ts` `sprayBelt`, `shoreWeed` | every rock-shore day (belt); weed on 55 real rock-shore days (not night) | done | 7 |
-| 9 | Moss and lichen on trunks | `props/trees.ts` trunk colours, `props/vegetation.ts` | every forest day a little | 1.5–2 h | 7, 8 (belt), 6 |
+| 9 | ✅ Moss and lichen on trunks, 2026-11-12 | `props/builder.ts` bark weight, `props/trunkMoss.ts` (shader), `phenology.ts` `trunkGrowth`, `props/vegetation.ts` | 0 params; trees in frame with moss on 337 days, mostly lichen on 324 (fringe trees) | done | 7, 8 (belt), 6 |
 | 10 | Fairy rings | terrain ground-cover shader | **124** land days in a growing season (before grass in frame) | 1.5–2 h | 5 (heath mask) |
 | 11 | Real assets: bake (reduce, vertex colours, emit, check), proved on one mushroom | `scripts/asset.mjs`, `src/props/scans/` | none (meshes for 12 and 17) | 1–1.5 h + ~1 h per asset | 1 |
 | 12 | Mushrooms under trees and on grass | `props/fungi.ts` (new) | **80** land days in season (temperate, boreal, Mediterranean, polar; tropical and subtropical more) | 2–3 h | 9, 10, 11 |
@@ -675,6 +675,28 @@ swell; the weed table over every place × month, the 41°N and 40°N limits.
 - **Done when:** trunk bases green in a British Columbia framed forest, grey near an exposed
   Atlantic shore, none on arid coasts.
 - **Tests:** a trunk's moss side follows its lean; lichen bark inside the belt.
+
+**Built (0.148):**
+- **In the shader, not baked:** a tree's lean is its instance's, so baked colours couldn't follow it.
+  Bark vertices carry a weight (`barkMoss`, MeshBuilder's `mossy`: 1, smooth gum bark 0.3, leaves 0);
+  each instance a `trunkGrowth` (moss, lichen) from `trunkGrowth(look, aboveLine, inland)`, a pure
+  function of where the tree stands (`phenology.ts`). `props/trunkMoss.ts` patches the plants'
+  material (as `snowCap`; snow lies over moss).
+- **Which side (researched 2026-11-12):** a beech study found moss thicker on the side trees lean
+  toward (~6°, stemflow; NATURE.md §4); Ryan 1991 describes more epiphytes on the upper side of
+  leaning trunks. Both: toward the lean below ~10°, the upper side past ~20° *(est. crossover)*.
+- **Spray reach inland, not only height:** the belt is a height on rock; a tree 150 m inland at the
+  same height isn't in it. Reach 40–160 m from s = 0 on the most exposed coasts (12 m belt), scaled
+  by the belt elsewhere (3.9 m: 13–52 m; sheltered 1.5 m: 5–20 m) *(est.)*. A flat 40–160 m first
+  greyed every framed hero tree (they stand within 40 m of the shore), BC included.
+- **Lichen at the measured brightness:** `LICHEN[biome]` (0.45–0.55) whitewashed trunks; its hue at
+  the calibrated crust's 0.19 (`lichenAtAlbedo`), in small thalli (35/m noise) over broad patches.
+- **Moss** reaches `TRUNK_MOSS_TOP` (1.5 m) × amount, a ragged edge (±30%), cushions with bark
+  between, toned dark to yellow-green; a smooth height band read as a solid green sock.
+- Seen: `scenes/trunkMoss.json` (BC fringe lichen speckle; Scotland exposed grey; Namibia none; Med
+  and NSW moss under the grass, invisible) and real days found by `--count` (2026-02-25 BC: moss
+  cushions at the foot; 2026-10-16 Norway birches; 2024-05-08 Wadden: one trunk). `--off-both` with
+  `props.moss: false`: identical to HEAD on all six spec views.
 
 ## 10. Fairy rings
 

@@ -10,8 +10,9 @@ import {
 } from 'three'
 
 import type { RGB, VegetationKind } from '../biome'
-import { phenologyFor, plantSeason, withBlossom, type Blooming, type PlantSeason } from '../phenology'
+import { BELT_RUNUP, mossLook, phenologyFor, plantSeason, withBlossom, type Blooming, type PlantSeason } from '../phenology'
 import { placeNamed } from '../places'
+import { LICHEN, MOSS_COLOR } from '../rockShore'
 import { Random } from '../random'
 import { hasLand, shoreToWorld, terrainNormal, worldToShore } from '../terrain'
 import { tideMarks } from '../tides'
@@ -21,6 +22,7 @@ import { noise3 } from './noise'
 import { windDirection, windMaterials, type Bend } from './wind'
 import { acacia, birch, broadleaf, bush, conifer, cypress, eucalyptus, olive, pandanus, stonePine } from './trees'
 import { snowCap, snowLook, type SnowLook } from './snowCap'
+import { setTrunkGrowth, trunkMoss } from './trunkMoss'
 
 // Procedural plants, generated per scene from the seed, then scattered over
 // the land behind the beach. Geometry is built at a nominal size with its
@@ -47,12 +49,14 @@ export function palm(rng: Random, foliage: RGB): BufferGeometry {
     const t = i / 14
     trunk.push(new Vector3(bend * t * t, height * t, bend * 0.2 * Math.sin(t * 3)))
   }
+  b.mossy = 1
   b.tube(
     trunk,
     t => 0.2 * (1 - 0.35 * t) + 0.12 * Math.exp(-t * 18),
     t => scale(PALM_BARK, 0.8 + 0.25 * Math.sin(t * height * 11)),
     10
   )
+  b.mossy = 0
   const crown = trunk[trunk.length - 1]
 
   const fronds = rng.int(12, 17)
@@ -428,6 +432,11 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
   const lushness = rng.range(0.4, 1.2)
   const phenology = phenologyFor(params)
   const material = plantMaterial(snowLook(params))
+  // Moss and spray-belt lichen on trunks (NATURE_PLAN phase 9); none with
+  // `props.moss: false`.
+  const moss = mossLook(params)
+  if (moss != null) trunkMoss(material, { ...moss, mossColor: MOSS_COLOR[biome.name], lichenColor: LICHEN[biome.name] })
+  const beltLine = tideMarks(coast).spring + BELT_RUNUP
 
   const order: VegetationKind[] = [
     'palm',
@@ -591,6 +600,12 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
           mesh.setMatrixAt(j, m)
           mesh.setColorAt(j, colors[i])
         })
+        if (moss != null) {
+          setTrunkGrowth(mesh, moss, j => {
+            const t = placed[members[j]].elements
+            return { aboveLine: ctx.ground(t[12], t[14]) - beltLine, inland: -worldToShore(coast, t[12], t[14])[0] }
+          })
+        }
         mesh.castShadow = spec.castShadow
         mesh.receiveShadow = true
         mesh.frustumCulled = false

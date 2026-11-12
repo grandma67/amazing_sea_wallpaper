@@ -710,6 +710,40 @@ export function mossLook(day: MossDay): { amount: number; dry: number; belt: num
   return amount == null ? undefined : { amount, dry: 0.5 * (1 - mossWetness(day)), belt: sprayBelt(day.place.id) }
 }
 
+/** Moss on a trunk reaches this many metres up per unit of `MOSS` amount
+ * (est.: base to ~1.5 m on temperate coasts, ~2 m on the wettest, NATURE_PLAN
+ * phase 9). */
+export const TRUNK_MOSS_TOP = 1.5
+/** Salt spray reaches trees this far inland (m from s = 0) on the most
+ * exposed coasts (a 12 m belt): full to the first, none past the second; less
+ * in proportion to the belt elsewhere (est.: coarse spray settles within the
+ * first hundred metres or two, salt-pruned fringes are widest on exposed
+ * coasts). */
+export const SPRAY_INLAND: readonly [number, number] = [40, 160]
+const SPRAY_BELT_EXPOSED = 12
+/** How far spray-belt lichen mixes into bark (NATURE_PLAN phase 9). */
+export const TRUNK_LICHEN = 0.4
+
+function smooth(a: number, b: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
+  return t * t * (3 - 2 * t)
+}
+
+/**
+ * Moss and lichen on one tree's trunk (NATURE_PLAN phase 9), from where it
+ * stands, not the camera: `lichen` 0..1, how far its base is inside the spray
+ * belt (`aboveLine`: the ground's height above the spring high water +
+ * `BELT_RUNUP`, the rock's belt line) and within spray's reach inland
+ * (`inland`, m from s = 0, a reach that grows with the belt); there salt-tolerant lichens take the bark instead
+ * of moss (Isles of Scilly flora). `moss`: the climate's amount where they
+ * don't. Side and height on the trunk are the shader's.
+ */
+export function trunkGrowth(look: { amount: number; belt: number }, aboveLine: number, inland: number): { moss: number; lichen: number } {
+  const reach = look.belt / SPRAY_BELT_EXPOSED
+  const lichen = (1 - smooth(look.belt, look.belt + BELT_FADE, aboveLine)) * (1 - smooth(SPRAY_INLAND[0] * reach, SPRAY_INLAND[1] * reach, inland))
+  return { moss: look.amount * (1 - lichen), lichen }
+}
+
 /**
  * Upper-shore weed on rock (NATURE_PLAN phase 8), by place and local calendar
  * month. Laver (*Porphyra*, red-brown, wet: measured): dense round high water

@@ -40,6 +40,9 @@ function ridged(x: number, y: number, z: number, seed: number): number {
 interface Bark {
   color: (height: number, around: number, radius: number) => RGB
   relief: (height: number, around: number) => number
+  /** How much moss and lichen it carries (default 1): smooth shedding
+   * bark little (NATURE_PLAN phase 9). */
+  moss?: number
 }
 
 /** Furrowed bark: dark vertical fissures between lighter ridges. */
@@ -90,7 +93,9 @@ function gumBark(seed: number): Bark {
       c = mix(c, [0.13, 0.1, 0.07], Math.min(1, ribbon(h, a)))
       return c
     },
-    relief: (h, a) => -0.3 * Math.min(1, ribbon(h, a))
+    relief: (h, a) => -0.3 * Math.min(1, ribbon(h, a)),
+    // Shedding bark takes its moss with it (est.).
+    moss: 0.3
   }
 }
 
@@ -198,6 +203,7 @@ function growTree(b: MeshBuilder, rng: Random, g: Growth, start: Vector3, dir: V
     const leaderRadius = end * g.radiusRatio * 1.15
     const narrow = (t: number): number => (last ? 1 : 1 + (leaderRadius / end - 1) * Math.max(0, (t - 0.75) / 0.25) ** 2)
     const depth = barkDepth(radius)
+    b.mossy = g.bark.moss ?? 1
     b.tube(
       rings,
       (t, a) => {
@@ -211,6 +217,7 @@ function growTree(b: MeshBuilder, rng: Random, g: Growth, start: Vector3, dir: V
       },
       sides
     )
+    b.mossy = 0
     if (last) {
       for (let i = Math.max(1, Math.round(segments * (1 - g.tipsAlong))); i <= segments; i++) {
         tips.push({ p: path[i], d: path[i].clone().sub(path[i - 1]).normalize() })
@@ -837,6 +844,7 @@ export function conifer(rng: Random, foliage: RGB): BufferGeometry {
   const height = rng.range(10, 18)
   const bark = platedBark(rng.int(0, 1e6))
   const needles = scale(foliage, 0.8)
+  b.mossy = 1
   b.tube(
     subdivide(
       Array.from({ length: 8 }, (_, i) => new Vector3(rng.normal(0, 0.03), (height * 0.94 * i) / 7, rng.normal(0, 0.03))),
@@ -847,6 +855,7 @@ export function conifer(rng: Random, foliage: RGB): BufferGeometry {
     (t, a) => bark.color(t * height, a, 0.25 * (1 - t)),
     14
   )
+  b.mossy = 0
   const whorls = rng.int(18, 24)
   for (let w = 0; w < whorls; w++) {
     const t = (w + rng.range(-0.3, 0.3)) / whorls

@@ -38,6 +38,14 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   `MOSS_COLOR` by biome; boulders' moss starts above the spray belt (phase 8, `mossFrom`). Colonies,
   lighthouse feet and skerries keep their own growth.
   `props.moss: false`: the biome's old amount, green, none on the terrain.
+- **Moss and lichen on trunks** (`props/trunkMoss.ts`, `phenology.ts` `trunkGrowth`, 0.148, NATURE_PLAN
+  phase 9): bark vertices carry `barkMoss` (MeshBuilder's `mossy` round a trunk or limb: 1, gum bark
+  0.3); `createVegetation` gives each instance `trunkGrowth` (moss, lichen) from its foot's height above
+  the belt line (spring high water + `BELT_RUNUP`) and distance inland (`-s`). The shader (a wrapper
+  patch like `snowCap`, before it) greys the bark with lichen inside the belt and puts moss cushions at
+  the foot to a ragged edge `TRUNK_MOSS_TOP` × amount up, on the stemflow side (toward a slight lean,
+  the upper side past ~20°), from the instance matrix, not the camera. Grass and other plants without
+  bark get a zero `barkMoss`. `props.moss: false`: none.
 - **Eucalyptus** (`props/trees.ts` `eucalyptus`, 0.145, NATURE_PLAN phase 6): coastal gums, 15–24 m,
   hanging leaves, smooth pale or rough dark bark; in the Australian place pools (`PLACE_PLANTS`) and
   a small weight in California. Last in the framed hero order (a near gum shows only its trunk).
