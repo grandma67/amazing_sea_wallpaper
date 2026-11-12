@@ -15,6 +15,7 @@ import { BEACH_MATERIALS, beachLines, isStony, stoneMean } from './beach'
 import { fbm, hillNoise, smoothstep, vnoise } from './cellNoise'
 import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
 import { TERRAIN_VIEWS } from './debug'
+import { WATER_ENCODE } from './waterCount'
 import { createPolarGrid, ringStep, squareGrid, viewWedge } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
@@ -1440,6 +1441,21 @@ void main() {
     float foam = foamLace(vec2(sa.y, sa.x * 1.8) + noiseOffset, edge * 0.8, footprint) *
       (1.0 - smoothstep(0.3, 1.5, footprint));
     color = mix(color, vec3(0.85) / PI * (sunIrradiance * NoL + skyIrradiance), foam);
+  }
+
+  if (terrainView == ${WATER_ENCODE}) {
+    // debug.water (waterCount.ts): the film kind (index + 1 in
+    // WATER_KINDS), distance from the camera (m), mirror weight.
+    float kind = 1.0;
+    if (exposed * (1.0 - hard) > 0.5) kind = 2.0;
+    if (wet * hard > 0.5) kind = 3.0;
+    if (wet * (1.0 - hard) > 0.5) kind = 4.0;
+    if (pools > 0.5) kind = 5.0;
+    // Under snow the masks still run (only the gloss goes): it's snow.
+    if (snowW > 0.5) kind = 1.0;
+    if (h < 0.0) kind = 6.0;
+    gl_FragColor = vec4(kind, length(vWorld - cameraPosition), clamp(mirrorW, 0.0, 1.0), 1.0);
+    return;
   }
 
   if (terrainView > 0) {

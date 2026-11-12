@@ -18,6 +18,10 @@
 //                     time; then the three slowest kinds
 // --crop KINDS|all    also save NAME.KIND.jpg cropped to that prop's box
 // --budget S (900)    exit after S seconds in all; --timeout MS per page (30 min)
+// --water             count the shore's water films (params.debug.water): share of
+//                     the frame per kind, nearest pool/swash/damp/wet rock (m, at);
+//                     one line per render. Find near-pool days: --where … --water,
+//                     then summary.mjs DIR 'j => j.debug.water.nearest.pool?.m'
 // --ref REF           render that commit (worktree on port 5177); implies --drop-unknown
 // --drop-unknown      leave out (and name) spec fields the served commit rejects
 // DEBUG=1             print each render's debug (exposure, luminance, …)
@@ -69,6 +73,7 @@ const list = value => (value == null ? [] : value.split(',').filter(Boolean))
 const cropKinds = list(option('crop', null))
 const propKinds = [...new Set([...list(option('props', null)), ...cropKinds])]
 const budget = Number(option('budget', 900))
+const water = flag('water')
 // A misspelt or unsupported option (e.g. --match) used to be ignored and the
 // whole spec file rendered.
 rejectUnknown()
@@ -99,7 +104,11 @@ async function jobs() {
 /** Each job on `seeds` seeds of its own. */
 const seeded = list =>
   seeds < 1 ? list : list.flatMap(job => Array.from({ length: seeds }, (_, i) => ({ ...job, name: `${job.name}-s${i + 1}`, spec: { ...job.spec, seed: `${job.name}/${i + 1}` } })))
-const todo = seeded(await jobs())
+/** --water: params.debug.water on every job, dates and real days too (a
+ * spec with only debug fields renders the same day). */
+const withWater = job =>
+  !water ? job : { ...job, spec: { ...job.spec, params: { ...job.spec?.params, debug: { ...job.spec?.params?.debug, water: true } } } }
+const todo = seeded(await jobs()).map(withWater)
 await mkdir(outDir, { recursive: true })
 if (ref != null) {
   const old = await serveRef(ref, 5177)
@@ -201,6 +210,14 @@ for (const { date, spec: asked, name } of todo) {
       `  probe ${at} px ${r.pixel.join(',')}: raw ${e(r.raw.mean)} (peak ${e(r.raw.peak)}), ${r.cdm2.toExponential(2)} cd/m²${mag}; ` +
         `exposed ${r.exposed.mean.map(x => x.toFixed(3)).join(' ')}; final ${r.final.mean.join(',')} (peak ${r.final.peak.join(',')})${r.clipped ? ' ⚠ clipped' : ''}`
     )
+  }
+  // The water films (params.debug.water).
+  const w = params.debug?.water
+  if (w != null) {
+    const pct = v => `${(v * 100).toFixed(1)}%`
+    const near = n => (n == null ? '–' : `${n.m} m at [${n.at.join(', ')}]`)
+    console.log(`  water: pool ${pct(w.share.pool)} (≤15 m ${pct(w.poolWithin15m)}, mirror ${w.poolMirror ?? '–'}), swash ${pct(w.share.swash)}, damp ${pct(w.share.damp)}, wet rock ${pct(w.share.wetRock)}`)
+    console.log(`    nearest pool ${near(w.nearest.pool)}; swash ${near(w.nearest.swash)}; damp ${near(w.nearest.damp)}; wet rock ${near(w.nearest.wetRock)}`)
   }
   // The sky cube (params.debug.cubeProbe): what the sea reflects there.
   for (const r of params.debug?.cubeProbe ?? []) console.log(`  cube az ${r.at.az} el ${r.at.el}${r.at.lod != null ? ` lod ${r.at.lod}` : ''}: raw ${r.raw.map(x => x.toExponential(2)).join(' ')}`)

@@ -1,7 +1,7 @@
 # Finding the shore's water films before rendering
 
-**Status: step 1 done (2026-11-12); steps 2–3 planned.** From the REFLECTION phase 5–6
-retrospective.
+**Status: steps 1–2 done (2026-11-12); step 3 not needed so far.** From the REFLECTION phase 5–6
+retrospective. Left: the done-when's spec and judging REFLECTION phase 5 against photo P.
 
 **Step 1 as built:** `debug.terrainView: 'water'` (`terrain.ts`, last branch of the views). Dry
 ground near black (lit by a warm sun it reads dark brown), `exposed × (1 − hard)` green,
@@ -11,6 +11,29 @@ variable the reflection code now fills (only `mirror` when `passes.wetMirror`/re
 Rendered on all 8 `scenes/wet-mirror.json` scenes (1080p, 16 frames): the films sit where the
 phase 5 renders put their reflections. View off: identical to HEAD on all 8 (`diff.mjs --ref
 HEAD`). Test: every `TERRAIN_VIEWS` value parses (`test/debug.test.ts`).
+
+**Step 2 as built:** `params.debug.water: true` (`src/waterCount.ts`, `snapshot.mjs --water`). After
+the last frame the terrain is drawn again at 1/8 size into a float target in an encode mode
+(`terrainView` 99, not a spec value): kind (dominant mask > 0.5, pools over swash over wet rock over
+damp; snow counts as dry, ground below today's still water as `seabed`), distance, mirror weight.
+Opaque props go first as depth only, so a pool behind a boulder isn't counted; the sea isn't
+drawn. The second draw was chosen over a target written in the main frame: no change to the
+frame's passes, and it costs only when asked. `tallyWater` is pure and tested
+(`test/waterCount.test.ts`).
+
+- Picture unchanged with the count on: `diff.mjs` on all 8 `wet-mirror.json` scenes, identical.
+- `--water` on date jobs renders the same day: titles of 8 real platform days match `params.mjs`.
+- Counts agree with the view: on `wet-mirror.json` the platform pools are 66–90 m off (REFLECTION's
+  "50 m+"), the flats' nearest creek ~15 m in the bottom-left corner where the view shows it cyan.
+- The first search (`--where 'p => p.coast.rock?.kind === "platform"' --sample 8`) found
+  **2024-06-13** (Atlantic platform, golden hour, lighthouse): a pool 12.9 m off at the bottom
+  centre, 1.1% of the frame pool within 15 m, mirror weight 0.87. Backlit, and no boulder beside it:
+  a start for the done-when's spec, not the spec yet.
+- Snow fix from that search: under snow the pool masks still run (only the gloss goes), so a
+  snowed-over hollow counted as a pool (2025-05-05: a "pool" 4.9 km off); snow now counts as dry.
+- **Seen, not fixed:** 2024-01-18 (Arctic platform, January, sea ice in the bay) draws a liquid
+  pool 23 m off: the pool masks don't freeze with the sea (`terrain.ts` `rockPools`; found with
+  `--water`, confirmed in `terrainView: 'water'`). Separate from this plan.
 
 ## Why
 

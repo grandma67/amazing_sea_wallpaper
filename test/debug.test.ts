@@ -12,6 +12,7 @@ const all = {
   passes: { clouds: false, aerial: false, skyFill: false, bloom: false, reflection: false, shadows: false },
   exposure: 1.5,
   terrainView: 'slope',
+  water: true,
   oceanView: 'breaking'
 } as const
 

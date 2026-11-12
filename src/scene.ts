@@ -100,6 +100,7 @@ import { GpuResources, trackUploads } from './dispose'
 import { createTerrain, createTerrainCaster, hasLand, terrainHeight } from './terrain'
 import { NIGHT_WHITE_BALANCE_K, whiteBalanceGains } from './whiteBalance'
 import { probeResult, ProbePass, readCanvas, readCube, type ProbeBox } from './probe'
+import { countWater } from './waterCount'
 import { lineDirections, lineStats } from './skyMirror'
 import { dirFromAzEl as skyDir, pixelOf } from './skyFrame'
 
@@ -1053,6 +1054,8 @@ export async function renderScene(
     }
   }
   camera.clearViewOffset()
+  // The shore's water films in numbers (plans/WATER_VIEW.md step 2).
+  const water = params.debug?.water === true ? countWater(renderer, scene, camera, terrain, props, width, height) : undefined
 
   const gl = renderer.getContext()
   // What the frame was exposed at in all: the sky's meter, then the frame's.
@@ -1118,6 +1121,7 @@ export async function renderScene(
       ...(probe != null ? { probe } : {}),
       ...(probeLine != null ? { probeLine } : {}),
       ...(cubeRead != null ? { cubeProbe: cubeRead } : {}),
+      ...(water != null ? { water } : {}),
       nightScale,
       sunIrradiance: sunIrradiance.toArray(),
       skyIrradiance: skyIrradiance.toArray(),

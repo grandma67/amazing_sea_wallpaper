@@ -452,6 +452,7 @@ function checkDebug(value: unknown, path: string): void {
     },
     shadeView: boolean,
     terrainView: oneOf(...TERRAIN_VIEWS),
+    water: boolean,
     oceanView: oneOf(...OCEAN_VIEWS),
     probe: (v, p) => {
       if (!Array.isArray(v)) fail(p, 'must be a list of [x, y] fractions or {az, el}')

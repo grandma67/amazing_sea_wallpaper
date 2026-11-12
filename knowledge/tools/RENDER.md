@@ -31,6 +31,10 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   the creators in `props/index.ts` (`rocks`, `islands`, `shore-life`, `colony`, `ships`, …).
 - ⚠ `nearest` is measured from a piece's box centre, so one long mesh (the ice foot) reads kilometres away; `params.mjs --project` measures its points.
 - `--crop KINDS` saves `NAME.KIND.jpg`; read the crop, not the frame.
+- `--water`: counts the shore's water films on every render, real days too (`params.debug.water`,
+  tools/DEBUG.md): share of the frame per film, nearest pool, swash, damp sand and wet rock (m, and
+  where in the image). Find a day with a pool near the camera:
+  `snapshot.mjs --where 'p => p.coast.rock?.kind === "platform"' --sample 30 --water --w 1920 --h 1080 --frames 16`.
 - `params.debug.probe` in the spec: one line per point (raw, cd/m², mag/″², exposed, final RGB;
   tools/DEBUG.md). Numbers instead of judging brightness or tint from the JPEG.
 - ⚠ warnings (`scripts/checks.mjs`): backlit (low sun within 60° of the view: pale features

@@ -42,6 +42,11 @@ export interface DebugParams {
    * sand green, wet rock grey, swash blue, pools cyan; brighter where they
    * mirror more). */
   terrainView?: TerrainView
+  /** Count the shore's water films after the last frame (waterCount.ts):
+   * each kind's share of the frame, the nearest pool, swash, damp sand and
+   * wet rock (m, and where in the image), in `debug.water`. Changes nothing
+   * in the picture. */
+  water?: boolean
   /** False colour on the sea: 'shelter', 'breaking', 'depth' (1 m bands),
    * 'foam' (coverage). */
   oceanView?: OceanView
