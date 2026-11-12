@@ -34,7 +34,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | What the water reflects: the sky cube in a direction, vs the frame's sky there | `params.debug.cubeProbe` (+ `probe` at the same az/el) | [tools/DEBUG.md](tools/DEBUG.md) |
 | How the frame hazes objects (T, haze colour, which weighting) before matching it | `haze.mjs --scene --points` | [tools/RENDER.md](tools/RENDER.md) |
 | Did a feature show up on real days (not specs) | `diff.mjs --where --sample --off` | [tools/RENDER.md](tools/RENDER.md) |
-| Where the shore's water films are (pools, runnels, swash, damp sand) and how near the camera | `terrainView: 'water'` (see) and `snapshot.mjs --water` (numbers, real days) | [tools/DEBUG.md](tools/DEBUG.md) |
+| Where the shore's water films are (pools, runnels, swash, damp sand) and how near the camera | `params.mjs` `p.pools` (no render: nearest pool, m and image point) → `snapshot.mjs --water` (the render's count) → `terrainView: 'water'` (see) | [tools/DEBUG.md](tools/DEBUG.md) |
 | Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |
 | Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |

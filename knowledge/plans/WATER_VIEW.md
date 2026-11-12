@@ -1,7 +1,8 @@
 # Finding the shore's water films before rendering
 
-**Status: steps 1–2 done (2026-11-12); step 3 not needed so far.** From the REFLECTION phase 5–6
-retrospective. Left: the done-when's spec and judging REFLECTION phase 5 against photo P.
+**Status: steps 1–3 done (2026-11-12).** From the REFLECTION phase 5–6 retrospective. Left: the
+done-when's spec (a pool within ~15 m beside a boulder) and judging REFLECTION phase 5 against
+photo P.
 
 **Step 1 as built:** `debug.terrainView: 'water'` (`terrain.ts`, last branch of the views). Dry
 ground near black (lit by a warm sun it reads dark brown), `exposed × (1 − hard)` green,
@@ -34,6 +35,28 @@ frame's passes, and it costs only when asked. `tallyWater` is pure and tested
 - **Seen, not fixed:** 2024-01-18 (Arctic platform, January, sea ice in the bay) draws a liquid
   pool 23 m off: the pool masks don't freeze with the sea (`terrain.ts` `rockPools`; found with
   `--water`, confirmed in `terrainView: 'water'`). Separate from this plan.
+
+**Step 3 as built:** `src/waterFilms.ts`: `poolAt` mirrors the shader's `pools` term for term (with
+debug.water's rule: > 0.5, no snow, not below today's water) and `nearestPool` samples the ground in
+frame in rings round the camera (3% apart, 0.4° across, to 300 m), skipping pools behind higher
+ground (`terrainClear`); `params.mjs` `p.pools`. ~0.4 s a day with `--rendered`. Tests: `test/waterFilms.test.ts`
+(rules over sampled days; the flat's creek and 2024-06-13 pinned to the GPU counts).
+
+- **It found a mirror bug first:** on 2024-06-13 the CPU had the GPU's pool 0.4 m under water. A
+  temporary encode pass writing one shader term per channel down a pixel column showed TS
+  `bareRock` sloping the platform over the ragged width, GLSL over the nominal one. Fixed in 0.137
+  (CPU now matches the drawn rock; 12 days' cameras move). 2024-06-13's pool is now 15.9 m off
+  (GPU) / 16.1 m (CPU): the camera moved.
+- **Against debug.water on 24 frames** (`wet-mirror.json`, 8 platform days, 8 beach/flat days):
+  12 match (within 15%, most within 2 m), 6 have no pool in either. The rest: 2 pools > 300 m
+  (the search's end), 2 sea-ice days (the sheet, a prop, covers the shore in the render), 1
+  pool hidden behind rocks (props; `swash-rocks`, suspected), 1 a strip ~0.5–1 m wide at 72 m
+  the 2 m rings step over (2024-06-27, mapped with `poolAt` round the GPU's pixel).
+- **Rock-platform days by nearest pool** (`--rendered`, 123 days): < 15 m on 16 (13%), 15–40 m on
+  29, further on 39, none on 39. The 16 (for the done-when's spec; check props and sea ice with
+  `--water`): 2024-08-28 (8.9 m), 2024-10-08 (4.9 m, snow), 2024-11-22 (8.2 m, snow), 2025-01-05,
+  2025-03-18 (9.4 m), 2025-08-04, 2025-08-28 (6.9 m, night), 2025-11-12, 2026-03-23, 2026-04-02,
+  2026-06-19, 2026-08-12, and four more (`params.mjs --where 'p => p.pools.m < 15'`).
 
 ## Why
 

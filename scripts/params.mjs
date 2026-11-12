@@ -51,7 +51,9 @@
 //
 // In expressions, besides SceneParams: p.props (props/choices.ts on the
 // render's streams), p.placeData (places.ts Place), p.view (composition.ts
-// frameView at 1080p), p.ctx (PropContext at 1080p, no wave field), and
+// frameView at 1080p), p.pools (waterFilms.ts nearestPool: the nearest pool
+// in frame, m and image point, pool m² within 15 m; no render, nothing hides
+// it), p.ctx (PropContext at 1080p, no wave field), and
 // src.X / props.X (src/X.ts, src/props/X.ts; on --ref both sides see this tree's).
 //
 //   node scripts/params.mjs --stats 'p => p.weather.formations' --where 'p => p.sea.ocean === "southern"'
@@ -62,6 +64,7 @@
 //   node scripts/params.mjs --scene scenes/aurora.json --line '{"az":-30,"el":[8,30]}' --sky aurora
 //   node scripts/params.mjs --scene '{"saltMarsh":true}' --stats 'p => props.saltMarsh.createSaltMarsh(p.ctx).length' 2025-07-01..2025-07-10
 
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -138,6 +141,8 @@ async function load(root) {
     mod('/src/camera.ts'),
     mod('/src/props/context.ts')
   ])
+  // Older refs may not have waterFilms.ts.
+  const waterFilms = existsSync(resolve(root, 'src/waterFilms.ts')) ? await mod('/src/waterFilms.ts') : {}
   /** Is this the camera the page renders? Asked only when an expression reads
    * the camera, and only for the first days: measuring a frame isn't free. */
   const framing = { checked: 0, differ: 0, example: null }
@@ -158,6 +163,14 @@ async function load(root) {
       get: () => {
         checkFraming(p, date, spec)
         return frameView(p)
+      },
+      enumerable: false
+    })
+    // The nearest pool in frame (waterFilms.ts, ~0.1–0.4 s a day): only when asked.
+    Object.defineProperty(out, 'pools', {
+      get: () => {
+        checkFraming(p, date, spec)
+        return waterFilms.nearestPool?.(p) ?? null
       },
       enumerable: false
     })

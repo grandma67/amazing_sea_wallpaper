@@ -102,6 +102,22 @@ node scripts/params.mjs --stats 'p => p.coast.composition + " " + Math.min(40, M
   weather.formations`, altitudes in `cloudTypes.ts`) first; inside the storm deck (Cb base 600 m)
   or scud (300–550 m) means hidden.
 
+### Pools near the camera: `p.pools`
+
+The nearest standing water in frame (`waterFilms.ts` `nearestPool`, a CPU mirror of the terrain
+shader's `pools`: terrace runnels, reef-flat hollows, rock pools, flat creeks and sheets; not
+under snow, not below today's still water): `m` (3D, as `debug.water`), `at` (image point, a
+`probe` point), `areaWithin15M2`. No render; with `--rendered` ~0.4 s a day (123 platform days: 48 s). Ground in front is checked; props and
+the sea-ice sheet aren't, so on rock and sea-ice days a pool it reports may be hidden in the
+render: confirm with `snapshot.mjs --water`. Rings are 3% of the distance apart, so a pool strip
+under ~2 m across can be missed past ~70 m. Checked against `debug.water` on 24 frames: 18 agree;
+the rest are > 300 m (the search's end), sea ice, props in front, or a sliver at 72 m.
+
+```sh
+node scripts/params.mjs --rendered --where 'p => p.coast.rock?.kind === "platform"' --stats 'p => p.pools.m == null ? "none" : p.pools.m < 15 ? "< 15 m" : "further"'
+node scripts/params.mjs --rendered --where 'p => p.pools.m != null && p.pools.m < 12' --each 'p => JSON.stringify(p.pools)'
+```
+
 ### Props and helpers on real days: `p.ctx`, `src.X`, `props.X`
 
 `p.ctx` is the props' `PropContext` at 1080p (render camera and frustum, `ground`, `visible`,
