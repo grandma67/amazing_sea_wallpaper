@@ -10,7 +10,7 @@ Bring the remaining living things on a coast into the season. Research and numbe
 | Phase | What | Days touched (of 1095, measured) | Estimate | Status |
 |---|---|---|---|---|
 | 1 | Blossom: flamboyant, rock rose, heather | flamboyant **24** land days in full bloom, **109** with scattered trees; rock rose ~13; heath near the camera on **14** rock-shore days, on far slopes on the heath places' 9 beach days when a landform or island is in frame | 3–4 h | planned |
-| 1b | Blossom: gorse, pōhutukawa, wattle (Answers 2026-11-12 b) | count first (`--stats` windows: gorse Atlantic Europe Jan–Jun, pōhutukawa `new-zealand-north` Nov–Jan, wattle SE Australia Jul–Nov) | 2–3 h | planned |
+| 1b | Blossom: gorse, pōhutukawa, wattle (Answers 2026-11-12 b) | land days measured 2026-11-12: gorse **6** full (Apr–May), **14** at ×0.4, 16 at ×0.1; wattle **2** full, 1 at ×0.3; pōhutukawa **1** in its window; in frame: `--project vegetation` once built | 2–3 h | planned |
 | 2 + 2b | Moss on rock and trunks by realistic rules; upper-shore weed by season (built together: both edit the rock-shore shader) | every boulder, rock-shore and forest day a little; weed on European Atlantic rock shores | 5–7 h | planned |
 | 3 | Fireflies and glow-worms, single-flash streaks | **11** eligible land nights (recounted 2026-11-12 with the dusk rule); **~4** after the wind, rain and mangrove rules; fewer after moon and in-frame filters | 5–7 h | planned (build: real on those nights) |
 | 4 | Seasons for PLAN_BIOMES 14 animals; a `eucalyptus` kind (Australia native, California groves) for the monarchs | per animal; eucalyptus on every Australian and Californian land day with trees | ~0.5 h each + the animal (2–4 h each, own plan); eucalyptus 2–3 h | with phase 14 |
@@ -614,7 +614,8 @@ Atiquipa, Lachay pages).
 - **Where:** `baja-sonora`, Pacific ocean days only (the Gulf side is hyper-arid, flowering after
   hurricanes: Desert Museum); far slopes and ground cover as 5c, with yellow and orange
   `[0.70, 0.45, 0.03]` and purple `[0.30, 0.10, 0.35]` *(est.)*.
-- Count first (`--stats` on `baja-sonora` Feb–Apr land days).
+- **Counted 2026-11-12:** 0 `baja-sonora` land days in Feb–Apr on the test days (rare in the
+  test set, real on the coast: built for the move-around mode and other years).
 
 **Spec and switch:** `desertBloom: boolean | number | null` (true strong, 0..1 strength) forces
 5c, 5d and 5e where the place has them; lomas follow the month only (no draw). All under
