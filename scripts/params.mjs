@@ -53,6 +53,15 @@
 //                  the underwater skirt), e.g. to probe an island and its mirror image.
 //                  "covered by": a prop between the camera and the point (props only,
 //                  not the terrain; checked when ≤ 20000 rows): don't probe it there.
+// --find KINDS     which days SHOW a prop, not just place it (implies --rendered):
+//                  per day and kind (sub-kind as --count, or --by): pieces placed, in
+//                  frame, and VISIBLE (in frame, not behind a prop or the terrain),
+//                  the nearest visible and its size in px; then the days ranked by
+//                  visible pieces. Pieces are an instance's box centre, or a mesh's
+//                  vertices (≤ 600 sampled: a landform's share of slope seen). For
+//                  picking spec dates and "is it hidden?" before a render. Past 1 km
+//                  it adds the contrast the haze leaves (exp(−3.912 d / visibilityKm)).
+//                  Ground features (the turf in view): src.groundSeen.groundSeen(p.ctx).
 // --line LINE      a line of sky pixels through the CPU mirrors of the sky
 //                  shaders (skyMirror.ts): '{"az":0,"el":[2,40],"step":0.05}' or a
 //                  list of them, az
@@ -106,11 +115,12 @@ const projectArg = option('project', null)
 const weightArg = option('weight', null)
 const schemaArg = option('schema', null)
 const countArg = option('count', null)
+const findArg = option('find', null)
 const byArg = option('by', null)
 // --project: only points at least this high above the sea (m): a face, not a skirt.
 const aboveArg = option('above', null)
 const above = aboveArg == null ? null : Number(aboveArg)
-const rendered = flag('rendered') || projectArg != null || countArg != null
+const rendered = flag('rendered') || projectArg != null || countArg != null || findArg != null
 const rows = Number(option('rows', 12))
 const skyArg = option('sky', 'aurora,glow')
 const jitters = Number(option('jitters', 8))
@@ -509,6 +519,96 @@ if (countArg != null) {
       for (const [k, s] of [...summary].sort((a, b) => a[0].localeCompare(b[0]))) {
         const sorted = [...s.inFrame].sort((a, b) => a - b)
         console.log(`  ${k.padEnd(28)} ${String(s.days).padStart(5)} ${String(s.seen).padStart(10)}   ${String(sorted[Math.floor(sorted.length / 2)]).padStart(6)} / ${sorted.at(-1)}   ${Number.isFinite(s.nearest) ? `${s.nearest} m` : '-'}`)
+      }
+    }
+  } finally {
+    await here.server.close()
+  }
+  process.exit(0)
+}
+if (findArg != null) {
+  const { createProps } = await here.mod('/src/props/index.ts')
+  const { terrainHides } = await here.mod('/src/groundSeen.ts')
+  const three = await import('three')
+  const by = fn(byArg) ?? (o => o.userData.plantKind ?? o.userData.kind ?? '')
+  const wanted = findArg.split(',')
+  const MAX_POINTS = 600
+  try {
+    for (const { name, spec: raw } of await specs()) {
+      here.parseSceneSpec(raw)
+      const { spec, dates } = datesFor(raw)
+      if (name != null) console.log(`== ${name}`)
+      const ranked = []
+      for (const p of dates.map(d => here.day(d, spec)).filter(p => keep(p))) {
+        const { camera, pixelAngle } = p.ctx
+        const group = createProps(p.ctx)
+        group.updateMatrixWorld(true)
+        const ray = new three.Raycaster()
+        ray.camera = camera
+        const rows = new Map()
+        const m = new three.Matrix4()
+        group.traverse(object => {
+          const kind = object.userData?.prop
+          if (kind == null || (findArg !== 'all' && !wanted.includes(kind)) || object.geometry == null) return
+          const key = `${kind}/${by(object) ?? ''}`.replace(/\/$/, '')
+          const pieces = []
+          if (object.isInstancedMesh === true) {
+            object.geometry.computeBoundingBox()
+            const box = object.geometry.boundingBox
+            const centre = box.getCenter(new three.Vector3())
+            const diag = box.getSize(new three.Vector3()).length()
+            for (let i = 0; i < object.count; i++) {
+              object.getMatrixAt(i, m)
+              m.premultiply(object.matrixWorld)
+              const scale = new three.Vector3().setFromMatrixScale(m).x
+              pieces.push({ v: centre.clone().applyMatrix4(m), size: diag * scale, own: i })
+            }
+          } else {
+            const pos = object.geometry.attributes.position
+            const step = Math.max(1, Math.ceil(pos.count / MAX_POINTS))
+            for (let i = 0; i < pos.count; i += step) pieces.push({ v: new three.Vector3().fromBufferAttribute(pos, i).applyMatrix4(object.matrixWorld), size: 0, own: null })
+          }
+          const row = rows.get(key) ?? { placed: 0, inFrame: 0, visible: 0, nearest: Infinity, px: 0, mesh: object.isInstancedMesh !== true }
+          // Instances: every one up to MAX_POINTS rays per mesh (an even
+          // sample past that, scaled back up).
+          const stride = Math.max(1, Math.ceil(pieces.length / MAX_POINTS))
+          row.placed += pieces.length
+          for (let k = 0; k < pieces.length; k += stride) {
+            const { v, size, own } = pieces[k]
+            const n = v.clone().project(camera)
+            if (!(n.z < 1 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1)) continue
+            row.inFrame += stride
+            const dist = v.distanceTo(camera.position)
+            ray.set(camera.position, v.clone().sub(camera.position).normalize())
+            ray.far = dist - Math.max(0.05, dist * 0.002)
+            const hit = ray.intersectObject(group, true).find(h => !(h.object === object && (own == null ? false : h.instanceId === own)))
+            if (hit != null || terrainHides(p.coast, camera.position, v)) continue
+            row.visible += stride
+            const d = Math.hypot(v.x - camera.position.x, v.z - camera.position.z)
+            if (d < row.nearest) (row.nearest = d), (row.px = size / (dist * pixelAngle))
+          }
+          rows.set(key, row)
+        })
+        console.log(`${p.date}  ${p.place.id}, ${p.coast?.type} ${p.coast?.composition}`)
+        if (rows.size === 0) console.log('  nothing placed')
+        let visible = 0
+        let nearest = Infinity
+        for (const [k, r] of [...rows].sort((a, b) => a[0].localeCompare(b[0]))) {
+          visible += r.visible
+          nearest = Math.min(nearest, r.nearest)
+          const unit = r.mesh ? 'vertices' : 'pieces'
+          const share = r.inFrame > 0 ? ` (${Math.round((100 * r.visible) / r.inFrame)}%)` : ''
+          // Far land: how much of its contrast the haze leaves (Koschmieder: 2% at the day's visibility).
+          const contrast = r.nearest > 1000 && p.visibilityKm > 0 ? `, contrast ${Math.exp((-3.912 * r.nearest) / 1000 / p.visibilityKm).toFixed(2)}` : ''
+          const near = Number.isFinite(r.nearest) ? `, nearest visible ${r.nearest.toFixed(1)} m${r.mesh ? '' : ` (${r.px.toFixed(0)} px)`}${contrast}` : ''
+          console.log(`  ${k.padEnd(28)} ${String(r.placed).padStart(6)} ${unit} ${String(r.inFrame).padStart(6)} in frame ${String(r.visible).padStart(6)} visible${share}${near}`)
+        }
+        ranked.push({ date: p.date, visible, nearest })
+      }
+      if (ranked.length > 1) {
+        console.log('best days (visible, nearest):')
+        for (const r of ranked.filter(r => r.visible > 0).sort((a, b) => b.visible - a.visible || a.nearest - b.nearest).slice(0, 8)) console.log(`  ${r.date}  ${r.visible} visible, nearest ${r.nearest.toFixed(1)} m`)
+        if (!ranked.some(r => r.visible > 0)) console.log('  none: nothing visible on any day')
       }
     }
   } finally {

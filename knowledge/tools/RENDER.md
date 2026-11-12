@@ -78,6 +78,7 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
   at full size, where `NAME.diff.jpg` is shrunk. `--zoom N` enlarges it with sharp pixels. Use it to
   tell a real edge from something standing in front of it.
 
+- A failed snapshot now prints its own reason ("dev server not reachable …"): before 0.156 `diff.mjs` showed only "snapshot.mjs failed:".
 - `--keep-camera`: terrain changes (bars, cusps, tides) also move the camera, which stands on the
   ground. With it the "on" renders go first and each "off" render stands at the same height
   (`params.camera.groundM`, from `debug.cameraGroundM`). Heading and lens are the date's in both;
@@ -158,6 +159,9 @@ node scripts/horizon.mjs --scene '{"date":"2003-03-11","coast":"open-sea","landf
   land and the sun's glitter.
 
 ## `scripts/parity.mjs`: do the CPU mirrors match the drawn terrain?
+
+Also the ground cover (`groundCover.ts` `groundCoverAt` against the shader's `cover` term, where
+a pixel is under 0.5 m: `cover |Δ| p95`, ⚠ past `--cover-tol` 0.1).
 
 ```sh
 node scripts/parity.mjs                       # 12 real land days spread across coast kinds, ~45 s

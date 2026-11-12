@@ -48,6 +48,9 @@ research numbers: REGIONS.md §2–3. Pitfalls: LESSONS.md "Coast and terrain".
 
   Keep shared helpers in a module that imports neither `terrain.ts` nor `tides.ts` (they import
   each other's dependents: a cycle broke half the test files).
+- **Ground cover mirror:** `groundCover.ts` `groundCoverAt` / `heathMaskAt` copy the shader's
+  "Vegetation behind the beach" block (cover start, patches, slope; heath mask) for props on the
+  turf (mushrooms, fireflies, `groundSeen.ts`); change both, then `parity.mjs` (cover term).
 - **Mirrors:** every height term lives in both `TERRAIN_GLSL` and the TS `beachHeight`
   (`terrain.ts`); `test/terrain.test.ts` and `test/tides.test.ts` check them against themselves,
   `scripts/parity.mjs` against the drawn terrain (all coast kinds, heights and pools; the TS

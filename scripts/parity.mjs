@@ -2,7 +2,8 @@
 // the terrain shader's own terms (params.debug.terrainProbe: world x, z,
 // height h, pools, snow), then evaluates the TS mirrors at the same world
 // points with the params the render saved: terrainHeight (camera height,
-// props, p.view all stand on it) and waterFilms poolAt (p.pools). Prints
+// props, p.view all stand on it), waterFilms poolAt (p.pools) and
+// groundCover groundCoverAt (mushrooms, fireflies, groundSeen stand on it). Prints
 // per day and per coast kind: |Δh| median / p99 / max, the share past
 // --tol, the worst sample (to probe further), and pool pixels GPU vs CPU.
 // Built after the TS bareRock had drifted from the shader for many
@@ -15,7 +16,8 @@
 //
 // Days: DATEs, or --scene SPEC (debug merged in), or real land days spread
 // across coast kinds (--where, default not open sea; --sample N, default 12).
-// --every N (16)  grid step in px of the render; --tol M (0.02) metres
+// --every N (16)  grid step in px of the render; --tol M (0.02) metres;
+// --cover-tol (0.1) the ground cover mirror's p95 |Δ| (groundCover.ts, pixels < 0.5 m)
 // --out DIR (out/parity)  --w 960 --h 540 --url   passed to snapshot.mjs (1 frame)
 // Exit code 1 when a day's p99 |Δh| or pool mismatch is past the tolerances.
 
@@ -32,6 +34,7 @@ const where = option('where', 'p => p.coast.type !== "open-sea"')
 const sample = option('sample', '12')
 const every = Number(option('every', 16))
 const tol = Number(option('tol', 0.02))
+const coverTol = Number(option('cover-tol', 0.1))
 const outDir = resolve(option('out', 'out/parity'))
 const render = [['w', '960'], ['h', '540'], ['url', null]].flatMap(([k, d]) => {
   const v = option(k, d)
@@ -39,7 +42,7 @@ const render = [['w', '960'], ['h', '540'], ['url', null]].flatMap(([k, d]) => {
 })
 rejectUnknown()
 
-const TERMS = ['x', 'z', 'h', 'pools', 'snow']
+const TERMS = ['x', 'z', 'h', 'pools', 'snow', 'cover', 'footprint']
 const debug = { params: { debug: { terrainProbe: { terms: TERMS, every } } } }
 
 /** The specs to render: given dates, a spec file, or real days. */
@@ -63,7 +66,7 @@ const run = spawnSync(process.execPath, ['scripts/snapshot.mjs', '--out', outDir
 if (run.status !== 0) throw new Error(`snapshot.mjs failed:\n${run.stdout}\n${run.stderr}`)
 
 const server = await createServer({ root: process.cwd(), cacheDir: resolve('node_modules/.vite-params'), server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom', logLevel: 'error' })
-const [{ terrainHeight }, { poolAt }] = await Promise.all([server.ssrLoadModule('/src/terrain.ts'), server.ssrLoadModule('/src/waterFilms.ts')])
+const [{ terrainHeight }, { poolAt }, { groundCoverAt }] = await Promise.all([server.ssrLoadModule('/src/terrain.ts'), server.ssrLoadModule('/src/waterFilms.ts'), server.ssrLoadModule('/src/groundCover.ts')])
 
 const quantile = (sorted, q) => (sorted.length === 0 ? NaN : sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))])
 const fmt = v => (Number.isFinite(v) ? (v < 0.001 ? v.toExponential(0) : v.toFixed(3)) : '–')
@@ -80,7 +83,11 @@ for (const spec of list) {
   let gpuPools = 0
   let cpuPools = 0
   let differ = 0
-  for (const [fx, fy, x, z, h, pools, snow] of grid.samples) {
+  // Ground cover (groundCover.ts) where a pixel is under 0.5 m: further off
+  // the shader's slope sample grows with the pixel and the two part, rightly.
+  const coverErrors = []
+  for (const [fx, fy, x, z, h, pools, snow, cover, footprint] of grid.samples) {
+    if (footprint < 0.5 && h > 0.3 && snow <= 0.5) coverErrors.push(Math.abs(groundCoverAt(p.coast, x, z) - cover))
     const cpu = terrainHeight(p.coast, x, z)
     const e = Math.abs(cpu - h)
     errors.push(e)
@@ -96,7 +103,10 @@ for (const spec of list) {
   const past = errors.filter(e => e > tol).length / Math.max(n, 1)
   const p99 = quantile(errors, 0.99)
   const poolBad = differ > Math.max(2, 0.2 * Math.max(gpuPools, cpuPools))
-  const bad = p99 > tol || poolBad
+  coverErrors.sort((a, b) => a - b)
+  const coverP95 = quantile(coverErrors, 0.95)
+  const coverBad = coverErrors.length > 20 && coverP95 > coverTol
+  const bad = p99 > tol || poolBad || coverBad
   failed ||= bad
   const k = byKind.get(kind) ?? { errors: [], days: 0, differ: 0, pools: 0 }
   k.errors.push(...errors)
@@ -106,7 +116,7 @@ for (const spec of list) {
   byKind.set(kind, k)
   const w = worst == null ? '' : `[${worst.fx.toFixed(3)}, ${worst.fy.toFixed(3)}]: ${worst.h.toFixed(3)} → ${worst.cpu.toFixed(3)}`
   console.log(
-    `${spec.name.padEnd(22)} ${kind.padEnd(21)} ${String(n).padStart(7)}  ${fmt(quantile(errors, 0.5)).padStart(7)} ${fmt(p99).padStart(7)} ${fmt(errors[n - 1]).padStart(7)}  ${(past * 100).toFixed(1).padStart(4)}%   ${`${gpuPools}/${cpuPools}/${differ}`.padStart(14)}   ${w}${bad ? '  ⚠' : ''}`
+    `${spec.name.padEnd(22)} ${kind.padEnd(21)} ${String(n).padStart(7)}  ${fmt(quantile(errors, 0.5)).padStart(7)} ${fmt(p99).padStart(7)} ${fmt(errors[n - 1]).padStart(7)}  ${(past * 100).toFixed(1).padStart(4)}%   ${`${gpuPools}/${cpuPools}/${differ}`.padStart(14)}   cover |Δ| p95 ${coverErrors.length > 0 ? fmt(coverP95) : '–'} (${coverErrors.length})   ${w}${bad ? '  ⚠' : ''}`
   )
 }
 console.log('\nby coast kind:')

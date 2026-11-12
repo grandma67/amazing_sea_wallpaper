@@ -5,6 +5,11 @@ tool gotchas: TOOLS.md.
 
 ## Scripts
 
+- **zsh doesn't split a command kept in a variable** (`M="node x.mjs"; $M args` runs nothing
+  useful): five colour measurements silently didn't run (mushrooms, 0.151). Use a shell function
+  (`m() { node x.mjs "$@"; }`) or write the command out.
+- **`--project`'s box is the mesh's bounding box**, not what shows: a range "1/1 in frame" was out
+  of view (lomas, 0.154). Use `--find` (visible vertices, haze contrast).
 - **Before the first render of a session, check the dev server** (`lsof -tiTCP:5174 -sTCP:LISTEN`):
   `diff.mjs --ref` renders REF first and only then fails on this tree's missing server, a lost round
   (trunk moss, 0.148).
@@ -106,6 +111,9 @@ tool gotchas: TOOLS.md.
 
 ## Randomness, params and tests
 
+- **Test dates come from the tests' camera:** `test/days.ts` builds attempt 0, the page and
+  `--rendered` the re-rolled framing; dates picked with `--rendered` had no fireflies under the
+  tests' camera. Pick a test's dates with `params.mjs` without `--rendered` (fireflies, 0.153).
 - Long outputs: put the summary last (`bench.mjs` timing table, `params.mjs` "… N more not
   shown") and save it to a file; a `| tail` that cuts the table off costs a full re-run.
 

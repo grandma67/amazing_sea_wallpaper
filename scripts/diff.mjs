@@ -122,7 +122,8 @@ if (sceneArg != null) {
     const atRef = refArg != null && file === 'off.json' ? ['--ref', refArg] : []
     const run = spawnSync('node', ['scripts/snapshot.mjs', '--out', dir, ...render, ...atRef, '--scene', join(outDir, file)], { encoding: 'utf8' })
     process.stdout.write(run.stdout.split('\n').filter(l => /\.jpg|⚠|rror|left out/.test(l)).map(l => `${l}\n`).join(''))
-    if (run.status !== 0) throw new Error(`snapshot.mjs failed:\n${run.stderr}`)
+    // snapshot.mjs says why on stdout too ("dev server not reachable…"): show both.
+    if (run.status !== 0) throw new Error(`snapshot.mjs failed:\n${[run.stdout.trim().split('\n').slice(-8).join('\n'), run.stderr.trim()].filter(Boolean).join('\n')}`)
   }
   if (onFirst) snapshot(dirB, 'on.json')
   const offSpecs = await Promise.all(

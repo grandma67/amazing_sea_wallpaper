@@ -103,6 +103,35 @@ node scripts/params.mjs --schema timeOfDay       # the six values
 node scripts/params.mjs --schema props.debris    # the props' choices too
 ```
 
+### Which days show it: `--find`
+
+`--find KINDS` builds the props on the rendered camera and, per day and sub-kind, counts pieces
+placed, in frame and **visible**: not behind a prop (a ray to the piece's box centre; its own
+instance excepted) or the terrain (`groundSeen.ts` `terrainHides`, a 24-step march). It prints the
+nearest visible and its size in px, and past 1 km the contrast the haze leaves (Koschmieder,
+exp(−3.912 d / `visibilityKm`)); then the days ranked. A non-instanced mesh (a landform) counts
+vertices (≤ 600 sampled): the share of the slope seen. ~1 s a day.
+
+```sh
+node scripts/params.mjs --find fungi --scene scenes/fungi.json                  # are the spec's mushrooms visible?
+node scripts/params.mjs --find fireflies --scene '{"place":"maine","timeOfDay":"night","props":{"fireflies":"flash"}}' 2025-07-01..2025-07-20
+node scripts/params.mjs --find landforms --scene '{"landform":"range","place":"atacama-peru"}' 2025-08-01..2025-08-30   # the range's slopes seen, and how hazed
+```
+
+It caught every "in frame but hidden" case of NATURE_PLAN phases 12–15 (mushrooms behind grass
+tufts at a 1.6 m eye: 0%; a range 19 km off at contrast 0.11).
+
+### What ground is seen: `src.groundSeen`
+
+`groundSeen(ctx, far = 300)` (`src/groundSeen.ts`): m² of turf (the shader's cover ≥ 0.5 of the
+biome's, `groundCover.ts`), sparse cover, bare land and sea in frame and not behind the terrain,
+in bands near (< 20 m), mid (20–60 m) and far (≥ 60 m). For a ground feature, before building it:
+on most land days the turf near a sea-facing camera is out of view.
+
+```sh
+node scripts/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --stats 'p => { const g = src.groundSeen.groundSeen(p.ctx); return g.near.turf + g.mid.turf > 200 ? "turf within 60 m" : "none" }'
+```
+
 ### How many in frame: `--count`
 
 `--count KINDS` builds the props on the params the page renders (implies `--rendered`) and counts,

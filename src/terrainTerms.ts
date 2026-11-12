@@ -51,7 +51,11 @@ export const TERRAIN_TERMS = {
   /** Rock shores (rockShore.ts): gully 0–1, the platform's ragged width, the bare profile. */
   rockGully: 'termGully',
   rockWidth: 'termWidth',
-  rockBare: 'bareRock(sa.x, termWidth, length(p))'
+  rockBare: 'bareRock(sa.x, termWidth, length(p))',
+  /** Ground cover as a share of the biome's (TS groundCover.ts groundCoverAt), and
+   * the heath mask's weight where a day has heath (heathMaskAt). */
+  cover: 'cover / max(groundCoverAmount, 0.01)',
+  heath: 'heath'
 } as const
 export type TerrainTerm = keyof typeof TERRAIN_TERMS
 export const TERRAIN_TERM_NAMES = Object.keys(TERRAIN_TERMS) as TerrainTerm[]
