@@ -31,6 +31,12 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   turns a share of a flowering crown's cards into flower cards, outside first, after the draws,
   and thins its leaves to `on` (flamboyant); the crown is evergreen. Far crowns: `canopyTint`
   mixes toward the bush rows' flowers. `props.bloom`: true / a list forces, false is the switch.
+- **Moss on rock** (`phenology.ts` `mossLook`, 0.146, NATURE_PLAN phase 7): amount by climate (`MOSS`)
+  ×1.3 on the wettest coasts, dried toward brown by half the drought (`mossWetness`: wet days,
+  cool climates, the Mediterranean summer, a savanna's dry season, arid). Boulder props
+  (`rockMaterial`'s `mossToday`: weight and patch edge) and the rock-shore terrain; the green stays
+  `MOSS_COLOR` by biome. Colonies, lighthouse feet and skerries keep their own growth.
+  `props.moss: false`: the biome's old amount, green, none on the terrain.
 - **Eucalyptus** (`props/trees.ts` `eucalyptus`, 0.145, NATURE_PLAN phase 6): coastal gums, 15–24 m,
   hanging leaves, smooth pale or rough dark bark; in the Australian place pools (`PLACE_PLANTS`) and
   a small weight in California. Last in the framed hero order (a near gum shows only its trunk).

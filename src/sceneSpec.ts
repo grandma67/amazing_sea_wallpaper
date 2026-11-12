@@ -89,6 +89,9 @@ export interface PropOverrides {
    * today's colour wherever the day is (near on a rocky shore, far on slopes
    * and islands); a stage, in that colour; false: none. */
   heath?: boolean | HeathStage
+  /** false: moss on rock as before NATURE_PLAN phase 7 (the biome's amount,
+   * always green, none on the rocky shore's terrain). */
+  moss?: boolean
   /** false: no eucalypts drawn (still placed, so the other plants don't
    * move; props/vegetation.ts). */
   eucalyptus?: boolean
@@ -394,6 +397,7 @@ const SPEC = object({
     leafLitter: boolean,
     bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf(...BLOOM_KINDS))(value, path)),
     eucalyptus: boolean,
+    moss: boolean,
     heath: (value, path) => (typeof value === 'boolean' ? undefined : oneOf(...HEATH_STAGES)(value, path)),
     iceFoot: boolean,
     seaIce: boolean,

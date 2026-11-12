@@ -59,6 +59,16 @@ export interface RockShore {
   color: RGB
 }
 
+/** Moss's green by biome: the species follow the rock's region (props/rocks.ts
+ * GROWTH reads it; the amount is by climate, phenology.ts MOSS). */
+export const MOSS_COLOR: Record<Biome['name'], RGB> = {
+  tropical: [0.06, 0.12, 0.03],
+  mediterranean: [0.1, 0.12, 0.05],
+  nordic: [0.07, 0.11, 0.03],
+  volcanic: [0.1, 0.16, 0.04],
+  desert: [0, 0, 0]
+}
+
 /** Lichen crusts on dry rock by biome (as props/rocks.ts GROWTH). */
 export const LICHEN: Record<Biome['name'], RGB> = {
   tropical: [0.45, 0.42, 0.35],

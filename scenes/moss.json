@@ -1,0 +1,10 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null, "coast": "rock-shore", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "scotland-platform-big-swell", "date": "2025-07-10", "place": "scotland", "rockShore": "platform", "swellHeight": 3 },
+    { "name": "cornwall-boulder-january", "date": "2025-01-15", "place": "cornwall-wales", "rockShore": "boulder" },
+    { "name": "med-boulder-august-dry", "date": "2025-08-15", "place": "western-med", "rockShore": "boulder" },
+    { "name": "med-boulder-august-overcast", "date": "2025-08-15", "place": "western-med", "rockShore": "boulder", "weather": "overcast" },
+    { "name": "bc-cliff", "date": "2025-06-10", "place": "british-columbia", "rockShore": "cliff" },
+    { "name": "bc-cliff-back", "date": "2025-06-10", "place": "british-columbia", "rockShore": "cliff", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour" },
+    { "name": "namibia-boulder-arid", "date": "2025-03-10", "place": "namibia", "rockShore": "boulder" }
+  ] }

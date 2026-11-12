@@ -622,6 +622,66 @@ export function heathFor(day: PhenologyDay): Heath | undefined {
   return { stems, flower: HEATH_FLOWER, specks, color: mix(stems, HEATH_FLOWER, specks) }
 }
 
+/** Moss on rock by climate (NATURE_PLAN phase 7, NATURE.md §4; est.): where
+ * it grows and how much. Only the amount follows the climate; the green
+ * follows the rock (`MOSS_COLOR` by biome, rockShore.ts). */
+export const MOSS: Record<Climate, number> = { temperate: 1, boreal: 1, polar: 0.5, tropical: 0.6, subtropical: 0.5, mediterranean: 0.4, arid: 0 }
+/** The wettest, foggiest coasts: more moss (est.). */
+export const MOSS_WET_PLACES: readonly string[] = ['se-alaska', 'british-columbia', 'pacific-northwest', 'norway-west', 'ireland', 'scotland', 'new-zealand-south', 'patagonia-fjords', 'tasmania']
+const MOSS_WET_FACTOR = 1.3
+/** Dried moss, brown (est.). */
+export const MOSS_DRY: RGB = [0.068, 0.045, 0.019]
+
+/** What moss reads from a day besides phenology's inputs (SceneParams has it all). */
+export interface MossDay extends PhenologyDay {
+  overrides?: PhenologyDay['overrides'] & { moss?: boolean }
+  weather: { kind: string; marineLayer: boolean }
+  storm: unknown
+  fog: unknown
+}
+
+/** Moss's amount today (0 none … 1.3), by climate and place; undefined with
+ * `props.moss: false` (the biome's old amount). */
+export function mossAmount(day: MossDay): number | undefined {
+  if (day.overrides?.moss === false) return undefined
+  return MOSS[day.place.climate] * (MOSS_WET_PLACES.includes(day.place.id) ? MOSS_WET_FACTOR : 1)
+}
+
+/**
+ * How wet moss is today (0 dry … 1 wet). Only drought dries it, not winter
+ * (the wettest season on temperate coasts); the first rule that matches wins:
+ * a wet day (storm, overcast: the code has no rain, so overcast stands in for
+ * drizzle (est.), fog, a marine layer) and cool climates are wet; the
+ * Mediterranean dries with its summer grass; a savanna coast in its dry
+ * season; humid tropics and subtropics wet; arid dry. `phenology: false`: wet.
+ */
+export function mossWetness(day: MossDay): number {
+  if (day.overrides?.phenology === false) return 1
+  const wetDay = day.storm != null || day.weather.kind === 'storm' || day.weather.kind === 'overcast' || day.fog != null || day.weather.marineLayer
+  const climate = day.place.climate
+  if (wetDay || climate === 'temperate' || climate === 'boreal' || climate === 'polar') return 1
+  if (climate === 'mediterranean') {
+    const t = DRY_DAYS.mediterranean!
+    return 1 - band(seasonDay(day), t.a, t.b, t.c, t.e)
+  }
+  if (onDryCoast(day) != null) return 1 - savannaDry(day) / SAVANNA_DRY
+  if (climate === 'tropical' || climate === 'subtropical') return 1
+  return 0
+}
+
+/** The lower edge of the rock shore's moss patch mask (terrain.ts) for an amount: more moss, a lower edge
+ * (0.56 at 1, 0.52 on the wettest coasts: about half the rock's top, est.). */
+export function mossEdge(amount: number): number {
+  return 0.68 - 0.12 * amount
+}
+
+/** Moss today: amount and the share mixed toward dry brown (half of the
+ * dryness: some mosses stay green when dry). */
+export function mossLook(day: MossDay): { amount: number; dry: number } | undefined {
+  const amount = mossAmount(day)
+  return amount == null ? undefined : { amount, dry: 0.5 * (1 - mossWetness(day)) }
+}
+
 /** Ground cover (terrain) with the grass dried toward straw. */
 const STRAW: RGB = [0.2, 0.15, 0.075]
 export function groundCoverTint(cover: RGB, phen: Phenology): RGB {

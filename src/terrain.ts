@@ -20,8 +20,8 @@ import { createPolarGrid, ringStep, squareGrid, viewWedge } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { MIRROR_GLSL, MIRROR_UNIFORMS_GLSL } from './reflection'
-import { LICHEN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
-import { groundCoverTint, HEATH_MASK_EDGE, HEATH_MASK_TERRAIN, heathFor, phenologyFor } from './phenology'
+import { LICHEN, MOSS_COLOR, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
+import { groundCoverTint, HEATH_MASK_EDGE, HEATH_MASK_TERRAIN, heathFor, MOSS_DRY, mossEdge, mossLook, phenologyFor } from './phenology'
 import { snowLook } from './props/snowCap'
 import { seasonMonth } from './seasons'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
@@ -1100,6 +1100,10 @@ uniform vec3 snowLook;
 // Rocky shores: the rock's colour and the lichens' (linear albedo).
 uniform vec3 rockColor;
 uniform vec3 lichenColor;
+// Moss on the rocky shore: amount, share dried brown, patch mask's lower edge
+// (phenology.ts mossLook; amount 0: none); its green by biome.
+uniform vec3 mossLook;
+uniform vec3 mossColor;
 // Tidal flats: the mud near the marsh; the salt marsh's sward and its
 // seasonal accent (rgb, share of the low marsh) (tidalFlat.ts).
 uniform vec3 flatMud;
@@ -1257,6 +1261,16 @@ void main() {
     rockC = mix(rockC, vec3(0.03, 0.03, 0.035), 0.7 * splash * smoothstep(0.35, 0.55, patchy));
     float spots = smoothstep(0.62, 0.7, vnoise(q * 1.3 + 3.0) * 0.6 + patchy * 0.4) * smoothstep(1.5, 3.0, above) * (1.0 - steep);
     rockC = mix(rockC, lichenColor, 0.6 * spots);
+    // Moss (phenology.ts mossLook): on gentle tops above the lichen, in
+    // patches, more where the climate and place are wetter, browner in a
+    // drought. Starts 3–5 m above the spring high water and run-up (est.;
+    // NATURE_PLAN phase 8's spray belt replaces this limit).
+    if (mossLook.x > 0.0) {
+      float mp = fbm(q / 2.3 + 19.0) * 0.55 + vnoise(q * 1.1 + 7.0) * 0.25 + vnoise(q * 4.3 + 23.0) * 0.2;
+      float mossW = smoothstep(3.0, 5.0, above) * (1.0 - steep) * smoothstep(mossLook.z, mossLook.z + 0.12, mp) * 0.85 * min(mossLook.x, 1.0);
+      vec3 mossC = mix(mossColor * (0.6 + 0.8 * vnoise(q * 11.0)), vec3(${MOSS_DRY.join(', ')}), mossLook.y);
+      rockC = mix(rockC, mossC, mossW);
+    }
     // Below the spring high water: weed, mussels and barnacles.
     float tideBand = 1.0 - smoothstep(tideSpring - 0.3, tideSpring + 0.1 * vnoise(q * 2.0), h);
     vec3 weed = mix(vec3(0.035, 0.035, 0.04), vec3(0.09, 0.075, 0.025) * (0.7 + 0.6 * vnoise(q * 4.0)), smoothstep(0.35, 0.55, patchy));
@@ -1554,6 +1568,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
   const snowHere = snowLook(params)
   // Near heath only behind a rocky shore (not dunes or machair).
   const heath = coast.rock != null ? heathFor(params) : undefined
+  const moss = coast.rock != null ? mossLook(params) : undefined
   const material = new ShaderMaterial({
     vertexShader,
     fragmentShader,
@@ -1593,6 +1608,8 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       gridStep: { value: new Vector2(ringStep(rings, TERRAIN_INNER_RADIUS, TERRAIN_OUTER_RADIUS), wedge.span / segments) },
       debugLines: { value: coast.rock != null ? new Vector2(-1e5, -1e5) : new Vector2(beachLines(coast).highTide, beachLines(coast).stormLine) },
       lichenColor: { value: new Color(...LICHEN[params.biome.name]) },
+      mossLook: { value: new Vector3(moss?.amount ?? 0, moss?.dry ?? 0, mossEdge(moss?.amount ?? 0)) },
+      mossColor: { value: new Color(...MOSS_COLOR[params.biome.name]) },
       flatMud: { value: new Color(...(coast.flat?.mud ?? [0.16, 0.14, 0.11])) },
       marshColor: { value: new Color(...marshLook(seasonMonth(params)).color) },
       marshAccent: { value: new Vector4(...marshLook(seasonMonth(params)).accent, marshLook(seasonMonth(params)).amount) },

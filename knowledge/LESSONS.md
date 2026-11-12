@@ -199,6 +199,12 @@ tool gotchas: TOOLS.md.
   forced Scottish and Cornish specs changed 0–0.3% of the frame. "Near" ground-cover looks on rock
   days show on the far cliff tops, not at the camera's feet; render the spec before promising a
   near look, and count `diff.mjs` changes, not the plan's day count.
+- **One patch threshold doesn't fit two surfaces (moss, 0.146):** the boulders' mask edge, reused on
+  the rock-shore terrain, covered a crest in an even carpet: the terrain's noise is broader, and a
+  near crest fills a strip of the frame. Give each surface its own edge and look at a crop, not a
+  % changed.
+- **Check what the params can say before writing a weather rule:** "wet on rain and drizzle days"
+  had no field to read (no rain kind); overcast stands in, said in the code.
 - **A tall tree as a framing hero shows only its trunk (eucalyptus, 0.145):** framed shots put
   2–4 hero plants 9–30 m off at the frame's edges; a 15–25 m gum's crown is then above the frame.
   Check a new kind's height against the hero distance before it can be first in the hero order.

@@ -15,6 +15,8 @@ import type { Biome, RGB } from '../biome'
 import type { Random } from '../random'
 import { forced } from '../sceneSpec'
 import { hasLand, shoreToWorld } from '../terrain'
+import { MOSS_COLOR } from '../rockShore'
+import { mossLook, MOSS_DRY } from '../phenology'
 import { tideMarks } from '../tides'
 import type { PropContext } from './context'
 import { fbm3 } from './noise'
@@ -108,30 +110,39 @@ export interface RockGrowth {
 const GROWTH: Record<Biome['name'], { chance: number; growth: RockGrowth }> = {
   tropical: {
     chance: 0.7,
-    growth: { moss: 0.3, mossColor: [0.06, 0.12, 0.03], lichen: 0.2, lichenColor: [0.45, 0.42, 0.35], algae: 0.9, algaeColor: [0.05, 0.1, 0.03] }
+    growth: { moss: 0.3, mossColor: MOSS_COLOR.tropical, lichen: 0.2, lichenColor: [0.45, 0.42, 0.35], algae: 0.9, algaeColor: [0.05, 0.1, 0.03] }
   },
   mediterranean: {
     chance: 0.75,
-    growth: { moss: 0.15, mossColor: [0.1, 0.12, 0.05], lichen: 0.8, lichenColor: [0.55, 0.38, 0.08], algae: 0.7, algaeColor: [0.07, 0.09, 0.03] }
+    growth: { moss: 0.15, mossColor: MOSS_COLOR.mediterranean, lichen: 0.8, lichenColor: [0.55, 0.38, 0.08], algae: 0.7, algaeColor: [0.07, 0.09, 0.03] }
   },
   nordic: {
     chance: 0.9,
-    growth: { moss: 0.9, mossColor: [0.07, 0.11, 0.03], lichen: 0.6, lichenColor: [0.5, 0.5, 0.42], algae: 1, algaeColor: [0.08, 0.07, 0.02] }
+    growth: { moss: 0.9, mossColor: MOSS_COLOR.nordic, lichen: 0.6, lichenColor: [0.5, 0.5, 0.42], algae: 1, algaeColor: [0.08, 0.07, 0.02] }
   },
   volcanic: {
     chance: 0.8,
-    growth: { moss: 0.8, mossColor: [0.1, 0.16, 0.04], lichen: 0.3, lichenColor: [0.45, 0.45, 0.4], algae: 0.6, algaeColor: [0.05, 0.08, 0.03] }
+    growth: { moss: 0.8, mossColor: MOSS_COLOR.volcanic, lichen: 0.3, lichenColor: [0.45, 0.45, 0.4], algae: 0.6, algaeColor: [0.05, 0.08, 0.03] }
   },
   desert: {
     chance: 0.2,
-    growth: { moss: 0, mossColor: [0, 0, 0], lichen: 0.4, lichenColor: [0.5, 0.32, 0.1], algae: 0.5, algaeColor: [0.08, 0.08, 0.03] }
+    growth: { moss: 0, mossColor: MOSS_COLOR.desert, lichen: 0.4, lichenColor: [0.5, 0.32, 0.1], algae: 0.5, algaeColor: [0.08, 0.08, 0.03] }
   }
 }
 
 /** `tideLine`: world height of the spring high water; below it, above the
  * splash zone, rocks the tide has left carry a dark band of wrack weed,
  * mussels and barnacles (0: none). */
-export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | null, tideLine = 0, snow: SnowLook | null = null): MeshStandardMaterial {
+export function rockMaterial(
+  color: RGB,
+  runup: number,
+  growth: RockGrowth | null,
+  tideLine = 0,
+  snow: SnowLook | null = null,
+  /** Moss by climate and today's wetness (phenology.ts mossLook); none: the
+   * growth's own amount, green. */
+  mossToday?: { amount: number; dry: number }
+): MeshStandardMaterial {
   const material = new MeshStandardMaterial({
     color: new Color(...color),
     vertexColors: true,
@@ -145,7 +156,13 @@ export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | nul
   material.onBeforeCompile = shader => {
     shader.uniforms.wetLine = { value: runup * 1.3 }
     shader.uniforms.tideLine = { value: tideLine }
-    shader.uniforms.moss = { value: g.moss }
+    // Moss's weight, the patch mask's lower edge (more moss: a lower edge)
+    // and how far it's dried toward brown.
+    const today = growth == null ? undefined : mossToday
+    shader.uniforms.moss = { value: today == null ? g.moss : Math.min(1, today.amount) }
+    // 0.42 at amount 1: the old Nordic look.
+    shader.uniforms.mossEdge = { value: today == null ? 0.42 : 0.62 - 0.2 * today.amount }
+    shader.uniforms.mossDry = { value: today?.dry ?? 0 }
     shader.uniforms.mossColor = { value: new Color(...g.mossColor) }
     shader.uniforms.lichen = { value: g.lichen }
     shader.uniforms.lichenColor = { value: new Color(...g.lichenColor) }
@@ -172,6 +189,8 @@ export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | nul
         uniform float wetLine;
         uniform float tideLine;
         uniform float moss;
+        uniform float mossEdge;
+        uniform float mossDry;
         uniform vec3 mossColor;
         uniform float lichen;
         uniform vec3 lichenColor;
@@ -212,8 +231,9 @@ export function rockMaterial(color: RGB, runup: number, growth: RockGrowth | nul
         diffuseColor.rgb = mix(diffuseColor.rgb, algaeColor * (0.7 + 0.6 * rockNoise(q * 9.0)), algae * algaeBand);
         // Moss on upward faces above the splash zone.
         float dry = smoothstep(wetLine * 1.3, wetLine * 2.2, q.y);
-        float mossMask = smoothstep(0.35, 0.8, vRockNormal.y) * smoothstep(0.42, 0.62, patches) * dry;
-        diffuseColor.rgb = mix(diffuseColor.rgb, mossColor * (0.6 + 0.8 * rockNoise(q * 11.0)), moss * mossMask);
+        float mossMask = smoothstep(0.35, 0.8, vRockNormal.y) * smoothstep(mossEdge, mossEdge + 0.2, patches) * dry;
+        vec3 mossC = mix(mossColor * (0.6 + 0.8 * rockNoise(q * 11.0)), vec3(${MOSS_DRY.join(', ')}), mossDry);
+        diffuseColor.rgb = mix(diffuseColor.rgb, mossC, moss * mossMask);
         // Crusty lichen spots on dry stone.
         float spots = smoothstep(0.72, 0.78, rockNoise(q * 5.5)) * dry;
         diffuseColor.rgb = mix(diffuseColor.rgb, lichenColor, lichen * spots * 0.8);`
@@ -335,7 +355,7 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
   const picked = rng.pick(biome.rockColors)
   const color = coast.rock?.color ?? picked
   const growthSpec = GROWTH[biome.name]
-  const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null, tideMarks(coast).spring, snowLook(params))
+  const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null, tideMarks(coast).spring, snowLook(params), mossLook(params))
   const meshes: InstancedMesh[] = []
   const m = new Matrix4()
   const q = new Quaternion()

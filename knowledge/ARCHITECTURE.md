@@ -185,7 +185,8 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | mangroves | `props/mangroves.ts` `CHANCE` | biome × ocean | **leftover**: Florida's and south Brazil's mangroves missing (subtropical) |
 | waterspout season | `props/waterspout.ts` | biome | **leftover**: the Florida Keys (subtropical summer) get the Mediterranean's season |
 | visibility, summer haze, dust season | `seaHaze.ts` | biome | leftover: humid subtropical summers get the Mediterranean's dry haze |
-| rock growth, lichen colour | `props/rocks.ts` `GROWTH`, `rockShore.ts` `LICHEN` | biome | leftover (moisture follows climate) |
+| moss amount and wetness | `phenology.ts` `MOSS`, `MOSS_WET_PLACES`, `mossWetness` | climate × a wet-place factor; wetness by weather, drought (Mediterranean curve, savanna dry season) | right |
+| rock growth chance, lichen, algae, moss green | `props/rocks.ts` `GROWTH`, `rockShore.ts` `LICHEN`, `MOSS_COLOR` | biome (the species follow the rock) | right (moss amount moved to climate, 0.146) |
 | landform vegetation tint | `props/landforms.ts` | biome (own table) | leftover: should read `biome.foliage` like islands |
 | night-sky darkness (Bortle) | `places.ts` `BORTLE` | place (default 2) | right |
 | aurora sites (geomagnetic latitude) | `aurora.ts` `AURORA_SITES` | place (a coast point; none = never) | right |

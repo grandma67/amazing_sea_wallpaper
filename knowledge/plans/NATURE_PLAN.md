@@ -19,7 +19,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 4 | ✅ Tree blossom: flamboyant (per-crown thinning, dry-season window), pōhutukawa, 2026-11-12 | `phenology.ts` `onDryCoast`, `props/trees.ts`, `props/vegetation.ts` (flowering twins) | land days with broadleaf in the pool: flamboyant **19** full, 7 part, **146** scattered; pōhutukawa **1**; in frame rarely (below) | done | 3 |
 | 5 | ✅ Heath: heather on ground cover by month, near and far, 2026-11-12 | `phenology.ts` `heathFor`, terrain ground-cover shader, landforms, islands | **14** rock-shore days (rendered framing); far slopes on 7 of the 9 beach days (a range or islands); in frame: cliff tops along the coast, not at the camera's feet (below) | done | 1 |
 | 6 | ✅ `eucalyptus` kind (Australia native, California groves), 2026-11-12 | `props/trees.ts`, `props/vegetation.ts`, `places.ts` `PLACE_PLANTS` | **36** days change (pools); in frame on **17** of 25 land days in the four places (median 32 trees, nearest 10 m) | done | 1 |
-| 7 | Moss on rock: amount by climate and place, colour by today's wetness | `props/rocks.ts` `GROWTH`, rock-shore shader, `phenology.ts` | every boulder and rock-shore day a little | 2–3 h | 1 |
+| 7 | ✅ Moss on rock: amount by climate and place, colour by today's wetness, 2026-11-12 | `props/rocks.ts` `GROWTH`, rock-shore shader, `phenology.ts` | every land day with rocks (uniforms only: 0 params change); dry-moss look on 57 land days | done | 1 |
 | 8 | Shore zonation: the spray belt, laver, sea lettuce | rock-shore shader, `places.ts` `sprayBelt` | every rock-shore day (belt); weed on Atlantic, NE Pacific and Japanese rock shores | 2.5–3.5 h | 7 |
 | 9 | Moss and lichen on trunks | `props/trees.ts` trunk colours, `props/vegetation.ts` | every forest day a little | 1.5–2 h | 7, 8 (belt), 6 |
 | 10 | Fairy rings | terrain ground-cover shader | **124** land days in a growing season (before grass in frame) | 1.5–2 h | 5 (heath mask) |
@@ -561,6 +561,30 @@ Mediterranean August, green on a rainy day there, green in a temperate January; 
 
 **Tests:** `test/moss.test.ts`: `MOSS` over every climate and place, wetness by weather and month
 in both hemispheres (temperate winter wet, wet tropics wet); `npx vitest run test/glsl`.
+
+**Built (0.146):**
+- `phenology.ts`: `MOSS` (as planned), `MOSS_WET_PLACES` ×1.3, `mossWetness` (first rule wins),
+  `mossLook` → amount and `dry` = 0.5 × (1 − wetness), `MOSS_DRY` brown. **No rain in the
+  params:** weather kinds run clear … overcast and storm, so a wet day is storm, overcast (a
+  stand-in for drizzle, est.), fog or a marine layer.
+- Boulder props (`rockMaterial`'s `mossToday`): weight min(1, amount), patch edge
+  0.62 − 0.2 × amount (0.42 at 1: the old Nordic look), mixed toward brown by `dry`; only rocks
+  whose growth roll passed (the `GROWTH` chance and draw stay). Colonies, lighthouse feet,
+  skerries keep their own growth.
+- Rock-shore terrain (new: it had lichen, no moss): gentle rock from 3–5 m above the spring high
+  water and run-up (est.; phase 8's belt replaces this), patches of fbm at 2.3 m with finer noise,
+  ×0.85, edge `mossEdge` = 0.68 − 0.12 × amount (about half the tops on the wettest coasts). The
+  first round's edge (as the props') covered a BC crest in a solid carpet. Concave spots aren't
+  modelled (the plan's "low spots"): the gullies stay as they are.
+- Green by biome: `MOSS_COLOR` moved to `rockShore.ts` (the terrain can't import `props/rocks.ts`:
+  a cycle); `GROWTH` reads it.
+- `props.moss: false`: the old amount, green, no terrain moss. `diff.mjs --ref HEAD --off
+  '{"props":{"moss":false}}' --off-here`: identical on all 7 views of `scenes/moss.json`.
+- Seen: BC cliff crest patchy green over bare rock (1.8% of the frame); dry Mediterranean August
+  boulders a little browner (0.03%), green under overcast; Namibia none; Scotland's platform none
+  near (the sea reaches it; the far shore 0.65%); real rock-shore days 6 of 8 changed, most under
+  0.1%, a backlit boulder shore 1.4%. Platforms and boulder fields stand mostly below 3 m, so
+  moss is rare on them, as on real wave-washed rock.
 
 ## 8. Shore zonation: the spray belt, laver, sea lettuce
 
