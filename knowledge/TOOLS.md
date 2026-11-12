@@ -40,6 +40,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |
 | Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
+| A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs measure SOURCE` | header; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §1 |
 
 ## Tests
 
@@ -151,7 +152,7 @@ minutes (dep optimisation).
 - Each `params.mjs` call costs a few seconds (it builds the modules): a shell loop over seeds or
   places timed out. Ask once over a date range with `--list --where 'p => …'` or `--stats`.
 - **PDFs:** `pdftotext -layout FILE out.txt` (poppler, `brew install poppler`, installed 2026-11-06), then grep. WebFetch can't read a PDF, but it saves the bytes and says where: run `pdftotext` on that. Numbers in figures aren't in the text: use the paper's prose and tables, and say so.
-- **Reference photos:** Wikimedia Commons' API finds them with a thumbnail URL (`curl -G https://commons.wikimedia.org/w/api.php -d action=query -d format=json -d generator=search -d gsrnamespace=6 --data-urlencode gsrsearch=… -d prop=imageinfo -d iiprop=url\|mime -d iiurlwidth=900`). Save them in their own scratchpad folder and `Read` the JPEG. Plain web search returns captions, not pictures. Record each file's page in the plan.
+- **Reference photos:** Wikimedia Commons' API finds them with a thumbnail URL (`curl -G https://commons.wikimedia.org/w/api.php -d action=query -d format=json -d generator=search -d gsrnamespace=6 --data-urlencode gsrsearch=… -d prop=imageinfo -d iiprop=url\|mime -d iiurlwidth=900`). Save them in their own scratchpad folder and `Read` the JPEG. Plain web search returns captions, not pictures. Record each file's page in the plan. To measure one: `asset.mjs measure 'commons:File:NAME.jpg'` (licence and author recorded; it retries Commons' 429s, which come after ~5 quick requests).
 - **zsh, not bash:** an unquoted `$VAR` isn't split into words, so `F="a b"; sed … $F` and `D="d1 d2"; cmd $D` pass one argument, and often fail quietly. Use a `for` over literal words, or `${=VAR}`. An unmatched glob is an error (`--include=*`: quote it), and a bare `======` is too (`echo '---'`).
 - **Patching with a heredoc:** in `<<'EOF'` nothing is unescaped, so `\`` stays a backslash and backtick in the file. In `<<EOF` it's the reverse: `$` and backticks run. Use `<<'EOF'` and write backticks plain.
 - Vitest hides `console.log` from passing tests: `--silent=false`, or `process.stderr.write(…)` in

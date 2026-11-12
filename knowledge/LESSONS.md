@@ -12,6 +12,12 @@ tool gotchas: TOOLS.md.
 - `child.kill()` on `npx vite` signals npx only; start the server `detached` and kill the group
   (`process.kill(-pid)`).
 
+- **A photo's brightness is the camera's, not the surface's** (NATURE_PLAN phase 1): auto-exposure
+  puts a moor at ~0.23 linear where heath albedo is ~0.05–0.1. Take hue from photos; brightness from a
+  calibrated scan (Poly Haven, ambientCG), else from a known material near the target in the same
+  photo (`asset.mjs --anchor`). A far anchor fails: turf 1 km off is hazed pale, and moorland
+  "grass" is often dry straw. White paper behind a specimen is the best anchor found.
+
 ## Debugging approach
 
 - **Reflection on sea ice (0.114–0.116, about 14 render batches against ~9 allowed).** Most of it was process, not missing knowledge: required docs grepped rather than read, a nearby mesh reused against the photos just viewed, real days rendered only after several rounds on specs, a guess at a cause instead of finding every term behind it, and the scope raised after building rather than when the day count showed it. What was missing is now tools: `snapshot --where --sample`, `--seeds`, `mesh --material --scale --sun`, `pdftotext`, and the checklist in CLAUDE.md.

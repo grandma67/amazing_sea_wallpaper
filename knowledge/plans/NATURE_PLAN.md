@@ -13,7 +13,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 
 | # | Phase | Code it touches | Days touched (of 1095, measured) | Estimate | Needs |
 |---|---|---|---|---|---|
-| 1 | Real assets: measure (fetch CC0 photos, textures, scans; sizes and colours) | `scripts/asset.mjs` (new) | none (data for every later phase) | 0.5–1 h + ~15 min per asset | – |
+| 1 | ✅ Real assets: measure (fetch CC0 photos, textures, scans; sizes and colours), 2026-11-12 | `scripts/asset.mjs` (new) | none (data for every later phase) | done | – |
 | 2 | Close two place gaps (Atacama 26–30°S, Namaqualand and the Sandveld 29–33°S) | `places.ts`, one test | **95** days change, 67 to another place | ~1 h | – |
 | 3 | Bush blossom: rock rose, gorse, wattle; the `BLOOM` table and far tint | `phenology.ts`, `props/trees.ts` `leaves()` | rock rose ~13; gorse **6** full, 14 at ×0.4, 16 at ×0.1; wattle **2** full, 1 at ×0.3 | 2.5–3.5 h | 1 |
 | 4 | Tree blossom: flamboyant (per-crown thinning, dry-season window), pōhutukawa | `phenology.ts`, `places.ts` `onDryCoast`, `props/trees.ts` | flamboyant **24** full, **109** scattered; pōhutukawa **1** | 2.5–3.5 h | 3 |
@@ -105,9 +105,11 @@ see more of it). Choices made before that rule stay as made (the stylised firefl
 - **Ready for the move-around mode:** what a thing is comes from its world position (a crown's
   hash, a fungus or ring cell's hash); only the choice of what to draw reads the camera
   (`props/leafLitter.ts` pattern).
-- **Colours:** linear albedo from typical photo colours (sRGB → linear, ×0.8 for petals). Every
-  value is *(est.)* until phase 1 measures it and `scripts/mesh.mjs --sun 8` checks it against
-  2–3 reference photos per row.
+- **Colours:** linear albedo, measured in phase 1 (`scripts/asset.mjs`; table in §1): hue from
+  photos, brightness from calibrated scans (Poly Haven, ambientCG), else from a known material
+  beside the target in the same photo (`--anchor`), else petals' brightest unclipped cluster
+  ×0.8. Values the photos couldn't give stay *(est.)*. `scripts/mesh.mjs --sun 8` checks each
+  against its reference photos when its phase builds it.
 - **Estimates stay estimates** until each phase's photo, count and render steps check them: those
   are build steps, not open questions.
 
@@ -159,6 +161,92 @@ ambientCG/Poly Haven materials and photos.
 and linear colour mean and spread per region; the rows above measured and their *(est.)* colours
 replaced in this plan.
 
+### Measured (2026-11-12)
+
+`node scripts/asset.mjs list` shows them; `assets-src/<id>/measure.json` holds every cluster. How
+brightness was fixed, per row: **cal.** a calibrated scan or texture; **anchor** a known material
+beside the target in the same photo (`--anchor`, its albedo given); **petal** the flower's
+brightest unclipped cluster ×0.8 (photo exposure: hue sure, brightness ±30% *(est.)*). Photos
+are CC-BY / CC-BY-SA on Commons (colours only, nothing redistributed); scans CC0.
+
+| Row (phase) | Measured linear albedo | Was *(est.)* | Brightness | Source (id) |
+|---|---|---|---|---|
+| Rock rose pink (3) | `[0.41, 0.13, 0.41]` (*C. albidus* `[0.46, 0.10, 0.38]`, *C. creticus* `[0.37, 0.16, 0.44]`) | `[0.55, 0.17, 0.36]` | petal | `wc_cistus_albidus_flowers`, `wc_cistus_creticus_rf` |
+| Rock rose white (3) | `[0.59, 0.62, 0.58]` | `[0.70, 0.68, 0.65]` | petal | `wc_cistus_salviifolius_sage_leaved_cistus_02` |
+| Gorse (3) | `[0.62, 0.33, 0.01]`: golden, redder than the estimate | `[0.70, 0.50, 0.02]` | petal | `wc_ulex_europaeus_flowers` (and `…_mynydd_carningli_flowers`, `[0.46, 0.31, 0.07]`, backlit) |
+| Wattle (3) | `[0.47, 0.51, 0.17]`: pale lemon (fluffy stamen balls), greener than gorse | `[0.72, 0.55, 0.03]` | petal | `wc_acacia_pycnantha_golden_wattle` (*A. longifolia* `[0.48, 0.48, 0.27]`, paler still) |
+| Flamboyant (4) | `[0.41, 0.03, 0.02]` | `[0.55, 0.02, 0.01]` | petal | `wc_delonix_regia_4226` |
+| Pōhutukawa (4) | `[0.47, 0.02, 0.02]` | `[0.45, 0.02, 0.03]` | petal | `wc_metrosideros_excelsa_kz05` |
+| Heather flowers, near (5) | `[0.25, 0.14, 0.26]` (bell heather) | `[0.26, 0.09, 0.24]` | anchor: its own foliage = the trees' leaf `[0.05, 0.10, 0.03]` | `wc_heather_bonny_bl_ing_geograph_org_uk_31279` |
+| Heath in flower, far (5) | hue r : g : b = 1 : 0.44 : 0.50 (mauve, not purple); at the estimate's luminance `[0.16, 0.07, 0.08]` | `[0.14, 0.07, 0.13]` | hue only (every far photo's turf is hazed or dry straw) | `wc_a_carpet_of_heather_and_gorse_on_the_cliff_top_near_maen_cas` (Cornwall); Peak District moor `wc_heather_moorland_geograph_org_uk_4754486` agrees (1 : 0.56 : 0.54) |
+| Eucalyptus leaf (6) | `[0.026, 0.065, 0.002]`: adult *E. robusta*, dark glossy; leaves ~12–15 cm (ruler) | `[0.06, 0.08, 0.05]` | anchor: white paper 0.8 | `wc_eucalyptus_robusta_adult_leaves_02` |
+| Eucalyptus bark (6, 9) | `[0.09, 0.06, 0.03]` (clusters 0.07–0.12 R); blue gum `[0.11, 0.08, 0.05]`; smooth-barked gums are paler and mottled (`wc_eucalyptus_cladocalyx_leaves_and_bark`, cream: not measured) | – | cal. | `ph_eucalyptus_bark` (1.81 m tile), `ph_bark_bluegum` |
+| Moss (7) | `[0.074, 0.139, 0.011]`, clusters 0.04–0.14 R / 0.08–0.24 G; Poly Haven moss clump `[0.10, 0.10, 0.02]` (yellower) | code `GROWTH` `[0.06–0.1, 0.11–0.16, 0.03–0.05]` | cal. | `acg_moss002`, `ph_moss_01` |
+| Lichen (7, 9) | pale crust `[0.20, 0.19, 0.15]` on rock `[0.03–0.05, …]`; lichen-crusted rock `[0.17, 0.16, 0.10]` mean | code `lichenColor` `[0.45–0.55, …]` | cal. | `ph_lichen_rock`, `ph_mossy_rock` |
+| Laver (8) | `[0.073, 0.028, 0.026]`, wet; red-brown | `[0.05, 0.025, 0.03]` | anchor: granite = `grey` sand `[0.26, 0.24, 0.22]` *(est.)* | `wc_membranous_porphyra_umbilicalis_and_wrack_laverbread_irvine_` |
+| Ursinia (16) | `[0.61, 0.19, 0.02]`; plant 0.43 × 0.17 × 0.34 m | `[0.75, 0.25, 0.02]` | cal. | `ph_flower_ursinia` |
+
+**Sources and how to measure them again** (`assets-src/` is git-ignored; each command fetches
+what's missing, Commons at ~1 request a second):
+
+- `acg_moss002`: [view?id=Moss002](https://ambientcg.com/view?id=Moss002) (CC0, ambientCG (Lennart Demes))
+- `ph_bark_bluegum`: [bark_bluegum](https://polyhaven.com/a/bark_bluegum) (CC0, Dimitrios Savva)
+- `ph_eucalyptus_bark`: [eucalyptus_bark](https://polyhaven.com/a/eucalyptus_bark) (CC0, Charlotte Baglioni)
+- `ph_flower_ursinia`: [flower_ursinia](https://polyhaven.com/a/flower_ursinia) (CC0, Jenelle van Heerden, Rico Cilliers)
+- `ph_lichen_rock`: [lichen_rock](https://polyhaven.com/a/lichen_rock) (CC0, Rico Cilliers)
+- `ph_moss_01`: [moss_01](https://polyhaven.com/a/moss_01) (CC0, Rob Tuytel)
+- `ph_mossy_rock`: [mossy_rock](https://polyhaven.com/a/mossy_rock) (CC0, Rob Tuytel)
+- `wc_a_carpet_of_heather_and_gorse_on_the_cliff_top_near_maen_cas`: [A_carpet_of_heather_and_gorse_on_the_cliff_top_near_Maen_Castle_-_geograph.org.uk_-_2588305.jpg](https://commons.wikimedia.org/wiki/File:A_carpet_of_heather_and_gorse_on_the_cliff_top_near_Maen_Castle_-_geograph.org.uk_-_2588305.jpg) (CC BY-SA 2.0, Rod Allday)
+- `wc_acacia_longifolia_flowers_1`: [Acacia_longifolia_flowers_1.jpg](https://commons.wikimedia.org/wiki/File:Acacia_longifolia_flowers_1.jpg) (CC BY 2.0, John Tann from Sydney, Australia)
+- `wc_acacia_pycnantha_golden_wattle`: [Acacia_pycnantha_Golden_Wattle.jpg](https://commons.wikimedia.org/wiki/File:Acacia_pycnantha_Golden_Wattle.jpg) (CC BY-SA 3.0, Melburnian)
+- `wc_cistus_albidus_flowers`: [Cistus_albidus_flowers.jpg](https://commons.wikimedia.org/wiki/File:Cistus_albidus_flowers.jpg) (CC BY-SA 3.0, Júlio Reis)
+- `wc_cistus_creticus_rf`: [Cistus_creticus_RF.jpg](https://commons.wikimedia.org/wiki/File:Cistus_creticus_RF.jpg) (CC BY 4.0, Robert Flogaus-Faust)
+- `wc_cistus_salviifolius_sage_leaved_cistus_02`: [Cistus_salviifolius_-_Sage-leaved_cistus_02.jpg](https://commons.wikimedia.org/wiki/File:Cistus_salviifolius_-_Sage-leaved_cistus_02.jpg) (CC BY-SA 4.0, Zeynel Cebeci)
+- `wc_delonix_regia_4226`: [Delonix_regia_4226.jpg](https://commons.wikimedia.org/wiki/File:Delonix_regia_4226.jpg) (CC BY-SA 3.0, Anna Anichkova)
+- `wc_eucalyptus_cladocalyx_leaves_and_bark`: [Eucalyptus_cladocalyx_leaves_and_bark.jpg](https://commons.wikimedia.org/wiki/File:Eucalyptus_cladocalyx_leaves_and_bark.jpg) (CC BY-SA 3.0 au, Bidgee)
+- `wc_eucalyptus_robusta_adult_leaves_02`: [Eucalyptus_robusta_-_adult_leaves_02.jpg](https://commons.wikimedia.org/wiki/File:Eucalyptus_robusta_-_adult_leaves_02.jpg) (CC BY-SA 4.0, Geekstreet)
+- `wc_heather_bonny_bl_ing_geograph_org_uk_31279`: [Heather_(Bonny_Bl***ing)_-_geograph.org.uk_-_31279.jpg](https://commons.wikimedia.org/wiki/File:Heather_(Bonny_Bl***ing)_-_geograph.org.uk_-_31279.jpg) (CC BY-SA 2.0, Richard Webb)
+- `wc_heather_moorland_geograph_org_uk_4754486`: [Heather_moorland_-_geograph.org.uk_-_4754486.jpg](https://commons.wikimedia.org/wiki/File:Heather_moorland_-_geograph.org.uk_-_4754486.jpg) (CC BY-SA 2.0, N Chadwick)
+- `wc_membranous_porphyra_umbilicalis_and_wrack_laverbread_irvine_`: [Membranous_Porphyra_umbilicalis_and_wrack._Laverbread._Irvine,_North_Ayrshire.jpg](https://commons.wikimedia.org/wiki/File:Membranous_Porphyra_umbilicalis_and_wrack._Laverbread._Irvine,_North_Ayrshire.jpg) (CC BY-SA 4.0, Rosser1954)
+- `wc_metrosideros_excelsa_kz05`: [Metrosideros_excelsa_kz05.jpg](https://commons.wikimedia.org/wiki/File:Metrosideros_excelsa_kz05.jpg) (CC BY-SA 4.0, Krzysztof Ziarnek, Kenraiz)
+- `wc_ulex_europaeus_flowers`: [Ulex_europaeus_flowers.jpg](https://commons.wikimedia.org/wiki/File:Ulex_europaeus_flowers.jpg) (CC BY-SA 4.0, PaleCloudedWhite)
+- `wc_ulex_europaeus_mynydd_carningli_flowers`: [Ulex_europaeus_Mynydd_Carningli_flowers.jpg](https://commons.wikimedia.org/wiki/File:Ulex_europaeus_Mynydd_Carningli_flowers.jpg) (CC BY 4.0, Kieran Roy Powell)
+
+```sh
+node scripts/asset.mjs measure polyhaven:eucalyptus_bark --name bark
+node scripts/asset.mjs measure polyhaven:bark_bluegum --name bark
+node scripts/asset.mjs measure ambientcg:Moss002 --name moss
+node scripts/asset.mjs measure polyhaven:moss_01 --name moss
+node scripts/asset.mjs measure polyhaven:lichen_rock --name lichen --k 4
+node scripts/asset.mjs measure polyhaven:mossy_rock --name moss --k 4
+node scripts/asset.mjs measure polyhaven:flower_ursinia --name flower --k 4
+node scripts/asset.mjs measure 'commons:File:Cistus albidus flowers.jpg' --name petal --petal --k 4 --region 0.05,0.1,0.95,0.7
+node scripts/asset.mjs measure 'commons:File:Cistus creticus RF.jpg' --name petal --petal --k 4 --region 0.25,0.05,0.95,0.8
+node scripts/asset.mjs measure 'commons:File:Cistus salviifolius - Sage-leaved cistus 02.jpg' --name petal --petal --region 0.38,0.18,0.86,0.36
+node scripts/asset.mjs measure 'commons:File:Ulex europaeus flowers.jpg' --name petal --petal --k 4
+node scripts/asset.mjs measure 'commons:File:Acacia pycnantha Golden Wattle.jpg' --name petal --petal --k 4
+node scripts/asset.mjs measure 'commons:File:Delonix regia 4226.jpg' --name petal --petal --k 4 --region 0.15,0.05,0.85,0.8
+node scripts/asset.mjs measure 'commons:File:Metrosideros excelsa kz05.jpg' --name petal --petal --k 5 --region 0.2,0.2,0.85,0.75
+H='commons:File:Heather (Bonny Bl***ing) - geograph.org.uk - 31279.jpg'
+node scripts/asset.mjs measure "$H" --name foliage --k 2 --region 0.07,0.2,0.33,0.6
+node scripts/asset.mjs measure "$H" --name flower --k 5 --region 0.3,0.35,0.95,0.95 --anchor foliage=0.05,0.1,0.03
+node scripts/asset.mjs measure 'commons:File:A carpet of heather and gorse on the cliff top near Maen Castle - geograph.org.uk - 2588305.jpg' --name heath --k 5 --region 0,0.6,1,1
+E='commons:File:Eucalyptus robusta - adult leaves 02.jpg'
+node scripts/asset.mjs measure "$E" --name paper --k 1 --region 0.72,0.1,0.95,0.35
+node scripts/asset.mjs measure "$E" --name leaf --region 0.25,0.15,0.75,0.75 --anchor paper=0.8,0.8,0.8
+L='commons:File:Membranous Porphyra umbilicalis and wrack. Laverbread. Irvine, North Ayrshire.jpg'
+node scripts/asset.mjs measure "$L" --name rock --k 2 --region 0.66,0.6,0.93,0.88
+node scripts/asset.mjs measure "$L" --name laver --region 0.62,0.1,1,0.48 --anchor rock=0.26,0.24,0.22
+```
+
+**Not measured:** sea lettuce (the photos found are under water, blue-shifted, or a herbarium
+sheet); heath brown (Oct–Mar) and green (Apr–Jun); dry moss brown. They stay *(est.)*.
+
+**For phase 7:** the code's lichen (`GROWTH[biome].lichenColor`, 0.45–0.55) is ~2.5× the
+calibrated crust (0.20), and its moss has 3–4× the measured blue. Decisions keep these colours
+by biome; phase 7 checks them against these numbers with `mesh.mjs --sun 8` before changing
+any.
+
 ## 2. Close the two place gaps (own commit)
 
 Realism first: real coast that no place draws, and where two of the big blooms happen (phase 16).
@@ -209,7 +297,7 @@ only; `bareOn` is phase 4.
 - **Months:** May–Jul (local), peak late May – mid Jun *(est.)*; April ×0.3.
 - **Share:** 0.4 of `bush` crowns, 0.25 of their leaf cards *(est.: speckled, not solid; each flower
   lasts a day)*.
-- **Colours:** pink `[0.55, 0.17, 0.36]` and white `[0.70, 0.68, 0.65]` (half each by crown hash).
+- **Colours:** pink `[0.41, 0.13, 0.41]` and white `[0.59, 0.62, 0.58]` (measured, §1; half each by crown hash).
 - **Far tint:** mix the far canopy colour toward the crown's mean flower colour by
   0.4 × 0.25 × `bushShare`, where `bushShare` = the `bush` weight ÷ the total non-grass weight of
   the day's plant pool: the same `plants` list and weighting `canopyTint` (`phenology.ts`) already
@@ -217,10 +305,10 @@ only; `bareOn` is phase 4.
 
 ### Gorse and wattle (research: NATURE.md §1.1–1.2)
 
-| Plant | Our kind | Places | Months (local) | Share | Colour *(est.)* | Source |
+| Plant | Our kind | Places | Months (local) | Share | Colour (measured, §1) | Source |
 |---|---|---|---|---|---|---|
-| Common gorse (*Ulex europaeus*) | `bush` | `cornwall-wales`, `brittany`, `ireland`, `scotland`, `bristol-channel`, `morecambe-bay`; invasive in `new-zealand-south`, `new-zealand-north`, `tasmania`, `central-chile` | full Apr–May; Jan–Mar and Jun ×0.4; Jul–Dec ×0.1 (a few flowers all year in mild winters; two strains) | 0.5 of `bush` crowns, 0.5 of their leaf cards (gorse is dense with flowers) | yellow `[0.70, 0.50, 0.02]` | Woodland Trust, Dorset Nature, Lincolnshire Life |
-| Coastal and golden wattle (*Acacia longifolia*, *A. pycnantha*) | `bush` | `east-australia`, `tasmania`, `sw-australia` *(est.)* | full late Aug – Sep; Jul and Oct–Nov ×0.3 | 0.35 of `bush` crowns, 0.5 of their leaf cards | yellow `[0.72, 0.55, 0.03]` | Australian floral emblem page, lawn.com.au |
+| Common gorse (*Ulex europaeus*) | `bush` | `cornwall-wales`, `brittany`, `ireland`, `scotland`, `bristol-channel`, `morecambe-bay`; invasive in `new-zealand-south`, `new-zealand-north`, `tasmania`, `central-chile` | full Apr–May; Jan–Mar and Jun ×0.4; Jul–Dec ×0.1 (a few flowers all year in mild winters; two strains) | 0.5 of `bush` crowns, 0.5 of their leaf cards (gorse is dense with flowers) | golden `[0.62, 0.33, 0.01]` | Woodland Trust, Dorset Nature, Lincolnshire Life |
+| Coastal and golden wattle (*Acacia longifolia*, *A. pycnantha*) | `bush` | `east-australia`, `tasmania`, `sw-australia` *(est.)* | full late Aug – Sep; Jul and Oct–Nov ×0.3 | 0.35 of `bush` crowns, 0.5 of their leaf cards | pale lemon `[0.47, 0.51, 0.17]` | Australian floral emblem page, lawn.com.au |
 
 
 - **Far tint:** gorse and wattle as rock rose (0.4 × leaf share × `bushShare`).
@@ -282,7 +370,7 @@ individuals vary (NATURE.md §1.2, §8).
   climate's `on` by `end + 45` *(0.4 est.)*. The 0.2-strength rows (no clear dry season: "each tree
   its own rhythm", leaves before flowers) keep the climate's `on`. Blossom share of a blooming
   crown's leaf cards 0.8, falling to 0.5 as the leaves return *(est.)*.
-- **Colour:** scarlet `[0.55, 0.02, 0.01]`, inner crown `[0.31, 0.01, 0.006]`. No far tint: one
+- **Colour:** scarlet `[0.41, 0.03, 0.02]` (measured, §1), inner crown `[0.23, 0.017, 0.011]` (the earlier 0.56 ratio, *est.*). No far tint: one
   crown in ~70 doesn't colour a forest.
 
 ### Pōhutukawa (*Metrosideros excelsa*), `broadleaf`
@@ -291,7 +379,7 @@ individuals vary (NATURE.md §1.2, §8).
 - **Months (local):** full 15 Dec – 5 Jan; ramps 15 Nov → 15 Dec and 5 → 15 Jan (RNZ, Te Papa, NZ
   Herald: peak ~10 days either side of 25 Dec, ±2 weeks by year).
 - **Share:** 0.6 of near-shore `broadleaf` crowns, 0.7 of their leaf cards; leaves stay on.
-- **Colour:** crimson `[0.45, 0.02, 0.03]` *(est.)*. A crimson line along the near coast, so no far
+- **Colour:** crimson `[0.47, 0.02, 0.02]` (measured, §1). A crimson line along the near coast, so no far
   tint beyond 60 m.
 
 **Before code:** reference photos (flamboyant on a Caribbean beach, pōhutukawa along a Northland
@@ -320,8 +408,8 @@ Through a new `heathTint` on the terrain's ground cover, plus landform and islan
   is not modelled, since height a few cm doesn't change geometry and our ground cover has no
   aspect term to key it to. Revisit if renders of far slopes look uniform. Measured: 14 rock-shore days get
   heath near the camera; the 9 beach days only on far slopes, when a landform or island is in frame.
-- **Colour by month (local):** bloom Jul–Sep, peak mid-Aug, a muted purple from afar
-  `[0.14, 0.07, 0.13]` (petals `[0.26, 0.09, 0.24]` mixed with stems); Oct–Mar rusty brown
+- **Colour by month (local):** bloom Jul–Sep, peak mid-Aug, a muted mauve from afar
+  `[0.16, 0.07, 0.08]` (hue measured, brightness *est.*; flowers near `[0.25, 0.14, 0.26]`, §1); Oct–Mar rusty brown
   `[0.08, 0.04, 0.034]` (dead flowers, wiry stems); Apr–Jun dark green `[0.06, 0.08, 0.04]`
   *(est.)*. So heath shows in every month, not only in August.
 
@@ -338,8 +426,10 @@ machair or under trees; `sceneSpec.test.ts` the `heath` field.
 
 The project draws no eucalyptus anywhere, though eucalypts are Australia's native coast trees;
 monarchs also roost on them at 75% of California's sites (phase 17). Add `eucalyptus` (`props/trees.ts` builder, `props/vegetation.ts`
-`KINDS`): a tall pale or mottled trunk, open crown of hanging grey-green leaf clumps
-`[0.06, 0.08, 0.05]` *(est.; colour from phase 1)*, evergreen (no autumn), real heights from photos
+`KINDS`): a tall pale or mottled trunk, open crown of hanging leaf clumps
+`[0.026, 0.065, 0.002]` (adult leaf, measured, §1; leaves 12–15 cm; grey-leaved and juvenile
+foliage paler, a per-tree spread toward `[0.06, 0.08, 0.05]` *(est.)*), bark `[0.09–0.11,
+0.06–0.08, 0.03–0.05]` (§1), evergreen (no autumn), real heights from photos
 (coastal eucalypts ~10–30 m *(est.)*). Pools by `PLACE_PLANTS` (`places.ts`): `east-australia`,
 `sw-australia`, `tasmania` as a main kind *(weights est.)*; `california` a small weight (planted
 groves). Wattle (phase 3) keeps `bush`. Count first: land days with the new kind in frame (`--project
@@ -414,8 +504,8 @@ moss can't grow.
     boulder and cliff-top compositions, and in a storm (it doesn't read today's swell). A test checks
     that: each tide stage × composition gives the same belt height on a forced place.
 - **Laver** (*Porphyra umbilicalis*: dense stands round high water on exposed rock along most of
-  Norway's coast; northern Portugal to the Faroes; MarLIN, SNL): a dark purple-brown
-  `[0.05, 0.025, 0.03]` patchy band in the littoral fringe just below the black lichen (the
+  Norway's coast; northern Portugal to the Faroes; MarLIN, SNL): a dark red-brown
+  `[0.073, 0.028, 0.026]` (wet, measured, §1) patchy band in the littoral fringe just below the black lichen (the
   Atlantic row; Pacific below).
   **All year** on `norway-west`, `norway-north`, `iceland-faroe`, `scotland`; **Nov–Apr** on
   `ireland`, `cornwall-wales`, `brittany`, `bristol-channel`, and `portugal-morocco` **north of
@@ -708,7 +798,7 @@ Atiquipa, Lachay pages).
   the season, so the coastal peak is late Aug – mid Sep (SANParks; Northern Cape tourism). Cape
   West Coast (`cape` on an Atlantic day, north of 33.5°S: Postberg): Aug 1 – Sep 30 (West
   Coast NP).
-- **Near the viewer:** orange daisy `[0.75, 0.25, 0.02]` (*Ursinia*, *Dimorphotheca*) and white
+- **Near the viewer:** orange daisy `[0.61, 0.19, 0.02]` (Poly Haven's *Ursinia* scan, §1) (*Ursinia*, *Dimorphotheca*) and white
   `[0.72, 0.70, 0.66]` *(est.)*, new `FLOWERS` kinds, dense patches.
 - **Far land:** as the Atacama. Daisies close when cloudy and open in the sun (well known; *est.*: ×0.3
   colour on overcast and rain days).
