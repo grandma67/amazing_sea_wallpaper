@@ -261,6 +261,13 @@ tool gotchas: TOOLS.md.
 - **Caps on tiny things read as crackle (snow, 0.111):** white tops and dark sides on thousands of mesh stones looked
   like cracked mud. Hide what real cover would bury and let the ground stand in.
 
+- **A "darker" band needs a luminance drop, not channel ratios (fairy rings, 0.149):** the plan's
+  ring `[0.04, 0.115, 0.02]` against cover `[0.08, 0.13, 0.05]` keeps 0.79 of the luminance and
+  halves red and blue: after AgX and saturation it drew a bright-green thread, not a dark ring.
+  Check a tint's luminance ratio (~0.7 read as darker) before rendering. And a band 0.3 m wide
+  is a pixel at 20 m from a tall eye: count where the feature lands (`fairyRingCell` over the
+  frame, `params.mjs --each`) and look at the nearest one zoomed (`diff.mjs --zoom-at`).
+
 ## Light and exposure
 
 - Auto exposure re-normalises: scaling the whole scene does nothing; change `exposure` (e.g.

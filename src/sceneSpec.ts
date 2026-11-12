@@ -89,6 +89,9 @@ export interface PropOverrides {
    * today's colour wherever the day is (near on a rocky shore, far on slopes
    * and islands); a stage, in that colour; false: none. */
   heath?: boolean | HeathStage
+  /** Fairy rings on the grass (phenology.ts fairyRingsFor, fairyRings.ts):
+   * true, at full strength wherever the day is; false: none. */
+  fairyRings?: boolean
   /** false: moss on rock as before NATURE_PLAN phase 7 (the biome's amount,
    * always green, none on the rocky shore's terrain). */
   moss?: boolean
@@ -403,6 +406,7 @@ const SPEC = object({
     moss: boolean,
     shoreWeed: boolean,
     heath: (value, path) => (typeof value === 'boolean' ? undefined : oneOf(...HEATH_STAGES)(value, path)),
+    fairyRings: boolean,
     iceFoot: boolean,
     seaIce: boolean,
     debris: object(

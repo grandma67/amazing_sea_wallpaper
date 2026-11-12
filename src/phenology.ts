@@ -12,7 +12,7 @@ import { seasonDay, type Day } from './seasons'
 /** What phenology reads from a day (SceneParams has all of it). */
 export interface PhenologyDay extends Day {
   place: { id: string; climate: Climate }
-  overrides?: { phenology?: boolean; bloom?: boolean | readonly BloomKind[]; heath?: boolean | HeathStage }
+  overrides?: { phenology?: boolean; bloom?: boolean | readonly BloomKind[]; heath?: boolean | HeathStage; fairyRings?: boolean }
   sea?: { ocean: string }
 }
 
@@ -620,6 +620,34 @@ export function heathFor(day: PhenologyDay): Heath | undefined {
   const stems = mix(foliage, HEATH_STEMS, f)
   const specks = HEATH_SPECKS * f
   return { stems, flower: HEATH_FLOWER, specks, color: mix(stems, HEATH_FLOWER, specks) }
+}
+
+/** Fairy rings' season by climate (NATURE_PLAN phase 10; northern-equivalent
+ * days of the year, `band`): full while the grass grows, a third of that
+ * otherwise (the ring of dark grass stays, less lush; est.). Temperate
+ * Apr–Oct, boreal Jun–Sep, Mediterranean Nov–May (RHS; the plan's months);
+ * subtropical turf has them all year, most in summer (UF/IFAS "Fairy rings",
+ * LH046): Apr–Oct, half otherwise. Not tropical, arid or polar (no source). */
+export const FAIRY_SEASON: Partial<Record<Climate, { a: number; e: number; off: number }>> = {
+  temperate: { a: 91, e: 304, off: 0.3 },
+  boreal: { a: 152, e: 273, off: 0.3 },
+  mediterranean: { a: 305, e: 151, off: 0.3 },
+  subtropical: { a: 91, e: 304, off: 0.5 }
+}
+
+/**
+ * How strongly fairy rings show on the grass today (0..1), or 0 where the
+ * climate has none. No draws: the rings themselves are fixed in the world
+ * (fairyRings.ts). `overrides.fairyRings` forces them at full strength
+ * anywhere (true) or switches them off (false); `phenology: false` too.
+ */
+export function fairyRingsFor(day: PhenologyDay): number {
+  const force = day.overrides?.fairyRings
+  if (force === false || day.overrides?.phenology === false) return 0
+  if (force === true) return 1
+  const row = FAIRY_SEASON[day.place.climate]
+  if (row == null) return 0
+  return row.off + (1 - row.off) * band(seasonDay(day), row.a, row.a + 15, row.e - 15, row.e)
 }
 
 /** Moss on rock by climate (NATURE_PLAN phase 7, NATURE.md §4; est.): where

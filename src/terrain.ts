@@ -21,7 +21,8 @@ import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { MIRROR_GLSL, MIRROR_UNIFORMS_GLSL } from './reflection'
 import { LICHEN, MOSS_COLOR, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
-import { BELT_FADE, BELT_RUNUP, groundCoverTint, HEATH_MASK_EDGE, HEATH_MASK_TERRAIN, heathFor, LAVER_COLOR, MOSS_DRY, mossEdge, mossLook, phenologyFor, SEA_LETTUCE_COLOR, shoreWeed, sprayBelt } from './phenology'
+import { FAIRY_DARK, FAIRY_DEAD_COLOR, FAIRY_RING_GLSL } from './fairyRings'
+import { BELT_FADE, BELT_RUNUP, fairyRingsFor, groundCoverTint, HEATH_MASK_EDGE, HEATH_MASK_TERRAIN, heathFor, LAVER_COLOR, MOSS_DRY, mossEdge, mossLook, phenologyFor, SEA_LETTUCE_COLOR, shoreWeed, sprayBelt } from './phenology'
 import { snowLook } from './props/snowCap'
 import { seasonMonth } from './seasons'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
@@ -1087,6 +1088,10 @@ uniform float groundCoverAmount;
 // colour and whether there is heath (0 or 1).
 uniform vec4 heathStems;
 uniform vec4 heathFlower;
+// Fairy rings on the turf (fairyRings.ts, phenology.ts fairyRingsFor): today's
+// strength, 0 for none.
+uniform float fairyRings;
+${FAIRY_RING_GLSL}
 // Fallen leaves' colour under deciduous trees (props/leafLitter.ts): a map of
 // the crowns' ground in world space; rect = x0, z0, 1/width, 1/depth.
 uniform sampler2D litterMap;
@@ -1326,15 +1331,27 @@ void main() {
   cover *= smoothstep(0.25, 0.65, fbm(q / 25.0) * 0.6 + fbm(q / 4.0) * 0.4 + cover * 0.25);
   cover *= smoothstep(0.75, 0.9, N.y) * groundCoverAmount;
   vec3 coverAlbedo = groundCover * (0.6 + 0.8 * fbm(q / 9.0 + 4.0));
+  float heath = 0.0;
   if (heathFlower.w > 0.0) {
     // Heath in patches (HEATH_COVER of the cover, fixed in the world); up
     // close, flowers in specks among the stems, whose mean is the far colour.
     float m = fbm(q / 40.0 + 113.0) * 0.65 + fbm(q / 6.0 + 127.0) * 0.35;
-    float heath = smoothstep(${(HEATH_MASK_TERRAIN - HEATH_MASK_EDGE).toFixed(4)}, ${(HEATH_MASK_TERRAIN + HEATH_MASK_EDGE).toFixed(4)}, m) * heathFlower.w;
+    heath = smoothstep(${(HEATH_MASK_TERRAIN - HEATH_MASK_EDGE).toFixed(4)}, ${(HEATH_MASK_TERRAIN + HEATH_MASK_EDGE).toFixed(4)}, m) * heathFlower.w;
     float close = 1.0 - smoothstep(0.01, 0.08, footprint);
     float speck = heathStems.w + close * 2.0 * min(heathStems.w, 1.0 - heathStems.w) * (smoothstep(0.3, 0.7, vnoise(q * 18.0 + 131.0)) - 0.5);
     vec3 heathC = mix(heathStems.rgb, heathFlower.rgb, speck) * (0.75 + 0.5 * fbm(q / 3.0 + 137.0));
     coverAlbedo = mix(coverAlbedo, heathC, heath);
+  }
+  if (fairyRings > 0.0 && cover > 0.0 && footprint < 3.0) {
+    vec2 ring = fairyRing(q, footprint);
+    if (ring.x + ring.y > 0.0) {
+      // On close turf only: not thin dune grass, heath or under crowns; past
+      // a few pixels' worth the band is gone into the grass's own mottle.
+      float turf = smoothstep(0.5, 0.85, cover / max(groundCoverAmount, 0.01)) * (1.0 - heath) * smoothstep(0.55, 0.85, skyOpen(vWorld));
+      float w = fairyRings * turf * (1.0 - smoothstep(1.5, 3.0, footprint));
+      coverAlbedo = mix(coverAlbedo, coverAlbedo * vec3(${FAIRY_DARK.join(', ')}) * (0.85 + 0.3 * vnoise(q * 4.0 + 151.0)), ring.x * w);
+      coverAlbedo = mix(coverAlbedo, vec3(${FAIRY_DEAD_COLOR.join(', ')}) * (0.8 + 0.4 * vnoise(q * 5.0 + 157.0)), 0.7 * ring.y * w);
+    }
   }
   albedo = mix(albedo, coverAlbedo, cover);
   if (litterAmount > 0.0) {
@@ -1614,6 +1631,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       groundCoverAmount: { value: params.biome.groundCoverAmount },
       heathStems: { value: new Vector4(...(heath?.stems ?? [0, 0, 0]), heath?.specks ?? 0) },
       heathFlower: { value: new Vector4(...(heath?.flower ?? [0, 0, 0]), heath != null ? 1 : 0) },
+      fairyRings: { value: fairyRingsFor(params) },
       ...skyOpenUniforms(),
       litterMap: { value: null as Texture | null },
       litterRect: { value: new Vector4(0, 0, 0, 0) },

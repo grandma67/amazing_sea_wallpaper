@@ -22,7 +22,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 7 | ✅ Moss on rock: amount by climate and place, colour by today's wetness, 2026-11-12 | `props/rocks.ts` `GROWTH`, rock-shore shader, `phenology.ts` | every land day with rocks (uniforms only: 0 params change); dry-moss look on 57 land days | done | 1 |
 | 8 | ✅ Shore zonation: the spray belt, laver, sea lettuce, 2026-11-12 | rock-shore shader, `phenology.ts` `sprayBelt`, `shoreWeed` | every rock-shore day (belt); weed on 55 real rock-shore days (not night) | done | 7 |
 | 9 | ✅ Moss and lichen on trunks, 2026-11-12 | `props/builder.ts` bark weight, `props/trunkMoss.ts` (shader), `phenology.ts` `trunkGrowth`, `props/vegetation.ts` | 0 params; trees in frame with moss on 337 days, mostly lichen on 324 (fringe trees) | done | 7, 8 (belt), 6 |
-| 10 | Fairy rings | terrain ground-cover shader | **124** land days in a growing season (before grass in frame) | 1.5–2 h | 5 (heath mask) |
+| 10 | ✅ Fairy rings, 2026-11-12 | `fairyRings.ts` (new), terrain ground-cover shader, `phenology.ts` `FAIRY_SEASON` | 0 params; rings at some strength on 323 land days (temperate, boreal, Mediterranean, subtropical); grass in frame within 300 m on ~67 of the 259 non-subtropical ones; real days 2 of 8 changed | done | 5 (heath mask) |
 | 11 | Real assets: bake (reduce, vertex colours, emit, check), proved on one mushroom | `scripts/asset.mjs`, `src/props/scans/` | none (meshes for 12 and 17) | 1–1.5 h + ~1 h per asset | 1 |
 | 12 | Mushrooms under trees and on grass | `props/fungi.ts` (new) | **80** land days in season (temperate, boreal, Mediterranean, polar; tropical and subtropical more) | 2–3 h | 9, 10, 11 |
 | 13 | Fireflies: the choice table, weather rules, placement and counts (no drawing) | `props/fireflies.ts` `firefliesFor`, `props/choices.ts` | **11** eligible land nights, **~4** after wind, rain and mangroves | 2–3 h | – |
@@ -718,6 +718,31 @@ swell; the weed table over every place × month, the 41°N and 40°N limits.
 
 - **Done when:** a forced October machair or cliff-top day shows a ring off in the grass, none on
   heath or sand (`diff.mjs --off '{"props":{"fairyRings":false}}'`).
+
+**Built (0.149):**
+- `fairyRings.ts`: one ring at most per 25 m cell (chance 0.1: 1.6 per hectare), centre, radius
+  (1 + 11 u³ m: ¾ of rings 2–10 m across, up to 24 m) and look from the cell's integer hash, the
+  same bits in GLSL (`FAIRY_RING_GLSL`) and TS (`fairyRingCell`, `fairyRingAt`: tests, and phase
+  12's mushrooms on the band). Rings broken into arcs (~¼ gaps) and wobbling ±6%; a dark band
+  0.4–0.6 m wide; on 40% of rings (type I) a straw band 0.2–0.4 m inside it.
+- Shader (terrain ground cover): the band darkens and greens the cover's own colour (×[0.5, 0.75,
+  0.4], ~0.7 of its luminance, est.), box-filtered by the pixel footprint and gone past 3 m
+  footprints; only on dense cover (not thin dune grass), off the heath mask and under crowns
+  (`skyOpen`). Snow covers them.
+- **Season by climate** (`FAIRY_SEASON`, northern-equivalent days): temperate Apr–Oct, boreal
+  Jun–Sep, Mediterranean Nov–May at full strength, ×0.3 otherwise; **subtropical added** (not in
+  the plan): Florida turf has rings all year, most in summer (UF/IFAS LH046), so Apr–Oct, ×0.5
+  otherwise. Tropical, arid and polar none (no source).
+- **The plan's colour drew a bright-green thread**, not a dark ring (round 1: 0.79 of the
+  luminance, bands 0.3–0.45 m); round 2 at 0.7 and 0.4–0.6 m reads as a darker band (LESSONS.md).
+- `props.fairyRings`: true forces at full strength, false is the switch. `diff.mjs --ref HEAD
+  --off '{"props":{"fairyRings":false}}' --off-here`: identical on all 4 views of
+  `scenes/fairyRings.json`.
+- Seen: `scenes/fairyRings.json` (an Irish overlook in October with rings at 43 m and a 16 m ring
+  at 138 m; backlit, overcast and a forced Aegean): 0.11–0.13% of the frame, the near ring a dark
+  green arc. Real days (8, in a ring climate, not night): 2 changed (2024-06-07 a faint arc beside a
+  tree, 0.07%; 2025-01-20 0.014%), 1 under the threshold, 5 identical (cameras face the sea: grass
+  is in frame within 300 m on ~¼ of land days in these climates).
 
 ## 11. Real assets: bake
 

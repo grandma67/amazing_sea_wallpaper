@@ -3,7 +3,7 @@ import { describe, it } from 'vitest'
 import type { SceneParams } from '../src/params'
 import { MAX_CONTRAILS } from '../src/contrails'
 import { OCEANS } from '../src/oceans'
-import { HEATH_PLACES, heathFor, phenologyFor } from '../src/phenology'
+import { FAIRY_SEASON, fairyRingsFor, HEATH_PLACES, heathFor, phenologyFor } from '../src/phenology'
 import { allParams, expectEvery } from './days'
 
 // What goes with what, over every real day: when the first holds, so must the
@@ -42,6 +42,8 @@ const RULES: Rule[] = [
     phenologyFor(p).bloom.every(b => b.row.places.includes(p.place.id) && b.row.today(p).strength > 0)],
   // Heath (phenology.ts heathFor): the heath places only.
   ['heath: only on the heath coasts', p => heathFor(p) != null, p => HEATH_PLACES.includes(p.place.id)],
+  // Fairy rings (phenology.ts fairyRingsFor): only in climates with a season row.
+  ['fairy rings: only where the climate has a season', p => fairyRingsFor(p) > 0, p => FAIRY_SEASON[p.place.climate] != null],
 
   // Weather.
   ['a storm: by day', p => p.storm != null, p => p.timeOfDay !== 'night'],

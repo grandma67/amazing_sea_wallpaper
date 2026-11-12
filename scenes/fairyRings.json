@@ -1,0 +1,7 @@
+{ "base": {"eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null, "place": "ireland", "coast": "beach", "composition": "overlook"},
+  "scenes": [
+    {"name": "ireland-overlook-october", "note": "rings at 43 m and a 16 m ring at 138 m in frame (params.mjs, fairyRings.ts)", "date": "2025-10-10", "sunAzimuthDeg": 160},
+    {"name": "ireland-overlook-october-back", "date": "2025-10-10", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour"},
+    {"name": "ireland-overlook-october-overcast", "date": "2025-10-10", "weather": "overcast"},
+    {"name": "aegean-overlook-forced", "note": "forced where the climate's season is off (August, dry grass)", "date": "2025-10-10", "place": "aegean", "props": {"fairyRings": true}, "sunAzimuthDeg": 160}
+  ] }

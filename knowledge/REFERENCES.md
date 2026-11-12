@@ -165,6 +165,11 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   flamboyant (World Agroforestry DB, Indian Forester, NParks, a Caribbean table), pōhutukawa (RNZ, Te
   Papa, NZ Herald): links in NATURE.md "Sources". Colours measured from the photos and scans listed
   in plans/NATURE_PLAN.md §1 (`scripts/asset-measures.json`).
+- Fairy rings (0.149; `fairyRings.ts`, `phenology.ts` `FAIRY_SEASON`): RHS, Utah State herbarium,
+  Britannica (NATURE.md "Sources"); ring types and the subtropical season: UF/IFAS "Fairy rings"
+  LH046 (https://edis.ifas.ufl.edu/lh046), K-State lawn problem solver
+  (https://www.k-state.edu/turf/resources/lawn-problem-solver/problem-solver/off-color/dark/fairy-ring/index.html).
+  No photo measured: the band's colour and width are estimates.
 
 ## Sea ice
 

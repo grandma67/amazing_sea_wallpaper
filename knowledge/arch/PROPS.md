@@ -55,6 +55,15 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   on rock-shore days (arch/COAST.md). Far: landforms' and islands' green slopes mix toward its far
   colour in `heathPatch` patches (`fbm3`, ~35%), unshaded (low, no gaps between crowns).
   `props.heath`: true / a stage forces, false is the switch.
+- **Fairy rings** (`fairyRings.ts`, `phenology.ts` `fairyRingsFor`, 0.149, plans/NATURE_PLAN.md
+  phase 10): rings of darker, greener grass on the terrain's turf, 0.4–0.6 m wide, 2–24 m across
+  (¾ of them 2–10 m), broken into arcs; 40% with a straw band just inside. One ring at most per
+  25 m cell (10%: 1.6 a hectare), centre, radius and look from the cell's integer hash (GLSL and the
+  TS mirror `fairyRingAt` agree, for phase 12's mushrooms). Only on dense cover (not thin dune
+  grass), off heath and under crowns (`skyOpen`); bands box-filtered by the pixel footprint and
+  gone past ~3 m footprints. Strength by climate (`FAIRY_SEASON`, northern-equivalent days): full
+  in the growing season, a third (subtropical half) otherwise; none tropical, arid, polar.
+  `props.fairyRings`: true forces at full strength, false is the switch.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

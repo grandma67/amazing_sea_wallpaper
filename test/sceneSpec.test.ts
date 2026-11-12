@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createCamera } from '../src/camera'
 import { generateSceneParams } from '../src/composition'
 import { generateParams, type SceneParams } from '../src/params'
-import { BLOOM, BLOOM_KINDS, heathFor, phenologyFor } from '../src/phenology'
+import { BLOOM, BLOOM_KINDS, fairyRingsFor, heathFor, phenologyFor } from '../src/phenology'
 import { debrisFor } from '../src/props/debris'
 import { shoreLifeFor } from '../src/props/shoreLife'
 import { Random } from '../src/random'
@@ -166,6 +166,11 @@ describe('scene specs', () => {
     expect(heathFor(plain)).toBeUndefined()
     expect(heathFor(heath)?.specks).toBeGreaterThan(0)
     expect({ ...heath, overrides: undefined }).toEqual({ ...scene({ place: 'aegean', coast: 'beach' }, '2025-12-15'), overrides: undefined })
+    // Fairy rings: forced on an arid coast, the rest of the day as drawn.
+    const rings = scene({ place: 'namibia', coast: 'beach', props: { fairyRings: true } }, '2025-12-15')
+    expect(fairyRingsFor(scene({ place: 'namibia', coast: 'beach' }, '2025-12-15'))).toBe(0)
+    expect(fairyRingsFor(rings)).toBe(1)
+    expect({ ...rings, overrides: undefined }).toEqual({ ...scene({ place: 'namibia', coast: 'beach' }, '2025-12-15'), overrides: undefined })
   })
 })
 
