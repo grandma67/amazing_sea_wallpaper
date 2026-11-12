@@ -710,6 +710,11 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **Faint point lights: check the physics before chasing visibility (fireflies, 0.153):** a
+  synchronous tree at 300 m was "invisible" because 200 fireflies there sum to ~+8, fainter than
+  the stars; extending its range had bought nothing. Work out the magnitude at the distance first
+  (`fireflyMagnitude`), then decide the range. Lights near the ground also need `--project`'s
+  `covered by` (glow-worms at 4 cm were all behind grass tufts).
 - **Small things near the ground: ask what covers them before rendering (mushrooms, 0.151):**
   the first round's Scottish forest had 3 mushrooms "in frame" and an identical diff: grass tufts
   and trunks stood in front of every one from a 1.6 m eye (`params.mjs --project fungi`'s

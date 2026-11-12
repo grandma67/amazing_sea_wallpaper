@@ -1,0 +1,8 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "snow": null, "weather": "clear", "timeOfDay": "night", "coast": "beach", "moonPhaseDeg": 0 },
+  "scenes": [
+    { "name": "maine-flash-night", "note": "J streaks over the turf, 28 lights, nearest 6 m", "date": "2025-07-16", "place": "maine", "composition": "framed", "props": { "fireflies": "flash" } },
+    { "name": "maine-flash-night-2", "date": "2025-07-02", "place": "maine", "composition": "framed", "props": { "fireflies": "flash" } },
+    { "name": "maine-flash-evening", "note": "the evening blue hour", "date": "2025-07-16", "place": "maine", "composition": "framed", "timeOfDay": "blue-hour", "props": { "fireflies": "flash" } },
+    { "name": "ireland-glow-worms", "note": "steady dots on the turf, 9 within 20 m; plants left out (they hide them from a 1.5 m eye)", "date": "2025-07-22", "place": "ireland", "composition": "framed", "props": { "fireflies": "glow", "vegetation": [] } },
+    { "name": "indonesia-mangroves", "note": "a synchronous display tree at 87 m", "date": "2025-07-15", "place": "indonesia", "props": { "fireflies": "synchronous", "mangroves": "rhizophora" } }
+  ] }

@@ -6,6 +6,7 @@ import { createBirds } from '../src/props/birds'
 import type { PropContext } from '../src/props/context'
 import { createDebris } from '../src/props/debris'
 import { createFungi } from '../src/props/fungi'
+import { createFireflies } from '../src/props/fireflies'
 import { createIceFoot } from '../src/props/iceFoot'
 import { createLeafLitter } from '../src/props/leafLitter'
 import { createMangroves } from '../src/props/mangroves'
@@ -58,6 +59,7 @@ describe('off switches', () => {
     ['marine life', { ...BEACH, coast: 'open-sea', props: { marine: 'dolphin' } }, { marine: null }, createMarineLife, '2024-09-30'],
     ['migratory birds', { ...BEACH, props: { migratory: 'goose' } }, { migratory: null }, createMigratoryBirds],
     ['fungi', { ...BEACH, place: 'scotland', composition: 'framed', props: { vegetation: ['birch', 'conifer'], fungi: true } }, { vegetation: ['birch', 'conifer'], fungi: false }, ctx => createFungi(ctx, createVegetation(ctx)), '2025-10-28'],
+    ['fireflies', { ...BEACH, place: 'maine', composition: 'framed', timeOfDay: 'night', props: { fireflies: 'flash' } }, { fireflies: false }, ctx => createFireflies(ctx, createVegetation(ctx), []), '2025-07-10'],
     ['eucalyptus', { ...BEACH, place: 'east-australia', composition: 'framed', props: { vegetation: ['eucalyptus'] } }, { vegetation: ['eucalyptus'], eucalyptus: false }, createVegetation]
   ]
 

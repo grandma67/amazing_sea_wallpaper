@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { groundCoverAt } from '../src/groundCover'
 import type { SceneParams } from '../src/params'
 import { PLACES } from '../src/places'
-import { FIREFLY_KINDS, FIREFLY_REGIONS, fireflyLights, firefliesFor, fireflyWeather, MAX_FIREFLIES, type FirefliesTonight } from '../src/props/fireflies'
+import { createFireflies, FIREFLY_CD, FIREFLY_KINDS, FIREFLY_REGIONS, fireflyLights, fireflyMagnitude, firefliesFor, fireflyWeather, MAX_FIREFLIES, setFireflyBrightness, streakPath, type FirefliesTonight } from '../src/props/fireflies'
+import { Group, type MeshBasicMaterial, type Mesh } from 'three'
 import type { MangroveStand } from '../src/props/mangroves'
 import { createVegetation } from '../src/props/vegetation'
 import { Random } from '../src/random'
@@ -133,5 +134,40 @@ describe('firefly lights', () => {
     }
     expect(total).toBeGreaterThan(0)
     expect(fireflyLights(viewOf(scene({ ...NIGHT, place: 'maine' }, '2025-07-02')), null, [])).toEqual([])
+  })
+})
+
+// NATURE_PLAN phase 14: drawing.
+describe('firefly drawing', () => {
+  it('magnitude by distance: the plan’s table at the top intensity', () => {
+    for (const [d, m] of [[2, 0.3], [5, 2.3], [10, 3.8], [20, 5.3], [40, 6.8]]) expect(fireflyMagnitude(FIREFLY_CD[1], d)).toBeCloseTo(m, 0)
+  })
+
+  it('a streak path of unit length, brightest mid-trace', () => {
+    for (const j of [true, false]) {
+      const path = streakPath(j)
+      let len = 0
+      for (let i = 1; i < path.length; i++) len += Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y)
+      expect(len).toBeCloseTo(1, 5)
+      expect(path[0].w).toBe(0)
+      expect(Math.max(...path.map(p => p.w))).toBeCloseTo(1, 1)
+    }
+  })
+
+  it('meshes per kind, finite, black until the meter sets them; none switched off', () => {
+    const p = scene({ ...NIGHT, place: 'maine', composition: 'framed', props: { fireflies: 'flash' } }, '2025-07-10')
+    const ctx = viewOf(p)
+    const plants = createVegetation(ctx)
+    const meshes = createFireflies(ctx, plants, [])
+    expect(meshes.length).toBe(1)
+    const pos = meshes[0].geometry.attributes.position.array as Float32Array
+    expectEvery(Array.from(pos), Number.isFinite)
+    expect((meshes[0].material as MeshBasicMaterial).color.r).toBe(0)
+    const root = new Group().add(...meshes)
+    setFireflyBrightness(root, 2)
+    expect(((meshes[0] as Mesh).material as MeshBasicMaterial).color.r).toBe(2)
+    const off = scene({ ...NIGHT, place: 'maine', composition: 'framed', props: { fireflies: false } }, '2025-07-10')
+    const ctxOff = viewOf(off)
+    expect(createFireflies(ctxOff, createVegetation(ctxOff), [])).toEqual([])
   })
 })

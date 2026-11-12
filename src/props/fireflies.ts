@@ -1,4 +1,4 @@
-import { Matrix4, Vector3, type InstancedMesh } from 'three'
+import { AdditiveBlending, BufferAttribute, BufferGeometry, DoubleSide, Matrix4, Mesh, MeshBasicMaterial, Vector3, type InstancedMesh, type Object3D } from 'three'
 
 import { fbm, hashCell } from '../cellNoise'
 import { groundCoverAt } from '../groundCover'
@@ -6,7 +6,7 @@ import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import type { PropContext } from './context'
 import { stormy } from './context'
-import type { MangroveStand } from './mangroves'
+import { mangroveFor, type MangroveStand } from './mangroves'
 
 // Fireflies and glow-worms (NATURE_PLAN phases 13–14, NATURE.md §3): what's
 // out tonight (firefliesFor: region by place and local month, the evening,
@@ -15,7 +15,7 @@ import type { MangroveStand } from './mangroves'
 // phase 14. Never by day, at dawn, over sand, bare rock or water.
 
 export { FIREFLY_KINDS, type FireflyKind } from './fireflyKinds'
-import type { FireflyKind } from './fireflyKinds'
+import { FIREFLY_KINDS, type FireflyKind } from './fireflyKinds'
 
 interface FireflyRow {
   places: readonly string[]
@@ -120,9 +120,10 @@ const SYNC_PER_TREE: readonly [number, number] = [20, 200]
 const SYNC_TREES = 0.2
 /** Where lights are counted: m from the camera (plan: 5–60 m; past 40 m
  * one firefly is fainter than +6.8, phase 14). A synchronous tree's 20–200
- * flash together and are seen across a creek: out to SYNC_RANGE. */
+ * flash together: out to SYNC_RANGE (at 100 m one is +11.3, 200 together
+ * ~+5.5; past 150 m a whole tree is fainter than the stars round it). */
 export const FIREFLY_RANGE: readonly [number, number] = [5, 60]
-export const SYNC_RANGE = 400
+export const SYNC_RANGE = 150
 /** Drawn lights, at most (est.). */
 export const MAX_FIREFLIES = 400
 
@@ -206,7 +207,9 @@ export function fireflyLights(ctx: PropContext, tonight: FirefliesTonight | null
         } else density = FLASH_PER_M2 * FLASH_LIT * 2 ** (2 * fbm(i / 20 + 7, j / 20 + 3) - 1)
         if (h(i, j, 6) >= density * tonight.month) continue
         const ground = ctx.ground(x, z)
-        const y = ground + (tonight.kind === 'glow' ? 0.04 : 0.5 + 2.5 * h(i, j, 7))
+        // Glow-worm females climb a grass stem to glow (5–40 cm, est.; at 4 cm
+        // the first render's were all behind the tufts).
+        const y = ground + (tonight.kind === 'glow' ? 0.05 + 0.35 * h(i, j, 7) : 0.5 + 2.5 * h(i, j, 7))
         if (!ctx.visible(x, y, z, 0.5) || !vegetated(x, z)) continue
         lights.push({ x, y, z, kind: tonight.kind, seed: h(i, j, 8) })
       }
@@ -214,5 +217,143 @@ export function fireflyLights(ctx: PropContext, tonight: FirefliesTonight | null
   // Above where the spring tides reach, as the plants are.
   const kept = lights.filter(l => ctx.ground(l.x, l.z) > 0.3)
   const thin = Math.min(1, MAX_FIREFLIES / Math.max(kept.length, 1))
-  return kept.filter(l => l.seed < thin)
+  return kept.filter(l => l.seed < thin).slice(0, MAX_FIREFLIES)
+}
+
+// ---- Drawing (NATURE_PLAN phase 14) ----
+
+/** A flash's luminous intensity toward the camera (cd): 10¹⁰–10¹¹ photons
+ * over a ½ s flash at 562 nm into a hemisphere (Silver 2026, Am. J. Phys.):
+ * ≈ 7.6e-6 cd at the top, ×0.1 at the bottom. Glow-worms the same, steady. */
+export const FIREFLY_CD: readonly [number, number] = [7.6e-7, 7.6e-6]
+/** ~560 nm (P. pyralis in vivo 557 nm, luciferase 560–562), linear RGB. */
+export const FIREFLY_COLOR: readonly [number, number, number] = [0.66, 1, 0.035]
+/** A flash's lit trace (m): ½–1 s at 0.6–1.5 m/s, slower while flashing
+ * (the stylised long exposure, Decisions). */
+export const STREAK: readonly [number, number] = [0.3, 0.8]
+/** J-shaped streaks: Photinus, eastern North America; a short arc elsewhere. */
+const J_PLACES = ['maine', 'fundy', 'nova-scotia', 'florida-carolinas']
+/** A light is at least this many pixels wide (thinner, it flickers between pixels). */
+const MIN_PIXELS = 2.5
+
+/** Apparent V magnitude of a light of intensity `cd` at `d` m
+ * (m = −13.99 − 2.5 log₁₀(E), E in lux). */
+export function fireflyMagnitude(cd: number, d: number): number {
+  return -13.99 - 2.5 * Math.log10(cd / (d * d))
+}
+
+/** The flash's path in its own plane (x along, y up), length 1, and how
+ * bright each point is (brightest mid-trace, fading at the ends). */
+export function streakPath(j: boolean, steps = 12): { x: number; y: number; w: number }[] {
+  const raw = Array.from({ length: steps + 1 }, (_, i) => {
+    const t = i / steps
+    // J: the bottom of a U and its upswing; else a gentle arc.
+    return j ? { x: 0.5 * t, y: 1.2 * t ** 3 - 0.3 * t, t } : { x: t, y: 0.08 * Math.sin(Math.PI * t), t }
+  })
+  let len = 0
+  for (let i = 1; i < raw.length; i++) len += Math.hypot(raw[i].x - raw[i - 1].x, raw[i].y - raw[i - 1].y)
+  return raw.map(p => ({ x: p.x / len, y: p.y / len, w: Math.sin(Math.PI * p.t) ** 0.7 }))
+}
+
+/** Mean of the along-trace weights (for the light's area). */
+const meanAlong = (path: { w: number }[]): number => path.reduce((s, p, i) => s + (i === 0 || i === path.length - 1 ? p.w / 2 : p.w), 0) / (path.length - 1)
+
+const tint = (): [number, number, number] => {
+  const lum = 0.2126 * FIREFLY_COLOR[0] + 0.7152 * FIREFLY_COLOR[1] + 0.0722 * FIREFLY_COLOR[2]
+  return FIREFLY_COLOR.map(c => c / lum) as [number, number, number]
+}
+
+/**
+ * Tonight's fireflies as glowing geometry: per kind one mesh of camera-facing
+ * streaks (flash) or dots (glow, synchronous), at least MIN_PIXELS wide. Each
+ * vertex colour is radiance per cd/m² of scene: the light's intensity over its
+ * area, so the light reaching the camera is its own whatever its size;
+ * `setFireflyBrightness` multiplies in the night's scale. Depth-tested, so
+ * plants hide those behind them; additive.
+ */
+export function createFireflies(ctx: PropContext, plants: readonly InstancedMesh[], mangroves: readonly InstancedMesh[]): Mesh[] {
+  const tonight = firefliesFor(ctx.params, ctx.rng('fireflies'), mangroveFor(ctx.params, ctx.rng('mangroves')))
+  const lights = fireflyLights(ctx, tonight, plants, mangroves)
+  if (lights.length === 0) return []
+  const cam = ctx.camera.position
+  const up = new Vector3(0, 1, 0)
+  const color = tint()
+  const j = J_PLACES.includes(ctx.params.place.id)
+  const out: Mesh[] = []
+  for (const kind of FIREFLY_KINDS) {
+    const mine = lights.filter(l => l.kind === kind)
+    if (mine.length === 0) continue
+    const pos: number[] = []
+    const col: number[] = []
+    const idx: number[] = []
+    for (const l of mine) {
+      const p = new Vector3(l.x, l.y, l.z)
+      const toCam = cam.clone().sub(p)
+      const d = toCam.length()
+      const right = new Vector3().crossVectors(up, toCam).normalize()
+      const upIn = new Vector3().crossVectors(toCam, right).normalize()
+      const width = Math.max(0.012, MIN_PIXELS * ctx.pixelAngle * d)
+      const cd = FIREFLY_CD[0] * (FIREFLY_CD[1] / FIREFLY_CD[0]) ** ((l.seed * 7.31) % 1)
+      const base = pos.length / 3
+      const vertex = (v: Vector3, w: number): void => {
+        pos.push(v.x, v.y, v.z)
+        col.push(color[0] * w, color[1] * w, color[2] * w)
+      }
+      if (kind === 'flash') {
+        const length = STREAK[0] + (STREAK[1] - STREAK[0]) * ((l.seed * 13.7) % 1)
+        const flip = (l.seed * 3.1) % 1 < 0.5 ? -1 : 1
+        const path = streakPath(j)
+        // Across: edge, centre, edge (a triangle profile, mean ½).
+        const radiance = cd / (length * width * meanAlong(path) * 0.5)
+        path.forEach((q, i) => {
+          const next = path[Math.min(i + 1, path.length - 1)]
+          const prev = path[Math.max(i - 1, 0)]
+          const t = new Vector3(flip * (next.x - prev.x), next.y - prev.y, 0).normalize()
+          const at = p.clone().addScaledVector(right, flip * (q.x - 0.5 * path[path.length - 1].x) * length).addScaledVector(upIn, (q.y - path[path.length - 1].y / 2) * length)
+          const across = right.clone().multiplyScalar(-t.y).addScaledVector(upIn, t.x).multiplyScalar(width / 2)
+          vertex(at.clone().add(across), 0)
+          vertex(at, radiance * q.w)
+          vertex(at.clone().sub(across), 0)
+          if (i > 0) {
+            const a = base + (i - 1) * 3
+            const b = base + i * 3
+            idx.push(a, b, a + 1, b, b + 1, a + 1, a + 1, b + 1, a + 2, b + 1, b + 2, a + 2)
+          }
+        })
+      } else {
+        // A dot: a bright centre fading to its rim (a cone, mean ⅓).
+        const r = width / 2
+        const radiance = cd / ((Math.PI * r * r) / 3)
+        vertex(p, radiance)
+        const sides = 8
+        for (let k = 0; k < sides; k++) {
+          const a = (k / sides) * Math.PI * 2
+          vertex(p.clone().addScaledVector(right, Math.cos(a) * r).addScaledVector(upIn, Math.sin(a) * r), 0)
+          idx.push(base, base + 1 + k, base + 1 + ((k + 1) % sides))
+        }
+      }
+    }
+    const geometry = new BufferGeometry()
+    geometry.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3))
+    geometry.setAttribute('color', new BufferAttribute(new Float32Array(col), 3))
+    geometry.setIndex(idx)
+    const material = new MeshBasicMaterial({ vertexColors: true, blending: AdditiveBlending, transparent: true, depthWrite: false, side: DoubleSide, fog: false, toneMapped: false })
+    // Scene radiance per cd/m², set once the meter has run (scene.ts).
+    material.color.setScalar(0)
+    const mesh = new Mesh(geometry, material)
+    mesh.frustumCulled = false
+    mesh.userData.fireflies = kind
+    mesh.userData.kind = kind
+    out.push(mesh)
+  }
+  return out
+}
+
+/** Put the fireflies in the scene's units: `perCdM2` is scene radiance per
+ * cd/m² (as ships' lamps, shipLights.ts setLampBrightness). */
+export function setFireflyBrightness(root: Object3D, perCdM2: number): void {
+  root.traverse(o => {
+    if (o.userData.fireflies == null) return
+    ;((o as Mesh).material as MeshBasicMaterial).color.setScalar(perCdM2)
+  })
 }

@@ -26,7 +26,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 11 | ✅ Real assets: bake (reduce, vertex colours, emit, check), proved on Poly Haven's *Ursinia* (no CC0 mushroom scan exists), 2026-11-12 | `scripts/asset.mjs`, `scripts/assetBake.mjs`, `src/props/scans/` | none (a mesh for phase 16; nothing draws it yet) | done | 1 |
 | 12 | ✅ Mushrooms under trees and on grass, 2026-11-13 | `props/fungi.ts`, `groundCover.ts` (new), `phenology.ts` `fungiSeason` | **96** land days in season (temperate, boreal, Mediterranean, polar) + 236 tropical and subtropical (false parasol); in frame on ~15 of the 332 | done | 9, 10 |
 | 13 | ✅ Fireflies: the choice table, weather rules, placement and counts (no drawing), 2026-11-13 | `props/fireflies.ts` `firefliesFor`, `fireflyLights`, `props/choices.ts` | **13** land evenings in a region's months; **1** night out (2025-07-30, Norway glow-worms) after wind, moon and the 0.7 chance | done | – |
-| 14 | Fireflies: drawing (sprites and ribbons, brightness by magnitude, streaks) | `props/fireflies.ts` meshes, star magnitude code | as 13 | 3–4 h | 13 |
+| 14 | ✅ Fireflies: drawing (streaks and dots, brightness by intensity, streaks), 2026-11-13 | `props/fireflies.ts` meshes, `scene.ts` | as 13 | done | 13 |
 | 15 | Lomas: yearly green on Peru's fog hills | `props/landforms.ts` colour by height; later TERRAIN_FORMS's wall | 3 land days Jun–Nov, **~0.5** with hills high enough in frame | 1–1.5 h | 2 |
 | 16 | Bloom years: the Atacama's desert bloom, Namaqualand and the Cape West Coast, Baja | per-year streams, `props/shoreLife.ts` `FLOWERS`, far ground tint | desert bloom **0** Sep–Nov; Namaqualand **1** (July, ×0.4); Baja **0** | 2.5–3.5 h | 2 |
 | 17 | Animal seasons for PLAN_BIOMES phase 14 (monarchs on eucalyptus) | `animalSeasons.ts` | per animal | ~0.5 h each (+ the animal's own plan) | 6, 11, phase 14 |
@@ -1004,6 +1004,27 @@ hide those behind them; none by day, at dawn blue hour, in rain or on open sea; 
 (`bench.mjs`).
 
 **Tests:** magnitude by distance; the ribbon mesh in `meshes.test.ts` (finite, budget).
+
+**Built (0.153):**
+- **Brightness through the lamps' units, not the star pass:** the plan's own number is an
+  intensity (7.6e-6 cd), and ships' lamps already put candela into scene units after the meter
+  (`perCdM2`, `shipLights.ts`). Each light is camera-facing geometry at least 2.5 px wide whose
+  vertex colours are its intensity over its area (× the 560 nm tint at unit luminance), so the light
+  reaching the camera is its own at any size; `setFireflyBrightness` multiplies in `perCdM2`. Same
+  physics as the magnitude route (`fireflyMagnitude` gives +3.8 at 10 m, tested against the plan's
+  table). Intensity per light 7.6e-7–7.6e-6 cd by hash (the source's range).
+- `flash`: a ribbon along a J (eastern North America's *Photinus*) or a gentle arc (elsewhere),
+  0.3–0.8 m, brightest mid-trace, a triangle profile across; `glow` and `synchronous`: an 8-sided
+  dot. One mesh per kind, additive, depth-tested (plants hide those behind), `toneMapped: false`.
+- **Changed from phase 13 after the first render:** glow-worms 5–40 cm up a grass stem (at 4 cm all
+  were behind the tufts); synchronous range 150 m, not 400 (at 300 m a display tree of 200 is
+  ~+8: invisible; 150 m keeps the ones that can show); the 400 cap exact.
+- Seen (`scenes/fireflies.json`): Maine framed nights, yellow-green J streaks over the turf and
+  against the trees (0.05–0.11% of the frame, max Δ 65–113); the evening blue hour invisible
+  against the twilight (as a camera exposed for it); Irish glow-worms faint points (plants left out:
+  a 1.5 m eye sees them only on open turf; max Δ 234 on a few pixels); an Indonesian display tree
+  at 87 m a scatter of faint green specks. The one real firefly night (2025-07-30, Norway) has none
+  in frame. Render time 0% (`bench.mjs`). Off: identical to HEAD on all five views.
 
 ## 15. Lomas: yearly green on Peru's fog hills
 

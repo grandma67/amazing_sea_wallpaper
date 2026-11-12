@@ -6,6 +6,7 @@ import { createBirds } from './birds'
 import { createRollCloud, createShelfCloud } from './cloudEvents'
 import { createColony } from './colony'
 import { createDebris } from './debris'
+import { createFireflies } from './fireflies'
 import { createFungi } from './fungi'
 import { createIce } from './ice'
 import { createIceFoot } from './iceFoot'
@@ -84,7 +85,8 @@ export function createProps(ctx: PropContext): Group {
   group.userData.skyOpen = off ? null : skyOpenField(ctx, plants)
   times['sky-open'] = performance.now() - skyStart
   add('salt-marsh', () => createSaltMarsh(ctx))
-  add('mangroves', () => createMangroves(ctx))
+  const mangroves = add('mangroves', () => createMangroves(ctx))
+  add('fireflies', () => createFireflies(ctx, plants, mangroves))
   // For their wakes and the hull cut out of the sea (ocean.ts setOceanShips).
   group.userData.ships = add('ships', () => createShips(ctx)).flatMap(o => o.userData.wake ?? [])
   add('marine-life', () => createMarineLife(ctx))

@@ -64,6 +64,11 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   gone past ~3 m footprints. Strength by climate (`FAIRY_SEASON`, northern-equivalent days): full
   in the growing season, a third (subtropical half) otherwise; none tropical, arid, polar.
   `props.fairyRings`: true forces at full strength, false is the switch.
+- **Fireflies** (`props/fireflies.ts`, 0.152–0.153, plans/NATURE_PLAN.md phases 13–14):
+  `firefliesFor` (region by place and local month, evening, moon, weather by kind, one draw on
+  `props/fireflies`), `fireflyLights` (1 m cells of vegetation 5–60 m off, synchronous in mangrove
+  crowns to 150 m), drawn as additive camera-facing streaks or dots carrying intensity / area;
+  `setFireflyBrightness` (scene.ts, beside the lamps) scales them by the metered `perCdM2`.
 - **Mushrooms** (`props/fungi.ts`, `phenology.ts` `fungiSeason`, 0.151, plans/NATURE_PLAN.md
   phase 12): six kinds (`FUNGI`: fly agaric, bolete, saffron milk cap under their host trees; field
   mushroom, fairy-ring champignon, false parasol on the turf), procedural cap and stem (~200

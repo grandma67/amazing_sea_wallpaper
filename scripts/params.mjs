@@ -555,6 +555,8 @@ if (projectArg != null) {
           // Props only (not the terrain); up to 20000 rows (a ray each, ~25 s).
           group.updateMatrixWorld(true)
           const ray = new three.Raycaster()
+          // Sprites (ships' lamps) need it to face the camera.
+          ray.camera = camera
           const kindOf = o => {
             for (let q = o; q != null; q = q.parent) if (q.userData?.prop != null) return q.userData.prop
             return '?'

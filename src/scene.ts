@@ -80,6 +80,7 @@ import { createProps } from './props'
 import type { LitterField } from './props/leafLitter'
 import type { SkyOpenField } from './props/skyOcclusion'
 import { reportProps } from './props/report'
+import { setFireflyBrightness } from './props/fireflies'
 import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './props/shipLights'
 import { setGlowBrightness } from './props/storm'
 import { setSprayLighting, type WaterIsland } from './props/surf'
@@ -699,6 +700,7 @@ export async function renderScene(
   // Ships' lamps: candela into scene units by what the metered sky really is.
   const perCdM2 = sceneLuminance / skyLuminance(params)
   setLampBrightness(props, perCdM2)
+  setFireflyBrightness(props, perCdM2)
   // Venus and Jupiter glitter on the sea like a lamp at infinity: a far
   // point (10,000 km: within ~0.1° of the same direction over the whole
   // sea) whose I / r² is the planet's irradiance through the air.
