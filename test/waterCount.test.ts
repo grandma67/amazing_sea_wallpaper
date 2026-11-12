@@ -18,6 +18,11 @@ function target(rows: ([string, number, number] | null)[][]): { values: Float32A
 }
 
 describe('tallyWater', () => {
+  it('counts the pixels about as near as the nearest: a patch, not a single pixel', () => {
+    const { values, w, h } = target([[['pool', 10, 1], ['pool', 10.4, 1], ['pool', 10.9, 1], ['pool', 30, 1]]])
+    expect(tallyWater(values, w, h).nearest.pool).toEqual({ m: 10, at: [0.125, 0.5], pixels: 3 })
+  })
+
   it('shares each kind of the whole frame; sky and props (alpha 0) count as none', () => {
     const { values, w, h } = target([
       [['seabed', 30, 0], ['swash', 20, 0.5], ['damp', 12, 0.2], ['dry', 5, 0]],
@@ -37,8 +42,8 @@ describe('tallyWater', () => {
     ])
     const t = tallyWater(values, w, h)
     // Row 0 is the image's bottom row.
-    expect(t.nearest.pool).toEqual({ m: 9, at: [0.75, 0.75] })
-    expect(t.nearest.swash).toEqual({ m: 20, at: [0.25, 0.25] })
+    expect(t.nearest.pool).toEqual({ m: 9, at: [0.75, 0.75], pixels: 1 })
+    expect(t.nearest.swash).toEqual({ m: 20, at: [0.25, 0.25], pixels: 1 })
     expect(t.nearest.damp).toBeNull()
     expect(t.nearest.wetRock).toBeNull()
   })

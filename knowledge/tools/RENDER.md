@@ -135,6 +135,24 @@ node scripts/horizon.mjs --scene '{"date":"2003-03-11","coast":"open-sea","landf
   design (it mirrors a spread of sky that darkens with height). Aim `--az` at open sea, away from
   land and the sun's glitter.
 
+## `scripts/parity.mjs`: do the CPU mirrors match the drawn terrain?
+
+```sh
+node scripts/parity.mjs                       # 12 real land days spread across coast kinds, ~45 s
+node scripts/parity.mjs --scene scenes/wet-mirror.json
+node scripts/parity.mjs 2024-06-13 --every 8  # one day, a finer grid
+```
+
+Renders each day (960×540, 1 frame) with a grid of terrain terms (`x z h pools snow`,
+`params.debug.terrainProbe`), then evaluates the TS `terrainHeight` and `waterFilms` `poolAt` at
+the same world points with the params the render saved. Prints per day and per coast kind
+|Δh| median, p99, max, the share past `--tol` (0.02 m), the worst sample's image point (probe it
+with `terrainProbe`), and pool pixels GPU / CPU / differing; exits 1 with ⚠ past the tolerances.
+Run it after any edit to a terrain height or film term, in GLSL or TS: the camera's height, props,
+`p.view` and `p.pools` all stand on the TS mirror, and the unit tests check it only against
+itself. Today (0.137): every kind within 6 mm, pools identical. With 0.136's `bareRock` it
+flags 3 of 4 platform days (p99 up to 0.87 m; 111 pool pixels against 0).
+
 ## `scripts/summary.mjs`: one number over many renders
 
 ```sh

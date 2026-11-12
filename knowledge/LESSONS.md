@@ -525,8 +525,13 @@ tool gotchas: TOOLS.md.
   platform days (0.137). Found only when a CPU pool search (WATER_VIEW step 3) missed a pool the
   GPU count saw. How: the render's encode pass (`waterCount.ts`) written temporarily to output
   one term per channel (bare profile, width, bed planes, noise) along a pixel column, against
-  the TS terms at the same world points (ray from the camera at each pixel's distance). Compare
-  the drawn `h` with the TS height on a new rock or terrain term before trusting the mirror.
+  the TS terms at the same world points (ray from the camera at each pixel's distance). Now:
+  `scripts/parity.mjs` checks every coast kind in ~45 s (run it after any height or film term
+  edit), and `params.debug.terrainProbe` reads any term without editing the shader.
+- Comparing two versions of a function by reading them side by side missed the one-word
+  difference (`width` vs `rockShape.x`) that the numbers showed at once: dump the terms first.
+  And compare a render with code of the same version: a TS height fix moves the page's camera
+  (it stands on the TS ground), so a render from before the fix shows a different frame.
 
 - A biome-keyed table is wrong for some of its places: the `mediterranean` preset is also
   Florida, Taiwan and Natal, `volcanic` is Hawaii and Kamchatka. Key what follows the weather

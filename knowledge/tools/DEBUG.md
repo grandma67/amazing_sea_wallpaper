@@ -16,8 +16,9 @@ rock platform and a beach. Tools: [TOOLS.md](../TOOLS.md).
 | `shadeView: true` | everything that reads the land and cloud shade shows it, grey: black in shade, ~0.25 in sun. Use `passes.bloom: false`, `exposure: 1`. `passes.aerial: false` removes the haze over far land, **and the clouds with it** (they're composited there): a mountain the deck hides in the render shows bare, so it's a map of the shade, not the picture | where shade falls, peaks above a deck. `scenes/shadows.json` has one scene per kind of object |
 | `exposure: N` | fixed exposure (the metered one is `debug.exposure` in each render's `.json`) | comparing renders whose sky or weather differs (`diff.mjs --keep-exposure` sets it) |
 | `terrainView` | false colour on the terrain, lit by the scene's light: `slope` (grey by steepness, red where the height bends by 3–10 px within ~2 grid cells: aliasing candidates; less red with `terrainGrid: 2`), `relief` (rock: gullies red, boulders green, bed bands blue; beach: cusps red, bars green, storm ridges blue), `lines` (today's still water cyan, run-up orange, today's high water green, spring high water yellow, beach high-tide line magenta, storm line red), `shore` (s blue and a orange every 10 m, s = 0 white, `waterline` cyan), `water` (the shore's water films, `plans/WATER_VIEW.md`: dry ground near black, damp drained sand (`exposed`) green, wet rock and stones grey, the swash film (`wet`) blue, pools, runnels, reef hollows and flat creeks (`pools`) cyan; brightness 0.4–1 by the mirror weight phase 5 uses, gloss × mirror × (1 − own)) | which height term made a feature; whether lines sit where props and wet bands assume; the shore frame (wobble, curvature) round the camera; where the shore's water films are and how strongly each mirrors |
-| `water: true` | after the last frame, draws the terrain again at 1/8 size into a float target, each pixel writing its film kind (as `terrainView: 'water'`; snow counts as dry, ground below today's still water as `seabed`), distance and mirror weight; opaque props are drawn first as depth only, so hidden ground isn't counted (the sea isn't drawn). `debug.water`: `share` of the frame per kind (`dry`, `damp`, `wetRock`, `swash`, `pool`, `seabed`), `nearest` pool, swash, damp and wet rock (`m`, `at` as a `probe` point), `poolWithin15m`, `poolMirror`. The picture is unchanged (`src/waterCount.ts`). `snapshot.mjs --water` sets it and prints two lines per render | "is there a pool near the camera on this day?" without looking: search real days (`snapshot.mjs --where … --water`, then `summary.mjs DIR 'j => j.debug.water.nearest.pool?.m' --each`). 1/8 size: films under ~8 px are missed |
+| `water: true` | the terrain terms `kind`, `dist` and `mirror` (below: "Terrain terms") at 1/8 size, tallied: film kind as `terrainView: 'water'` (snow counts as dry, ground below today's still water as `seabed`); props hide the ground, the sea doesn't. `debug.water`: `share` of the frame per kind (`dry`, `damp`, `wetRock`, `swash`, `pool`, `seabed`), `nearest` pool, swash, damp and wet rock (`m`, `at` as a `probe` point, `pixels` about as near: 1 is a sliver or noise), `poolWithin15m`, `poolMirror`. The picture is unchanged (`src/waterCount.ts`). `snapshot.mjs --water` sets it and prints two lines per render | "is there a pool near the camera on this day?" without looking: search real days (`snapshot.mjs --where … --water`, then `summary.mjs DIR 'j => j.debug.water.nearest.pool?.m' --each`). 1/8 size: films under ~8 px are missed |
 | `probeLine: {az, el, step}` or a list | reads lines of single pixels (az from the view; one of az/el a `[from, to]` range): per pixel cd/m² and final RGB, and per line `lineStats`: bands (period, regularity), ripple, stars left out, a sparkline. Same format as `params.mjs --line` on the CPU mirrors | "stripes or grain? from what?": compare the render's line with the mirror's ("Lines of pixels" below) |
+| `terrainProbe: {terms, at?, every?}` | the terrain shader's own numbers (`src/terrainTerms.ts` `TERRAIN_TERMS`: `x y z h s a dist kind pools wet exposed gloss mirror snow hard rock stone coral creek mud marsh footprint ny rockGully rockWidth rockBare`) at image points `[x, y]` or world points `{world: [x, y, z]}` (full size), and/or a grid, one sample per `every` px block. `debug.terrainProbe.points` (null where no terrain: sky, sea beyond the land, a prop) and `.grid.samples` (`[x, y, ...terms]`). `snapshot.mjs` prints one line per point. Below: "Terrain terms" | "what does the shader have here?" for any term, instead of a temporary edit to the shader: a CPU mirror against the GPU (`scripts/parity.mjs` does it for heights and pools), a mask's value where a look goes wrong |
 | `probe: [...]` | reads the render at points `[x, y]` (fractions of the image, y down) or sky directions `{az, el}` (degrees, az from the view, + right): **raw** radiance (render units, before exposure and white balance), its luminance in **cd/m²** and **mag/arcsec²**, **exposed** (after exposure and white balance, before bloom and tone mapping), **final** 8-bit; mean and peak of a 5×5 box (`probeHalf`: 0–20); `⚠ clipped` past the grade's clamp (40). `snapshot.mjs` prints one line per point; the `.json` has them under `debug.probe` (`src/probe.ts`) | "how bright is X against the sky behind it?" in numbers: a star or planet's peak vs the sky beside it, an aurora arc vs the sky between arcs, a colour's real RGB. Instead of reading JPEGs or boosting a term ×20 to find it |
 | `oceanView` | false colour on the sea: `shelter` (blue → red), `breaking` (deep blue, steepening green, breaking red), `depth` (sand → blue over 15 m, a line every metre), `foam` (coverage, grey) | calm water, break lines, depth under the camera's view |
 
@@ -27,6 +28,26 @@ rock platform and a beach. Tools: [TOOLS.md](../TOOLS.md).
   feature is its cause. Read the feature's period first (a saw every ~1 m on rock was the beds'
   bedding / dip).
 - Check a patch landed before rendering: `params.mjs --scene S --fields debug,coast.rock`.
+
+## Terrain terms: the shader's own numbers
+
+`params.debug.terrainProbe` reads named expressions of the terrain's fragment shader after the
+last frame: the terrain is drawn again into a float target, three terms per pass, with opaque
+props drawn first as depth only. Nothing in the picture changes. A term is any GLSL expression in
+scope at the end of `terrain.ts` main(): add it to `TERRAIN_TERMS` (`src/terrainTerms.ts`) and it
+works in specs, `debug.water` and `parity.mjs` at once.
+
+```sh
+node scripts/snapshot.mjs --w 1920 --h 1080 --frames 16 --out $SP/tp --scene \
+  '{"date":"2024-06-13","params":{"debug":{"terrainProbe":{"terms":["h","s","a","rockBare","pools","kind"],"at":[[0.5,0.95],{"world":[3,0,-20]}]}}}}'
+#  terrain [0.5, 0.95] px 960,1026: h -0.142, s 78.51, a -13.72, rockBare -0.478, pools 1, kind 6
+```
+
+- Against a TS mirror: take the term's `x`, `z` (or a world point) and evaluate the TS function
+  there (`params.mjs` `src.X`), with the render's own params (its `.json`). A mismatch: read the
+  mirror's sub-terms the same way, one by one (0.137 found TS `bareRock` this way, with three
+  temporary shader edits the probe now replaces).
+- A grid (`every: 16`) gives a few thousand samples per frame: what `scripts/parity.mjs` uses.
 
 ## The pixel probe: brightness in numbers
 

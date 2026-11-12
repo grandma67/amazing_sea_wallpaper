@@ -39,6 +39,16 @@ describe('debug switches', () => {
   })
 })
 
+describe('terrain probe spec', () => {
+  it('takes known terms at points or on a grid', () => {
+    expect(() => parseSceneSpec({ params: { debug: { terrainProbe: { terms: ['h', 's', 'pools'], at: [[0.5, 0.9], { world: [1, 0, -20] }], every: 16 } } } } as never)).not.toThrow()
+    expect(() => parseSceneSpec({ params: { debug: { terrainProbe: { terms: ['height'], every: 8 } } } } as never)).toThrow(/"height"/)
+    expect(() => parseSceneSpec({ params: { debug: { terrainProbe: { terms: ['h'] } } } } as never)).toThrow(/at .* or every/)
+    expect(() => parseSceneSpec({ params: { debug: { terrainProbe: { terms: ['h'], every: 0 } } } } as never)).toThrow(/every/)
+    expect(() => parseSceneSpec({ params: { debug: { terrainProbe: { terms: ['h'], at: [[2, 0]] } } } } as never)).toThrow(/at\[0\]/)
+  })
+})
+
 describe('probe spec', () => {
   it('takes image points, sky directions, world points and their mirror images', () => {
     const probe = [[0.5, 0.5], { az: 0, el: 1 }, { world: [10, 2, -300] }, { mirror: [10, 2, -300] }]

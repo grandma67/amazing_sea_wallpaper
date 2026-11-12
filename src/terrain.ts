@@ -15,7 +15,7 @@ import { BEACH_MATERIALS, beachLines, isStony, stoneMean } from './beach'
 import { fbm, hillNoise, smoothstep, vnoise } from './cellNoise'
 import { COAST_KINDS, hasBeach, hasLand } from './coastKind'
 import { TERRAIN_VIEWS } from './debug'
-import { WATER_ENCODE } from './waterCount'
+import { termsGlsl } from './terrainTerms'
 import { createPolarGrid, ringStep, squareGrid, viewWedge } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
@@ -1104,6 +1104,8 @@ uniform vec4 marshAccent;
 // cell (Δr / r, radians between segments) and the beach lines (u of the
 // high-tide and storm lines).
 uniform int terrainView;
+// The encode mode's three terms (terrainTerms.ts, indices into TERRAIN_TERMS).
+uniform vec3 termIndex;
 uniform vec2 gridStep;
 uniform vec2 debugLines;
 varying vec3 vWorld;
@@ -1443,21 +1445,7 @@ void main() {
     color = mix(color, vec3(0.85) / PI * (sunIrradiance * NoL + skyIrradiance), foam);
   }
 
-  if (terrainView == ${WATER_ENCODE}) {
-    // debug.water (waterCount.ts): the film kind (index + 1 in
-    // WATER_KINDS), distance from the camera (m), mirror weight.
-    float kind = 1.0;
-    if (exposed * (1.0 - hard) > 0.5) kind = 2.0;
-    if (wet * hard > 0.5) kind = 3.0;
-    if (wet * (1.0 - hard) > 0.5) kind = 4.0;
-    if (pools > 0.5) kind = 5.0;
-    // Under snow the masks still run (only the gloss goes): it's snow.
-    if (snowW > 0.5) kind = 1.0;
-    if (h < 0.0) kind = 6.0;
-    gl_FragColor = vec4(kind, length(vWorld - cameraPosition), clamp(mirrorW, 0.0, 1.0), 1.0);
-    return;
-  }
-
+${termsGlsl()}
   if (terrainView > 0) {
     vec3 dbg = vec3(0.55);
     float r = length(p);
@@ -1582,6 +1570,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       snowLook: { value: new Vector3(snowHere?.cover ?? 0, snowHere?.line ?? 0, snowHere?.glaze ?? 0) },
       rockColor: { value: new Color(...(coast.rock?.color ?? [0.3, 0.3, 0.3])) },
       terrainView: { value: Math.max(0, TERRAIN_VIEWS.indexOf(params.debug?.terrainView ?? 'none')) },
+      termIndex: { value: new Vector3() },
       gridStep: { value: new Vector2(ringStep(rings, TERRAIN_INNER_RADIUS, TERRAIN_OUTER_RADIUS), wedge.span / segments) },
       debugLines: { value: coast.rock != null ? new Vector2(-1e5, -1e5) : new Vector2(beachLines(coast).highTide, beachLines(coast).stormLine) },
       lichenColor: { value: new Color(...LICHEN[params.biome.name]) },

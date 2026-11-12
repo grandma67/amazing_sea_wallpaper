@@ -215,10 +215,18 @@ for (const { date, spec: asked, name } of todo) {
   const w = params.debug?.water
   if (w != null) {
     const pct = v => `${(v * 100).toFixed(1)}%`
-    const near = n => (n == null ? '–' : `${n.m} m at [${n.at.join(', ')}]`)
+    const near = n => (n == null ? '–' : `${n.m} m at [${n.at.join(', ')}]${n.pixels === 1 ? ' (1 px: a sliver or noise)' : ` (${n.pixels} px)`}`)
     console.log(`  water: pool ${pct(w.share.pool)} (≤15 m ${pct(w.poolWithin15m)}, mirror ${w.poolMirror ?? '–'}), swash ${pct(w.share.swash)}, damp ${pct(w.share.damp)}, wet rock ${pct(w.share.wetRock)}`)
     console.log(`    nearest pool ${near(w.nearest.pool)}; swash ${near(w.nearest.swash)}; damp ${near(w.nearest.damp)}; wet rock ${near(w.nearest.wetRock)}`)
   }
+  // The terrain's own terms (params.debug.terrainProbe): one line per point.
+  const tp = params.debug?.terrainProbe
+  for (const pt of tp?.points ?? []) {
+    const at = Array.isArray(pt.at) ? `[${pt.at.join(', ')}]` : `world ${pt.at.world.join(',')}`
+    const what = pt.pixel == null ? 'out of frame' : pt.values == null ? `px ${pt.pixel.join(',')}: no terrain (sky, sea or a prop)` : `px ${pt.pixel.join(',')}: ${Object.entries(pt.values).map(([k, v]) => `${k} ${v}`).join(', ')}`
+    console.log(`  terrain ${at} ${what}`)
+  }
+  if (tp?.grid != null) console.log(`  terrain grid every ${tp.grid.every} px: ${tp.grid.samples.length} samples on terrain (debug.terrainProbe.grid)`)
   // The sky cube (params.debug.cubeProbe): what the sea reflects there.
   for (const r of params.debug?.cubeProbe ?? []) console.log(`  cube az ${r.at.az} el ${r.at.el}${r.at.lod != null ? ` lod ${r.at.lod}` : ''}: raw ${r.raw.map(x => x.toExponential(2)).join(' ')}`)
   // The line probe (params.debug.probeLine): its stats and shape.

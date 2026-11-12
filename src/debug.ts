@@ -47,6 +47,11 @@ export interface DebugParams {
    * wet rock (m, and where in the image), in `debug.water`. Changes nothing
    * in the picture. */
   water?: boolean
+  /** Read the terrain shader's own terms (terrainTerms.ts TERRAIN_TERMS: h,
+   * s, a, x, z, pools, wet, snow, rockBare…) at image or world points and/or
+   * on a grid every N px, in `debug.terrainProbe`. Changes nothing in the
+   * picture. scripts/parity.mjs compares them with the TS mirrors. */
+  terrainProbe?: TerrainProbeSpec
   /** False colour on the sea: 'shelter', 'breaking', 'depth' (1 m bands),
    * 'foam' (coverage). */
   oceanView?: OceanView
@@ -80,6 +85,8 @@ export interface ProbeLine {
 
 export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze', 'wetMirror', 'skyRay', 'skyFold'] as const
 export type DebugPass = (typeof DEBUG_PASSES)[number]
+import type { TerrainProbeSpec } from './terrainTerms'
+
 export const TERRAIN_VIEWS = ['none', 'slope', 'relief', 'lines', 'shore', 'water'] as const
 export type TerrainView = (typeof TERRAIN_VIEWS)[number]
 export const OCEAN_VIEWS = ['none', 'shelter', 'breaking', 'depth', 'foam'] as const

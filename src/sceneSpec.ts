@@ -10,6 +10,7 @@ import { ROCK_KINDS, type RockKind } from './rockShore'
 import type { SeaIceForce } from './seaIce'
 import type { TideStage } from './tides'
 import { DEBUG_MARKERS, DEBUG_PASSES, OCEAN_VIEWS, TERRAIN_VIEWS } from './debug'
+import { TERRAIN_TERM_NAMES } from './terrainTerms'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
 import type { DebrisSpec } from './props/debris'
 import type { ShoreLife } from './props/shoreLife'
@@ -453,6 +454,24 @@ function checkDebug(value: unknown, path: string): void {
     shadeView: boolean,
     terrainView: oneOf(...TERRAIN_VIEWS),
     water: boolean,
+    terrainProbe: (v, p) => {
+      const o = v as Record<string, unknown>
+      if (o === null || typeof o !== 'object' || Array.isArray(o)) fail(p, 'must be {terms, at?, every?}')
+      for (const k of Object.keys(o)) if (!['terms', 'at', 'every'].includes(k)) fail(`${p}.${k}`, 'is not a field: terms, at, every')
+      if (!Array.isArray(o.terms) || o.terms.length < 1 || o.terms.length > 12) fail(`${p}.terms`, 'must be a list of 1–12 terms')
+      for (const t of o.terms as unknown[]) if (!(TERRAIN_TERM_NAMES as readonly unknown[]).includes(t)) fail(`${p}.terms`, `has ${JSON.stringify(t)}: use ${TERRAIN_TERM_NAMES.join(', ')}`)
+      if (o.at === undefined && o.every === undefined) fail(p, 'needs at (points) or every (a grid), or both')
+      if (o.every !== undefined && (typeof o.every !== 'number' || !Number.isInteger(o.every) || o.every < 1 || o.every > 64)) fail(`${p}.every`, 'must be a whole number of px, 1–64')
+      if (o.at !== undefined) {
+        if (!Array.isArray(o.at)) fail(`${p}.at`, 'must be a list of [x, y] fractions or {world: [x, y, z]}')
+        ;(o.at as unknown[]).forEach((e, i) => {
+          const ok = Array.isArray(e)
+            ? e.length === 2 && e.every(x => typeof x === 'number' && x >= 0 && x <= 1)
+            : e !== null && typeof e === 'object' && Object.keys(e).length === 1 && Array.isArray((e as { world?: unknown }).world) && ((e as { world: unknown[] }).world).length === 3 && ((e as { world: unknown[] }).world).every(x => typeof x === 'number' && Number.isFinite(x))
+          if (!ok) fail(`${p}.at[${i}]`, 'must be [x, y] with each in 0–1, or {world: [x, y, z]} in metres')
+        })
+      }
+    },
     oceanView: oneOf(...OCEAN_VIEWS),
     probe: (v, p) => {
       if (!Array.isArray(v)) fail(p, 'must be a list of [x, y] fractions or {az, el}')
