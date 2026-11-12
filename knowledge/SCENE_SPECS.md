@@ -64,8 +64,9 @@ Allowed values are in `sceneSpec.ts`.
   `haulOut`.
 - **Camera:** `camera.{heightM,focalLengthMm,horizonFraction,rollDeg}`. `horizonFraction` = how far
   **down** the horizon sits: 0.3 is mostly sea, 0.7 mostly sky.
-- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,leafLitter,bloom,heath,eucalyptus,moss,debris,shoreLife,mangroves,wildlife}`.
+- **Props:** `props.{marine,birds,migratory,ships,rocks,seaStacks,stones,beachrock,rockEdge,saltMarsh,vegetation,phenology,leafLitter,bloom,heath,eucalyptus,moss,shoreWeed,debris,shoreLife,mangroves,wildlife}`.
   `bloom` (blossom, `phenology.ts` `BLOOM`): `true` every row that grows here in full flower, a list (`["gorse"]`, `["flamboyant"]`; kinds `rock-rose`, `gorse`, `wattle`, `flamboyant`, `pohutukawa`) those rows anywhere, `false` none (`scenes/bloom.json`; `look-flamboyant` forces it on a wood with many broadleaves, since tropical days place few).
+  `shoreWeed: false` drops laver and sea lettuce from the rocky shore (the spray belt stays) (`scenes/shoreZone.json`).
   `moss: false` gives back moss as before phase 7 (the biome's amount, green; none on the rock-shore terrain) (`scenes/moss.json`).
   `eucalyptus: false` leaves the gums out after their draws, so the other plants don't move (`scenes/eucalyptus.json`; `look-california-grove` forces the kind, a small weight on real days).
   `heath` (heather on the ground cover, `phenology.ts` `heathFor`): `true` heath in today's colour wherever the day is, a stage (`flower`, `brown`, `green`) in that colour, `false` none (the switch; `phenology: false` turns it off too). Near only behind a rocky shore; far on landforms' and islands' green slopes (`scenes/heath.json`).

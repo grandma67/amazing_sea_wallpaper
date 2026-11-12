@@ -20,7 +20,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 5 | ✅ Heath: heather on ground cover by month, near and far, 2026-11-12 | `phenology.ts` `heathFor`, terrain ground-cover shader, landforms, islands | **14** rock-shore days (rendered framing); far slopes on 7 of the 9 beach days (a range or islands); in frame: cliff tops along the coast, not at the camera's feet (below) | done | 1 |
 | 6 | ✅ `eucalyptus` kind (Australia native, California groves), 2026-11-12 | `props/trees.ts`, `props/vegetation.ts`, `places.ts` `PLACE_PLANTS` | **36** days change (pools); in frame on **17** of 25 land days in the four places (median 32 trees, nearest 10 m) | done | 1 |
 | 7 | ✅ Moss on rock: amount by climate and place, colour by today's wetness, 2026-11-12 | `props/rocks.ts` `GROWTH`, rock-shore shader, `phenology.ts` | every land day with rocks (uniforms only: 0 params change); dry-moss look on 57 land days | done | 1 |
-| 8 | Shore zonation: the spray belt, laver, sea lettuce | rock-shore shader, `places.ts` `sprayBelt` | every rock-shore day (belt); weed on Atlantic, NE Pacific and Japanese rock shores | 2.5–3.5 h | 7 |
+| 8 | ✅ Shore zonation: the spray belt, laver, sea lettuce, 2026-11-12 | rock-shore shader, `phenology.ts` `sprayBelt`, `shoreWeed` | every rock-shore day (belt); weed on 55 real rock-shore days (not night) | done | 7 |
 | 9 | Moss and lichen on trunks | `props/trees.ts` trunk colours, `props/vegetation.ts` | every forest day a little | 1.5–2 h | 7, 8 (belt), 6 |
 | 10 | Fairy rings | terrain ground-cover shader | **124** land days in a growing season (before grass in frame) | 1.5–2 h | 5 (heath mask) |
 | 11 | Real assets: bake (reduce, vertex colours, emit, check), proved on one mushroom | `scripts/asset.mjs`, `src/props/scans/` | none (meshes for 12 and 17) | 1–1.5 h + ~1 h per asset | 1 |
@@ -642,6 +642,27 @@ Columbia platform in February with the band, in August without.
 
 **Tests:** `sprayBelt` over every place; the belt the same over tide stages × compositions and
 swell; the weed table over every place × month, the 41°N and 40°N limits.
+
+**Built (0.147):**
+- `sprayBelt(placeId)` in `phenology.ts` (with the moss code; the plan's `places.ts` field became
+  lists there, as the bloom rows): 1.5 m sheltered, 12 m exposed, else 3.9 m temperate and boreal,
+  3.5 m elsewhere (the main climate's). **Measured from the spring high water + 0.5 m**, not +
+  today's run-up: the plan's line read today's swell, which it also said the belt mustn't
+  (0.5 m: the median run-up on rock-shore days). Tested: one land-relative height over low, mid
+  and high tide × platform, boulder, cliff × 0.2 and 4 m swell.
+- Terrain moss starts at the belt, fading in over 3 m (replaces phase 7's 3–5 m); boulder props'
+  moss likewise (`mossFrom`, world height from their spring tide line), so beach boulders under the
+  belt lose moss, as in the spray. Moss off: both keep the old rule.
+- `LAVER` rows and `shoreWeed(day)` (laver 0–1 by local month, latitude limits; sea lettuce on the
+  same shores, Apr–Sep 1, else 0.3). The plan named no places for sea lettuce beyond "the same
+  rock": it follows the laver rows (Atlantic, NE Pacific, Japan).
+- Shader: laver a patchy red-brown band from 0.7 m below to ~0.3 m above the spring high water
+  (below the black lichen), measured colour; sea lettuce `[0.06, 0.16, 0.03]` *(est.)* in clumps
+  (fbm at 9 m) below the spring high water: sprinkled evenly in the first round, which read fake.
+- `props.shoreWeed: false`; `moss` and `shoreWeed` both off: identical to HEAD on all 7 views of
+  `scenes/shoreZone.json` (`--off-both`). Seen: Scotland and Cornwall in January the laver band on
+  the back face (0.3%), July sea lettuce clumps (1.2–1.3%), Cornwall's laver gone in July; BC
+  February and August (0.4%, 0.9%). Real days: 4 of 8 changed, ≤ 0.1% (a narrow band, mostly far).
 
 ## 9. Moss and lichen on trunks
 

@@ -35,7 +35,8 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   ×1.3 on the wettest coasts, dried toward brown by half the drought (`mossWetness`: wet days,
   cool climates, the Mediterranean summer, a savanna's dry season, arid). Boulder props
   (`rockMaterial`'s `mossToday`: weight and patch edge) and the rock-shore terrain; the green stays
-  `MOSS_COLOR` by biome. Colonies, lighthouse feet and skerries keep their own growth.
+  `MOSS_COLOR` by biome; boulders' moss starts above the spray belt (phase 8, `mossFrom`). Colonies,
+  lighthouse feet and skerries keep their own growth.
   `props.moss: false`: the biome's old amount, green, none on the terrain.
 - **Eucalyptus** (`props/trees.ts` `eucalyptus`, 0.145, NATURE_PLAN phase 6): coastal gums, 15–24 m,
   hanging leaves, smooth pale or rough dark bark; in the Australian place pools (`PLACE_PLANTS`) and

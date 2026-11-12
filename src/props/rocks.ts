@@ -16,7 +16,7 @@ import type { Random } from '../random'
 import { forced } from '../sceneSpec'
 import { hasLand, shoreToWorld } from '../terrain'
 import { MOSS_COLOR } from '../rockShore'
-import { mossLook, MOSS_DRY } from '../phenology'
+import { BELT_FADE, BELT_RUNUP, mossLook, MOSS_DRY } from '../phenology'
 import { tideMarks } from '../tides'
 import type { PropContext } from './context'
 import { fbm3 } from './noise'
@@ -141,7 +141,7 @@ export function rockMaterial(
   snow: SnowLook | null = null,
   /** Moss by climate and today's wetness (phenology.ts mossLook); none: the
    * growth's own amount, green. */
-  mossToday?: { amount: number; dry: number }
+  mossToday?: { amount: number; dry: number; belt: number }
 ): MeshStandardMaterial {
   const material = new MeshStandardMaterial({
     color: new Color(...color),
@@ -163,6 +163,9 @@ export function rockMaterial(
     // 0.42 at amount 1: the old Nordic look.
     shader.uniforms.mossEdge = { value: today == null ? 0.42 : 0.62 - 0.2 * today.amount }
     shader.uniforms.mossDry = { value: today?.dry ?? 0 }
+    // Where moss starts: above the spray belt (world height; phenology.ts
+    // sprayBelt), or −1: the old rule (above the run-up).
+    shader.uniforms.mossFrom = { value: today == null ? -1 : tideLine + BELT_RUNUP + today.belt }
     shader.uniforms.mossColor = { value: new Color(...g.mossColor) }
     shader.uniforms.lichen = { value: g.lichen }
     shader.uniforms.lichenColor = { value: new Color(...g.lichenColor) }
@@ -191,6 +194,7 @@ export function rockMaterial(
         uniform float moss;
         uniform float mossEdge;
         uniform float mossDry;
+        uniform float mossFrom;
         uniform vec3 mossColor;
         uniform float lichen;
         uniform vec3 lichenColor;
@@ -231,7 +235,8 @@ export function rockMaterial(
         diffuseColor.rgb = mix(diffuseColor.rgb, algaeColor * (0.7 + 0.6 * rockNoise(q * 9.0)), algae * algaeBand);
         // Moss on upward faces above the splash zone.
         float dry = smoothstep(wetLine * 1.3, wetLine * 2.2, q.y);
-        float mossMask = smoothstep(0.35, 0.8, vRockNormal.y) * smoothstep(mossEdge, mossEdge + 0.2, patches) * dry;
+        float mossZone = mossFrom < 0.0 ? dry : smoothstep(mossFrom, mossFrom + ${BELT_FADE.toFixed(1)}, q.y);
+        float mossMask = smoothstep(0.35, 0.8, vRockNormal.y) * smoothstep(mossEdge, mossEdge + 0.2, patches) * mossZone;
         vec3 mossC = mix(mossColor * (0.6 + 0.8 * rockNoise(q * 11.0)), vec3(${MOSS_DRY.join(', ')}), mossDry);
         diffuseColor.rgb = mix(diffuseColor.rgb, mossC, moss * mossMask);
         // Crusty lichen spots on dry stone.

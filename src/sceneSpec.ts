@@ -92,6 +92,9 @@ export interface PropOverrides {
   /** false: moss on rock as before NATURE_PLAN phase 7 (the biome's amount,
    * always green, none on the rocky shore's terrain). */
   moss?: boolean
+  /** false: no laver or sea lettuce on the rocky shore (the spray belt
+   * stays: phenology.ts shoreWeed). */
+  shoreWeed?: boolean
   /** false: no eucalypts drawn (still placed, so the other plants don't
    * move; props/vegetation.ts). */
   eucalyptus?: boolean
@@ -398,6 +401,7 @@ const SPEC = object({
     bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf(...BLOOM_KINDS))(value, path)),
     eucalyptus: boolean,
     moss: boolean,
+    shoreWeed: boolean,
     heath: (value, path) => (typeof value === 'boolean' ? undefined : oneOf(...HEATH_STAGES)(value, path)),
     iceFoot: boolean,
     seaIce: boolean,

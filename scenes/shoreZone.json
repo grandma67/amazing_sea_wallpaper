@@ -1,0 +1,10 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null, "coast": "rock-shore", "rockShore": "platform", "composition": "along-beach", "tide": "low", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "scotland-january", "date": "2025-01-15", "place": "scotland" },
+    { "name": "scotland-july", "date": "2025-07-15", "place": "scotland" },
+    { "name": "cornwall-january", "date": "2025-01-15", "place": "cornwall-wales" },
+    { "name": "cornwall-july", "date": "2025-07-15", "place": "cornwall-wales" },
+    { "name": "bc-february", "date": "2025-02-15", "place": "british-columbia" },
+    { "name": "bc-august", "date": "2025-08-15", "place": "british-columbia" },
+    { "name": "scotland-cliff-big-swell", "date": "2025-07-15", "place": "scotland", "rockShore": "cliff", "composition": "overlook", "swellHeight": 3, "tide": "mid" }
+  ] }

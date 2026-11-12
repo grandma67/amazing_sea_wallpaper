@@ -199,6 +199,10 @@ tool gotchas: TOOLS.md.
   forced Scottish and Cornish specs changed 0–0.3% of the frame. "Near" ground-cover looks on rock
   days show on the far cliff tops, not at the camera's feet; render the spec before promising a
   near look, and count `diff.mjs` changes, not the plan's day count.
+- **"Measured from today's line" and "doesn't move with today's sea" can't both hold (spray belt,
+  0.147):** the plan's belt sat on spring high water + today's run-up and was also to stay put in a
+  storm. Fix the base (spring + a typical run-up) and test it over forced tide × composition × swell.
+  World heights move with the tide (tides lower the land): compare in the land's frame.
 - **One patch threshold doesn't fit two surfaces (moss, 0.146):** the boulders' mask edge, reused on
   the rock-shore terrain, covered a crest in an even carpet: the terrain's noise is broader, and a
   near crest fills a strip of the frame. Give each surface its own edge and look at a crop, not a

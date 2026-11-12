@@ -634,7 +634,7 @@ export const MOSS_DRY: RGB = [0.068, 0.045, 0.019]
 
 /** What moss reads from a day besides phenology's inputs (SceneParams has it all). */
 export interface MossDay extends PhenologyDay {
-  overrides?: PhenologyDay['overrides'] & { moss?: boolean }
+  overrides?: PhenologyDay['overrides'] & { moss?: boolean; shoreWeed?: boolean }
   weather: { kind: string; marineLayer: boolean }
   storm: unknown
   fog: unknown
@@ -675,11 +675,72 @@ export function mossEdge(amount: number): number {
   return 0.68 - 0.12 * amount
 }
 
-/** Moss today: amount and the share mixed toward dry brown (half of the
- * dryness: some mosses stay green when dry). */
-export function mossLook(day: MossDay): { amount: number; dry: number } | undefined {
+/**
+ * The spray belt (NATURE_PLAN phase 8): the yellow-grey lichen zone above the
+ * black Verrucaria band, where salt spray keeps moss out. ~1 m on sheltered
+ * shores, tens of metres up cliffs on very exposed ones (JNCC, EUNIS B3.11).
+ * Lichens grow over years, so it follows the coast's exposure, not today's
+ * swell: metres above `BELT_LINE`. Default 1 + 4 × the climate's mean swell
+ * (est. mapping): 3.9 m temperate and boreal, 3.5 m elsewhere; sheltered seas
+ * 1.5 m; exposed ocean fronts 12 m (est. within the sources' range).
+ */
+const BELT_SHELTERED = ['baltic', 'adriatic', 'aegean', 'western-med', 'persian-gulf', 'red-sea', 'yellow-sea', 'fundy', 'pei']
+const BELT_EXPOSED = ['scotland', 'ireland', 'cornwall-wales', 'norway-west', 'iceland-faroe', 'iceland', 'new-zealand-south', 'tasmania', 'patagonia-fjords', 'south-georgia', 'kerguelen-heard', 'nz-subantarctic', 'tierra-del-fuego', 'falklands']
+/** The belt's base: the spring high water plus a typical run-up (the median
+ * on rock-shore days, 0.5 m), so the belt doesn't move with today's swell. */
+export const BELT_RUNUP = 0.5
+/** Moss fades in over this many metres above the belt (est.). */
+export const BELT_FADE = 3
+
+/** The spray belt's height (m above the spring high water + `BELT_RUNUP`)
+ * for a place; a place in two climates takes its main climate's default. */
+export function sprayBelt(placeId: string): number {
+  if (BELT_SHELTERED.includes(placeId)) return 1.5
+  if (BELT_EXPOSED.includes(placeId)) return 12
+  const place = PLACES.find(p => p.id === placeId)
+  const main = place == null ? 'temperate' : (Object.entries(place.climate) as [Climate, number][]).sort((a, b) => b[1] - a[1])[0][0]
+  return main === 'temperate' || main === 'boreal' ? 3.9 : 3.5
+}
+
+/** Moss today: amount, the share mixed toward dry brown (half of the
+ * dryness: some mosses stay green when dry) and the spray belt it keeps
+ * above. */
+export function mossLook(day: MossDay): { amount: number; dry: number; belt: number } | undefined {
   const amount = mossAmount(day)
-  return amount == null ? undefined : { amount, dry: 0.5 * (1 - mossWetness(day)) }
+  return amount == null ? undefined : { amount, dry: 0.5 * (1 - mossWetness(day)), belt: sprayBelt(day.place.id) }
+}
+
+/**
+ * Upper-shore weed on rock (NATURE_PLAN phase 8), by place and local calendar
+ * month. Laver (*Porphyra*, red-brown, wet: measured): dense round high water
+ * on exposed rock; all year in Norway, the Faroes and Scotland; Nov–Apr from
+ * Ireland to Brittany and northern Portugal (north of 41°N: its range ends
+ * there; MarLIN, SNL). NE Pacific *Pyropia* and black seaweed Dec–Apr, May–Jun
+ * ×0.3 (Lindstrom 2015, UBC, Hakai; Alaska est.; California north of 40°N).
+ * Japan's wild iwanori Nov–Mar (est.). Sea lettuce (*Ulva*, bright green, est.)
+ * on the same shores, Apr–Sep, ×0.3 otherwise (Lemesle et al. 2023; Franklin et
+ * al. 2025).
+ */
+export const LAVER: readonly { places: readonly string[]; months: readonly number[]; minLatitude?: number }[] = [
+  { places: ['norway-west', 'norway-north', 'iceland-faroe', 'scotland'], months: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] },
+  { places: ['ireland', 'cornwall-wales', 'brittany', 'bristol-channel'], months: [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1] },
+  { places: ['portugal-morocco'], months: [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1], minLatitude: 41 },
+  { places: ['british-columbia', 'pacific-northwest', 'se-alaska'], months: [1, 1, 1, 1, 0.3, 0.3, 0, 0, 0, 0, 0, 1] },
+  { places: ['california'], months: [1, 1, 1, 1, 0.3, 0.3, 0, 0, 0, 0, 0, 1], minLatitude: 40 },
+  { places: ['japan', 'south-japan'], months: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1] }
+]
+export const LAVER_COLOR: RGB = [0.073, 0.028, 0.026]
+export const SEA_LETTUCE_COLOR: RGB = [0.06, 0.16, 0.03]
+
+/** Laver and sea lettuce today (0–1 each); none with `props.shoreWeed: false`
+ * or `phenology: false`, or where no row grows (a row's latitude limit too). */
+export function shoreWeed(day: PhenologyDay & { overrides?: { shoreWeed?: boolean } }): { laver: number; seaLettuce: number } {
+  const none = { laver: 0, seaLettuce: 0 }
+  if (day.overrides?.shoreWeed === false || day.overrides?.phenology === false) return none
+  const row = LAVER.find(r => r.places.includes(day.place.id) && (r.minLatitude == null || day.latitudeDeg >= r.minLatitude))
+  if (row == null) return none
+  const month = Number(day.date.slice(5, 7))
+  return { laver: row.months[month - 1], seaLettuce: month >= 4 && month <= 9 ? 1 : 0.3 }
 }
 
 /** Ground cover (terrain) with the grass dried toward straw. */
