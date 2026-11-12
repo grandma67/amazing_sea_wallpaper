@@ -21,5 +21,14 @@
   {"source":"commons:File:Eucalyptus robusta - adult leaves 02.jpg","id":"wc_eucalyptus_robusta_adult_leaves_02","name":"leaf","k":3,"region":[0.25,0.15,0.75,0.75],"anchor":"paper=0.8,0.8,0.8"},
   {"source":"commons:File:Membranous Porphyra umbilicalis and wrack. Laverbread. Irvine, North Ayrshire.jpg","id":"wc_membranous_porphyra_umbilicalis_and_wrack_laverbread_irvine_","name":"rock","k":2,"region":[0.66,0.6,0.93,0.88]},
   {"source":"commons:File:Membranous Porphyra umbilicalis and wrack. Laverbread. Irvine, North Ayrshire.jpg","id":"wc_membranous_porphyra_umbilicalis_and_wrack_laverbread_irvine_","name":"laver","k":3,"region":[0.62,0.1,1,0.48],"anchor":"rock=0.26,0.24,0.22"},
-  {"source":"commons:File:Acacia pycnantha Golden Wattle.jpg","id":"wc_acacia_pycnantha_golden_wattle","name":"balls","k":4,"region":[0.75,0,1,0.4],"petal":true}
+  {"source":"commons:File:Acacia pycnantha Golden Wattle.jpg","id":"wc_acacia_pycnantha_golden_wattle","name":"balls","k":4,"region":[0.75,0,1,0.4],"petal":true},
+  {"source":"commons:File:AD2009Sep13 Boletus edulis 01.jpg","id":"wc_ad2009sep13_boletus_edulis_01","name":"moss","k":1,"region":[0,0.85,0.25,1],"hue":[60,140]},
+  {"source":"commons:File:AD2009Sep13 Boletus edulis 01.jpg","id":"wc_ad2009sep13_boletus_edulis_01","name":"cap","k":2,"region":[0.17,0.22,0.55,0.5],"anchor":"moss=0.074,0.139,0.011","hue":[15,50,0.25]},
+  {"source":"commons:File:AD2009Sep13 Boletus edulis 01.jpg","id":"wc_ad2009sep13_boletus_edulis_01","name":"stem","k":1,"region":[0.27,0.6,0.5,0.85],"anchor":"moss=0.074,0.139,0.011"},
+  {"source":"commons:File:Agaricus campestris 051011A.JPG","id":"wc_agaricus_campestris_051011a","name":"grass","k":1,"region":[0.75,0.55,1,0.9],"hue":[70,160]},
+  {"source":"commons:File:Agaricus campestris 051011A.JPG","id":"wc_agaricus_campestris_051011a","name":"cap","k":2,"region":[0.25,0.08,0.75,0.35],"anchor":"grass=0.08,0.13,0.05"},
+  {"source":"commons:File:Marasmius oreades 14.jpg","id":"wc_marasmius_oreades_14","name":"grass","k":1,"region":[0,0.6,0.5,0.98],"hue":[70,160]},
+  {"source":"commons:File:Marasmius oreades 14.jpg","id":"wc_marasmius_oreades_14","name":"cap","k":2,"region":[0.56,0.15,0.9,0.42],"anchor":"grass=0.08,0.13,0.05"},
+  {"source":"commons:File:Amanita muscaria tyndrum.jpg","id":"wc_amanita_muscaria_tyndrum","name":"cap","k":2,"region":[0.1,0.17,0.9,0.31],"petal":true,"hue":[340,20,0.5]},
+  {"source":"commons:File:Lactarius-deliciosus-Finland.jpg","id":"wc_lactarius_deliciosus_finland","name":"cap","k":2,"region":[0.25,0.33,0.62,0.5],"petal":true,"hue":[15,45,0.3]}
 ]

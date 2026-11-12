@@ -8,6 +8,7 @@ import { restingGull } from '../src/props/birds'
 import { branchGeometry, logGeometry } from '../src/props/debris'
 import { cakeGeometry } from '../src/props/iceFoot'
 import { fallenLeafGeometry } from '../src/props/leafLitter'
+import { FUNGUS_KINDS, mushroomGeometry } from '../src/props/fungi'
 import { pinniped, swimmingHead } from '../src/props/pinnipeds'
 import { glasswortGeometry, grassTuftGeometry } from '../src/props/saltMarsh'
 import { lumpGeometry, slabGeometry as iceSlab } from '../src/props/seaIce'
@@ -115,6 +116,12 @@ family('shore life, small on the ground', { base: [-0.05, INF], top: [-INF, 0.6]
   ['burrow', seed => burrowGeometry(new Random(seed), SAND)],
   ...(Object.keys(FLOWERS) as FlowerKind[]).map((kind): Row => [kind, seed => flowerGeometry(new Random(seed), kind)])
 ])
+
+// Mushrooms: a cap 1 across (instances scale to the real 2–28 cm), the stem's
+// foot just under the ground, ~200 triangles each age.
+family('mushrooms (cap 1 across)', { base: [-0.03, 0], top: [0.3, 2.2], width: 1.02, length: 1.02, maxTriangles: 400 },
+  FUNGUS_KINDS.flatMap((kind): Row[] => [0, 1, 2].map((age): Row => [`${kind} age ${age}`, () => mushroomGeometry(kind, age)]))
+)
 
 family('animals standing on the ground', { base: [-0.15, 0.05], maxVertices: 50_000 }, [
   ...(['green', 'loggerhead', 'leatherback', 'hawksbill', 'olive-ridley'] as TurtleSpecies[]).flatMap((s): Row[] => [

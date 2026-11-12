@@ -170,6 +170,12 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   LH046 (https://edis.ifas.ufl.edu/lh046), K-State lawn problem solver
   (https://www.k-state.edu/turf/resources/lawn-problem-solver/problem-solver/off-color/dark/fairy-ring/index.html).
   No photo measured: the band's colour and width are estimates.
+- Mushrooms (0.151; `props/fungi.ts`): seasons and hosts NATURE.md §2 (Wild Food UK, UF/IFAS);
+  false parasol on warm-climate lawns: Qld Fungi (https://qldfungi.org.au/garden-fungi-chlorophyllum-molybdites),
+  Wikipedia "Chlorophyllum molybdites". Cap colours measured from Commons photos (public domain:
+  `AD2009Sep13_Boletus_edulis_01.jpg`, `Amanita_muscaria_tyndrum.jpg`; CC BY-SA 3.0:
+  `Lactarius-deliciosus-Finland.jpg`, `Agaricus_campestris_051011A.JPG`; CC BY 4.0:
+  `Marasmius_oreades_14.jpg`), recorded in `scripts/asset-measures.json`.
 - Baked scans (0.150; `src/props/scans/`): Poly Haven "Flower Ursinia"
   (https://polyhaven.com/a/flower_ursinia, CC0, Jenelle van Heerden, Rico Cilliers): geometry,
   alpha and albedo. Simplified with meshoptimizer (MIT, devDependency).

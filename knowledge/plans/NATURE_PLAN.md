@@ -24,7 +24,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 9 | ✅ Moss and lichen on trunks, 2026-11-12 | `props/builder.ts` bark weight, `props/trunkMoss.ts` (shader), `phenology.ts` `trunkGrowth`, `props/vegetation.ts` | 0 params; trees in frame with moss on 337 days, mostly lichen on 324 (fringe trees) | done | 7, 8 (belt), 6 |
 | 10 | ✅ Fairy rings, 2026-11-12 | `fairyRings.ts` (new), terrain ground-cover shader, `phenology.ts` `FAIRY_SEASON` | 0 params; rings at some strength on 323 land days (temperate, boreal, Mediterranean, subtropical); grass in frame within 300 m on ~67 of the 259 non-subtropical ones; real days 2 of 8 changed | done | 5 (heath mask) |
 | 11 | ✅ Real assets: bake (reduce, vertex colours, emit, check), proved on Poly Haven's *Ursinia* (no CC0 mushroom scan exists), 2026-11-12 | `scripts/asset.mjs`, `scripts/assetBake.mjs`, `src/props/scans/` | none (a mesh for phase 16; nothing draws it yet) | done | 1 |
-| 12 | Mushrooms under trees and on grass | `props/fungi.ts` (new) | **80** land days in season (temperate, boreal, Mediterranean, polar; tropical and subtropical more) | 2–3 h | 9, 10 |
+| 12 | ✅ Mushrooms under trees and on grass, 2026-11-13 | `props/fungi.ts`, `groundCover.ts` (new), `phenology.ts` `fungiSeason` | **96** land days in season (temperate, boreal, Mediterranean, polar) + 236 tropical and subtropical (false parasol); in frame on ~15 of the 332 | done | 9, 10 |
 | 13 | Fireflies: the choice table, weather rules, placement and counts (no drawing) | `props/fireflies.ts` `firefliesFor`, `props/choices.ts` | **11** eligible land nights, **~4** after wind, rain and mangroves | 2–3 h | – |
 | 14 | Fireflies: drawing (sprites and ribbons, brightness by magnitude, streaks) | `props/fireflies.ts` meshes, star magnitude code | as 13 | 3–4 h | 13 |
 | 15 | Lomas: yearly green on Peru's fog hills | `props/landforms.ts` colour by height; later TERRAIN_FORMS's wall | 3 land days Jun–Nov, **~0.5** with hills high enough in frame | 1–1.5 h | 2 |
@@ -828,6 +828,36 @@ specimens (proportions) and photos (colour) for phase 17.
 - **Done when:** a forced temperate October framed forest day shows a few caps near the camera
   under the trees; a forced October machair or cliff-top day shows field mushrooms on the grass
   and a ring further off; nothing out of season.
+
+**Built (0.151):**
+- `fungiSeason(day)` (`phenology.ts`, `FUNGUS_SEASON`) as planned; `isWetDay` shared with moss
+  (×1.5; rings ×2, ×0.3 in a Mediterranean drought); none under lying snow (cover > 0.3).
+- **Kinds** (`props/fungi.ts` `FUNGI`): fly agaric (birch, conifer, stone pine; temperate, boreal,
+  polar), bolete (conifer, birch, broadleaf, stone pine; + Mediterranean), saffron milk cap (stone
+  pine, conifer; Mediterranean), field mushroom and fairy-ring champignon (turf; temperate,
+  boreal, Mediterranean), and **false parasol** (added: turf in the subtropics and tropics, which the
+  plan gave seasons but no kind; *Chlorophyllum molybdites*, the warm-climate lawn mushroom, cap
+  8–30 cm, Qld Fungi). Cap colours measured from Commons photos (`asset.mjs measure`): fly agaric
+  `[0.38, 0.02, 0.01]` and saffron milk cap `[0.52, 0.32, 0.13]` (brightest cluster ×0.8, ±30%),
+  bolete `[0.17, 0.09, 0.05]` (anchored on sunlit moss: likely low), field mushroom
+  `[0.71, 0.71, 0.72]` and champignon `[0.64, 0.47, 0.42]` (grass anchor); stems, gills, warts est.
+- **Meshes:** a lathe cap and stem, 200 triangles, cap 1 across scaled to the real 2–28 cm, three
+  ages (button to open: convex, bun, funnel, umbo), warts and scales as part-coloured vertices.
+- **Placement** by hashes of where each stands (no stream): up to 8 slots under each host crown
+  (1.2 at the peak, est.) on a forest floor (ground cover ≥ 0.15: the first round put a fly agaric
+  on backshore shingle under a tree); troops of 1–6 in 4 m turf cells (5% at the peak, est.);
+  champignons along the fairy rings' bands (3 per m, est.; `fairyRingPoint`), only where rings are
+  drawn. Open turf from `groundCover.ts`, a new CPU mirror of the shader's cover and heath mask.
+  Drawn while a cap is ≥ 2 px across, within 60 m, at most 3000.
+- **Seen, and how little:** real days, in season: in frame on ~15 of 332 (false parasol 9,
+  bolete 3, field mushroom 3, fly agaric 1, saffron milk cap 1; median 2–4, nearest 10–22 m);
+  8 sampled: all identical. The cameras face the sea, the turf near them is mostly behind, grass
+  tufts hide caps from a 1.6 m eye, and the 2–5 cm champignons are under 2 px from where turf is
+  seen. Specs (`scenes/fungi.json`, trees forced without grass tufts): a field-mushroom troop at
+  6 m and a fly agaric at 10 m read as such, front-lit, backlit and overcast (0.03–0.06%); Florida
+  overlook false parasols as white flecks at 35–58 m. The Mediterranean pine view stayed under the
+  threshold (two caps at 13–18 m in grass). A forced ring with champignons isn't in any spec view.
+- `props.fungi`: true forces as at the peak, false is the switch (`propSwitches.test.ts`).
 
 ## 13. Fireflies: choice, weather, placement
 

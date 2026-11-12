@@ -710,6 +710,12 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **Small things near the ground: ask what covers them before rendering (mushrooms, 0.151):**
+  the first round's Scottish forest had 3 mushrooms "in frame" and an identical diff: grass tufts
+  and trunks stood in front of every one from a 1.6 m eye (`params.mjs --project fungi`'s
+  `covered by` column says so in seconds). And a mushroom under a tree stood on bare shingle,
+  because trees can grow on the backshore: tie under-tree props to the ground they'd need, not only
+  to the tree.
 - **Subdivide by edge, not by triangle, before cutting (baked scans, 0.150):** splitting each
   card triangle into its own grid left T-joins between neighbours (their grids didn't line up),
   so the alpha cut fell into hundreds of islands per card; the simplifier then couldn't get under

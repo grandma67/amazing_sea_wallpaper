@@ -1,0 +1,9 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "snow": null, "weather": "few", "timeOfDay": "midday", "coast": "beach" },
+  "scenes": [
+    { "name": "scotland-october", "note": "birch and conifer (no grass tufts, which hide them from a 1.6 m eye): field mushrooms at 6 m, boletes and a fly agaric under the crowns", "date": "2025-10-28", "place": "scotland", "composition": "framed", "sunAzimuthDeg": 160, "props": { "vegetation": ["birch", "conifer"] } },
+    { "name": "scotland-october-back", "date": "2025-10-28", "place": "scotland", "composition": "framed", "sunAzimuthDeg": 20, "timeOfDay": "golden-hour", "props": { "vegetation": ["birch", "conifer"] } },
+    { "name": "scotland-october-overcast", "date": "2025-10-28", "place": "scotland", "composition": "framed", "weather": "overcast", "props": { "vegetation": ["birch", "conifer"] } },
+    { "name": "scotland-october-fly-agarics", "date": "2025-10-18", "place": "scotland", "composition": "framed", "sunAzimuthDeg": 160, "props": { "vegetation": ["birch", "conifer"] } },
+    { "name": "western-med-pines-november", "note": "saffron milk caps and boletes under stone pines", "date": "2025-11-20", "place": "western-med", "composition": "framed", "sunAzimuthDeg": 160, "props": { "vegetation": ["stone-pine", "grass"] } },
+    { "name": "florida-lawn-august", "note": "false parasols in troops on the turf, nearest 35 m", "date": "2025-08-10", "place": "florida-carolinas", "composition": "overlook", "sunAzimuthDeg": 160 }
+  ] }

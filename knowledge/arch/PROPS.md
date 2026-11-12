@@ -64,6 +64,16 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   gone past ~3 m footprints. Strength by climate (`FAIRY_SEASON`, northern-equivalent days): full
   in the growing season, a third (subtropical half) otherwise; none tropical, arid, polar.
   `props.fairyRings`: true forces at full strength, false is the switch.
+- **Mushrooms** (`props/fungi.ts`, `phenology.ts` `fungiSeason`, 0.151, plans/NATURE_PLAN.md
+  phase 12): six kinds (`FUNGI`: fly agaric, bolete, saffron milk cap under their host trees; field
+  mushroom, fairy-ring champignon, false parasol on the turf), procedural cap and stem (~200
+  triangles, cap 1 across, three ages) at real size by instance scale. Season by climate
+  (`FUNGUS_SEASON`; subtropical by month; tropics by the dry season), ×1.5 on a wet day
+  (`isWetDay`), none under lying snow. Placed by hash of where they stand: up to 8 slots per host
+  crown (forest floor only: ground cover ≥ 0.15), troops in 4 m turf cells, champignons along the
+  fairy rings' bands (`fairyRingPoint`); the turf from `groundCover.ts` (a CPU mirror of the
+  shader's cover and heath mask). Drawn while a cap is ≥ 2 px, within 60 m, ≤ 3000.
+  `props.fungi`: true forces as at the peak, false is the switch.
 - **Baked scans** (`src/props/scans/`, 0.150, plans/NATURE_PLAN.md phase 11): CC0 scans baked
   offline (`asset.mjs bake`) into vertex-coloured, quantised meshes at real size, base on y = 0,
   each glTF node a variant at two levels of detail (5k and ~1.5k triangles). Plant cards are cut

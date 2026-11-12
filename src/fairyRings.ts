@@ -61,6 +61,13 @@ function ringShape(key: number, t: number, r: number): { gap: number; wobble: nu
   return { gap, wobble }
 }
 
+/** A point on a ring's band at angle `t` (noise coordinates) and how much of
+ * the ring shows there (0 in a gap): phase 12's mushrooms on the band. */
+export function fairyRingPoint(ring: NonNullable<ReturnType<typeof fairyRingCell>>, t: number): { x: number; z: number; gap: number } {
+  const { gap, wobble } = ringShape(ring.key, t, ring.r)
+  return { x: ring.x + Math.cos(t) * ring.r * wobble, z: ring.z + Math.sin(t) * ring.r * wobble, gap }
+}
+
 function smooth(a: number, b: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
   return t * t * (3 - 2 * t)

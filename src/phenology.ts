@@ -7,12 +7,12 @@
 import type { Climate, RGB, VegetationKind } from './biome'
 import { hashCell } from './cellNoise'
 import { PLACES, type DrySeason } from './places'
-import { seasonDay, type Day } from './seasons'
+import { seasonDay, seasonMonth, type Day } from './seasons'
 
 /** What phenology reads from a day (SceneParams has all of it). */
 export interface PhenologyDay extends Day {
   place: { id: string; climate: Climate }
-  overrides?: { phenology?: boolean; bloom?: boolean | readonly BloomKind[]; heath?: boolean | HeathStage; fairyRings?: boolean }
+  overrides?: { phenology?: boolean; bloom?: boolean | readonly BloomKind[]; heath?: boolean | HeathStage; fairyRings?: boolean; fungi?: boolean }
   sea?: { ocean: string }
 }
 
@@ -650,6 +650,46 @@ export function fairyRingsFor(day: PhenologyDay): number {
   return row.off + (1 - row.off) * band(seasonDay(day), row.a, row.a + 15, row.e - 15, row.e)
 }
 
+/** Mushrooms' fruiting by climate (NATURE_PLAN phase 12, NATURE.md §2;
+ * northern-equivalent days, `band`): temperate Sep–Nov with a weak May–Jun
+ * flush (×0.2), boreal Aug–Oct, Mediterranean Oct–Dec, polar Jul–Aug
+ * (Greenland's peak). Subtropical and tropical in `fungiSeason`. */
+export const FUNGUS_SEASON: Partial<Record<Climate, { a: number; b: number; c: number; e: number; spring?: number }>> = {
+  temperate: { a: 244, b: 258, c: 320, e: 334, spring: 0.2 },
+  boreal: { a: 213, b: 227, c: 290, e: 304 },
+  mediterranean: { a: 274, b: 288, c: 350, e: 365 },
+  polar: { a: 182, b: 196, c: 228, e: 243 }
+}
+
+/** Subtropical fruiting by northern-equivalent month (UF/IFAS: Florida's
+ * summer rains; est. for Natal and south Japan): May–Oct full, Mar–Apr and
+ * Nov half, Dec–Feb 0.3. */
+const SUBTROPICAL_FUNGI = [0.3, 0.3, 0.5, 0.5, 1, 1, 1, 1, 1, 1, 0.5, 0.3]
+
+/**
+ * How much fruits today (0 none … 1 the peak), before the day's weather:
+ * the climate's season; in the tropics the wet months of a place's dry
+ * season (none in the dry months) or half all year where there's no dry
+ * season (Pasoh, Yunnan: fruiting still tracks rain, est.). Arid: none.
+ */
+export function fungiSeason(day: PhenologyDay): number {
+  const climate = day.place.climate
+  const row = FUNGUS_SEASON[climate]
+  if (row != null) {
+    const d = seasonDay(day)
+    return Math.max(band(d, row.a, row.b, row.c, row.e), (row.spring ?? 0) * band(d, 121, 135, 166, 181))
+  }
+  if (climate === 'subtropical') return SUBTROPICAL_FUNGI[seasonMonth(day) - 1]
+  if (climate === 'tropical') {
+    const dry = onDryCoast(day)
+    if (dry == null) return 0.5
+    const m = Number(day.date.slice(5, 7))
+    const [from, to] = dry.months
+    return (from <= to ? m >= from && m <= to : m >= from || m <= to) ? 0 : 1
+  }
+  return 0
+}
+
 /** Moss on rock by climate (NATURE_PLAN phase 7, NATURE.md §4; est.): where
  * it grows and how much. Only the amount follows the climate; the green
  * follows the rock (`MOSS_COLOR` by biome, rockShore.ts). */
@@ -683,11 +723,16 @@ export function mossAmount(day: MossDay): number | undefined {
  * Mediterranean dries with its summer grass; a savanna coast in its dry
  * season; humid tropics and subtropics wet; arid dry. `phenology: false`: wet.
  */
+/** A wet day: storm, overcast (a stand-in for drizzle: the params have no
+ * rain kind, est.), fog or a marine layer. */
+export function isWetDay(day: MossDay): boolean {
+  return day.storm != null || day.weather.kind === 'storm' || day.weather.kind === 'overcast' || day.fog != null || day.weather.marineLayer
+}
+
 export function mossWetness(day: MossDay): number {
   if (day.overrides?.phenology === false) return 1
-  const wetDay = day.storm != null || day.weather.kind === 'storm' || day.weather.kind === 'overcast' || day.fog != null || day.weather.marineLayer
   const climate = day.place.climate
-  if (wetDay || climate === 'temperate' || climate === 'boreal' || climate === 'polar') return 1
+  if (isWetDay(day) || climate === 'temperate' || climate === 'boreal' || climate === 'polar') return 1
   if (climate === 'mediterranean') {
     const t = DRY_DAYS.mediterranean!
     return 1 - band(seasonDay(day), t.a, t.b, t.c, t.e)

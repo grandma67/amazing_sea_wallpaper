@@ -6,6 +6,7 @@ import { createBirds } from './birds'
 import { createRollCloud, createShelfCloud } from './cloudEvents'
 import { createColony } from './colony'
 import { createDebris } from './debris'
+import { createFungi } from './fungi'
 import { createIce } from './ice'
 import { createIceFoot } from './iceFoot'
 import { createLeafLitter, litterField } from './leafLitter'
@@ -75,6 +76,7 @@ export function createProps(ctx: PropContext): Group {
   add('surf', () => createIslandSpray(ctx, group.userData.waterIslands as IslandWater[]))
   const plants = add('vegetation', () => createVegetation(ctx))
   add('leaf-litter', () => createLeafLitter(ctx, plants))
+  add('fungi', () => createFungi(ctx, plants))
   // The litter's colour on the ground (terrain.ts litterMap).
   group.userData.litter = off ? null : litterField(ctx, plants)
   // The sky the crowns hide from the ground (terrain.ts and propShade.ts skyOpen).
