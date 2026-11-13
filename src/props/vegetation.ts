@@ -10,6 +10,7 @@ import {
 } from 'three'
 
 import type { RGB, VegetationKind } from '../biome'
+import { fruitFor, fruitStage, withFruit } from '../fruits'
 import { BELT_RUNUP, mossLook, phenologyFor, plantSeason, withBlossom, type Blooming, type PlantSeason } from '../phenology'
 import { placeNamed } from '../places'
 import { LICHEN, MOSS_COLOR } from '../rockShore'
@@ -40,7 +41,7 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
 const PALM_BARK: RGB = [0.3, 0.26, 0.21]
 const DRY: RGB = [0.28, 0.22, 0.12]
 
-export function palm(rng: Random, foliage: RGB): BufferGeometry {
+export function palm(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const height = rng.range(8, 12)
   const bend = height * rng.range(0.05, 0.16)
@@ -105,16 +106,44 @@ export function palm(rng: Random, foliage: RGB): BufferGeometry {
     }
     b.tube(rib, t => 0.04 * (1 - t) + 0.01, () => scale(color, 0.8), 4)
   }
-  // Coconuts.
+  // Coconuts, or a subtropical palm's bunches (fruits.ts): the same draws
+  // either way, so the palm keeps its shape; without a fruit row (phenology
+  // off) the nuts as they always were.
+  const fruit = season?.fruit?.[0]
   for (let c = 0; c < rng.int(3, 7); c++) {
     const az = rng.range(0, Math.PI * 2)
-    b.blob(
-      crown.clone().add(new Vector3(Math.cos(az) * 0.3, -0.35 - rng.float() * 0.3, Math.sin(az) * 0.3)),
-      new Vector3(0.16, 0.18, 0.16),
-      () => [0.22, 0.2, 0.06],
-      () => 1,
-      3
-    )
+    const at = crown.clone().add(new Vector3(Math.cos(az) * 0.3, -0.35 - rng.float() * 0.3, Math.sin(az) * 0.3))
+    if (fruit == null) {
+      b.blob(at, new Vector3(0.16, 0.18, 0.16), () => [0.22, 0.2, 0.06], () => 1, 3)
+      continue
+    }
+    const h = fruitHash(at.x * 17.3 + c, at.z * 11.1 + at.y)
+    // Bunches: two or three to a crown; nuts: as many as drawn, by the crop.
+    if (h >= fruit.crop * (fruit.row.shape === 'cluster' ? 0.6 : 1)) continue
+    const st = fruitStage(fruit, fruitHash(h * 7.7, c + 0.5))
+    if (fruit.row.shape === 'ball') {
+      const k = 0.85 + 0.3 * fruitHash(c, h)
+      b.blob(at, new Vector3(0.16 * k, 0.18 * k, 0.16 * k), n => scale(st.color, 0.8 + 0.3 * Math.max(0, n.y)), () => 1, 3)
+      continue
+    }
+    // A bunch from under the crown: out on its stalk, then hanging.
+    const length = fruit.row.length * st.size * (0.8 + 0.4 * fruitHash(h, c))
+    const out = new Vector3(Math.cos(az), 0, Math.sin(az))
+    const knee = at.clone().addScaledVector(out, 0.3 + length * 0.3).add(new Vector3(0, -0.1, 0))
+    b.tube([crown.clone().add(new Vector3(0, -0.3, 0)), knee], () => 0.025, () => scale(st.color, 0.7), 3)
+    // A broom of fruiting strands fanning down from the knee (a Canary
+    // palm's bunch: orange strings of dates; plumes are the same, cream).
+    const w = length * fruit.row.width * 0.5
+    const strands = 14
+    for (let k = 0; k < strands; k++) {
+      const t = fruitHash(h * 31.7 + k, c * 3.3)
+      const turn = (k / strands) * Math.PI * 2 + t
+      const spread = new Vector3(Math.cos(turn), 0, Math.sin(turn)).multiplyScalar(w * (0.4 + 0.6 * t))
+      const reach = length * (0.7 + 0.3 * fruitHash(k, h))
+      const tip = knee.clone().add(spread).add(new Vector3(0, -reach, 0))
+      const mid = knee.clone().addScaledVector(spread, 0.6).add(new Vector3(0, -reach * 0.45, 0))
+      b.tube([knee, mid, tip], s => 0.018 * (1 - 0.3 * s), s => scale(st.color, 0.7 + 0.4 * s * (0.8 + 0.4 * t)), 3)
+    }
   }
   return b.build()
 }
@@ -171,6 +200,12 @@ interface KindSpec {
   variants: number
   /** How the plant bends in the wind. */
   bend: Bend
+}
+
+/** A hash in [0, 1) for a palm's fruit (not a draw). */
+function fruitHash(x: number, y: number): number {
+  const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
+  return h - Math.floor(h)
 }
 
 /** A hash of a world position in [0, 1) (not a draw). */
@@ -554,7 +589,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
 
     const bent = windMaterials(material, params, spec.bend)
 
-    const season = plantSeason(kind, phenology)
+    const season = withFruit(plantSeason(kind, phenology), fruitFor(kind, params), phenology)
     // Blossom: each tree flowers or not by its position (a hash, no draw), so
     // any share shows and a moving camera sees the same trees in flower.
     const flowers = placed.map(t => crownBlossom(season?.bloom, kind, t.elements[12], t.elements[14], coast, uMin))

@@ -6,7 +6,8 @@
 
 import type { Climate, RGB, VegetationKind } from './biome'
 import { hashCell } from './cellNoise'
-import { PLACES, type DrySeason } from './places'
+import type { Fruiting } from './fruits'
+import { PLACES, plantsFor, type DrySeason } from './places'
 import { seasonDay, seasonMonth, type Day } from './seasons'
 
 /** What phenology reads from a day (SceneParams has all of it). */
@@ -52,18 +53,25 @@ export interface PlantSeason {
   bloom?: readonly Blooming[]
   /** This mesh's blossom (a flowering twin's). */
   blossom?: Blossom
+  /** Fruits, cones and catkins on this kind today (fruits.ts `fruitFor`). */
+  fruit?: readonly Fruiting[]
 }
 
 /** Every blossom kind (the spec validator reads this list: sceneSpec.ts). */
-export const BLOOM_KINDS = ['rock-rose', 'gorse', 'wattle', 'flamboyant', 'pohutukawa'] as const
+export const BLOOM_KINDS = ['rock-rose', 'gorse', 'wattle', 'flamboyant', 'pohutukawa', 'oak-catkins', 'holm-oak', 'olive', 'umbrella-thorn', 'gum-blossom', 'red-flowering-gum'] as const
 export type BloomKind = (typeof BLOOM_KINDS)[number]
 
 /** A plant in flower on a kind's crowns (NATURE_PLAN phases 3–4). */
 export interface BloomRow {
   kind: BloomKind
   plant: VegetationKind
-  /** Where it grows (place ids). */
+  /** Where it grows (place ids), or by a rule on the day (a climate row). */
   places: readonly string[]
+  where?: (day: PhenologyDay) => boolean
+  /** A deciduous tree's flowers: its crowns keep leafing out and turning
+   * (oak catkins come with the leaves); otherwise a flowering crown is one of
+   * the evergreens. */
+  keepsSeason?: boolean
   /** Today's flowering: `strength` 0–1 scales the crowns in flower
    * (`scales: 'crowns'`) or the cards in flower on each (`'leaves'`); `on`
    * thins a flowering crown's leaves (flamboyant flowers nearly bare);
@@ -106,6 +114,7 @@ export interface Blossom {
   color: RGB
   size: number
   on: number
+  keepsSeason: boolean
 }
 
 const MED = ['western-med', 'adriatic', 'aegean', 'north-africa-levant', 'portugal-morocco', 'canaries']
@@ -128,6 +137,19 @@ export function onDryCoast(day: PhenologyDay): DrySeason | undefined {
   const wet = season.wetCoast
   if (wet != null && day.sea?.ocean === wet.ocean && day.latitudeDeg >= wet.latitudeDeg[0] && day.latitudeDeg <= wet.latitudeDeg[1]) return undefined
   return season
+}
+
+/** Does the day's plant pool (its place and climate) hold `kind`? What a
+ * climate row grows on (the olive only where olives grow). */
+function poolHas(day: PhenologyDay, kind: VegetationKind): boolean {
+  const place = PLACES.find(p => p.id === day.place.id)
+  if (place == null) return false
+  return plantsFor(place, day.place.climate, null, day.latitudeDeg).some(([k]) => k === kind)
+}
+
+/** Does `row` grow on this day's coast (its places, or its rule)? */
+export function bloomGrows(row: BloomRow, day: PhenologyDay): boolean {
+  return row.places.includes(day.place.id) || row.where?.(day) === true
 }
 
 /** Days after `end` (the first day of the rains), wrapped to −182…182. */
@@ -264,6 +286,108 @@ export const BLOOM: readonly BloomRow[] = [
     size: 1,
     nearShoreM: 60,
     far: false
+  },
+  {
+    // Oak catkins (Woodland Trust, UCC): pale yellow-green tassels with the
+    // new leaves, late April to mid-May in Britain; by the temperate leaf days
+    // on the northern oaks (southern temperate broadleaf is evergreen beech).
+    kind: 'oak-catkins',
+    plant: 'broadleaf',
+    places: [],
+    where: day => day.place.climate === 'temperate' && day.latitudeDeg > 0 && poolHas(day, 'broadleaf'),
+    today: day => ({ strength: band(seasonDay(day), 100, 112, 132, 145) }),
+    scales: 'leaves',
+    crowns: 0.85,
+    leaves: 0.3,
+    colors: [[0.2, 0.19, 0.04]],
+    size: 0.45,
+    keepsSeason: true,
+    far: false
+  },
+  {
+    // Holm oak (Woodland Trust, Wild Flowers Provence): yellow catkins all
+    // over the evergreen crown April–May; a whole wood goes golden-olive.
+    // The Mediterranean Sea's and Iberia's broadleaf (California's live oaks,
+    // the Cape's and Chile's and SW Australia's trees are others).
+    kind: 'holm-oak',
+    plant: 'broadleaf',
+    places: [],
+    where: day => day.place.climate === 'mediterranean' && !['california', 'cape', 'central-chile', 'sw-australia'].includes(day.place.id) && poolHas(day, 'broadleaf'),
+    today: day => ({ strength: [0, 0, 0, 0.6, 1, 0.2, 0, 0, 0, 0, 0, 0][seasonMonth(day) - 1] }),
+    scales: 'leaves',
+    crowns: 0.8,
+    leaves: 0.35,
+    colors: [[0.24, 0.19, 0.04]],
+    size: 0.5,
+    far: true
+  },
+  {
+    // Olive (FAO; growers' calendars): small cream flowers in clusters late
+    // April–June (northern-equivalent), a pale speckle over the grey crown.
+    kind: 'olive',
+    plant: 'olive',
+    places: [],
+    where: day => poolHas(day, 'olive'),
+    today: day => ({ strength: [0, 0, 0, 0.3, 1, 0.6, 0, 0, 0, 0, 0, 0][seasonMonth(day) - 1] }),
+    scales: 'leaves',
+    crowns: 0.9,
+    leaves: 0.25,
+    colors: [[0.5, 0.48, 0.33]],
+    size: 0.4,
+    far: false
+  },
+  {
+    // Umbrella thorn, *Vachellia tortilis* (SANBI): globose cream-white
+    // scented heads, early to late summer with the rains; conspicuous only
+    // when flowering is heavy.
+    kind: 'umbrella-thorn',
+    plant: 'acacia',
+    places: [],
+    where: day => poolHas(day, 'acacia'),
+    today: day => ({ strength: [0, 0, 0, 0, 0.3, 1, 1, 0.5, 0, 0, 0, 0][seasonMonth(day) - 1] }),
+    scales: 'leaves',
+    crowns: 0.5,
+    leaves: 0.3,
+    colors: [[0.58, 0.55, 0.4]],
+    size: 0.5,
+    far: false
+  },
+  {
+    // Coastal gums' cream stamen tufts: blue gum mainly spring and on and off
+    // all year (Tasforests; local months, est. for the others). California's
+    // groves of blue gum flower in its winter–spring (est.).
+    kind: 'gum-blossom',
+    plant: 'eucalyptus',
+    places: [],
+    where: day => poolHas(day, 'eucalyptus'),
+    today: day =>
+      ({ strength: (day.place.id === 'california' ? [0.6, 0.8, 1, 1, 0.6, 0.2, 0, 0, 0, 0, 0.2, 0.4] : [0.2, 0.2, 0.2, 0.2, 0.2, 0.3, 0.5, 0.7, 1, 1, 0.6, 0.3])[Number(day.date.slice(5, 7)) - 1] }),
+    scales: 'leaves',
+    crowns: 0.35,
+    leaves: 0.2,
+    colors: [[0.6, 0.56, 0.42]],
+    size: 0.6,
+    far: false
+  },
+  {
+    // Red flowering gum, *Corymbia ficifolia* (EUCLID, Australian
+    // Geographic): native to the south coast round Walpole and Denmark,
+    // crimson, scarlet or pink over the whole crown Dec–Apr, peak Jan–Feb
+    // (local).
+    kind: 'red-flowering-gum',
+    plant: 'eucalyptus',
+    places: ['sw-australia'],
+    today: monthly([1, 1, 0.6, 0.3, 0, 0, 0, 0, 0, 0, 0, 0.6]),
+    scales: 'crowns',
+    crowns: 0.06,
+    leaves: 0.6,
+    colors: [
+      [0.45, 0.03, 0.02],
+      [0.5, 0.09, 0.02],
+      [0.5, 0.12, 0.15]
+    ],
+    size: 1,
+    far: false
   }
 ]
 
@@ -288,7 +412,7 @@ function bloomToday(day: PhenologyDay): Blooming[] {
     // One row per kind (the first: the northern gorse), wherever the day is.
     return force.map(kind => blooming(BLOOM.find(r => r.kind === kind)!, 1))
   }
-  return BLOOM.filter(r => r.places.includes(day.place.id)).flatMap(row => {
+  return BLOOM.filter(r => bloomGrows(r, day)).flatMap(row => {
     const t = row.today(day)
     if (force === true) return [blooming(row, 1, t.strength === 1 ? t : {})]
     return t.strength > 0 ? [blooming(row, t.strength, t)] : []
@@ -302,7 +426,7 @@ export function bloomFor(kind: VegetationKind, phen: Phenology): readonly Bloomi
 
 /** `season` as a flowering twin of a crown: `row`'s blossom in colour `color`. */
 export function withBlossom(season: PlantSeason, b: Blooming, color: number): PlantSeason {
-  return { ...season, blossom: { kind: b.row.kind, leaves: b.leaves, color: b.row.colors[color % b.row.colors.length], size: b.row.size, on: b.on } }
+  return { ...season, blossom: { kind: b.row.kind, leaves: b.leaves, color: b.row.colors[color % b.row.colors.length], size: b.row.size, on: b.on, keepsSeason: b.row.keepsSeason === true } }
 }
 
 /** Plants in full summer leaf: what every day looked like before. */
@@ -427,7 +551,7 @@ const RED: RGB = [0.22, 0.035, 0.025]
 const BROWN: RGB = [0.11, 0.065, 0.03]
 
 /** The share of a kind's trees that are deciduous here (SEASONS.md §2.1). */
-export function deciduousShare(kind: VegetationKind, phen: Phenology): number {
+export function deciduousShare(kind: VegetationKind, phen: Pick<Phenology, 'climate' | 'placeId' | 'south'>): number {
   const { climate, placeId, south } = phen
   const cool = climate === 'temperate' || climate === 'boreal' || climate === 'polar'
   if (kind === 'birch') return 1

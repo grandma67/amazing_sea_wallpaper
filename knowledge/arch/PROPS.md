@@ -31,6 +31,19 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   turns a share of a flowering crown's cards into flower cards, outside first, after the draws,
   and thins its leaves to `on` (flamboyant); the crown is evergreen. Far crowns: `canopyTint`
   mixes toward the bush rows' flowers. `props.bloom`: true / a list forces, false is the switch.
+  Tree rows (0.168, knowledge/TREES.md): oak and holm-oak catkins, olive, umbrella thorn, gums, keyed
+  by a `where` rule (climate, and `poolHas`: the place's pool holds the tree). Oak catkins are
+  `keepsSeason`: the crown still leafs out by its deciduous hash, and its catkin cards skip the leaf
+  cull, so they hang on half-leafed oaks.
+- **Fruits** (`fruits.ts` `FRUIT`, 0.168, knowledge/TREES.md): coconuts, Canary dates and sabal
+  fruit on palms, pandanus heads, stone-pine and spruce cones, olives, tropical almonds (only on the
+  deciduous crowns, by `crownKey`), birch catkins, red-mangrove propagules. `fruitFor(plant, day)`
+  gives a crop and stages (colour, size, hang); `withFruit` puts them on the kind's `PlantSeason`.
+  `trees.ts` `fruits()` places them at twig tips by hash (no draws), out to the crown's surface and
+  hanging below it, as eggs, cones, tails, spindles or palm bunches. The palm keeps its nut draws
+  and only recolours them, or swaps them for bunches. Spruce crops follow `mastYear`. `props.fruit`:
+  true / a list forces the peak, false is the switch. Preview one: `mesh.mjs
+  'props/fruitPreview#fruitTree($rng, "spruce-cones", "2025-05-20")'`.
 - **Moss on rock** (`phenology.ts` `mossLook`, 0.146, NATURE_PLAN phase 7): amount by climate (`MOSS`)
   ×1.3 on the wettest coasts, dried toward brown by half the drought (`mossWetness`: wet days,
   cool climates, the Mediterranean summer, a savanna's dry season, arid). Boulder props

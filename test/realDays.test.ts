@@ -8,7 +8,7 @@ import { bloomRegion, desertBloomFor } from '../src/bloomYears'
 import { firefliesFor } from '../src/props/fireflies'
 import { mangroveFor } from '../src/props/mangroves'
 import { Random } from '../src/random'
-import { FAIRY_SEASON, fairyRingsFor, fungiSeason, HEATH_PLACES, heathFor, phenologyFor } from '../src/phenology'
+import { bloomGrows, FAIRY_SEASON, fairyRingsFor, fungiSeason, HEATH_PLACES, heathFor, phenologyFor } from '../src/phenology'
 import { allParams, expectEvery } from './days'
 
 // What goes with what, over every real day: when the first holds, so must the
@@ -44,7 +44,7 @@ const RULES: Rule[] = [
 
   // Bush blossom (phenology.ts BLOOM): a place row in its own months.
   ['bush blossom: only in a row’s places and months', p => phenologyFor(p).bloom.length > 0, p =>
-    phenologyFor(p).bloom.every(b => b.row.places.includes(p.place.id) && b.row.today(p).strength > 0)],
+    phenologyFor(p).bloom.every(b => bloomGrows(b.row, p) && b.row.today(p).strength > 0)],
   // Heath (phenology.ts heathFor): the heath places only.
   ['heath: only on the heath coasts', p => heathFor(p) != null, p => HEATH_PLACES.includes(p.place.id)],
   // Fairy rings (phenology.ts fairyRingsFor): only in climates with a season row.

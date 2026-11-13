@@ -1,0 +1,18 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null, "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "antilles-coconuts", "date": "2025-03-15", "place": "antilles", "props": { "vegetation": ["palm", "grass"] } },
+    { "name": "canaries-dates", "date": "2025-11-15", "place": "canaries", "props": { "vegetation": ["palm", "grass"] } },
+    { "name": "florida-sabal", "date": "2025-10-20", "place": "florida-carolinas", "props": { "vegetation": ["palm", "grass"] } },
+    { "name": "antilles-pandanus", "date": "2025-06-15", "place": "antilles", "props": { "vegetation": ["pandanus", "grass"] } },
+    { "name": "antilles-almond", "date": "2025-06-15", "place": "antilles", "props": { "vegetation": ["broadleaf", "grass"] } },
+    { "name": "med-stonepine", "date": "2025-11-01", "place": "western-med", "composition": "along-beach", "props": { "vegetation": ["stone-pine", "grass"] } },
+    { "name": "aegean-olives-dec", "date": "2025-12-10", "place": "aegean", "props": { "vegetation": ["olive", "grass"] } },
+    { "name": "aegean-olive-flower", "date": "2025-05-20", "place": "aegean", "props": { "vegetation": ["olive", "grass"] } },
+    { "name": "med-holm-oak", "date": "2025-05-05", "place": "western-med", "props": { "vegetation": ["broadleaf", "grass"] } },
+    { "name": "brittany-oak-catkins", "date": "2025-05-05", "place": "brittany", "props": { "vegetation": ["broadleaf", "grass"] } },
+    { "name": "norway-spruce-mast", "note": "forced: a mast year's brown cones", "date": "2025-10-20", "place": "norway-west", "props": { "vegetation": ["conifer", "grass"], "fruit": ["spruce-cones"] } },
+    { "name": "norway-spruce-red", "note": "May's red cones in a middling year (2022: 0.45)", "date": "2022-05-22", "place": "norway-west", "props": { "vegetation": ["conifer", "grass"] } },
+    { "name": "scotland-birch-catkins", "date": "2025-04-25", "place": "scotland", "props": { "vegetation": ["birch", "grass"] } },
+    { "name": "indonesia-propagules", "date": "2025-07-15", "place": "indonesia", "composition": "along-beach", "props": { "mangroves": "rhizophora" } },
+    { "name": "sw-australia-red-gum", "date": "2025-01-20", "place": "sw-australia", "composition": "along-beach", "props": { "vegetation": ["eucalyptus", "grass"], "bloom": ["red-flowering-gum"] } }
+  ] }

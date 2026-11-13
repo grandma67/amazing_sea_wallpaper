@@ -176,6 +176,8 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | snow line by season | `phenology.ts` `SNOW_SEASON` | climate × hemisphere | right (the drawn line under it is the `pickLandform` leftover above) |
 | fallen leaves by season | `phenology.ts` `LITTER_DAYS` | climate × hemisphere | right |
 | blossom (rock rose, gorse, wattle; flamboyant, pōhutukawa) | `phenology.ts` `BLOOM` | place × local calendar month (gorse: a northern and a southern row); flamboyant by the place's dry season (`onDryCoast`) | right |
+| tree flowers (oak and holm-oak catkins, olive, umbrella thorn, gum blossom; red flowering gum) | `phenology.ts` `BLOOM` (`where`) | climate × northern-equivalent month, where the place's plant pool holds the tree (`poolHas`); holm oak: Mediterranean climate minus California, the Cape, Chile, SW Australia; gums and the red flowering gum by place, local months | right |
+| fruits, cones, catkins, propagules | `fruits.ts` `FRUIT` | plant kind × climate (palms: tropical coconut, subtropical dates, Florida's sabal) × northern-equivalent day; spruce crop by calendar year and place (`mastYear`, a hash) | right |
 | bloom years (desert bloom, Namaqualand, Baja) | `bloomYears.ts` `bloomRegion`, `bloomYear`, `desertBloomFor` | place × ocean × latitude; one draw per region and calendar year; local calendar months | right |
 | lomas (fog-hill green) | `phenology.ts` `LOMAS`, `lomasFor` | place (`atacama-peru`, 6–30°S) × local calendar day | right |
 | fireflies and glow-worms | `props/fireflies.ts` `FIREFLY_REGIONS`, `firefliesFor`, `fireflyWeather` | place × local calendar month (peak ×1, else ×0.4); the evening, moon and weather by kind | right |

@@ -33,6 +33,10 @@ Conventions (as SEASONS.md):
 
 ## 1. Flowers and blossom
 
+Every tree kind's own flowers, fruits, cones, catkins and seed (oak and holm-oak catkins, olive,
+umbrella thorn, gums; coconuts, dates, pandanus, stone-pine and spruce cones, birch catkins,
+almonds, mangrove propagules) are in [TREES.md](TREES.md) (2026-11-13).
+
 Flowering changes the look of a coast only where a lot of one plant blooms at once: a whole
 crown, a hillside of shrubs, a heath. Single small flowers are already handled by `FLOWERS`.
 

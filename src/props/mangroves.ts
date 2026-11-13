@@ -6,6 +6,8 @@ import type { Random } from '../random'
 import { forced, forcedKind, type MangroveKind } from '../sceneSpec'
 import { hasBeach, shoreToWorld } from '../terrain'
 import type { PropContext } from './context'
+import { fruitFor, withFruit } from '../fruits'
+import { phenologyFor } from '../phenology'
 import { avicennia, rhizophora } from './trees'
 
 // Mangroves: salt-tolerant trees of the tropical intertidal, rooted in mud
@@ -117,7 +119,10 @@ export function createMangroves(ctx: PropContext): InstancedMesh[] {
   }
 
   const meshes: InstancedMesh[] = []
-  const build = red ? rhizophora : avicennia
+  // Red mangroves hang their propagules (fruits.ts); no draws, so the stand
+  // is the same without them.
+  const season = red ? withFruit(undefined, fruitFor('rhizophora', params), phenologyFor(params)) : undefined
+  const build = red ? (r: Random, f: typeof params.biome.foliage) => rhizophora(r, f, season) : avicennia
   for (let v = 0; v < VARIANTS; v++) {
     if (placed[v].length === 0) continue
     const mesh = new InstancedMesh(build(rng, params.biome.foliage), material, placed[v].length)

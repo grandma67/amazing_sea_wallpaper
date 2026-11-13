@@ -1,6 +1,7 @@
-import { Vector3, type BufferGeometry } from 'three'
+import { Quaternion, Vector3, type BufferGeometry } from 'three'
 
 import type { RGB } from '../biome'
+import { fruitStage, type Fruiting } from '../fruits'
 import type { PlantSeason } from '../phenology'
 import type { Random } from '../random'
 import { MeshBuilder } from './builder'
@@ -314,10 +315,11 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
   const normal = new Vector3()
   // Deciduous or not, and how early it turns, per tree (hashed from its
   // shape, not drawn).
-  const key = hash(tips[0].p.x * 13.1 + tips.length, tips[0].p.z * 7.7 + tips[0].p.y)
-  // A crown in flower (blossomFor) is one of the evergreen shrubs that bloom.
+  const key = crownKey(tips)
+  // A crown in flower (blossomFor) is one of the evergreen shrubs that bloom,
+  // unless the row flowers on a deciduous tree with its new leaves (oak).
   const blossom = f.season?.blossom
-  const season = f.season != null && blossom == null && key < f.season.deciduous ? f.season : undefined
+  const season = f.season != null && (blossom == null || blossom.keepsSeason) && key < f.season.deciduous ? f.season : undefined
   const early = (hash(key * 91.3, 3.3) - 0.5) * 0.3
   // For what falls from it (props/leafLitter.ts).
   b.userData.deciduous = season != null
@@ -358,9 +360,14 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
       const height = (base.y - bottom) / (top - bottom + 1e-3)
       const shade = (0.35 + 0.65 * depth ** 1.5) * (0.75 + 0.45 * height) * rng.range(0.85, 1.15)
       let color = scale(f.colors[rng.int(0, f.colors.length - 1)], shade)
+      // A catkin on a deciduous crown (keepsSeason) hangs whether or not the
+      // leaves beside it are out yet.
+      const catkin =
+        blossom?.keepsSeason === true &&
+        hash(base.z * 19.3 + k * 0.53, base.x * 27.1 - base.y * 4.3) * 0.7 + (1 - (0.5 * height + 0.5 * depth)) * 0.3 < blossom.leaves
       // The season (after every draw, so the tree keeps its shape): leaves
       // fall and turn by hash, the top and outside of the crown first.
-      if (season != null) {
+      if (season != null && !catkin) {
         const exposed = 0.5 * height + 0.5 * depth
         if (hash(base.x * 31.7 + k * 0.37, base.z * 17.3 + base.y * 5.1) * 0.8 + (1 - exposed) * 0.2 >= season.on + early * 0.5) continue
         if (hash(base.y * 23.9 + k, base.x * 11.3 - base.z * 3.7) * 0.7 + (1 - exposed) * 0.3 < season.turned + early) {
@@ -386,6 +393,96 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
       const tipColor = scale(color, 1.12)
 
       blade(b, f.shape, base, dir, normal, side, length * size, width * size, color, tipColor)
+    }
+  }
+}
+
+/** A crown's own hash, from its shape (what leaves() keys deciduous and
+ * early-turning crowns by, and fruits() a mixed kind's fruiting ones). */
+function crownKey(tips: readonly Tip[]): number {
+  return hash(tips[0].p.x * 13.1 + tips.length, tips[0].p.z * 7.7 + tips[0].p.y)
+}
+
+/**
+ * Fruits, cones and catkins at the twig tips (fruits.ts): how many, where and
+ * at which stage by hash, after every draw, so the tree keeps its shape.
+ * `below` hangs them that far under the tip (a pandanus head under its tuft),
+ * `spread` scatters them round it.
+ */
+function fruits(b: MeshBuilder, tips: readonly Tip[], season: PlantSeason | undefined, place: { below?: number; spread?: number; out?: number } = {}): void {
+  const list = season?.fruit
+  if (list == null || list.length === 0 || tips.length === 0) return
+  const key = crownKey(tips)
+  // Out to the crown's surface, where fruit hangs past the leaves.
+  const center = new Vector3()
+  for (const tip of tips) center.add(tip.p)
+  center.divideScalar(tips.length)
+  const top = Math.max(...tips.map(t => t.p.y))
+  const bottom = Math.min(...tips.map(t => t.p.y))
+  const spread = place.spread ?? 0.15
+  for (const f of list) {
+    if (key >= f.crowns) continue
+    const n = f.row.perTip * f.crop
+    const salt = f.row.length * 101.3
+    for (const tip of tips) {
+      if (f.row.top > 0 && (tip.p.y - bottom) / (top - bottom + 1e-3) < f.row.top) continue
+      for (let k = 0; k < Math.ceil(n); k++) {
+        const h = hash(tip.p.x * 7.31 + k * 1.73 + salt, tip.p.z * 5.17 + tip.p.y * 2.93)
+        if (h >= n - k) continue
+        const st = fruitStage(f, hash(h * 13.7 + k, tip.p.y * 3.31 + salt))
+        const h2 = hash(h * 3.1, tip.p.x + k)
+        const h3 = hash(tip.p.z + k * 0.7, h * 5.9)
+        const out = tip.p.clone().sub(center).setY(0)
+        if (out.lengthSq() > 1e-6) out.normalize()
+        const at = tip.p
+          .clone()
+          .addScaledVector(out, place.out ?? 0)
+          .add(new Vector3((h2 - 0.5) * 2 * spread, -(place.below ?? 0) - h3 * spread * 0.5, (h3 - 0.5) * 2 * spread))
+        const length = f.row.length * st.size * (0.85 + 0.3 * h3)
+        fruitShape(b, f, at, length, st.color, st.hang, h2 * Math.PI * 2)
+      }
+    }
+  }
+}
+
+/** One fruit from `at` (where it hangs from): its axis leans from up
+ * (`hang` 0) to straight down (1), turned `twist` round the vertical. */
+function fruitShape(b: MeshBuilder, f: Fruiting, at: Vector3, length: number, color: RGB, hang: number, twist: number): void {
+  const lean = Math.PI * hang * 0.85 + 0.15
+  const axis = new Vector3(Math.sin(lean) * Math.cos(twist), Math.cos(lean), Math.sin(lean) * Math.sin(twist))
+  if (hang >= 1) axis.set(0.12 * Math.cos(twist), -1, 0.12 * Math.sin(twist)).normalize()
+  const width = length * f.row.width
+  const lit = (n: Vector3): RGB => scale(color, 0.8 + 0.35 * Math.max(0, n.y))
+  switch (f.row.shape) {
+    case 'ball':
+    case 'cone': {
+      const orient = new Quaternion().setFromUnitVectors(UP, axis)
+      const center = at.clone().addScaledVector(axis, length * 0.5)
+      b.blob(center, new Vector3(width / 2, length / 2, width / 2), lit, () => 1, length > 0.1 ? 2 : 1, orient)
+      return
+    }
+    case 'cluster': {
+      // A palm's bunch: a stalk out of the crown, then the hanging mass.
+      const out = new Vector3(Math.cos(twist), 0, Math.sin(twist))
+      const knee = at.clone().addScaledVector(out, length * 0.35).add(new Vector3(0, -length * 0.1, 0))
+      b.tube([at, knee], () => 0.02, () => scale(color, 0.7), 3)
+      b.blob(knee.clone().add(new Vector3(0, -length * 0.45, 0)), new Vector3(width / 2, length / 2, width / 2), lit, n => 1 + 0.12 * Math.sin(n.x * 9 + n.z * 7), 2)
+      return
+    }
+    case 'catkin':
+    case 'propagule': {
+      // Hangs and sways a little; a propagule is club-shaped, its cap brown.
+      const sway = new Vector3(Math.cos(twist), 0, Math.sin(twist)).multiplyScalar(length * 0.12)
+      const path = [at, at.clone().addScaledVector(axis, length * 0.5).add(sway), at.clone().addScaledVector(axis, length).addScaledVector(sway, 1.5)]
+      const r = width / 2
+      const propagule = f.row.shape === 'propagule'
+      b.tube(
+        path,
+        t => (propagule ? r * (0.55 + 0.6 * Math.sin(Math.PI * Math.min(1, t * 0.9 + 0.1))) : r * (1 - 0.4 * t)),
+        t => (propagule && t < 0.1 ? scale(color, 0.6) : scale(color, 0.85 + 0.25 * t)),
+        3
+      )
+      return
     }
   }
 }
@@ -523,11 +620,12 @@ export function broadleaf(rng: Random, foliage: RGB, season?: PlantSeason): Buff
     colors: palette(rng, foliage, [0.05, 0.12, 0.03], 0.4),
     season
   })
+  fruits(b, tips, season, { out: 0.35, below: 0.2 })
   return b.build()
 }
 
 /** Olive: short, twisted, often split trunk and a silvery-grey crown. */
-export function olive(rng: Random, foliage: RGB): BufferGeometry {
+export function olive(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const silver: RGB = [0.12, 0.14, 0.09]
   const stems = rng.chance(0.5) ? 2 : 1
@@ -561,8 +659,10 @@ export function olive(rng: Random, foliage: RGB): BufferGeometry {
       width: 0.3,
       facing: 0.4,
       flatten: 0.1,
-      colors: palette(rng, mix(foliage, silver, 0.6), [0.16, 0.17, 0.13], 0.5)
+      colors: palette(rng, mix(foliage, silver, 0.6), [0.16, 0.17, 0.13], 0.5),
+      season
     })
+    fruits(b, tips, season, { spread: 0.25, out: 0.25, below: 0.1 })
   }
   return b.build()
 }
@@ -601,11 +701,12 @@ export function birch(rng: Random, foliage: RGB, season?: PlantSeason): BufferGe
     colors: palette(rng, scale(foliage, 1.4), [0.1, 0.16, 0.03], 0.5),
     season
   })
+  fruits(b, tips, season, { spread: 0.2, out: 0.25, below: 0.15 })
   return b.build()
 }
 
 /** Umbrella thorn acacia: forks low, limbs spread up to a flat-topped crown. */
-export function acacia(rng: Random, foliage: RGB): BufferGeometry {
+export function acacia(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const tips = growTree(
     b,
@@ -636,13 +737,14 @@ export function acacia(rng: Random, foliage: RGB): BufferGeometry {
     width: 0.6,
     facing: 0.85,
     flatten: 0.8,
-    colors: palette(rng, mix(foliage, [0.09, 0.11, 0.04], 0.5), [0.14, 0.13, 0.05], 0.4)
+    colors: palette(rng, mix(foliage, [0.09, 0.11, 0.04], 0.5), [0.14, 0.13, 0.05], 0.4),
+    season
   })
   return b.build()
 }
 
 /** Stone pine: a forked trunk holding an umbrella of needle tufts. */
-export function stonePine(rng: Random, foliage: RGB): BufferGeometry {
+export function stonePine(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const tips = growTree(
     b,
@@ -675,6 +777,7 @@ export function stonePine(rng: Random, foliage: RGB): BufferGeometry {
     flatten: 0.7,
     colors: palette(rng, scale(foliage, 0.9), [0.05, 0.08, 0.04], 0.3)
   })
+  fruits(b, tips, season, { spread: 0.3, out: 0.35 })
   return b.build()
 }
 
@@ -839,7 +942,7 @@ export function cypress(rng: Random, foliage: RGB): BufferGeometry {
  * Spruce: a straight trunk with whorls of drooping branches whose tips turn
  * up again, hung with flat, serrated sprays of needles.
  */
-export function conifer(rng: Random, foliage: RGB): BufferGeometry {
+export function conifer(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const height = rng.range(10, 18)
   const bark = platedBark(rng.int(0, 1e6))
@@ -857,6 +960,8 @@ export function conifer(rng: Random, foliage: RGB): BufferGeometry {
   )
   b.mossy = 0
   const whorls = rng.int(18, 24)
+  // Branch ends, for the cones (spruce cones hang from the outer shoots).
+  const ends: Tip[] = []
   for (let w = 0; w < whorls; w++) {
     const t = (w + rng.range(-0.3, 0.3)) / whorls
     const y = height * (0.15 + 0.83 * t)
@@ -898,10 +1003,12 @@ export function conifer(rng: Random, foliage: RGB): BufferGeometry {
         }
       }
       spray(b, at(1), out.clone().addScaledVector(UP, 0.2).normalize(), 0.5, scale(color, 1.1))
+      ends.push({ p: at(0.95), d: out } as Tip)
     }
   }
   // The leader at the very top.
   spray(b, new Vector3(0, height * 0.9, 0), UP, height * 0.1, scale(needles, 1.1))
+  fruits(b, ends, season, { spread: 0.12, below: 0.08 })
   return b.build()
 }
 
@@ -909,7 +1016,7 @@ export function conifer(rng: Random, foliage: RGB): BufferGeometry {
  * Screw pine (pandanus): a leaning trunk on stilt roots, forking into a few
  * arms that each end in a spiral tuft of long strap leaves.
  */
-export function pandanus(rng: Random, foliage: RGB): BufferGeometry {
+export function pandanus(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const bark = furrowed([0.3, 0.27, 0.21], rng.int(0, 1e6), 0.4)
   const lean = new Vector3(rng.normal(0, 0.3), 1, rng.normal(0, 0.3))
@@ -987,6 +1094,8 @@ export function pandanus(rng: Random, foliage: RGB): BufferGeometry {
       }
     }
   }
+  // The heads hang on a stalk under each tuft.
+  fruits(b, tips, season, { below: 0.25, spread: 0.08 })
   return b.build()
 }
 
@@ -994,7 +1103,7 @@ export function pandanus(rng: Random, foliage: RGB): BufferGeometry {
  * leave it 1–2.5 m above the mud and dive back into it all round, under a
  * dense, rounded crown of dark, glossy, leathery leaves. Base (the mud) at
  * y = 0; the roots end a little below it. */
-export function rhizophora(rng: Random, foliage: RGB): BufferGeometry {
+export function rhizophora(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeometry {
   const b = new MeshBuilder()
   const height = rng.range(5, 9)
   const rootTop = rng.range(1.2, 2.4)
@@ -1052,6 +1161,7 @@ export function rhizophora(rng: Random, foliage: RGB): BufferGeometry {
     flatten: 0.25,
     colors: palette(rng, scale(foliage, 0.8), [0.02, 0.1, 0.04], 0.3)
   })
+  fruits(b, tips, season, { spread: 0.3, out: 0.4, below: 0.3 })
   return b.build()
 }
 

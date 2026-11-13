@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { BufferGeometry, InstancedMesh } from 'three'
 
 import type { RGB } from '../src/biome'
-import { BLOOM, bloomFor, canopyTint, phenologyFor, plantSeason, withBlossom, type PhenologyDay } from '../src/phenology'
+import { BLOOM, bloomFor, bloomGrows, canopyTint, phenologyFor, plantSeason, withBlossom, type PhenologyDay } from '../src/phenology'
 import { PLACES } from '../src/places'
 import { createVegetation, crownBlossom } from '../src/props/vegetation'
 import { broadleaf, bush } from '../src/props/trees'
@@ -39,7 +39,8 @@ describe('the blossom table', () => {
   it('has real places, shares in 0..1 and colours, and today’s values in 0..1 every place × 10 days', () => {
     const ids = new Set(PLACES.map(p => p.id))
     for (const row of BLOOM) {
-      expectEvery(row.places, id => ids.has(id))
+      if (row.places.length > 0) expectEvery(row.places, id => ids.has(id))
+      else expect(row.where, row.kind).toBeDefined()
       expect(row.crowns).toBeGreaterThan(0)
       expect(row.crowns * row.leaves).toBeLessThanOrEqual(1)
       expect(row.colors.length).toBeGreaterThan(0)
@@ -48,7 +49,7 @@ describe('the blossom table', () => {
     for (const place of PLACES) {
       for (const date of MONTH_STARTS) {
         for (const b of phenologyFor(day(date, place.id)).bloom) {
-          expect(b.row.places, `${place.id}`).toContain(place.id)
+          expect(bloomGrows(b.row, day(date, place.id)), `${b.row.kind} ${place.id}`).toBe(true)
           for (const v of [b.strength, b.crowns, b.leaves, b.on]) expect(v, `${b.row.kind} ${place.id} ${date}`).toBeGreaterThanOrEqual(0)
           for (const v of [b.strength, b.crowns, b.leaves, b.on]) expect(v, `${b.row.kind} ${place.id} ${date}`).toBeLessThanOrEqual(1)
           expect(b.strength).toBeGreaterThan(0)
@@ -60,7 +61,7 @@ describe('the blossom table', () => {
   it('flowers each bush row only in its places and months (no sampling)', () => {
     for (const place of PLACES) {
       MONTHS.forEach(date => {
-        const want = BLOOM.filter(r => r.places.includes(place.id) && r.today(day(date, place.id)).strength > 0).map(r => r.kind)
+        const want = BLOOM.filter(r => bloomGrows(r, day(date, place.id)) && r.today(day(date, place.id)).strength > 0).map(r => r.kind)
         expect(kindsOn(day(date, place.id)), `${place.id} ${date}`).toEqual(want)
       })
     }
@@ -71,17 +72,20 @@ describe('the blossom table', () => {
     expect(bloomOf(day('2025-09-15', 'cornwall-wales'), 'gorse')?.strength).toBe(0.1)
     expect(bloomOf(day('2025-09-15', 'new-zealand-north'), 'gorse')?.strength).toBe(1)
     expect(bloomOf(day('2025-04-15', 'new-zealand-north'), 'gorse')?.strength).toBe(0.1)
-    expect(kindsOn(day('2025-06-01', 'western-med'))).toEqual(['rock-rose'])
+    // June: rock rose, the holm oaks' last catkins, olives in flower.
+    expect(kindsOn(day('2025-06-01', 'western-med'))).toEqual(['rock-rose', 'holm-oak', 'olive'])
     expect(kindsOn(day('2025-09-01', 'western-med'))).toEqual([])
-    expect(kindsOn(day('2025-09-01', 'east-australia'))).toEqual(['wattle'])
-    // Tasmania has both.
-    expect(kindsOn(day('2025-09-01', 'tasmania'))).toEqual(['gorse', 'wattle'])
+    // September: wattle and the gums' spring flowering.
+    expect(kindsOn(day('2025-09-01', 'east-australia'))).toEqual(['wattle', 'gum-blossom'])
+    // Tasmania has gorse too.
+    expect(kindsOn(day('2025-09-01', 'tasmania'))).toEqual(['gorse', 'wattle', 'gum-blossom'])
   })
 
   it('is forced by props.bloom and switched off by it, and by phenology: false', () => {
-    expect(kindsOn(day('2025-12-15', 'western-med', { bloom: true }))).toEqual(['rock-rose'])
+    expect(kindsOn(day('2025-12-15', 'western-med', { bloom: true }))).toEqual(['rock-rose', 'holm-oak', 'olive'])
     expect(phenologyFor(day('2025-12-15', 'western-med', { bloom: true })).bloom[0].strength).toBe(1)
-    expect(kindsOn(day('2025-12-15', 'maine', { bloom: true }))).toEqual([])
+    // Maine grows none of the bushes, only the oaks' catkins.
+    expect(kindsOn(day('2025-12-15', 'maine', { bloom: true }))).toEqual(['oak-catkins'])
     expect(kindsOn(day('2025-12-15', 'maine', { bloom: ['gorse', 'flamboyant'] }))).toEqual(['gorse', 'flamboyant'])
     expect(kindsOn(day('2025-06-01', 'western-med', { bloom: false }))).toEqual([])
     expect(kindsOn(day('2025-06-01', 'western-med', { phenology: false }))).toEqual([])

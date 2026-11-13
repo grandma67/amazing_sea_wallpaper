@@ -718,6 +718,17 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **Fruit at a twig tip is inside the leaves (0.168):** `leaves()` scatters cards round each tip,
+  so cones, propagules and almonds placed at `tip.p` were hidden in the cluster. Real fruit hangs
+  past the leaves: `fruits()` moves it out to the crown's surface (`out`) and down (`below`).
+- **Check where a kind stands on real days before choosing what to draw on it (0.168):** stone
+  pines grow from the back of the dunes inland, so on real days the nearest is 350 m or more
+  (`params.mjs --find vegetation`), and their 12 cm cones are below a pixel. Framed heroes come
+  close but the frame cuts their crowns. A size table (TREES.md §0) next to `--find` says which
+  fruit can be checked in a render at all.
+- **A shape that's right in size can still read as something else (0.168):** a Canary date bunch
+  drawn as one lumpy egg looked like a giant orange pine cone. A bunch is a broom of strands, so it
+  is drawn as one.
 - **Close-ups find what full views hide (0.164–0.165):** floating crab legs, a sea lion's flipper
   hanging in the air, open snouts, an iguana crest above the back and a monkey's floating head all
   passed the mesh tests (size, budget, finite) and every scene render. `test/meshLint.test.ts` now

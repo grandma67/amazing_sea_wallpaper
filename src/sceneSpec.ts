@@ -5,6 +5,7 @@ import type { EclipseType } from './celestial'
 import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './biome'
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
 import type { OceanName } from './oceans'
+import { FRUIT_KINDS, type FruitKind } from './fruits'
 import { BLOOM_KINDS, HEATH_STAGES, type BloomKind, type HeathStage } from './phenology'
 import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
 import { FIREFLY_KINDS, type FireflyKind } from './props/fireflyKinds'
@@ -86,6 +87,11 @@ export interface PropOverrides {
    * full flower (none where none grows); a list, those rows in full flower
    * wherever the day is (to test a look); false: none. */
   bloom?: boolean | BloomKind[]
+  /** Fruits, cones, catkins and propagules on the trees (fruits.ts FRUIT):
+   * true, every row that grows here at its peak stage and full crop; a list,
+   * those rows at their peak wherever the day is (to test a look); false:
+   * none (the palms keep their old nuts). */
+  fruit?: boolean | FruitKind[]
   /** Heath on the ground cover (phenology.ts heathFor): true, heath in
    * today's colour wherever the day is (near on a rocky shore, far on slopes
    * and islands); a stage, in that colour; false: none. */
@@ -420,6 +426,7 @@ const SPEC = object({
     phenology: boolean,
     leafLitter: boolean,
     bloom: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf(...BLOOM_KINDS))(value, path)),
+    fruit: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf(...FRUIT_KINDS))(value, path)),
     eucalyptus: boolean,
     moss: boolean,
     skins: boolean,
