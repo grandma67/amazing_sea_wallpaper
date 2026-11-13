@@ -201,12 +201,11 @@ export function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: numbe
     // the body (eared seals sitting up).
     const tail = at(1)
     if (look.eared && pose === 'sitting') {
-      // Turned forward under the hips and lying flat on the ground: a
-      // webbed fan from the hip, its toes forward and out (it was one
-      // triangle hinged at the tail tip, which hung in the air).
-      const hip = at(0.82)
-      const hipR = g * radius(0.82)
-      const root = hip.clone().add(new Vector3(0, -hipR * 0.45, side * hipR * 0.8))
+      // From the end of the body (where an eared seal's pelvis is), turned
+      // forward and lying flat on the ground: a webbed fan, its toes
+      // forward and out (it was one triangle hinged at the tail tip that
+      // hung in the air, then a fan from the hip, too far forward).
+      const root = tail.clone().add(new Vector3(0.01 * L, -tail.y * 0.6, side * g * 0.12))
       const toe = (fwd: number, out: number): Vector3 => new Vector3(root.x + fwd * L, 0.008 * L, side * (Math.abs(root.z) + out * L))
       fin([root, toe(0.06, 0.02), toe(0.17, 0.05), toe(0.2, 0.09), toe(0.15, 0.13), toe(0.04, 0.07)], back)
     } else {

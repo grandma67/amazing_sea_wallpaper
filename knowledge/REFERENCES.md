@@ -74,6 +74,12 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
 
 ## Shore and animals
 
+- Cetacean eyes (0.166): a rough-toothed dolphin's eyeball ~26.5 × 24.5 mm, flattened
+  (link.springer.com/article/10.1134/S1062359020060102); dolphin eyes on the sides of the head near
+  the mouth's corners (seaworld.org bottlenose characteristics); an orca's about a cow's (seaworld.org
+  killer whale characteristics), its white patch above and behind the eye (whaleopedia.org); a
+  humpback's "grapefruit" or "softball" sized (uncw.edu 2025, smithsonianmag.com 2025). From search
+  summaries; no measured humpback diameter found.
 - Whiskers (0.164): true seals' vibrissae are flattened and beaded (wavy), eared seals' smooth;
   15–350 a side by species (review, pmc.ncbi.nlm.nih.gov/articles/PMC3317988; oceanbites.org
   "What's up with whiskers"). Hippos have bristle-like muzzle whiskers (Current Biology 2021,

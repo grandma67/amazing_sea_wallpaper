@@ -55,8 +55,12 @@ const LOOKS: Record<Species, Look> = {
     belly: [0.7, 0.7, 0.68],
     fin: [0.012, 0.012, 0.014],
     marking: (t, up, side) => {
-      // White eye patch behind the eye, grey saddle behind the dorsal fin.
-      if (t > 0.13 && t < 0.25 && up > 0.05 && up < 0.6 && Math.abs(side) > 0.6) return [0.7, 0.7, 0.68]
+      // White eye patch above and behind the eye (the eye sits in the black
+      // just below its front end), grey saddle behind the dorsal fin.
+      if (t > 0.13 && t < 0.24 && up > 0.5 && up < 0.82 && Math.abs(side) > 0.45) return [0.7, 0.7, 0.68]
+      // On the head the black reaches down to the mouth line (only the lower
+      // jaw and throat are white), so the eye sits in black.
+      if (t < 0.3 && up > 0.3) return [0.012, 0.012, 0.014]
       if (t > 0.48 && t < 0.62 && up > 0.75) return [0.2, 0.2, 0.21]
       return null
     }
@@ -223,7 +227,9 @@ function dolphin(rng: Random, arch: number, skin = false): BufferGeometry {
   a.flukes(length * 0.24, length * 0.12)
   // A small dark eye just behind the gape, the "smile" curving up to it,
   // one crescent blowhole over the eyes.
-  a.face({ eyeT: 0.14, eyeAngle: 1.75, eyeR: 0.0065 * length, iris: [0.03, 0.03, 0.035], lid: [0.05, 0.055, 0.06], blowT: 0.17, blowR: 0.014 * length, mouthT: 0.12, mouthAngle: 2.0, smile: 0.3, mouthR: 0.0012 * length })
+  // Eye ~2.7 cm across (a dolphin's eyeball is ~2.5 cm: rough-toothed
+  // dolphin, Springer 2020), just above and behind the gape's corner.
+  a.face({ eyeT: 0.14, eyeAngle: 1.75, eyeR: 0.0055 * length, iris: [0.03, 0.03, 0.035], lid: [0.05, 0.055, 0.06], blowT: 0.17, blowR: 0.014 * length, mouthT: 0.12, mouthAngle: 2.0, smile: 0.3, mouthR: 0.0012 * length })
   return a.build()
 }
 
@@ -255,7 +261,8 @@ function orca(rng: Random, male: boolean, skin = false): BufferGeometry {
   a.flukes(length * 0.26, length * 0.1)
   // The eye low in the black just in front of the white eye patch, the
   // mouth line, one blowhole.
-  a.face({ eyeT: 0.13, eyeAngle: 1.75, eyeR: 0.0045 * length, iris: [0.02, 0.02, 0.02], lid: [0.02, 0.02, 0.02], blowT: 0.18, blowR: 0.012 * length, mouthT: 0.11, mouthAngle: 2.15, smile: 0.15, mouthR: 0.001 * length })
+  // Eye about a cow's (SeaWorld), ~7.5 cm on a 7 m orca.
+  a.face({ eyeT: 0.125, eyeAngle: 1.72, eyeR: 0.0055 * length, iris: [0.02, 0.02, 0.02], lid: [0.02, 0.02, 0.02], blowT: 0.18, blowR: 0.012 * length, mouthT: 0.11, mouthAngle: 2.15, smile: 0.15, mouthR: 0.001 * length })
   return a.build()
 }
 
@@ -295,7 +302,8 @@ function humpback(rng: Random, skin = false): BufferGeometry {
   // A small eye low behind the corner of the long, down-curving mouth;
   // paired blowholes on top of the head. (Each head knob has one hair, a
   // few cm long: too small to draw.)
-  a.face({ eyeT: 0.27, eyeAngle: 2.0, eyeR: 0.003 * length, iris: [0.03, 0.025, 0.02], lid: [0.03, 0.03, 0.035], blowT: 0.18, blowR: 0.006 * length, blowholes: 2, mouthT: 0.26, mouthAngle: 1.85, smile: -0.25, mouthR: 0.0006 * length })
+  // Eye "grapefruit" to "softball" sized, ~11 cm (UNCW 2025).
+  a.face({ eyeT: 0.27, eyeAngle: 2.0, eyeR: 0.0041 * length, iris: [0.03, 0.025, 0.02], lid: [0.03, 0.03, 0.035], blowT: 0.18, blowR: 0.006 * length, blowholes: 2, mouthT: 0.26, mouthAngle: 1.85, smile: -0.25, mouthR: 0.0006 * length })
   return a.build()
 }
 
