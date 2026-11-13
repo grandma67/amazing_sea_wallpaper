@@ -26,7 +26,8 @@ interface Recipe {
   top: number[]
   bottom: number[]
   lengthM: number
-  lengthPx: number
+  lengthPx?: number
+  mPerPx?: number
   tileV?: boolean
   mirror?: boolean
 }
@@ -40,7 +41,7 @@ export const SKIN_IDS = RECIPES.map(r => r.id) as SkinId[]
 export function skinTile(id: SkinId): { tile: [number, number]; length: number } {
   const r = RECIPES.find(s => s.id === id)
   if (r == null) throw new Error(`no skin ${id}`)
-  const m = r.lengthM / r.lengthPx
+  const m = r.mPerPx ?? r.lengthM / (r.lengthPx ?? NaN)
   const height = (r.bottom[0] - r.top[0] + r.bottom[1] - r.top[1]) / 2
   return { tile: [(r.x[1] - r.x[0]) * m, height * m * (r.mirror === true ? 2 : 1)], length: r.lengthM }
 }

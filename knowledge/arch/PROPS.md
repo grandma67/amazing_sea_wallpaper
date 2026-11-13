@@ -106,11 +106,15 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   (both sides fold onto one v: no seam), both in tiles scaled by the animal's length over the
   photo's. `MeshBuilder.tube`/`blob` take a `skin` callback (`skinCoords`, `skinBlob` wrap or
   top); `skinMaterial` patches a material once (`texture(skinAtlas, …).r * 2` times the vertex
-  colour, by the weight). The weight comes first because a geometry without the attribute reads
+  colour, by the weight; a material is patched once, so all of `wildlife.ts` shares its two). The weight comes first because a geometry without the attribute reads
   (0, 0, 0, 1) under a patched shared material. Mipmaps average to 1, so far animals keep their
   colour. `loadSkins()` in `scene.ts` before the props (browser only; in Node builders keep
-  their own colours). `props.skins: false`: none (identical to 0.156). Harbour seals (their
-  noise spots replaced) and crocodiles (body, legs, jaws; not the inside of the mouth).
+  their own colours). `props.skins: false`: none (identical to 0.156). Skins so far: harbour seals,
+  elephant seals, sea lions and fur seals (one eared-seal coat), their swimming heads (noise spots
+  replaced); crocodiles (body, legs, jaws; not the inside of the mouth); the four lizards (body
+  and legs; the monitor's spots, the iguana's tail bands and salt crusts stay in the vertex
+  colours). Close-up photos give the scale as `mPerPx` from a known head size; `highlights`
+  caps wet-skin glints before the pattern is made.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

@@ -17,6 +17,7 @@ line (near the dorsal midline and low on the flank). For each:
      sqrt(wA^2 + wB^2) keeps the contrast). Down v: `tileV` the same way, or
      `mirror` (the patch, then itself flipped: a patch from the back to the
      flank only, continued symmetrically).
+  Before 3, `highlights` (a quantile, default 0.98) caps glints on wet skin.
   5. Mean 1, clipped to 0.15..1.95, stored as value / 2 in an 8-bit grey
      layer of SIZE x SIZE; layers stacked top to bottom in recipe order.
 
@@ -73,7 +74,10 @@ def bake(r):
     s = np.stack([map_coordinates(lin[..., c], [y, x], order=1) for c in range(3)], -1)
     s = s / gaussian_filter1d(s.mean(1, keepdims=True), h * 0.08, axis=0, mode='nearest')
     s = s / gaussian_filter1d(s.mean(0, keepdims=True), w * 0.5, axis=1, mode='wrap')
-    g = np.log(np.maximum(s @ LUMA, 1e-3))
+    g = s @ LUMA
+    # Specular glints on wet skin are light, not skin: cap them.
+    g = np.minimum(g, np.percentile(g, 100 * r.get('highlights', 0.98)))
+    g = np.log(np.maximum(g, 1e-3))
     g = tile(g, 1)
     if r.get('tileV'):
         g = tile(g, 0)

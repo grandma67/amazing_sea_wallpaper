@@ -396,7 +396,7 @@ const LIZARD: Record<LizardKind, { length: number; tail: number; girth: number; 
 
 /** A lizard sprawled on the ground: body and tail along a gently curving
  * spine, splayed legs, a crest of spines on iguanas. */
-export function lizardGeometry(rng: Random, kind: LizardKind): BufferGeometry {
+export function lizardGeometry(rng: Random, kind: LizardKind, skin = false): BufferGeometry {
   const b = new MeshBuilder()
   const spec = LIZARD[kind]
   const length = spec.length * rng.range(0.8, 1.15)
@@ -425,14 +425,17 @@ export function lizardGeometry(rng: Random, kind: LizardKind): BufferGeometry {
   const colorAt = (t: number, angle: number): RGB => {
     const top = Math.cos(angle) < 0 ? 1 : 0.75
     const spot = noise3(t * 30, Math.cos(angle) * 2, Math.sin(angle) * 2, seed)
-    let c = shade(spec.color, top * (0.8 + 0.4 * spot))
+    // With a photo skin (props/skins.ts) its scales replace the noise mottle;
+    // the monitor's spots, the iguana's tail bands and salt crusts stay.
+    let c = shade(spec.color, top * (skin ? 1 : 0.8 + 0.4 * spot))
     if (kind === 'monitor' && t > 0.13 && noise3(t * length * 18, Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, seed + 3) > 0.7) c = [0.4, 0.36, 0.2]
     if (kind === 'green-iguana' && t > 1 - spec.tail && Math.sin(t * 60) > 0.6) c = shade(spec.color, 0.45)
     // Salt crusts on marine iguanas' heads.
     if (kind === 'marine-iguana' && t < 0.12 && spot > 0.5) c = [0.55, 0.55, 0.52]
     return c
   }
-  b.tube(spine, (t, angle) => girth * profile(t) * (1 - 0.3 * Math.cos(angle) ** 2), colorAt, 12)
+  const scales = skin ? skinCoords(kind, length) : undefined
+  b.tube(spine, (t, angle) => girth * profile(t) * (1 - 0.3 * Math.cos(angle) ** 2), colorAt, 12, scales)
   // Legs sprawl: upper arm or thigh out sideways to an elbow or knee at
   // back height, the lower leg down to a flat hand or foot with five long,
   // clawed toes fanned out. Hands point forward and out; hind feet out and
@@ -448,7 +451,8 @@ export function lizardGeometry(rng: Random, kind: LizardKind): BufferGeometry {
         [new Vector3(p.x, p.y * 0.85, p.z + side * girth * 0.6), new Vector3(p.x - fwd * girth * 0.25, p.y * 0.8, p.z + side * girth * 1.7), wrist],
         t => girth * (0.3 - 0.13 * t),
         () => limb,
-        5
+        5,
+        scales
       )
       toes.forEach((reach, i) => {
         // Front toes fan from straight ahead to sideways, hind ones from
@@ -747,6 +751,10 @@ export function createWildlife(ctx: PropContext): Mesh[] {
   const sunYaw = Math.atan2(-sun.z, sun.x)
 
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0, side: DoubleSide })
+  // Photo skins (props/skins.ts): the materials take them once; meshes
+  // without a skin attribute are drawn as before.
+  const skins = skinsOn(params.overrides)
+  if (skins) skinMaterial(material)
   const sandMaterial = new MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 })
   const meshes: Mesh[] = []
 
@@ -818,6 +826,7 @@ export function createWildlife(ctx: PropContext): Mesh[] {
     }
   }
   const wetMaterial = new MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0, side: DoubleSide })
+  if (skins) skinMaterial(wetMaterial)
 
   /** Up-beach nest site: above the high-tide line, below the vegetation. */
   const nestBand: [number, number] = [highTide + 1.5, Math.max(highTide + 2, Math.min(stormLine + 4, coast.beachWidth))]
@@ -900,7 +909,7 @@ export function createWildlife(ctx: PropContext): Mesh[] {
   // Lizards.
   if (life.lizard != null && life.lizards > 0) {
     const kind = life.lizard
-    const geometries = [0, 1, 2].map(() => lizardGeometry(rng, kind))
+    const geometries = [0, 1, 2].map(() => lizardGeometry(rng, kind, skins))
     const pieces: Piece[] = []
     // Marine iguanas heap together near the water, facing the sun; the others
     // keep to the wrack line (monitors) or the top of the beach.
@@ -929,9 +938,7 @@ export function createWildlife(ctx: PropContext): Mesh[] {
   // sea or the sun, one or two agape; or lying awash, eyes and back showing.
   if (life.crocodile != null && life.crocodiles > 0) {
     const kind = life.crocodile
-    // Scutes and blotches from a photo (props/skins.ts), unless switched off.
-    const skinned = skinsOn(params.overrides)
-    const geometries = [crocodileGeometry(rng, kind, rng.range(0.3, 0.45), skinned), crocodileGeometry(rng, kind, 0.03, skinned), crocodileGeometry(rng, kind, 0.03, skinned)]
+    const geometries = [crocodileGeometry(rng, kind, rng.range(0.3, 0.45), skins), crocodileGeometry(rng, kind, 0.03, skins), crocodileGeometry(rng, kind, 0.03, skins)]
     const pieces: Piece[] = []
     const water = inWater(params, 'crocodile')
     if (water) {
@@ -946,7 +953,6 @@ export function createWildlife(ctx: PropContext): Mesh[] {
         place(pieces, pieces.length === 0 ? 0 : rng.int(0, 2), Math.max(1.5, at[0] + rng.normal(0, 1.2)), at[1] + rng.normal(0, 5), yaw, 2.5, 0.25)
       }
     }
-    if (skinned) skinMaterial(water ? wetMaterial : material)
     build(geometries, pieces, water ? wetMaterial : material)
   }
 

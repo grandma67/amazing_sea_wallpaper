@@ -1,5 +1,5 @@
 {
-  "about": "Animal skin recipes, in atlas layer order (public/assets/skins.png; scripts/skinBake.py bakes it, props/skins.ts reads the scale). x: patch x0, x1 (px); top, bottom: the lines' y at x0 and x1; scale: the animal's length in the photo (m) over its length in pixels (assumed where not measured). Licences: public domain, CC0 or CC BY (credited on the page).",
+  "about": "Animal skin recipes, in atlas layer order (public/assets/skins.png; scripts/skinBake.py bakes it, props/skins.ts reads the scale). x: patch x0, x1 (px); top, bottom: the lines' y at x0 and x1; scale: mPerPx, or the animal's length in the photo (lengthM) over its length in pixels (lengthPx), assumed where not measured; lengthM is also the photographed animal's length, which the skin scales against (a bigger animal, bigger scales). Licences: public domain, CC0 or CC BY (credited on the page).",
   "skins": [
     {
       "id": "harbour-seal",
@@ -8,8 +8,20 @@
       "page": "https://commons.wikimedia.org/wiki/File:Harbor_seals_hauled_out_on_the_water%27s_edge_(26ad329c-1dd8-b71c-0775-87b2c69d3ced).JPG",
       "licence": "Public domain",
       "author": "NPS",
-      "x": [1240, 1560], "top": [600, 590], "bottom": [755, 750],
-      "lengthM": 1.5, "lengthPx": 865,
+      "x": [
+        1240,
+        1560
+      ],
+      "top": [
+        600,
+        590
+      ],
+      "bottom": [
+        755,
+        750
+      ],
+      "lengthM": 1.5,
+      "lengthPx": 865,
       "tileV": true
     },
     {
@@ -19,9 +31,173 @@
       "page": "https://commons.wikimedia.org/wiki/File:Nile_Crocodile_basking_(13869043013).jpg",
       "licence": "CC BY 2.0",
       "author": "Steve Slater",
-      "x": [705, 865], "top": [588, 577], "bottom": [700, 698],
-      "lengthM": 3.5, "lengthPx": 1605,
-      "mirror": true, "contrast": 0.6
+      "x": [
+        705,
+        865
+      ],
+      "top": [
+        588,
+        577
+      ],
+      "bottom": [
+        700,
+        698
+      ],
+      "lengthM": 3.5,
+      "lengthPx": 1605,
+      "mirror": true,
+      "contrast": 0.6
+    },
+    {
+      "id": "elephant-seal",
+      "asset": "skin-eseal-a",
+      "source": "commons:File:Northern Elephant Seal (Mirounga angustirostris).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Northern_Elephant_Seal_(Mirounga_angustirostris).jpg",
+      "licence": "CC0",
+      "author": "Kiloueka",
+      "x": [
+        600,
+        1100
+      ],
+      "top": [
+        515,
+        470
+      ],
+      "bottom": [
+        640,
+        600
+      ],
+      "lengthM": 2.0,
+      "lengthPx": 1385,
+      "mirror": true,
+      "contrast": 0.6,
+      "note": "A young northern elephant seal on sand, dusted; length assumed 2 m."
+    },
+    {
+      "id": "eared-seal",
+      "asset": "skin-furseal-c",
+      "source": "commons:File:Arctocephalus pusillus in Tobu Zoo Park 003 – cleaned background and cropped.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Arctocephalus_pusillus_in_Tobu_Zoo_Park_003_%E2%80%93_cleaned_background_and_cropped.jpg",
+      "licence": "CC0",
+      "author": "Ocdp",
+      "x": [
+        400,
+        1000
+      ],
+      "top": [
+        1170,
+        1040
+      ],
+      "bottom": [
+        1350,
+        1230
+      ],
+      "lengthM": 1.6,
+      "mPerPx": 0.0012,
+      "mirror": true,
+      "contrast": 0.5,
+      "note": "A Cape fur seal, wet short fur; used for sea lions and fur seals (no hauled-out sea lion photo with a usable licence found, 2026-11-13). Scale from ~1.1 m of body over 920 px."
+    },
+    {
+      "id": "marine-iguana",
+      "asset": "skin-miguana-a",
+      "source": "commons:File:Amblyrhynchus cristatus 125217466.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Amblyrhynchus_cristatus_125217466.jpg",
+      "licence": "CC BY 4.0",
+      "author": "juan_carlos_caicedo_hdz",
+      "x": [
+        1080,
+        1400
+      ],
+      "top": [
+        950,
+        950
+      ],
+      "bottom": [
+        1250,
+        1250
+      ],
+      "lengthM": 0.9,
+      "mPerPx": 0.000127,
+      "tileV": true,
+      "contrast": 0.6,
+      "note": "Neck scales of a head-on marine iguana; scale from an ~8 cm wide head over 630 px."
+    },
+    {
+      "id": "green-iguana",
+      "asset": "skin-giguana-a",
+      "source": "commons:File:Iguana Iguana from Margarita Island.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Iguana_Iguana_from_Margarita_Island.jpg",
+      "licence": "CC0",
+      "author": "Wilfredor",
+      "x": [
+        1300,
+        1560
+      ],
+      "top": [
+        1050,
+        1050
+      ],
+      "bottom": [
+        1300,
+        1300
+      ],
+      "lengthM": 1.3,
+      "mPerPx": 9.5e-05,
+      "tileV": true,
+      "contrast": 0.6,
+      "note": "Neck scales and dark bars of a green iguana; scale from a ~7.5 cm head over 790 px."
+    },
+    {
+      "id": "spiny-tailed",
+      "asset": "skin-ctenosaura-b",
+      "source": "commons:File:A black iguana on a stone wall in Ekʼ Balam.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:A_black_iguana_on_a_stone_wall_in_Ek%CA%BC_Balam.jpg",
+      "licence": "CC0",
+      "author": "Sojiniiii",
+      "x": [
+        700,
+        870
+      ],
+      "top": [
+        470,
+        545
+      ],
+      "bottom": [
+        525,
+        595
+      ],
+      "lengthM": 1.0,
+      "mPerPx": 0.0008,
+      "contrast": 0.3,
+      "note": "Upper flank of a black spiny-tailed iguana on a wall; scale from an ~8 cm head over 105 px.",
+      "tileV": true
+    },
+    {
+      "id": "monitor",
+      "asset": "skin-monitor-a",
+      "source": "commons:File:Varanus salvator (Asian water monitor).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Varanus_salvator_(Asian_water_monitor).jpg",
+      "licence": "CC BY 4.0",
+      "author": "Tan Pek Nan",
+      "x": [
+        1050,
+        1500
+      ],
+      "top": [
+        620,
+        540
+      ],
+      "bottom": [
+        820,
+        760
+      ],
+      "lengthM": 1.5,
+      "mPerPx": 0.000165,
+      "tileV": true,
+      "contrast": 0.28,
+      "note": "Neck and shoulder scales of an Asian water monitor (a black-and-white photo; only brightness is used); scale from a ~14 cm head over 850 px.",
+      "highlights": 0.85
     }
   ]
 }

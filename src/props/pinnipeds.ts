@@ -23,7 +23,7 @@ import { fbm3 } from './noise'
 import { rockMaterial, type RockGrowth } from './rocks'
 import { snowLook } from './snowCap'
 import { unitSphere } from './sphere'
-import { skinCoords, skinMaterial, skinsOn } from './skins'
+import { skinCoords, skinMaterial, skinsOn, type SkinId } from './skins'
 
 // Seals and sea lions hauled out on the rocks (see PinnipedKind):
 //
@@ -85,6 +85,10 @@ function profile(knots: [number, number][]): (t: number) => number {
 
 type Pose = 'lying' | 'banana' | 'sitting'
 
+/** Each kind's photo skin (props/skins.ts): sea lions share the fur seal's
+ * coat (both eared seals' short fur). */
+const SKIN: Record<PinnipedKind, SkinId> = { seal: 'harbour-seal', 'sea-lion': 'eared-seal', 'fur-seal': 'eared-seal', 'elephant-seal': 'elephant-seal' }
+
 /**
  * One animal, nose toward +x, lying on y = 0. `wet` darkens it. The spine
  * runs nose → tail; the body is lofted round it with a head, a thicker
@@ -122,7 +126,7 @@ export function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: numbe
           return new Vector3((0.5 - t) * L, g * radius(t) * 0.92 + lift + headUp, 0)
         })
   const spine = new CatmullRomCurve3(points).getSpacedPoints(36)
-  const skinned = skin && kind === 'seal'
+  const skinned = skin
   const seed = rng.int(0, 100_000)
   const back = mix(look.back, [look.back[0] * 0.45, look.back[1] * 0.45, look.back[2] * 0.45], wet)
   const belly = mix(look.belly, [look.belly[0] * 0.5, look.belly[1] * 0.5, look.belly[2] * 0.5], wet)
@@ -133,13 +137,13 @@ export function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: numbe
       const up = (1 + Math.cos(angle)) / 2
       let c = mix(belly, back, Math.min(1, Math.max(0, (up - 0.25) * 1.8)))
       const p = spine[Math.round(t * (spine.length - 1))]
-      // Blotches and spots (a harbour seal's from its photo skin), and a pale muzzle.
+      // Blotches and spots (with a photo skin, the photo's), and a pale muzzle.
       if (look.spots > 0 && !skinned && fbm3(p.x * 6, p.y * 6 + angle, Math.sin(angle) * 2, seed) > 1 - look.spots * 0.5) c = mix(c, [0.02, 0.02, 0.02], 0.6)
       if (t < 0.05) c = mix(c, belly, 0.4)
       return c
     },
     12,
-    skinned ? skinCoords('harbour-seal', L) : undefined
+    skinned ? skinCoords(SKIN[kind], L) : undefined
   )
   // Flippers: thin fans off the body.
   const fin = (points: Vector3[], color: RGB): void => {
@@ -183,7 +187,7 @@ export function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: numbe
  * down into the water; seals have no visible neck "waist". Sizes from the
  * body length (head ~ 0.12 L long, neck ~ 0.1 L across).
  */
-export function swimmingHead(rng: Random, kind: PinnipedKind, pitch: number): BufferGeometry {
+export function swimmingHead(rng: Random, kind: PinnipedKind, pitch: number, skin = false): BufferGeometry {
   const look = LOOKS[kind]
   const b = new MeshBuilder()
   const L = rng.range(...look.length)
@@ -208,7 +212,8 @@ export function swimmingHead(rng: Random, kind: PinnipedKind, pitch: number): Bu
     (t, angle) => radius(t) * L * (1 + 0.12 * Math.sin(angle) ** 2),
     // angle 0 is the top of the head and back of the neck.
     (_t, angle) => mix(belly, back, Math.min(1, Math.max(0, (Math.cos(angle) + 0.3) * 0.9))),
-    12
+    12,
+    skin ? skinCoords(SKIN[kind], L) : undefined
   )
   b.cap(rings[0], new Vector3(1, 0, 0).applyAxisAngle(new Vector3(0, 0, 1), pitch), back)
   // Big dark eyes, high on the sides of the head behind the muzzle.
@@ -413,8 +418,8 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
   // A few pose variants per species, instanced. Most rest; eared seals
   // often sit up; true seals curl into bananas.
   const poses: [Pose, number][] = look.eared ? [['lying', 1], ['lying', 1], ['sitting', 1.5]] : [['lying', 1], ['lying', 1], ['banana', 1]]
-  // Harbour seals' spots from a photo (props/skins.ts), unless switched off.
-  const skinned = kind === 'seal' && skinsOn(ctx.params.overrides)
+  // Coats from photos (props/skins.ts), unless switched off.
+  const skinned = skinsOn(ctx.params.overrides)
   const variants = poses.map(([pose], k) => pinniped(rng, kind, pose, k === 1 ? 0.8 : rng.range(0, 0.3), skinned))
   const placed: Matrix4[][] = variants.map(() => [])
   // In wind and rain they leave the haul-out for the calm under the
@@ -446,7 +451,7 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
 
   // Heads bobbing in the water round the rock or off the beach.
   // Watching (snout level) and bottling (snout up); wet fur is glossy.
-  const headPoses = [swimmingHead(rng, kind, rng.range(-0.05, 0.15)), swimmingHead(rng, kind, rng.range(0.55, 0.8))]
+  const headPoses = [swimmingHead(rng, kind, rng.range(-0.05, 0.15), skinned), swimmingHead(rng, kind, rng.range(0.55, 0.8), skinned)]
   const heads: Matrix4[][] = [[], []]
   for (let i = 0, n = storm ? rng.int(8, 16) : rng.int(2, 8), count = 0; i < 80 && count < n; i++) {
     const a = rng.range(0, Math.PI * 2)
@@ -461,6 +466,7 @@ export function createPinnipeds(ctx: PropContext, island: Mesh | null): Object3D
     count++
   }
   const glossy = new MeshStandardMaterial({ vertexColors: true, roughness: 0.5 })
+  if (skinned) skinMaterial(glossy)
   headPoses.forEach((geometry, k) => {
     if (heads[k].length === 0) return
     const bobbing = new InstancedMesh(geometry, glossy, heads[k].length)
