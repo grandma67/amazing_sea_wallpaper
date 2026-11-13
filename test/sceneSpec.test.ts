@@ -5,7 +5,7 @@ import { generateSceneParams } from '../src/composition'
 import { generateParams, type SceneParams } from '../src/params'
 import { BLOOM, BLOOM_KINDS, fairyRingsFor, heathFor, phenologyFor } from '../src/phenology'
 import { debrisFor } from '../src/props/debris'
-import { shoreLifeFor } from '../src/props/shoreLife'
+import { FLOWERS, shoreLifeFor } from '../src/props/shoreLife'
 import { Random } from '../src/random'
 import { deepPatch, parseSceneSpec, type SceneSpec } from '../src/sceneSpec'
 import { allParams, DAYS, expectSameDay, scene as sceneOn } from './days'
@@ -152,6 +152,10 @@ describe('scene specs', () => {
     expect(life.burrows).toBeGreaterThan(0)
     expect(life.flowers).toEqual(['thrift'])
     expect(life.flowerAmount).toBeGreaterThan(0)
+    // Every flower in the table can be forced (the spec's list once missed the shingle four).
+    for (const kind of Object.keys(FLOWERS)) {
+      expect(() => parseSceneSpec(JSON.stringify({ props: { shoreLife: { flowers: [kind] } } }))).not.toThrow()
+    }
     const none = scene({ coast: 'beach', props: { debris: null, shoreLife: null } })
     expect(debrisFor(none, new Random('x'))).toBeNull()
     expect(shoreLifeFor(none, new Random('x'))).toBeNull()

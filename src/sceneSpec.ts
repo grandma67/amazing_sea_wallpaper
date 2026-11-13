@@ -326,7 +326,7 @@ const BIOMES = ['tropical', 'mediterranean', 'nordic', 'volcanic', 'desert']
 const OCEANS = ['pacific', 'atlantic', 'indian', 'southern', 'arctic']
 const GENERA = Object.keys(CLOUD_GENERA)
 const PLANTS = ['palm', 'pandanus', 'stone-pine', 'olive', 'cypress', 'broadleaf', 'conifer', 'birch', 'acacia', 'eucalyptus', 'bush', 'grass']
-const FLOWERS = ['morning-glory', 'bindweed', 'sea-holly', 'sea-daffodil', 'ice-plant', 'thrift', 'sea-rocket', 'oysterplant']
+const FLOWERS = ['morning-glory', 'bindweed', 'sea-holly', 'sea-daffodil', 'ice-plant', 'thrift', 'sea-rocket', 'oysterplant', 'sea-kale', 'horned-poppy', 'sea-pea', 'sea-campion']
 
 const SPEC = object({
   name: string,

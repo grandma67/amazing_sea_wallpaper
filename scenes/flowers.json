@@ -1,0 +1,318 @@
+{
+ "note": "Every flower in the project at a place and date where it blooms. Beach flowers forced on (props.shoreLife.flowers) on an in-season day in a framed view (a shoreline camera faces the sea, away from the upper beach where they grow); shrubs, trees, heath and blooms on their real dates (desert blooms forced to a bloom year).",
+ "base": {
+  "eclipse": null,
+  "storm": null,
+  "fog": null,
+  "weather": "few",
+  "timeOfDay": "daylight",
+  "sunAzimuthDeg": 160,
+  "snow": null
+ },
+ "scenes": [
+  {
+   "name": "morning-glory",
+   "note": "Morning glory · beach flower · tropical, all year",
+   "date": "2025-04-15",
+   "place": "philippines",
+   "coast": "beach",
+   "beachMaterial": "sand",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "morning-glory"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "ice-plant",
+   "note": "Ice plant · beach flower · mediterranean, desert, Mar–Jun",
+   "date": "2025-04-20",
+   "place": "aegean",
+   "coast": "beach",
+   "beachMaterial": "sand",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "ice-plant"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "thrift",
+   "note": "Thrift (sea pink) · beach flower · nordic, volcanic, Apr–Aug",
+   "date": "2025-06-15",
+   "place": "iceland",
+   "coast": "beach",
+   "beachMaterial": "mixed",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "thrift"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "sea-kale",
+   "note": "Sea kale · shingle flower · nordic Atlantic, May–Jul",
+   "date": "2025-06-01",
+   "place": "cornwall-wales",
+   "coast": "beach",
+   "beachMaterial": "shingle",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "sea-kale"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "sea-campion",
+   "note": "Sea campion · shingle flower · nordic, volcanic, May–Aug",
+   "date": "2025-06-15",
+   "place": "norway-west",
+   "coast": "beach",
+   "beachMaterial": "shingle",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "sea-campion"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "horned-poppy",
+   "note": "Horned poppy · shingle flower · mediterranean, nordic Atlantic, May–Oct",
+   "date": "2025-07-01",
+   "place": "brittany",
+   "coast": "beach",
+   "beachMaterial": "shingle",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "horned-poppy"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "bindweed",
+   "note": "Sea bindweed · beach flower · mediterranean, nordic, Jun–Aug",
+   "date": "2025-07-01",
+   "place": "western-med",
+   "coast": "beach",
+   "beachMaterial": "sand",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "bindweed"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "sea-rocket",
+   "note": "Sea rocket · beach flower · nordic, volcanic, mediterranean, Jun–Oct",
+   "date": "2025-08-01",
+   "place": "scotland",
+   "coast": "beach",
+   "beachMaterial": "sand",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "sea-rocket"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "oysterplant",
+   "note": "Oysterplant · beach flower · nordic, volcanic (Arctic, Atlantic), Jun–Aug",
+   "date": "2025-07-10",
+   "place": "iceland",
+   "coast": "beach",
+   "beachMaterial": "mixed",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "oysterplant"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "sea-pea",
+   "note": "Sea pea · shingle flower · nordic, volcanic, Jun–Aug",
+   "date": "2025-07-10",
+   "place": "norway-west",
+   "coast": "beach",
+   "beachMaterial": "shingle",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "sea-pea"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "sea-holly",
+   "note": "Sea holly · beach flower · mediterranean, nordic, Jul–Sep",
+   "date": "2025-08-10",
+   "place": "portugal-morocco",
+   "coast": "beach",
+   "beachMaterial": "sand",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "sea-holly"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "sea-daffodil",
+   "note": "Sea daffodil · beach flower · mediterranean, Aug–Oct",
+   "date": "2025-09-01",
+   "place": "aegean",
+   "coast": "beach",
+   "beachMaterial": "sand",
+   "composition": "framed",
+   "props": {
+    "shoreLife": {
+     "flowers": [
+      "sea-daffodil"
+     ],
+     "flowerAmount": 1
+    }
+   }
+  },
+  {
+   "name": "rock-rose",
+   "note": "Rock rose (Cistus) · bushes · mediterranean, May–Jul",
+   "date": "2025-06-01",
+   "place": "western-med",
+   "coast": "beach",
+   "composition": "framed"
+  },
+  {
+   "name": "gorse",
+   "note": "Gorse · bushes · nordic (Atlantic Europe), Apr–May",
+   "date": "2025-05-01",
+   "place": "cornwall-wales",
+   "coast": "beach",
+   "composition": "framed"
+  },
+  {
+   "name": "gorse-nz",
+   "note": "Gorse (invasive) · bushes · nordic, volcanic, med (NZ, Tasmania, Chile), Aug–Oct",
+   "date": "2025-09-15",
+   "place": "new-zealand-south",
+   "coast": "beach",
+   "composition": "framed"
+  },
+  {
+   "name": "wattle",
+   "note": "Wattle · bushes · mediterranean, nordic (Australia), Aug–Sep",
+   "date": "2025-09-05",
+   "place": "east-australia",
+   "coast": "beach",
+   "composition": "framed",
+   "sunAzimuthDeg": 200
+  },
+  {
+   "name": "flamboyant",
+   "note": "Flamboyant · trees · tropical (Caribbean Jun–Jul; dry coasts at the end of the dry season)",
+   "date": "2025-06-15",
+   "place": "antilles",
+   "coast": "beach",
+   "composition": "framed"
+  },
+  {
+   "name": "pohutukawa",
+   "note": "Pohutukawa · trees · volcanic (NZ north), Dec 15 – Jan 5",
+   "date": "2025-12-25",
+   "place": "new-zealand-north",
+   "coast": "beach",
+   "composition": "along-beach",
+   "sunAzimuthDeg": 150
+  },
+  {
+   "name": "heather",
+   "note": "Heather · ground cover · nordic (UK, Ireland, Brittany, west Norway), Jul–Sep",
+   "date": "2025-08-15",
+   "place": "scotland",
+   "coast": "rock-shore",
+   "rockShore": "cliff",
+   "landform": null
+  },
+  {
+   "name": "atacama-bloom",
+   "note": "Atacama desert bloom · desert, Sep–Nov, ~1 year in 3 (bloom year forced)",
+   "date": "2025-09-02",
+   "place": "atacama-peru",
+   "coast": "beach",
+   "composition": "framed",
+   "props": {
+    "desertBloom": true
+   }
+  },
+  {
+   "name": "namaqualand",
+   "note": "Namaqualand daisies · desert, mediterranean (Namibia, Cape), Aug–Sep",
+   "date": "2025-09-08",
+   "place": "namibia",
+   "coast": "rock-shore",
+   "props": {
+    "desertBloom": true
+   }
+  },
+  {
+   "name": "baja-bloom",
+   "note": "Baja wildflowers · desert (Pacific Baja), Feb–Mar, 3 years in 10 (bloom year forced)",
+   "date": "2025-03-01",
+   "place": "baja-sonora",
+   "ocean": "pacific",
+   "coast": "beach",
+   "composition": "framed",
+   "props": {
+    "desertBloom": true
+   }
+  },
+  {
+   "name": "lomas",
+   "note": "Lomas with amancaes · desert (Peru fog hills), green Jun–Nov, flowers Jun–Jul",
+   "date": "2025-06-25",
+   "place": "atacama-peru",
+   "coast": "beach",
+   "landform": "range"
+  }
+ ]
+}

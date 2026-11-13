@@ -144,7 +144,7 @@ Every new random feature gets one. Always make the draw, then apply the force vi
     marsh, temperate Hebrides, subtropical Florida, polar Greenland, California June gloom
     (2025-06-15), Scottish haar, harmattan dust, Svalbard polar night and midnight sun.
 - Spec files for each finished feature: `scenes/` (`examples`, `stony`, `tables`, `beach-states`,
-  `tides`, `shelter`, `reef`, `rock`, `tidal`, `climates`, `sun`, `coasts`, `biome-seasons` (every biome × season × time of day, one seed per biome so only month and light change; each season at the region's own dates, and light northern nights as the real midnight twilight), `reflection` (the sea's mirror
+  `tides`, `shelter`, `reef`, `rock`, `tidal`, `climates`, `sun`, `coasts`, `flowers` (every flower where and when it blooms), `biome-seasons` (every biome × season × time of day, one seed per biome so only month and light change; each season at the region's own dates, and light northern nights as the real midnight twilight), `reflection` (the sea's mirror
   images: calm and windy islands, mountains, near objects, boats, night), `wet-mirror` (pools, runnels, swash and
   flats), `islands-water`: reflections and
   white water at the colony stack, karst islands, skerries, an iceberg and a lighthouse rock, calm,
