@@ -8,6 +8,7 @@ import type { Random } from '../random'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 import { forced, forcedKind, type MarineSpecies } from '../sceneSpec'
+import { skinCoords, skinMaterial, skinsOn, type SkinId } from './skins'
 import { SprayBuilder } from './surf'
 
 // Marine animals caught at the surface — the moments people photograph:
@@ -42,11 +43,13 @@ interface Look {
   fin: RGB
   /** Extra markings: return a colour or null for the plain countershading. */
   marking?: (t: number, up: number, side: number) => RGB | null
+  /** Its photo skin (props/skins.ts). */
+  skin: SkinId
 }
 
 const LOOKS: Record<Species, Look> = {
-  dolphin: { back: [0.06, 0.07, 0.08], belly: [0.55, 0.56, 0.56], fin: [0.05, 0.055, 0.06] },
-  orca: {
+  dolphin: { skin: 'cetacean', back: [0.06, 0.07, 0.08], belly: [0.55, 0.56, 0.56], fin: [0.05, 0.055, 0.06] },
+  orca: { skin: 'cetacean',
     back: [0.012, 0.012, 0.014],
     belly: [0.7, 0.7, 0.68],
     fin: [0.012, 0.012, 0.014],
@@ -57,14 +60,14 @@ const LOOKS: Record<Species, Look> = {
       return null
     }
   },
-  humpback: {
+  humpback: { skin: 'humpback',
     back: [0.03, 0.033, 0.038],
     belly: [0.35, 0.36, 0.36],
     fin: [0.6, 0.6, 0.58],
     // Barnacle-white knobs on the head.
     marking: (t, up) => (t < 0.18 && up > 0.6 && (Math.sin(t * 160) * Math.sin(up * 40)) > 0.75 ? [0.5, 0.5, 0.48] : null)
   },
-  swordfish: { back: [0.03, 0.035, 0.07], belly: [0.45, 0.47, 0.5], fin: [0.03, 0.03, 0.06] }
+  swordfish: { skin: 'swordfish', back: [0.03, 0.035, 0.07], belly: [0.45, 0.47, 0.5], fin: [0.03, 0.03, 0.06] }
 }
 
 const mix = (a: RGB, b: RGB, t: number): RGB => [
@@ -102,7 +105,8 @@ class Animal {
 
   constructor(
     readonly shape: BodyShape,
-    readonly look: Look
+    readonly look: Look,
+    skin = false
   ) {
     const n = 40
     for (let i = 0; i <= n; i++) {
@@ -118,7 +122,8 @@ class Animal {
         const marked = look.marking?.(t, up, -Math.sin(angle))
         return marked ?? mix(look.belly, look.back, Math.min(1, Math.max(0, (up - 0.3) * 2.2)))
       },
-      14
+      14,
+      skin ? skinCoords(look.skin, shape.length) : undefined
     )
   }
 
@@ -160,7 +165,7 @@ class Animal {
   }
 }
 
-function dolphin(rng: Random, arch: number): BufferGeometry {
+function dolphin(rng: Random, arch: number, skin = false): BufferGeometry {
   const length = rng.range(2.2, 2.8)
   const a = new Animal(
     {
@@ -178,7 +183,8 @@ function dolphin(rng: Random, arch: number): BufferGeometry {
           [1, 0.02]
         ])(t) * length
     },
-    LOOKS.dolphin
+    LOOKS.dolphin,
+    skin
   )
   // Falcate dorsal fin, pectorals, flukes.
   a.fin([a.surface(0.42, 0.95), a.surface(0.58, 0.9).add(new Vector3(-0.12, 0.33, 0)), a.surface(0.62, 0.9)])
@@ -189,7 +195,7 @@ function dolphin(rng: Random, arch: number): BufferGeometry {
   return a.build()
 }
 
-function orca(rng: Random, male: boolean): BufferGeometry {
+function orca(rng: Random, male: boolean, skin = false): BufferGeometry {
   const length = male ? rng.range(7, 8.5) : rng.range(5.5, 6.5)
   const a = new Animal(
     {
@@ -205,7 +211,8 @@ function orca(rng: Random, male: boolean): BufferGeometry {
           [1, 0.03]
         ])(t) * length
     },
-    LOOKS.orca
+    LOOKS.orca,
+    skin
   )
   const fin = male ? rng.range(1.4, 1.8) : rng.range(0.7, 0.9)
   const lean = male ? 0.1 : 0.45
@@ -217,7 +224,7 @@ function orca(rng: Random, male: boolean): BufferGeometry {
   return a.build()
 }
 
-function humpback(rng: Random): BufferGeometry {
+function humpback(rng: Random, skin = false): BufferGeometry {
   const length = rng.range(12, 15)
   const a = new Animal(
     {
@@ -234,7 +241,8 @@ function humpback(rng: Random): BufferGeometry {
           [1, 0.02]
         ])(t) * length
     },
-    LOOKS.humpback
+    LOOKS.humpback,
+    skin
   )
   // Small humped dorsal fin, very long white flippers, broad flukes with
   // a pale, individually patterned underside.
@@ -252,7 +260,7 @@ function humpback(rng: Random): BufferGeometry {
   return a.build()
 }
 
-function swordfish(rng: Random): BufferGeometry {
+function swordfish(rng: Random, skin = false): BufferGeometry {
   const length = rng.range(2.6, 3.8)
   const a = new Animal(
     {
@@ -269,7 +277,8 @@ function swordfish(rng: Random): BufferGeometry {
           [1, 0.01]
         ])(t) * length
     },
-    LOOKS.swordfish
+    LOOKS.swordfish,
+    skin
   )
   const h = length * 0.17
   // Tall sickle dorsal, pectorals, and the vertical crescent tail of a fish.
@@ -365,6 +374,14 @@ const SPECIES_BY_OCEAN: Record<OceanName, readonly (readonly [Species, number])[
 }
 
 /** Which animal shows at the surface today, or null. */
+/** One animal's mesh (scripts/mesh.mjs, tests): its pose's defaults. */
+export function marineGeometry(rng: Random, species: Species, skin = false): BufferGeometry {
+  if (species === 'dolphin') return dolphin(rng, 0.05, skin)
+  if (species === 'orca') return orca(rng, true, skin)
+  if (species === 'humpback') return humpback(rng, skin)
+  return swordfish(rng, skin)
+}
+
 export function marineFor(params: SceneParams, rng: Random): Species | null {
   const force = params.overrides?.marine
   if (!forced(force, rng.chance(0.35) && params.storm == null)) return null
@@ -385,6 +402,9 @@ export function createMarineLife(ctx: PropContext): Object3D[] {
   const species = marineFor(params, rng)
   if (species == null) return []
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.3, side: DoubleSide })
+  // Photo skins (props/skins.ts) on the bodies; fins and flukes plain.
+  const skins = skinsOn(params.overrides)
+  if (skins) skinMaterial(material)
   const spray = new SprayBuilder()
   // Mostly side-on to the camera, the view that shows an animal's shape.
   const forward = ctx.camera.getWorldDirection(new Vector3())
@@ -452,12 +472,12 @@ export function createMarineLife(ctx: PropContext): Object3D[] {
           const phase = rng.range(-1, 1)
           const reach = rng.range(1.8, 2.6)
           const lift = rng.range(0.6, 1.3)
-          place(dolphin(rng, 0.12), at.clone().add(along(yaw, phase * reach)), yaw, -phase * 0.7, (1 - phase * phase) * (0.6 + lift) - 0.15, 0.8)
+          place(dolphin(rng, 0.12, skins), at.clone().add(along(yaw, phase * reach)), yaw, -phase * 0.7, (1 - phase * phase) * (0.6 + lift) - 0.15, 0.8)
           exitSplash(spray, rng, onSea(at.clone().add(along(yaw, -reach))), 0.9, (1 - phase) / 2)
         } else {
           // Rolling at the surface: back and fin above water, a little
           // white water where the head and tail stock break it.
-          place(dolphin(rng, 0.05), at, yaw, rng.normal(0, 0.08), -0.15, 0.15)
+          place(dolphin(rng, 0.05, skins), at, yaw, rng.normal(0, 0.08), -0.15, 0.15)
           foam(spray, rng, onSea(at.clone().add(along(yaw, -1.2))), 0.5, along(yaw, -2))
         }
       }
@@ -469,7 +489,7 @@ export function createMarineLife(ctx: PropContext): Object3D[] {
         const at = center.clone().add(new Vector3(rng.normal(0, 12), 0, rng.normal(0, 12)))
         if (ctx.ground(at.x, at.z) > -3) continue
         const yaw = heading + rng.normal(0, 0.1)
-        place(orca(rng, i === 0 || rng.chance(0.3)), at, yaw, rng.normal(0.03, 0.04), -0.6, 0.25)
+        place(orca(rng, i === 0 || rng.chance(0.3), skins), at, yaw, rng.normal(0.03, 0.04), -0.6, 0.25)
         // Surfacing: a wash of white water off the head, a slick behind.
         foam(spray, rng, onSea(at.clone().add(along(yaw, -3))), 0.6, along(yaw, -4))
         if (rng.chance(0.5)) blow(spray, rng, onSea(at.clone().add(along(yaw, 1.5))), rng.range(1.5, 2.5))
@@ -482,7 +502,7 @@ export function createMarineLife(ctx: PropContext): Object3D[] {
         ['breach', 2],
         ['blow', 3]
       ] as const)
-      const geometry = humpback(rng)
+      const geometry = humpback(rng, skins)
       const length = 13.5
       if (pose === 'flukes') {
         // Diving: tail stock and flukes raised clear of the water, water
@@ -504,7 +524,7 @@ export function createMarineLife(ctx: PropContext): Object3D[] {
     }
     case 'swordfish': {
       const phase = rng.range(-0.8, 0.4)
-      place(swordfish(rng), center, heading, 0.4 - phase, rng.range(0.6, 1.4), 0.8)
+      place(swordfish(rng, skins), center, heading, 0.4 - phase, rng.range(0.6, 1.4), 0.8)
       exitSplash(spray, rng, onSea(center.clone().add(along(heading, -1.5))), 0.6, (1 - phase) / 2)
       break
     }

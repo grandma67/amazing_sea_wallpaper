@@ -120,7 +120,10 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   one), the light divided out by a blur normalised inside the shell (the studio background masked by
   brightness); leatherbacks a ridged hide along the shell; a hawksbill's flipper scales on every
   turtle's head and flippers. Hippos (pores and folds, glints capped) and monkeys (one fur from a
-  vervet's arm) on body blobs (`skinBlob` wrap, offset per blob), legs and tails.
+  vervet's arm) on body blobs (`skinBlob` wrap, offset per blob), legs and tails. Marine animals
+  (0.160): a breaching humpback's pleats and scars; dolphins and orcas the same patch softened to a
+  faint mottle (spray drops in the photo are light, capped); a swordfish specimen's fine lines.
+  Bodies only; fins and flukes plain.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

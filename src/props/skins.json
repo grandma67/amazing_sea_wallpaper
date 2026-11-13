@@ -339,6 +339,83 @@
       "tileV": true,
       "contrast": 0.4,
       "note": "A vervet's outstretched arm: grizzled fur along the strands; shared by macaques, capuchins and vervets. Scale from a ~7 cm head over 300 px."
+    },
+    {
+      "id": "humpback",
+      "asset": "skin-humpback-b",
+      "source": "commons:File:HIHWNMS - humpback whale breaching (31458927013).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:HIHWNMS_-_humpback_whale_breaching_(31458927013).jpg",
+      "licence": "Public domain",
+      "author": "National Marine Sanctuaries",
+      "x": [
+        600,
+        850
+      ],
+      "top": [
+        650,
+        760
+      ],
+      "bottom": [
+        900,
+        1000
+      ],
+      "lengthM": 13,
+      "mPerPx": 0.008,
+      "tileV": true,
+      "contrast": 0.5,
+      "highlights": 0.7,
+      "note": "Flank of a breaching humpback: throat pleats, mottling, scars; spray glints capped. Scale assumed from ~9 m of whale over 1100 px."
+    },
+    {
+      "id": "cetacean",
+      "asset": "skin-humpback-b",
+      "source": "commons:File:HIHWNMS - humpback whale breaching (31458927013).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:HIHWNMS_-_humpback_whale_breaching_(31458927013).jpg",
+      "licence": "Public domain",
+      "author": "National Marine Sanctuaries",
+      "x": [
+        600,
+        850
+      ],
+      "top": [
+        650,
+        760
+      ],
+      "bottom": [
+        900,
+        1000
+      ],
+      "lengthM": 13,
+      "mPerPx": 0.008,
+      "tileV": true,
+      "contrast": 0.08,
+      "highlights": 0.6,
+      "note": "The humpback's patch softened to a faint mottle and scratches for the smooth-skinned dolphins and orcas (no close, usable dolphin photo found, 2026-11-13)."
+    },
+    {
+      "id": "swordfish",
+      "asset": "skin-swordfish-a",
+      "source": "commons:File:Xiphias gladius Linnaeus, 1758 2599925021.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Xiphias_gladius_Linnaeus,_1758_2599925021.jpg",
+      "licence": "CC0",
+      "author": "Naturalis Biodiversity Center",
+      "x": [
+        1210,
+        1480
+      ],
+      "top": [
+        510,
+        500
+      ],
+      "bottom": [
+        640,
+        650
+      ],
+      "lengthM": 2.5,
+      "mPerPx": 0.002,
+      "tileV": true,
+      "contrast": 0.6,
+      "note": "Flank of a swordfish specimen (fine lines, no scales); scale from a ~50 cm deep body over 250 px."
     }
   ]
 }
