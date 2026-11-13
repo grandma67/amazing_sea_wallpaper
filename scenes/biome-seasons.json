@@ -1,5 +1,5 @@
 {
- "note": "Every biome x season x time of day: one northern-hemisphere place per biome (Philippines, Aegean, west Norway, Iceland, Baja/Sonora), mid-season dates, framed. Each biome keeps one seed, so its 24 scenes are the same beach and heading and only the month and light change. Blue and golden hour come out as evening (Dusk); sun-on-horizon is sunset.",
+ "note": "Every biome x season x time of day, one northern place and one seed per biome (same view; only month and light change). Each season is the region's own (phenology.ts, snow.ts, bloomYears.ts, SEASONS.md): Philippines cool-dry Jan 15, hot-dry Apr 15, SW monsoon Jul 15, late rains Oct 15; Aegean green winter Jan 15, flowering spring Apr 15, dry summer Jul 15, autumn Nov 10 as the first rains green the grass; west Norway (temperate) winter Jan 15, spring May 5 in leaf-out, summer Jul 15, autumn Oct 27 at peak colour; Iceland (boreal) winter Jan 15, spring Jun 1 after the snow at birch leaf-out, summer Jul 20, autumn Sep 20 at peak yellow; Baja/Sonora winter Jan 15, spring Mar 15 in the Feb-Mar bloom window (flowers only in bloom years), summer Jul 15, autumn Oct 15. At 63-64N in May-July the sun never gets low enough for night, so those four night scenes are the real midnight: blue hour with the sun at the day's minimum (sunLimits).",
  "base": {
   "eclipse": null,
   "storm": null,
@@ -355,7 +355,7 @@
    "name": "mediterranean-autumn-night",
    "biome": "mediterranean",
    "place": "aegean",
-   "date": "2025-10-15",
+   "date": "2025-11-10",
    "timeOfDay": "night",
    "seed": "seasons-mediterranean"
   },
@@ -363,7 +363,7 @@
    "name": "mediterranean-autumn-blue-hour",
    "biome": "mediterranean",
    "place": "aegean",
-   "date": "2025-10-15",
+   "date": "2025-11-10",
    "timeOfDay": "blue-hour",
    "seed": "seasons-mediterranean"
   },
@@ -371,7 +371,7 @@
    "name": "mediterranean-autumn-golden-hour",
    "biome": "mediterranean",
    "place": "aegean",
-   "date": "2025-10-15",
+   "date": "2025-11-10",
    "timeOfDay": "golden-hour",
    "seed": "seasons-mediterranean"
   },
@@ -379,7 +379,7 @@
    "name": "mediterranean-autumn-daylight",
    "biome": "mediterranean",
    "place": "aegean",
-   "date": "2025-10-15",
+   "date": "2025-11-10",
    "timeOfDay": "daylight",
    "seed": "seasons-mediterranean"
   },
@@ -387,7 +387,7 @@
    "name": "mediterranean-autumn-midday",
    "biome": "mediterranean",
    "place": "aegean",
-   "date": "2025-10-15",
+   "date": "2025-11-10",
    "timeOfDay": "midday",
    "seed": "seasons-mediterranean"
   },
@@ -395,7 +395,7 @@
    "name": "mediterranean-autumn-sun-on-horizon",
    "biome": "mediterranean",
    "place": "aegean",
-   "date": "2025-10-15",
+   "date": "2025-11-10",
    "timeOfDay": "sun-on-horizon",
    "evening": true,
    "seed": "seasons-mediterranean"
@@ -453,15 +453,18 @@
    "name": "nordic-spring-night",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-04-15",
-   "timeOfDay": "night",
-   "seed": "seasons-nordic"
+   "date": "2025-05-05",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-nordic",
+   "sunElevationDeg": -10.3,
+   "evening": true,
+   "note": "No dark night at 63-64N this date (sunLimits min -10.5): the darkest moment, midnight twilight"
   },
   {
    "name": "nordic-spring-blue-hour",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-04-15",
+   "date": "2025-05-05",
    "timeOfDay": "blue-hour",
    "seed": "seasons-nordic"
   },
@@ -469,7 +472,7 @@
    "name": "nordic-spring-golden-hour",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-04-15",
+   "date": "2025-05-05",
    "timeOfDay": "golden-hour",
    "seed": "seasons-nordic"
   },
@@ -477,7 +480,7 @@
    "name": "nordic-spring-daylight",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-04-15",
+   "date": "2025-05-05",
    "timeOfDay": "daylight",
    "seed": "seasons-nordic"
   },
@@ -485,7 +488,7 @@
    "name": "nordic-spring-midday",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-04-15",
+   "date": "2025-05-05",
    "timeOfDay": "midday",
    "seed": "seasons-nordic"
   },
@@ -493,7 +496,7 @@
    "name": "nordic-spring-sun-on-horizon",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-04-15",
+   "date": "2025-05-05",
    "timeOfDay": "sun-on-horizon",
    "evening": true,
    "seed": "seasons-nordic"
@@ -503,8 +506,11 @@
    "biome": "nordic",
    "place": "norway-west",
    "date": "2025-07-15",
-   "timeOfDay": "night",
-   "seed": "seasons-nordic"
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-nordic",
+   "sunElevationDeg": -4.8,
+   "evening": true,
+   "note": "No dark night at 63-64N this date (sunLimits min -5): the darkest moment, midnight twilight"
   },
   {
    "name": "nordic-summer-blue-hour",
@@ -551,7 +557,7 @@
    "name": "nordic-autumn-night",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-10-15",
+   "date": "2025-10-27",
    "timeOfDay": "night",
    "seed": "seasons-nordic"
   },
@@ -559,7 +565,7 @@
    "name": "nordic-autumn-blue-hour",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-10-15",
+   "date": "2025-10-27",
    "timeOfDay": "blue-hour",
    "seed": "seasons-nordic"
   },
@@ -567,7 +573,7 @@
    "name": "nordic-autumn-golden-hour",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-10-15",
+   "date": "2025-10-27",
    "timeOfDay": "golden-hour",
    "seed": "seasons-nordic"
   },
@@ -575,7 +581,7 @@
    "name": "nordic-autumn-daylight",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-10-15",
+   "date": "2025-10-27",
    "timeOfDay": "daylight",
    "seed": "seasons-nordic"
   },
@@ -583,7 +589,7 @@
    "name": "nordic-autumn-midday",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-10-15",
+   "date": "2025-10-27",
    "timeOfDay": "midday",
    "seed": "seasons-nordic"
   },
@@ -591,7 +597,7 @@
    "name": "nordic-autumn-sun-on-horizon",
    "biome": "nordic",
    "place": "norway-west",
-   "date": "2025-10-15",
+   "date": "2025-10-27",
    "timeOfDay": "sun-on-horizon",
    "evening": true,
    "seed": "seasons-nordic"
@@ -649,15 +655,18 @@
    "name": "volcanic-spring-night",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-04-15",
-   "timeOfDay": "night",
-   "seed": "seasons-volcanic"
+   "date": "2025-06-01",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-volcanic",
+   "sunElevationDeg": -4.2,
+   "evening": true,
+   "note": "No dark night at 63-64N this date (sunLimits min -4.4): the darkest moment, midnight twilight"
   },
   {
    "name": "volcanic-spring-blue-hour",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-04-15",
+   "date": "2025-06-01",
    "timeOfDay": "blue-hour",
    "seed": "seasons-volcanic"
   },
@@ -665,7 +674,7 @@
    "name": "volcanic-spring-golden-hour",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-04-15",
+   "date": "2025-06-01",
    "timeOfDay": "golden-hour",
    "seed": "seasons-volcanic"
   },
@@ -673,7 +682,7 @@
    "name": "volcanic-spring-daylight",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-04-15",
+   "date": "2025-06-01",
    "timeOfDay": "daylight",
    "seed": "seasons-volcanic"
   },
@@ -681,7 +690,7 @@
    "name": "volcanic-spring-midday",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-04-15",
+   "date": "2025-06-01",
    "timeOfDay": "midday",
    "seed": "seasons-volcanic"
   },
@@ -689,7 +698,7 @@
    "name": "volcanic-spring-sun-on-horizon",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-04-15",
+   "date": "2025-06-01",
    "timeOfDay": "sun-on-horizon",
    "evening": true,
    "seed": "seasons-volcanic"
@@ -698,15 +707,18 @@
    "name": "volcanic-summer-night",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-07-15",
-   "timeOfDay": "night",
-   "seed": "seasons-volcanic"
+   "date": "2025-07-20",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-volcanic",
+   "sunElevationDeg": -5.3999999999999995,
+   "evening": true,
+   "note": "No dark night at 63-64N this date (sunLimits min -5.6): the darkest moment, midnight twilight"
   },
   {
    "name": "volcanic-summer-blue-hour",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-07-15",
+   "date": "2025-07-20",
    "timeOfDay": "blue-hour",
    "seed": "seasons-volcanic"
   },
@@ -714,7 +726,7 @@
    "name": "volcanic-summer-golden-hour",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-07-15",
+   "date": "2025-07-20",
    "timeOfDay": "golden-hour",
    "seed": "seasons-volcanic"
   },
@@ -722,7 +734,7 @@
    "name": "volcanic-summer-daylight",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-07-15",
+   "date": "2025-07-20",
    "timeOfDay": "daylight",
    "seed": "seasons-volcanic"
   },
@@ -730,7 +742,7 @@
    "name": "volcanic-summer-midday",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-07-15",
+   "date": "2025-07-20",
    "timeOfDay": "midday",
    "seed": "seasons-volcanic"
   },
@@ -738,7 +750,7 @@
    "name": "volcanic-summer-sun-on-horizon",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-07-15",
+   "date": "2025-07-20",
    "timeOfDay": "sun-on-horizon",
    "evening": true,
    "seed": "seasons-volcanic"
@@ -747,7 +759,7 @@
    "name": "volcanic-autumn-night",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-10-15",
+   "date": "2025-09-20",
    "timeOfDay": "night",
    "seed": "seasons-volcanic"
   },
@@ -755,7 +767,7 @@
    "name": "volcanic-autumn-blue-hour",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-10-15",
+   "date": "2025-09-20",
    "timeOfDay": "blue-hour",
    "seed": "seasons-volcanic"
   },
@@ -763,7 +775,7 @@
    "name": "volcanic-autumn-golden-hour",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-10-15",
+   "date": "2025-09-20",
    "timeOfDay": "golden-hour",
    "seed": "seasons-volcanic"
   },
@@ -771,7 +783,7 @@
    "name": "volcanic-autumn-daylight",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-10-15",
+   "date": "2025-09-20",
    "timeOfDay": "daylight",
    "seed": "seasons-volcanic"
   },
@@ -779,7 +791,7 @@
    "name": "volcanic-autumn-midday",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-10-15",
+   "date": "2025-09-20",
    "timeOfDay": "midday",
    "seed": "seasons-volcanic"
   },
@@ -787,7 +799,7 @@
    "name": "volcanic-autumn-sun-on-horizon",
    "biome": "volcanic",
    "place": "iceland",
-   "date": "2025-10-15",
+   "date": "2025-09-20",
    "timeOfDay": "sun-on-horizon",
    "evening": true,
    "seed": "seasons-volcanic"
@@ -845,7 +857,7 @@
    "name": "desert-spring-night",
    "biome": "desert",
    "place": "baja-sonora",
-   "date": "2025-04-15",
+   "date": "2025-03-15",
    "timeOfDay": "night",
    "seed": "seasons-desert"
   },
@@ -853,7 +865,7 @@
    "name": "desert-spring-blue-hour",
    "biome": "desert",
    "place": "baja-sonora",
-   "date": "2025-04-15",
+   "date": "2025-03-15",
    "timeOfDay": "blue-hour",
    "seed": "seasons-desert"
   },
@@ -861,7 +873,7 @@
    "name": "desert-spring-golden-hour",
    "biome": "desert",
    "place": "baja-sonora",
-   "date": "2025-04-15",
+   "date": "2025-03-15",
    "timeOfDay": "golden-hour",
    "seed": "seasons-desert"
   },
@@ -869,7 +881,7 @@
    "name": "desert-spring-daylight",
    "biome": "desert",
    "place": "baja-sonora",
-   "date": "2025-04-15",
+   "date": "2025-03-15",
    "timeOfDay": "daylight",
    "seed": "seasons-desert"
   },
@@ -877,7 +889,7 @@
    "name": "desert-spring-midday",
    "biome": "desert",
    "place": "baja-sonora",
-   "date": "2025-04-15",
+   "date": "2025-03-15",
    "timeOfDay": "midday",
    "seed": "seasons-desert"
   },
@@ -885,7 +897,7 @@
    "name": "desert-spring-sun-on-horizon",
    "biome": "desert",
    "place": "baja-sonora",
-   "date": "2025-04-15",
+   "date": "2025-03-15",
    "timeOfDay": "sun-on-horizon",
    "evening": true,
    "seed": "seasons-desert"
