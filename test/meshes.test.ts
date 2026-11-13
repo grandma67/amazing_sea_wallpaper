@@ -190,7 +190,7 @@ family('ice foot cake', { base: [-0.2, INF], maxVertices: 3000 }, [['cake', () =
 describe('seals', () => {
   const kinds = ['seal', 'sea-lion', 'fur-seal', 'elephant-seal'] as const
   describe.each(kinds)('%s', kind => {
-    it.each([0, 0.7])('swimming head, pitch %s', pitch => expectMesh(seed => swimmingHead(new Random(seed), kind, pitch), { solid: true, base: [-INF, -0.05], top: [0.1, 0.6], length: 0.55 }))
+    it.each([0, 0.7])('swimming head, pitch %s', pitch => expectMesh(seed => swimmingHead(new Random(seed), kind, pitch), { solid: true, base: [-INF, -0.05], top: [0.1, 0.6], length: 0.8 })) // across the whiskers (an eared seal's reach ~0.25 m a side)
     it('lying', () => expectMesh(seed => pinniped(new Random(seed), kind, 'lying', 0), { solid: true }))
   })
 })

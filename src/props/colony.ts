@@ -22,6 +22,7 @@ import type { Random } from '../random'
 import { shoreToWorld } from '../terrain'
 import { gull } from './birds'
 import { MeshBuilder } from './builder'
+import { beak, eye, onBlob } from './faces'
 import { skinBlob, skinMaterial, skinsOn } from './skins'
 import { stormy, type PropContext } from './context'
 import { fbm3 } from './noise'
@@ -106,12 +107,20 @@ function islandGeometry(rng: Random, style: ColonyStyle, rock: RGB, stack: boole
 }
 
 /** A standing penguin, ~0.7 m: black back, white front. */
-function penguin(skin = false): BufferGeometry {
+export function penguin(skin = false): BufferGeometry {
   const b = new MeshBuilder()
   // Feathers from a photo (props/skins.ts).
   const feathers = skin ? skinBlob('feathers', 0.7, 'wrap') : undefined
   b.blob(new Vector3(0, 0.32, 0), new Vector3(0.14, 0.32, 0.12), n => (n.x > 0.2 ? [0.75, 0.75, 0.72] : [0.02, 0.02, 0.025]), () => 1, 4, undefined, feathers)
   b.blob(new Vector3(0.02, 0.66, 0), new Vector3(0.08, 0.08, 0.07), () => [0.02, 0.02, 0.025], () => 1, 3, undefined, feathers)
+  // Dark eyes and a slim black bill.
+  const head = new Vector3(0.02, 0.66, 0)
+  const radii = new Vector3(0.08, 0.08, 0.07)
+  for (const side of [-1, 1]) {
+    const e = onBlob(head, radii, new Vector3(0.5, 0.35, side * 0.8))
+    eye(b, e.at, e.out, 0.008, { iris: [0.05, 0.03, 0.03], lid: [0.03, 0.03, 0.035], irisSize: 0.85 }, 2)
+  }
+  beak(b, onBlob(head, radii, new Vector3(1, -0.1, 0)).at.add(new Vector3(-0.012, 0, 0)), new Vector3(1, -0.2, 0), new Vector3(0, 1, 0), 0.065, 0.02, 0.014, { upper: [0.02, 0.02, 0.02], lower: [0.03, 0.025, 0.02], hook: 0.25 })
   return b.build()
 }
 

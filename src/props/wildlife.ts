@@ -18,6 +18,7 @@ import { hasBeach, shoreToWorld, terrainNormal, worldToShore } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { noise3 } from './noise'
+import { eye, mouthLine, nostril, onBlob, onTube, teeth, whiskers } from './faces'
 import { skinBlob, skinCoords, skinMaterial, skinsOn, skinWhole } from './skins'
 import { inMonths, placeNamed, type Animal } from '../places'
 
@@ -296,6 +297,20 @@ export function turtleGeometry(rng: Random, species: TurtleSpecies, sand: RGB, f
     undefined,
     scales(0)
   )
+  // Face: dark eyes on the sides of the head, nostrils on the snout's top,
+  // and the edge of the horny beak round its front.
+  {
+    const H = new Vector3(length * 0.55, h * 0.9, 0)
+    const R = new Vector3(length * 0.12, length * 0.075, length * 0.085)
+    const detail = hatchling ? 2 : 3
+    for (const side of [-1, 1]) {
+      const e = onBlob(H, R, new Vector3(0.35, 0.4, side * 0.85))
+      eye(b, e.at, e.out, length * 0.012, { iris: [0.05, 0.035, 0.02], lid: shade(skinColor, 0.6), irisSize: 0.9 }, detail)
+      const n = onBlob(H, R, new Vector3(1, 0.45, side * 0.14))
+      nostril(b, n.at, n.out, length * 0.004, 0.6)
+    }
+    mouthLine(b, [-0.75, -0.4, 0, 0.4, 0.75].map(z => onBlob(H, R, new Vector3(1 - 0.5 * Math.abs(z), -0.4, z)).at), length * 0.0018)
+  }
   // Flippers: long front ones swept out and back, small rear ones.
   for (const side of [-1, 1]) {
     const front = length * (leather ? 0.62 : 0.45)
@@ -388,6 +403,18 @@ export function monkeyGeometry(rng: Random, kind: MonkeyKind, pose: 'walk' | 'si
   // Head, with a pale cap (capuchin, vervet brow) and the bare face forward.
   b.blob(head, new Vector3(size * 0.14, size * 0.14, size * 0.13), n => (c.cap != null && n.y > 0.1 && n.x < 0.5 ? c.cap : fur(n)), () => 1, 4, undefined, coat(0.2))
   b.blob(head.clone().add(new Vector3(size * 0.1, -size * 0.02, 0)), new Vector3(size * 0.07, size * 0.08, size * 0.08), () => c.face, () => 1, 3)
+  // Face: forward-facing brown eyes, nostrils, a mouth.
+  {
+    const F = head.clone().add(new Vector3(size * 0.1, -size * 0.02, 0))
+    const R = new Vector3(size * 0.07, size * 0.08, size * 0.08)
+    for (const side of [-1, 1]) {
+      const e = onBlob(F, R, new Vector3(0.8, 0.45, side * 0.4))
+      eye(b, e.at, e.out, size * 0.014, { iris: [0.2, 0.11, 0.05], lid: shade(c.face, 0.6), irisSize: 0.75 }, 2)
+      const n = onBlob(F, R, new Vector3(1, -0.02, side * 0.1))
+      nostril(b, n.at, n.out, size * 0.006, 0.6)
+    }
+    mouthLine(b, [-0.35, -0.15, 0, 0.15, 0.35].map(z => onBlob(F, R, new Vector3(0.95, -0.42, z)).at), size * 0.003, [0.06, 0.03, 0.03])
+  }
   // Tail: out behind and down to lie on the sand; a capuchin's tip curls.
   const tail = size * c.tail
   const path: Vector3[] = []
@@ -450,7 +477,24 @@ export function lizardGeometry(rng: Random, kind: LizardKind, skin = false): Buf
     return c
   }
   const scales = skin ? skinCoords(kind, length) : undefined
-  b.tube(spine, (t, angle) => girth * profile(t) * (1 - 0.3 * Math.cos(angle) ** 2), colorAt, 12, scales)
+  const bodyR = (t: number, angle: number): number => girth * profile(t) * (1 - 0.3 * Math.cos(angle) ** 2)
+  const bodyRings = b.tube(spine, bodyR, colorAt, 12, scales)
+  // Close the snout: the tube's open end showed the hollow inside.
+  b.cap(bodyRings[0], new Vector3(1, 0, 0), shade(spec.color, 0.85))
+  // Face: eyes with the kind's iris, nostrils near the snout's tip, the
+  // mouth line back past the eye, and a green iguana's big pale cheek scale.
+  const IRIS: Record<LizardKind, RGB> = { 'marine-iguana': [0.3, 0.24, 0.16], 'green-iguana': [0.4, 0.28, 0.1], monitor: [0.22, 0.15, 0.06], 'spiny-tailed': [0.45, 0.3, 0.1] }
+  for (const side of [-1, 1]) {
+    const e = onTube(spine, bodyR, 0.045, side * 1.15)
+    eye(b, e.at, e.out, girth * 0.13, { iris: IRIS[kind], lid: shade(spec.color, 0.7), irisSize: 0.8 }, 2)
+    const n = onTube(spine, bodyR, 0.012, side * 0.55)
+    nostril(b, n.at, n.out, girth * 0.045, 0.7)
+    mouthLine(b, [0.003, 0.02, 0.04, 0.065].map(t => onTube(spine, bodyR, t, side * (1.95 - t * 2)).at), girth * 0.012)
+    if (kind === 'green-iguana') {
+      const c = onTube(spine, bodyR, 0.1, side * 1.6)
+      b.blob(c.at, new Vector3(girth * 0.03, girth * 0.14, girth * 0.14), () => [0.5, 0.56, 0.46], () => 1, 2, new Quaternion().setFromUnitVectors(new Vector3(1, 0, 0), c.out))
+    }
+  }
   // Legs sprawl: upper arm or thigh out sideways to an elbow or knee at
   // back height, the lower leg down to a flat hand or foot with five long,
   // clawed toes fanned out. Hands point forward and out; hind feet out and
@@ -629,8 +673,27 @@ export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number
     const c = hinge.clone().addScaledVector(dir, along).addScaledVector(upDir, up).add(new Vector3(0, 0, side))
     b.blob(c, new Vector3(r * 1.3, r, r), () => color, () => 1, 2)
   }
-  for (const side of [-1, 1]) bump(girth * 0.15, girth * 0.33, side * girth * 0.28, girth * 0.11, [0.25, 0.22, 0.1])
+  // Raised orbits with greenish-yellow eyes and slit pupils; the nostril
+  // knob with its two openings; the teeth along the upper jaw that show
+  // even with the mouth shut.
+  for (const side of [-1, 1]) {
+    bump(girth * 0.15, girth * 0.31, side * girth * 0.27, girth * 0.11, shade(spec.back, 0.9))
+    const c = hinge.clone().addScaledVector(dir, girth * 0.17).addScaledVector(upDir, girth * 0.36).add(new Vector3(0, 0, side * girth * 0.33))
+    eye(b, c, upDir.clone().multiplyScalar(0.55).add(new Vector3(0, 0, side * 0.85)), girth * 0.075, { iris: [0.42, 0.38, 0.1], lid: shade(spec.back, 0.8), pupil: 'slit', irisSize: 0.85 }, 2)
+  }
   bump(head + girth * 0.05, girth * 0.12, 0, girth * 0.09, shade(spec.back, 0.9))
+  const knob = hinge.clone().addScaledVector(dir, head + girth * 0.05).addScaledVector(upDir, girth * 0.12 + girth * 0.085)
+  for (const side of [-1, 1]) nostril(b, knob.clone().add(new Vector3(0, 0, side * girth * 0.035)), upDir, girth * 0.028, 0.45, dir)
+  const jawLength = head + girth * 0.25
+  for (const side of [-1, 1]) {
+    const roots: Vector3[] = []
+    for (let k = 2; k <= 11; k++) {
+      const t = k / 12
+      const r = girth * 0.78 * (1 - 0.62 * Math.min(1, t * 1.1))
+      roots.push(hinge.clone().addScaledVector(dir, (t * 1.1 - 0.1) * jawLength).addScaledVector(upDir, -r * 0.2).add(new Vector3(0, 0, side * r * 0.97)))
+    }
+    teeth(b, roots, upDir.clone().negate(), girth * 0.06)
+  }
   return b.build()
 }
 
@@ -687,10 +750,24 @@ export function hippoGeometry(rng: Random, wet: number, skin = false): BufferGeo
   b.blob(new Vector3(2.15 * s, 0.74 * s, 0), new Vector3(0.28 * s, 0.27 * s, 0.4 * s), n => (n.y < 0.2 && Math.abs(n.z) > 0.6 ? pink : hide(n, 6)), boxy, 5, undefined, pores(0.9))
   for (const side of [-1, 1]) {
     // Eyes high on the head, little ears behind, nostrils on top of the muzzle.
-    b.blob(new Vector3(1.65 * s, 1.27 * s, side * 0.24 * s), new Vector3(0.08 * s, 0.07 * s, 0.07 * s), () => mix(grey, pink, 0.5), () => 1, 3)
+    b.blob(new Vector3(1.65 * s, 1.25 * s, side * 0.24 * s), new Vector3(0.08 * s, 0.06 * s, 0.07 * s), () => mix(grey, pink, 0.5), () => 1, 3)
+    eye(b, new Vector3(1.69 * s, 1.29 * s, side * 0.27 * s), new Vector3(0.35, 0.55, side * 0.75), 0.045 * s, { iris: [0.14, 0.06, 0.03], lid: mix(grey, pink, 0.55), irisSize: 0.85 }, 3)
     b.blob(new Vector3(1.42 * s, 1.4 * s, side * 0.22 * s), new Vector3(0.035 * s, 0.07 * s, 0.025 * s), () => pink, () => 1, 2)
     b.blob(new Vector3(2.2 * s, 0.97 * s, side * 0.14 * s), new Vector3(0.08 * s, 0.05 * s, 0.07 * s), () => shade(grey, 0.9), () => 1, 2)
+    nostril(b, new Vector3(2.22 * s, 1.015 * s, side * 0.14 * s), new Vector3(0.25, 1, side * 0.15), 0.05 * s, 0.3, new Vector3(1, 0, side * 0.6))
   }
+  // The long lip line round the muzzle, the mouth's corner far back under
+  // the eye; short, sparse bristles on the muzzle (hippos have them,
+  // Current Biology 2021: PMC7930762).
+  const M = new Vector3(2.15 * s, 0.74 * s, 0)
+  const MR = new Vector3(0.28 * s, 0.27 * s, 0.4 * s)
+  for (const side of [-1, 1]) {
+    mouthLine(b, [[1, -0.45, 0], [0.8, -0.45, 0.5], [0.3, -0.45, 0.9], [-0.3, -0.35, 1], [-0.75, -0.25, 0.8]].map(([x, y, z]) => {
+      const d = new Vector3(x, y, side * z).normalize()
+      return onBlob(M, MR, d, boxy(d) * 1.01).at
+    }), 0.012 * s, [0.12, 0.07, 0.06])
+  }
+  whiskers(b, M.clone().add(new Vector3(0.22 * s, 0.02 * s, 0)), new Vector3(1, 0, 0), new Vector3(0, 1, 0), 0.3 * s, { count: 9, length: 0.035, r: 0.0018, color: [0.1, 0.08, 0.07], droop: 0.1 })
   // Short, flattened tail.
   b.tube([new Vector3(-1.45 * s, 1.0 * s, 0), new Vector3(-1.58 * s, 0.82 * s, 0), new Vector3(-1.6 * s, 0.62 * s, 0)], t => s * 0.07 * (1 - 0.5 * t), () => grey, 5)
   return b.build()

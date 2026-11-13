@@ -16,6 +16,7 @@ import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { forced } from '../sceneSpec'
 import { MeshBuilder } from './builder'
+import { beak, eye, onBlob } from './faces'
 import { skinBlob, skinFlat, skinMaterial, skinsOn } from './skins'
 import { windDirection } from './wind'
 import { stormy, type PropContext } from './context'
@@ -29,6 +30,19 @@ const WHITE: RGB = [0.75, 0.75, 0.73]
 const GREY: RGB = [0.42, 0.44, 0.46]
 const BLACK: RGB = [0.04, 0.04, 0.045]
 const BILL: RGB = [0.6, 0.45, 0.1]
+/** A large gull's red spot near the lower bill's tip, its pale iris and
+ * orange-red orbital ring (herring gull). */
+const GONYS: RGB = [0.55, 0.06, 0.03]
+
+/** A gull's face on its head blob: eye, and the bill from the head's front. */
+function gullFace(b: MeshBuilder, head: Vector3, radii: Vector3, dark: boolean): void {
+  for (const side of [-1, 1]) {
+    const e = onBlob(head, radii, new Vector3(0.45, 0.35, side * 0.8))
+    eye(b, e.at, e.out, radii.y * 0.16, { iris: dark ? [0.05, 0.04, 0.03] : [0.7, 0.66, 0.42], lid: dark ? [0.05, 0.05, 0.05] : [0.6, 0.22, 0.08], irisSize: 0.85 }, 2)
+  }
+  const base = onBlob(head, radii, new Vector3(1, -0.15, 0)).at.addScaledVector(new Vector3(1, 0, 0), -radii.x * 0.15)
+  beak(b, base, new Vector3(1, -0.08, 0), new Vector3(0, 1, 0), 0.055, 0.022, 0.016, { upper: dark ? BLACK : BILL, lower: dark ? BLACK : BILL, gonys: dark ? undefined : GONYS, hook: 0.35, blunt: 0.35 })
+}
 
 /** `lift` raises the inner wing, `droop` lowers the outer wing (radians). */
 export function gull(lift: number, droop: number, dark: boolean, skin = false): BufferGeometry {
@@ -45,12 +59,17 @@ export function gull(lift: number, droop: number, dark: boolean, skin = false): 
   const wing = dark ? BLACK : GREY
   b.blob(new Vector3(0, 0, 0), new Vector3(0.22, 0.05, 0.05), () => body, () => 1, 4, undefined, body3)
   b.blob(new Vector3(0.21, 0.025, 0), new Vector3(0.055, 0.045, 0.04), () => body, () => 1, 3, undefined, body3)
-  b.blob(new Vector3(0.29, 0.015, 0), new Vector3(0.04, 0.01, 0.01), () => BILL, () => 1, 2)
-  // Tail.
-  const t0 = v(new Vector3(-0.2, 0.01, -0.05), body)
-  const t1 = v(new Vector3(-0.2, 0.01, 0.05), body)
-  const t2 = v(new Vector3(-0.36, 0.0, 0.0), wing)
-  b.triangle(t0, t1, t2)
+  gullFace(b, new Vector3(0.21, 0.025, 0), new Vector3(0.055, 0.045, 0.04), dark)
+  // Tail: a fan, narrow where it leaves the body and broad, squarish at
+  // the end (a gull's is white; it was a point before, which read as an
+  // arrowhead).
+  const t0 = v(new Vector3(-0.19, 0.01, -0.03), body)
+  const t1 = v(new Vector3(-0.19, 0.01, 0.03), body)
+  const t2 = v(new Vector3(-0.33, 0.0, 0.065), body)
+  const t3 = v(new Vector3(-0.345, 0.0, 0), body)
+  const t4 = v(new Vector3(-0.33, 0.0, -0.065), body)
+  b.quad(t0, t1, t2, t3)
+  b.triangle(t0, t3, t4)
   for (const side of [-1, 1]) {
     const shoulder = new Vector3(0.05, 0.02, side * 0.05)
     const elbow = shoulder
@@ -82,7 +101,7 @@ export function restingGull(dark: boolean, skin = false): BufferGeometry {
   const wing = dark ? BLACK : GREY
   b.blob(new Vector3(0, 0.07, 0), new Vector3(0.2, 0.07, 0.075), () => body, () => 1, 4, undefined, body3(0))
   b.blob(new Vector3(0.17, 0.15, 0), new Vector3(0.055, 0.05, 0.045), () => body, () => 1, 3, undefined, body3(0.1))
-  b.blob(new Vector3(0.24, 0.14, 0), new Vector3(0.04, 0.01, 0.01), () => BILL, () => 1, 2)
+  gullFace(b, new Vector3(0.17, 0.15, 0), new Vector3(0.055, 0.05, 0.045), dark)
   // Folded wings over the back and flanks.
   for (const side of [-1, 1]) {
     b.blob(new Vector3(-0.03, 0.105, side * 0.045), new Vector3(0.19, 0.035, 0.04), () => wing, () => 1, 3, undefined, body3(0.2 * side))

@@ -1,4 +1,5 @@
 import {
+  type BufferAttribute,
   ACESFilmicToneMapping,
   Box3,
   BufferGeometry,
@@ -135,6 +136,26 @@ async function main(): Promise<{ size: number[]; triangles: number }> {
 
   // Side (from +z), front (from +x, the way animals face), 3/4 from above,
   // and at eye height `eye` m off.
+  // `&focus=head`: frame the three views on the front 15% of the mesh (every
+  // animal faces +x), to judge eyes, nostrils, mouths and bills.
+  if (query.get('focus') === 'head') {
+    const front = box.max.x - size.x * 0.15
+    const head = new Box3()
+    const p = new Vector3()
+    object.traverse(o => {
+      const position = (o as Mesh).geometry?.attributes.position
+      if (position == null) return
+      o.updateWorldMatrix(true, false)
+      for (let i = 0; i < position.count; i++) {
+        p.fromBufferAttribute(position as BufferAttribute, i).applyMatrix4(o.matrixWorld)
+        if (p.x >= front) head.expandByPoint(p)
+      }
+    })
+    if (!head.isEmpty()) {
+      box.copy(head)
+      head.getCenter(centre)
+    }
+  }
   const views: [Vector3, number][] = [
     [new Vector3(0, 0.15, 1), 30],
     [new Vector3(1, 0.15, 0), 30],

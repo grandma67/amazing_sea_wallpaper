@@ -6,6 +6,7 @@ import type { OceanName } from '../oceans'
 import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { MeshBuilder } from './builder'
+import { eye, mouthLine, nostril, onTube } from './faces'
 import type { PropContext } from './context'
 import { forced, forcedKind, type MarineSpecies } from '../sceneSpec'
 import { skinCoords, skinMaterial, skinsOn, type SkinId } from './skins'
@@ -100,7 +101,7 @@ function profile(knots: [number, number][]): (t: number) => number {
 }
 
 class Animal {
-  private readonly b = new MeshBuilder()
+  readonly b = new MeshBuilder()
   readonly spine: Vector3[] = []
 
   constructor(
@@ -125,6 +126,32 @@ class Animal {
       14,
       skin ? skinCoords(look.skin, shape.length) : undefined
     )
+  }
+
+  /** A face on the body tube (angle 0 the back, π the belly): eyes at
+   * `eyeT`/`eyeAngle`, a blowhole (or two) on top at `blowT`, the mouth
+   * line from the tip back to `mouthT` at `mouthAngle` (rising by `smile`
+   * toward its end). */
+  face(o: { eyeT: number; eyeAngle: number; eyeR: number; iris: RGB; lid: RGB; blowT?: number; blowR?: number; blowholes?: 1 | 2; mouthFrom?: number; mouthT: number; mouthAngle: number; smile?: number; mouthR: number }): void {
+    const radius = (t: number): number => this.shape.radius(t)
+    for (const side of [-1, 1]) {
+      const e = onTube(this.spine, radius, o.eyeT, side * o.eyeAngle)
+      eye(this.b, e.at, e.out, o.eyeR, { iris: o.iris, lid: o.lid, irisSize: 0.9 }, 2)
+      mouthLine(this.b, [0, 0.25, 0.5, 0.75, 1].map(k => onTube(this.spine, radius, (o.mouthFrom ?? 0.004) + k * (o.mouthT - (o.mouthFrom ?? 0.004)), side * (o.mouthAngle - (o.smile ?? 0) * k * k)).at), o.mouthR)
+    }
+    if (o.blowT != null && o.blowR != null) {
+      const along = this.spine[0].clone().sub(this.spine[2])
+      if (o.blowholes === 2) {
+        for (const side of [-1, 1]) {
+          const h = onTube(this.spine, radius, o.blowT, side * 0.12)
+          nostril(this.b, h.at, h.out, o.blowR, 0.35, along)
+        }
+      } else {
+        const h = onTube(this.spine, radius, o.blowT, 0)
+        // A crescent across the head (a slit across, not along).
+        nostril(this.b, h.at, h.out, o.blowR, 0.3, new Vector3(0, 0, 1))
+      }
+    }
   }
 
   /** Point on the body surface: t along it, `up` = −1 belly … 1 back. */
@@ -192,6 +219,9 @@ function dolphin(rng: Random, arch: number, skin = false): BufferGeometry {
     a.fin([a.surface(0.27, -0.3, side * 0.9), a.surface(0.33, -0.5, side * 1.4).add(new Vector3(-0.15, -0.08, side * 0.25)), a.surface(0.34, -0.3, side * 0.9)])
   }
   a.flukes(length * 0.24, length * 0.12)
+  // A small dark eye just behind the gape, the "smile" curving up to it,
+  // one crescent blowhole over the eyes.
+  a.face({ eyeT: 0.14, eyeAngle: 1.75, eyeR: 0.0065 * length, iris: [0.03, 0.03, 0.035], lid: [0.05, 0.055, 0.06], blowT: 0.17, blowR: 0.014 * length, mouthT: 0.12, mouthAngle: 2.0, smile: 0.3, mouthR: 0.0012 * length })
   return a.build()
 }
 
@@ -221,6 +251,9 @@ function orca(rng: Random, male: boolean, skin = false): BufferGeometry {
     a.fin([a.surface(0.2, -0.4, side * 0.9), a.surface(0.26, -0.6, side * 1.3).add(new Vector3(-0.3, -0.3, side * 0.6)), a.surface(0.28, -0.4, side * 0.9)])
   }
   a.flukes(length * 0.26, length * 0.1)
+  // The eye low in the black just in front of the white eye patch, the
+  // mouth line, one blowhole.
+  a.face({ eyeT: 0.13, eyeAngle: 1.75, eyeR: 0.0045 * length, iris: [0.02, 0.02, 0.02], lid: [0.02, 0.02, 0.02], blowT: 0.18, blowR: 0.012 * length, mouthT: 0.11, mouthAngle: 2.15, smile: 0.15, mouthR: 0.001 * length })
   return a.build()
 }
 
@@ -257,6 +290,10 @@ function humpback(rng: Random, skin = false): BufferGeometry {
     ])
   }
   a.flukes(length * 0.32, length * 0.11, mix([0.62, 0.62, 0.6], LOOKS.humpback.back, rng.range(0, 0.6)))
+  // A small eye low behind the corner of the long, down-curving mouth;
+  // paired blowholes on top of the head. (Each head knob has one hair, a
+  // few cm long: too small to draw.)
+  a.face({ eyeT: 0.27, eyeAngle: 2.0, eyeR: 0.003 * length, iris: [0.03, 0.025, 0.02], lid: [0.03, 0.03, 0.035], blowT: 0.18, blowR: 0.006 * length, blowholes: 2, mouthT: 0.26, mouthAngle: 1.85, smile: -0.25, mouthR: 0.0006 * length })
   return a.build()
 }
 
@@ -289,6 +326,12 @@ function swordfish(rng: Random, skin = false): BufferGeometry {
   const root = a.spine[a.spine.length - 1]
   for (const s of [-1, 1]) {
     a.fin([root.clone().add(new Vector3(0.05, 0, 0)), root.clone().add(new Vector3(-h * 0.6, s * h * 1.1, 0)), root.clone().add(new Vector3(-h * 0.25, s * h * 0.3, 0)), root.clone().add(new Vector3(-0.05, 0, 0))])
+  }
+  // A swordfish's huge eye behind the bill, the mouth under the bill's
+  // root, and the gill cover's edge curving down behind the eye.
+  a.face({ eyeT: 0.305, eyeAngle: 1.45, eyeR: 0.014 * length, iris: [0.05, 0.06, 0.1], lid: [0.06, 0.07, 0.1], mouthFrom: 0.26, mouthT: 0.3, mouthAngle: 2.3, mouthR: 0.0015 * length })
+  for (const side of [-1, 1]) {
+    mouthLine(a.b, [0.9, 1.3, 1.7, 2.1, 2.5].map(ang => onTube(a.spine, t => a.shape.radius(t), 0.35, side * ang).at), 0.0012 * length, [0.02, 0.025, 0.04])
   }
   return a.build()
 }

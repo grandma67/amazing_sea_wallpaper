@@ -129,6 +129,18 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   through `MeshBuilder.setSkin` and `skinFlat` (x along, distance out across). Crabs and starfish
   (0.162): a ghost crab's speckled carapace (from above) and legs on every crab (not the hermit's
   borrowed shell), a common starfish's spines on arms and disc. Every animal now has a skin.
+- **Faces** (`props/faces.ts`, 0.164): `eye` (a domed eyeball set into the head, iris and a round
+  or slit pupil painted facing out, a lid ring on big eyes), `nostril` (a sunk dark slit),
+  `mouthLine`, `beak` (upper over a shorter lower mandible, the gape line, nostril slits, a hooked
+  and blunt tip, a gull's red gonys spot, a flamingo's bend and black tip), `teeth`, `whiskers`
+  (curved, tapered, fanning from the muzzle pads, beaded wavy for true seals), placed by
+  `onTube` (the tube's own frame, so features sit on tube bodies) or `onBlob` (an ellipsoid head).
+  Every animal has eyes; nostrils, mouths, bills and teeth where it has them; whiskers on seals
+  (long pale on eared seals, short dark on elephant seals) and short bristles on hippos; none on
+  dolphins and orcas (lost after birth), whales (one hair per head knob, too small) or monkeys.
+  Tube ends at seal noses and lizard snouts are capped. Small eyes skip the lid ring and
+  nostrils are detail-1 blobs, to keep colonies cheap (penguin 400 → 672 triangles).
+  `mesh.mjs --focus head` frames the views on the head.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

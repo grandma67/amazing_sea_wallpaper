@@ -17,6 +17,7 @@ import { forced, forcedKind, type MigratorySpecies } from '../sceneSpec'
 import { waterfowlSeason } from '../animalSeasons'
 import { hasBeach } from '../terrain'
 import { MeshBuilder } from './builder'
+import { beak, eye, onBlob, type BeakLook } from './faces'
 import { skinBlob, skinCoords, skinFlat, skinMaterial, skinsOn } from './skins'
 import type { PropContext } from './context'
 
@@ -113,18 +114,22 @@ function flying(species: Species, lift: number, skin = false): BufferGeometry {
   b.tube([new Vector3(L * 0.3, 0.02 * L, 0), neckEnd], () => L * 0.045, () => p.neck, 6, skin ? skinCoords('feathers', L) : undefined)
   b.blob(neckEnd, new Vector3(L * 0.08, L * 0.06, L * 0.055), n => (species === 'goose' && Math.abs(n.z) > 0.6 && n.y < 0.3 ? p.accent : p.head), () => 1, 3)
   const billLength = species === 'flamingo' ? 0.14 : 0.08
-  b.tube([neckEnd.clone().add(new Vector3(L * 0.06, 0, 0)), neckEnd.clone().add(new Vector3(L * billLength + L * 0.06, -L * (species === 'flamingo' ? 0.05 : 0.01), 0))], t => L * 0.025 * (1 - t * 0.6), () => p.bill, 5)
+  const headR = new Vector3(L * 0.08, L * 0.06, L * 0.055)
+  birdFace(b, species, neckEnd, headR, new Vector3(1, -0.05, 0), L * billLength * 1.3, L)
   // Legs trailing behind (flamingos).
   if (s.legs > 0) {
     for (const z of [-0.02, 0.02]) {
       b.tube([new Vector3(-L * 0.3, -L * 0.05, z * L), new Vector3(-L * (0.3 + s.legs), -L * 0.08, z * L * 2)], () => L * 0.015, () => p.legs, 4)
     }
   }
-  // Tail.
-  const t0 = v(new Vector3(-L * 0.35, 0, -L * 0.07), p.body)
-  const t1 = v(new Vector3(-L * 0.35, 0, L * 0.07), p.body)
-  const t2 = v(new Vector3(-L * 0.55, 0, 0), p.wing)
-  b.triangle(t0, t1, t2)
+  // Tail: a short fan, broadest at its end.
+  const t0 = v(new Vector3(-L * 0.35, 0, -L * 0.05), p.body)
+  const t1 = v(new Vector3(-L * 0.35, 0, L * 0.05), p.body)
+  const t2 = v(new Vector3(-L * 0.52, 0, L * 0.1), p.wing)
+  const t3 = v(new Vector3(-L * 0.54, 0, 0), p.wing)
+  const t4 = v(new Vector3(-L * 0.52, 0, -L * 0.1), p.wing)
+  b.quad(t0, t1, t2, t3)
+  b.triangle(t0, t3, t4)
   // Two-segment wings with dark primaries.
   const half = s.span / 2
   for (const side of [-1, 1]) {
@@ -165,8 +170,29 @@ function wadingFlamingo(feeding: boolean, oneLeg: boolean, skin = false): Buffer
   const head = path[path.length - 1]
   b.blob(head, new Vector3(0.05, 0.04, 0.035), () => p.head, () => 1, 3)
   const billDir = feeding ? new Vector3(-0.02, -0.07, 0) : new Vector3(0.08, -0.04, 0)
-  b.tube([head.clone(), head.clone().add(billDir)], t => 0.02 * (1 - t * 0.5), t => (t > 0.5 ? p.bill : [0.8, 0.75, 0.7]), 4)
+  birdFace(b, 'flamingo', head, new Vector3(0.05, 0.04, 0.035), billDir, 0.11, 0.6)
   return b.build()
+}
+
+/** Bills by species: a goose's with its pale nail, a duck's broad and flat,
+ * a flamingo's pale with a black tip, bent sharply down. */
+const BILLS: Record<Species, BeakLook & { depth: number; width: number }> = {
+  goose: { upper: [0.03, 0.03, 0.03], lower: [0.03, 0.03, 0.03], tip: [0.35, 0.33, 0.3], tipFrom: 0.85, hook: 0.2, depth: 0.07, width: 0.05, blunt: 0.4 },
+  duck: { upper: [0.45, 0.4, 0.12], lower: [0.4, 0.35, 0.1], tip: [0.05, 0.05, 0.04], tipFrom: 0.85, hook: 0.15, depth: 0.04, width: 0.07, blunt: 0.45 },
+  flamingo: { upper: [0.82, 0.72, 0.68], lower: [0.82, 0.72, 0.68], tip: [0.03, 0.025, 0.025], tipFrom: 0.5, bend: 0.9, depth: 0.05, width: 0.04, blunt: 0.3 }
+}
+
+/** A bird's face on its head blob: dark (a flamingo's yellow) eyes, and
+ * the species' bill from the head's front along `dir`. */
+function birdFace(b: MeshBuilder, species: Species, head: Vector3, radii: Vector3, dir: Vector3, billLength: number, L: number): void {
+  const look = BILLS[species]
+  const iris: RGB = species === 'flamingo' ? [0.75, 0.62, 0.15] : [0.06, 0.04, 0.03]
+  for (const side of [-1, 1]) {
+    const e = onBlob(head, radii, new Vector3(0.4, 0.35, side * 0.85))
+    eye(b, e.at, e.out, radii.y * 0.17, { iris, lid: [0.04, 0.04, 0.04], irisSize: 0.8 }, 2)
+  }
+  const base = onBlob(head, radii, dir).at.addScaledVector(dir.clone().normalize(), -radii.x * 0.2)
+  beak(b, base, dir, new Vector3(0, 1, 0), billLength, L * look.depth, L * look.width, look)
 }
 
 /** One bird (scripts/mesh.mjs, tests): flying, or a flamingo wading. */

@@ -18,6 +18,7 @@ import { monthInSeason } from '../seasons'
 import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
 import { tideMarks } from '../tides'
 import { MeshBuilder } from './builder'
+import { eye } from './faces'
 import { skinBlob, skinCoords, skinMaterial, skinsOn } from './skins'
 import { stormy, type PropContext } from './context'
 import { noise3 } from './noise'
@@ -395,6 +396,12 @@ export function crabGeometry(rng: Random, kind: CrabKind, sand: RGB, skin = fals
     const tip = new Vector3(width * 0.75, lift * 0.6, side * width * 0.35)
     b.tube([base, tip], () => width * 0.07 * claw, () => color, 5)
     b.blob(tip, new Vector3(width * 0.16, width * 0.08, width * 0.09).multiplyScalar(claw), () => shade(color, 1.1), () => 1, 3)
+    // Short eye stalks (shore and hermit crabs) with dark eyes on top.
+    if (kind !== 'ghost') {
+      const stalk = new Vector3(width * 0.36, lift + width * 0.16, side * width * 0.11)
+      b.tube([rim(width * 0.4, side * width * 0.1).setY(lift + width * 0.08), stalk], () => width * 0.025, () => color, 4)
+      eye(b, stalk.clone().add(new Vector3(width * 0.015, width * 0.02, 0)), new Vector3(0.6, 0.6, side * 0.5), width * 0.04, { iris: [0.02, 0.02, 0.02], lid: color, irisSize: 1 }, 2)
+    }
     // Ghost crabs' tall eye stalks.
     if (kind === 'ghost') {
       const eye = new Vector3(width * 0.4, lift + width * 0.35, side * width * 0.18)
@@ -402,6 +409,8 @@ export function crabGeometry(rng: Random, kind: CrabKind, sand: RGB, skin = fals
       b.blob(eye, new Vector3(width * 0.06, width * 0.1, width * 0.06), () => [0.02, 0.02, 0.02], () => 1, 3)
     }
   }
+  // Mouthparts: the dark plates under the carapace's front edge.
+  b.blob(rim(width * 0.4, 0).add(new Vector3(-width * 0.02, -width * 0.06, 0)), new Vector3(width * 0.04, width * 0.06, width * 0.1), () => shade(color, 0.45), () => 1, 2)
   return b.build()
 }
 

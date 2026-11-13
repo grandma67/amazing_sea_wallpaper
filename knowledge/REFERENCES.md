@@ -74,6 +74,12 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
 
 ## Shore and animals
 
+- Whiskers (0.164): true seals' vibrissae are flattened and beaded (wavy), eared seals' smooth;
+  15–350 a side by species (review, pmc.ncbi.nlm.nih.gov/articles/PMC3317988; oceanbites.org
+  "What's up with whiskers"). Hippos have bristle-like muzzle whiskers (Current Biology 2021,
+  pmc.ncbi.nlm.nih.gov/articles/PMC7930762); bottlenose dolphins lose their rostral vibrissae soon
+  after birth; each humpback head tubercle carries one hair (baleinesendirect.org "Do whales have
+  hair?"). From search summaries.
 - Animal skins (0.157): photos on Wikimedia Commons, listed with author and licence in
   `src/props/skins.json` (public domain or CC BY; CC BY credited in README). Pixel scale from an
   assumed length of the animal in the photo (harbour seal 1.5 m, Nile crocodile 3.5 m), not measured.

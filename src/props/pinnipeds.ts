@@ -23,6 +23,7 @@ import { fbm3 } from './noise'
 import { rockMaterial, type RockGrowth } from './rocks'
 import { snowLook } from './snowCap'
 import { unitSphere } from './sphere'
+import { eye, mouthLine, nostril, onTube, whiskers, type WhiskerLook } from './faces'
 import { skinCoords, skinMaterial, skinsOn, type SkinId } from './skins'
 
 // Seals and sea lions hauled out on the rocks (see PinnipedKind):
@@ -85,6 +86,38 @@ function profile(knots: [number, number][]): (t: number) => number {
 
 type Pose = 'lying' | 'banana' | 'sitting'
 
+/** Whiskers by kind (sizes in body lengths): true seals' are flattened and
+ * beaded (wavy), eared seals' smooth; fur seals' the longest and palest,
+ * elephant seals' short and dark (Hanke et al. 2010, PMC3317988; Ginter
+ * et al. 2012). */
+const WHISKERS: Record<PinnipedKind, Omit<WhiskerLook, 'length' | 'r'> & { length: number }> = {
+  seal: { count: 12, length: 0.065, color: [0.6, 0.57, 0.5], wavy: true, droop: 0.15 },
+  'sea-lion': { count: 12, length: 0.1, color: [0.68, 0.65, 0.56], droop: 0.25 },
+  'fur-seal': { count: 12, length: 0.14, color: [0.75, 0.72, 0.62], droop: 0.3 },
+  'elephant-seal': { count: 9, length: 0.045, color: [0.12, 0.1, 0.08], wavy: true, droop: 0.4 }
+}
+
+/** A pinniped's face on its head tube (`path` nose first, `radius` the
+ * tube's): big dark eyes high on the sides, nostril slits on the muzzle
+ * tip, the mouth line each side, whiskers from the muzzle pads. `eyeT`
+ * places the eyes along the tube (the snout's length differs). */
+function face(b: MeshBuilder, path: Vector3[], radius: (t: number, angle: number) => number, kind: PinnipedKind, L: number, back: RGB, eyeT: number, eyeR: number, muzzleT: number): void {
+  const lid: RGB = [back[0] * 0.55, back[1] * 0.55, back[2] * 0.55]
+  for (const side of [-1, 1]) {
+    const e = onTube(path, radius, eyeT, side * 0.95)
+    eye(b, e.at, e.out, eyeR, { iris: [0.025, 0.018, 0.014], lid, irisSize: 0.95 })
+    const n = onTube(path, radius, 0.006, side * 0.42)
+    const up = onTube(path, radius, 0.006, 0).out
+    nostril(b, n.at, n.out, 0.007 * L, 0.35, up)
+    mouthLine(b, [0.004, 0.015, 0.028, 0.04].map(t => onTube(path, radius, t * (muzzleT / 0.03), side * (2.05 + t * 2)).at), 0.0016 * L)
+  }
+  const mid = onTube(path, radius, muzzleT, 0)
+  const centre = path[Math.round(muzzleT * (path.length - 1))].clone().addScaledVector(mid.out, -radius(muzzleT, Math.PI / 2) * 0.25)
+  const forward = path[0].clone().sub(path[Math.min(path.length - 1, 3)])
+  const w = WHISKERS[kind]
+  whiskers(b, centre, forward, mid.out, radius(muzzleT, Math.PI / 2) * 0.85, { ...w, length: w.length * L, r: 0.0012 * (L / 1.7) })
+}
+
 /** Each kind's photo skin (props/skins.ts): sea lions share the fur seal's
  * coat (both eared seals' short fur). */
 const SKIN: Record<PinnipedKind, SkinId> = { seal: 'harbour-seal', 'sea-lion': 'eared-seal', 'fur-seal': 'eared-seal', 'elephant-seal': 'elephant-seal' }
@@ -130,7 +163,7 @@ export function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: numbe
   const seed = rng.int(0, 100_000)
   const back = mix(look.back, [look.back[0] * 0.45, look.back[1] * 0.45, look.back[2] * 0.45], wet)
   const belly = mix(look.belly, [look.belly[0] * 0.5, look.belly[1] * 0.5, look.belly[2] * 0.5], wet)
-  b.tube(
+  const bodyRings = b.tube(
     spine,
     t => g * radius(t),
     (t, angle) => {
@@ -167,7 +200,14 @@ export function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: numbe
     // the body (eared seals sitting up).
     const tail = at(1)
     if (look.eared && pose === 'sitting') {
-      fin([tail.clone().setZ(side * g * 0.3), tail.clone().add(new Vector3(0.18 * L, -tail.y + 0.01, side * g * 0.9)), tail.clone().add(new Vector3(0.08 * L, -tail.y + 0.01, side * g * 1.1))], back)
+      // Turned forward under the hips and lying flat on the ground: a
+      // webbed fan from the hip, its toes forward and out (it was one
+      // triangle hinged at the tail tip, which hung in the air).
+      const hip = at(0.82)
+      const hipR = g * radius(0.82)
+      const root = hip.clone().add(new Vector3(0, -hipR * 0.45, side * hipR * 0.8))
+      const toe = (fwd: number, out: number): Vector3 => new Vector3(root.x + fwd * L, 0.008 * L, side * (Math.abs(root.z) + out * L))
+      fin([root, toe(0.06, 0.02), toe(0.17, 0.05), toe(0.2, 0.09), toe(0.15, 0.13), toe(0.04, 0.07)], back)
     } else {
       // Webbed fans, held together and a little spread.
       const lift = pose === 'banana' ? 0.08 * L : 0
@@ -176,6 +216,9 @@ export function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: numbe
   }
   // An elephant seal bull's trunk-like nose hanging over the mouth.
   if (bull) b.blob(at(0).clone().add(new Vector3(0.02 * L, -0.02 * L, 0)), new Vector3(0.06 * L, 0.035 * L, 0.035 * L), () => back, () => 1, 4)
+  // Close the nose: the tube's open end showed the hollow inside.
+  b.cap(bodyRings[0], spine[0].clone().sub(spine[1]), [0.03, 0.025, 0.02])
+  face(b, spine, t => g * radius(t), kind, L, back, 0.055, (look.eared ? 0.012 : 0.011) * L, 0.02)
   return b.build()
 }
 
@@ -216,14 +259,10 @@ export function swimmingHead(rng: Random, kind: PinnipedKind, pitch: number, ski
     skin ? skinCoords(SKIN[kind], L) : undefined
   )
   b.cap(rings[0], new Vector3(1, 0, 0).applyAxisAngle(new Vector3(0, 0, 1), pitch), back)
-  // Big dark eyes, high on the sides of the head behind the muzzle.
+  // Big dark eyes high on the sides of the head behind the muzzle,
+  // nostrils, mouth and whiskers.
   const at = (t: number): Vector3 => spine[Math.round(t * (spine.length - 1))]
-  const eye = at(0.27)
-  const r = radius(0.27) * L
-  for (const side of [-1, 1]) {
-    const p = eye.clone().add(new Vector3(0, r * 0.45, side * r * 0.85).applyAxisAngle(new Vector3(0, 0, 1), pitch))
-    b.blob(p, new Vector3().setScalar(r * 0.22), () => [0.005, 0.005, 0.005], () => 1, 3)
-  }
+  face(b, spine, (t, angle) => radius(t) * L * (1 + 0.12 * Math.sin(angle) ** 2), kind, L, back, 0.27, radius(0.27) * L * 0.2, 0.1)
   // An elephant seal bull's trunk hanging over the mouth.
   if (bull) b.blob(at(0.04).clone().add(new Vector3(0, -0.02 * L, 0)), new Vector3(0.045 * L, 0.03 * L, 0.028 * L), () => back, () => 1, 4)
   return b.build()
