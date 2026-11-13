@@ -7,6 +7,7 @@
 import type { Climate, RGB, VegetationKind } from './biome'
 import { hashCell } from './cellNoise'
 import type { Fruiting } from './fruits'
+import { SHRUBS, shrubGrows, type ShrubKind } from './shrubs'
 import { PLACES, plantsFor, type DrySeason } from './places'
 import { seasonDay, seasonMonth, type Day } from './seasons'
 
@@ -58,7 +59,34 @@ export interface PlantSeason {
 }
 
 /** Every blossom kind (the spec validator reads this list: sceneSpec.ts). */
-export const BLOOM_KINDS = ['rock-rose', 'gorse', 'wattle', 'flamboyant', 'pohutukawa', 'oak-catkins', 'holm-oak', 'olive', 'umbrella-thorn', 'gum-blossom', 'red-flowering-gum'] as const
+export const BLOOM_KINDS = [
+  'rock-rose',
+  'gorse',
+  'wattle',
+  'flamboyant',
+  'pohutukawa',
+  'oak-catkins',
+  'holm-oak',
+  'olive',
+  'umbrella-thorn',
+  'gum-blossom',
+  'red-flowering-gum',
+  'rugosa-rose',
+  'blackthorn',
+  'hawthorn',
+  'spanish-broom',
+  'strawberry-tree',
+  'myrtle',
+  'sea-grape',
+  'naupaka',
+  'saw-palmetto',
+  'coast-tea-tree',
+  'manuka',
+  'bush-lupine',
+  'salal',
+  'calafate',
+  'natal-plum'
+] as const
 export type BloomKind = (typeof BLOOM_KINDS)[number]
 
 /** A plant in flower on a kind's crowns (NATURE_PLAN phases 3–4). */
@@ -72,6 +100,9 @@ export interface BloomRow {
    * (oak catkins come with the leaves); otherwise a flowering crown is one of
    * the evergreens. */
   keepsSeason?: boolean
+  /** A shrub species' flowers (shrubs.ts): they open only on that species'
+   * crowns, whose share (`crowns`) is the species' share of the bushes. */
+  species?: ShrubKind
   /** Today's flowering: `strength` 0–1 scales the crowns in flower
    * (`scales: 'crowns'`) or the cards in flower on each (`'leaves'`); `on`
    * thins a flowering crown's leaves (flamboyant flowers nearly bare);
@@ -388,8 +419,79 @@ export const BLOOM: readonly BloomRow[] = [
     ],
     size: 1,
     far: false
-  }
+  },
+  ...shrubFlowers()
 ]
+
+/** A shrub's flowers by local calendar month (each species' places lie in
+ * one hemisphere; naupaka flowers all year). Months, colours and sizes:
+ * knowledge/BUSHES.md (colours est.). */
+function shrubFlowers(): BloomRow[] {
+  const WHITE: RGB = [0.62, 0.62, 0.6]
+  const CREAM: RGB = [0.6, 0.57, 0.47]
+  const flower = (
+    species: ShrubKind & BloomKind,
+    months: readonly number[],
+    colors: readonly RGB[],
+    leaves: number,
+    size: number,
+    extra: { far?: boolean; on?: number } = {}
+  ): BloomRow => {
+    const s = SHRUBS.find(x => x.species === species)!
+    return {
+      kind: species,
+      plant: 'bush',
+      places: [],
+      where: day => shrubGrows(s, day),
+      species,
+      today: day => {
+        const strength = months[Number(day.date.slice(5, 7)) - 1]
+        // Flowering on bare twigs: the leaves thin with the flowering (as
+        // bare as `on` at its peak, full again as it ends).
+        return extra.on != null && strength > 0 ? { strength, on: 1 - (1 - extra.on) * strength } : { strength }
+      },
+      scales: 'leaves',
+      crowns: s.share,
+      leaves,
+      colors,
+      size,
+      far: extra.far ?? false
+    }
+  }
+  return [
+    // Japanese rose: magenta (a few white), June–August, a few into autumn.
+    flower('rugosa-rose', [0, 0, 0, 0, 0.1, 0.8, 1, 0.7, 0.3, 0.1, 0, 0], [[0.42, 0.05, 0.18], [0.42, 0.05, 0.18], WHITE], 0.15, 0.8),
+    // Blackthorn: white on bare twigs, March–April, before the leaves.
+    flower('blackthorn', [0, 0.1, 0.7, 1, 0.1, 0, 0, 0, 0, 0, 0, 0], [WHITE], 0.6, 0.45, { on: 0.3, far: true }),
+    // Hawthorn ("May"): white, with its leaves.
+    flower('hawthorn', [0, 0, 0, 0.2, 1, 0.3, 0, 0, 0, 0, 0, 0], [[0.62, 0.6, 0.56]], 0.5, 0.45, { far: true }),
+    // Spanish broom: yellow, April–July (Provence).
+    flower('spanish-broom', [0, 0, 0, 0.4, 1, 1, 0.5, 0, 0, 0, 0, 0], [[0.6, 0.4, 0.02]], 0.55, 0.6, { far: true }),
+    // Strawberry tree: cream bells October–December, beside last year's fruit.
+    flower('strawberry-tree', [0.2, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 1, 0.7], [CREAM], 0.2, 0.35),
+    // Myrtle: white, June–August (est.).
+    flower('myrtle', [0, 0, 0, 0, 0, 0.7, 1, 0.3, 0, 0, 0, 0], [WHITE], 0.3, 0.35),
+    // Sea grape: ivory spikes, spring to early summer (IFAS), a few all year.
+    flower('sea-grape', [0.1, 0.1, 0.2, 0.5, 1, 0.7, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1], [CREAM], 0.2, 1),
+    // Beach naupaka: white half-flowers all year.
+    flower('naupaka', [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7], [WHITE], 0.12, 0.3),
+    // Saw palmetto: cream plumes April–June.
+    flower('saw-palmetto', [0, 0, 0, 0.6, 1, 0.6, 0, 0, 0, 0, 0, 0], [CREAM], 0.15, 0.8),
+    // Coast tea-tree: white, August–October (local).
+    flower('coast-tea-tree', [0, 0, 0, 0, 0, 0, 0.1, 0.6, 1, 1, 0.4, 0], [WHITE], 0.45, 0.35, { far: true }),
+    // Mānuka: white (some pink), November–January in the north (the south a
+    // month later: the row's places share the northern months, est.).
+    flower('manuka', [0.7, 0.3, 0, 0, 0, 0, 0, 0, 0, 0.2, 1, 1], [WHITE, WHITE, [0.6, 0.45, 0.45]], 0.45, 0.35, { far: true }),
+    // Yellow bush lupine: April–July.
+    flower('bush-lupine', [0, 0, 0.2, 0.6, 1, 1, 0.6, 0, 0, 0, 0, 0], [[0.6, 0.45, 0.03]], 0.5, 0.6, { far: true }),
+    // Salal: small pinkish-white bells, May–July.
+    flower('salal', [0, 0, 0, 0, 0.6, 1, 0.6, 0, 0, 0, 0, 0], [[0.6, 0.5, 0.48]], 0.12, 0.3),
+    // Calafate: yellow-orange in the southern spring (local Oct–Nov, est.).
+    flower('calafate', [0, 0, 0, 0, 0, 0, 0, 0, 0.2, 0.6, 1, 0.4], [[0.6, 0.32, 0.02]], 0.4, 0.35),
+    // Natal plum: white stars, spring and early summer (local Sep–Dec).
+    flower('natal-plum', [0, 0, 0, 0, 0, 0, 0, 0, 0.5, 1, 1, 0.6], [WHITE], 0.25, 0.45)
+  ]
+}
 
 function blooming(row: BloomRow, strength: number, extra: { on?: number; leaves?: number } = {}): Blooming {
   const leaves = extra.leaves ?? row.leaves

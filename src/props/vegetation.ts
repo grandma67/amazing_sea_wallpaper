@@ -10,8 +10,9 @@ import {
 } from 'three'
 
 import type { RGB, VegetationKind } from '../biome'
-import { fruitFor, fruitStage, withFruit } from '../fruits'
-import { BELT_RUNUP, mossLook, phenologyFor, plantSeason, withBlossom, type Blooming, type PlantSeason } from '../phenology'
+import { fruitFor, fruitStage, withFruit, type Fruiting } from '../fruits'
+import { BELT_RUNUP, BLOOM, bloomGrows, mossLook, phenologyFor, plantSeason, withBlossom, type Blooming, type PlantSeason } from '../phenology'
+import { shrubsHere, type ShrubSpecies } from '../shrubs'
 import { placeNamed } from '../places'
 import { LICHEN, MOSS_COLOR } from '../rockShore'
 import { Random } from '../random'
@@ -202,6 +203,12 @@ interface KindSpec {
   bend: Bend
 }
 
+/** The shrub kinds a spec forces (`props.bloom` / `props.fruit` lists), so
+ * a forced species has bushes to show on wherever the day is. */
+function shrubForce(o: { bloom?: boolean | readonly string[]; fruit?: boolean | readonly string[] } | undefined): string[] {
+  return [...(Array.isArray(o?.bloom) ? o.bloom : []), ...(Array.isArray(o?.fruit) ? o.fruit : [])]
+}
+
 /** A hash in [0, 1) for a palm's fruit (not a draw). */
 function fruitHash(x: number, y: number): number {
   const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
@@ -214,21 +221,60 @@ function positionHash(x: number, z: number, salt: number): number {
   return h - Math.floor(h)
 }
 
+/** A kind's shrub species here (shrubs.ts): their shares follow `offset`,
+ * the crown share the older bloom rows that grow here keep, on the same hash;
+ * `fruit`, the species' fruit today. */
+export interface CrownShrubs {
+  species: readonly ShrubSpecies[]
+  offset: number
+  fruit: readonly Fruiting[]
+}
+
 /** Which row (if any) a tree at (x, z) flowers with, and its colour: the
  * rows' crown shares laid end to end over one position hash; a row with a
  * shore limit only on the coast's first trees, within that many metres of
- * where the kind starts inland (`treeline`, m inland of s = 0). */
+ * where the kind starts inland (`treeline`, m inland of s = 0). Past the
+ * older rows' share a bush is one of the place's shrub species (`shrubs`):
+ * its flowers today, its fruit today, or neither (undefined). */
 export function crownBlossom(
   bloom: readonly Blooming[] | undefined,
   kind: VegetationKind,
   x: number,
   z: number,
   coast: Parameters<typeof worldToShore>[0],
-  treeline = 0
-): { b: Blooming; color: number } | undefined {
-  if (bloom == null || bloom.length === 0) return undefined
+  treeline = 0,
+  shrubs?: CrownShrubs
+): { b?: Blooming; color: number; fruit?: Fruiting } | undefined {
   const salt = kind.length * 7.1
   const u = positionHash(x, z, salt)
+  const old = (bloom ?? []).filter(b => b.row.species == null)
+  const picked = oldBlossom(old, kind, u, x, z, salt, coast, treeline)
+  if (picked != null || shrubs == null) return picked
+  let start = shrubs.offset
+  for (const s of shrubs.species) {
+    if (u >= start && u < start + s.share) {
+      const b = bloom?.find(r => r.row.species === s.species)
+      const fruit = shrubs.fruit.find(f => f.row.species === s.species)
+      if (b == null && fruit == null) return undefined
+      return { ...(b != null ? { b } : {}), color: b == null ? 0 : Math.floor(positionHash(z, x, salt + 1) * b.row.colors.length), ...(fruit != null ? { fruit } : {}) }
+    }
+    start += s.share
+  }
+  return undefined
+}
+
+/** The older rows (no species): as before shrub species came. */
+function oldBlossom(
+  bloom: readonly Blooming[],
+  kind: VegetationKind,
+  u: number,
+  x: number,
+  z: number,
+  salt: number,
+  coast: Parameters<typeof worldToShore>[0],
+  treeline: number
+): { b: Blooming; color: number } | undefined {
+  if (bloom.length === 0) return undefined
   let start = 0
   for (const b of bloom) {
     if (b.row.plant !== kind) continue
@@ -589,10 +635,21 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
 
     const bent = windMaterials(material, params, spec.bend)
 
-    const season = withFruit(plantSeason(kind, phenology), fruitFor(kind, params), phenology)
+    // Fruit on every crown of the kind (trees), apart from a shrub species'
+    // fruit, which hangs on that species' bushes only (the crown's twin).
+    const allFruit = fruitFor(kind, params)
+    const season = withFruit(plantSeason(kind, phenology), allFruit.filter(f => f.row.species == null), phenology)
+    const shrubs: CrownShrubs | undefined =
+      kind === 'bush'
+        ? {
+            species: shrubsHere(params, shrubForce(params.overrides)),
+            offset: BLOOM.filter(r => r.plant === 'bush' && r.species == null && bloomGrows(r, params)).reduce((s, r) => s + r.crowns, 0),
+            fruit: allFruit.filter(f => f.row.species != null)
+          }
+        : undefined
     // Blossom: each tree flowers or not by its position (a hash, no draw), so
     // any share shows and a moving camera sees the same trees in flower.
-    const flowers = placed.map(t => crownBlossom(season?.bloom, kind, t.elements[12], t.elements[14], coast, uMin))
+    const flowers = placed.map(t => crownBlossom(season?.bloom, kind, t.elements[12], t.elements[14], coast, uMin, shrubs))
     for (let v = 0; v < spec.variants; v++) {
       const indices = placed.map((_, i) => i).filter(i => i % spec.variants === v)
       if (indices.length === 0) continue
@@ -607,7 +664,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       const groups = new Map<string, number[]>([['', []]])
       for (const i of indices) {
         const f = flowers[i]
-        const key = f == null ? '' : `${f.b.row.kind}:${f.color}`
+        const key = f == null ? '' : `${f.b?.row.kind ?? ''}:${f.color}:${f.fruit?.row.kind ?? ''}`
         if (!groups.has(key)) groups.set(key, [])
         groups.get(key)!.push(i)
       }
@@ -622,7 +679,8 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
             if (k >= drawn.length) throw new Error(`blossom twin of ${kind} drew more than its variant`)
             return drawn[k++]
           })
-          geometry = spec.build(replay, biome.foliage, withBlossom(season!, f.b, f.color))
+          const base = withFruit(season, f.fruit != null ? [...(season?.fruit ?? []), f.fruit] : [], phenology)!
+          geometry = spec.build(replay, biome.foliage, f.b != null ? withBlossom(base, f.b, f.color) : base)
         }
         const mesh = new InstancedMesh(geometry, bent.material, members.length)
         mesh.customDepthMaterial = bent.depth

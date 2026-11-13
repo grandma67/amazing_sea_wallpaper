@@ -4,8 +4,8 @@ For every tree kind in the project, what it stands for on each coast, and when i
 and ripens fruit, cones or seed, and sheds them. Each section gives the colours and shapes too.
 Research written 2026-11-13. Code: `src/fruits.ts` (`FRUIT`: what is drawn as its own shape)
 and `src/phenology.ts` (`BLOOM`: flowers that recolour leaf cards). Leaf colour and leaf fall
-are in [SEASONS.md](SEASONS.md) §2.1. Bush and heath blossom, fungi, fireflies and moss are in
-[NATURE.md](NATURE.md).
+are in [SEASONS.md](SEASONS.md) §2.1. Bushes (which shrubs, their flowers and fruit) are in [BUSHES.md](BUSHES.md); heath blossom, fungi,
+fireflies and moss in [NATURE.md](NATURE.md).
 
 Conventions (as NATURE.md):
 

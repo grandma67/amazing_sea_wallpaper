@@ -13,6 +13,8 @@ Docs in `knowledge/` (read what the task needs):
 - `ANIMALS.md`, `CLOUDS.md`, `COASTS.md`: what appears where and how often.
 - `SEASONS.md`: seasons by climate and hemisphere (leaves, grass, colonies, whales, seals,
   winter sleep, waterfowl): research and numbers.
+- `BUSHES.md`: which real shrubs the `bush` kind is on each coast (sea buckthorn, blackthorn,
+  lentisk, sea grape, naupaka, mānuka, willow…), their flowers, fruit and shedding by month.
 - `TREES.md`: every tree kind's flowers, fruits, cones, catkins, seed and shedding by month and
   place (colours, shapes, what's drawn and why).
 - `NATURE.md`: flowering shrubs and trees, fungi, fireflies, moss, seaweed and phase-14 animals

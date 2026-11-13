@@ -35,6 +35,13 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   by a `where` rule (climate, and `poolHas`: the place's pool holds the tree). Oak catkins are
   `keepsSeason`: the crown still leafs out by its deciduous hash, and its catkin cards skip the leaf
   cull, so they hang on half-leafed oaks.
+- **Shrub species** (`shrubs.ts`, 0.169, knowledge/BUSHES.md): a `bush` crown is one of the place's
+  shrubs by the blossom hash, past the older bush rows' share (`CrownShrubs.offset`: the gorse,
+  rock-rose and wattle rows that grow there, so their crowns don't move), so the bush that flowers
+  is the one that fruits. Its flowers (`BLOOM` rows with `species`) and fruit (`FRUIT` rows with
+  `species`, never on the plain mesh) go on its variant's twin (key `flower:colour:fruit`).
+  Bare-twig flowering (blackthorn) thins the leaves with the flowering. Known issue: a flowering
+  twin skips the spring fresh-green tint, so a late-flowering bush reads a little darker.
 - **Fruits** (`fruits.ts` `FRUIT`, 0.168, knowledge/TREES.md): coconuts, Canary dates and sabal
   fruit on palms, pandanus heads, stone-pine and spruce cones, olives, tropical almonds (only on the
   deciduous crowns, by `crownKey`), birch catkins, red-mangrove propagules. `fruitFor(plant, day)`

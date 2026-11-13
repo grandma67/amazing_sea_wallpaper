@@ -718,6 +718,13 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **A mixed kind needs a stable identity before its seasons (0.169):** one `bush` stands for many
+  shrubs. Flowers and fruit picked by separate hashes would put April's blackthorn blossom and
+  October's sloes on different bushes. Give each crown a species once (one position hash), then
+  hang every seasonal look on it; and append new shares after the old rows' so their crowns don't
+  move.
+- **A seasonal leaf change must scale with its strength (0.169):** blackthorn's bare-twig flowering
+  thinned the leaves whenever it flowered at all, so late May's 10% tail drew a near-bare bush.
 - **Fruit at a twig tip is inside the leaves (0.168):** `leaves()` scatters cards round each tip,
   so cones, propagules and almonds placed at `tip.p` were hidden in the cluster. Real fruit hangs
   past the leaves: `fruits()` moves it out to the crown's surface (`out`) and down (`below`).

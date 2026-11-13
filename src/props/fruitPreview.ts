@@ -7,11 +7,11 @@ import type { BufferGeometry } from 'three'
 import { FRUIT, fruitFor, withFruit, type FruitDay, type FruitKind } from '../fruits'
 import { phenologyFor, plantSeason } from '../phenology'
 import type { Random } from '../random'
-import { acacia, birch, broadleaf, conifer, eucalyptus, olive, pandanus, rhizophora, stonePine } from './trees'
+import { acacia, birch, broadleaf, bush, conifer, eucalyptus, olive, pandanus, rhizophora, stonePine } from './trees'
 import { palm } from './vegetation'
 
 const FOLIAGE: [number, number, number] = [0.06, 0.12, 0.04]
-const BUILD = { palm, pandanus, 'stone-pine': stonePine, conifer, olive, broadleaf, birch, rhizophora, acacia, eucalyptus } as const
+const BUILD = { bush, palm, pandanus, 'stone-pine': stonePine, conifer, olive, broadleaf, birch, rhizophora, acacia, eucalyptus } as const
 
 /** The kind `kind` hangs on, built with it: on `date` at `place` (its season
  * there), or forced to the row's peak without a date. */

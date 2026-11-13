@@ -162,8 +162,9 @@ describe('scene specs', () => {
     // Blossom: forced in December, the rest of the day as drawn.
     const plain = scene({ place: 'western-med', coast: 'beach' }, '2025-12-15')
     const bloom = scene({ place: 'western-med', coast: 'beach', props: { bloom: true } }, '2025-12-15')
-    expect(phenologyFor(plain).bloom).toEqual([])
-    expect(phenologyFor(bloom).bloom.map(b => b.row.kind)).toEqual(['rock-rose', 'holm-oak', 'olive'])
+    // December: only the strawberry tree flowers there.
+    expect(phenologyFor(plain).bloom.map(b => b.row.kind)).toEqual(['strawberry-tree'])
+    expect(phenologyFor(bloom).bloom.map(b => b.row.kind)).toEqual(['rock-rose', 'holm-oak', 'olive', 'spanish-broom', 'strawberry-tree', 'myrtle'])
     expect({ ...bloom, overrides: undefined }).toEqual({ ...plain, overrides: undefined })
     // Heath: forced on the Aegean in flower, the rest of the day as drawn.
     const heath = scene({ place: 'aegean', coast: 'beach', props: { heath: 'flower' } }, '2025-12-15')

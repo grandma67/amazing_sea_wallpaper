@@ -1,0 +1,21 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null, "coast": "beach", "composition": "framed", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "cornwall-blackthorn", "date": "2025-04-10", "place": "cornwall-wales", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "cornwall-hawthorn", "date": "2025-05-20", "place": "cornwall-wales", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "cornwall-sloes-haws", "date": "2025-10-15", "place": "cornwall-wales", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "baltic-rugosa", "date": "2025-07-10", "place": "baltic", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "wadden-buckthorn-hips", "date": "2025-10-10", "place": "wadden-north-sea", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "med-broom", "date": "2025-05-20", "place": "western-med", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "med-lentisk-arbutus", "date": "2025-11-15", "place": "western-med", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "antilles-sea-grape", "date": "2025-08-20", "place": "antilles", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "hawaii-naupaka", "date": "2025-06-15", "place": "hawaii", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "florida-palmetto", "date": "2025-09-15", "place": "florida-carolinas", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "nsw-banksia", "date": "2025-04-15", "place": "east-australia", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "nsw-tea-tree", "date": "2025-09-20", "place": "east-australia", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "northland-manuka", "date": "2025-12-10", "place": "new-zealand-north", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "california-lupine", "date": "2025-05-15", "place": "california", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "pnw-salal", "date": "2025-08-20", "place": "pacific-northwest", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "fuego-calafate", "date": "2025-03-10", "place": "tierra-del-fuego", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "iceland-willow", "date": "2025-06-20", "place": "iceland", "props": { "vegetation": ["bush", "grass"] } },
+    { "name": "natal-plum", "date": "2025-02-10", "place": "natal", "props": { "vegetation": ["bush", "grass"] } }
+  ] }

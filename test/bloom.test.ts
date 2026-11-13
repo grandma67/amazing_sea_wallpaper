@@ -73,19 +73,19 @@ describe('the blossom table', () => {
     expect(bloomOf(day('2025-09-15', 'new-zealand-north'), 'gorse')?.strength).toBe(1)
     expect(bloomOf(day('2025-04-15', 'new-zealand-north'), 'gorse')?.strength).toBe(0.1)
     // June: rock rose, the holm oaks' last catkins, olives in flower.
-    expect(kindsOn(day('2025-06-01', 'western-med'))).toEqual(['rock-rose', 'holm-oak', 'olive'])
+    expect(kindsOn(day('2025-06-01', 'western-med'))).toEqual(['rock-rose', 'holm-oak', 'olive', 'spanish-broom', 'myrtle'])
     expect(kindsOn(day('2025-09-01', 'western-med'))).toEqual([])
     // September: wattle and the gums' spring flowering.
-    expect(kindsOn(day('2025-09-01', 'east-australia'))).toEqual(['wattle', 'gum-blossom'])
+    expect(kindsOn(day('2025-09-01', 'east-australia'))).toEqual(['wattle', 'gum-blossom', 'coast-tea-tree'])
     // Tasmania has gorse too.
     expect(kindsOn(day('2025-09-01', 'tasmania'))).toEqual(['gorse', 'wattle', 'gum-blossom'])
   })
 
   it('is forced by props.bloom and switched off by it, and by phenology: false', () => {
-    expect(kindsOn(day('2025-12-15', 'western-med', { bloom: true }))).toEqual(['rock-rose', 'holm-oak', 'olive'])
+    expect(kindsOn(day('2025-12-15', 'western-med', { bloom: true }))).toEqual(['rock-rose', 'holm-oak', 'olive', 'spanish-broom', 'strawberry-tree', 'myrtle'])
     expect(phenologyFor(day('2025-12-15', 'western-med', { bloom: true })).bloom[0].strength).toBe(1)
-    // Maine grows none of the bushes, only the oaks' catkins.
-    expect(kindsOn(day('2025-12-15', 'maine', { bloom: true }))).toEqual(['oak-catkins'])
+    // Maine grows none of the old bush rows: the oaks' catkins and the Japanese rose.
+    expect(kindsOn(day('2025-12-15', 'maine', { bloom: true }))).toEqual(['oak-catkins', 'rugosa-rose'])
     expect(kindsOn(day('2025-12-15', 'maine', { bloom: ['gorse', 'flamboyant'] }))).toEqual(['gorse', 'flamboyant'])
     expect(kindsOn(day('2025-06-01', 'western-med', { bloom: false }))).toEqual([])
     expect(kindsOn(day('2025-06-01', 'western-med', { phenology: false }))).toEqual([])
@@ -155,7 +155,7 @@ describe('which crowns flower', () => {
     expect(spots.map(([x, z]) => crownBlossom(rose, 'bush', x, z, coast)?.color)).toEqual(picks.map(p => p?.color))
     // Tasmania in September: gorse and wattle each take their share.
     const tas = phenologyFor(day('2025-09-15', 'tasmania')).bloom
-    const kinds = spots.map(([x, z]) => crownBlossom(tas, 'bush', x, z, coast)?.b.row.kind)
+    const kinds = spots.map(([x, z]) => crownBlossom(tas, 'bush', x, z, coast)?.b?.row.kind)
     expectShare(kinds, k => k === 'gorse', 0.5)
     expectShare(kinds, k => k === 'wattle', 0.35)
   })
@@ -214,7 +214,8 @@ describe('flowering twins', () => {
     const on = plants(spec, '2025-06-01')
     expect(on.filter(m => m.userData.blossom != null).length).toBeGreaterThan(0)
     expect(on.reduce((n, m) => n + flowerVertices(m.geometry, 'rock-rose'), 0)).toBeGreaterThan(100)
-    const off = plants({ ...spec, props: { ...spec.props, bloom: false } }, '2025-06-01')
+    // Off: blossom and the shrubs' fruit (fruiting twins are twins too).
+    const off = plants({ ...spec, props: { ...spec.props, bloom: false, fruit: false } }, '2025-06-01')
     expect(off.reduce((n, m) => n + flowerVertices(m.geometry, 'rock-rose'), 0)).toBe(0)
     for (const kind of ['bush', 'broadleaf']) expect(matrices(on, kind)).toEqual(matrices(off, kind))
     // The same as before blossom existed: summer plants, no other change.
@@ -226,7 +227,9 @@ describe('flowering twins', () => {
 describe('far crowns', () => {
   it('tint toward the flowers only in flower, faintly', () => {
     const plants = [['bush', 6], ['stone-pine', 2], ['grass', 3]] as const
-    const june = canopyTint(FOLIAGE, phenologyFor(day('2025-06-01', 'western-med')), plants)
+    // The rock rose alone (broom, myrtle and the trees' rows flower too).
+    const only = (p: ReturnType<typeof phenologyFor>) => ({ ...p, bloom: p.bloom.filter(b => b.row.kind === 'rock-rose') })
+    const june = canopyTint(FOLIAGE, only(phenologyFor(day('2025-06-01', 'western-med'))), plants)
     const sept = canopyTint(FOLIAGE, phenologyFor(day('2025-09-01', 'western-med')), plants)
     expect(sept).toEqual(FOLIAGE)
     expect(june).not.toEqual(FOLIAGE)

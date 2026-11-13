@@ -35,7 +35,8 @@ Conventions (as SEASONS.md):
 
 Every tree kind's own flowers, fruits, cones, catkins and seed (oak and holm-oak catkins, olive,
 umbrella thorn, gums; coconuts, dates, pandanus, stone-pine and spruce cones, birch catkins,
-almonds, mangrove propagules) are in [TREES.md](TREES.md) (2026-11-13).
+almonds, mangrove propagules) are in [TREES.md](TREES.md) (2026-11-13); the bushes' species,
+flowers and fruit place by place in [BUSHES.md](BUSHES.md) (2026-11-14).
 
 Flowering changes the look of a coast only where a lot of one plant blooms at once: a whole
 crown, a hillside of shrubs, a heath. Single small flowers are already handled by `FLOWERS`.

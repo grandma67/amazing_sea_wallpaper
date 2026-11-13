@@ -13,6 +13,7 @@ import type { Climate, RGB, VegetationKind } from './biome'
 import { hashCell } from './cellNoise'
 import { band, deciduousShare, LEAF_DAYS, type Phenology, type PhenologyDay, type PlantSeason } from './phenology'
 import { seasonDay } from './seasons'
+import { SHRUBS, shrubGrows, type ShrubKind } from './shrubs'
 
 /** Every fruit kind (the spec validator reads this list: sceneSpec.ts). */
 export const FRUIT_KINDS = [
@@ -25,7 +26,22 @@ export const FRUIT_KINDS = [
   'olive-fruit',
   'almond-fruit',
   'birch-catkins',
-  'propagules'
+  'propagules',
+  'sea-buckthorn',
+  'rugosa-rose',
+  'blackthorn',
+  'hawthorn',
+  'lentisk',
+  'strawberry-tree',
+  'myrtle',
+  'sea-grape',
+  'naupaka',
+  'saw-palmetto',
+  'coast-banksia',
+  'salal',
+  'willow',
+  'calafate',
+  'natal-plum'
 ] as const
 export type FruitKind = (typeof FRUIT_KINDS)[number]
 
@@ -69,6 +85,9 @@ export interface FruitRow {
   /** Only the crowns that are the deciduous species of a mixed kind
    * (tropical broadleaf: the tropical almond is the one that sheds). */
   deciduousOnly?: boolean
+  /** A shrub species' fruit (shrubs.ts): only on that species' bushes,
+   * which props/vegetation.ts crownBlossom picks; never on the plain mesh. */
+  species?: ShrubKind
 }
 
 /** A row on a kind's trees today. */
@@ -245,7 +264,7 @@ function sabalToday(d: number): { crop: number; stages: FruitStage[] } {
  * umbrella thorn's coiled pods; the flamboyant's 30–60 cm pods are a gap
  * (they hang on the trees that flowered, which only the flowering twins know).
  */
-export const FRUIT: readonly FruitRow[] = [
+const TREE_FRUIT: readonly FruitRow[] = [
   {
     // Coconuts: 12–15 spikes a year, 8–12 months from set to ripe, so every
     // palm carries nuts all year, green, a few yellow, drying brown
@@ -395,6 +414,183 @@ export const FRUIT: readonly FruitRow[] = [
     top: 0
   }
 ]
+
+/** A shrub's fruit by local calendar month: `crops` per month and the
+ * stages in month `m` (knowledge/BUSHES.md; colours est.). */
+function shrubFruit(
+  species: ShrubKind & FruitKind,
+  crops: readonly number[],
+  stages: (m: number) => FruitStage[],
+  shape: FruitShape,
+  length: number,
+  width: number,
+  perTip: number,
+  peakMonth: number
+): FruitRow {
+  const s = SHRUBS.find(x => x.species === species)!
+  return {
+    kind: species,
+    plant: 'bush',
+    species,
+    where: day => shrubGrows(s, day),
+    clock: 'local',
+    today: d => {
+      const m = monthOf(d)
+      return { crop: crops[m - 1], stages: crops[m - 1] > 0 ? stages(m) : [] }
+    },
+    peak: first(peakMonth) + 14,
+    shape,
+    length,
+    width,
+    perTip,
+    top: 0
+  }
+}
+
+const ORANGE_BERRY: RGB = [0.55, 0.2, 0.02]
+const HIP_RED: RGB = [0.45, 0.08, 0.02]
+const SLOE: RGB = [0.05, 0.05, 0.09]
+const HAW_RED: RGB = [0.33, 0.03, 0.02]
+const BERRY_RED: RGB = [0.3, 0.03, 0.03]
+const BLUE_BLACK: RGB = [0.04, 0.03, 0.07]
+const ARBUTUS_RED: RGB = [0.4, 0.05, 0.02]
+const ARBUTUS_ORANGE: RGB = [0.5, 0.18, 0.02]
+const ARBUTUS_YELLOW: RGB = [0.45, 0.35, 0.05]
+const GRAPE_PURPLE: RGB = [0.12, 0.03, 0.08]
+const NAUPAKA_WHITE: RGB = [0.6, 0.6, 0.58]
+const PALMETTO_ORANGE: RGB = [0.5, 0.3, 0.03]
+const BANKSIA_YELLOW: RGB = [0.5, 0.43, 0.13]
+const OLD_CONE: RGB = [0.15, 0.13, 0.11]
+const SALAL_PURPLE: RGB = [0.05, 0.02, 0.05]
+const PLUM_CRIMSON: RGB = [0.35, 0.02, 0.04]
+const WILLOW_SILVER: RGB = [0.35, 0.34, 0.27]
+const WILLOW_YELLOW: RGB = [0.42, 0.33, 0.06]
+const WILLOW_FLUFF: RGB = [0.6, 0.6, 0.58]
+
+/** Green turning to `ripe` over the months in `turning` (share ripe). */
+const ripening = (ripe: RGB, share: readonly number[], size = 1) => (m: number): FruitStage[] =>
+  [stage(FRUIT_GREEN, 1 - share[m - 1], size * (share[m - 1] > 0 ? 1 : 0.8)), stage(ripe, share[m - 1], size)].filter(x => x.share > 0)
+
+/**
+ * Willow catkins on northern scrub (Salix: silky grey "pussy willow" buds
+ * opening yellow as the leaves come, red female ones on arctic willow; then
+ * white seed fluff blowing for a few weeks): by the climate's leaf days.
+ */
+function willowToday(d: number, day: PhenologyDay): { crop: number; stages: FruitStage[] } {
+  const leaf = LEAF_DAYS[day.place.climate as Climate] ?? LEAF_DAYS.boreal!
+  const catkin = band(d, leaf.out - 25, leaf.out - 15, leaf.out + 5, leaf.out + 12)
+  const fluff = band(d, leaf.out + 8, leaf.out + 15, leaf.out + 35, leaf.out + 45)
+  const open = band(d, leaf.out - 12, leaf.out - 5, leaf.out + 5, leaf.out + 12)
+  const stages: FruitStage[] = []
+  if (catkin > 0) stages.push(stage(WILLOW_SILVER, catkin * (1 - open), 0.7, 0.2), stage(WILLOW_YELLOW, catkin * open, 1, 0.3))
+  if (fluff > 0) stages.push(stage(WILLOW_FLUFF, fluff, 1.2, 0.4))
+  const total = stages.reduce((a, x) => a + x.share, 0)
+  return { crop: Math.min(1, total), stages: stages.filter(x => x.share > 0) }
+}
+
+/** Bushes' fruit (knowledge/BUSHES.md). Spanish broom's pods, mānuka's and
+ * tea-tree's capsules and lupine pods aren't drawn (dry, brown, small). */
+const SHRUB_FRUIT: readonly FruitRow[] = [
+  // Sea buckthorn: orange berries packed along the twigs, ripe August–
+  // September, hanging all winter unless the birds take them.
+  shrubFruit('sea-buckthorn', [1, 0.6, 0.2, 0, 0, 0, 0.3, 0.8, 1, 1, 1, 1], ripening(ORANGE_BERRY, [1, 1, 1, 0, 0, 0, 0, 0.7, 1, 1, 1, 1]), 'ball', 0.008, 0.8, 4, 10),
+  // Japanese rose: hips like small tomatoes, red-orange from August, into January.
+  shrubFruit('rugosa-rose', [0.2, 0.1, 0, 0, 0, 0, 0.2, 0.6, 1, 1, 0.7, 0.4], ripening(HIP_RED, [1, 1, 0, 0, 0, 0, 0, 0.5, 1, 1, 1, 1]), 'ball', 0.022, 0.95, 0.6, 9),
+  // Blackthorn: sloes blue-black September–October, a few into winter.
+  shrubFruit('blackthorn', [0.2, 0, 0, 0, 0, 0.2, 0.4, 0.7, 1, 1, 0.8, 0.4], ripening(SLOE, [1, 0, 0, 0, 0, 0, 0, 0.3, 1, 1, 1, 1], 1), 'ball', 0.013, 0.95, 1.5, 10),
+  // Hawthorn: haws deep red from late September, on the bush into winter.
+  shrubFruit('hawthorn', [0.4, 0.2, 0, 0, 0, 0, 0.3, 0.6, 1, 1, 1, 0.7], ripening(HAW_RED, [1, 1, 0, 0, 0, 0, 0, 0.3, 0.8, 1, 1, 1]), 'ball', 0.01, 0.85, 3, 10),
+  // Lentisk: clusters of 5 mm drupes, red through summer and autumn,
+  // blackening into winter.
+  shrubFruit(
+    'lentisk',
+    [0.6, 0.3, 0, 0, 0, 0.2, 0.5, 0.8, 1, 1, 1, 0.8],
+    m => {
+      const black = [0.9, 1, 0, 0, 0, 0, 0, 0, 0.1, 0.3, 0.5, 0.7][m - 1]
+      const red = m >= 6 && m <= 8 ? 0.5 : 1 - black
+      return [stage(FRUIT_GREEN, Math.max(0, 1 - black - red)), stage(BERRY_RED, red), stage(OLIVE_BLACK, black)].filter(x => x.share > 0)
+    },
+    'ball',
+    0.005,
+    1,
+    4,
+    10
+  ),
+  // Strawberry tree: a year to ripen, green, yellow, orange, red; ripe
+  // October–December with the next flowers.
+  shrubFruit(
+    'strawberry-tree',
+    [0.3, 0.2, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1, 1, 0.6],
+    m =>
+      m >= 10 || m === 1
+        ? [stage(ARBUTUS_RED, 0.5), stage(ARBUTUS_ORANGE, 0.3), stage(ARBUTUS_YELLOW, 0.2)]
+        : m === 9
+          ? [stage(ARBUTUS_YELLOW, 0.5), stage(FRUIT_GREEN, 0.5, 0.9)]
+          : [stage(FRUIT_GREEN, 1, 0.6)],
+    'ball',
+    0.02,
+    1,
+    0.8,
+    11
+  ),
+  // Myrtle: blue-black berries November–January (est.).
+  shrubFruit('myrtle', [0.8, 0.4, 0, 0, 0, 0, 0, 0.3, 0.6, 0.8, 1, 1], ripening(BLUE_BLACK, [1, 1, 0, 0, 0, 0, 0, 0, 0, 0.3, 0.9, 1]), 'ball', 0.009, 0.85, 2, 12),
+  // Sea grape: hanging bunches, green from early summer, deep purple late
+  // summer (IFAS); ripening unevenly.
+  shrubFruit('sea-grape', [0, 0, 0, 0, 0, 0.4, 0.8, 1, 1, 0.5, 0.1, 0], ripening(GRAPE_PURPLE, [0, 0, 0, 0, 0, 0, 0.2, 0.6, 0.8, 0.9, 1, 0]), 'cluster', 0.2, 0.3, 0.25, 9),
+  // Beach naupaka: berries green turning white, all year.
+  shrubFruit('naupaka', [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7], () => [stage(FRUIT_GREEN, 0.4, 0.8), stage(NAUPAKA_WHITE, 0.6)], 'ball', 0.01, 0.9, 1.5, 6),
+  // Saw palmetto: drupes in bunches, green, orange-yellow, then blue-black
+  // (FNA), late summer to autumn (est. months).
+  shrubFruit(
+    'saw-palmetto',
+    [0, 0, 0, 0, 0, 0.3, 0.6, 0.9, 1, 0.8, 0.3, 0],
+    m => (m <= 7 ? [stage(FRUIT_GREEN, 1)] : m === 8 ? [stage(FRUIT_GREEN, 0.4), stage(PALMETTO_ORANGE, 0.6)] : [stage(PALMETTO_ORANGE, 0.3), stage(BLUE_BLACK, 0.7)]),
+    'cluster',
+    0.25,
+    0.35,
+    0.15,
+    9
+  ),
+  // Coast banksia: pale yellow spikes January–July (local), standing up off
+  // the twigs, withering to grey seed cones that stay for years.
+  shrubFruit(
+    'coast-banksia',
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    m => {
+      const spike = [0.5, 0.7, 1, 1, 1, 0.8, 0.5, 0, 0, 0, 0, 0.2][m - 1] * 0.6
+      return [stage(BANKSIA_YELLOW, spike, 1, 0), stage(OLD_CONE, 1 - spike, 0.9, 0.1)].filter(x => x.share > 0)
+    },
+    'cone',
+    0.11,
+    0.6,
+    0.15,
+    4
+  ),
+  // Salal: dark purple berries in August–September (local).
+  shrubFruit('salal', [0, 0, 0, 0, 0, 0, 0.4, 1, 0.8, 0.3, 0, 0], ripening(SALAL_PURPLE, [0, 0, 0, 0, 0, 0, 0.2, 0.9, 1, 1, 0, 0]), 'ball', 0.009, 0.95, 3, 8),
+  // Calafate: blue-black berries, ripe late February – March (local).
+  shrubFruit('calafate', [0.3, 0.8, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0.1], ripening(BLUE_BLACK, [0, 0.6, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]), 'ball', 0.01, 0.95, 2, 3),
+  // Natal plum: crimson plums 3–5 cm, summer into autumn (local), some all year.
+  shrubFruit('natal-plum', [1, 1, 0.8, 0.6, 0.4, 0.2, 0.1, 0.1, 0.1, 0.1, 0.2, 0.6], ripening(PLUM_CRIMSON, [0.8, 1, 1, 1, 1, 1, 1, 1, 1, 0.5, 0.2, 0.4]), 'ball', 0.04, 0.8, 0.4, 2),
+  {
+    kind: 'willow',
+    plant: 'bush',
+    species: 'willow',
+    where: day => shrubGrows(SHRUBS.find(x => x.species === 'willow')!, day),
+    clock: 'season',
+    today: willowToday,
+    // Catkins on boreal willows, seed fluff on temperate ones (a forced row).
+    peak: 128,
+    shape: 'catkin',
+    length: 0.03,
+    width: 0.4,
+    perTip: 2,
+    top: 0
+  }
+]
+/** Every fruit row: trees', then bushes'. */
+export const FRUIT: readonly FruitRow[] = [...TREE_FRUIT, ...SHRUB_FRUIT]
 
 /** What the fruit table reads from a day, with the spec's force. */
 export interface FruitDay extends PhenologyDay {

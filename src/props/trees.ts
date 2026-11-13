@@ -879,6 +879,8 @@ export function bush(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeo
     colors,
     season
   })
+  // A shrub species' berries, hips, bunches or catkins (its twin's season).
+  fruits(b, tips, season, { spread: 0.1, out: 0.08 })
   return b.build()
 }
 
