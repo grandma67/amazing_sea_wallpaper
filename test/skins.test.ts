@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { pinniped, swimmingHead } from '../src/props/pinnipeds'
 import { SKIN_IDS, skinCoords, skinTile } from '../src/props/skins'
-import { crocodileGeometry, lizardGeometry } from '../src/props/wildlife'
+import { crocodileGeometry, hippoGeometry, lizardGeometry, monkeyGeometry, turtleGeometry } from '../src/props/wildlife'
 import { Random } from '../src/random'
 import atlasUrl from '../public/assets/skins.png?inline'
 
@@ -28,7 +28,7 @@ describe('photo skins', () => {
     expect(skinCoords('harbour-seal', length * 2)(0, 0, 0.3, tile[0])[0]).toBeCloseTo(0.5, 9)
   })
 
-  it('give every seal kind, head and lizard a skin only when asked', () => {
+  it('give every seal, head, lizard, turtle, hippo and monkey a skin only when asked', () => {
     expect(pinniped(new Random('s'), 'seal', 'lying', 0, false).getAttribute('skin')).toBeUndefined()
     for (const kind of ['seal', 'sea-lion', 'fur-seal', 'elephant-seal'] as const) {
       expect(pinniped(new Random('s'), kind, 'lying', 0, true).getAttribute('skin')).toBeDefined()
@@ -38,6 +38,12 @@ describe('photo skins', () => {
       expect(lizardGeometry(new Random('l'), kind, false).getAttribute('skin')).toBeUndefined()
       expect(lizardGeometry(new Random('l'), kind, true).getAttribute('skin')).toBeDefined()
     }
+    for (const species of ['green', 'loggerhead', 'hawksbill', 'olive-ridley', 'leatherback'] as const) {
+      expect(turtleGeometry(new Random('t'), species, [0.6, 0.55, 0.45], 'adult', false).getAttribute('skin')).toBeUndefined()
+      expect(turtleGeometry(new Random('t'), species, [0.6, 0.55, 0.45], 'adult', true).getAttribute('skin')).toBeDefined()
+    }
+    expect(hippoGeometry(new Random('h'), 0, true).getAttribute('skin')).toBeDefined()
+    for (const kind of ['macaque', 'capuchin', 'vervet'] as const) expect(monkeyGeometry(new Random('m'), kind, 'sit', true).getAttribute('skin')).toBeDefined()
     const skinned = pinniped(new Random('s'), 'seal', 'lying', 0, true)
     const plain = pinniped(new Random('s'), 'seal', 'lying', 0, false)
     const skin = skinned.getAttribute('skin') as BufferAttribute

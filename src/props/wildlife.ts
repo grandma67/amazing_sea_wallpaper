@@ -18,7 +18,7 @@ import { hasBeach, shoreToWorld, terrainNormal, worldToShore } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { noise3 } from './noise'
-import { skinCoords, skinMaterial, skinsOn } from './skins'
+import { skinBlob, skinCoords, skinMaterial, skinsOn, skinWhole } from './skins'
 import { inMonths, placeNamed, type Animal } from '../places'
 
 // Larger beach animals, at real size, so they show only near the camera.
@@ -247,24 +247,30 @@ const TURTLES: Record<TurtleSpecies, { length: number; shell: RGB; skin: RGB; tr
 /** A sea turtle on land: domed shell, long front flippers braced on the
  * sand, head forward. `sand` dusts a nesting turtle's shell; a hatchling is
  * 5 cm and dark grey. */
-export function turtleGeometry(rng: Random, species: TurtleSpecies, sand: RGB, form: 'adult' | 'nesting' | 'hatchling'): BufferGeometry {
+export function turtleGeometry(rng: Random, species: TurtleSpecies, sand: RGB, form: 'adult' | 'nesting' | 'hatchling', skin = false): BufferGeometry {
   const b = new MeshBuilder()
   const spec = TURTLES[species]
   const hatchling = form === 'hatchling'
   const length = hatchling ? rng.range(0.045, 0.06) : spec.length * rng.range(0.85, 1.1)
   const shellColor: RGB = hatchling ? [0.08, 0.08, 0.08] : spec.shell
-  const skin: RGB = hatchling ? [0.1, 0.1, 0.1] : spec.skin
+  const skinColor: RGB = hatchling ? [0.1, 0.1, 0.1] : spec.skin
   const dust = form === 'nesting' ? 0.45 : form === 'adult' ? 0.15 : 0
   const seed = rng.int(0, 1e6)
   const h = length * 0.14
   const leather = species === 'leatherback' && !hatchling
+  // Photo skins (props/skins.ts): a carapace from above mapped once onto
+  // hard shells, the leatherback's ridged hide along it, flipper scales on
+  // head and flippers; they replace the noise mottle.
+  const shellR = new Vector3(length * 0.5, length * (leather ? 0.17 : 0.13), length * (leather ? 0.3 : 0.38))
+  const shellSkin = !skin ? undefined : leather ? skinBlob('leatherback', length, 'top') : skinWhole(species === 'hawksbill' ? 'hawksbill-shell' : 'turtle-shell', shellR.x, shellR.z)
+  const scales = (offset: number): ((n: Vector3, p: Vector3) => [number, number, number]) | undefined => (skin ? skinBlob('turtle-skin', length, 'wrap', offset) : undefined)
   // Shell: mottled scutes, leatherbacks' seven ridges and white flecks.
   b.blob(
     new Vector3(0, h, 0),
-    new Vector3(length * 0.5, length * (leather ? 0.17 : 0.13), length * (leather ? 0.3 : 0.38)),
+    shellR,
     n => {
       const mottle = noise3(n.x * 4, n.y * 4, n.z * 4, seed)
-      let c = shade(shellColor, 0.75 + 0.5 * mottle)
+      let c = shade(shellColor, skin ? 1 : 0.75 + 0.5 * mottle)
       if (leather && noise3(n.x * 30, n.y * 30, n.z * 30, seed + 1) > 0.78) c = [0.45, 0.45, 0.45]
       return mix(c, sand, dust * Math.max(0, n.y) * (0.6 + 0.6 * noise3(n.x * 6, 0, n.z * 6, seed + 2)))
     },
@@ -274,17 +280,21 @@ export function turtleGeometry(rng: Random, species: TurtleSpecies, sand: RGB, f
       const ridges = leather ? 1 + 0.04 * Math.abs(Math.sin(n.z * Math.PI * 3.5)) : 1
       return tail * ridges
     },
-    hatchling ? 3 : 6
+    hatchling ? 3 : 6,
+    undefined,
+    shellSkin
   )
   // Underside.
-  b.blob(new Vector3(0, h * 0.6, 0), new Vector3(length * 0.42, h * 0.5, length * 0.3), () => mix(skin, [0.6, 0.55, 0.4], 0.5), () => 1, 3)
+  b.blob(new Vector3(0, h * 0.6, 0), new Vector3(length * 0.42, h * 0.5, length * 0.3), () => mix(skinColor, [0.6, 0.55, 0.4], 0.5), () => 1, 3)
   // Head and neck.
   b.blob(
     new Vector3(length * 0.55, h * 0.9, 0),
     new Vector3(length * 0.12, length * 0.075, length * 0.085),
-    n => shade(skin, 0.8 + 0.3 * Math.max(0, n.y)),
+    n => shade(skinColor, 0.8 + 0.3 * Math.max(0, n.y)),
     () => 1,
-    hatchling ? 3 : 4
+    hatchling ? 3 : 4,
+    undefined,
+    scales(0)
   )
   // Flippers: long front ones swept out and back, small rear ones.
   for (const side of [-1, 1]) {
@@ -294,20 +304,22 @@ export function turtleGeometry(rng: Random, species: TurtleSpecies, sand: RGB, f
     b.blob(
       new Vector3(length * 0.25, h * 0.5, side * length * 0.3).add(new Vector3(front * 0.45, 0, 0).applyQuaternion(frontQ)),
       new Vector3(front * 0.5, length * 0.025, length * 0.09),
-      n => mix(shade(skin, 0.75 + 0.3 * Math.max(0, n.y)), sand, dust * 0.6),
+      n => mix(shade(skinColor, 0.75 + 0.3 * Math.max(0, n.y)), sand, dust * 0.6),
       () => 1,
       3,
-      frontQ
+      frontQ,
+      scales(0.3 * side)
     )
     const rear = length * 0.2
     const rearQ = yawQ(side * (Math.PI / 2 + 1.1))
     b.blob(
       new Vector3(-length * 0.38, h * 0.4, side * length * 0.2).add(new Vector3(rear * 0.45, 0, 0).applyQuaternion(rearQ)),
       new Vector3(rear * 0.5, length * 0.02, length * 0.07),
-      n => mix(shade(skin, 0.8 + 0.3 * Math.max(0, n.y)), sand, dust * 0.6),
+      n => mix(shade(skinColor, 0.8 + 0.3 * Math.max(0, n.y)), sand, dust * 0.6),
       () => 1,
       3,
-      rearQ
+      rearQ,
+      scales(0.6 * side)
     )
   }
   // A nesting turtle sits in her body pit with the sand she threw up
@@ -334,22 +346,25 @@ const MONKEY_COLORS: Record<MonkeyKind, { fur: RGB; belly: RGB; face: RGB; cap?:
 }
 
 /** A monkey walking on all fours or sitting up, tail on the sand. */
-export function monkeyGeometry(rng: Random, kind: MonkeyKind, pose: 'walk' | 'sit'): BufferGeometry {
+export function monkeyGeometry(rng: Random, kind: MonkeyKind, pose: 'walk' | 'sit', skin = false): BufferGeometry {
   const b = new MeshBuilder()
   const c = MONKEY_COLORS[kind]
   const size = c.length * rng.range(0.85, 1.1)
   const seed = rng.int(0, 1e6)
+  // A photo's fur grain (props/skins.ts) in place of the noise mottle.
   const fur = (n: Vector3): RGB =>
-    n.y < -0.3 ? c.belly : shade(c.fur, 0.85 + 0.3 * noise3(n.x * 5, n.y * 5, n.z * 5, seed) + 0.1 * n.y)
+    n.y < -0.3 ? c.belly : shade(c.fur, (skin ? 1 : 0.85 + 0.3 * noise3(n.x * 5, n.y * 5, n.z * 5, seed)) + 0.1 * n.y)
+  const coat = (offset: number): ((n: Vector3, p: Vector3) => [number, number, number]) | undefined => (skin ? skinBlob('monkey-fur', size, 'wrap', offset) : undefined)
+  const strands = skin ? skinCoords('monkey-fur', size) : undefined
   const limb = (path: Vector3[], r: number): void => {
-    b.tube(path, t => r * (1 - 0.3 * t), () => shade(c.fur, 0.85), 8)
+    b.tube(path, t => r * (1 - 0.3 * t), () => shade(c.fur, 0.85), 8, strands)
   }
   let head: Vector3
   let rump: Vector3
   if (pose === 'walk') {
     const legH = size * 0.45
     const body = new Vector3(0, legH + size * 0.14, 0)
-    b.blob(body, new Vector3(size * 0.45, size * 0.21, size * 0.19), fur, () => 1, 5)
+    b.blob(body, new Vector3(size * 0.45, size * 0.21, size * 0.19), fur, () => 1, 5, undefined, coat(0))
     for (const side of [-1, 1]) {
       const z = side * size * 0.11
       limb([new Vector3(size * 0.3, legH + size * 0.08, z), new Vector3(size * 0.36, legH * 0.5, z * 1.2), new Vector3(size * 0.4, 0.02, z * 1.3)], size * 0.09)
@@ -361,17 +376,17 @@ export function monkeyGeometry(rng: Random, kind: MonkeyKind, pose: 'walk' | 'si
     // Sitting up on its haunches, arms down in front.
     const body = new Vector3(0, size * 0.42, 0)
     // Hunched: a pear-shaped body, broad haunches on the sand.
-    b.blob(body, new Vector3(size * 0.24, size * 0.36, size * 0.2), fur, n => 1 + 0.12 * Math.max(0, -n.y), 5, new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -0.25))
+    b.blob(body, new Vector3(size * 0.24, size * 0.36, size * 0.2), fur, n => 1 + 0.12 * Math.max(0, -n.y), 5, new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -0.25), coat(0))
     for (const side of [-1, 1]) {
       const z = side * size * 0.15
-      b.blob(new Vector3(size * 0.06, size * 0.13, z * 1.1), new Vector3(size * 0.22, size * 0.12, size * 0.1), fur, () => 1, 4)
+      b.blob(new Vector3(size * 0.06, size * 0.13, z * 1.1), new Vector3(size * 0.22, size * 0.12, size * 0.1), fur, () => 1, 4, undefined, coat(0.1 * side))
       limb([new Vector3(size * 0.1, size * 0.6, z), new Vector3(size * 0.2, size * 0.32, z * 1.1), new Vector3(size * 0.22, 0.02, z * 1.1)], size * 0.08)
     }
     head = new Vector3(size * 0.08, size * 0.86, 0)
     rump = new Vector3(-size * 0.15, size * 0.1, 0)
   }
   // Head, with a pale cap (capuchin, vervet brow) and the bare face forward.
-  b.blob(head, new Vector3(size * 0.14, size * 0.14, size * 0.13), n => (c.cap != null && n.y > 0.1 && n.x < 0.5 ? c.cap : fur(n)), () => 1, 4)
+  b.blob(head, new Vector3(size * 0.14, size * 0.14, size * 0.13), n => (c.cap != null && n.y > 0.1 && n.x < 0.5 ? c.cap : fur(n)), () => 1, 4, undefined, coat(0.2))
   b.blob(head.clone().add(new Vector3(size * 0.1, -size * 0.02, 0)), new Vector3(size * 0.07, size * 0.08, size * 0.08), () => c.face, () => 1, 3)
   // Tail: out behind and down to lie on the sand; a capuchin's tip curls.
   const tail = size * c.tail
@@ -383,7 +398,7 @@ export function monkeyGeometry(rng: Random, kind: MonkeyKind, pose: 'walk' | 'si
     const curl = kind === 'capuchin' && t > 0.8 ? (t - 0.8) * tail * 0.6 : 0
     path.push(new Vector3(rump.x - t * tail * 0.85, y + curl, side))
   }
-  b.tube(path, t => size * 0.035 * (1 - 0.5 * t), () => shade(c.fur, 0.8), 5)
+  b.tube(path, t => size * 0.035 * (1 - 0.5 * t), () => shade(c.fur, 0.8), 5, strands)
   return b.build()
 }
 
@@ -623,16 +638,19 @@ export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number
  * low with a broad muzzle, eyes, ears and nostrils on top (so in the water
  * only they and the back show). Grey-brown, pinkish round eyes, ears and
  * belly folds. Head toward +X. */
-export function hippoGeometry(rng: Random, wet: number): BufferGeometry {
+export function hippoGeometry(rng: Random, wet: number, skin = false): BufferGeometry {
   const b = new MeshBuilder()
   const s = rng.range(0.85, 1.1)
   const seed = rng.int(0, 1e6)
   const grey: RGB = shade([0.2, 0.17, 0.16], 1 - 0.35 * wet)
   const pink: RGB = shade([0.42, 0.28, 0.25], 1 - 0.3 * wet)
-  const skin = (n: Vector3, at: number): RGB => {
+  // A photo's hide (pores, folds; props/skins.ts) in place of the noise blotches.
+  const hide = (n: Vector3, at: number): RGB => {
     const blotch = noise3(n.x * 3 + at, n.y * 3, n.z * 3, seed)
-    return n.y < -0.35 ? mix(grey, pink, 0.6) : shade(grey, 0.85 + 0.3 * blotch + 0.1 * n.y)
+    return n.y < -0.35 ? mix(grey, pink, 0.6) : shade(grey, (skin ? 1 : 0.85 + 0.3 * blotch) + 0.1 * n.y)
   }
+  const pores = (offset: number): ((n: Vector3, p: Vector3) => [number, number, number]) | undefined => (skin ? skinBlob('hippo', 3.5 * s, 'wrap', offset) : undefined)
+  const legPores = skin ? skinCoords('hippo', 3.5 * s) : undefined
   // Legs, then the body over them.
   // Stubby legs, thick to the ground and flaring at the feet.
   const legH = 0.5 * s
@@ -643,7 +661,8 @@ export function hippoGeometry(rng: Random, wet: number): BufferGeometry {
         [new Vector3(x * s, legH + 0.3 * s, z), new Vector3(x * s, legH * 0.5, z * 1.05), new Vector3(x * s + 0.03, 0, z * 1.05)],
         t => s * (0.3 - 0.06 * t + 0.08 * Math.max(0, t - 0.8) / 0.2),
         () => shade(grey, 0.75),
-        8
+        8,
+        legPores
       )
     }
   }
@@ -652,18 +671,20 @@ export function hippoGeometry(rng: Random, wet: number): BufferGeometry {
   b.blob(
     new Vector3(0, 0.88 * s, 0),
     new Vector3(1.4 * s, 0.6 * s, 0.7 * s),
-    n => skin(n, 0),
+    n => hide(n, 0),
     // Squared off along the length (deep chest over the front legs).
     n => (1 + 0.15 * Math.max(0, -n.y) ** 2 - 0.08 * Math.max(0, n.y) ** 2) / Math.pow(Math.abs(n.x) ** 4 + (1 - n.x * n.x) ** 2, 0.25),
-    7
+    7,
+    undefined,
+    pores(0)
   )
   // Thick neck into a big head, pitched down.
-  b.blob(new Vector3(1.3 * s, 0.98 * s, 0), new Vector3(0.45 * s, 0.5 * s, 0.55 * s), n => skin(n, 2), () => 1, 5)
+  b.blob(new Vector3(1.3 * s, 0.98 * s, 0), new Vector3(0.45 * s, 0.5 * s, 0.55 * s), n => hide(n, 2), () => 1, 5, undefined, pores(0.3))
   const pitch = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -0.35)
   // The head: long, flat on top, boxy (squared-off blob), to a broad muzzle.
   const boxy = (n: Vector3): number => 1 / Math.pow(Math.abs(n.x) ** 4 + Math.abs(n.y) ** 4 + Math.abs(n.z) ** 4, 0.25) ** 0.6
-  b.blob(new Vector3(1.75 * s, 0.98 * s, 0), new Vector3(0.6 * s, 0.3 * s, 0.33 * s), n => skin(n, 4), boxy, 5, pitch)
-  b.blob(new Vector3(2.15 * s, 0.74 * s, 0), new Vector3(0.28 * s, 0.27 * s, 0.4 * s), n => (n.y < 0.2 && Math.abs(n.z) > 0.6 ? pink : skin(n, 6)), boxy, 5)
+  b.blob(new Vector3(1.75 * s, 0.98 * s, 0), new Vector3(0.6 * s, 0.3 * s, 0.33 * s), n => hide(n, 4), boxy, 5, pitch, pores(0.6))
+  b.blob(new Vector3(2.15 * s, 0.74 * s, 0), new Vector3(0.28 * s, 0.27 * s, 0.4 * s), n => (n.y < 0.2 && Math.abs(n.z) > 0.6 ? pink : hide(n, 6)), boxy, 5, undefined, pores(0.9))
   for (const side of [-1, 1]) {
     // Eyes high on the head, little ears behind, nostrils on top of the muzzle.
     b.blob(new Vector3(1.65 * s, 1.27 * s, side * 0.24 * s), new Vector3(0.08 * s, 0.07 * s, 0.07 * s), () => mix(grey, pink, 0.5), () => 1, 3)
@@ -868,7 +889,7 @@ export function createWildlife(ctx: PropContext): Mesh[] {
       const at = spot(nestBand, 30)
       // Facing up the beach, away from the sea, as she digs.
       if (at != null) place(pieces, 0, at[0], at[1], seaYaw + Math.PI + rng.normal(0, 0.5), spec.length)
-      build([turtleGeometry(rng, life.turtle, sand, 'nesting')], pieces)
+      build([turtleGeometry(rng, life.turtle, sand, 'nesting', skins)], pieces)
     }
     if (life.basking > 0) {
       const pieces: Piece[] = []
@@ -876,7 +897,7 @@ export function createWildlife(ctx: PropContext): Mesh[] {
       for (let tries = 0; at != null && tries < life.basking * 15 && pieces.length < life.basking; tries++) {
         place(pieces, rng.int(0, 1), at[0] + rng.normal(0, 1.5), at[1] + rng.normal(0, 4), rng.range(0, Math.PI * 2), spec.length)
       }
-      build([0, 1].map(() => turtleGeometry(rng, life.turtle!, sand, 'adult')), pieces)
+      build([0, 1].map(() => turtleGeometry(rng, life.turtle!, sand, 'adult', skins)), pieces)
     }
     if (life.hatchlings > 0) {
       // A boil of hatchlings from one nest, scattering down toward the sea.
@@ -889,13 +910,13 @@ export function createWildlife(ctx: PropContext): Mesh[] {
         const a = a0 + rng.normal(0, 0.4 + 2.5 * t)
         place(pieces, rng.int(0, 1), u, a, seaYaw + rng.normal(0, 0.5), 0.1)
       }
-      build([0, 1].map(() => turtleGeometry(rng, life.turtle!, sand, 'hatchling')), pieces)
+      build([0, 1].map(() => turtleGeometry(rng, life.turtle!, sand, 'hatchling', skins)), pieces)
     }
   }
 
   // Monkeys: a troop on the upper beach, by the trees.
   if (life.monkey != null && life.monkeys > 0) {
-    const geometries = [monkeyGeometry(rng, life.monkey, 'walk'), monkeyGeometry(rng, life.monkey, 'sit'), monkeyGeometry(rng, life.monkey, 'walk')]
+    const geometries = [monkeyGeometry(rng, life.monkey, 'walk', skins), monkeyGeometry(rng, life.monkey, 'sit', skins), monkeyGeometry(rng, life.monkey, 'walk', skins)]
     const pieces: Piece[] = []
     const at = spot([highTide, Math.max(highTide + 1, coast.beachWidth)], 30)
     const [u0, a0] = at ?? [0, 0]
@@ -972,7 +993,7 @@ export function createWildlife(ctx: PropContext): Mesh[] {
         place(pieces, rng.int(0, 1), Math.max(0.5, at[0] + rng.normal(0, 2)), at[1] + rng.normal(0, 6), yaw, 2.5)
       }
     }
-    build([hippoGeometry(rng, water ? 1 : 0.2), hippoGeometry(rng, water ? 1 : 0)], pieces, water ? wetMaterial : material)
+    build([hippoGeometry(rng, water ? 1 : 0.2, skins), hippoGeometry(rng, water ? 1 : 0, skins)], pieces, water ? wetMaterial : material)
   }
   return meshes
 }

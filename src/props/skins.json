@@ -198,6 +198,147 @@
       "contrast": 0.28,
       "note": "Neck and shoulder scales of an Asian water monitor (a black-and-white photo; only brightness is used); scale from a ~14 cm head over 850 px.",
       "highlights": 0.85
+    },
+    {
+      "id": "turtle-shell",
+      "asset": "skin-green-c",
+      "source": "commons:File:Chelonia mydas (AM LH858-7).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Chelonia_mydas_(AM_LH858-7).jpg",
+      "licence": "CC BY 4.0",
+      "author": "Australian Museum",
+      "mode": "whole",
+      "box": [
+        135,
+        105,
+        1650,
+        1235
+      ],
+      "rotate": 0,
+      "lengthM": 1.0,
+      "contrast": 0.55,
+      "note": "A green turtle carapace from above (Australian Museum LH858), head to the right; mapped once onto hard shells (green, loggerhead, olive ridley).",
+      "highlights": 0.9
+    },
+    {
+      "id": "hawksbill-shell",
+      "asset": "skin-green-d",
+      "source": "commons:File:Chelonia mydas (AM LH645-5).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Chelonia_mydas_(AM_LH645-5).jpg",
+      "licence": "CC BY 4.0",
+      "author": "Australian Museum",
+      "mode": "whole",
+      "box": [
+        560,
+        120,
+        1430,
+        1090
+      ],
+      "rotate": 90,
+      "lengthM": 0.8,
+      "contrast": 0.55,
+      "note": "Australian Museum LH645, catalogued as a green turtle; its radiating amber scutes are the hawksbill's tortoiseshell look, so it stands in for hawksbills. Head at the top, turned to the right.",
+      "highlights": 0.9
+    },
+    {
+      "id": "leatherback",
+      "asset": "skin-leather-a",
+      "source": "commons:File:Leatherback turtlle nesting dermochelys coriacea.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Leatherback_turtlle_nesting_dermochelys_coriacea.jpg",
+      "licence": "Public domain",
+      "author": "Rabon David, U.S. Fish and Wildlife Service",
+      "x": [
+        450,
+        900
+      ],
+      "top": [
+        600,
+        540
+      ],
+      "bottom": [
+        760,
+        760
+      ],
+      "lengthM": 1.6,
+      "mPerPx": 0.0017,
+      "mirror": true,
+      "contrast": 0.7,
+      "note": "Carapace flank of a nesting leatherback: ridges and white flecks; scale from ~1.5 m of carapace over 900 px."
+    },
+    {
+      "id": "turtle-skin",
+      "asset": "skin-hawks-a",
+      "source": "commons:File:Hawksbill sea turtle swimming.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Hawksbill_sea_turtle_swimming.jpg",
+      "licence": "Public domain",
+      "author": "Pseudopanax at English Wikipedia",
+      "x": [
+        1530,
+        1780
+      ],
+      "top": [
+        830,
+        890
+      ],
+      "bottom": [
+        930,
+        980
+      ],
+      "lengthM": 0.8,
+      "mPerPx": 0.0004,
+      "tileV": true,
+      "contrast": 0.5,
+      "note": "A hawksbill's hind flipper (dark scales, pale seams); on every turtle's head and flippers. Scale from a ~12 cm head over 300 px."
+    },
+    {
+      "id": "hippo",
+      "asset": "skin-hippo-a",
+      "source": "commons:File:Shiny skin.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Shiny_skin.jpg",
+      "licence": "CC BY 2.0",
+      "author": "Emran Kassim",
+      "x": [
+        500,
+        900
+      ],
+      "top": [
+        780,
+        780
+      ],
+      "bottom": [
+        1000,
+        1000
+      ],
+      "lengthM": 3.5,
+      "mPerPx": 0.0019,
+      "tileV": true,
+      "contrast": 0.6,
+      "highlights": 0.8,
+      "note": "Wet back of a hippo seen from behind (pores, folds); glints capped. Scale from a ~1.3 m wide back over 700 px."
+    },
+    {
+      "id": "monkey-fur",
+      "asset": "skin-vervet-a",
+      "source": "commons:File:Chlorocebus pygerythrus.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Chlorocebus_pygerythrus.jpg",
+      "licence": "Public domain",
+      "author": "Xlandfair at English Wikipedia",
+      "x": [
+        300,
+        700
+      ],
+      "top": [
+        990,
+        950
+      ],
+      "bottom": [
+        1060,
+        1040
+      ],
+      "lengthM": 0.45,
+      "mPerPx": 0.00023,
+      "tileV": true,
+      "contrast": 0.4,
+      "note": "A vervet's outstretched arm: grizzled fur along the strands; shared by macaques, capuchins and vervets. Scale from a ~7 cm head over 300 px."
     }
   ]
 }

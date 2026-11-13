@@ -79,6 +79,14 @@ export function skinBlob(id: SkinId, length: number, mode: 'wrap' | 'top', offse
   }
 }
 
+/** A whole object's skin (a recipe with `mode: "whole"`: a carapace seen
+ * from above, head to +u) mapped once onto a blob with half-sizes `rx`
+ * (along x, head at +x) and `rz` (across), projected from above. */
+export function skinWhole(id: SkinId, rx: number, rz: number): (n: Vector3, p: Vector3) => Coords {
+  const layer = layerOf(id)
+  return (_n, p) => [p.x / (2 * rx) + 0.5, p.z / (2 * rz) + 0.5, layer]
+}
+
 let atlas: DataArrayTexture | null = null
 let loading: Promise<void> | null = null
 

@@ -73,10 +73,10 @@ and daily at 00:05 UTC with fresh `latest*.jpg`. Enable it under
 - Moon phase: [astronomy-engine](https://github.com/cosinekitty/astronomy) (MIT).
 - Animal skins (`public/assets/skins.png`, baked by `scripts/skinBake.py`): patterns
   derived from photos on Wikimedia Commons; each photo, author and licence is listed in
-  `src/props/skins.json`. CC BY photos: "Nile Crocodile basking" by Steve Slater
-  ([CC BY 2.0](https://creativecommons.org/licenses/by/2.0/),
-  [source](https://commons.wikimedia.org/wiki/File:Nile_Crocodile_basking_(13869043013).jpg));
-  "Amblyrhynchus cristatus 125217466" by juan_carlos_caicedo_hdz ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/),
-  [source](https://commons.wikimedia.org/wiki/File:Amblyrhynchus_cristatus_125217466.jpg));
-  "Varanus salvator (Asian water monitor)" by Tan Pek Nan ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/),
-  [source](https://commons.wikimedia.org/wiki/File:Varanus_salvator_(Asian_water_monitor).jpg)).
+  `src/props/skins.json`. CC BY photos:
+  - "Nile Crocodile basking (13869043013).jpg" by Steve Slater (CC BY 2.0, [source](https://commons.wikimedia.org/wiki/File:Nile_Crocodile_basking_(13869043013).jpg))
+  - "Amblyrhynchus cristatus 125217466.jpg" by juan_carlos_caicedo_hdz (CC BY 4.0, [source](https://commons.wikimedia.org/wiki/File:Amblyrhynchus_cristatus_125217466.jpg))
+  - "Varanus salvator (Asian water monitor).jpg" by Tan Pek Nan (CC BY 4.0, [source](https://commons.wikimedia.org/wiki/File:Varanus_salvator_(Asian_water_monitor).jpg))
+  - "Chelonia mydas (AM LH858-7).jpg" by Australian Museum (CC BY 4.0, [source](https://commons.wikimedia.org/wiki/File:Chelonia_mydas_(AM_LH858-7).jpg))
+  - "Chelonia mydas (AM LH645-5).jpg" by Australian Museum (CC BY 4.0, [source](https://commons.wikimedia.org/wiki/File:Chelonia_mydas_(AM_LH645-5).jpg))
+  - "Shiny skin.jpg" by Emran Kassim (CC BY 2.0, [source](https://commons.wikimedia.org/wiki/File:Shiny_skin.jpg))

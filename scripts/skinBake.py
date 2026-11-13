@@ -21,6 +21,9 @@ line (near the dorsal midline and low on the flank). For each:
   5. Mean 1, clipped to 0.15..1.95, stored as value / 2 in an 8-bit grey
      layer of SIZE x SIZE; layers stacked top to bottom in recipe order.
 
+`mode: "whole"` instead bakes a whole object seen from above (a carapace) to be
+mapped once onto it: see bake_whole.
+
 Needs Python 3 with numpy, scipy and Pillow:
   python3 -m venv .venv-skins && .venv-skins/bin/pip install numpy scipy pillow
   .venv-skins/bin/python scripts/skinBake.py [--only ID] [--preview DIR]
@@ -56,12 +59,45 @@ def tile(img, axis):
     return m + (wa * (img - m) + wb * (rolled - m)) / np.sqrt(wa ** 2 + wb ** 2)
 
 
+def normalise(g):
+    """Mean 1 within 0.15..1.95 (clipping moves the mean, so repeat)."""
+    for _ in range(6):
+        g = np.clip(g / g.mean(), 0.15, 1.95)
+    return g
+
+
+def bake_whole(r, lin):
+    """A whole object seen from above (a carapace): `box` x0, y0, x1, y1 round it,
+    `rotate` degrees clockwise so the head points right. Mapped once onto the
+    object (no tiling); light divided out by a blur normalised inside the
+    ellipse the box encloses, so the background doesn't darken the rim."""
+    from scipy.ndimage import gaussian_filter
+    x0, y0, x1, y1 = r['box']
+    img = Image.fromarray(np.clip(lin[y0:y1, x0:x1] @ LUMA, 0, 1).astype(np.float32), 'F')
+    img = img.rotate(-r.get('rotate', 0), expand=True)
+    g = np.asarray(img.resize((SIZE * 2, SIZE * 2), Image.BILINEAR), np.float64)
+    yy, xx = np.mgrid[0:SIZE * 2, 0:SIZE * 2]
+    c = SIZE - 0.5
+    # The object: inside the ellipse and not the (pale, studio) background.
+    inside = (((xx - c) / SIZE) ** 2 + ((yy - c) / SIZE) ** 2 <= 0.97) & (g < r.get('background', 0.6))
+    sigma = SIZE * 2 * 0.2
+    light = gaussian_filter(g * inside, sigma) / np.maximum(gaussian_filter(inside.astype(float), sigma), 1e-3)
+    g = g / np.maximum(light, 1e-4)
+    g = np.minimum(g, np.percentile(g[inside], 100 * r.get('highlights', 0.98)))
+    g = np.log(np.maximum(g, 1e-3))
+    g = np.where(inside, g - g[inside].mean(), 0) * r.get('contrast', 1)
+    g = np.exp(g).reshape(SIZE, 2, SIZE, 2).mean((1, 3))
+    return normalise(g)
+
+
 def bake(r):
     photo = os.path.join(ROOT, 'assets-src', r['asset'], 'photo.jpg')
     if not os.path.exists(photo):
         sys.exit(f"{photo} missing: node scripts/asset.mjs fetch '{r['source']}' --id {r['asset']}")
     im = np.asarray(Image.open(photo).convert('RGB')).astype(np.float64) / 255
     lin = np.where(im <= 0.04045, im / 12.92, ((im + 0.055) / 1.055) ** 2.4)
+    if r.get('mode') == 'whole':
+        return bake_whole(r, lin)
     x0, x1 = r['x']
     t0, t1 = r['top']
     b0, b1 = r['bottom']
@@ -85,8 +121,7 @@ def bake(r):
         g = np.concatenate([g, g[::-1]], 0)
     g = np.exp((g - g.mean()) * r.get('contrast', 1))
     g = np.asarray(Image.fromarray(g.astype(np.float32), 'F').resize((SIZE, SIZE), Image.BILINEAR), np.float64)
-    g = np.clip(g / g.mean(), 0.15, 1.95)
-    return g
+    return normalise(g)
 
 
 layers = []

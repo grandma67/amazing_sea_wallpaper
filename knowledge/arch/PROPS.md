@@ -114,7 +114,13 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   replaced); crocodiles (body, legs, jaws; not the inside of the mouth); the four lizards (body
   and legs; the monitor's spots, the iguana's tail bands and salt crusts stay in the vertex
   colours). Close-up photos give the scale as `mPerPx` from a known head size; `highlights`
-  caps wet-skin glints before the pattern is made.
+  caps wet-skin glints before the pattern is made. Turtles (0.159): `mode: "whole"` recipes are a
+  carapace from above (Australian Museum specimens), mapped once onto the shell from above
+  (`skinWhole`: green, loggerhead, olive ridley share one; hawksbills the radiating tortoiseshell
+  one), the light divided out by a blur normalised inside the shell (the studio background masked by
+  brightness); leatherbacks a ridged hide along the shell; a hawksbill's flipper scales on every
+  turtle's head and flippers. Hippos (pores and folds, glints capped) and monkeys (one fur from a
+  vervet's arm) on body blobs (`skinBlob` wrap, offset per blob), legs and tails.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is
