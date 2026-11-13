@@ -80,3 +80,5 @@ and daily at 00:05 UTC with fresh `latest*.jpg`. Enable it under
   - "Chelonia mydas (AM LH858-7).jpg" by Australian Museum (CC BY 4.0, [source](https://commons.wikimedia.org/wiki/File:Chelonia_mydas_(AM_LH858-7).jpg))
   - "Chelonia mydas (AM LH645-5).jpg" by Australian Museum (CC BY 4.0, [source](https://commons.wikimedia.org/wiki/File:Chelonia_mydas_(AM_LH645-5).jpg))
   - "Shiny skin.jpg" by Emran Kassim (CC BY 2.0, [source](https://commons.wikimedia.org/wiki/File:Shiny_skin.jpg))
+  - "Atlantic Ghost Crab - Ocypode quadrata, Assateague Island National Seashore, Berlin, Maryland (23992149308).jpg" by Judy Gallagher (CC BY 2.0, [source](https://commons.wikimedia.org/wiki/File:Atlantic_Ghost_Crab_-_Ocypode_quadrata,_Assateague_Island_National_Seashore,_Berlin,_Maryland_(23992149308).jpg))
+  - "Asterias rubens 02 Espen Rekdal.jpg" by Espen Rekdal / Espen Rekdal Photography (CC BY 4.0, [source](https://commons.wikimedia.org/wiki/File:Asterias_rubens_02_Espen_Rekdal.jpg))

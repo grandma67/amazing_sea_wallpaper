@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { gull, restingGull } from '../src/props/birds'
 import { marineGeometry } from '../src/props/marine'
 import { migratoryGeometry } from '../src/props/migratory'
+import { crabGeometry, starfishGeometry } from '../src/props/shoreLife'
 import { pinniped, swimmingHead } from '../src/props/pinnipeds'
 import { SKIN_IDS, skinCoords, skinTile } from '../src/props/skins'
 import { crocodileGeometry, hippoGeometry, lizardGeometry, monkeyGeometry, turtleGeometry } from '../src/props/wildlife'
@@ -31,7 +32,7 @@ describe('photo skins', () => {
     expect(skinCoords('harbour-seal', length * 2)(0, 0, 0.3, tile[0])[0]).toBeCloseTo(0.5, 9)
   })
 
-  it('give every seal, head, lizard, turtle, hippo, monkey, marine animal and bird a skin only when asked', () => {
+  it('give every seal, head, lizard, turtle, hippo, monkey, marine animal, bird, crab and starfish a skin only when asked', () => {
     expect(pinniped(new Random('s'), 'seal', 'lying', 0, false).getAttribute('skin')).toBeUndefined()
     for (const kind of ['seal', 'sea-lion', 'fur-seal', 'elephant-seal'] as const) {
       expect(pinniped(new Random('s'), kind, 'lying', 0, true).getAttribute('skin')).toBeDefined()
@@ -55,6 +56,9 @@ describe('photo skins', () => {
     for (const bird of [gull(0.3, 0.2, false, true), restingGull(true, true), migratoryGeometry('goose', false, true), migratoryGeometry('duck', false, true), migratoryGeometry('flamingo', true, true)]) {
       expect(bird.getAttribute('skin')).toBeDefined()
     }
+    for (const kind of ['ghost', 'shore', 'hermit'] as const) expect(crabGeometry(new Random('c'), kind, [0.7, 0.65, 0.55], true).getAttribute('skin')).toBeDefined()
+    expect(starfishGeometry(new Random('s'), true).getAttribute('skin')).toBeDefined()
+    expect(starfishGeometry(new Random('s'), false).getAttribute('skin')).toBeUndefined()
     const skinned = pinniped(new Random('s'), 'seal', 'lying', 0, true)
     const plain = pinniped(new Random('s'), 'seal', 'lying', 0, false)
     const skin = skinned.getAttribute('skin') as BufferAttribute

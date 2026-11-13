@@ -126,7 +126,9 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   Bodies only; fins and flukes plain. Birds (0.161): one feather layer (an emperor goose's
   scalloped breast, `local` high-pass so only feather-sized detail stays, faint) on gulls (also the
   colony's), penguins, geese, ducks and flamingos: bodies and necks wrapped, flat wings and tails
-  through `MeshBuilder.setSkin` and `skinFlat` (x along, distance out across).
+  through `MeshBuilder.setSkin` and `skinFlat` (x along, distance out across). Crabs and starfish
+  (0.162): a ghost crab's speckled carapace (from above) and legs on every crab (not the hermit's
+  borrowed shell), a common starfish's spines on arms and disc. Every animal now has a skin.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

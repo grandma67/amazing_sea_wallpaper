@@ -442,6 +442,56 @@
       "contrast": 0.18,
       "note": "Breast and flank of an emperor goose: scalloped feather edges; on every bird (gulls, colony birds, penguins, geese, ducks, flamingos), brightness only so white birds stay white. Scale from a ~30 cm wide body over 450 px.",
       "local": 0.04
+    },
+    {
+      "id": "crab",
+      "asset": "skin-ghost-a",
+      "source": "commons:File:Atlantic Ghost Crab - Ocypode quadrata, Assateague Island National Seashore, Berlin, Maryland (23992149308).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Atlantic_Ghost_Crab_-_Ocypode_quadrata,_Assateague_Island_National_Seashore,_Berlin,_Maryland_(23992149308).jpg",
+      "licence": "CC BY 2.0",
+      "author": "Judy Gallagher",
+      "x": [
+        760,
+        1080
+      ],
+      "top": [
+        615,
+        615
+      ],
+      "bottom": [
+        690,
+        690
+      ],
+      "lengthM": 0.05,
+      "mPerPx": 0.000125,
+      "tileV": true,
+      "contrast": 0.6,
+      "note": "Carapace of an Atlantic ghost crab: fine speckles and granules; on every crab. Scale from a ~5 cm carapace over 400 px."
+    },
+    {
+      "id": "starfish",
+      "asset": "skin-star-a",
+      "source": "commons:File:Asterias rubens 02 Espen Rekdal.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Asterias_rubens_02_Espen_Rekdal.jpg",
+      "licence": "CC BY 4.0",
+      "author": "Espen Rekdal / Espen Rekdal Photography",
+      "x": [
+        1000,
+        1350
+      ],
+      "top": [
+        535,
+        565
+      ],
+      "bottom": [
+        635,
+        625
+      ],
+      "lengthM": 0.15,
+      "mPerPx": 0.00017,
+      "mirror": true,
+      "contrast": 0.6,
+      "note": "An arm of a common starfish: rows of spines. Scale from a ~10 cm arm over 580 px."
     }
   ]
 }

@@ -18,6 +18,7 @@ import { monthInSeason } from '../seasons'
 import { hasBeach, shoreToWorld, terrainNormal } from '../terrain'
 import { tideMarks } from '../tides'
 import { MeshBuilder } from './builder'
+import { skinBlob, skinCoords, skinMaterial, skinsOn } from './skins'
 import { stormy, type PropContext } from './context'
 import { noise3 } from './noise'
 
@@ -319,7 +320,7 @@ export function shellGeometry(rng: Random, kind: ShellKind): BufferGeometry {
 }
 
 /** A five-armed starfish lying on the sand. */
-export function starfishGeometry(rng: Random): BufferGeometry {
+export function starfishGeometry(rng: Random, skin = false): BufferGeometry {
   const b = new MeshBuilder()
   const color = rng.pick<RGB>([[0.55, 0.16, 0.04], [0.3, 0.07, 0.15], [0.45, 0.25, 0.08]])
   const arm = rng.range(0.05, 0.09)
@@ -328,14 +329,15 @@ export function starfishGeometry(rng: Random): BufferGeometry {
     const az = (i / 5) * Math.PI * 2 + 0.15 * Math.sin(i * 3 + twist * 9)
     const dir = new Vector3(Math.cos(az), 0, Math.sin(az))
     const path = [0, 1, 2, 3, 4, 5].map(k => dir.clone().multiplyScalar((arm * k) / 5).setY(0.008 + 0.006 * Math.sin((k / 5) * Math.PI)))
-    b.tube(path, t => arm * 0.2 * (1 - 0.8 * t), (t, a) => shade(color, 0.85 + 0.25 * Math.sin(a * 5 + t * 30)), 6)
+    // Spines from a photo (props/skins.ts) in place of the ridged shading.
+    b.tube(path, t => arm * 0.2 * (1 - 0.8 * t), (t, a) => shade(color, skin ? 1 : 0.85 + 0.25 * Math.sin(a * 5 + t * 30)), 6, skin ? skinCoords('starfish', arm * 2) : undefined)
   }
-  b.blob(new Vector3(0, 0.01, 0), new Vector3(arm * 0.25, arm * 0.14, arm * 0.25), () => color, () => 1, 3)
+  b.blob(new Vector3(0, 0.01, 0), new Vector3(arm * 0.25, arm * 0.14, arm * 0.25), () => color, () => 1, 3, undefined, skin ? skinBlob('starfish', arm * 2, 'top') : undefined)
   return b.build()
 }
 
 /** A crab standing on its legs. */
-export function crabGeometry(rng: Random, kind: CrabKind, sand: RGB): BufferGeometry {
+export function crabGeometry(rng: Random, kind: CrabKind, sand: RGB, skin = false): BufferGeometry {
   const b = new MeshBuilder()
   const width = kind === 'ghost' ? rng.range(0.04, 0.055) : kind === 'shore' ? rng.range(0.05, 0.075) : rng.range(0.02, 0.03)
   const color: RGB =
@@ -362,7 +364,10 @@ export function crabGeometry(rng: Random, kind: CrabKind, sand: RGB): BufferGeom
     new Vector3(width * (kind === 'ghost' ? 0.42 : 0.38), width * 0.22, width * 0.5),
     n => shade(color, 0.75 + 0.35 * Math.max(0, n.y)),
     n => (kind === 'ghost' ? 1 + 0.12 * (n.x * n.x * n.z * n.z * 16) : 1),
-    4
+    4,
+    undefined,
+    // Carapace grain from a photo (props/skins.ts), seen from above.
+    skin ? skinBlob('crab', width, 'top') : undefined
   )
   // Four walking legs a side: out, up to the knee, down to the sand.
   for (const side of [-1, 1]) {
@@ -373,7 +378,7 @@ export function crabGeometry(rng: Random, kind: CrabKind, sand: RGB): BufferGeom
       const root = new Vector3(along, lift, side * width * 0.4)
       const knee = new Vector3(along + Math.sin(sweep) * spread * 0.55, lift + width * 0.35, side * (width * 0.4 + Math.cos(sweep) * spread * 0.55))
       const tip = new Vector3(along + Math.sin(sweep) * spread, 0, side * (width * 0.4 + Math.cos(sweep) * spread))
-      b.tube([root, knee, tip], t => width * 0.055 * (1 - 0.6 * t), () => shade(color, 0.9), 5)
+      b.tube([root, knee, tip], t => width * 0.055 * (1 - 0.6 * t), () => shade(color, 0.9), 5, skin ? skinCoords('crab', width) : undefined)
     }
     // Claws in front.
     const claw = kind === 'ghost' && side === 1 ? 1.3 : 1
@@ -770,13 +775,16 @@ export function createShoreLife(ctx: PropContext): InstancedMesh[] {
         )
       }
     }
+    // Photo skins (props/skins.ts) for crabs and starfish; others unchanged.
+    if (skins) skinMaterial(m)
     return m
   }
+  const skins = skinsOn(params.overrides)
 
   // Shells and starfish: strewn on the wrack line and the lower beach.
   {
     const geometries = life.shells.flatMap(kind => [0, 1].map(() => shellGeometry(rng, kind)))
-    const starfish = life.starfish > 0 ? geometries.push(starfishGeometry(rng)) - 1 : -1
+    const starfish = life.starfish > 0 ? geometries.push(starfishGeometry(rng, skins)) - 1 : -1
     const pieces: Piece[] = []
     for (let i = 0; i < life.shellCount; i++) {
       const u = rng.chance(0.6) ? highTide + rng.normal(0, 0.8) : rng.range(0.3, highTide + 2)
@@ -789,7 +797,7 @@ export function createShoreLife(ctx: PropContext): InstancedMesh[] {
 
   // Crabs and burrows.
   if (life.crab != null) {
-    const crabs = [0, 1].map(() => crabGeometry(rng, life.crab!, sand))
+    const crabs = [0, 1].map(() => crabGeometry(rng, life.crab!, sand, skins))
     const pieces: Piece[] = []
     for (let i = 0; i < life.crabs * 4 && pieces.length < life.crabs; i++) {
       // Ghost crabs forage down to the swash; shore crabs stay near the
