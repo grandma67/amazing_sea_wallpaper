@@ -718,6 +718,15 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **A photo's shadows are sky-coloured (skins, 0.157):** a per-channel ratio of a crocodile's
+  shadowed scales came out blue (they are lit by the sky, not the sun). Take brightness only from a
+  photo and leave hue to the measured colours.
+- **A missing vec4 attribute reads (0, 0, 0, 1) (skins, 0.157):** a shared material patched for
+  one animal draws the others that lack the attribute. Put the weight in a component that
+  defaults to 0.
+- **Blend in log space when the result must stay positive (skins, 0.157):** a contrast-keeping
+  cross-fade of a dark-crevice texture went negative; the pattern multiplies, so tile its log.
+
 - **A far colour averaged from several is often the ground's own (bloom years, 0.155):** orange
   and white daisies plus their leaves made a salmon as pale as Namaqualand's soil, so the tint
   vanished; real fields are sheets of one colour. Choose a colour per patch, then soften (speckle,

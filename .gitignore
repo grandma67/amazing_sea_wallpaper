@@ -10,3 +10,4 @@ knowledge/TODO.md
 
 # Real-asset sources (scripts/asset.mjs): only baked outputs are committed
 assets-src/
+.venv-skins/

@@ -1,0 +1,27 @@
+{
+  "about": "Animal skin recipes, in atlas layer order (public/assets/skins.png; scripts/skinBake.py bakes it, props/skins.ts reads the scale). x: patch x0, x1 (px); top, bottom: the lines' y at x0 and x1; scale: the animal's length in the photo (m) over its length in pixels (assumed where not measured). Licences: public domain, CC0 or CC BY (credited on the page).",
+  "skins": [
+    {
+      "id": "harbour-seal",
+      "asset": "skin-seal-a",
+      "source": "commons:File:Harbor seals hauled out on the water's edge (26ad329c-1dd8-b71c-0775-87b2c69d3ced).JPG",
+      "page": "https://commons.wikimedia.org/wiki/File:Harbor_seals_hauled_out_on_the_water%27s_edge_(26ad329c-1dd8-b71c-0775-87b2c69d3ced).JPG",
+      "licence": "Public domain",
+      "author": "NPS",
+      "x": [1240, 1560], "top": [600, 590], "bottom": [755, 750],
+      "lengthM": 1.5, "lengthPx": 865,
+      "tileV": true
+    },
+    {
+      "id": "crocodile",
+      "asset": "skin-croc-a",
+      "source": "commons:File:Nile Crocodile basking (13869043013).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Nile_Crocodile_basking_(13869043013).jpg",
+      "licence": "CC BY 2.0",
+      "author": "Steve Slater",
+      "x": [705, 865], "top": [588, 577], "bottom": [700, 698],
+      "lengthM": 3.5, "lengthPx": 1605,
+      "mirror": true, "contrast": 0.6
+    }
+  ]
+}

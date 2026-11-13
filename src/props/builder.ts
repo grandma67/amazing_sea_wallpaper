@@ -14,6 +14,13 @@ export class MeshBuilder {
   /** The bark weight `vertex()` gives the vertices it adds (trees.ts sets it
    * round a trunk or limb). */
   mossy = 0
+  /** Per vertex: how much skin (0 none, 1 full) and where it samples it (u,
+   * v in tiles, the atlas layer): props/skins.ts. Weight first: a geometry
+   * without the attribute reads (0, 0, 0, 1) under a skinned material, so
+   * weight 0. Written by `tube()` and
+   * `blob()` when given `skin`; built as the `skin` attribute only when some
+   * vertex has it. */
+  private readonly skin: number[] = []
   /** Copied to the built geometry (what a reader needs to know of its shape). */
   readonly userData: Record<string, unknown> = {}
 
@@ -21,6 +28,7 @@ export class MeshBuilder {
     this.positions.push(p.x, p.y, p.z)
     this.colors.push(...color)
     this.barkMoss.push(this.mossy)
+    this.skin.push(0, 0, 0, 0)
     return this.positions.length / 3 - 1
   }
 
@@ -34,19 +42,24 @@ export class MeshBuilder {
 
   /** A tube following `path`, with radius and colour per point and angle
    * round it (so bark can have relief). Returns the vertex rings, so the
-   * ends can be capped. */
+   * ends can be capped. `skin` gives each vertex its skin-pattern
+   * coordinates from t, its angle, its radius and the length of path so far
+   * (m), or null for none. */
   tube(
     path: Vector3[],
     radius: (t: number, angle: number) => number,
     color: (t: number, angle: number) => [number, number, number],
-    sides = 10
+    sides = 10,
+    skin?: (t: number, angle: number, r: number, along: number) => [number, number, number] | null
   ): number[][] {
     const rings: number[][] = []
     const tangent = new Vector3()
     const normal = new Vector3()
     const binormal = new Vector3()
     const up = new Vector3(0, 0, 1)
+    let along = 0
     path.forEach((p, i) => {
+      if (i > 0) along += p.distanceTo(path[i - 1])
       const next = path[Math.min(i + 1, path.length - 1)]
       const prev = path[Math.max(i - 1, 0)]
       tangent.subVectors(next, prev).normalize()
@@ -63,7 +76,10 @@ export class MeshBuilder {
           .clone()
           .multiplyScalar(Math.cos(angle) * r)
           .addScaledVector(binormal, Math.sin(angle) * r)
-        ring.push(this.vertex(p.clone().add(offset), color(t, angle)))
+        const id = this.vertex(p.clone().add(offset), color(t, angle))
+        const uv = skin?.(t, angle, r, along)
+        if (uv != null) this.skin.splice(id * 4, 4, 1, uv[0], uv[1], uv[2])
+        ring.push(id)
       }
       rings.push(ring)
     })
@@ -119,14 +135,17 @@ export class MeshBuilder {
     })
   }
 
-  /** A lumpy ellipsoid: canopies, bushes, coconuts. */
+  /** A lumpy ellipsoid: canopies, bushes, coconuts. `skin` gives each
+   * vertex its skin coordinates from its direction and its offset from the
+   * centre before `orient` (m), or null for none. */
   blob(
     center: Vector3,
     radii: Vector3,
     color: (n: Vector3) => [number, number, number],
     lump: (n: Vector3) => number,
     detail = 6,
-    orient?: Quaternion
+    orient?: Quaternion,
+    skin?: (n: Vector3, p: Vector3) => [number, number, number] | null
   ): void {
     const rows = detail * 2
     const cols = detail * 4
@@ -139,9 +158,11 @@ export class MeshBuilder {
         n.set(Math.sin(phi) * Math.cos(theta), Math.cos(phi), Math.sin(phi) * Math.sin(theta))
         const k = lump(n)
         const p = new Vector3(n.x * radii.x * k, n.y * radii.y * k, n.z * radii.z * k)
+        const uv = skin?.(n, p)
         if (orient != null) p.applyQuaternion(orient)
         p.add(center)
-        this.vertex(p, color(n))
+        const id = this.vertex(p, color(n))
+        if (uv != null) this.skin.splice(id * 4, 4, 1, uv[0], uv[1], uv[2])
       }
     }
     for (let r = 0; r < rows; r++) {
@@ -161,6 +182,7 @@ export class MeshBuilder {
     }
     this.colors.push(...other.colors)
     this.barkMoss.push(...other.barkMoss)
+    this.skin.push(...other.skin)
     Object.assign(this.userData, other.userData)
     for (const index of other.indices) this.indices.push(index + base)
   }
@@ -171,6 +193,7 @@ export class MeshBuilder {
     geometry.setAttribute('position', new BufferAttribute(new Float32Array(this.positions), 3))
     geometry.setAttribute('color', new BufferAttribute(new Float32Array(this.colors), 3))
     if (this.barkMoss.some(m => m > 0)) geometry.setAttribute('barkMoss', new BufferAttribute(new Float32Array(this.barkMoss), 1))
+    if (this.skin.some((w, i) => i % 4 === 0 && w > 0)) geometry.setAttribute('skin', new BufferAttribute(new Float32Array(this.skin), 4))
     geometry.setIndex(this.indices)
     geometry.computeVertexNormals()
     // Blob poles only touch zero-area triangles, leaving zero normals that

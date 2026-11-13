@@ -94,6 +94,23 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   fetched only by a day that draws it: `loadScan(id)` before building, then `scanGeometry` sync).
   First: Poly Haven's *Ursinia* daisy (5 plants, 0.14–0.42 m), for phase 16's Namaqualand bloom;
   nothing draws it yet.
+- **Animal skins** (`props/skins.ts`, 0.157): markings from photos on the procedural animals. One
+  atlas (`public/assets/skins.png`, a 256² grey layer per skin) baked offline by
+  `scripts/skinBake.py` from the recipes in `props/skins.json` (photo, patch, the animal's length in
+  the photo for scale, licence): a straight patch of flank between a line near the backbone and one
+  low on the side, its light divided out (row mean down the side, wide blur of the column mean
+  along it), brightness only (shadows lit by blue sky carry the sky's hue), tiled along the body
+  by a contrast-keeping cross-fade in log space, and down it (`tileV`) or mirrored (`mirror`, a
+  patch that only reaches the flank). Mean 1, stored as value / 2. A vertex's `skin` attribute is
+  (weight, u, v, layer): u metres along the spine, v metres of arc down from the dorsal midline
+  (both sides fold onto one v: no seam), both in tiles scaled by the animal's length over the
+  photo's. `MeshBuilder.tube`/`blob` take a `skin` callback (`skinCoords`, `skinBlob` wrap or
+  top); `skinMaterial` patches a material once (`texture(skinAtlas, …).r * 2` times the vertex
+  colour, by the weight). The weight comes first because a geometry without the attribute reads
+  (0, 0, 0, 1) under a patched shared material. Mipmaps average to 1, so far animals keep their
+  colour. `loadSkins()` in `scene.ts` before the props (browser only; in Node builders keep
+  their own colours). `props.skins: false`: none (identical to 0.156). Harbour seals (their
+  noise spots replaced) and crocodiles (body, legs, jaws; not the inside of the mouth).
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

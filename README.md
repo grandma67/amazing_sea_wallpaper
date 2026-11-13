@@ -71,3 +71,8 @@ and daily at 00:05 UTC with fresh `latest*.jpg`. Enable it under
   [NASA/Goddard Space Flight Center Scientific Visualization Studio](https://svs.gsfc.nasa.gov/4851),
   Deep Star Maps 2020; Gaia DR2 data: ESA/Gaia/DPAC.
 - Moon phase: [astronomy-engine](https://github.com/cosinekitty/astronomy) (MIT).
+- Animal skins (`public/assets/skins.png`, baked by `scripts/skinBake.py`): patterns
+  derived from photos on Wikimedia Commons; each photo, author and licence is listed in
+  `src/props/skins.json`. CC BY photos: "Nile Crocodile basking" by Steve Slater
+  ([CC BY 2.0](https://creativecommons.org/licenses/by/2.0/),
+  [source](https://commons.wikimedia.org/wiki/File:Nile_Crocodile_basking_(13869043013).jpg)).

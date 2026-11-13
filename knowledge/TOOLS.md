@@ -45,6 +45,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded |
 | Is a prop **visible** on a day (not behind props or terrain), which spec dates show it best; how hazed far land is | `params.mjs --find KIND` | tools/PARAMS.md "Which days show it" |
 | How much turf, bare land, sea a camera sees, by distance | `src.groundSeen.groundSeen(p.ctx)` in a `params.mjs` expression | tools/PARAMS.md |
+| An animal skin from a photo (atlas layer) | `asset.mjs fetch commons:File:… --id ID` → `asset.mjs grid ID` (pick the patch) → recipe in `src/props/skins.json` → `scripts/skinBake.py --preview DIR` (Python: numpy, scipy, Pillow) → `mesh.mjs --material 'props/skins#skinPreviewMaterial()'` | `scripts/skinBake.py` header | [arch/PROPS.md](arch/PROPS.md) "Animal skins" |
 | A scanned model as a prop mesh (vertex colours, levels of detail) | `asset.mjs bake ID` → `src/props/scans/ID.ts`; `mesh.mjs 'props/scans/index#scanVariant(…)'` | "Real colours" below; NATURE_PLAN.md §11 | header; "Real colours" below; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §1 |
 
 ## Tests

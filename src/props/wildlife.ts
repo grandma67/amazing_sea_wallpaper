@@ -18,6 +18,7 @@ import { hasBeach, shoreToWorld, terrainNormal, worldToShore } from '../terrain'
 import { MeshBuilder } from './builder'
 import { stormy, type PropContext } from './context'
 import { noise3 } from './noise'
+import { skinCoords, skinMaterial, skinsOn } from './skins'
 import { inMonths, placeNamed, type Animal } from '../places'
 
 // Larger beach animals, at real size, so they show only near the camera.
@@ -497,7 +498,7 @@ const CROCODILE: Record<CrocodileKind, { length: [number, number]; back: RGB; si
 /** A crocodile lying on its belly: long flat snout (agape by `gape`
  * radians, pale inside), low wide body with rows of scutes, legs splayed,
  * a tall-sided tail with a double crest. Snout toward +X. */
-export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number): BufferGeometry {
+export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number, skin = false): BufferGeometry {
   const b = new MeshBuilder()
   const spec = CROCODILE[kind]
   const length = rng.range(...spec.length)
@@ -509,11 +510,12 @@ export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number
   const belly: RGB = [0.38, 0.35, 0.26]
   const mouth: RGB = [0.5, 0.42, 0.28]
   // Hide: dark back, paler flanks, cream belly, dark bands on the tail.
-  const hide = (t: number, up: number, along: number): RGB => {
+  // With a photo skin (props/skins.ts) the body's blotches are the photo's.
+  const hide = (t: number, up: number, along: number, skinned = false): RGB => {
     const spot = noise3(along * 6, up * 2, t * 3, seed)
     if (up < -0.5) return belly
     let c = mix(spec.side, spec.back, Math.min(1, Math.max(0, up * 1.4 + 0.3)))
-    c = shade(c, 0.8 + 0.4 * spot)
+    if (!skinned) c = shade(c, 0.8 + 0.4 * spot)
     if (t > tailFrom && Math.sin(along * 7) > 0.55 && up > -0.2) c = shade(c, 0.55)
     return c
   }
@@ -539,7 +541,7 @@ export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number
     const height = radius(t, 0)
     spine.push(new Vector3(neck - t * bodyLength, height + 0.01, bend * length * 0.25 * tailT * tailT))
   }
-  const rings = b.tube(spine, radius, (t, angle) => hide(t, Math.cos(angle), t * bodyLength), 14)
+  const rings = b.tube(spine, radius, (t, angle) => hide(t, Math.cos(angle), t * bodyLength, skin), 14, skin ? skinCoords('crocodile', length) : undefined)
   // Close the neck: a gaping mouth would show into the tube.
   b.cap(rings[0], new Vector3(1, 0, 0), mouth)
   // Legs: short, splayed out from shoulders and hips, elbows up.
@@ -554,7 +556,8 @@ export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number
         [new Vector3(p.x, p.y * 0.6, p.z + side * girth * 0.4), elbow, foot],
         t => girth * thick * (1 - 0.45 * t) * (t > 0.4 ? 0.8 : 1),
         () => mix(spec.back, spec.side, 0.4),
-        7
+        7,
+        skin ? skinCoords('crocodile', length) : undefined
       )
       // Splayed toes, flat on the ground.
       b.blob(foot.clone().add(new Vector3(girth * 0.15, 0, side * girth * 0.1)), new Vector3(girth * 0.3, girth * 0.05, girth * 0.22), () => mix(spec.back, spec.side, 0.4), () => 1, 2)
@@ -589,8 +592,11 @@ export function crocodileGeometry(rng: Random, kind: CrocodileKind, gape: number
     const jawRings = b.tube(
       path,
       (t, a) => girth * width * (1 - 0.62 * Math.min(1, t * 1.1)) * (1 - flat * Math.cos(a) ** 2),
-      (t, a) => (Math.cos(a) * inside > 0.3 && gape > 0.08 && t > 0.05 ? mouth : hide(0.05, -Math.cos(a), t * 3)),
-      12
+      (t, a) => (Math.cos(a) * inside > 0.3 && gape > 0.08 && t > 0.05 ? mouth : hide(0.05, -Math.cos(a), t * 3, skin)),
+      12,
+      // The head's scales from the same skin, folded from the jaw's top
+      // (angle π: cos points down here); none inside an open mouth.
+      skin ? (t, a, r, along) => (Math.cos(a) * inside > 0.3 && gape > 0.08 && t > 0.05 ? null : skinCoords('crocodile', length)(t, a + Math.PI, r, along)) : undefined
     )
     // The blunt snout tip.
     b.cap(jawRings[jawRings.length - 1], dir, hide(0.05, 1, 0))
@@ -923,7 +929,9 @@ export function createWildlife(ctx: PropContext): Mesh[] {
   // sea or the sun, one or two agape; or lying awash, eyes and back showing.
   if (life.crocodile != null && life.crocodiles > 0) {
     const kind = life.crocodile
-    const geometries = [crocodileGeometry(rng, kind, rng.range(0.3, 0.45)), crocodileGeometry(rng, kind, 0.03), crocodileGeometry(rng, kind, 0.03)]
+    // Scutes and blotches from a photo (props/skins.ts), unless switched off.
+    const skinned = skinsOn(params.overrides)
+    const geometries = [crocodileGeometry(rng, kind, rng.range(0.3, 0.45), skinned), crocodileGeometry(rng, kind, 0.03, skinned), crocodileGeometry(rng, kind, 0.03, skinned)]
     const pieces: Piece[] = []
     const water = inWater(params, 'crocodile')
     if (water) {
@@ -938,6 +946,7 @@ export function createWildlife(ctx: PropContext): Mesh[] {
         place(pieces, pieces.length === 0 ? 0 : rng.int(0, 2), Math.max(1.5, at[0] + rng.normal(0, 1.2)), at[1] + rng.normal(0, 5), yaw, 2.5, 0.25)
       }
     }
+    if (skinned) skinMaterial(water ? wetMaterial : material)
     build(geometries, pieces, water ? wetMaterial : material)
   }
 

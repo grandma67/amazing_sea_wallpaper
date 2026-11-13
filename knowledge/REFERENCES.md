@@ -74,6 +74,11 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
 
 ## Shore and animals
 
+- Animal skins (0.157): photos on Wikimedia Commons, listed with author and licence in
+  `src/props/skins.json` (public domain or CC BY; CC BY credited in README). Pixel scale from an
+  assumed length of the animal in the photo (harbour seal 1.5 m, Nile crocodile 3.5 m), not measured.
+  Delighting by dividing out low-frequency light follows photogrammetry practice (Unity's
+  De-Lighting Tool, blog.unity.com "Experimental feature: De-Lighting tool"; from search summaries).
 - Lighthouse lens rotation (0.129): US Lighthouse Society, "Lens rotation" (uslhs.org/resources/
   lighthouse-technology/lens-rotation): flashes per minute = lit panels × turns per minute; the
   Cuckolds, Fl(2) 6s, two panels lit, 10 rpm. St Augustine Lighthouse, "Clockwork mechanism"
