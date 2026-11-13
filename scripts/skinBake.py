@@ -111,6 +111,11 @@ def bake(r):
     s = s / gaussian_filter1d(s.mean(1, keepdims=True), h * 0.08, axis=0, mode='nearest')
     s = s / gaussian_filter1d(s.mean(0, keepdims=True), w * 0.5, axis=1, mode='wrap')
     g = s @ LUMA
+    # `local` (a share of the patch height): divide by a blur that size too,
+    # keeping only detail smaller than it (feather edges, not a bird's bars).
+    if r.get('local'):
+        from scipy.ndimage import gaussian_filter
+        g = g / np.maximum(gaussian_filter(g, h * r['local'], mode='wrap'), 1e-4)
     # Specular glints on wet skin are light, not skin: cap them.
     g = np.minimum(g, np.percentile(g, 100 * r.get('highlights', 0.98)))
     g = np.log(np.maximum(g, 1e-3))

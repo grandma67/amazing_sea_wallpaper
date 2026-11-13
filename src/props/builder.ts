@@ -32,6 +32,11 @@ export class MeshBuilder {
     return this.positions.length / 3 - 1
   }
 
+  /** Give vertex `id` skin coordinates (u, v, layer): props/skins.ts. */
+  setSkin(id: number, uv: [number, number, number]): void {
+    this.skin.splice(id * 4, 4, 1, uv[0], uv[1], uv[2])
+  }
+
   triangle(a: number, b: number, c: number): void {
     this.indices.push(a, b, c)
   }

@@ -123,7 +123,10 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   vervet's arm) on body blobs (`skinBlob` wrap, offset per blob), legs and tails. Marine animals
   (0.160): a breaching humpback's pleats and scars; dolphins and orcas the same patch softened to a
   faint mottle (spray drops in the photo are light, capped); a swordfish specimen's fine lines.
-  Bodies only; fins and flukes plain.
+  Bodies only; fins and flukes plain. Birds (0.161): one feather layer (an emperor goose's
+  scalloped breast, `local` high-pass so only feather-sized detail stays, faint) on gulls (also the
+  colony's), penguins, geese, ducks and flamingos: bodies and necks wrapped, flat wings and tails
+  through `MeshBuilder.setSkin` and `skinFlat` (x along, distance out across).
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

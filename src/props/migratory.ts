@@ -17,6 +17,7 @@ import { forced, forcedKind, type MigratorySpecies } from '../sceneSpec'
 import { waterfowlSeason } from '../animalSeasons'
 import { hasBeach } from '../terrain'
 import { MeshBuilder } from './builder'
+import { skinBlob, skinCoords, skinFlat, skinMaterial, skinsOn } from './skins'
 import type { PropContext } from './context'
 
 // Migratory birds of the coast, each seen the way it's usually seen:
@@ -94,15 +95,22 @@ const BUILD: Record<Species, Build> = {
 }
 
 /** A bird in flight, facing +x. `lift` raises the wings (radians). */
-function flying(species: Species, lift: number): BufferGeometry {
+function flying(species: Species, lift: number, skin = false): BufferGeometry {
   const p = PLUMAGE[species]
   const s = BUILD[species]
   const b = new MeshBuilder()
   const L = s.length
-  b.blob(new Vector3(0, 0, 0), new Vector3(L * 0.42, L * 0.13, L * 0.14), n => (n.y < -0.3 ? p.accent : p.body), () => 1, 4)
+  // Feathers from a photo (props/skins.ts) on body, neck, wings and tail.
+  const flat = skinFlat('feathers', L)
+  const v = (q: Vector3, c: RGB): number => {
+    const id = b.vertex(q, c)
+    if (skin) b.setSkin(id, flat(q))
+    return id
+  }
+  b.blob(new Vector3(0, 0, 0), new Vector3(L * 0.42, L * 0.13, L * 0.14), n => (n.y < -0.3 ? p.accent : p.body), () => 1, 4, undefined, skin ? skinBlob('feathers', L, 'wrap') : undefined)
   // Neck stretched forward; head and bill.
   const neckEnd = new Vector3(L * (0.35 + s.neck * 0.6), L * 0.03, 0)
-  b.tube([new Vector3(L * 0.3, 0.02 * L, 0), neckEnd], () => L * 0.045, () => p.neck, 6)
+  b.tube([new Vector3(L * 0.3, 0.02 * L, 0), neckEnd], () => L * 0.045, () => p.neck, 6, skin ? skinCoords('feathers', L) : undefined)
   b.blob(neckEnd, new Vector3(L * 0.08, L * 0.06, L * 0.055), n => (species === 'goose' && Math.abs(n.z) > 0.6 && n.y < 0.3 ? p.accent : p.head), () => 1, 3)
   const billLength = species === 'flamingo' ? 0.14 : 0.08
   b.tube([neckEnd.clone().add(new Vector3(L * 0.06, 0, 0)), neckEnd.clone().add(new Vector3(L * billLength + L * 0.06, -L * (species === 'flamingo' ? 0.05 : 0.01), 0))], t => L * 0.025 * (1 - t * 0.6), () => p.bill, 5)
@@ -113,9 +121,9 @@ function flying(species: Species, lift: number): BufferGeometry {
     }
   }
   // Tail.
-  const t0 = b.vertex(new Vector3(-L * 0.35, 0, -L * 0.07), p.body)
-  const t1 = b.vertex(new Vector3(-L * 0.35, 0, L * 0.07), p.body)
-  const t2 = b.vertex(new Vector3(-L * 0.55, 0, 0), p.wing)
+  const t0 = v(new Vector3(-L * 0.35, 0, -L * 0.07), p.body)
+  const t1 = v(new Vector3(-L * 0.35, 0, L * 0.07), p.body)
+  const t2 = v(new Vector3(-L * 0.55, 0, 0), p.wing)
   b.triangle(t0, t1, t2)
   // Two-segment wings with dark primaries.
   const half = s.span / 2
@@ -123,20 +131,20 @@ function flying(species: Species, lift: number): BufferGeometry {
     const shoulder = new Vector3(L * 0.05, L * 0.05, side * L * 0.12)
     const elbow = shoulder.clone().add(new Vector3(-0.03, Math.sin(lift) * half * 0.45, side * Math.cos(lift) * half * 0.45))
     const tip = elbow.clone().add(new Vector3(-0.08, Math.sin(lift * 0.6) * half * 0.55, side * Math.cos(lift * 0.6) * half * 0.55))
-    const a = b.vertex(shoulder.clone().add(new Vector3(L * 0.12, 0, 0)), p.wing)
-    const c = b.vertex(shoulder.clone().add(new Vector3(-L * 0.18, 0, 0)), p.wing)
-    const d = b.vertex(elbow.clone().add(new Vector3(L * 0.08, 0, 0)), p.wing)
-    const e = b.vertex(elbow.clone().add(new Vector3(-L * 0.2, 0, 0)), p.wingTip)
+    const a = v(shoulder.clone().add(new Vector3(L * 0.12, 0, 0)), p.wing)
+    const c = v(shoulder.clone().add(new Vector3(-L * 0.18, 0, 0)), p.wing)
+    const d = v(elbow.clone().add(new Vector3(L * 0.08, 0, 0)), p.wing)
+    const e = v(elbow.clone().add(new Vector3(-L * 0.2, 0, 0)), p.wingTip)
     b.quad(a, d, e, c)
-    const f = b.vertex(tip, p.wingTip)
-    const g = b.vertex(tip.clone().add(new Vector3(-L * 0.12, 0, 0)), p.wingTip)
+    const f = v(tip, p.wingTip)
+    const g = v(tip.clone().add(new Vector3(-L * 0.12, 0, 0)), p.wingTip)
     b.quad(d, f, g, e)
   }
   return b.build()
 }
 
 /** A wading flamingo, facing +x: standing tall, or head down feeding. */
-function wadingFlamingo(feeding: boolean, oneLeg: boolean): BufferGeometry {
+function wadingFlamingo(feeding: boolean, oneLeg: boolean, skin = false): BufferGeometry {
   const p = PLUMAGE.flamingo
   const b = new MeshBuilder()
   const legTop = 0.8
@@ -145,7 +153,7 @@ function wadingFlamingo(feeding: boolean, oneLeg: boolean): BufferGeometry {
     b.tube([new Vector3(0, 0, z), new Vector3(0.02, legTop * 0.5, z), new Vector3(-0.02, legTop, z)], () => 0.012, () => p.legs, 4)
   }
   const body = new Vector3(0, legTop + 0.12, 0)
-  b.blob(body, new Vector3(0.24, 0.13, 0.12), n => (n.y > 0.3 && n.x < 0.2 ? p.wing : p.body), () => 1, 5)
+  b.blob(body, new Vector3(0.24, 0.13, 0.12), n => (n.y > 0.3 && n.x < 0.2 ? p.wing : p.body), () => 1, 5, undefined, skin ? skinBlob('feathers', 0.6, 'wrap') : undefined)
   // Tail tip and black primaries showing at the rear.
   b.blob(body.clone().add(new Vector3(-0.22, 0.02, 0)), new Vector3(0.08, 0.04, 0.06), () => p.wingTip, () => 1, 3)
   // S-shaped neck.
@@ -153,12 +161,17 @@ function wadingFlamingo(feeding: boolean, oneLeg: boolean): BufferGeometry {
     ? [new Vector3(0.18, 0.05, 0), new Vector3(0.32, 0.2, 0), new Vector3(0.45, 0.05, 0), new Vector3(0.5, -0.4, 0), new Vector3(0.5, -0.78, 0)]
     : [new Vector3(0.18, 0.05, 0), new Vector3(0.28, 0.3, 0), new Vector3(0.18, 0.55, 0), new Vector3(0.25, 0.78, 0)]
   const path = neck.map(v => v.add(body))
-  b.tube(path, () => 0.022, () => p.neck, 5)
+  b.tube(path, () => 0.022, () => p.neck, 5, skin ? skinCoords('feathers', 0.6) : undefined)
   const head = path[path.length - 1]
   b.blob(head, new Vector3(0.05, 0.04, 0.035), () => p.head, () => 1, 3)
   const billDir = feeding ? new Vector3(-0.02, -0.07, 0) : new Vector3(0.08, -0.04, 0)
   b.tube([head.clone(), head.clone().add(billDir)], t => 0.02 * (1 - t * 0.5), t => (t > 0.5 ? p.bill : [0.8, 0.75, 0.7]), 4)
   return b.build()
+}
+
+/** One bird (scripts/mesh.mjs, tests): flying, or a flamingo wading. */
+export function migratoryGeometry(species: Species, wading: boolean, skin = false): BufferGeometry {
+  return wading ? wadingFlamingo(false, false, skin) : flying(species, 0.35, skin)
 }
 
 /** Which migratory flock passes today, or null. */
@@ -194,6 +207,8 @@ export function createMigratoryBirds(ctx: PropContext): InstancedMesh[] {
   if (species == null) return []
 
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: DoubleSide })
+  const skins = skinsOn(ctx.params.overrides)
+  if (skins) skinMaterial(material)
   const camera = ctx.camera
   const forward = camera.getWorldDirection(new Vector3()).setY(0).normalize()
   const right = new Vector3().crossVectors(forward, new Vector3(0, 1, 0)).normalize()
@@ -211,7 +226,7 @@ export function createMigratoryBirds(ctx: PropContext): InstancedMesh[] {
   // Flamingos in a lagoon or bay: a wading flock in the shallows when there
   // are any in view, otherwise in flight.
   if (species === 'flamingo' && hasBeach(params.coast) && rng.chance(0.7)) {
-    const poses = [wadingFlamingo(false, false), wadingFlamingo(true, false), wadingFlamingo(false, true)]
+    const poses = [wadingFlamingo(false, false, skins), wadingFlamingo(true, false, skins), wadingFlamingo(false, true, skins)]
     let centre: Vector3 | null = null
     for (let i = 0; i < 200 && centre == null; i++) {
       const p = ctx.seaPoint(rng, [-0.9, -0.05], 15, 350, 0.05)
@@ -231,7 +246,7 @@ export function createMigratoryBirds(ctx: PropContext): InstancedMesh[] {
     }
   }
 
-  const poses = [flying(species, 0.35), flying(species, -0.15), flying(species, 0.7)]
+  const poses = [flying(species, 0.35, skins), flying(species, -0.15, skins), flying(species, 0.7, skins)]
   const count = species === 'goose' ? rng.int(9, 36) : species === 'duck' ? rng.int(6, 22) : rng.int(8, 30)
   // Lead bird: somewhere in the frame. Ducks skim the waves; geese and
   // flamingos fly at some height, found along a view ray that climbs to it.

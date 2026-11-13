@@ -16,6 +16,7 @@ import type { SceneParams } from '../params'
 import type { Random } from '../random'
 import { forced } from '../sceneSpec'
 import { MeshBuilder } from './builder'
+import { skinBlob, skinFlat, skinMaterial, skinsOn } from './skins'
 import { windDirection } from './wind'
 import { stormy, type PropContext } from './context'
 
@@ -30,17 +31,25 @@ const BLACK: RGB = [0.04, 0.04, 0.045]
 const BILL: RGB = [0.6, 0.45, 0.1]
 
 /** `lift` raises the inner wing, `droop` lowers the outer wing (radians). */
-export function gull(lift: number, droop: number, dark: boolean): BufferGeometry {
+export function gull(lift: number, droop: number, dark: boolean, skin = false): BufferGeometry {
   const b = new MeshBuilder()
+  // Feathers from a photo (props/skins.ts) on body and wings.
+  const body3 = skin ? skinBlob('feathers', 0.6, 'wrap') : undefined
+  const flat = skinFlat('feathers', 0.6)
+  const v = (p: Vector3, c: RGB): number => {
+    const id = b.vertex(p, c)
+    if (skin) b.setSkin(id, flat(p))
+    return id
+  }
   const body = dark ? BLACK : WHITE
   const wing = dark ? BLACK : GREY
-  b.blob(new Vector3(0, 0, 0), new Vector3(0.22, 0.05, 0.05), () => body, () => 1, 4)
-  b.blob(new Vector3(0.21, 0.025, 0), new Vector3(0.055, 0.045, 0.04), () => body, () => 1, 3)
+  b.blob(new Vector3(0, 0, 0), new Vector3(0.22, 0.05, 0.05), () => body, () => 1, 4, undefined, body3)
+  b.blob(new Vector3(0.21, 0.025, 0), new Vector3(0.055, 0.045, 0.04), () => body, () => 1, 3, undefined, body3)
   b.blob(new Vector3(0.29, 0.015, 0), new Vector3(0.04, 0.01, 0.01), () => BILL, () => 1, 2)
   // Tail.
-  const t0 = b.vertex(new Vector3(-0.2, 0.01, -0.05), body)
-  const t1 = b.vertex(new Vector3(-0.2, 0.01, 0.05), body)
-  const t2 = b.vertex(new Vector3(-0.36, 0.0, 0.0), wing)
+  const t0 = v(new Vector3(-0.2, 0.01, -0.05), body)
+  const t1 = v(new Vector3(-0.2, 0.01, 0.05), body)
+  const t2 = v(new Vector3(-0.36, 0.0, 0.0), wing)
   b.triangle(t0, t1, t2)
   for (const side of [-1, 1]) {
     const shoulder = new Vector3(0.05, 0.02, side * 0.05)
@@ -51,14 +60,14 @@ export function gull(lift: number, droop: number, dark: boolean): BufferGeometry
       .clone()
       .add(new Vector3(-0.14, Math.sin(lift - droop) * 0.5, side * Math.cos(lift - droop) * 0.5))
     // Inner wing: broad, leading edge at the front.
-    const a = b.vertex(shoulder.clone().add(new Vector3(0.08, 0, 0)), wing)
-    const c = b.vertex(shoulder.clone().add(new Vector3(-0.1, 0, 0)), wing)
-    const d = b.vertex(elbow.clone().add(new Vector3(0.06, 0, 0)), wing)
-    const e = b.vertex(elbow.clone().add(new Vector3(-0.12, 0, 0)), wing)
+    const a = v(shoulder.clone().add(new Vector3(0.08, 0, 0)), wing)
+    const c = v(shoulder.clone().add(new Vector3(-0.1, 0, 0)), wing)
+    const d = v(elbow.clone().add(new Vector3(0.06, 0, 0)), wing)
+    const e = v(elbow.clone().add(new Vector3(-0.12, 0, 0)), wing)
     b.quad(a, d, e, c)
     // Outer wing tapering to a black tip.
-    const f = b.vertex(tip, BLACK)
-    const g = b.vertex(tip.clone().add(new Vector3(-0.06, 0, 0)), BLACK)
+    const f = v(tip, BLACK)
+    const g = v(tip.clone().add(new Vector3(-0.06, 0, 0)), BLACK)
     b.quad(d, f, g, e)
   }
   return b.build()
@@ -66,16 +75,17 @@ export function gull(lift: number, droop: number, dark: boolean): BufferGeometry
 
 /** A gull sitting on the water or the sand, wings folded over the back and
  * the black tips crossed past the tail; base on y = 0. */
-export function restingGull(dark: boolean): BufferGeometry {
+export function restingGull(dark: boolean, skin = false): BufferGeometry {
   const b = new MeshBuilder()
+  const body3 = (offset: number): ((n: Vector3, p: Vector3) => [number, number, number]) | undefined => (skin ? skinBlob('feathers', 0.6, 'wrap', offset) : undefined)
   const body = dark ? BLACK : WHITE
   const wing = dark ? BLACK : GREY
-  b.blob(new Vector3(0, 0.07, 0), new Vector3(0.2, 0.07, 0.075), () => body, () => 1, 4)
-  b.blob(new Vector3(0.17, 0.15, 0), new Vector3(0.055, 0.05, 0.045), () => body, () => 1, 3)
+  b.blob(new Vector3(0, 0.07, 0), new Vector3(0.2, 0.07, 0.075), () => body, () => 1, 4, undefined, body3(0))
+  b.blob(new Vector3(0.17, 0.15, 0), new Vector3(0.055, 0.05, 0.045), () => body, () => 1, 3, undefined, body3(0.1))
   b.blob(new Vector3(0.24, 0.14, 0), new Vector3(0.04, 0.01, 0.01), () => BILL, () => 1, 2)
   // Folded wings over the back and flanks.
   for (const side of [-1, 1]) {
-    b.blob(new Vector3(-0.03, 0.105, side * 0.045), new Vector3(0.19, 0.035, 0.04), () => wing, () => 1, 3)
+    b.blob(new Vector3(-0.03, 0.105, side * 0.045), new Vector3(0.19, 0.035, 0.04), () => wing, () => 1, 3, undefined, body3(0.2 * side))
   }
   b.blob(new Vector3(-0.23, 0.11, 0), new Vector3(0.09, 0.015, 0.035), () => BLACK, () => 1, 2)
   return b.build()
@@ -118,8 +128,9 @@ function restingGulls(ctx: PropContext, rng: Random, dark: boolean): InstancedMe
     }
   }
   if (matrices.length === 0) return []
-  const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.8 })
-  const mesh = new InstancedMesh(restingGull(dark), material, matrices.length)
+  const skins = skinsOn(ctx.params.overrides)
+  const material = skinMaterial(new MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }))
+  const mesh = new InstancedMesh(restingGull(dark, skins), material, matrices.length)
   matrices.forEach((m, i) => mesh.setMatrixAt(i, m))
   mesh.castShadow = true
   mesh.receiveShadow = true
@@ -143,8 +154,10 @@ export function createBirds(ctx: PropContext): InstancedMesh[] {
 
   // Seen against a bright low sky, birds read as dark silhouettes.
   const dark = params.sunElevationDeg < 4 || params.timeOfDay === 'night' || rng.chance(0.2)
-  const poses = [gull(0.25, 0.35, dark), gull(0.6, 0.2, dark), gull(-0.15, -0.1, dark)]
+  const skins = skinsOn(ctx.params.overrides)
+  const poses = [gull(0.25, 0.35, dark, skins), gull(0.6, 0.2, dark, skins), gull(-0.15, -0.1, dark, skins)]
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: DoubleSide })
+  if (skins) skinMaterial(material)
 
   const camera = ctx.camera
   const flocks = rng.weighted<number>([

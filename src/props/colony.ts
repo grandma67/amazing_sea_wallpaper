@@ -22,6 +22,7 @@ import type { Random } from '../random'
 import { shoreToWorld } from '../terrain'
 import { gull } from './birds'
 import { MeshBuilder } from './builder'
+import { skinBlob, skinMaterial, skinsOn } from './skins'
 import { stormy, type PropContext } from './context'
 import { fbm3 } from './noise'
 import { outlineOfMesh, type WaterIsland } from './surf'
@@ -105,10 +106,12 @@ function islandGeometry(rng: Random, style: ColonyStyle, rock: RGB, stack: boole
 }
 
 /** A standing penguin, ~0.7 m: black back, white front. */
-function penguin(): BufferGeometry {
+function penguin(skin = false): BufferGeometry {
   const b = new MeshBuilder()
-  b.blob(new Vector3(0, 0.32, 0), new Vector3(0.14, 0.32, 0.12), n => (n.x > 0.2 ? [0.75, 0.75, 0.72] : [0.02, 0.02, 0.025]), () => 1, 4)
-  b.blob(new Vector3(0.02, 0.66, 0), new Vector3(0.08, 0.08, 0.07), () => [0.02, 0.02, 0.025], () => 1, 3)
+  // Feathers from a photo (props/skins.ts).
+  const feathers = skin ? skinBlob('feathers', 0.7, 'wrap') : undefined
+  b.blob(new Vector3(0, 0.32, 0), new Vector3(0.14, 0.32, 0.12), n => (n.x > 0.2 ? [0.75, 0.75, 0.72] : [0.02, 0.02, 0.025]), () => 1, 4, undefined, feathers)
+  b.blob(new Vector3(0.02, 0.66, 0), new Vector3(0.08, 0.08, 0.07), () => [0.02, 0.02, 0.025], () => 1, 3, undefined, feathers)
   return b.build()
 }
 
@@ -122,7 +125,7 @@ interface Site {
 }
 
 /** Penguins crowding the gentle slopes of a rock, below `maxHeight`. */
-function penguinsOn(rng: Random, mesh: Mesh, maxHeight: number): InstancedMesh | null {
+function penguinsOn(rng: Random, mesh: Mesh, maxHeight: number, skin: boolean): InstancedMesh | null {
   const geometry = mesh.geometry
   const position = geometry.attributes.position as BufferAttribute
   const normal = geometry.attributes.normal as BufferAttribute
@@ -137,12 +140,12 @@ function penguinsOn(rng: Random, mesh: Mesh, maxHeight: number): InstancedMesh |
     const jitter = new Vector3(rng.normal(0, 1.5), 0, rng.normal(0, 1.5))
     spots.push(new Matrix4().compose(p.clone().add(jitter), new Quaternion().setFromEuler(new Euler(0, rng.range(0, 6.3), 0)), new Vector3().setScalar(rng.range(0.9, 1.1))))
   }
-  return flock(spots)
+  return flock(spots, skin)
 }
 
-function flock(spots: Matrix4[]): InstancedMesh | null {
+function flock(spots: Matrix4[], skin: boolean): InstancedMesh | null {
   if (spots.length === 0) return null
-  const mesh = new InstancedMesh(penguin(), new MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }), spots.length)
+  const mesh = new InstancedMesh(penguin(skin), skinMaterial(new MeshStandardMaterial({ vertexColors: true, roughness: 0.6 })), spots.length)
   spots.forEach((m, i) => mesh.setMatrixAt(i, m))
   mesh.castShadow = true
   mesh.receiveShadow = true
@@ -189,7 +192,7 @@ function island(ctx: PropContext, rng: Random, kind: ColonyKind, style: ColonySt
   const objects: Object3D[] = [mesh]
   // Penguins crowd the gentle lower slopes.
   if (kind === 'penguin') {
-    const penguins = penguinsOn(rng, mesh, height * 0.5)
+    const penguins = penguinsOn(rng, mesh, height * 0.5, skinsOn(ctx.params.overrides))
     if (penguins != null) objects.push(penguins)
   }
   return { objects, at, width, height }
@@ -256,7 +259,7 @@ function rookery(ctx: PropContext, rng: Random): Site | null {
       const yaw = rng.range(0, Math.PI * 2)
       spots.push(new Matrix4().compose(new Vector3(x, y, z), new Quaternion().setFromEuler(new Euler(0, yaw, 0)), new Vector3().setScalar(rng.range(0.9, 1.15))))
     }
-    const penguins = flock(spots)
+    const penguins = flock(spots, skinsOn(ctx.params.overrides))
     if (penguins == null) continue
     return { objects: [penguins], at: new Vector3(x0, ctx.ground(x0, z0), z0), width: length, height: 12 }
   }
@@ -280,8 +283,10 @@ export function createColony(ctx: PropContext): Object3D[] {
 
   // The colony in the air: a loose cloud of birds circling over the island,
   // densest close to it.
-  const poses = [gull(0.25, 0.35, style.darkBirds), gull(0.6, 0.2, style.darkBirds), gull(-0.15, -0.1, style.darkBirds)]
+  const skins = skinsOn(ctx.params.overrides)
+  const poses = [gull(0.25, 0.35, style.darkBirds, skins), gull(0.6, 0.2, style.darkBirds, skins), gull(-0.15, -0.1, style.darkBirds, skins)]
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: DoubleSide })
+  if (skins) skinMaterial(material)
   // In a storm they sit tight on their ledges and burrows: none up. Out of
   // season they're away at sea (animalSeasons.ts): the rock stays white.
   const count = stormy(ctx.params) || !colonyInSeason(kind, ctx.params) ? 0 : rng.int(...style.flying)

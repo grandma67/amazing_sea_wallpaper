@@ -416,6 +416,32 @@
       "tileV": true,
       "contrast": 0.6,
       "note": "Flank of a swordfish specimen (fine lines, no scales); scale from a ~50 cm deep body over 250 px."
+    },
+    {
+      "id": "feathers",
+      "asset": "skin-goose-a",
+      "source": "commons:File:Emperor Goose close-up (7074410983).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Emperor_Goose_close-up_(7074410983).jpg",
+      "licence": "Public domain",
+      "author": "USFWSAlaska",
+      "x": [
+        760,
+        1100
+      ],
+      "top": [
+        950,
+        950
+      ],
+      "bottom": [
+        1200,
+        1200
+      ],
+      "lengthM": 0.75,
+      "mPerPx": 0.00067,
+      "tileV": true,
+      "contrast": 0.18,
+      "note": "Breast and flank of an emperor goose: scalloped feather edges; on every bird (gulls, colony birds, penguins, geese, ducks, flamingos), brightness only so white birds stay white. Scale from a ~30 cm wide body over 450 px.",
+      "local": 0.04
     }
   ]
 }

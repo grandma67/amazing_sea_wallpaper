@@ -87,6 +87,16 @@ export function skinWhole(id: SkinId, rx: number, rz: number): (n: Vector3, p: V
   return (_n, p) => [p.x / (2 * rx) + 0.5, p.z / (2 * rz) + 0.5, layer]
 }
 
+/** Flat parts (a wing, a tail): skin coordinates from a vertex position
+ * (m) seen from above, x along the body and the distance out from it
+ * across (a raised wing keeps its scale). */
+export function skinFlat(id: SkinId, length: number): (p: Vector3) => Coords {
+  const { tile, length: photo } = skinTile(id)
+  const k = length / photo
+  const layer = layerOf(id)
+  return p => [p.x / (tile[0] * k), Math.hypot(p.y, p.z) / (tile[1] * k), layer]
+}
+
 let atlas: DataArrayTexture | null = null
 let loading: Promise<void> | null = null
 
