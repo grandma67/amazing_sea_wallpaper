@@ -111,6 +111,12 @@ tool gotchas: TOOLS.md.
 
 ## Randomness, params and tests
 
+- **Assert only the rows a test is about (0.169 review):** tests that pinned the full list of rows
+  in flower at a place broke three times as tree and shrub rows were added. Filter to the rows
+  under test (`only(day, BUSH_ROWS)` in `test/bloom.test.ts`) or check membership; a "forced: every
+  row that grows here" test compares with the table itself.
+- **Read a script's usage before building around it (0.169 review):** `diff.mjs --off-both` existed
+  and was in TOOLS.md, yet a session hand-built spec files to switch a feature off on both sides.
 - **Test dates come from the tests' camera:** `test/days.ts` builds attempt 0, the page and
   `--rendered` the re-rolled framing; dates picked with `--rendered` had no fireflies under the
   tests' camera. Pick a test's dates with `params.mjs` without `--rendered` (fireflies, 0.153).
@@ -159,6 +165,12 @@ tool gotchas: TOOLS.md.
   files failing to load. Put shared helpers in a module with no imports (`reef.ts`).
 
 ## Seasons
+
+- **A colour anchor must be the anchor's material (0.169 review):** sea buckthorn's leaves are
+  silver-grey, so anchoring its berries on "the plant's green leaf" made them half as bright as the
+  unanchored measure; use `--petal` (brightest cluster ×0.8) there. Measured against photos, three
+  of six estimated colours were well off: haws twice too bright, broom orange where it's lemon,
+  blackthorn's white too neutral.
 
 - **Check a plan's season against a source before building (sea ice, 0.114):** "Jan–Apr north of 60°" was the plan's *(est.)*; FMI has November to
   late May in the north and normal-winter ice down to the northern Baltic Proper.
@@ -728,11 +740,11 @@ tool gotchas: TOOLS.md.
 - **Fruit at a twig tip is inside the leaves (0.168):** `leaves()` scatters cards round each tip,
   so cones, propagules and almonds placed at `tip.p` were hidden in the cluster. Real fruit hangs
   past the leaves: `fruits()` moves it out to the crown's surface (`out`) and down (`below`).
-- **Check where a kind stands on real days before choosing what to draw on it (0.168):** stone
-  pines grow from the back of the dunes inland, so on real days the nearest is 350 m or more
-  (`params.mjs --find vegetation`), and their 12 cm cones are below a pixel. Framed heroes come
-  close but the frame cuts their crowns. A size table (TREES.md §0) next to `--find` says which
-  fruit can be checked in a render at all.
+- **Check where a kind stands on real days before choosing what to draw on it (0.168, corrected
+  0.169):** a stone pine's nearest in-frame instance is within 30 m on 14% of its days (framed
+  heroes, crowns often cut) and past 300 m on 58% (arch/PROPS.md "Where each plant kind stands"),
+  so its 12 cm cones show on few days. `--find` reports the nearest *unoccluded* one (it said 350
+  m+), `--count` over many days only the overall minimum: use `scripts/plant-near.js`.
 - **A shape that's right in size can still read as something else (0.168):** a Canary date bunch
   drawn as one lumpy egg looked like a giant orange pine cone. A bunch is a broom of strands, so it
   is drawn as one.

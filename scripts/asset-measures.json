@@ -30,5 +30,16 @@
   {"source":"commons:File:Marasmius oreades 14.jpg","id":"wc_marasmius_oreades_14","name":"grass","k":1,"region":[0,0.6,0.5,0.98],"hue":[70,160]},
   {"source":"commons:File:Marasmius oreades 14.jpg","id":"wc_marasmius_oreades_14","name":"cap","k":2,"region":[0.56,0.15,0.9,0.42],"anchor":"grass=0.08,0.13,0.05"},
   {"source":"commons:File:Amanita muscaria tyndrum.jpg","id":"wc_amanita_muscaria_tyndrum","name":"cap","k":2,"region":[0.1,0.17,0.9,0.31],"petal":true,"hue":[340,20,0.5]},
-  {"source":"commons:File:Lactarius-deliciosus-Finland.jpg","id":"wc_lactarius_deliciosus_finland","name":"cap","k":2,"region":[0.25,0.33,0.62,0.5],"petal":true,"hue":[15,45,0.3]}
+  {"source":"commons:File:Lactarius-deliciosus-Finland.jpg","id":"wc_lactarius_deliciosus_finland","name":"cap","k":2,"region":[0.25,0.33,0.62,0.5],"petal":true,"hue":[15,45,0.3]},
+  {"source":"commons:File:Argentina - Buenos Aires 071 - pretty trees (6978040807).jpg","id":"dates_canary","name":"leaf","k":1,"region":[0,0,1,1],"hue":[70,150,0.25]},
+  {"source":"commons:File:Argentina - Buenos Aires 071 - pretty trees (6978040807).jpg","id":"dates_canary","name":"fruit","k":2,"region":[0,0,1,1],"anchor":"leaf=0.05,0.1,0.03","hue":[20,45,0.5]},
+  {"source":"commons:File:Hippophaë rhamnoides DSCN3694-01.jpg","id":"sea_buckthorn","name":"leaf","k":1,"region":[0,0,1,1],"hue":[70,150,0.2]},
+  {"source":"commons:File:Hippophaë rhamnoides DSCN3694-01.jpg","id":"sea_buckthorn","name":"fruit","k":2,"region":[0,0,1,1],"anchor":"leaf=0.05,0.1,0.03","hue":[15,40,0.5]},
+  {"source":"commons:File:Rose hips Rosa rugosa Hansa 1.jpg","id":"rugosa_hips","name":"leaf","k":1,"region":[0,0,1,1],"hue":[70,150,0.25]},
+  {"source":"commons:File:Rose hips Rosa rugosa Hansa 1.jpg","id":"rugosa_hips","name":"fruit","k":2,"region":[0,0,1,1],"anchor":"leaf=0.05,0.1,0.03","hue":[345,15,0.45]},
+  {"source":"commons:File:Sea buckthorn Russia 2007.JPG","id":"sea_buckthorn_ru","name":"fruit","k":2,"region":[0,0,1,1],"petal":true,"hue":[15,40,0.5]},
+  {"source":"commons:File:Crataegus monogyna fruit NT2.jpg","id":"haws","name":"leaf","k":1,"region":[0,0,1,1],"hue":[70,150,0.25]},
+  {"source":"commons:File:Crataegus monogyna fruit NT2.jpg","id":"haws","name":"fruit","k":2,"region":[0,0,1,1],"anchor":"leaf=0.05,0.1,0.03","hue":[345,15,0.45]},
+  {"source":"commons:File:Spartium junceum 1.JPG","id":"spanish_broom","name":"petal","k":2,"region":[0,0,1,1],"petal":true,"hue":[40,62,0.5]},
+  {"source":"commons:File:Prunus spinosa Trefdraeth B.jpg","id":"blackthorn","name":"petal","k":3,"region":[0.2,0.1,0.8,0.9],"petal":true,"hue":[0,360,0]}
 ]

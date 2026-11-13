@@ -27,7 +27,8 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Does a new off switch give back the old image exactly | `diff.mjs --ref HEAD --off PATCH --off-here` (expect "identical"); when HEAD already has the feature (a later phase), `--off-both` | [tools/RENDER.md](tools/RENDER.md) |
 | Render time vs a commit (10% rule); same image | `bench.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A new mesh alone | `mesh.mjs` | [tools/RENDER.md](tools/RENDER.md) |
-| A mesh before and after a change, one command | `mesh.mjs --ref HEAD` (`NAME.compare.jpg`); a head close-up: `--focus head` | [tools/RENDER.md](tools/RENDER.md) |
+| A mesh before and after a change, one command | `mesh.mjs --ref HEAD` (`NAME.compare.jpg`); a head close-up: `--focus head` |
+| Small parts of a big mesh at real size (cones, fruit, catkins on a 17 m tree) | `mesh.mjs --focus top` (the top 30%) or `--focus box:X0,Y0,Z0,X1,Y1,Z1`; a tree with a fruit row on it: `'props/fruitPreview#fruitTree($rng, KIND, DATE?, PLACE?, CLIMATE?, LAT?)'` | [tools/RENDER.md](tools/RENDER.md) |
 | Triangles a prop draws (× its instances), before building more on it | `params.mjs --count KIND` (no render), `snapshot.mjs --props` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A number over a folder of renders (median, quartiles by group; or counts) | `summary.mjs DIR 'j => j.debug.X' --by 'j => …'` | [tools/RENDER.md](tools/RENDER.md) |

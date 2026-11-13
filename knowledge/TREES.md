@@ -85,6 +85,9 @@ From `biome.ts` (comment above `CLIMATE_LOOKS`), `places.ts` `PLACE_PLANTS`, and
   STIHL in September, Edhat in summer and fall. Bunches ~1–2 m hang from among the fronds. The
   dates are 2 cm, oval, yellow to orange. We use green Aug–Sep, **orange Oct–Feb**, and a few dry
   brown bunches left by spring *(est.)*.
+- **Colour measured** (2026-11-14, Commons `Argentina - Buenos Aires 071 - pretty trees`, anchored on the
+  fronds): lit dates `[0.44, 0.15, 0.01]`, shaded `[0.28, 0.09, 0.008]`. The photos show long
+  orange strands with dates along them, a curtain under the crown: what the broom of strands draws.
 - **Drawn:** **no coconuts on subtropical palms** (a realism fix: the old mesh hung coconuts on
   Canary and cabbage palms). Instead 2–3 bunches on stalks: a lumpy hanging mass about 1 m long,
   with the same draws as the old nuts.

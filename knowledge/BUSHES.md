@@ -12,7 +12,7 @@ Conventions:
 
 - Shrub rows use the place's **local calendar months**: each species' places lie in one
   hemisphere. Willow is the exception: it follows the climate's leaf days, northern places only.
-- Colours are **linear albedo** and *(est.)*: hue from the sources, brightness set against the
+- Colours are **linear albedo**; five are measured from photos (§4), the rest *(est.)*: hue from the sources, brightness set against the
   measured leaves. White flowers are `[0.62, 0.62, 0.6]`, close to the rock rose's measured
   white.
 - Sources were read through search summaries (§5).
@@ -68,34 +68,34 @@ flowering only.
   Wind-pollinated and dioecious. Not drawn.
 - *Fruit:* orange ovoid berries (6–8 mm) packed along the twigs, ripe **August–September**. They
   hang **all winter** unless birds take them.
-- *Drawn:* green in July, orange `[0.55, 0.2, 0.02]` Aug–Jan, thinning by March; 4 berries a twig
+- *Drawn:* green in July, orange `[0.48, 0.08, 0.012]` (**measured**, `sea_buckthorn_ru`, `--petal`) Aug–Jan, thinning by March; 4 berries a twig
   tip.
 
 **Japanese rose** (*Rosa rugosa*): dunes, Baltic, North Sea, NE America, Japan.
 - *Flowers:* magenta-pink, some white, 7–9 cm, **June–August**. A few last into October.
 - *Fruit:* hips like small tomatoes, ~2–2.5 cm, red-orange from **August**, on the bush into
   January.
-- *Drawn:* flowers Jun–Sep (Jul full), hips Aug–Jan, red-orange `[0.45, 0.08, 0.02]`.
+- *Drawn:* flowers Jun–Sep (Jul full), hips Aug–Jan, crimson `[0.4, 0.035, 0.03]` (**measured**, `rugosa_hips`, anchored on the leaves).
 
 **Blackthorn** (*Prunus spinosa*): Atlantic hedges and cliff scrub.
 - *Flowers:* white, on **bare twigs, March–April**, before the leaves (temperature-driven: early
   in mild springs).
 - *Fruit:* sloes 1–1.5 cm, blue-black with a pale bloom, ripe **September–October**, a few into
   winter.
-- *Drawn:* flowers Mar–Apr with the leaves thinned to 30% (bare-twig blossom). Sloes
+- *Drawn:* flowers Mar–Apr, off-white `[0.48, 0.49, 0.4]` (**measured**, `blackthorn`, `--petal`), the leaves thinning with the flowering (to 30% at the April peak). Sloes
   `[0.05, 0.05, 0.09]` Sep–Dec, green from June.
 
 **Hawthorn** (*Crataegus monogyna*): Atlantic hedges.
 - *Flowers:* white (a hint of pink), **May**, with its leaves (hence "the May tree").
 - *Fruit:* haws ~1 cm, deep red, ripe **late September – November**, often on the branches well
   into winter.
-- *Drawn:* flowers late Apr – Jun (May full); haws `[0.33, 0.03, 0.02]` Sep–Feb, 3 a tip.
+- *Drawn:* flowers late Apr – Jun (May full); haws `[0.15, 0.022, 0.011]` (**measured**, `haws`: dark red, half the estimate) Sep–Feb, 3 a tip.
 
 **Spanish broom** (*Spartium junceum*): Mediterranean garrigue.
 - *Flowers:* bright yellow, **April–July** in Provence (one Spanish seller says Jun–Oct; Calflora
   Apr–Jun).
 - *Fruit:* the pods are dry and brown, not drawn.
-- *Drawn:* yellow `[0.6, 0.4, 0.02]` May–Jun full, Apr and Jul partial; far tint on.
+- *Drawn:* lemon yellow `[0.57, 0.49, 0.034]` (**measured**, `spanish_broom`, `--petal`) May–Jun full, Apr and Jul partial; far tint on.
 
 **Lentisk** (*Pistacia lentiscus*): Mediterranean maquis.
 - *Flowers:* small and reddish, Feb–Jun. Not drawn.
@@ -186,7 +186,11 @@ puts the peak in Sep–Oct.
 - The 165 bush days with no species (§1): fynbos, matorral, laurel scrub, arid shrubs.
 - Saw palmetto and sea grape are drawn on the round-leaf bush mesh, not their own shapes.
 - Mānuka's South Island month lag; Natal and Calafate months *(est.)* where noted.
-- Colours not measured with `asset.mjs`.
+- Colours measured (2026-11-14, `scripts/asset-measures.json`): sea buckthorn, Japanese-rose hips, haws,
+  Spanish broom, blackthorn. The rest are *(est.)*.
+- Photos: Commons `Sea buckthorn Russia 2007.JPG`, `Hippophaë rhamnoides DSCN3694-01.jpg`,
+  `Rose hips Rosa rugosa Hansa 1.jpg`, `Crataegus monogyna fruit NT2.jpg`, `Spartium junceum 1.JPG`,
+  `Prunus spinosa Trefdraeth B.jpg`.
 
 ## 5. Sources
 

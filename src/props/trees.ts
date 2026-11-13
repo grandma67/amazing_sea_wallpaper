@@ -777,7 +777,9 @@ export function stonePine(rng: Random, foliage: RGB, season?: PlantSeason): Buff
     flatten: 0.7,
     colors: palette(rng, scale(foliage, 0.9), [0.05, 0.08, 0.04], 0.3)
   })
-  fruits(b, tips, season, { spread: 0.3, out: 0.35 })
+  // Past the needle brushes (0.35–0.55 m blades round a 0.9 m cluster), where
+  // the cones show on a real crown.
+  fruits(b, tips, season, { spread: 0.25, out: 0.9 })
   return b.build()
 }
 
@@ -1005,12 +1007,13 @@ export function conifer(rng: Random, foliage: RGB, season?: PlantSeason): Buffer
         }
       }
       spray(b, at(1), out.clone().addScaledVector(UP, 0.2).normalize(), 0.5, scale(color, 1.1))
-      ends.push({ p: at(0.95), d: out } as Tip)
+      ends.push({ p: at(1).addScaledVector(out, 0.25), d: out } as Tip)
     }
   }
   // The leader at the very top.
   spray(b, new Vector3(0, height * 0.9, 0), UP, height * 0.1, scale(needles, 1.1))
-  fruits(b, ends, season, { spread: 0.12, below: 0.08 })
+  // Hanging below the end sprays, as on a real spruce top.
+  fruits(b, ends, season, { spread: 0.12, below: 0.2 })
   return b.build()
 }
 

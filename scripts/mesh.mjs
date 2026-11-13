@@ -18,6 +18,10 @@
 //                                     the ref doesn't have fails there: leave it out
 // --focus head                        frame side, front and 3/4 on the front 15% (the head:
 //                                     animals face +x) to judge eyes, nostrils, mouths, bills
+// --focus top                         the top 30% (a tree's crown: cones, fruit, catkins at
+//                                     their real size; a whole tree's panels are too far out)
+// --focus box:X0,Y0,Z0,X1,Y1,Z1       the vertices in that box (m, the mesh's own frame)
+//   node scripts/mesh.mjs --focus top 'props/fruitPreview#fruitTree($rng, "spruce-cones", "2025-10-20")'
 // --sun DEG                           the sun's height (default about 50): 8 for low sun,
 //                                     where a tiny tilt or a flat facet shows
 //   node scripts/mesh.mjs --material 'props/seaIce#rubbleMaterial(0.8)' --scale 1.2,0.3,1 --sun 8 'props/seaIce#slabGeometry($rng)'

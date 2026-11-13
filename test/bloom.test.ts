@@ -22,6 +22,9 @@ const day = (date: string, id: string, overrides?: PhenologyDay['overrides'], la
 }
 const kindsOn = (d: PhenologyDay): string[] => phenologyFor(d).bloom.map(b => b.row.kind)
 const bloomOf = (d: PhenologyDay, kind: string) => phenologyFor(d).bloom.find(b => b.row.kind === kind)
+/** The rows in flower today among `kinds` only. */
+const only = (d: PhenologyDay, kinds: readonly string[]): string[] => kindsOn(d).filter(k => kinds.includes(k))
+const BUSH_ROWS = ['rock-rose', 'gorse', 'wattle']
 /** Vertices coloured like one of the row's flowers (hue: the leaves are green, flowers aren't). */
 const flowerVertices = (g: BufferGeometry, kind: string): number => {
   const c = g.getAttribute('color')
@@ -72,20 +75,23 @@ describe('the blossom table', () => {
     expect(bloomOf(day('2025-09-15', 'cornwall-wales'), 'gorse')?.strength).toBe(0.1)
     expect(bloomOf(day('2025-09-15', 'new-zealand-north'), 'gorse')?.strength).toBe(1)
     expect(bloomOf(day('2025-04-15', 'new-zealand-north'), 'gorse')?.strength).toBe(0.1)
-    // June: rock rose, the holm oaks' last catkins, olives in flower.
-    expect(kindsOn(day('2025-06-01', 'western-med'))).toEqual(['rock-rose', 'holm-oak', 'olive', 'spanish-broom', 'myrtle'])
-    expect(kindsOn(day('2025-09-01', 'western-med'))).toEqual([])
-    // September: wattle and the gums' spring flowering.
-    expect(kindsOn(day('2025-09-01', 'east-australia'))).toEqual(['wattle', 'gum-blossom', 'coast-tea-tree'])
-    // Tasmania has gorse too.
-    expect(kindsOn(day('2025-09-01', 'tasmania'))).toEqual(['gorse', 'wattle', 'gum-blossom'])
+    // Each check names only the rows it's about, so a new row elsewhere in
+    // the table doesn't break it (LESSONS.md "Randomness, params and tests").
+    expect(only(day('2025-06-01', 'western-med'), BUSH_ROWS)).toEqual(['rock-rose'])
+    expect(only(day('2025-09-01', 'western-med'), BUSH_ROWS)).toEqual([])
+    expect(only(day('2025-09-01', 'east-australia'), BUSH_ROWS)).toEqual(['wattle'])
+    // Tasmania has both.
+    expect(only(day('2025-09-01', 'tasmania'), BUSH_ROWS)).toEqual(['gorse', 'wattle'])
   })
 
   it('is forced by props.bloom and switched off by it, and by phenology: false', () => {
-    expect(kindsOn(day('2025-12-15', 'western-med', { bloom: true }))).toEqual(['rock-rose', 'holm-oak', 'olive', 'spanish-broom', 'strawberry-tree', 'myrtle'])
-    expect(phenologyFor(day('2025-12-15', 'western-med', { bloom: true })).bloom[0].strength).toBe(1)
-    // Maine grows none of the old bush rows: the oaks' catkins and the Japanese rose.
-    expect(kindsOn(day('2025-12-15', 'maine', { bloom: true }))).toEqual(['oak-catkins', 'rugosa-rose'])
+    expect(only(day('2025-12-15', 'western-med', { bloom: true }), BUSH_ROWS)).toEqual(['rock-rose'])
+    expect(bloomOf(day('2025-12-15', 'western-med', { bloom: true }), 'rock-rose')!.strength).toBe(1)
+    // Every row that grows here, in flower: as many as grow.
+    const grows = BLOOM.filter(r => bloomGrows(r, day('2025-12-15', 'western-med'))).map(r => r.kind)
+    expect(kindsOn(day('2025-12-15', 'western-med', { bloom: true }))).toEqual(grows)
+    // Maine grows none of the old bush rows.
+    expect(only(day('2025-12-15', 'maine', { bloom: true }), BUSH_ROWS)).toEqual([])
     expect(kindsOn(day('2025-12-15', 'maine', { bloom: ['gorse', 'flamboyant'] }))).toEqual(['gorse', 'flamboyant'])
     expect(kindsOn(day('2025-06-01', 'western-med', { bloom: false }))).toEqual([])
     expect(kindsOn(day('2025-06-01', 'western-med', { phenology: false }))).toEqual([])
@@ -120,7 +126,7 @@ describe('flamboyant', () => {
     expect(bloomOf(day('2025-06-15', 'antilles'), 'flamboyant')!.crowns).toBeCloseTo(0.15)
     expect(bloomOf(day('2025-12-15', 'antilles'), 'flamboyant')).toBeUndefined()
     expect(bloomOf(day('2025-12-15', 'hawaii'), 'flamboyant')!.crowns).toBeCloseTo(0.03)
-    expect(kindsOn(day('2025-06-15', 'galapagos'))).toEqual([])
+    expect(only(day('2025-06-15', 'galapagos'), ['flamboyant'])).toEqual([])
   })
 
   it('has no far tint', () => {

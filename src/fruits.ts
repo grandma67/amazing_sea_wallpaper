@@ -142,7 +142,8 @@ const PANDAN_ORANGE: RGB = [0.5, 0.17, 0.02]
 const PANDAN_RED: RGB = [0.35, 0.05, 0.02]
 const ALMOND_RED: RGB = [0.28, 0.05, 0.03]
 const ALMOND_PURPLE: RGB = [0.1, 0.025, 0.045]
-const DATE_ORANGE: RGB = [0.45, 0.18, 0.03]
+// Measured (asset.mjs, 2026-11-14; BUSHES.md §2, TREES.md §2): the lit cluster.
+const DATE_ORANGE: RGB = [0.44, 0.15, 0.01]
 const PLUME_CREAM: RGB = [0.45, 0.38, 0.16]
 const SABAL_BLACK: RGB = [0.03, 0.025, 0.025]
 const CATKIN_BROWN: RGB = [0.09, 0.05, 0.04]
@@ -447,10 +448,10 @@ function shrubFruit(
   }
 }
 
-const ORANGE_BERRY: RGB = [0.55, 0.2, 0.02]
-const HIP_RED: RGB = [0.45, 0.08, 0.02]
+const ORANGE_BERRY: RGB = [0.48, 0.08, 0.012]
+const HIP_RED: RGB = [0.4, 0.035, 0.03]
 const SLOE: RGB = [0.05, 0.05, 0.09]
-const HAW_RED: RGB = [0.33, 0.03, 0.02]
+const HAW_RED: RGB = [0.15, 0.022, 0.011]
 const BERRY_RED: RGB = [0.3, 0.03, 0.03]
 const BLUE_BLACK: RGB = [0.04, 0.03, 0.07]
 const ARBUTUS_RED: RGB = [0.4, 0.05, 0.02]

@@ -47,6 +47,20 @@ const width = Number(query.get('w') ?? 1600)
 const height = Number(query.get('h') ?? 1000)
 const eye = Number(query.get('eye') ?? 20)
 
+/** Which vertices `&focus=` frames: `head` (front 15%, +x), `top` (top 30%),
+ * `box:x0,y0,z0,x1,y1,z1`; none for no focus. */
+function focusOf(focus: string | null, box: Box3, size: Vector3): ((p: Vector3) => boolean) | null {
+  if (focus == null) return null
+  if (focus === 'head') return p => p.x >= box.max.x - size.x * 0.15
+  if (focus === 'top') return p => p.y >= box.max.y - size.y * 0.3
+  if (focus.startsWith('box:')) {
+    const [x0, y0, z0, x1, y1, z1] = focus.slice(4).split(',').map(Number)
+    const b = new Box3(new Vector3(Math.min(x0, x1), Math.min(y0, y1), Math.min(z0, z1)), new Vector3(Math.max(x0, x1), Math.max(y0, y1), Math.max(z0, z1)))
+    return p => b.containsPoint(p)
+  }
+  throw new Error(`unknown focus ${JSON.stringify(focus)}: head, top or box:x0,y0,z0,x1,y1,z1`)
+}
+
 /** Runs MODULE#FUNCTION(ARGS) under src/. */
 async function run(call: string): Promise<unknown> {
   const match = /^([\w/.-]+)#(\w+)\((.*)\)$/s.exec(call)
@@ -137,9 +151,12 @@ async function main(): Promise<{ size: number[]; triangles: number }> {
   // Side (from +z), front (from +x, the way animals face), 3/4 from above,
   // and at eye height `eye` m off.
   // `&focus=head`: frame the three views on the front 15% of the mesh (every
-  // animal faces +x), to judge eyes, nostrils, mouths and bills.
-  if (query.get('focus') === 'head') {
-    const front = box.max.x - size.x * 0.15
+  // animal faces +x), to judge eyes, nostrils, mouths and bills. `top`: the
+  // top 30% (a tree's crown top: cones, fruit, catkins). `box:x0,y0,z0,x1,y1,z1`:
+  // the vertices inside that box (m, the mesh's own frame), to look closer.
+  const focusArg = query.get('focus')
+  const inFocus = focusOf(focusArg, box, size)
+  if (inFocus != null) {
     const head = new Box3()
     const p = new Vector3()
     object.traverse(o => {
@@ -148,7 +165,7 @@ async function main(): Promise<{ size: number[]; triangles: number }> {
       o.updateWorldMatrix(true, false)
       for (let i = 0; i < position.count; i++) {
         p.fromBufferAttribute(position as BufferAttribute, i).applyMatrix4(o.matrixWorld)
-        if (p.x >= front) head.expandByPoint(p)
+        if (inFocus(p)) head.expandByPoint(p)
       }
     })
     if (!head.isEmpty()) {

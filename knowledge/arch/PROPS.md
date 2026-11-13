@@ -227,6 +227,37 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   thinning seaward. `rhizophora()`/`avicennia()` in `trees.ts`. Shoreline views look straight out
   to sea and never show a stand.
 
+### Where each plant kind stands (measured 2026-11-14)
+
+Read this before building anything that hangs on a plant (fruit, flowers, moss, snow): it says
+how big the thing can be on screen. Each land day's **nearest in-frame instance** of each kind
+(the page's framing, `--rendered`; frame only, not occlusion), counted over the 715 land days of
+2024–2026:
+
+| Kind | Days in frame | < 15 m | 15–30 m | 30–100 m | 100–300 m | 300 m + |
+|---|---|---|---|---|---|---|
+| bush | 319 | 6% | 6% | 19% | 38% | 30% |
+| broadleaf | 227 | 4% | 2% | 4% | 27% | 63% |
+| palm | 182 | 13% | 9% | 15% | 30% | 32% |
+| pandanus | 98 | 3% | 9% | 18% | 39% | 31% |
+| conifer | 92 | – | – | 4% | 24% | 72% |
+| birch | 91 | 12% | 15% | 2% | 21% | 49% |
+| stone-pine | 62 | 11% | 3% | 5% | 23% | 58% |
+| acacia | 33 | 18% | 9% | – | 15% | 58% |
+| olive | 29 | – | – | 7% | 28% | 66% |
+| cypress | 22 | – | – | 5% | – | 95% |
+| eucalyptus | 15 | – | – | – | 13% | 87% |
+
+At 1080p with the usual lens, 1 m at 20 m is ~45 px, and at 300 m ~3 px. So a 12 cm cone is ~5 px
+at 20 m, which is about 14% of stone-pine days; at 300 m + (most days) it's nothing. The near
+cases are mostly framed shots' heroes (9–30 m), whose crowns the frame often cuts. Recount with:
+
+```sh
+node scripts/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --stats "$(cat scripts/plant-near.js)"
+# per kind, the min ctx.distance over instances with ctx.inFrame(x, y + 2, z, 1), banded;
+# `--count` over many days gives only the overall minimum, `--find` only unoccluded ones.
+```
+
 ## Landmarks
 
 - **Islands:** `params.ts` `pickIslands()` (own stream; ~30% of days) picks kind by biome

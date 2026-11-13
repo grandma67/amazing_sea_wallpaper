@@ -462,11 +462,12 @@ function shrubFlowers(): BloomRow[] {
     // Japanese rose: magenta (a few white), June–August, a few into autumn.
     flower('rugosa-rose', [0, 0, 0, 0, 0.1, 0.8, 1, 0.7, 0.3, 0.1, 0, 0], [[0.42, 0.05, 0.18], [0.42, 0.05, 0.18], WHITE], 0.15, 0.8),
     // Blackthorn: white on bare twigs, March–April, before the leaves.
-    flower('blackthorn', [0, 0.1, 0.7, 1, 0.1, 0, 0, 0, 0, 0, 0, 0], [WHITE], 0.6, 0.45, { on: 0.3, far: true }),
+    // White petals measured off-white (asset.mjs blackthorn, 2026-11-14).
+    flower('blackthorn', [0, 0.1, 0.7, 1, 0.1, 0, 0, 0, 0, 0, 0, 0], [[0.48, 0.49, 0.4]], 0.6, 0.45, { on: 0.3, far: true }),
     // Hawthorn ("May"): white, with its leaves.
     flower('hawthorn', [0, 0, 0, 0.2, 1, 0.3, 0, 0, 0, 0, 0, 0], [[0.62, 0.6, 0.56]], 0.5, 0.45, { far: true }),
     // Spanish broom: yellow, April–July (Provence).
-    flower('spanish-broom', [0, 0, 0, 0.4, 1, 1, 0.5, 0, 0, 0, 0, 0], [[0.6, 0.4, 0.02]], 0.55, 0.6, { far: true }),
+    flower('spanish-broom', [0, 0, 0, 0.4, 1, 1, 0.5, 0, 0, 0, 0, 0], [[0.57, 0.49, 0.034]], 0.55, 0.6, { far: true }), // measured: lemon yellow
     // Strawberry tree: cream bells October–December, beside last year's fruit.
     flower('strawberry-tree', [0.2, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 1, 0.7], [CREAM], 0.2, 0.35),
     // Myrtle: white, June–August (est.).
