@@ -1,0 +1,992 @@
+{
+ "note": "Every biome x season x time of day: one northern-hemisphere place per biome (Philippines, Aegean, west Norway, Iceland, Baja/Sonora), mid-season dates, framed. Each biome keeps one seed, so its 24 scenes are the same beach and heading and only the month and light change. Blue and golden hour come out as evening (Dusk); sun-on-horizon is sunset.",
+ "base": {
+  "eclipse": null,
+  "storm": null,
+  "fog": null,
+  "weather": "clear",
+  "composition": "framed"
+ },
+ "scenes": [
+  {
+   "name": "tropical-winter-night",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-01-15",
+   "timeOfDay": "night",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-winter-blue-hour",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-01-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-winter-golden-hour",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-01-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-winter-daylight",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-01-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-winter-midday",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-01-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-winter-sun-on-horizon",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-01-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-spring-night",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-04-15",
+   "timeOfDay": "night",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-spring-blue-hour",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-04-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-spring-golden-hour",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-04-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-spring-daylight",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-04-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-spring-midday",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-04-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-spring-sun-on-horizon",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-04-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-summer-night",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-07-15",
+   "timeOfDay": "night",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-summer-blue-hour",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-07-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-summer-golden-hour",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-07-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-summer-daylight",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-07-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-summer-midday",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-07-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-summer-sun-on-horizon",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-07-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-autumn-night",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-10-15",
+   "timeOfDay": "night",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-autumn-blue-hour",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-10-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-autumn-golden-hour",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-10-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-autumn-daylight",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-10-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-autumn-midday",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-10-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "tropical-autumn-sun-on-horizon",
+   "biome": "tropical",
+   "place": "philippines",
+   "date": "2025-10-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-tropical"
+  },
+  {
+   "name": "mediterranean-winter-night",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-01-15",
+   "timeOfDay": "night",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-winter-blue-hour",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-01-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-winter-golden-hour",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-01-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-winter-daylight",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-01-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-winter-midday",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-01-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-winter-sun-on-horizon",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-01-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-spring-night",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-04-15",
+   "timeOfDay": "night",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-spring-blue-hour",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-04-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-spring-golden-hour",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-04-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-spring-daylight",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-04-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-spring-midday",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-04-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-spring-sun-on-horizon",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-04-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-summer-night",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-07-15",
+   "timeOfDay": "night",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-summer-blue-hour",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-07-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-summer-golden-hour",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-07-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-summer-daylight",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-07-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-summer-midday",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-07-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-summer-sun-on-horizon",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-07-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-autumn-night",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-10-15",
+   "timeOfDay": "night",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-autumn-blue-hour",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-10-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-autumn-golden-hour",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-10-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-autumn-daylight",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-10-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-autumn-midday",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-10-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "mediterranean-autumn-sun-on-horizon",
+   "biome": "mediterranean",
+   "place": "aegean",
+   "date": "2025-10-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-mediterranean"
+  },
+  {
+   "name": "nordic-winter-night",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-01-15",
+   "timeOfDay": "night",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-winter-blue-hour",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-01-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-winter-golden-hour",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-01-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-winter-daylight",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-01-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-winter-midday",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-01-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-winter-sun-on-horizon",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-01-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-spring-night",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-04-15",
+   "timeOfDay": "night",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-spring-blue-hour",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-04-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-spring-golden-hour",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-04-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-spring-daylight",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-04-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-spring-midday",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-04-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-spring-sun-on-horizon",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-04-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-summer-night",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-07-15",
+   "timeOfDay": "night",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-summer-blue-hour",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-07-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-summer-golden-hour",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-07-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-summer-daylight",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-07-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-summer-midday",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-07-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-summer-sun-on-horizon",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-07-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-autumn-night",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-10-15",
+   "timeOfDay": "night",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-autumn-blue-hour",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-10-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-autumn-golden-hour",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-10-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-autumn-daylight",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-10-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-autumn-midday",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-10-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "nordic-autumn-sun-on-horizon",
+   "biome": "nordic",
+   "place": "norway-west",
+   "date": "2025-10-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-nordic"
+  },
+  {
+   "name": "volcanic-winter-night",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-01-15",
+   "timeOfDay": "night",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-winter-blue-hour",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-01-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-winter-golden-hour",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-01-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-winter-daylight",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-01-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-winter-midday",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-01-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-winter-sun-on-horizon",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-01-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-spring-night",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-04-15",
+   "timeOfDay": "night",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-spring-blue-hour",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-04-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-spring-golden-hour",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-04-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-spring-daylight",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-04-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-spring-midday",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-04-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-spring-sun-on-horizon",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-04-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-summer-night",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-07-15",
+   "timeOfDay": "night",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-summer-blue-hour",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-07-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-summer-golden-hour",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-07-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-summer-daylight",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-07-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-summer-midday",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-07-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-summer-sun-on-horizon",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-07-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-autumn-night",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-10-15",
+   "timeOfDay": "night",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-autumn-blue-hour",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-10-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-autumn-golden-hour",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-10-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-autumn-daylight",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-10-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-autumn-midday",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-10-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "volcanic-autumn-sun-on-horizon",
+   "biome": "volcanic",
+   "place": "iceland",
+   "date": "2025-10-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-volcanic"
+  },
+  {
+   "name": "desert-winter-night",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-01-15",
+   "timeOfDay": "night",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-winter-blue-hour",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-01-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-winter-golden-hour",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-01-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-winter-daylight",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-01-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-winter-midday",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-01-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-winter-sun-on-horizon",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-01-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-spring-night",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-04-15",
+   "timeOfDay": "night",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-spring-blue-hour",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-04-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-spring-golden-hour",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-04-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-spring-daylight",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-04-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-spring-midday",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-04-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-spring-sun-on-horizon",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-04-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-summer-night",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-07-15",
+   "timeOfDay": "night",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-summer-blue-hour",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-07-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-summer-golden-hour",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-07-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-summer-daylight",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-07-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-summer-midday",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-07-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-summer-sun-on-horizon",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-07-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-autumn-night",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-10-15",
+   "timeOfDay": "night",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-autumn-blue-hour",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-10-15",
+   "timeOfDay": "blue-hour",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-autumn-golden-hour",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-10-15",
+   "timeOfDay": "golden-hour",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-autumn-daylight",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-10-15",
+   "timeOfDay": "daylight",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-autumn-midday",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-10-15",
+   "timeOfDay": "midday",
+   "seed": "seasons-desert"
+  },
+  {
+   "name": "desert-autumn-sun-on-horizon",
+   "biome": "desert",
+   "place": "baja-sonora",
+   "date": "2025-10-15",
+   "timeOfDay": "sun-on-horizon",
+   "evening": true,
+   "seed": "seasons-desert"
+  }
+ ]
+}
