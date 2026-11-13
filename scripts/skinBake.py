@@ -18,15 +18,17 @@ line (near the dorsal midline and low on the flank). For each:
      `mirror` (the patch, then itself flipped: a patch from the back to the
      flank only, continued symmetrically).
   Before 3, `highlights` (a quantile, default 0.98) caps glints on wet skin.
+  `contrast: "auto"` picks the contrast that brings the log pattern's spread
+  to `target` (default 0.3); every layer prints that value as a hint, and a
+  warning when more than 3% of it clips.
   5. Mean 1, clipped to 0.15..1.95, stored as value / 2 in an 8-bit grey
      layer of SIZE x SIZE; layers stacked top to bottom in recipe order.
 
 `mode: "whole"` instead bakes a whole object seen from above (a carapace) to be
 mapped once onto it: see bake_whole.
 
-Needs Python 3 with numpy, scipy and Pillow:
-  python3 -m venv .venv-skins && .venv-skins/bin/pip install numpy scipy pillow
-  .venv-skins/bin/python scripts/skinBake.py [--only ID] [--preview DIR]
+Run through npm run skins [-- --only ID --preview DIR] (scripts/skins.mjs
+sets up its Python with numpy, scipy and Pillow on first use).
 
 --preview DIR writes each layer repeated 3 x 2 (DIR/ID.png) to check joins.
 """
@@ -85,9 +87,26 @@ def bake_whole(r, lin):
     g = g / np.maximum(light, 1e-4)
     g = np.minimum(g, np.percentile(g[inside], 100 * r.get('highlights', 0.98)))
     g = np.log(np.maximum(g, 1e-3))
-    g = np.where(inside, g - g[inside].mean(), 0) * r.get('contrast', 1)
+    g = np.where(inside, g - g[inside].mean(), 0) * auto_contrast(r, g[inside])
     g = np.exp(g).reshape(SIZE, 2, SIZE, 2).mean((1, 3))
     return normalise(g)
+
+
+TARGET = 0.3
+
+
+def auto_contrast(r, g):
+    """The recipe's contrast, or with `contrast: "auto"` the one that brings
+    the log pattern's spread to `target` (default 0.3: the seal and fur-seal
+    look; scales and scutes up to ~0.45). Prints the auto value for any recipe
+    as a hint."""
+    sigma = float(np.std(g))
+    suggested = min(1.0, r.get('target', TARGET) / max(sigma, 1e-6))
+    c = r.get('contrast', 1)
+    if c == 'auto':
+        c = suggested
+    r['_suggested'] = round(suggested, 2)
+    return c
 
 
 def bake(r):
@@ -124,7 +143,8 @@ def bake(r):
         g = tile(g, 0)
     elif r.get('mirror'):
         g = np.concatenate([g, g[::-1]], 0)
-    g = np.exp((g - g.mean()) * r.get('contrast', 1))
+    contrast = auto_contrast(r, g)
+    g = np.exp((g - g.mean()) * contrast)
     g = np.asarray(Image.fromarray(g.astype(np.float32), 'F').resize((SIZE, SIZE), Image.BILINEAR), np.float64)
     return normalise(g)
 
@@ -135,8 +155,12 @@ for r in recipes:
         continue
     g = bake(r)
     layers.append(g)
+    clipped = float(np.mean((g <= 0.1501) | (g >= 1.9499)))
     print(json.dumps({'id': r['id'], 'mean': round(float(g.mean()), 3), 'std': round(float(g.std()), 3),
-                      'p5': round(float(np.percentile(g, 5)), 3), 'p95': round(float(np.percentile(g, 95)), 3)}))
+                      'p5': round(float(np.percentile(g, 5)), 3), 'p95': round(float(np.percentile(g, 95)), 3),
+                      'clipped': round(clipped, 3), 'contrast for target': r.get('_suggested')}))
+    if clipped > 0.03:
+        print(f"  ⚠ {r['id']}: {clipped:.0%} clipped to black or white: lower its contrast (or contrast: \"auto\"), or cap glints (highlights)")
     if a.preview is not None:
         os.makedirs(a.preview, exist_ok=True)
         img = Image.fromarray(np.round(g / 2 * 255).astype(np.uint8), 'L')

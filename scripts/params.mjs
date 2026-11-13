@@ -504,7 +504,7 @@ if (countArg != null) {
         if (days.length <= perDay) {
           console.log(`${p.date}  ${p.place.id}, ${p.coast?.type} ${p.coast?.composition}`)
           if (rowsHere.length === 0) console.log(`  nothing placed`)
-          for (const [k, r] of rowsHere) console.log(`  ${k.padEnd(28)} ${String(r.placed).padStart(5)} placed ${String(r.inFrame).padStart(5)} in frame   nearest ${r.nearest < 0 ? '-' : `${r.nearest} m`}`)
+          for (const [k, r] of rowsHere) console.log(`  ${k.padEnd(28)} ${String(r.placed).padStart(5)} placed ${String(r.inFrame).padStart(5)} in frame   nearest ${r.nearest < 0 ? '-' : `${r.nearest} m`}   ${String(Math.round((r.triangles ?? 0) / 1000)).padStart(6)} k triangles`)
         }
         for (const [k, r] of rowsHere) {
           const s = summary.get(k) ?? { days: 0, seen: 0, inFrame: [], nearest: Infinity }

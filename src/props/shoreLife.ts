@@ -331,7 +331,7 @@ export function starfishGeometry(rng: Random, skin = false): BufferGeometry {
     const dir = new Vector3(Math.cos(az), 0, Math.sin(az))
     const path = [0, 1, 2, 3, 4, 5].map(k => dir.clone().multiplyScalar((arm * k) / 5).setY(0.008 + 0.006 * Math.sin((k / 5) * Math.PI)))
     // Spines from a photo (props/skins.ts) in place of the ridged shading.
-    b.tube(path, t => arm * 0.2 * (1 - 0.8 * t), (t, a) => shade(color, skin ? 1 : 0.85 + 0.25 * Math.sin(a * 5 + t * 30)), 6, skin ? skinCoords('starfish', arm * 2) : undefined)
+    b.tube(path, t => arm * 0.2 * (1 - 0.95 * t), (t, a) => shade(color, skin ? 1 : 0.85 + 0.25 * Math.sin(a * 5 + t * 30)), 6, skin ? skinCoords('starfish', arm * 2) : undefined)
   }
   b.blob(new Vector3(0, 0.01, 0), new Vector3(arm * 0.25, arm * 0.14, arm * 0.25), () => color, () => 1, 3, undefined, skin ? skinBlob('starfish', arm * 2, 'top') : undefined)
   return b.build()

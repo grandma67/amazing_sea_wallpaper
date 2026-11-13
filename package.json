@@ -13,7 +13,8 @@
     "snapshot": "node scripts/snapshot.mjs",
     "test": "tsc --noEmit -p test && vitest run",
     "test:times": "node scripts/testTimes.mjs",
-    "check:restart": "node scripts/restart.mjs"
+    "check:restart": "node scripts/restart.mjs",
+    "skins": "node scripts/skins.mjs"
   },
   "dependencies": {
     "@takram/three-atmosphere": "^0.19.1",

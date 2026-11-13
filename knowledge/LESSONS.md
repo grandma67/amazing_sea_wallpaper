@@ -718,6 +718,20 @@ tool gotchas: TOOLS.md.
 
 ## Meshes
 
+- **Close-ups find what full views hide (0.164–0.165):** floating crab legs, a sea lion's flipper
+  hanging in the air, open snouts, an iguana crest above the back and a monkey's floating head all
+  passed the mesh tests (size, budget, finite) and every scene render. `test/meshLint.test.ts` now
+  checks parts and holes; add each new animal to it, and look with `mesh.mjs --focus head`.
+- **A shared structure first when the scope may grow (skins, 0.157–0.158):** per-animal textures
+  were rebuilt as one atlas when "all animals" came; design the shared form at the first "and the
+  others?".
+- **Glints and spray are light, not skin:** cap them (`highlights`) before judging a texture's
+  contrast; a humpback's spray drops made dolphins look like granite.
+- **Count triangles × instances before adding detail to crowds:** faces took penguins 400 → 1,072
+  triangles (× 2,500 in a colony) before a trim to 672 (`params.mjs --count`).
+- **Set first values from the researched sizes:** goggle eyes and needle bills cost a round each
+  when the real sizes were already known.
+
 - **A photo's shadows are sky-coloured (skins, 0.157):** a per-channel ratio of a crocodile's
   shadowed scales came out blue (they are lit by the sky, not the sun). Take brightness only from a
   photo and leave hue to the measured colours.

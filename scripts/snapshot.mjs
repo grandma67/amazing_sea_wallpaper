@@ -14,7 +14,7 @@
 //                     that depends on the day's seed); saved as NAME-s1, NAME-s2…
 // --out DIR (out)  --w 3840 --h 2160  --frames N (page default 64)  --quality 0.92
 // --url http://localhost:5174/  --angle metal|swiftshader  --channel chrome|chromium
-// --props KINDS|all   per prop: placed, in frame, nearest m, pixel box, CPU build
+// --props KINDS|all   per prop: placed, in frame, nearest m, triangles (× instances), pixel box, CPU build
 //                     time; then the three slowest kinds
 // --crop KINDS|all    also save NAME.KIND.jpg cropped to that prop's box
 // --budget S (900)    exit after S seconds in all; --timeout MS per page (5 min: a
@@ -277,12 +277,16 @@ for (const { date, spec: asked, name } of todo) {
       console.log(`  ${kind}: none placed${built(kind)}`)
       continue
     }
-    console.log(`  ${kind}: ${r.inFrame}/${r.placed} in frame, nearest ${r.nearest} m, box ${JSON.stringify(r.box)}${built(kind)}`)
+    const tris = r.triangles >= 1e6 ? `${(r.triangles / 1e6).toFixed(2)} M` : `${Math.round(r.triangles / 1e3)} k`
+    console.log(`  ${kind}: ${r.inFrame}/${r.placed} in frame, nearest ${r.nearest} m, ${tris} triangles, box ${JSON.stringify(r.box)}${built(kind)}`)
   }
   if (propKinds.length > 0) {
     const total = Object.values(times).reduce((a, b) => a + b, 0)
     const slowest = Object.entries(times).sort((a, b) => b[1] - a[1]).slice(0, 3)
     console.log(`  props built in ${total} ms; slowest ${slowest.map(([k, ms]) => `${k} ${ms}`).join(', ')}`)
+    const heavy = Object.entries(props).sort((a, b) => b[1].triangles - a[1].triangles).slice(0, 3)
+    const sum = Object.values(props).reduce((a, r) => a + (r.triangles ?? 0), 0)
+    console.log(`  prop triangles ${(sum / 1e6).toFixed(2)} M; most ${heavy.map(([k, r]) => `${k} ${(r.triangles / 1e6).toFixed(2)} M`).join(', ')}`)
   }
   for (const kind of cropKinds.includes('all') ? Object.keys(props) : cropKinds) {
     const box = props[kind]?.box

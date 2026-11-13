@@ -115,7 +115,7 @@ class Animal {
       this.spine.push(new Vector3((0.5 - t) * shape.length, shape.arch * Math.sin(Math.PI * t), 0))
     }
     // MeshBuilder.tube along −x: angle 0 points up (back), π down (belly).
-    this.b.tube(
+    const rings = this.b.tube(
       this.spine,
       shape.radius,
       (t, angle) => {
@@ -126,6 +126,8 @@ class Animal {
       14,
       skin ? skinCoords(look.skin, shape.length) : undefined
     )
+    // Close the snout: the tube's open end showed the hollow inside.
+    this.b.cap(rings[0], new Vector3(1, 0, 0), mix(look.belly, look.back, 0.5))
   }
 
   /** A face on the body tube (angle 0 the back, π the belly): eyes at

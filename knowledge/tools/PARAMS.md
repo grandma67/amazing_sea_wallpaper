@@ -103,6 +103,13 @@ node scripts/params.mjs --schema timeOfDay       # the six values
 node scripts/params.mjs --schema props.debris    # the props' choices too
 ```
 
+### Triangles a prop draws
+
+`--count KIND` also prints each kind's triangles (each mesh's × its instances): a colony of 2,500
+penguins at 672 triangles is 1.7 M. Check it before adding detail to a prop that comes in crowds
+(faces cost penguins +270 each; 0.164 counted only after building). `snapshot.mjs --props` prints
+the same per kind and the three heaviest.
+
 ### Which days show it: `--find`
 
 `--find KINDS` builds the props on the rendered camera and, per day and sub-kind, counts pieces

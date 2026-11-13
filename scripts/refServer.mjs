@@ -2,10 +2,12 @@
 // lib.mjs), for bench.mjs, snapshot.mjs --ref and diff.mjs --ref.
 //
 //   const old = await serveRef('HEAD', 5175)   // { sha, url, close }
+//   serveRef(ref, port, ['src/meshPreview.ts'])  // these files from this tree over
+//                                                // the ref's (today's tools, old props)
 //   old.close()                                 // synchronous: safe in 'exit'
 
 import { spawn } from 'node:child_process'
-import { closeSync, openSync, readFileSync, writeFileSync } from 'node:fs'
+import { closeSync, copyFileSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { SERVER_PID_FILE, stopServer, worktree } from './lib.mjs'
@@ -15,7 +17,7 @@ export { shortSha } from './lib.mjs'
 /** The ref server's output (overwritten each run): why it stopped, if it does. */
 export const refLog = port => `/private/tmp/claude-ref-${port}.log`
 
-export async function serveRef(ref, port = 5175) {
+export async function serveRef(ref, port = 5175, overlay = []) {
   // Something already answering on the port isn't ours: with --strictPort the
   // new server would fail and the wait below would render against that one
   // (a server still stopping, or another commit's).
@@ -26,6 +28,7 @@ export async function serveRef(ref, port = 5175) {
     if (error instanceof Error && error.message.startsWith('port ')) throw error
   }
   const { sha, tree, remove } = worktree(ref, `ref-${port}`)
+  for (const file of overlay) copyFileSync(file, join(tree, file))
   // Its own deps cache, not node_modules/.vite: through the shared
   // node_modules both servers would rewrite one cache, and pages then load
   // two three.js copies ("reading 'hasFeature'").

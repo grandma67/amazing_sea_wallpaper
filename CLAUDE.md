@@ -85,6 +85,14 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - One render command per step, 16 frames at 1080p. ~3 render rounds per feature (see, fix everything, confirm) on the same dates. If a 4th seems needed, reason from numbers, `--props` and `diff.mjs` instead.
 - Renders (`snapshot`, `diff`, `bench`) go in the background (`run_in_background`), not behind a long foreground timeout: a 1080p render is 2–3 s, so a run that takes minutes is stuck. `snapshot.mjs` now stops itself within seconds when its server dies (a 10-minute wait in the 0.142 review was a dead `--ref` server). Don't filter a run's output down to lines with "error": keep it whole until it has passed.
 - Stop the dev server when done: `lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`.
+- **Before any shell scripting or a probe test, read TOOLS.md "Gotchas"** (zsh word splitting, BSD
+  `grep`/`sed`, Vitest hiding `console.log`, Python's certificates): each cost a rerun twice.
+- Animal meshes: `test/meshLint.test.ts` must pass (no loose part, no open tube end); a new
+  animal or pose gets a row. Judge faces with `mesh.mjs --focus head`, a change with
+  `mesh.mjs --ref HEAD`; before adding detail to anything placed in crowds, `params.mjs --count`
+  for its triangles × instances.
+- Animal skins and look work: first `params.mjs --find` for how near the animals come on real days
+  (seals sit ≥ 60 m off: a skin there is under a pixel); photos via `asset.mjs search`.
 
 ## 4. Tests and finishing
 - A row in a shared table where there is one (`knowledge/TOOLS.md` "Tests"): a mesh in `meshes.test.ts`, a "when this, then that" rule in `realDays.test.ts`, a forced field in `sceneSpec.test.ts`, an off switch in `propSwitches.test.ts`. Then `test/<feature>.test.ts` covering:

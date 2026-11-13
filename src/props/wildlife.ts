@@ -328,7 +328,8 @@ export function turtleGeometry(rng: Random, species: TurtleSpecies, sand: RGB, f
     const rear = length * 0.2
     const rearQ = yawQ(side * (Math.PI / 2 + 1.1))
     b.blob(
-      new Vector3(-length * 0.38, h * 0.4, side * length * 0.2).add(new Vector3(rear * 0.45, 0, 0).applyQuaternion(rearQ)),
+      // Rooted under the shell's back edge (it floated beside it).
+      new Vector3(-length * 0.32, h * 0.45, side * length * 0.15).add(new Vector3(rear * 0.4, 0, 0).applyQuaternion(rearQ)),
       new Vector3(rear * 0.5, length * 0.02, length * 0.07),
       n => mix(shade(skinColor, 0.8 + 0.3 * Math.max(0, n.y)), sand, dust * 0.6),
       () => 1,
@@ -385,7 +386,8 @@ export function monkeyGeometry(rng: Random, kind: MonkeyKind, pose: 'walk' | 'si
       limb([new Vector3(size * 0.3, legH + size * 0.08, z), new Vector3(size * 0.36, legH * 0.5, z * 1.2), new Vector3(size * 0.4, 0.02, z * 1.3)], size * 0.09)
       limb([new Vector3(-size * 0.3, legH + size * 0.08, z), new Vector3(-size * 0.2, legH * 0.55, z * 1.2), new Vector3(-size * 0.34, 0.02, z * 1.3)], size * 0.11)
     }
-    head = new Vector3(size * 0.55, legH + size * 0.28, 0)
+    // Overlapping the body's front (at 0.55 the head floated free: no neck).
+    head = new Vector3(size * 0.5, legH + size * 0.26, 0)
     rump = new Vector3(-size * 0.42, legH + size * 0.15, 0)
   } else {
     // Sitting up on its haunches, arms down in front.
@@ -425,7 +427,8 @@ export function monkeyGeometry(rng: Random, kind: MonkeyKind, pose: 'walk' | 'si
     const curl = kind === 'capuchin' && t > 0.8 ? (t - 0.8) * tail * 0.6 : 0
     path.push(new Vector3(rump.x - t * tail * 0.85, y + curl, side))
   }
-  b.tube(path, t => size * 0.035 * (1 - 0.5 * t), () => shade(c.fur, 0.8), 5, strands)
+  // Tapering nearly shut: the open tip showed on a capuchin's curl.
+  b.tube(path, t => size * 0.035 * (1 - 0.9 * t), () => shade(c.fur, 0.8), 5, strands)
   return b.build()
 }
 
@@ -538,7 +541,9 @@ export function lizardGeometry(rng: Random, kind: LizardKind, skin = false): Buf
     const crest = length * spec.crest
     for (let k = 2; k < steps * 0.75; k++) {
       const p = spine[k]
-      const r = girth * profile(k / steps) * 0.95
+      // The back's own radius: the body is flattened on top (bodyR), so a
+      // round girth × profile set the spines floating above it.
+      const r = bodyR(k / steps, 0) * 0.95
       const i0 = b.vertex(new Vector3(p.x + crest * 0.3, p.y + r, p.z), shade(spec.color, 0.9))
       const i1 = b.vertex(new Vector3(p.x - crest * 0.3, p.y + r, p.z), shade(spec.color, 0.9))
       const i2 = b.vertex(new Vector3(p.x - crest * 0.2, p.y + r + crest * (1 - k / steps), p.z), shade(spec.color, 1.2))
@@ -769,7 +774,8 @@ export function hippoGeometry(rng: Random, wet: number, skin = false): BufferGeo
   }
   whiskers(b, M.clone().add(new Vector3(0.22 * s, 0.02 * s, 0)), new Vector3(1, 0, 0), new Vector3(0, 1, 0), 0.3 * s, { count: 9, length: 0.035, r: 0.0018, color: [0.1, 0.08, 0.07], droop: 0.1 })
   // Short, flattened tail.
-  b.tube([new Vector3(-1.45 * s, 1.0 * s, 0), new Vector3(-1.58 * s, 0.82 * s, 0), new Vector3(-1.6 * s, 0.62 * s, 0)], t => s * 0.07 * (1 - 0.5 * t), () => grey, 5)
+  // Rooted inside the rump (from its surface the tube's end showed a hole).
+  b.tube([new Vector3(-1.32 * s, 1.0 * s, 0), new Vector3(-1.58 * s, 0.82 * s, 0), new Vector3(-1.6 * s, 0.62 * s, 0)], t => s * 0.07 * (1 - 0.5 * t), () => grey, 5)
   return b.build()
 }
 

@@ -15,6 +15,9 @@ export interface PropReport {
   nearest: number
   /** Pixel box [x0, y0, x1, y1] round the pieces in frame, clipped to it. */
   box: [number, number, number, number] | null
+  /** Triangles drawn: each mesh's × its instances (a colony of 2,500
+   * penguins at 672 each is 1.7 M). */
+  triangles: number
 }
 
 const corner = new Vector3()
@@ -87,8 +90,13 @@ export function reportProps(props: Object3D, camera: Camera, width: number, heig
     const prop = (object.userData.prop as string | undefined) ?? 'other'
     const key = by?.(object)
     const kind = key == null || key === '' ? prop : `${prop}/${String(key)}`
-    const entry = (report[kind] ??= { placed: 0, inFrame: 0, nearest: -1, box: null })
+    const entry = (report[kind] ??= { placed: 0, inFrame: 0, nearest: -1, box: null, triangles: 0 })
     entry.placed += object instanceof InstancedMesh ? object.count : 1
+    object.traverse(o => {
+      const g = (o as { geometry?: BufferGeometry }).geometry
+      if (g == null) return
+      entry.triangles += ((g.index?.count ?? g.attributes.position?.count ?? 0) / 3) * (o instanceof InstancedMesh ? o.count : 1)
+    })
     const found = pieces(object, camera, width, height)
     if (typeof found === 'number') continue
     for (const { box, distance } of found) {

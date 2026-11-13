@@ -223,7 +223,7 @@ node scripts/mesh.mjs --out $SP/mesh 'props/wildlife#hippoGeometry($rng, 0)' 'pr
 node scripts/mesh.mjs --out $SP/mesh --material 'props/seaIce#rubbleMaterial(0.5)' --scale 1.1,0.3,1 --sun 8 --eye 3 'props/seaIce#slabGeometry($rng)'
 ```
 
-`--focus head` frames side, front and 3/4 on the front 15% of the mesh (animals face +x): eyes, nostrils, mouths, bills. `--material` is a call like the mesh's; its `onBeforeCompile` runs, so world-position shaders show. The preview has no instancing and none of the scene's shade, so light is neutral: use it for shape and surface, a render for colour against the scene. On sea ice it showed a noise lattice and too-strong bumps that no scene render had.
+`--focus head` frames side, front and 3/4 on the front 15% of the mesh (animals face +x): eyes, nostrils, mouths, bills. `--ref HEAD` (or any commit) renders each call at that commit too, through today's preview page (a worktree on port 5178): `NAME-N.ref.jpg` and `NAME-N.compare.jpg` (ref above, now below), no stashing; a `--material` the ref doesn't have fails there, so leave it out for old commits. `--material` is a call like the mesh's; its `onBeforeCompile` runs, so world-position shaders show. The preview has no instancing and none of the scene's shade, so light is neutral: use it for shape and surface, a render for colour against the scene. On sea ice it showed a noise lattice and too-strong bumps that no scene render had.
 
 ## `scripts/contact-sheet.mjs`: look at results cheaply
 

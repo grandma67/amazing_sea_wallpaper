@@ -141,6 +141,26 @@ pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`
   Tube ends at seal noses and lizard snouts are capped. Small eyes skip the lid ring and
   nostrils are detail-1 blobs, to keep colonies cheap (penguin 400 → 672 triangles).
   `mesh.mjs --focus head` frames the views on the head.
+
+  Where each head is (all animals face +x):
+
+  | Builder | Head | Place features with |
+  |---|---|---|
+  | `pinniped`, `swimmingHead` | the body tube's front, spine nose first; angle 0 is up | `onTube(spine, radius, t, angle)` |
+  | `lizardGeometry` | the body tube's front (`bodyR`, flattened on top) | `onTube` |
+  | `crocodileGeometry` | separate jaw tubes from `hinge` along `dir` (pitched by `gape`); `upDir` up | positions from `hinge`, `dir`, `upDir` |
+  | `turtleGeometry` | a blob at (0.55 L, 0.9 h, 0) | `onBlob(centre, radii, dir)` |
+  | `hippoGeometry` | head and muzzle blobs (`boxy` lump) | `onBlob(…, boxy(d))` |
+  | `monkeyGeometry` | head blob plus a face blob in front | `onBlob` on the face blob |
+  | marine `Animal` | the body tube's front; angle 0 the back | `Animal.face({…})` |
+  | gulls, migratory birds, penguins | a head blob | `gullFace`, `birdFace`, `onBlob` + `beak` |
+- **Mesh integrity** (`test/meshLint.test.ts`, 0.165): every animal and pose in one piece (no part
+  farther than 0.4% of its size from the rest, a part inside another counts as joined) and no open
+  tube end you can see into (a round boundary loop on a solid part, above the ground, not plugged).
+  It found nine defects when added: true and eared seals' front flippers outside the body, iguana
+  crests floating (the back is flattened, the spines used a round radius), turtles' rear flippers
+  beside the shell, a walking monkey's head with no neck, the hippo's tail root, whale and dolphin
+  snouts and a capuchin's tail tip open, starfish arm tips open.
 - **Sea ice** (`seaIce.ts`, `props/seaIce.ts`, 0.114, plans/SEA_ICE.md): `pickSeaIce` on its own stream gives `params.seaIce`
   (`edge`, `cover`, `snow`, `melt`, `thin`, `rubble`, `lead`, `origin`). A sheet (a polar-grid wedge at `ICE_FREEBOARD`, curved like
   the sea, with `off` per vertex, the m from today's water) hides the ocean, drawn with a polygon offset as 0.18 m is

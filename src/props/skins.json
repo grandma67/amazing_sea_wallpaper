@@ -46,7 +46,7 @@
       "lengthM": 3.5,
       "lengthPx": 1605,
       "mirror": true,
-      "contrast": 0.6
+      "contrast": 0.45
     },
     {
       "id": "elephant-seal",
@@ -120,7 +120,7 @@
       "lengthM": 0.9,
       "mPerPx": 0.000127,
       "tileV": true,
-      "contrast": 0.6,
+      "contrast": 0.5,
       "note": "Neck scales of a head-on marine iguana; scale from an ~8 cm wide head over 630 px."
     },
     {
@@ -169,7 +169,7 @@
       ],
       "lengthM": 1.0,
       "mPerPx": 0.0008,
-      "contrast": 0.3,
+      "contrast": 0.22,
       "note": "Upper flank of a black spiny-tailed iguana on a wall; scale from an ~8 cm head over 105 px.",
       "tileV": true
     },
@@ -195,7 +195,7 @@
       "lengthM": 1.5,
       "mPerPx": 0.000165,
       "tileV": true,
-      "contrast": 0.28,
+      "contrast": 0.17,
       "note": "Neck and shoulder scales of an Asian water monitor (a black-and-white photo; only brightness is used); scale from a ~14 cm head over 850 px.",
       "highlights": 0.85
     },
@@ -235,7 +235,7 @@
       ],
       "rotate": 90,
       "lengthM": 0.8,
-      "contrast": 0.55,
+      "contrast": 0.42,
       "note": "Australian Museum LH645, catalogued as a green turtle; its radiating amber scutes are the hawksbill's tortoiseshell look, so it stands in for hawksbills. Head at the top, turned to the right.",
       "highlights": 0.9
     },
@@ -261,7 +261,7 @@
       "lengthM": 1.6,
       "mPerPx": 0.0017,
       "mirror": true,
-      "contrast": 0.7,
+      "contrast": 0.45,
       "note": "Carapace flank of a nesting leatherback: ridges and white flecks; scale from ~1.5 m of carapace over 900 px."
     },
     {

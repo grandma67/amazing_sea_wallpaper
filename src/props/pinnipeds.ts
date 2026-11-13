@@ -194,7 +194,8 @@ export function pinniped(rng: Random, kind: PinnipedKind, pose: Pose, wet: numbe
       fin([top, top.clone().add(new Vector3(-0.08 * L, 0, 0)), foot.clone().add(new Vector3(-0.02 * L, 0, 0)), foot.clone().add(new Vector3(0.14 * L, 0, side * 0.03 * L)), foot.clone().add(new Vector3(0.06 * L, 0.02 * L, 0))], back)
     } else {
       const reach = look.eared ? 0.28 * L : 0.14 * L
-      fin([shoulder.clone().add(new Vector3(0, -g * 0.5, side * g * 0.7)), shoulder.clone().add(new Vector3(-reach * 0.6, -g * 0.8, side * (g + reach * 0.6))), shoulder.clone().add(new Vector3(-reach * 0.3, -g * 0.8, side * (g + reach * 0.3)))], back)
+      // Rooted inside the flank (at 0.7 g the root stood outside the body).
+      fin([shoulder.clone().add(new Vector3(0, -g * 0.45, side * g * 0.45)), shoulder.clone().add(new Vector3(-reach * 0.6, -g * 0.8, side * (g + reach * 0.6))), shoulder.clone().add(new Vector3(-reach * 0.3, -g * 0.8, side * (g + reach * 0.3)))], back)
     }
     // Hind flippers: trailing behind (true seals), or turned forward under
     // the body (eared seals sitting up).

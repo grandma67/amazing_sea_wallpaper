@@ -27,6 +27,8 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Does a new off switch give back the old image exactly | `diff.mjs --ref HEAD --off PATCH --off-here` (expect "identical"); when HEAD already has the feature (a later phase), `--off-both` | [tools/RENDER.md](tools/RENDER.md) |
 | Render time vs a commit (10% rule); same image | `bench.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A new mesh alone | `mesh.mjs` | [tools/RENDER.md](tools/RENDER.md) |
+| A mesh before and after a change, one command | `mesh.mjs --ref HEAD` (`NAME.compare.jpg`); a head close-up: `--focus head` | [tools/RENDER.md](tools/RENDER.md) |
+| Triangles a prop draws (× its instances), before building more on it | `params.mjs --count KIND` (no render), `snapshot.mjs --props` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A number over a folder of renders (median, quartiles by group; or counts) | `summary.mjs DIR 'j => j.debug.X' --by 'j => …'` | [tools/RENDER.md](tools/RENDER.md) |
 | Which pass, term or grid causes a look | `params.debug` switches and views | [tools/DEBUG.md](tools/DEBUG.md) |
@@ -45,7 +47,8 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded |
 | Is a prop **visible** on a day (not behind props or terrain), which spec dates show it best; how hazed far land is | `params.mjs --find KIND` | tools/PARAMS.md "Which days show it" |
 | How much turf, bare land, sea a camera sees, by distance | `src.groundSeen.groundSeen(p.ctx)` in a `params.mjs` expression | tools/PARAMS.md |
-| An animal skin from a photo (atlas layer) | `asset.mjs fetch commons:File:… --id ID` → `asset.mjs grid ID` (pick the patch) → recipe in `src/props/skins.json` → `scripts/skinBake.py --preview DIR` (Python: numpy, scipy, Pillow) → `mesh.mjs --material 'props/skins#skinPreviewMaterial()'` | `scripts/skinBake.py` header | [arch/PROPS.md](arch/PROPS.md) "Animal skins" |
+| Photos of a species with a licence we can ship (PD, CC0, CC BY) | `asset.mjs search QUERY…` (numbered contact sheet; waits out Commons' rate limit) | `asset.mjs` header |
+| An animal skin from a photo (atlas layer) | `asset.mjs search` → `asset.mjs fetch commons:File:… --id ID` → `asset.mjs grid ID --px` (pixel labels) → recipe in `src/props/skins.json` → `asset.mjs patch ID` (outline on the photo beside the baked tile) → `npm run skins` (sets up its Python; warns when a layer clips; `contrast: "auto"`) → `mesh.mjs --material 'props/skins#skinPreviewMaterial()'` | `scripts/skinBake.py` header | [arch/PROPS.md](arch/PROPS.md) "Animal skins" |
 | A scanned model as a prop mesh (vertex colours, levels of detail) | `asset.mjs bake ID` → `src/props/scans/ID.ts`; `mesh.mjs 'props/scans/index#scanVariant(…)'` | "Real colours" below; NATURE_PLAN.md §11 | header; "Real colours" below; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §1 |
 
 ## Tests
@@ -56,6 +59,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | To check | Add a row or test in |
 |---|---|
 | A small mesh: real size, budget, deterministic, finite | `test/meshes.test.ts` (`expectMesh`, 3 seeds) |
+| An animal (or any mesh built from parts) in one piece, no open tube end you can see | `test/meshLint.test.ts` (`looseParts`, `openHoles` from `test/meshLint.ts`): add every new animal and pose |
 | "When this, then that" on every real day | `test/realDays.test.ts` (fails if the rule never applies) |
 | Forcing a field keeps the rest of the day | `test/sceneSpec.test.ts` |
 | A prop's off switch | `test/propSwitches.test.ts` |
@@ -189,12 +193,20 @@ minutes (dep optimisation).
 - Each `params.mjs` call costs a few seconds (it builds the modules): a shell loop over seeds or
   places timed out. Ask once over a date range with `--list --where 'p => …'` or `--stats`.
 - **PDFs:** `pdftotext -layout FILE out.txt` (poppler, `brew install poppler`, installed 2026-11-06), then grep. WebFetch can't read a PDF, but it saves the bytes and says where: run `pdftotext` on that. Numbers in figures aren't in the text: use the paper's prose and tables, and say so.
-- **Reference photos:** Wikimedia Commons' API finds them with a thumbnail URL (`curl -G https://commons.wikimedia.org/w/api.php -d action=query -d format=json -d generator=search -d gsrnamespace=6 --data-urlencode gsrsearch=… -d prop=imageinfo -d iiprop=url\|mime -d iiurlwidth=900`). Save them in their own scratchpad folder and `Read` the JPEG. Plain web search returns captions, not pictures. Record each file's page in the plan. To measure one: `asset.mjs measure 'commons:File:NAME.jpg'` (licence and author recorded; it retries Commons' 429s, which come after ~5 quick requests).
+- **Reference photos:** `asset.mjs search QUERY` (licence-filtered, a numbered contact sheet). Python's `urllib` fails here on certificates (`CERTIFICATE_VERIFY_FAILED`): use the script or curl. Wikimedia Commons' API finds them with a thumbnail URL (`curl -G https://commons.wikimedia.org/w/api.php -d action=query -d format=json -d generator=search -d gsrnamespace=6 --data-urlencode gsrsearch=… -d prop=imageinfo -d iiprop=url\|mime -d iiurlwidth=900`). Save them in their own scratchpad folder and `Read` the JPEG. Plain web search returns captions, not pictures. Record each file's page in the plan. To measure one: `asset.mjs measure 'commons:File:NAME.jpg'` (licence and author recorded; it retries Commons' 429s, which come after ~5 quick requests).
 - **zsh, not bash:** an unquoted `$VAR` isn't split into words, so `F="a b"; sed … $F` and `D="d1 d2"; cmd $D` pass one argument, and often fail quietly. Use a `for` over literal words, or `${=VAR}`. An unmatched glob is an error (`--include=*`: quote it), and a bare `======` is too (`echo '---'`).
 - **Patching with a heredoc:** in `<<'EOF'` nothing is unescaped, so `\`` stays a backslash and backtick in the file. In `<<EOF` it's the reverse: `$` and backticks run. Use `<<'EOF'` and write backticks plain.
 - Vitest hides `console.log` from passing tests: `--silent=false`, or `process.stderr.write(…)` in
   a throwaway probe test (deleted afterwards). Better: probe with `params.mjs` (`p.ctx`, `src.X`).
-- `sips --cropOffset` silently returns the whole image here, and there's no PIL: crop with
+- `sips --cropOffset` silently returns the whole image here; system Python has no PIL (`.venv-skins/bin/python` has, after `npm run skins`): crop with
   `contact-sheet.mjs --region`.
+- **BSD tools, not GNU:** `grep -P` doesn't exist (use `grep -E`, or `awk -F'\t' '$1==name'` for a
+  tab-separated field), `sed -i` needs `''`, and `sed`'s `0,/re/` address is GNU only (it applies
+  nowhere, silently). Edit with Python asserting one match, or the Edit tool.
+- **JS `toFixed` keeps the sign of zero:** `(-2e-16).toFixed(6)` is `"-0.000000"`, so keys built
+  from it split equal points (a blob's seam). Use `Math.round(x * 1e6) || 0`.
+- **Python edit scripts that assert one match:** a replacement that adds text a later pattern
+  searches for makes that later assert fail (and nothing is written): order the edits, or use
+  the Edit tool.
 - Scripted edits: Python `str.replace` hits every match (`"  cirrus: {"` also hit the choice
   table), and loose regexes hit params. Prefer Edit, or assert exactly one match.
