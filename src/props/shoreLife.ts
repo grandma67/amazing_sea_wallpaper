@@ -359,9 +359,18 @@ export function crabGeometry(rng: Random, kind: CrabKind, sand: RGB, skin = fals
     }
   }
   // Carapace: wider than long, square for ghost crabs.
+  const shellX = width * (kind === 'ghost' ? 0.42 : 0.38)
+  const shellZ = width * 0.5
+  /** A point just inside the carapace's outline (85% of the way out) in
+   * the direction (x, z): legs and claws grow from it, so none floats free
+   * of the body on the narrower shore and hermit crabs. */
+  const rim = (x: number, z: number): Vector3 => {
+    const k = 0.85 / Math.hypot(x / shellX, z / shellZ)
+    return new Vector3(x * k, lift, z * k)
+  }
   b.blob(
     body,
-    new Vector3(width * (kind === 'ghost' ? 0.42 : 0.38), width * 0.22, width * 0.5),
+    new Vector3(shellX, width * 0.22, shellZ),
     n => shade(color, 0.75 + 0.35 * Math.max(0, n.y)),
     n => (kind === 'ghost' ? 1 + 0.12 * (n.x * n.x * n.z * n.z * 16) : 1),
     4,
@@ -375,14 +384,14 @@ export function crabGeometry(rng: Random, kind: CrabKind, sand: RGB, skin = fals
       const along = (i - 1.5) * width * 0.22
       const spread = width * (kind === 'ghost' ? 1.1 : 0.85)
       const sweep = (i - 1.5) * 0.35
-      const root = new Vector3(along, lift, side * width * 0.4)
+      const root = rim(along, side * width * 0.4)
       const knee = new Vector3(along + Math.sin(sweep) * spread * 0.55, lift + width * 0.35, side * (width * 0.4 + Math.cos(sweep) * spread * 0.55))
       const tip = new Vector3(along + Math.sin(sweep) * spread, 0, side * (width * 0.4 + Math.cos(sweep) * spread))
       b.tube([root, knee, tip], t => width * 0.055 * (1 - 0.6 * t), () => shade(color, 0.9), 5, skin ? skinCoords('crab', width) : undefined)
     }
     // Claws in front.
     const claw = kind === 'ghost' && side === 1 ? 1.3 : 1
-    const base = new Vector3(width * 0.4, lift, side * width * 0.25)
+    const base = rim(width * 0.4, side * width * 0.25)
     const tip = new Vector3(width * 0.75, lift * 0.6, side * width * 0.35)
     b.tube([base, tip], () => width * 0.07 * claw, () => color, 5)
     b.blob(tip, new Vector3(width * 0.16, width * 0.08, width * 0.09).multiplyScalar(claw), () => shade(color, 1.1), () => 1, 3)
