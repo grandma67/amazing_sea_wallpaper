@@ -85,6 +85,10 @@ export interface FruitRow {
   /** Only the crowns that are the deciduous species of a mixed kind
    * (tropical broadleaf: the tropical almond is the one that sheds). */
   deciduousOnly?: boolean
+  /** Berries borne in clusters: `count` fruits of `length` packed within
+   * `spread` m of each other (stretched along the axis by `along`), each
+   * an 8-triangle berry; `perTip` counts clusters. */
+  cluster?: { count: number; spread: number; along?: number }
   /** A shrub species' fruit (shrubs.ts): only on that species' bushes,
    * which props/vegetation.ts crownBlossom picks; never on the plain mesh. */
   species?: ShrubKind
@@ -426,7 +430,8 @@ function shrubFruit(
   length: number,
   width: number,
   perTip: number,
-  peakMonth: number
+  peakMonth: number,
+  cluster?: FruitRow['cluster']
 ): FruitRow {
   const s = SHRUBS.find(x => x.species === species)!
   return {
@@ -444,7 +449,8 @@ function shrubFruit(
     length,
     width,
     perTip,
-    top: 0
+    top: 0,
+    ...(cluster != null ? { cluster } : {})
   }
 }
 
@@ -494,13 +500,13 @@ function willowToday(d: number, day: PhenologyDay): { crop: number; stages: Frui
 const SHRUB_FRUIT: readonly FruitRow[] = [
   // Sea buckthorn: orange berries packed along the twigs, ripe August–
   // September, hanging all winter unless the birds take them.
-  shrubFruit('sea-buckthorn', [1, 0.6, 0.2, 0, 0, 0, 0.3, 0.8, 1, 1, 1, 1], ripening(ORANGE_BERRY, [1, 1, 1, 0, 0, 0, 0, 0.7, 1, 1, 1, 1]), 'ball', 0.008, 0.8, 4, 10),
+  shrubFruit('sea-buckthorn', [1, 0.6, 0.2, 0, 0, 0, 0.3, 0.8, 1, 1, 1, 1], ripening(ORANGE_BERRY, [1, 1, 1, 0, 0, 0, 0, 0.7, 1, 1, 1, 1]), 'ball', 0.008, 0.8, 0.7, 10, { count: 14, spread: 0.02, along: 5 }),
   // Japanese rose: hips like small tomatoes, red-orange from August, into January.
   shrubFruit('rugosa-rose', [0.2, 0.1, 0, 0, 0, 0, 0.2, 0.6, 1, 1, 0.7, 0.4], ripening(HIP_RED, [1, 1, 0, 0, 0, 0, 0, 0.5, 1, 1, 1, 1]), 'ball', 0.022, 0.95, 0.6, 9),
   // Blackthorn: sloes blue-black September–October, a few into winter.
   shrubFruit('blackthorn', [0.2, 0, 0, 0, 0, 0.2, 0.4, 0.7, 1, 1, 0.8, 0.4], ripening(SLOE, [1, 0, 0, 0, 0, 0, 0, 0.3, 1, 1, 1, 1], 1), 'ball', 0.013, 0.95, 1.5, 10),
   // Hawthorn: haws deep red from late September, on the bush into winter.
-  shrubFruit('hawthorn', [0.4, 0.2, 0, 0, 0, 0, 0.3, 0.6, 1, 1, 1, 0.7], ripening(HAW_RED, [1, 1, 0, 0, 0, 0, 0, 0.3, 0.8, 1, 1, 1]), 'ball', 0.01, 0.85, 3, 10),
+  shrubFruit('hawthorn', [0.4, 0.2, 0, 0, 0, 0, 0.3, 0.6, 1, 1, 1, 0.7], ripening(HAW_RED, [1, 1, 0, 0, 0, 0, 0, 0.3, 0.8, 1, 1, 1]), 'ball', 0.01, 0.85, 0.5, 10, { count: 9, spread: 0.025 }),
   // Lentisk: clusters of 5 mm drupes, red through summer and autumn,
   // blackening into winter.
   shrubFruit(
@@ -514,8 +520,9 @@ const SHRUB_FRUIT: readonly FruitRow[] = [
     'ball',
     0.005,
     1,
-    4,
-    10
+    0.6,
+    10,
+    { count: 12, spread: 0.02 }
   ),
   // Strawberry tree: a year to ripen, green, yellow, orange, red; ripe
   // October–December with the next flowers.
@@ -535,12 +542,12 @@ const SHRUB_FRUIT: readonly FruitRow[] = [
     11
   ),
   // Myrtle: blue-black berries November–January (est.).
-  shrubFruit('myrtle', [0.8, 0.4, 0, 0, 0, 0, 0, 0.3, 0.6, 0.8, 1, 1], ripening(BLUE_BLACK, [1, 1, 0, 0, 0, 0, 0, 0, 0, 0.3, 0.9, 1]), 'ball', 0.009, 0.85, 2, 12),
+  shrubFruit('myrtle', [0.8, 0.4, 0, 0, 0, 0, 0, 0.3, 0.6, 0.8, 1, 1], ripening(BLUE_BLACK, [1, 1, 0, 0, 0, 0, 0, 0, 0, 0.3, 0.9, 1]), 'ball', 0.009, 0.85, 0.5, 12, { count: 4, spread: 0.02 }),
   // Sea grape: hanging bunches, green from early summer, deep purple late
   // summer (IFAS); ripening unevenly.
   shrubFruit('sea-grape', [0, 0, 0, 0, 0, 0.4, 0.8, 1, 1, 0.5, 0.1, 0], ripening(GRAPE_PURPLE, [0, 0, 0, 0, 0, 0, 0.2, 0.6, 0.8, 0.9, 1, 0]), 'cluster', 0.2, 0.3, 0.25, 9),
   // Beach naupaka: berries green turning white, all year.
-  shrubFruit('naupaka', [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7], () => [stage(FRUIT_GREEN, 0.4, 0.8), stage(NAUPAKA_WHITE, 0.6)], 'ball', 0.01, 0.9, 1.5, 6),
+  shrubFruit('naupaka', [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7], () => [stage(FRUIT_GREEN, 0.4, 0.8), stage(NAUPAKA_WHITE, 0.6)], 'ball', 0.01, 0.9, 0.5, 6, { count: 4, spread: 0.02 }),
   // Saw palmetto: drupes in bunches, green, orange-yellow, then blue-black
   // (FNA), late summer to autumn (est. months).
   shrubFruit(
@@ -569,9 +576,9 @@ const SHRUB_FRUIT: readonly FruitRow[] = [
     4
   ),
   // Salal: dark purple berries in August–September (local).
-  shrubFruit('salal', [0, 0, 0, 0, 0, 0, 0.4, 1, 0.8, 0.3, 0, 0], ripening(SALAL_PURPLE, [0, 0, 0, 0, 0, 0, 0.2, 0.9, 1, 1, 0, 0]), 'ball', 0.009, 0.95, 3, 8),
+  shrubFruit('salal', [0, 0, 0, 0, 0, 0, 0.4, 1, 0.8, 0.3, 0, 0], ripening(SALAL_PURPLE, [0, 0, 0, 0, 0, 0, 0.2, 0.9, 1, 1, 0, 0]), 'ball', 0.009, 0.95, 0.5, 8, { count: 8, spread: 0.02, along: 3 }),
   // Calafate: blue-black berries, ripe late February – March (local).
-  shrubFruit('calafate', [0.3, 0.8, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0.1], ripening(BLUE_BLACK, [0, 0.6, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]), 'ball', 0.01, 0.95, 2, 3),
+  shrubFruit('calafate', [0.3, 0.8, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0.1], ripening(BLUE_BLACK, [0, 0.6, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]), 'ball', 0.01, 0.95, 0.6, 3, { count: 5, spread: 0.02 }),
   // Natal plum: crimson plums 3–5 cm, summer into autumn (local), some all year.
   shrubFruit('natal-plum', [1, 1, 0.8, 0.6, 0.4, 0.2, 0.1, 0.1, 0.1, 0.1, 0.2, 0.6], ripening(PLUM_CRIMSON, [0.8, 1, 1, 1, 1, 1, 1, 1, 1, 0.5, 0.2, 0.4]), 'ball', 0.04, 0.8, 0.4, 2),
   {

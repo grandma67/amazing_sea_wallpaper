@@ -456,6 +456,22 @@ function fruitShape(b: MeshBuilder, f: Fruiting, at: Vector3, length: number, co
   switch (f.row.shape) {
     case 'ball':
     case 'cone': {
+      const cluster = f.row.cluster
+      if (cluster != null) {
+        // A bunch of berries: each a small octahedron, packed by hash.
+        for (let k = 0; k < cluster.count; k++) {
+          const h1 = hash(at.x * 13.7 + k * 1.31, at.z * 7.3 + twist)
+          const h2 = hash(at.y * 5.9 + k * 2.17, at.x * 3.3 - twist)
+          const h3 = hash(k * 0.77 + at.z, h1 * 9.1)
+          const s = cluster.spread
+          const p = at
+            .clone()
+            .add(new Vector3((h1 - 0.5) * 2 * s, (h2 - 0.5) * 2 * s, (h3 - 0.5) * 2 * s))
+            .addScaledVector(axis, (cluster.along ?? 0) * s * (h2 - 0.3))
+          berry(b, p, length * (0.8 + 0.4 * h3) * 0.5, scale(color, 0.8 + 0.35 * h1))
+        }
+        return
+      }
       const orient = new Quaternion().setFromUnitVectors(UP, axis)
       const center = at.clone().addScaledVector(axis, length * 0.5)
       b.blob(center, new Vector3(width / 2, length / 2, width / 2), lit, () => 1, length > 0.1 ? 2 : 1, orient)
@@ -484,6 +500,19 @@ function fruitShape(b: MeshBuilder, f: Fruiting, at: Vector3, length: number, co
       )
       return
     }
+  }
+}
+
+/** One berry: an octahedron of radius `r` (8 triangles), lit from above. */
+function berry(b: MeshBuilder, c: Vector3, r: number, color: RGB): void {
+  const top = b.vertex(c.clone().add(new Vector3(0, r, 0)), scale(color, 1.15))
+  const bottom = b.vertex(c.clone().add(new Vector3(0, -r, 0)), scale(color, 0.7))
+  const ring = [new Vector3(r, 0, 0), new Vector3(0, 0, r), new Vector3(-r, 0, 0), new Vector3(0, 0, -r)].map(o => b.vertex(c.clone().add(o), color))
+  for (let i = 0; i < 4; i++) {
+    const a = ring[i]
+    const n = ring[(i + 1) % 4]
+    b.triangle(top, n, a)
+    b.triangle(bottom, a, n)
   }
 }
 
@@ -882,7 +911,8 @@ export function bush(rng: Random, foliage: RGB, season?: PlantSeason): BufferGeo
     season
   })
   // A shrub species' berries, hips, bunches or catkins (its twin's season).
-  fruits(b, tips, season, { spread: 0.1, out: 0.08 })
+  // Out on the mound's surface: the leaves reach ~0.3 m round each tip.
+  fruits(b, tips, season, { spread: 0.12, out: 0.36, below: 0.03 })
   return b.build()
 }
 

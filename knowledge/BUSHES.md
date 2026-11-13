@@ -32,6 +32,8 @@ camera sees the same ones. A crown flowering or fruiting today is its variant's 
 replayed draws, plus the species' flower cards and fruit. Plain bushes are built exactly as
 before.
 
+Berries hang in clusters (`FruitRow.cluster`: sea buckthorn packed along the twig, haws, lentisk, salal, calafate, myrtle, naupaka), each berry an 8-triangle octahedron at its real size, on the mound's surface (0.36 m out from the twig tips: the leaves reach ~0.3 m; at 0.08 m every berry was hidden).
+
 Bushes stand 6 m and more from the camera, nearer than trees. A 1 cm berry at 10 m is about
 1 px: berries read as a tint on the twigs where they're packed (sea buckthorn, lentisk, haws).
 Hips, sloes and plums read as dots; bunches, banksia spikes and flower cards read as shapes.
