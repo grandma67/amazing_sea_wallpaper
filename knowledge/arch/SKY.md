@@ -44,6 +44,34 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   env-cube passes. `stormEffects.ts`: rain shafts, lightning flash (fixed scene radiance
   `FLASH_RADIANCE`: invisible by day, a glow by blue hour), lens rain, rainbows. Bolts strike
   3–9 km out, ribbons widened across each segment toward the camera, forks head down.
+- **The shelf cloud** (`shelfCloud.ts`, plans/SHELF_VOLUMETRIC.md; 0.174–0.177): drawn by takram's
+  clouds, not a mesh. On shelf days `createClouds` appends one layer (index `formations.length`,
+  a free texture channel; shelf days have at most 3 layers) whose density is `shelfDensity`: a
+  wedge in a frame along the gust front (lip, receding face with local tiers and striations,
+  rising underside, top 300 m into the Cb's base), at each sample's exact world position. The Cb
+  is filled over it. The GLSL is written from `SHELF_SHAPE` with the TS mirror's steps;
+  `params.debug.shelf: {tiers: false, …}` zeroes a term on both sides; `lipElevationAhead`
+  predicts where the lip shows (`scripts/edges.mjs` reads it off a `probeLine`). Placement:
+  `skyEvents.ts` `placeShelf` keeps rain and bolts in its direction behind the lip.
+- **takram's clouds, from the inside** (`three-clouds` 0.7.6, `src/shaders/clouds.glsl`,
+  `clouds.frag`; found building the shelf, each cost a round):
+  - `localWeather`, `weather.density`, `heightFraction` and `shadowLayerMask` are vec4s indexed
+    by **layer** (`'xyzw'[i]`); a layer's texture channel only picks the colour it reads.
+  - `sampleWeather` remaps `localWeather` by `coverage` (`factor = 1 − coverage × heightScale`):
+    a value set there is thinned on days under full cover. A density meant as is goes into
+    `weather.density` just before `return` (as the shelf's); a "fill the deck here" goes into
+    `localWeather` (as `stormCells`).
+  - `sampleMedia` doubles the density before the detail noise (`remapClamped(density * 2.0, …)`):
+    an edge shows where a soft density is ~0.25, not 0.5 (`SHELF_VISIBLE_DENSITY`).
+  - Sky light on a sample is `skyIrradiance × (0.5 + 0.5 × heightFraction)` of **its own layer**:
+    a thin layer sitting under a deep one is lit far brighter than that deck's base (the shelf
+    took the Cb's height fraction to fix it, 0.176).
+  - Every `sampleWeather` call follows `vec2 uv = getGlobeUv(position);` (`clouds.frag` ×2,
+    `shadow.frag` ×1), with ECEF `position`; `ecefToWorldMatrix` and `altitudeCorrection` are
+    declared before `clouds.glsl` (`parameters.glsl`). A patch can read the sample's world
+    position exactly instead of inverting the uv.
+  - The cube-sphere uv has seams on cube edges, and our scenes sit at longitude 0, so latitude
+    ±45° lies on one: a linear uv → metres map across it went ~90° wrong (as seen from the camera).
 - **Sky-shader features** (patched into takram's sky: functions before `getSkyRadiance(`):
   `eclipse.ts`, `contrails.ts`, `noctilucent.ts`.
 - **Moon and eclipses:** `celestial.ts`: phase law (Allen's magnitude fit: half moon ~1/10 of

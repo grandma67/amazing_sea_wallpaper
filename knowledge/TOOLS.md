@@ -43,6 +43,9 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Does the CPU terrain (camera height, props, `p.view`, `p.pools`) match the drawn terrain | `parity.mjs` (after any height or film term edit) | [tools/RENDER.md](tools/RENDER.md) |
 | A terrain shader term's value (h, shore coords, masks, rock profile) at a pixel or world point | `params.debug.terrainProbe` (not a temporary shader edit) | [tools/DEBUG.md](tools/DEBUG.md) |
 | Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |
+| Where an edge is along a probe line (a lip, a ridge), how sharp in px, the levels each side; mean brightness over ranges ("face vs deck") | `edges.mjs FILE.json --mean A:B,C:D` | [tools/RENDER.md](tools/RENDER.md) |
+| Rows or columns of a photo (no probe there): mean RGB, relative brightness | `rows.mjs IMAGE --rows …` | [tools/RENDER.md](tools/RENDER.md) |
+| Which detail of the shelf cloud causes a look; where its lip should show (CPU) | `params.debug.shelf: {tiers: false, …}`; `src.shelfCloud.lipElevationAhead(p)` (`params.mjs --rendered`) | [tools/DEBUG.md](tools/DEBUG.md), [arch/SKY.md](arch/SKY.md) |
 | Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
 | A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded |

@@ -561,6 +561,14 @@ function checkDebug(value: unknown, path: string): void {
     probeHalf: (v, p) => {
       if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 20) fail(p, 'must be an integer 0–20')
     },
+    shelf: (v, p) => {
+      const terms = ['bow', 'wobble', 'scallops', 'lipVary', 'tiers', 'stria']
+      if (v === null || typeof v !== 'object' || Array.isArray(v)) fail(p, `must be {term: false}, terms: ${terms.join(', ')}`)
+      for (const [k, x] of Object.entries(v as Record<string, unknown>)) {
+        if (!terms.includes(k)) fail(`${p}.${k}`, `is not a shelf term: ${terms.join(', ')}`)
+        if (typeof x !== 'boolean') fail(`${p}.${k}`, 'must be true or false')
+      }
+    },
     probeLine: (v, path) => {
       const lines = Array.isArray(v) ? v : [v]
       if (lines.length === 0 || lines.length > 12) fail(path, 'must be a line or a list of 1–12')

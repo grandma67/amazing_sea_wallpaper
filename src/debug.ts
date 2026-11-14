@@ -26,6 +26,10 @@ export interface DebugParams {
   markers?: string[]
   /** Passes to switch off (false), to find which one causes an effect. */
   passes?: Partial<Record<DebugPass, boolean>>
+  /** The shelf cloud's detail terms to switch off (false): bow, wobble,
+   * scallops, lipVary, tiers, stria (shelfCloud.ts SHELF_TERMS). On the CPU
+   * pass the same to shelfShapeWith. */
+  shelf?: Partial<Record<'bow' | 'wobble' | 'scallops' | 'lipVary' | 'tiers' | 'stria', boolean>>
   /** Fixed exposure instead of the one metered from the sky and weather
    * (diff.mjs --keep-exposure). */
   exposure?: number

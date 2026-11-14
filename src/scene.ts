@@ -94,7 +94,7 @@ import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
-import { shelfFrame, type ShelfSky } from './shelfCloud'
+import { shelfFrame, shelfShapeWith, type ShelfSky } from './shelfCloud'
 import { cloudBase } from './cloudTypes'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
 import { dustSkylight, dustTransmittance, reflectionExtinction } from './seaHaze'
@@ -663,7 +663,7 @@ export async function renderScene(
   const shelfCloud = params.storm?.shelf
   const shelf: ShelfSky | null =
     shelfCloud != null && pass('shelfVolume')
-      ? { frame: shelfFrame(shelfCloud, camera.position), shelf: shelfCloud, base: cloudBase(weather.formations, 'cumulonimbus') }
+      ? { frame: shelfFrame(shelfCloud, camera.position), shelf: shelfCloud, base: cloudBase(weather.formations, 'cumulonimbus'), shape: shelfShapeWith(params.debug?.shelf) }
       : null
   const clouds =
     cloudAssets != null

@@ -1,6 +1,7 @@
 import { Uniform, Vector2, type Vector3, Vector4 } from 'three'
 import type { CloudsEffect } from '@takram/three-clouds'
 
+import { cloudBase, type CloudGenus } from './cloudTypes'
 import { dirFromAzEl } from './params'
 import type { ShelfCloudParams } from './skyEvents'
 import { hashCell, hashGlsl, seedInt } from './skyMirror'
@@ -90,6 +91,28 @@ export const SHELF_SHAPE = {
   // each detail off). takram's detail noise tears the underside instead.
 } as const
 
+export type ShelfShape = { readonly [K in keyof typeof SHELF_SHAPE]: number }
+
+/** The shape's detail terms, each switchable off for debugging
+ * (`params.debug.shelf: { tiers: false }`): the term's amplitude goes to 0
+ * on the CPU and in the GLSL alike, no shader edit. */
+export const SHELF_TERMS = {
+  bow: ['bowM'],
+  wobble: ['wobbleM'],
+  scallops: ['scallopM'],
+  lipVary: ['lipVaryLarge', 'lipVarySmall'],
+  tiers: ['tierGrooveM', 'tierBulgeM'],
+  stria: ['striaM']
+} as const satisfies Record<string, readonly (keyof typeof SHELF_SHAPE)[]>
+export type ShelfTerm = keyof typeof SHELF_TERMS
+
+/** SHELF_SHAPE with the given terms off. */
+export function shelfShapeWith(off: Partial<Record<ShelfTerm, boolean>> | undefined): ShelfShape {
+  const shape: Record<string, number> = { ...SHELF_SHAPE }
+  for (const [term, keys] of Object.entries(SHELF_TERMS)) if (off?.[term as ShelfTerm] === false) for (const k of keys) shape[k] = 0
+  return shape as ShelfShape
+}
+
 /** Noise streams (added to the shelf's integer seed): one per use. */
 const NOISE = { wobble: 0, lipLarge: 1, lipSmall: 2, scallop: 3, stria: 4, tierDrift: 10, tierFade: 20 } as const
 
@@ -128,8 +151,7 @@ export function valueNoise1(seed: number, x: number): number {
 /** How far the lip line stands from the frame's origin line toward the
  * storm (m), `s` m along the front: bowed toward the camera in the middle,
  * wandering in large and small scallops. */
-export function lipLine(shelf: ShelfCloudParams, s: number): number {
-  const S = SHELF_SHAPE
+export function lipLine(shelf: ShelfCloudParams, s: number, S: ShelfShape = SHELF_SHAPE): number {
   const seed = seedInt(shelf.seed)
   const bow = -S.bowM * (1 - (s / S.halfLengthM) ** 2)
   const wobble = S.wobbleM * (valueNoise1(seed + NOISE.wobble, s / S.wobbleScaleM) - 0.5)
@@ -138,8 +160,7 @@ export function lipLine(shelf: ShelfCloudParams, s: number): number {
 }
 
 /** The lip's height `s` m along the front (m). */
-export function lipHeight(shelf: ShelfCloudParams, s: number): number {
-  const S = SHELF_SHAPE
+export function lipHeight(shelf: ShelfCloudParams, s: number, S: ShelfShape = SHELF_SHAPE): number {
   const seed = seedInt(shelf.seed)
   const large = S.lipVaryLarge * (valueNoise1(seed + NOISE.lipLarge, s / S.lipVaryLargeScaleM) - 0.5)
   const small = S.lipVarySmall * (valueNoise1(seed + NOISE.lipSmall, s / S.lipVarySmallScaleM) - 0.5)
@@ -156,8 +177,15 @@ export function shelfTop(base: number): number {
  * 1 inside the wedge, falling to 0 over its soft edges, 0 off its ends and
  * past its back (where the storm's deck takes over).
  */
-export function shelfDensity(frame: ShelfFrame, shelf: ShelfCloudParams, base: number, x: number, z: number, heightM: number): number {
-  const S = SHELF_SHAPE
+export function shelfDensity(
+  frame: ShelfFrame,
+  shelf: ShelfCloudParams,
+  base: number,
+  x: number,
+  z: number,
+  heightM: number,
+  S: ShelfShape = SHELF_SHAPE
+): number {
   const dx = x - frame.origin.x
   const dz = z - frame.origin.y
   const s = dx * frame.across.x + dz * frame.across.y
@@ -166,8 +194,8 @@ export function shelfDensity(frame: ShelfFrame, shelf: ShelfCloudParams, base: n
   if (ends <= 0) return 0
   const seed = seedInt(shelf.seed)
   // Distance behind the lip line.
-  const back = b - lipLine(shelf, s)
-  const lip = lipHeight(shelf, s)
+  const back = b - lipLine(shelf, s, S)
+  const lip = lipHeight(shelf, s, S)
   const top = shelfTop(base)
   const rise = top - lip
   // Face: how far back the face stands at this height, set back in tiers
@@ -195,6 +223,35 @@ export function shelfDensity(frame: ShelfFrame, shelf: ShelfCloudParams, base: n
   )
 }
 
+/**
+ * Where the lip shows as seen from a camera: the lowest elevation (deg) at
+ * azimuth `headingDeg + azDeg` whose ray meets the shelf at the density
+ * takram shows (SHELF_VISIBLE_DENSITY), within 20 km; null if none below
+ * 25°. Earth's curvature included. Compare with the render's probeLine step
+ * (`scripts/edges.mjs`): they agreed within 3 px at 1080p in phase 4.
+ *   params.mjs --rendered DATE --each 'p => src.shelfCloud.lipElevationAhead(p)'
+ */
+export function lipElevationAhead(
+  p: { storm: { shelf: ShelfCloudParams | null } | null; weather: { formations: readonly CloudGenus[] }; camera: { headingDeg: number }; ctx?: { camera: { position: Vector3 } } },
+  azDeg = 0,
+  S: ShelfShape = SHELF_SHAPE
+): number | null {
+  const shelf = p.storm?.shelf
+  const cam = p.ctx?.camera.position
+  if (shelf == null || cam == null) return null
+  const frame = shelfFrame(shelf, cam)
+  const base = cloudBase(p.weather.formations, 'cumulonimbus')
+  const [dx, , dz] = dirFromAzEl(p.camera.headingDeg + azDeg, 0)
+  for (let e = 0; e < 25; e += 0.01) {
+    const t = Math.tan((e * Math.PI) / 180)
+    for (let d = 200; d < 20_000; d += 10) {
+      const h = cam.y + d * t - (d * d) / 12_742_000
+      if (shelfDensity(frame, shelf, base, cam.x + dx * d, cam.z + dz * d, h, S) > SHELF_VISIBLE_DENSITY) return Math.round(e * 100) / 100
+    }
+  }
+  return null
+}
+
 // --- The shader patch ------------------------------------------------------
 
 /** What the clouds need to draw the shelf: its frame (fixed to the main
@@ -204,6 +261,8 @@ export interface ShelfSky {
   frame: ShelfFrame
   shelf: ShelfCloudParams
   base: number
+  /** SHELF_SHAPE, or with terms off (`params.debug.shelf`). */
+  shape?: ShelfShape
 }
 
 /** How far in front of the lip the storm's deck is filled (m): the deck
@@ -237,8 +296,7 @@ const f1 = (x: number): string => x.toFixed(1)
 
 /** shelfDensity in GLSL (and the deck's band over it), from SHELF_SHAPE:
  * the same steps as the TS, line for line. */
-export function shelfGlsl(): string {
-  const S = SHELF_SHAPE
+export function shelfGlsl(S: ShelfShape = SHELF_SHAPE): string {
   return /* glsl */ `
 ${hashGlsl('shelf')}
 // The sample's position (takram's ECEF), stored where each sampleWeather
@@ -318,7 +376,8 @@ export function patchShelfCloud(clouds: CloudsEffect, sky: ShelfSky, index: numb
   const layer = 'xyzw'[index]
   const cb = 'xyzw'[cbIndex]
   const { frame, shelf } = sky
-  const run = SHELF_SHAPE.faceRunM + SHELF_SHAPE.faceRunPerTierM * shelf.tiers
+  const S = sky.shape ?? SHELF_SHAPE
+  const run = S.faceRunM + S.faceRunPerTierM * shelf.tiers
   for (const material of [clouds.cloudsPass.currentMaterial, clouds.shadowPass.currentMaterial]) {
     const source = material.fragmentShader
     const captures = source.split(CAPTURE).length - 1
@@ -326,7 +385,7 @@ export function patchShelfCloud(clouds: CloudsEffect, sky: ShelfSky, index: numb
       throw new Error('patchShelfCloud: the clouds shader has changed; update the patch')
     material.fragmentShader = source
       .replaceAll(CAPTURE, `${CAPTURE}\n    shelfPosition = position;`)
-      .replace('WeatherSample sampleWeather(', `${shelfGlsl()}\nWeatherSample sampleWeather(`)
+      .replace('WeatherSample sampleWeather(', `${shelfGlsl(S)}\nWeatherSample sampleWeather(`)
       .replace(SAMPLE_END, `${SAMPLE_END}  vec2 shelfHere = shelfSample(height);\n  localWeather.${cb} = max(localWeather.${cb}, shelfHere.y);\n`)
       .replace(
         RETURN,

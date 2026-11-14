@@ -1,7 +1,7 @@
 import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { lipHeight, lipLine, SHELF_SHAPE, shelfDensity, shelfFrame, shelfTop } from '../src/shelfCloud'
+import { lipHeight, lipLine, SHELF_SHAPE, SHELF_TERMS, shelfDensity, shelfFrame, shelfGlsl, shelfShapeWith, shelfTop } from '../src/shelfCloud'
 import type { ShelfCloudParams } from '../src/skyEvents'
 import { allParams, scene } from './days'
 
@@ -99,5 +99,21 @@ describe('shelf cloud density', () => {
       `${String(h).padStart(5)} m ` + backs.map(b => ' .:-=+*#%@'[Math.round(shelfDensity(frame, shelf, BASE, ...pointOn(shelf, 0, b), h) * 9)]).join('  ')
     )
     console.log(`shelf lip ${Math.round(shelf.lipHeightM)} m, depth ${Math.round(shelf.depthM)} m, tiers ${shelf.tiers}; back (m): ${backs.join(' ')}\n${rows.join('\n')}`)
+  })
+
+  it('switches each detail term off on the CPU and in the GLSL alike (params.debug.shelf)', () => {
+    expect(shelfShapeWith(undefined)).toEqual(SHELF_SHAPE)
+    for (const [term, keys] of Object.entries(SHELF_TERMS)) {
+      const shape = shelfShapeWith({ [term]: false })
+      for (const k of keys) {
+        expect(shape[k]).toBe(0)
+        expect(SHELF_SHAPE[k]).not.toBe(0)
+      }
+      // Nothing else changes.
+      for (const k of Object.keys(SHELF_SHAPE) as (keyof typeof SHELF_SHAPE)[]) if (!(keys as readonly string[]).includes(k)) expect(shape[k]).toBe(SHELF_SHAPE[k])
+    }
+    // The GLSL is written from the shape: the striations' amplitude goes to 0.0.
+    expect(shelfGlsl(shelfShapeWith({ stria: false }))).toContain('faceBack += 0.0 * sin(')
+    expect(shelfGlsl()).toContain(`faceBack += ${SHELF_SHAPE.striaM.toFixed(1)} * sin(`)
   })
 })

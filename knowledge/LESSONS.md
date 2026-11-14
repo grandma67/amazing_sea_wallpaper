@@ -43,6 +43,18 @@ tool gotchas: TOOLS.md.
 
 ## Debugging approach
 
+- **Reflection on the shelf cloud (0.172–0.177, ~12 render batches).** Three rounds went into
+  improving a mesh before asking why a cloud was a mesh at all: ask what a feature *is* before
+  tuning it (a cloud shape belongs in the volumetric clouds; see "takram sky, clouds, post").
+  Four takram internals each cost a round, now in arch/SKY.md "takram's clouds, from the inside".
+  Process slips: a plan rule written before its distribution was counted (the lip from the
+  nearest rain clamped 86% of shelves: one `params.mjs --stats` while planning shows that); an
+  artifact chased by guessing twice (tiers) before switching details off one by one (it was the
+  scud), so **switch terms off one at a time before the second guess** (`params.debug.shelf`,
+  `passes`); a commit made with a failing test (the shell didn't stop on `npm test`: chain
+  `npm test && git commit`); per-sample noise added without early exits (renders went to 11 s).
+  New tools: `scripts/edges.mjs` (edges and means on a `probeLine`), `scripts/rows.mjs` (rows of
+  a photo), `params.debug.shelf`, `src.shelfCloud.lipElevationAhead`.
 - **Reflection on sea ice (0.114–0.116, about 14 render batches against ~9 allowed).** Most of it was process, not missing knowledge: required docs grepped rather than read, a nearby mesh reused against the photos just viewed, real days rendered only after several rounds on specs, a guess at a cause instead of finding every term behind it, and the scope raised after building rather than when the day count showed it. What was missing is now tools: `snapshot --where --sample`, `--seeds`, `mesh --material --scale --sun`, `pdftotext`, and the checklist in CLAUDE.md.
 - Before investigating a look, grep ARCHITECTURE.md "Known issues" for the symptom ("dark",
   "zig-zag", "flat blue"): phase 9 spent two renders proving near-black land on broken-cloud days
@@ -426,6 +438,16 @@ tool gotchas: TOOLS.md.
   `envScene`'s; make the patch throw if it stops matching. Units km (`ATMOSPHERE.bottom_radius`),
   positions ECEF from earth's centre. Drawn under volumetric clouds and behind geometry for free.
   The clouds' weather-map lookup is patched the same way (`cloudArrangement.ts`).
+- A cloud is drawn by the volumetric clouds, not a mesh: a mesh is lit by the whole sky dome,
+  has hard edges, isn't hazed like the deck and doesn't hide what's behind it as cloud does (the
+  shelf mesh, 0.27–0.172: a pale plank; three rounds tuning it). A shape that a flat layer can't
+  hold goes into a `sampleWeather` patch (`stormCells.ts`, `shelfCloud.ts`).
+- A CPU mirror of a cloud's density checks its **shape**, not its light: the shelf's outline was
+  smooth on the CPU while the render showed humps (shading of a detail term). Find those by
+  switching terms off (`params.debug.shelf`), not from the mirror.
+- Measure a cloud's brightness against what's around it, not one neighbour: the gate passed the
+  shelf face at 1.4× the deck above, but against the sky below it read as sky (a bolt "from the
+  sky"). Probe above, on and below (`edges.mjs --mean`).
 - Bounding a best-of-N placement by physics (the moon to the ecliptic) can starve its framing
   search: count the framing window with `params.mjs --ref HEAD --stats` before rendering (the
   night moon fell from 97% to 62% in 4–18°). Free a choice the scene doesn't pin instead (the

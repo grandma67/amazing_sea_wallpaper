@@ -225,6 +225,31 @@ node scripts/mesh.mjs --out $SP/mesh --material 'props/seaIce#rubbleMaterial(0.5
 
 `--focus head` frames side, front and 3/4 on the front 15% of the mesh (animals face +x): eyes, nostrils, mouths, bills. `--focus top` frames the top 30% (a tree's crown), `--focus box:X0,Y0,Z0,X1,Y1,Z1` the vertices in that box (m, the mesh's frame): a whole tree's panels are too far out for 12 cm cones, and the first look at the crown top showed every cone hidden inside the needle brushes (0.169 review). A tree with a fruit row on it: `props/fruitPreview#fruitTree($rng, "spruce-cones", "2025-10-20")` (a date: that day's stages; none: the row's peak). Any plant with a flower row, a fruit row or both on every crown, bushes' species too, at a place where they grow: `props/fruitPreview#plantLook($rng, "blackthorn", "blackthorn")` (`null` for none; a third argument, a date). `--ref HEAD` (or any commit) renders each call at that commit too, through today's preview page (a worktree on port 5178): `NAME-N.ref.jpg` and `NAME-N.compare.jpg` (ref above, now below), no stashing; a `--material` the ref doesn't have fails there, so leave it out for old commits. `--material` is a call like the mesh's; its `onBeforeCompile` runs, so world-position shaders show. The preview has no instancing and none of the scene's shade, so light is neutral: use it for shape and surface, a render for colour against the scene. On sea ice it showed a noise lattice and too-strong bumps that no scene render had.
 
+## `scripts/edges.mjs`: where is the edge, how sharp?
+
+Reads the `debug.probeLine` that `snapshot.mjs` saved and lists every step in luminance along it
+(medians each side over `--window`°, so stars and rain streaks don't count): where it is (50%
+crossing), 10–90% width in pixels, the levels each side. `--mean A:B,C:D` gives the mean cd/m²
+over ranges and each one's ratio to the first.
+
+```sh
+node scripts/snapshot.mjs --out $SP/p --scene '{"name":"lip","date":"2016-06-21","params":{"debug":{"probeLine":[{"az":0,"el":[3,12],"step":0.02}]}}}'
+node scripts/edges.mjs $SP/p/lip.json --mean 6:8,10.5:12
+#   edge at el 4.47°: 884 → 1.16e+3 cd/m² (+31%), 10–90% 2.0 px
+#   mean 6–8°: 1.11e+3, 10.5–12°: 1.13e+3 (×1.02)
+node scripts/params.mjs --rendered 2016-06-21 --each 'p => src.shelfCloud.lipElevationAhead(p)'   # 4.62
+```
+
+A CPU prediction against the render's edge is the parity check for a sky shader with a TS mirror
+(within a few px). Probe above, on and below a feature: a brightness that matches one neighbour can
+still read wrong against the other (LESSONS.md).
+
+## `scripts/rows.mjs`: rows of a photo
+
+Mean sRGB and a relative luminance of image rows or columns (`--rows 100,200` or `0:1080:40`,
+`--from`/`--to` to limit the span), for reference photos where there's no probe; macOS (`sips`).
+For a render's real luminance use the probes.
+
 ## `scripts/contact-sheet.mjs`: look at results cheaply
 
 - `node scripts/contact-sheet.mjs --dir $SP/feat`: one image read, not eight.
