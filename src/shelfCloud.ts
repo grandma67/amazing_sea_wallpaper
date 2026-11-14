@@ -243,7 +243,11 @@ export function patchShelfCloud(clouds: CloudsEffect, sky: ShelfSky, index: numb
       .replace(SAMPLE_END, `${SAMPLE_END}  vec2 shelfHere = shelfSample(height);\n  localWeather.${cb} = max(localWeather.${cb}, shelfHere.y);\n`)
       .replace(
         RETURN,
-        `\n  weather.density.${layer} = shelfHere.x;\n  #ifdef SHADOW\n  weather.density.${layer} *= shadowLayerMask.${layer};\n  #endif${RETURN}`
+        // The shelf is part of the storm's base: it takes the storm layer's
+        // height fraction, which takram's sky light reads (skyGradient = 0.5
+        // + 0.5 × fraction). Its own ~900 m layer put the face at 0.3–0.9:
+        // 1.4× the deck's sky light, a pale band that read as sky.
+        `\n  weather.density.${layer} = shelfHere.x;\n  weather.heightFraction.${layer} = weather.heightFraction.${cb};\n  #ifdef SHADOW\n  weather.density.${layer} *= shadowLayerMask.${layer};\n  #endif${RETURN}`
       )
     material.uniforms.shelfOrigin = new Uniform(frame.origin.clone())
     material.uniforms.shelfAcross = new Uniform(frame.across.clone())

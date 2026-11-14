@@ -205,14 +205,16 @@ marching `shelfDensity` along the view's centre line from `p.ctx.camera`, `param
 | Cost, the five days vs `f105fe3` (`bench.mjs --runs 3`) | +3% in all (−4% to +10% a day, noisy); days without a shelf are untouched (no layer, no patch; identity diff in phase 2) | ≤ +10% ✅ |
 | Lip width, 10–90%, 2016-06-21 | 3 px (5.18° → 5.30°, 25.7 px/°); the mesh: 1 px | ≤ ~6 px ✅ |
 | Lip elevation, render vs TS | 5.21° vs 5.36°: 4 px | ~3 px: just over, accepted |
-| Face vs the deck above it, backlit (2016-06-21) | 1.39–1.48 vs 1.02–1.04 × 10³ cd/m²: 1.4×; the mesh: 0.65× | within ±25% ❌: phase 4 |
-| Lip contrast, midday telephoto (2005-01-28) | face ~1.93 vs ~1.9 × 10³ cd/m² below the lip: almost none | (not a target; found here): phase 4 |
+| Face vs the deck above it, backlit (2016-06-21) | first 1.4× (1.39–1.48 vs 1.02–1.04 × 10³ cd/m²); **1.1× after 0.176** (1.08–1.20 vs 1.02) | within ±25% ✅ |
+| Lip contrast, midday telephoto (2005-01-28) | first none (face ~1.93 vs ~1.9 × 10³ cd/m² below the lip); **after 0.176 the face is darker**, 1.5–1.65 vs 1.9 | ✅ |
 
 **Found on the way:** takram doubles the density before its detail noise
 (`sampleMedia`: `remapClamped(density * 2.0, …)`), so the edge shows where `shelfDensity` is
 ~0.25 (`SHELF_VISIBLE_DENSITY`), not 0.5. With 40/60 m edges that put the lip 0.7° (18 px)
 below the TS's and 6 px soft; the edges are now 20/25 m. Predictions from the TS must use
 `SHELF_VISIBLE_DENSITY`.
+
+**Brightness (0.176):** takram's sky light on a sample is `skyIrradiance × (0.5 + 0.5 × the sample's height fraction in its layer)`. The Cb's base sits at ~0 of its 9.5 km; the shelf's face sat at 0.3–0.9 of its own ~900 m layer, so it got ~1.4× the sky light and read as a pale band, sky rather than cloud (a bolt seemed to fall from the sky; user, 2016-06-21). The patch now gives the shelf the Cb layer's height fraction: it's lit as the storm's base it belongs to.
 
 The steps as planned:
 - **Cost:** `bench.mjs --ref HEAD` on the five days, plus its default dates: **≤ +10%** render
