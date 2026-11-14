@@ -54,6 +54,9 @@ export class FrameMeterPass extends Pass {
   /** The last reading: exposed median before the boost. */
   medianExposed = 0
   boost = 1
+  /** A boost metered earlier and kept (a storm night: metered with the
+   * lightning off, lightning.ts); the median is still read. */
+  held: number | null = null
   private readonly small = new WebGLRenderTarget(METER_W, METER_H, { type: FloatType, depthBuffer: false })
   private readonly reduce = new ShaderMaterial({
     vertexShader,
@@ -108,7 +111,7 @@ export class FrameMeterPass extends Pass {
     const lum = new Float32Array(METER_W * METER_H)
     for (let i = 0; i < lum.length; i++) lum[i] = this.pixels[i * 4]
     this.medianExposed = median(lum)
-    this.boost = this.boostFor(this.medianExposed)
+    this.boost = this.held ?? this.boostFor(this.medianExposed)
 
     this.scale.uniforms.map.value = inputBuffer.texture
     this.scale.uniforms.boost.value = this.boost

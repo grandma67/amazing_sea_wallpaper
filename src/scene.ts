@@ -45,6 +45,7 @@ import {
   Uniform,
   Vector3,
   Vector4,
+  PointLight,
   WebGLCubeRenderTarget,
   WebGLRenderer,
   WebGLRenderTarget
@@ -98,7 +99,7 @@ import { rollFrame, rollShapeWith } from './rollCloud'
 import { shelfFrame, shelfShapeWith, type ShelfSky } from './shelfCloud'
 import { cloudBase } from './cloudTypes'
 import { setRainBoost, stormEffects } from './stormEffects'
-import { flashPower, flashShutter, flashSky, lightningFor, setFlashScale } from './lightning'
+import { flashColour, flashGroundLights, flashPower, flashShutter, flashSky, lightningFor, setFlashScale } from './lightning'
 import { dustSkylight, dustTransmittance, reflectionExtinction } from './seaHaze'
 import { shadeProps } from './propShade'
 import { bindCloudShadow, bindLandShadow, bindShadow, FINE_SHADOW_SIZE, fineShadowScale, fitFineShadow, landCloudUniforms, renderLandShadow } from './shadow'
@@ -649,10 +650,29 @@ export async function renderScene(
   const ambientCd = 0.18 / (exposure * flashWbLum) / renderPerCd
   const flashShutterS = flashShutter(ambientCd)
   const flashPowerLm = flashPower(flashShutterS)
+  const flashes = params.storm != null ? lightningFor(params, camera.position) : []
   const flashLit =
     flashOn && cloudAssets != null && params.storm != null
-      ? flashSky(lightningFor(params, camera.position), cloudBase(weather.formations, 'cumulonimbus'), flashPowerLm, renderPerCd, params.debug?.flash?.scale ?? 1, params.debug?.flash?.lights)
+      ? flashSky(flashes, cloudBase(weather.formations, 'cumulonimbus'), flashPowerLm, renderPerCd, params.debug?.flash?.scale ?? 1, params.debug?.flash?.lights)
       : null
+  // The lit cloud base over each bolt lights the land (the terrain shader's own
+  // term, point lights for the props); the sea mirrors the cloud itself.
+  const groundLights = flashOn && pass('flashGround') ? flashGroundLights(flashes, flashPowerLm * (params.debug?.flash?.scale ?? 1), renderPerCd) : []
+  const groundColour = flashColour()
+  tu.flashGroundCount.value = groundLights.length
+  ;(tu.flashGroundColour.value as Vector3).set(...groundColour)
+  const flashPoints = groundLights.map(g => {
+    const light = new PointLight(new Color(...groundColour), g.intensity, 0, 2)
+    light.position.copy(g.position)
+    scene.add(light)
+    return light
+  })
+  const setGroundScale = (factor: number): void =>
+    groundLights.forEach((g, i) => {
+      ;(tu.flashGround.value as Vector4[])[i].set(g.position.x, g.position.y, g.position.z, g.intensity * factor)
+      flashPoints[i].intensity = g.intensity * factor
+    })
+  setGroundScale(1)
   if (flashLit != null && params.debug?.flash?.constant != null) flashLit.constant = params.debug.flash.constant * renderPerCd
 
   // --- Post-processing ------------------------------------------------------
@@ -1047,7 +1067,10 @@ export async function renderScene(
   // power (drawn before the look).
   const flashMaterial = flashLit != null && clouds != null ? clouds.cloudsPass.currentMaterial : null
   const flashAfterLook = longShutter && flashMaterial != null
-  if (flashAfterLook) setFlashScale(flashMaterial, flashLit!, 0)
+  if (flashAfterLook) {
+    setFlashScale(flashMaterial, flashLit!, 0)
+    setGroundScale(0)
+  }
   let flashBoostPower = flashPowerLm
   let look = 0
   let lookShutter = 0
@@ -1086,8 +1109,11 @@ export async function renderScene(
       lookShutter = shutterOf(meter.medianExposed, meter.boost)
       look = longExposureLook(lookShutter)
       if (flashAfterLook) {
+        // The photographer metered the ambient: keep that boost with the flash in.
+        meter.held = meter.boost
         flashBoostPower = flashPower(flashShutter(ambientCd / meter.boost))
         setFlashScale(flashMaterial, flashLit!, flashBoostPower / flashPowerLm)
+        setGroundScale(flashBoostPower / flashPowerLm)
       }
       if (look > 0 || flashAfterLook) {
         // Drawn again from the start: the rain's floor as the boosted frame shows it.

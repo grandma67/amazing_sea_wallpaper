@@ -552,6 +552,9 @@ tool gotchas: TOOLS.md.
 - Depths for a light under a cloud's face count from the drawn cloud's base, not from where the
   bolt mesh starts (up to 200 m inside it): the low lights at "exit + 150 m" sat 340 m deep and lit
   a patch 4× too faint.
+- The frame meter reads its last frame as well as the first look: a boost meant to be metered
+  without some light (lightning) has to be held (`FrameMeterPass.held`), or the last frame's
+  reading, with the light in, wins and the frame comes out darker the brighter the flash.
 - `new Vector4()` is (0, 0, 0, **1**): uniform-array padding gets w = 1. Pad with explicit zeros.
 - A flash in a still is energy caught ÷ shutter against the ambient. With the camera metered to the
   ambient, glow ÷ ambient depends on how much of the flash the shutter holds, not on the ambient

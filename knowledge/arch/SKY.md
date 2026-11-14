@@ -65,6 +65,11 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
     mirrors it);
   - measured on 2026-11-02 (bolt 3.2 km): +37% at the exit by day after 17 km visibility's haze
     (0.49 over 3.1 km); the mirror agrees within 10%;
+  - **the land** (phase 5, `passes.flashGround`): half the light leaves through the base, a
+    Lambertian lamp at each exit (`flashGroundLights`, I = P/2/π): a term in the terrain shader and a
+    `PointLight` per bolt for the props, no shadows; the sea mirrors the cloud. Storm nights keep the
+    boost metered with the flash off (`FrameMeterPass.held`), so the flash adds to the ambient
+    exposure as in a photo; ~3× starlight on a beach 5 km from a bolt, invisible by day;
   - `passes.flashLight: false`: no flash light (0.185 kept the old screen-space glow under it;
     removed in 0.186 with the ocean's own glow term).
 - **The shelf cloud** (`shelfCloud.ts`, plans/SHELF_VOLUMETRIC.md; 0.174–0.177): drawn by takram's

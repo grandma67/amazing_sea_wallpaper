@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { frameBoost, frameBoostRule, longExposureLook, median, shutterSeconds } from '../src/frameMeter'
+import { frameBoost, frameBoostRule, FrameMeterPass, longExposureLook, median, shutterSeconds } from '../src/frameMeter'
 import { allParams, expectEvery, scenes } from './days'
 
 describe('median', () => {
@@ -24,6 +24,14 @@ describe('frameBoost', () => {
   it('stops at its most, even on a black frame', () => {
     expect(frameBoost(1e-6, rule)).toBe(64)
     expect(frameBoost(0, rule)).toBe(64)
+  })
+})
+
+describe('FrameMeterPass', () => {
+  it('starts with no held boost (a storm night holds the one metered without lightning)', () => {
+    const pass = new FrameMeterPass(() => 2)
+    expect(pass.held).toBeNull()
+    pass.dispose()
   })
 })
 

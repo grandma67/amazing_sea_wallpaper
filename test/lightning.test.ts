@@ -2,7 +2,7 @@ import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import { CLOUD_GENERA, cloudBase } from '../src/cloudTypes'
-import { CHARGE_HEIGHT_M, chargeHeightM, LIGHTS_PER_FLASH, LOW_LIGHTS, MAX_FLASHES, exitLift, FLASH, flashGlowCd, flashPower, flashShutter, flashSky, lightningFor, ORIGIN_OFFSET_M } from '../src/lightning'
+import { CHARGE_HEIGHT_M, chargeHeightM, LIGHTS_PER_FLASH, LOW_LIGHTS, MAX_FLASHES, exitLift, FLASH, flashGlowCd, flashPower, flashShutter, flashGroundLights, flashSky, GROUND_SHARE, lightningFor, ORIGIN_OFFSET_M } from '../src/lightning'
 import type { SceneParams } from '../src/params'
 import type { Climate } from '../src/places'
 import { season, type Season } from '../src/seasons'
@@ -184,5 +184,23 @@ describe('lightning: what the clouds shader gets', () => {
     })
     expect(flashSky([], 600, 1e9, 1)).toBeNull()
     expect(flashSky(flashes, 600, 1e9, 1, 1, [5])!.lights.filter(l => l.w > 0).length).toBe(sky.count)
+  })
+})
+
+describe('lightning: the ground light', () => {
+  it('puts half the light out through the base, a Lambertian lamp at each exit', () => {
+    const p = boltDays()[0]
+    const flashes = lightningFor(p, camera)
+    const lights = flashGroundLights(flashes, 1e6, 2)
+    expect(lights.length).toBe(Math.min(flashes.length, MAX_FLASHES))
+    lights.forEach((l, i) => {
+      expect(l.position.equals(flashes[i].exit)).toBe(true)
+      // Its flux down (π I for a Lambertian source) is the share of P.
+      expect((Math.PI * l.intensity) / 2).toBeCloseTo(GROUND_SHARE * 1e6, 3)
+    })
+    // At night (P ~1.2e6 lm) a bolt 5 km off lights the beach a few times starlight (0.002 lux).
+    const lux = (GROUND_SHARE * 1.17e6) / Math.PI / (5000 ** 2 + 600 ** 2)
+    expect(lux / 0.002).toBeGreaterThan(2)
+    expect(lux / 0.002).toBeLessThan(5)
   })
 })

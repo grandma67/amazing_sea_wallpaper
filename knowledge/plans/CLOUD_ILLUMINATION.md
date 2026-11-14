@@ -1,6 +1,6 @@
 # Cloud illumination: lightning inside the cloud, storms at night, town light on cloud bases
 
-**Status: phases 1–4 done (0.183–0.187, 2026-11-15); phases 5–7 open.**
+**Status: phases 1–5 done (0.183–0.188, 2026-11-15); phases 6–7 open.**
 
 Reported on `/?date=2016-06-21` and `/?date=2026-11-02`: the lightning doesn't light the cloud,
 and nothing else lights the sky from below or inside either.
@@ -504,6 +504,21 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
    - by day, `diff.mjs` shows < 2% change (realistic: invisible);
    - `bench.mjs`.
 6. **Commit:** "Lightning lights the land and sea (phase 5)".
+
+**As built (0.188):**
+- **One light per bolt** at its exit, I = (P/2)/π (`GROUND_SHARE`). The channel's own light below
+  the base is a few % of the channel's length and is folded into it. It reaches the terrain
+  (`flashGround` uniforms) and the props (`PointLight`).
+- **No ocean term:** the sea gets its light from the reflection cube's lit cloud.
+- **Found and fixed** (it also undid phase 4's metering): the frame meter re-reads the **last**
+  frame, which has the flash in it, and that reading set the boost.
+  - With the ground light on, the frame came out darker.
+  - `FrameMeterPass.held` keeps the first look's boost (metered with the flash off).
+- **Measured:**
+  - forced starlit night storm 2026-11-02: boost ×10.7 with and without the ground light;
+    the beach lit (27.9% of the frame brighter);
+  - by day 0.14% (invisible).
+- **Bench:** +0–4%.
 
 ## Phase 6: night storms on real days
 

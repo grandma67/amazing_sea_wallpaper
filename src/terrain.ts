@@ -1071,6 +1071,11 @@ ${SKY_OPEN_GLSL}
 uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
 uniform vec3 skyIrradiance;
+// Lightning's light on the ground (lightning.ts flashGroundLights): world
+// position, intensity (render units); colour.
+uniform vec4 flashGround[3];
+uniform int flashGroundCount;
+uniform vec3 flashGroundColour;
 uniform samplerCube envMap;
 // The mirror image (reflection.ts) for the water films: 0 while the mirror
 // target itself is drawn (the terrain is in it) and with passes.wetMirror off.
@@ -1453,6 +1458,13 @@ void main() {
   // overhead hide more of it (props/skyOcclusion.ts).
   float skyOpenHere = skyOpen(vWorld);
   vec3 diffuse = albedo / PI * (sunIrradiance * NoL + skyIrradiance * skyOpenHere * (0.6 + 0.4 * N.y));
+  // Lightning: the lit cloud base over each bolt, a lamp in the sky (no shadow).
+  for (int i = 0; i < 3; i++) {
+    if (i >= flashGroundCount) break;
+    vec3 toFlash = flashGround[i].xyz - vWorld;
+    float r2 = dot(toFlash, toFlash);
+    diffuse += albedo / PI * flashGroundColour * flashGround[i].w * max(dot(N, toFlash * inversesqrt(r2)), 0.0) / r2;
+  }
   vec3 color = diffuse;
   // How much of the scene the film mirrors (phase 5's weight), for
   // debug.terrainView 'water'.
@@ -1632,6 +1644,9 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       sunDirection: { value: new Vector3(...params.sunDirection) },
       sunIrradiance: { value: new Color() },
       skyIrradiance: { value: new Color() },
+      flashGround: { value: [0, 1, 2].map(() => new Vector4(0, 0, 0, 0)) },
+      flashGroundCount: { value: 0 },
+      flashGroundColour: { value: new Vector3(1, 1, 1) },
       envMap: { value: null as Texture | null },
       // The mirror image, bound after the mirror pass (scene.ts).
       planarOn: { value: 0 },

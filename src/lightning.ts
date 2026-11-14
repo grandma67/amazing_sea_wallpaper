@@ -484,3 +484,26 @@ export function setFlashScale(material: ShaderMaterial, sky: FlashSky, factor: n
   if (lights == null) return
   sky.lights.forEach((l, i) => (lights[i].w = l.w * factor))
 }
+
+// --- The flash lights land and sea (phase 5) --------------------------------
+
+/**
+ * How the flash lights the ground: about half its light leaves the cloud
+ * through the base (the dipole's face), a lit patch round the exit that
+ * shines down like a lamp, I = (P / 2) / π along the vertical (Lambertian);
+ * the bolt's own channel below the base is a few % of the channel and is
+ * folded in. One point light per bolt at its exit, no shadow.
+ */
+export const GROUND_SHARE = 0.5
+
+/** Each bolt's light on the ground: world position and intensity in render
+ * units (cd × render units per cd/m²), the image's power `powerLm`. */
+export function flashGroundLights(flashes: Flash[], powerLm: number, renderPerCd: number): { position: Vector3; intensity: number }[] {
+  return flashes.slice(0, MAX_FLASHES).map(f => ({ position: f.exit.clone(), intensity: ((GROUND_SHARE * powerLm) / Math.PI) * renderPerCd }))
+}
+
+/** The ground light's colour (the glow's, luma 1). */
+export function flashColour(): [number, number, number] {
+  const luma = 0.2126 * FLASH.colour[0] + 0.7152 * FLASH.colour[1] + 0.0722 * FLASH.colour[2]
+  return FLASH.colour.map(c => c / luma) as [number, number, number]
+}
