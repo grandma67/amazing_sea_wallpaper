@@ -135,7 +135,9 @@ export function shelfGeometry(shelf: ShelfCloudParams, toStorm: Vector3, origin:
 
 export function createShelfCloud(ctx: PropContext): Object3D[] {
   const shelf = ctx.params.storm?.shelf
-  if (shelf == null) return []
+  // The volumetric clouds draw the shelf (shelfCloud.ts); the mesh only with
+  // passes.shelfVolume off (plans/SHELF_VOLUMETRIC.md, until phase 6).
+  if (shelf == null || ctx.params.debug?.passes?.shelfVolume !== false) return []
   const [dx, , dz] = dirFromAzEl(shelf.azimuthDeg, 0)
   const toStorm = new Vector3(dx, 0, dz)
   const origin = ctx.camera.position.clone().setY(0).addScaledVector(toStorm, shelf.distanceM)

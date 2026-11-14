@@ -52,10 +52,12 @@ export function stormLayer(formations: CloudGenus[]): number {
   return formations.findIndex(f => CLOUD_GENERA[f].genus === 'cumulonimbus')
 }
 
-const SAMPLE_END = `    weatherExponents
+/** Where the weather texture has been read in takram's sampleWeather (shelfCloud.ts patches here too). */
+export const SAMPLE_END = `    weatherExponents
   );
 `
-const RETURN = `
+/** sampleWeather's return. */
+export const RETURN = `
   return weather;
 }`
 /** Extra density in a cell's core: a storm holds several g/m³ of cloud

@@ -1,6 +1,6 @@
 # Shelf cloud in the volumetric clouds
 
-**Status: phases 0–1 done (0.173, 2026-11-14); phase 2 next.** Replaces the shelf cloud's mesh
+**Status: phases 0–2 done (0.173–0.174, 2026-11-14); phase 3 (the gate) next.** Replaces the shelf cloud's mesh
 (`props/cloudEvents.ts` `shelfGeometry`, last tuned in 0.172) with cloud drawn by takram's
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
@@ -160,7 +160,15 @@ the top merging into the deck at ~900 m.
 The uv → metres test failed at a cube edge (see "Where the code stands"), so the patch reads the
 sample's position instead and there's no uv helper.
 
-### 2. The shader patch, a plain wedge (~2–3 h)
+### 2. The shader patch, a plain wedge ✅ 0.174
+As built: `shelfCloud.ts` `shelfLayer`, `shelfGlsl`, `patchShelfCloud`; `clouds.ts` `createClouds`
+and `renderCloudyEnvironment` take a `ShelfSky`; `scene.ts` builds it (frame from the main camera)
+when `passes.shelfVolume` is on; the mesh draws only with it off. Checks: `test/glsl` passes,
+1080p on the five days renders without shader errors, and both identity diffs say identical.
+First look: the shelf reads as cloud in the deck's light (also at sunset, 2010-04-01), its top
+melts into the deck, and bolts behind it now disappear into it (2005-09-07).
+
+The steps as planned:
 - `createClouds` appends the shelf's layer (Design) to the layer list before `new CloudLayers(…)`.
 - `patchShelfCloud(clouds, worldToECEF, frame, shelf, index, cbIndex)`, called in `createClouds`
   after `patchStormCells`; `index` is `formations.length`, `cbIndex` is `stormLayer(formations)`:

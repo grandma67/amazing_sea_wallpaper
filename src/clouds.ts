@@ -36,9 +36,10 @@ import {
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
 import { arrangeClouds, stabiliseCubeSphereUv } from './cloudArrangement'
+import { patchShelfCloud, shelfLayer, type ShelfSky } from './shelfCloud'
 import { patchStormCells, stormLayer, type StormCell } from './stormCells'
 import { applySeaHaze } from './seaHaze'
-import { CLOUD_GENERA, layerChannels } from './cloudTypes'
+import { CLOUD_GENERA, layerChannels, MAX_LAYERS } from './cloudTypes'
 import { dirFromAzEl, type WeatherParams } from './params'
 
 // Volumetric clouds (takram three-clouds). Assets are self-hosted in
@@ -128,7 +129,8 @@ export function createClouds(
   worldToECEF: Matrix4,
   lightECEF: Vector3,
   visibilityKm: number,
-  cells: StormCell[] = []
+  cells: StormCell[] = [],
+  shelf: ShelfSky | null = null
 ): CloudsEffect {
   const clouds = new CloudsEffect(camera)
   Object.assign(clouds, textures)
@@ -159,8 +161,12 @@ export function createClouds(
   // the weather map so the layers don't line up (layerChannels). A genus
   // listed twice is a second deck above the first (duplicatus).
   const channels = layerChannels(weather.formations)
-  const layers = new CloudLayers(
-    weather.formations.map((genus, i) => {
+  // The shelf cloud is one more layer after the day's own, on a free channel
+  // of the weather map it doesn't read (its density is shelfDensity).
+  const shelfChannel = (['a', 'g', 'b', 'r'] as const).find(c => !channels.includes(c))
+  const withShelf = shelf != null && weather.formations.length < MAX_LAYERS && shelfChannel != null
+  const layers = new CloudLayers([
+    ...weather.formations.map((genus, i) => {
       const spec = CLOUD_GENERA[genus]
       const [expTerm, exponent, linearTerm, constantTerm] = spec.densityProfile
       const repeat = weather.formations.indexOf(genus) < i
@@ -178,8 +184,9 @@ export function createClouds(
         // Only the lower, thicker layers cast noticeable shadows.
         shadow: spec.etage !== 'high'
       }
-    })
-  )
+    }),
+    ...(withShelf ? [shelfLayer(shelf, shelfChannel)] : [])
+  ])
   // takram ends haze rays at the top of the highest layer: a clear dust day
   // gets one empty layer through the dust's height.
   if (weather.formations.length === 0 && weather.dust != null) {
@@ -195,6 +202,7 @@ export function createClouds(
     arrangeClouds(clouds, worldToECEF, wind, weather.arrangement.kind)
   }
   patchStormCells(clouds, worldToECEF, cells, stormLayer(weather.formations))
+  if (withShelf) patchShelfCloud(clouds, shelf, weather.formations.length, stormLayer(weather.formations))
   applySeaHaze(clouds, visibilityKm * 1000, weather)
   // No temporal history: our frames are averaged afterwards (accumulate.ts).
   // takram's TAA reprojects the light-shaft buffer through scene depth and
@@ -238,7 +246,8 @@ export function renderCloudyEnvironment(
   lightECEF: Vector3,
   visibilityKm: number,
   cells: StormCell[],
-  frames = 12
+  frames = 12,
+  shelf: ShelfSky | null = null
 ): void {
   const size = target.width
   // EffectComposer.setSize also resizes the renderer; restore it afterwards.
@@ -282,7 +291,7 @@ export function renderCloudyEnvironment(
     Object.assign(aerialPerspective, textures)
     aerialPerspective.worldToECEFMatrix.copy(worldToECEF)
     aerialPerspective.sunDirection.copy(lightECEF)
-    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells)
+    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells, shelf)
     clouds.qualityPreset = 'medium'
     clouds.temporalUpscale = false
     clouds.events.addEventListener('change', event => {

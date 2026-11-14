@@ -94,6 +94,8 @@ import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
+import { shelfFrame, type ShelfSky } from './shelfCloud'
+import { cloudBase } from './cloudTypes'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
 import { dustSkylight, dustTransmittance, reflectionExtinction } from './seaHaze'
 import { shadeProps } from './propShade'
@@ -656,9 +658,16 @@ export async function renderScene(
   composer.setSize(width, height, false)
   // Lightning and rain shafts hang from storm cells in the Cb layer.
   const cells = stormCells(params.storm, camera.position)
+  // The shelf cloud in the volumetric clouds (with passes.shelfVolume off,
+  // the 0.172 mesh draws it instead: props/cloudEvents.ts).
+  const shelfCloud = params.storm?.shelf
+  const shelf: ShelfSky | null =
+    shelfCloud != null && pass('shelfVolume')
+      ? { frame: shelfFrame(shelfCloud, camera.position), shelf: shelfCloud, base: cloudBase(weather.formations, 'cumulonimbus') }
+      : null
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells)
+      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf)
       : null
   // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
   // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).
@@ -870,7 +879,8 @@ export async function renderScene(
       lightECEF,
       params.visibilityKm,
       cells,
-      envFrames
+      envFrames,
+      shelf
     )
   }
   // What the sky cube gives a level surface: the props' sky light.
