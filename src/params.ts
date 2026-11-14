@@ -22,6 +22,7 @@ import { CLOUD_GENERA, pickFormations, pickSpecies, type CloudGenus } from './cl
 import { dustFor, marineLayerFor, type DustKind } from './coastalWeather'
 import { pickOcean, type IceParams, type OceanName } from './oceans'
 import { choose, climateTitle, latitudeIn, pickPlace, placeBiome, plantsFor, sandChances, type Climate, type Place } from './places'
+import { flashOriginsFor, type FlashOrigin } from './lightning'
 import { Random } from './random'
 import { apply, ECLIPTIC_POLE, eclipticOffset, skyRotation } from './skyClock'
 import { haulOutSeason } from './animalSeasons'
@@ -239,6 +240,9 @@ export interface StormParams {
   rain: number
   /** The shelf cloud at the storm's leading edge (skyEvents.ts). */
   shelf: ShelfCloudParams | null
+  /** Where each bolt's flash started, in the charge region (lightning.ts),
+   * in `bolts` order. */
+  origins: FlashOrigin[]
 }
 
 /**
@@ -1154,7 +1158,7 @@ function generateStorm(
         seed: rng.int(0, 1_000_000)
       }))
     : []
-  return { curtains, bolts, rain: rng.chance(0.4) ? rng.range(0.3, 1) : 0, shelf: null }
+  return { curtains, bolts, rain: rng.chance(0.4) ? rng.range(0.3, 1) : 0, shelf: null, origins: [] }
 }
 
 /** Monthly fog season for a coast, as a chance multiplier; `month` is the
@@ -1997,6 +2001,11 @@ function buildParams(
   const islands = pickIslands(seed, biome, place.mountains, spec.islands)
   if (storm != null) storm.shelf = shelfCloudFor(storm, Random.derive(seed, 'shelf-cloud'), spec.shelfCloud)
   if (storm?.shelf != null) placeShelf(storm, storm.shelf, Random.derive(seed, 'shelf-lead'))
+  // Where each flash started (lightning.ts), after the shelf has placed the bolts.
+  if (storm != null) {
+    const stormSeason = season({ date, latitudeDeg })
+    storm.origins = flashOriginsFor(storm, weather.formations, climate, stormSeason, Random.derive(seed, 'lightning'), spec.lightning)
+  }
   // The shelf is the storm's low cloud there: scud at the same height would
   // hide it.
   if (storm?.shelf != null && spec.clouds == null) weather.formations = weather.formations.filter(g => g !== 'stratus-fractus')

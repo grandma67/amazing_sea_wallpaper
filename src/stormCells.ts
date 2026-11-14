@@ -3,6 +3,7 @@ import type { CloudsEffect } from '@takram/three-clouds'
 
 import { CLOUD_GENERA, type CloudGenus } from './cloudTypes'
 import { cubeSphereUv } from './cloudArrangement'
+import { boltCell } from './lightning'
 import { dirFromAzEl, type StormParams } from './params'
 
 // Storm cells: lightning and rain come out of a cumulonimbus, so the sky over
@@ -35,7 +36,8 @@ export function stormCells(storm: StormParams | null, camera: Vector3): StormCel
     return { x: camera.x + dx * distance, z: camera.z + dz * distance, radius }
   }
   const cells = [
-    ...storm.bolts.map(b => ({ cell: at(b.azimuthDeg, b.distance, 3500 + b.distance * 0.1), distance: b.distance })),
+    // Over each bolt, between its strike and where its flash started (lightning.ts).
+    ...storm.bolts.map((b, i) => ({ cell: boltCell(b, storm.origins?.[i], camera), distance: b.distance })),
     ...storm.curtains.map(c => ({
       cell: at(c.azimuthDeg, c.distance, Math.max(3000, c.width * 1.2)),
       distance: c.distance

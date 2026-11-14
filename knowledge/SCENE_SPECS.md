@@ -50,7 +50,7 @@ Allowed values are in `sceneSpec.ts`.
   implies a beach; null: none); `beachrock` (true: ledges along the waterline, implies a reef;
   null: none).
 - **Sky:** `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
-  `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud` (renders: `scenes/shelf.json`),
+  `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `lightning` (`{offsetKm, azimuthDeg, originM}`: where every bolt's flash starts, lightning.ts), `shelfCloud` (renders: `scenes/shelf.json`),
   `waterspout`, `rollCloud` (renders: `scenes/roll.json`), `lenticular`, `contrails` (true or a count), `noctilucent`,
   `nacreous`, `milkyWay`, `airglow`, `zodiacalLight` (false/null: off), `skyDarkness` (Bortle
   1–4 instead of the place's), `meteors` (true, a shower id like `"perseids"`, a count ≤ 3,

@@ -5,6 +5,7 @@ import { SHOWERS } from './meteors'
 import type { EclipseType } from './celestial'
 import { SAND_STYLES, type Biome, type SandStyle, type VegetationKind } from './biome'
 import { CLOUD_GENERA, MAX_LAYERS, type CloudGenus } from './cloudTypes'
+import type { LightningForce } from './lightning'
 import type { OceanName } from './oceans'
 import { FRUIT_KINDS, type FruitKind } from './fruits'
 import { BLOOM_KINDS, HEATH_STAGES, type BloomKind, type HeathStage } from './phenology'
@@ -233,6 +234,9 @@ export interface SceneSpec {
   /** Planets: false/null none; "venus" frames Venus at blue hour when it's up. */
   planets?: false | null | 'venus'
   storm?: Force<'thunderstorm' | 'squall'>
+  /** Where lightning starts (lightning.ts): offset from the bolt's exit
+   * from the base (km), its bearing (deg) and height (m), for every bolt. */
+  lightning?: LightningForce
   rainbow?: boolean
   fog?: Force<'advection' | 'bank' | 'sea-smoke'>
   /** A marine-layer morning (overcast stratus or stratocumulus deck);
@@ -394,6 +398,7 @@ const SPEC = object({
   aurora: oneOf(true, false, null, 'strong'),
   meteors: (value, path) => (typeof value === 'number' ? number(value, path) : oneOf(true, false, null, ...SHOWERS.map(s => s.id))(value, path)),
   storm: force('thunderstorm', 'squall'),
+  lightning: object({ offsetKm: number, azimuthDeg: number, originM: number }),
   rainbow: boolean,
   fog: force('advection', 'bank', 'sea-smoke'),
   marineLayer: oneOf(true, false, null),

@@ -44,6 +44,14 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   env-cube passes. `stormEffects.ts`: rain shafts, lightning flash (fixed scene radiance
   `FLASH_RADIANCE`: invisible by day, a glow by blue hour), lens rain, rainbows. Bolts strike
   3–9 km out, ribbons widened across each segment toward the camera, forks head down.
+- **Where a flash starts** (`lightning.ts`, plans/CLOUD_ILLUMINATION.md phase 1): in the storm's
+  main negative charge, at the −15 °C height (`CHARGE_HEIGHT_M`, climate × season: ~7 km tropical,
+  5.5 km temperate summer, 2.4–3 km winter storms), 0.5–3 km sideways of where the bolt leaves the
+  base (`params.storm.origins`, stream `'lightning'`, spec `lightning`). `lightningFor` gives the
+  channel inside the cloud (sideways at the origin's height, then down to the exit, 1–3 branches),
+  kept inside its storm cell's core (`boltCell`: the cell sits between strike and origin, widened by
+  half the offset), and 6 light points along it (the exit carries 30%). The bolt mesh draws the
+  in-cloud channel too; the clouds composite over it, so it shows only where the cloud is thin.
 - **The shelf cloud** (`shelfCloud.ts`, plans/SHELF_VOLUMETRIC.md; 0.174–0.177): drawn by takram's
   clouds, not a mesh. On shelf days `createClouds` appends one layer (index `formations.length`,
   a free texture channel; shelf days have at most 3 layers) whose density is `shelfDensity`: a

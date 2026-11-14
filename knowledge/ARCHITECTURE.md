@@ -166,6 +166,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | `rockColors`, `seaStackChance`, `STONE_COLORS`, `MATERIAL_CHANCES`, `ROCK_BY_BIOME`, coral grain | `biome.ts`, `beach.ts`, `places.ts`, `beachState.ts` | biome (rock), place overrides | right |
 | sands, plants, ground cover, foliage, boulder chance | `biome.ts` `climateBiome` | biome × climate, place pools on top | phase 11 |
 | cloud leanings, storm chance, big swell | `params.ts` `cloudLeaning`, `stormChance`, `BIG_SWELL` | climate | phase 11 |
+| lightning's charge height (−15 °C level) | `lightning.ts` `CHARGE_HEIGHT_M` | climate × season (hemisphere-aware) | right |
 | advection fog | `params.ts` `pickFog` | biome × ocean × `CLIMATE_FOG` | phase 11 (partly) |
 | wrack, coconuts | `props/debris.ts` | biome, then climate on mediterranean and volcanic | phase 11 |
 | ghost, hermit, shore crabs | `props/shoreLife.ts` | climate | phase 11 |

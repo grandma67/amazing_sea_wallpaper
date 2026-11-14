@@ -1,6 +1,6 @@
 # Cloud illumination: lightning inside the cloud, storms at night, town light on cloud bases
 
-**Status: final plan (2026-11-15), nothing built.**
+**Status: phase 1 done (0.183, 2026-11-15); phases 2–7 open.**
 
 Reported on `/?date=2016-06-21` and `/?date=2026-11-02`: the lightning doesn't light the cloud,
 and nothing else lights the sky from below or inside either.
@@ -301,6 +301,16 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
    here.
 7. **Commit:** "Lightning starts in the cloud's charge region (CLOUD_ILLUMINATION phase 1)".
 
+**As built (0.183):**
+- The origins are drawn in `params.ts` (`storm.origins`, stream `'lightning'`, after
+  `placeShelf`), so `--ref HEAD` shows a new field and 0 changed days.
+- A storm cell is full only inside ~0.45 of its radius. So `boltCell` (shared by `stormCells`)
+  centres each bolt's cell between strike and origin and widens it by half the offset.
+  `lightningFor` keeps the whole channel within 0.38 of that radius.
+- The in-cloud path is roughness 0.12, 4 levels: 0.22 let it wander 2 km out of the cell.
+- Render of both dates: the in-cloud channel is hidden by the dense Cb, as expected. Phase 3 lights
+  it.
+
 ## Phase 2: how bright (TS only)
 
 1. **In `lightning.ts`:** `FLASH = { strokeLmS: 1e7, strokes: 3.5, flashS: 0.3, colour: [1, 0.70, 0.74] }`,
@@ -458,8 +468,7 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
      in render units, × colour (1, 0.70, 0.40);
    - only for Bortle ≥ 3, only when the sun is down.
 3. **Calibrate once:**
-   - add a spec field `bortle` (1–4; `sceneSpec.ts` has none) that forces
-     `nightGlow.bortle`;
+   - use the existing spec field `skyDarkness` (1–4, forces the Bortle class);
    - render a forced overcast Bortle 4 night (`"weather": "overcast"`) and the same night
      `"clear"`;
    - probe the zenith base;
@@ -489,7 +498,7 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
     at zero."
   - "A flash in a still is energy ÷ shutter, against the real ambient: no per-hour factor."
 - **CLOUDS.md "Storms":** the night share and the flash origin.
-- **SCENE_SPECS.md:** `lightning`, `bortle`.
+- **SCENE_SPECS.md:** `lightning`.
 - **REFERENCES.md:** the sources above.
 - **changelog.md:** one row per phase, with `params.mjs --ref HEAD` counts.
 - **Before each commit:** `npm test` and `npx tsc --noEmit`. One commit per phase; never commit

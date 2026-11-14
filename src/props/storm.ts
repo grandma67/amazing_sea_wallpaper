@@ -1,6 +1,7 @@
 import { DoubleSide, Mesh, MeshBasicMaterial, Vector3, type Object3D } from 'three'
 
 import { cloudBase } from '../cloudTypes'
+import { lightningFor } from '../lightning'
 import { dirFromAzEl, type SceneParams } from '../params'
 import { Random } from '../random'
 import { MeshBuilder } from './builder'
@@ -72,6 +73,33 @@ function bolt(rng: Random, base: Vector3, toCamera: Vector3, width: number, clou
   return b
 }
 
+/** Brightness of the channel inside the cloud and of its branches: the
+ * clouds composite over it by depth, so it shows only where the cloud is
+ * thin (estimate). */
+const IN_CLOUD_BRIGHTNESS = 0.7
+const BRANCH_BRIGHTNESS = 0.4
+
+/** Ribbons along paths inside the cloud, each segment widened across itself
+ * as seen from the camera (the segments run every way, toward it too). */
+function inCloudRibbons(b: MeshBuilder, paths: { points: Vector3[]; width: number; brightness: number }[], camera: Vector3): void {
+  for (const { points, width, brightness } of paths) {
+    const c: [number, number, number] = [brightness, brightness, brightness]
+    for (let i = 0; i < points.length - 1; i++) {
+      const p = points[i]
+      const q = points[i + 1]
+      const along = q.clone().sub(p)
+      const across = along.clone().cross(camera.clone().sub(p)).normalize().multiplyScalar(width / 2)
+      if (!Number.isFinite(across.x)) continue
+      const end = q.clone().addScaledVector(along.normalize(), width / 2)
+      const v0 = b.vertex(p.clone().sub(across), c)
+      const v1 = b.vertex(p.clone().add(across), c)
+      const v2 = b.vertex(end.clone().add(across), c)
+      const v3 = b.vertex(end.clone().sub(across), c)
+      b.quad(v0, v1, v2, v3)
+    }
+  }
+}
+
 /** Where each bolt leaves the cloud base (world), for the flash glow. */
 export function boltTops(params: SceneParams, camera: Vector3): Vector3[] {
   const base = cloudBase(params.weather.formations, 'cumulonimbus')
@@ -86,22 +114,34 @@ export function createStorm(ctx: PropContext): Object3D[] {
   if (storm == null) return []
   const camera = ctx.camera.position
   const objects: Object3D[] = []
+  const flashes = lightningFor(ctx.params, camera)
 
-  for (const strike of storm.bolts) {
+  storm.bolts.forEach((strike, i) => {
     const brng = new Random(`${ctx.params.seed}/bolt/${strike.seed}`)
     const [dx, , dz] = dirFromAzEl(strike.azimuthDeg, 0)
     const base = new Vector3(camera.x + dx * strike.distance, 0, camera.z + dz * strike.distance)
     const toCamera = camera.clone().sub(base).setY(0).normalize()
     // A few pixels wide at 4K, whatever the distance; bloom does the glow.
     const width = Math.max(3, strike.distance * 0.0012)
+    const builder = bolt(brng, base, toCamera, width, cloudBase(ctx.params.weather.formations, 'cumulonimbus'))
+    // The channel inside the cloud, from where the flash started down to
+    // where the bolt leaves the base (lightning.ts).
+    const flash = flashes[i]
+    if (flash != null) {
+      inCloudRibbons(
+        builder,
+        [{ points: flash.inCloud, width, brightness: IN_CLOUD_BRIGHTNESS }, ...flash.branches.map(points => ({ points, width: width * 0.5, brightness: BRANCH_BRIGHTNESS }))],
+        camera
+      )
+    }
     const mesh = new Mesh(
-      bolt(brng, base, toCamera, width, cloudBase(ctx.params.weather.formations, 'cumulonimbus')).build(),
+      builder.build(),
       new MeshBasicMaterial({ vertexColors: true, side: DoubleSide })
     )
     // Far brighter than anything else in the frame.
     mesh.userData.glow = { color: [0.85, 0.9, 1], scale: 250 }
     objects.push(mesh)
-  }
+  })
   return objects
 }
 
