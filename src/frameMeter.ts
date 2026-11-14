@@ -139,18 +139,19 @@ const SUN_UP = new Set(['daylight', 'midday', 'golden-hour', 'sun-on-horizon'])
  * The floor and the most a frame may be lifted, from medians measured over
  * every night and 60 days (plans/SHADOWS.md phase 6), null where the frame
  * is left alone:
- * - A night under broken or overcast cloud: the stars are hidden, so a
- *   photographer goes long. Floor 0.03, ~×8 on a typical one (median
+ * - A night under broken or overcast cloud, or a storm: the stars are hidden,
+ *   so a photographer goes long (a storm's: for the lightning, metered on the
+ *   ambient light; the flash adds, lightning.ts). Floor 0.03, ~×8 on a typical one (median
  *   0.0035 exposed), the level decided on 2026-11-06; up to 6 stops.
  * - Open nights: stars and the moon's glitter carry the frame although its
  *   median is as low (0.008); a photographer keeps the shutter short so the
  *   stars stay points. Left as they are.
  * - Sun up, no storm: a beach in deep shade under cloud (median 0.04) lifts
  *   to 0.10, at most 1.5 stops. About 1 day in 60.
- * - Blue hour and storms stay dark: that is their look.
+ * - Blue hour and storms by day stay dark: that is their look.
  */
 export function frameBoostRule(day: FrameMeterDay): BoostRule | null {
-  if (day.timeOfDay === 'night') return day.weather.kind === 'broken' || day.weather.kind === 'overcast' ? { floor: 0.03, maxStops: 6 } : null
+  if (day.timeOfDay === 'night') return ['broken', 'overcast', 'storm'].includes(day.weather.kind) ? { floor: 0.03, maxStops: 6 } : null
   if (SUN_UP.has(day.timeOfDay) && day.storm == null) return { floor: 0.1, maxStops: 1.5 }
   return null
 }

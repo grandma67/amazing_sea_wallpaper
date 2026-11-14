@@ -13,9 +13,11 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
 - **The frame's own meter** (`frameMeter.ts`, SHADOWS.md phase 6): after the frames are averaged and
   before bloom, `FrameMeterPass` reads the exposed frame's median luminance (160×90 blocks) and
   lifts it to a floor if it's under it (`frameBoostRule`): nights under broken or overcast cloud to
-  0.03 (~×8 on a typical one, up to 6 stops); sun-up days without a storm to 0.10 (≤ 1.5 stops,
+  0.03 (~×8 on a typical one, up to 6 stops), storm nights too (0.187: metered with the flash's
+  light off, then drawn again with it at the power for the boosted shutter, `setFlashScale`; the
+  rain's floor follows the boost, `setRainBoost`); sun-up days without a storm to 0.10 (≤ 1.5 stops,
   ~1 day in 60: beaches in deep shade). Open nights (stars and glitter carry them though their median
-  is as low), blue hour and storms are left alone. `debug.frameMedian`, `frameBoost`;
+  is as low), blue hour and storms by day are left alone. `debug.frameMedian`, `frameBoost`;
   `debug.exposure` is the total (pin it: `--keep-exposure`, then no boost). Off: `passes.frameMeter`.
 - **The long exposure** (phase 6 step 2): `shutterSeconds` is what a photographer at f/2.8, ISO 1600
   would use (0.061 / L for mid-grey, scaled to the frame's final level): ~30–130 s on cloudy nights.

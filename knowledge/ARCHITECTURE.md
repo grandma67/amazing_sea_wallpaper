@@ -326,6 +326,11 @@ phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed 
   (32 of 61 tropical landform days; real tropical snow starts far higher), and the nordic biome's
   0.35–0.6 of the height is low for a temperate summer (west Norway ~630 m in late August).
 
+- Lightning on some far bolts (found in CLOUD_ILLUMINATION phase 4, 2026-11-15): on 2016-06-21 (bolt
+  5.7 km off, mountains behind) takram draws almost no Cb near its 600 m base over the bolt, so the
+  bolt's top hangs in front of the range with no cloud round it and its flash has no face to light
+  (forced night: no glow; probed). Seen by eye and probes; cause suspected: takram's height
+  shaping thins the layer's bottom, and the storm cell's fill doesn't reach it there.
 - Light pollution (`nightGlow.ts`): low clouds aren't lit from below by the towns. At the
   night white balance (4000 K) the domes come out only mildly warm (sodium ~2100 K stays
   orange; the LED share pulls them neutral).

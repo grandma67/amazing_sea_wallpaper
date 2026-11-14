@@ -97,8 +97,8 @@ import { stormCells } from './stormCells'
 import { rollFrame, rollShapeWith } from './rollCloud'
 import { shelfFrame, shelfShapeWith, type ShelfSky } from './shelfCloud'
 import { cloudBase } from './cloudTypes'
-import { stormEffects } from './stormEffects'
-import { flashPower, flashShutter, flashSky, lightningFor } from './lightning'
+import { setRainBoost, stormEffects } from './stormEffects'
+import { flashPower, flashShutter, flashSky, lightningFor, setFlashScale } from './lightning'
 import { dustSkylight, dustTransmittance, reflectionExtinction } from './seaHaze'
 import { shadeProps } from './propShade'
 import { bindCloudShadow, bindLandShadow, bindShadow, FINE_SHADOW_SIZE, fineShadowScale, fitFineShadow, landCloudUniforms, renderLandShadow } from './shadow'
@@ -1041,6 +1041,14 @@ export async function renderScene(
   // which is known only after the first look: until then ×1.
   const sweepBeams = pass('beamSweep') ? (beams[0] ?? null) : null
   sweepBeams?.setShutter(shutterOf(1, 1))
+  // A storm night meters on the ambient light: the flash is off for the first
+  // look, then back at the power for the shutter the boost gives (ambient /
+  // boost: the photographer opened up). The reflection cube keeps the first
+  // power (drawn before the look).
+  const flashMaterial = flashLit != null && clouds != null ? clouds.cloudsPass.currentMaterial : null
+  const flashAfterLook = longShutter && flashMaterial != null
+  if (flashAfterLook) setFlashScale(flashMaterial, flashLit!, 0)
+  let flashBoostPower = flashPowerLm
   let look = 0
   let lookShutter = 0
   let restarted = false
@@ -1077,9 +1085,17 @@ export async function renderScene(
       restarted = true
       lookShutter = shutterOf(meter.medianExposed, meter.boost)
       look = longExposureLook(lookShutter)
-      if (look > 0) {
-        sweepBeams?.setShutter(lookShutter)
-        ocean.material.uniforms.longExposure.value = look
+      if (flashAfterLook) {
+        flashBoostPower = flashPower(flashShutter(ambientCd / meter.boost))
+        setFlashScale(flashMaterial, flashLit!, flashBoostPower / flashPowerLm)
+      }
+      if (look > 0 || flashAfterLook) {
+        // Drawn again from the start: the rain's floor as the boosted frame shows it.
+        setRainBoost(rain, meter.boost)
+        if (look > 0) {
+          sweepBeams?.setShutter(lookShutter)
+          ocean.material.uniforms.longExposure.value = look
+        }
         still!.reset()
         accumulate!.reset()
         i = -1
@@ -1158,7 +1174,7 @@ export async function renderScene(
       shutterSeconds: shutterOf(meter.medianExposed, meter.boost),
       // Lightning (lightning.ts): the ambient at mid-grey (cd/m²), the
       // lightning photographer's shutter (s) and the flash's light it holds (lm).
-      ...(params.storm != null ? { ambientCd, flashShutter: flashShutterS, flashPowerLm } : {}),
+      ...(params.storm != null ? { ambientCd, flashShutter: flashShutterS, flashPowerLm: flashBoostPower } : {}),
       longExposure: look,
       sceneLuminance,
       skyZenith: metered.zenith,

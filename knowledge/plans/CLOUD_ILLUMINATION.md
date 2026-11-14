@@ -1,6 +1,6 @@
 # Cloud illumination: lightning inside the cloud, storms at night, town light on cloud bases
 
-**Status: phases 1–3 done (0.183–0.185, 2026-11-15); phases 4–7 open.**
+**Status: phases 1–4 done (0.183–0.187, 2026-11-15); phases 5–7 open.**
 
 Reported on `/?date=2016-06-21` and `/?date=2026-11-02`: the lightning doesn't light the cloud,
 and nothing else lights the sky from below or inside either.
@@ -465,6 +465,24 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
    - `diff.mjs` with the rule off;
    - `bench.mjs`.
 6. **Commit:** "Storm nights exposed for their ambient light; the flash adds (phase 4)".
+
+**As built (0.187):**
+- A night storm is always drawn twice: the first look has the flash off, then the frame restarts
+  with the flash at `flashPower(flashShutter(ambientCd / boost))`.
+  - The reflection cube keeps the first power: it is drawn before the look.
+  - The glow doesn't drift with the long exposure's clouds; on the renders it reads fine.
+- **The rain's floor:** `RainEffect` added a fixed 0.02 (exposed), so a ×10 lift made the streaks
+  glare. Its floor is now 0.02 ÷ the boost (`setRainBoost`).
+- **Renders, forced:**
+
+  | night | boost | shutter | look |
+  |---|---|---|---|
+  | 2026-11-02 moonlit | ×10.7 | 35 s | the deck glows round both bolts, as R |
+  | 2026-11-02 starlit | ×8.8 | 76 s | the deck glows round both bolts, as R |
+  | 2016-06-21 moonlit | ×3.5 | — | no glow (see the next line) |
+
+- **2016-06-21:** no glow, because takram draws almost no Cb near that bolt's base (ARCHITECTURE
+  "Known issues").
 
 ## Phase 5: the flash lights land and sea
 

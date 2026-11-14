@@ -165,6 +165,19 @@ class RainbowEffect extends Effect {
   }
 }
 
+/** The least brightness of a raindrop near the camera (exposed units, before
+ * the frame's boost). */
+const RAIN_FLOOR = 0.02
+
+/** The frame's boost is known after its first look: keep the rain's floor
+ * where it was in the boosted frame. */
+export function setRainBoost(effects: Effect[], boost: number): void {
+  for (const e of effects) {
+    const floor = e.uniforms.get('dropFloor')
+    if (floor != null) floor.value = RAIN_FLOOR / Math.max(boost, 1)
+  }
+}
+
 /** Rain falling close to the camera: faint slanted streaks over the image,
  * plus the loss of contrast of looking through a downpour. */
 class RainEffect extends Effect {
@@ -175,12 +188,13 @@ class RainEffect extends Effect {
       uniform float rain;
       uniform float aspect;
       uniform float slant;
+      uniform float dropFloor;
       float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
         vec3 c = inputColor.rgb;
         float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
         // Look through a veil of rain: flatter, greyer.
-        c = mix(c, vec3(lum) * 0.9 + 0.01, rain * 0.25);
+        c = mix(c, vec3(lum) * 0.9 + 0.5 * dropFloor, rain * 0.25);
         float streaks = 0.0;
         for (int layer = 0; layer < 3; layer++) {
           // Nearer layers: bigger, sparser, softer streaks.
@@ -199,7 +213,7 @@ class RainEffect extends Effect {
           streaks += along * (1.0 - smoothstep(0.0, width, x)) * (0.6 - fl * 0.15);
         }
         // Drops catch the light: a little brighter than what's behind them.
-        c = mix(c, vec3(lum * 1.4 + 0.02), clamp(streaks * 0.45, 0.0, 1.0));
+        c = mix(c, vec3(lum * 1.4 + dropFloor), clamp(streaks * 0.45, 0.0, 1.0));
         outputColor = vec4(c, inputColor.a);
       }`,
       {
@@ -208,7 +222,11 @@ class RainEffect extends Effect {
           ['rain', new Uniform(rain)],
           ['aspect', new Uniform(aspect)],
           // Wind drives the rain sideways.
-          ['slant', new Uniform(Math.min(0.5, windSpeed * 0.02))]
+          ['slant', new Uniform(Math.min(0.5, windSpeed * 0.02))],
+          // The drops' least brightness (exposed units): set to RAIN_FLOOR ÷
+          // the frame's boost once it's known (setRainBoost), so a lifted
+          // night doesn't lift the floor with it.
+          ['dropFloor', new Uniform(RAIN_FLOOR)]
         ])
       }
     )

@@ -467,11 +467,20 @@ export function patchCloudsFlash(material: ShaderMaterial, sky: FlashSky): void 
 `
     )
     .replace(POWDER_END, `${POWDER_END}      if (flashEntered) radiance += flashFaceGlow * media.scattering;\n`)
-  material.uniforms.flashLights = new Uniform(sky.lights)
+  material.uniforms.flashLights = new Uniform(sky.lights.map(l => l.clone()))
   material.uniforms.flashBounds = new Uniform(sky.bounds)
   material.uniforms.flashCount = new Uniform(sky.count)
   material.uniforms.flashColour = new Uniform(new Vector3(...sky.colour))
   material.uniforms.flashFaceHeight = new Uniform(sky.baseM)
   material.uniforms.flashConstant = new Uniform(sky.constant ?? 0)
   material.needsUpdate = true
+}
+
+/** Scale the flash's lights in a patched clouds material (from their power
+ * in `sky`): 0 while the frame's meter reads the ambient light, then the
+ * power for the shutter the boost gives (phase 4). */
+export function setFlashScale(material: ShaderMaterial, sky: FlashSky, factor: number): void {
+  const lights = material.uniforms.flashLights?.value as Vector4[] | undefined
+  if (lights == null) return
+  sky.lights.forEach((l, i) => (lights[i].w = l.w * factor))
 }

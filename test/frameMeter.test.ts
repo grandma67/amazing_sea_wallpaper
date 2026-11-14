@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { frameBoost, frameBoostRule, longExposureLook, median, shutterSeconds } from '../src/frameMeter'
-import { allParams, expectEvery } from './days'
+import { allParams, expectEvery, scenes } from './days'
 
 describe('median', () => {
   it('takes the middle, leaving out what is not finite', () => {
@@ -29,7 +29,7 @@ describe('frameBoost', () => {
 
 describe('frameBoostRule over real days', () => {
   const days = allParams()
-  const cloudyNight = (p: (typeof days)[number]): boolean => p.timeOfDay === 'night' && ['broken', 'overcast'].includes(p.weather.kind)
+  const cloudyNight = (p: (typeof days)[number]): boolean => p.timeOfDay === 'night' && ['broken', 'overcast', 'storm'].includes(p.weather.kind)
 
   it('lifts nights only where cloud hides the stars, ~22 of 1095 days', () => {
     const nights = days.filter(p => p.timeOfDay === 'night' && frameBoostRule(p) != null)
@@ -38,9 +38,13 @@ describe('frameBoostRule over real days', () => {
     expect(nights.length).toBeLessThan(40)
   })
 
-  it('leaves open nights, blue hour and storms alone', () => {
-    const left = days.filter(p => (p.timeOfDay === 'night' && !cloudyNight(p)) || p.timeOfDay === 'blue-hour' || p.storm != null)
+  it('leaves open nights, blue hour and storms by day alone', () => {
+    const left = days.filter(p => (p.timeOfDay === 'night' && !cloudyNight(p)) || p.timeOfDay === 'blue-hour' || (p.storm != null && p.timeOfDay !== 'night'))
     expectEvery(left, p => frameBoostRule(p) == null, { what: p => p.date })
+  })
+
+  it('lifts a storm night like a cloudy one (metered on the ambient: lightning.ts)', () => {
+    for (const p of scenes({ storm: 'thunderstorm', timeOfDay: 'night', eclipse: null }, 5)) expect(frameBoostRule(p)).toEqual({ floor: 0.03, maxStops: 6 })
   })
 
   it('gives sun-up days a small lift at most, nights a long one', () => {
