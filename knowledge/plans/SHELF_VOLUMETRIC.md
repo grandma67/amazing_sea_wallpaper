@@ -1,6 +1,6 @@
 # Shelf cloud in the volumetric clouds
 
-**Status: done (phases 0–6, 0.173–0.179, 2026-11-14).** Phase 7 (the roll cloud) and "Later" are open. Replaces the shelf cloud's mesh
+**Status: phases 0–6 done (0.173–0.179, 2026-11-14); phase 7 (the roll cloud) in progress.** "Later" is open. Replaces the shelf cloud's mesh
 (`props/cloudEvents.ts` `shelfGeometry`, last tuned in 0.172) with cloud drawn by takram's
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
@@ -325,11 +325,42 @@ The steps as planned:
 - **Done when:** the mesh is gone, the tests pass, and `diff.mjs` with `shelfCloud: false` shows
   the shelf as the only difference on a shelf day.
 
-### 7. Later: the Morning Glory roll cloud (own plan section first)
-The same patch handles a detached tube: density from the distance to the tube's axis, flattened
-underneath, on a free channel. It needs its own research (Burketown photos; tube 1–2 km thick, up
-to 1000 km long) and its own gate. Do it only after phase 6 shows the shelf is better than the
-mesh.
+### 7. The Morning Glory roll cloud in the volumetric clouds
+
+**Research** (sources: [Roger Smith, LMU Munich, "The Morning Glory and related phenomena"](https://www.meteo.physik.uni-muenchen.de/~roger/AustralianProjects/TheMorningGlory/TheMorningGlory.html),
+read; [Wikipedia: Morning Glory cloud](https://wikipedia.com/wiki/Morning_Glory_cloud) from a
+search summary). Photos: Commons "MorningGloryCloudBurketownFromPlane.jpg" (from the air: long,
+separate tubes, billowy, several km apart), "Roll-Cloud-Racine.jpg" and "Roll Cloud 001.jpg"
+(storm roll clouds from below: a smooth rolled front over a darker, torn base).
+- Base "often no more than 100 or 200 m"; about 1 km deep; 1–2 km wide (front to back); 100 km
+  or more long; often a succession of rolls (five parallel bands on two 1978 mornings); 10–15 m/s.
+- Cloud forms at the leading edge (air rises) and evaporates at the trailing edge (air sinks):
+  a sharp, billowy front and a thinning back. Early morning, September to mid-November.
+
+**Where the code stands (2026-11-14):** a mesh (`props/cloudEvents.ts` `rollGeometry`): tubes
+600–1100 m across, base 200–400 m (`skyEvents.ts` `rollCloudFor`); 1–3 rolls 2.5–5 km apart (the
+spacing is an estimate, no source). **9 of 8035 days** (2005–2026), all at dawn on tropical
+Indo-Pacific coasts, skies clear to scattered (at most 2 layers: a free layer always). One is
+clear (2019-10-22): clear days don't load the cloud assets (`scene.ts` `cloudAssetsLoaded`), so
+roll days must. Roll days never have a storm, so the shelf's patch and the roll's never meet.
+
+**Design:** like the shelf (phases 1–2), in `src/rollCloud.ts`:
+- `rollDensity(frame, roll, x, z, h)`: per roll, an ellipse across the tube (half-width
+  `widthM / 2`, half-depth `depthM / 2`, centre `baseM + depthM / 2`), the base flattened, the
+  axis wandering (as the mesh: ±300 m over ~9 km, ±60 m in height over ~4 km), later rolls
+  smaller and further back; a sharp edge on the camera side (the leading edge), a soft one
+  behind (the trailing edge evaporating); ends fading at ±45 km. Max over the rolls.
+- One layer after the day's formations, its density written before `return` (no coverage remap);
+  its own height fraction (a standalone cloud: brighter on top is right here); takram's shape
+  noise for the billows (`shapeAmount` ~0.6).
+- `rollCloudFor`: base 100–250 m, depth 800–1200 m, width 1–2 km (the draws keep their order and
+  count, so only the 9 roll days change).
+- The mesh goes in the same phase (9 days, no temporary switch); `rollCloud: false` against HEAD
+  must be identical.
+
+**Done when:** the tests pass (density bounds, the CPU's tube outline); the 9 real days and a
+forced front-lit and backlit spec render as cloud (a contact sheet against photo 1: separate,
+billowy tubes, base low over the sea); `bench.mjs` within +10% on roll days; the docs updated.
 
 ## Later
 - **A tattered lip** (WMO: arcus has "more or less tattered edges"): on far days the lip reads
