@@ -2,6 +2,7 @@ import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import { rollGeometry, shelfGeometry } from '../src/props/cloudEvents'
+import { SHELF_BOLT_BEHIND_M, SHELF_LEAD_M, SHELF_SECTOR_DEG } from '../src/skyEvents'
 import { allParams, scene, scenes, share } from './days'
 
 describe('cloud events', () => {
@@ -13,6 +14,18 @@ describe('cloud events', () => {
     expect(rate).toBeGreaterThan(0.2)
     expect(rate).toBeLessThan(0.6)
     expect(scene({ storm: 'squall', shelfCloud: true, eclipse: null, timeOfDay: 'daylight' }).storm?.shelf).not.toBeNull()
+  })
+
+  it('stands the shelf ahead of the rain and bolts in its direction', () => {
+    const shelfDays = [...days, ...scenes({ storm: 'thunderstorm', shelfCloud: true, eclipse: null }, 100)].filter(p => p.storm?.shelf != null)
+    expect(shelfDays.length).toBeGreaterThan(80)
+    const gap = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180)
+    for (const p of shelfDays) {
+      const { shelf, curtains, bolts } = p.storm!
+      const inSector = (r: { azimuthDeg: number }) => gap(r.azimuthDeg, shelf!.azimuthDeg) <= SHELF_SECTOR_DEG
+      for (const c of curtains.filter(inSector)) expect(c.distance).toBeGreaterThanOrEqual(shelf!.distanceM + SHELF_LEAD_M[0] - 1e-6)
+      for (const b of bolts.filter(inSector)) expect(b.distance).toBeGreaterThanOrEqual(shelf!.distanceM + SHELF_BOLT_BEHIND_M - 1e-6)
+    }
   })
 
   it('forces the Morning Glory', () => {

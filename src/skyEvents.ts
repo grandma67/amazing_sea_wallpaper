@@ -45,6 +45,53 @@ export function shelfCloudFor(
   return shelf
 }
 
+/** How far the gust front, and the shelf on it, runs ahead of its storm's
+ * rain (m). About 8 km in a measured, mature Chicago squall line
+ * (weather.com, 2016-09-21); NWS: "can move well ahead of the
+ * precipitation". The range is an estimate around that one case. */
+export const SHELF_LEAD_M = [1500, 5000] as const
+/** Bolts come from the storm's line just behind the gust front: at least
+ * this far behind the lip (m), not a whole lead (bolts past ~9 km wash out
+ * in haze, LESSONS). */
+export const SHELF_BOLT_BEHIND_M = 500
+/** The sector round the shelf's direction whose rain must lie behind it (deg). */
+export const SHELF_SECTOR_DEG = 45
+
+/** Angle between two azimuths (deg, 0–180). */
+function azimuthGap(a: number, b: number): number {
+  return Math.abs((((a - b) % 360) + 540) % 360 - 180)
+}
+
+/** Bolts stay within this (m): past it a 600 m base sinks into the haze
+ * (realDays.test.ts "a bolt: 3–9 km off"). Above the farthest lip + 500 m. */
+export const BOLT_MAX_M = 9000
+
+/** Push the items nearer than `behind` back so the nearest lands on it,
+ * keeping their order, none past `max`. */
+function pushBehind(items: { distance: number }[], behind: number, max = Infinity): void {
+  if (items.length === 0) return
+  const nearest = Math.min(...items.map(r => r.distance))
+  for (const r of items) if (r.distance < behind) r.distance = Math.min(max, r.distance + behind - nearest)
+}
+
+/**
+ * The shelf rides the gust front, ahead of the rain (before 0.173 a rain
+ * shaft or bolt in its direction fell nearer than the lip on 57% of shelf
+ * days). Its own drawn distance stays; in its direction (±45°), rain shafts
+ * move back behind the lip by a lead, bolts to just behind it. Changes
+ * `storm` in place.
+ */
+export function placeShelf(
+  storm: { curtains: { azimuthDeg: number; distance: number }[]; bolts: { azimuthDeg: number; distance: number }[] },
+  shelf: ShelfCloudParams,
+  rng: Random
+): void {
+  const lead = rng.range(SHELF_LEAD_M[0], SHELF_LEAD_M[1])
+  const sector = <T extends { azimuthDeg: number }>(items: T[]) => items.filter(r => azimuthGap(r.azimuthDeg, shelf.azimuthDeg) <= SHELF_SECTOR_DEG)
+  pushBehind(sector(storm.curtains), shelf.distanceM + lead)
+  pushBehind(sector(storm.bolts), shelf.distanceM + SHELF_BOLT_BEHIND_M, BOLT_MAX_M)
+}
+
 /** Morning Glory roll cloud (volutus): long horizontal tubes rolling in at
  * dawn. The famous one is over the southern Gulf of Carpentaria
  * (Burketown, Queensland, ~17.5° S), from late September to early November,

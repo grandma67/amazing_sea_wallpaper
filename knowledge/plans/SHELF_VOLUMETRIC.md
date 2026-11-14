@@ -1,6 +1,6 @@
 # Shelf cloud in the volumetric clouds
 
-**Status: planned (2026-11-14), nothing built.** Replaces the shelf cloud's mesh
+**Status: phase 0 done (0.173, 2026-11-14); phase 1 next.** Replaces the shelf cloud's mesh
 (`props/cloudEvents.ts` `shelfGeometry`, last tuned in 0.172) with cloud drawn by takram's
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
@@ -107,11 +107,12 @@ citing Goff 1976, *Mon. Wea. Rev.* 104, 1429–1440.
   `localWeather` to full over a band from the lip to `depthM` back (at `SAMPLE_END`, as
   `stormCells` does for its discs), so the shelf never meets a gap in the deck. The dark,
   churning base behind the lip (the whale's mouth) comes from that full Cb weather.
-- **Placement fixed in `params.ts`:** the lip stands 2–8 km ahead of the storm's rain (an
-  estimate built on the one measured case, 8 km). Bolts and curtains within ±45° of the shelf's
-  direction are moved back behind the lip; their distances keep their own draws, offset. This
-  changes the storm on up to 112 days. The shelf's chance (40% of storms) is drawn before any
-  of this, so it doesn't change.
+- **Placement fixed in `params.ts`** (as built in phase 0): the shelf keeps its drawn distance
+  (3.5–8 km). Within ±45° of its direction, rain shafts move back to at least the lip + a lead of
+  1.5–5 km (an estimate around the one measured case, 8 km), and bolts to at least the lip +
+  500 m. Bolts come from the storm's line just behind the gust front, and a whole lead pushed
+  the nearest bolt past 9 km on 43% of shelf days, where LESSONS says they wash out. The
+  shelf's chance (40% of storms) is drawn before any of this, so it doesn't change.
 - **Off switch while building:** `params.debug.passes.shelfVolume: false` draws the 0.172 mesh
   instead (add it to the `passes` row in tools/DEBUG.md while it exists). Phase 6 deletes the mesh;
   after that `shelfCloud: false` is the before/after switch.
@@ -129,18 +130,18 @@ shelf has left the frame, replace that date with another from
 `params.mjs --where 'p => p.storm?.shelf != null' --each …` of the same kind (time of day, lens),
 and update this list.
 
-### 0. The rain behind the lip (params only, ~1 h)
-- `params.ts` (after `shelfCloudFor`): set the lip distance from the nearest curtain or bolt within
-  ±45°, minus a lead of 2–8 km (own stream `'shelf-lead'`), clamped to 3–8 km. Then push nearer
-  curtains and bolts in that sector to at least lip + 1 km. Every shelf day has one in the sector
-  today. If a forced spec makes a day without one, keep the drawn distance.
-- Tests (`test/skyEvents.test.ts`): over `allParams()`, no shelf day has rain or a bolt within ±45°
-  nearer than its lip + 1 km, and every lip stands 3–8 km out. The existing "~40% of storms"
-  test must still pass unchanged.
-- `params.mjs --ref HEAD --changed 'p => p.place.id'` for the changelog (expect ≤ 112 days,
-  `storm` fields only; anything else changing is a bug).
-- **Done when:** the tests pass, and a 1080p render of the five days shows bolts behind the
-  shelf (the mesh still draws it).
+### 0. The rain behind the lip (params only) ✅ 0.173
+As built: `skyEvents.ts` `placeShelf` (stream `'shelf-lead'`), called after `shelfCloudFor`.
+- **The plan's first rule failed by numbers.** Setting the lip from the nearest rain minus a
+  2–8 km lead put 86% of lips on the 3 km clamp, because rain in the sector is mostly 3–7 km
+  out. Pushing bolts back by the whole lead sent the nearest bolt past 9 km on 43% of shelf
+  days. The rule above (Design) keeps both distributions.
+- Results: 163 of 8035 days change (2005–2026), `storm` fields only. Bolts within 9 km in the
+  sector: 138 of 197 shelf days, the same as before. Test: `test/skyEvents.test.ts` "stands the
+  shelf ahead of the rain".
+- Rendered on the five days: the shelf is still in frame on all of them. **Bolts still draw over
+  the mesh** even though they stand behind it (2006-06-26); not traced. Check this again with
+  the volumetric shelf in phase 2.
 
 ### 1. The shelf's density, in TS (~2 h)
 - New `src/shelfCloud.ts`:

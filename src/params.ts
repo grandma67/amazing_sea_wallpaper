@@ -10,7 +10,7 @@ import { hasBeach, hasLand } from './coastKind'
 import type { DebugParams } from './debug'
 import { contrailsFor, type Contrail } from './contrails'
 import { visibilityFor } from './seaHaze'
-import { lenticularFor, rollCloudFor, shelfCloudFor, type LenticularParams, type RollCloudParams, type ShelfCloudParams } from './skyEvents'
+import { lenticularFor, placeShelf, rollCloudFor, shelfCloudFor, type LenticularParams, type RollCloudParams, type ShelfCloudParams } from './skyEvents'
 import { nacreousFor, noctilucentFor, type NacreousParams, type NoctilucentParams } from './noctilucent'
 import { nightGlowFor, type NightGlowParams } from './nightGlow'
 import { meteorsFor, SHOWERS, type Meteor } from './meteors'
@@ -1996,6 +1996,7 @@ function buildParams(
   if (landform != null && snow != null) landform.snowLine = Math.min(landform.snowLine, landform.height * 0.35 * (1 - snow.cover))
   const islands = pickIslands(seed, biome, place.mountains, spec.islands)
   if (storm != null) storm.shelf = shelfCloudFor(storm, Random.derive(seed, 'shelf-cloud'), spec.shelfCloud)
+  if (storm?.shelf != null) placeShelf(storm, storm.shelf, Random.derive(seed, 'shelf-lead'))
   // The shelf is the storm's low cloud there: scud at the same height would
   // hide it.
   if (storm?.shelf != null && spec.clouds == null) weather.formations = weather.formations.filter(g => g !== 'stratus-fractus')
