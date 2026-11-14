@@ -29,25 +29,27 @@ rocks, plants, boats, mountains and volcanoes, birds, seals, dolphins and whales
 > **Status: planned** (`knowledge/plans/CRON.md`); the scripts in `crons/` aren't written yet.
 
 Sets your desktop to the day's `latest.jpg` every morning at 07:xx, with the minute random per
-machine. If today's image isn't out yet, it tries once more ~3 h later. Nothing to install.
+machine. If today's image isn't out yet, it tries once more a few hours later. It never updates
+itself.
 
-**Ubuntu and macOS** (one script for both):
+**Ubuntu and macOS** (one script; on Linux it finds your desktop, GNOME, KDE, XFCE, Cinnamon, MATE
+or LXQt, and stops on any other):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/install.sh -o install.sh
-less install.sh && bash install.sh        # options: --portrait, --hour 8
+curl -fsSLO https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/sea-wallpaper.sh
+less sea-wallpaper.sh && bash sea-wallpaper.sh --install     # options: --portrait, --hour 8
 ```
 
 **Windows 10 / 11** (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/install.ps1 -OutFile install.ps1
-notepad install.ps1; powershell -ExecutionPolicy Bypass -File install.ps1   # -Portrait, -Hour 8
+irm https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/sea-wallpaper.ps1 -OutFile sea-wallpaper.ps1
+notepad sea-wallpaper.ps1; powershell -ExecutionPolicy Bypass -File sea-wallpaper.ps1 -Install   # -Portrait, -Hour 8
 ```
 
-Afterwards, `sea-wallpaper --now` sets today's image right away, `--status` shows the last one
-and the log, and `--uninstall` removes everything (Windows: `-Now`, `-Status`, `-Uninstall`).
-On macOS, allow the first-run prompt to control "System Events".
+Afterwards: `sea-wallpaper --now` (set today's image right away), `--status` (version, last image,
+log), `--upgrade` (fetch a newer version), `--uninstall`. On Windows: `-Now`, `-Status`,
+`-Upgrade`, `-Uninstall` on the installed script, whose path the installer prints.
 
 ## Develop
 
