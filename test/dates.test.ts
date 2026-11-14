@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { localDateString, resolveDate, shiftDate } from '../src/dates'
+import { isRealDate, localDateString, resolveDate, shiftDate } from '../src/dates'
 
 describe('dates', () => {
   it('formats local dates with zero padding', () => {
@@ -32,6 +32,16 @@ describe('dates', () => {
     expect(resolveDate('2026-10-16', today, false)).toBe(today)
     expect(resolveDate('2026-10-14', today, false)).toBe('2026-10-14')
     expect(resolveDate('2026-10-15', today, false)).toBe(today)
+  })
+
+  it('shows today for days that are not on the calendar', () => {
+    const today = '2026-10-15'
+    for (const bad of ['2026-10-32', '2024-13-14', '2026-00-10', '2026-10-00', '2026-02-30', '2027-02-29', '2100-02-29']) {
+      expect(isRealDate(bad), bad).toBe(false)
+      expect(resolveDate(bad, today, true), bad).toBe(today)
+    }
+    for (const good of ['2028-02-29', '2000-02-29', '2026-12-31', '2026-01-01']) expect(isRealDate(good), good).toBe(true)
+    expect(resolveDate('2024-02-29', today, false)).toBe('2024-02-29')
   })
 
   it('allows future dates when asked to', () => {

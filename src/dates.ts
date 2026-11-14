@@ -12,10 +12,16 @@ export function shiftDate(date: string, days: number): string {
   return localDateString(d)
 }
 
-/** The day to show for a ?date= value: today when it's missing or malformed,
+/** A YYYY-MM-DD day that exists on the calendar (not 2026-10-32, 2024-13-14
+ * or 2027-02-29): formatting the parsed day gives the same string back. */
+export function isRealDate(s: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) && localDateString(new Date(`${s}T12:00:00`)) === s
+}
+
+/** The day to show for a ?date= value: today when it's missing, malformed or not a real day,
  * and (unless future days are allowed) when it hasn't happened yet —
  * tomorrow's sea isn't out yet. */
 export function resolveDate(requested: string | null, today: string, allowFuture: boolean): string {
-  const date = requested != null && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today
+  const date = requested != null && isRealDate(requested) ? requested : today
   return date > today && !allowFuture ? today : date
 }

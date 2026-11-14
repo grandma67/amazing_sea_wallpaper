@@ -94,7 +94,8 @@ const useWorker = offscreenWebGL2()
  */
 interface View {
   date: string
-  params: SceneParams
+  /** null when the day's planning threw (`ready` rejects with why). */
+  params: SceneParams | null
   canvas: HTMLCanvasElement
   ready: Promise<Rendered & { params: SceneParams }>
   dispose(): void
@@ -197,7 +198,15 @@ function showDay(): View {
   view = null
   const job = startWorker()
   const cachePath = renderCachePath({ date, width, height, frames, portrait, spec: query.get('scene') })
-  const params = generateSceneParams(date, width / height, spec)
+  // A planning error (a bug on this day) shows on the splash like a render error.
+  let params: SceneParams | null = null
+  let paramsError: unknown = null
+  if (specError == null)
+    try {
+      params = generateSceneParams(date, width / height, spec)
+    } catch (error) {
+      paramsError = error
+    }
   const canvas = document.createElement('canvas')
   canvas.id = 'wallpaper'
   document.getElementById('wallpaper')?.remove()
@@ -211,6 +220,7 @@ function showDay(): View {
     // Let the "Rendering…" text paint before the GPU work blocks the thread.
     await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)))
     if (specError != null) throw specError
+    if (params == null) throw paramsError
     if (resolution == null) throw new Error('this browser does not support WebGL 2')
     const cached = cacheOn ? await cachedRender(cachePath) : null
     if (disposed) throw new Error('superseded')
@@ -360,7 +370,7 @@ document.getElementById('download')!.addEventListener('click', () => {
 // Hook for scripts/snapshot.mjs and scripts/restart.mjs: the day on screen.
 declare global {
   interface Window {
-    __sea: { ready: Promise<Rendered & { params: SceneParams }>; params: SceneParams; view: View }
+    __sea: { ready: Promise<Rendered & { params: SceneParams }>; params: SceneParams | null; view: View }
   }
 }
 function publish(shown: View): void {

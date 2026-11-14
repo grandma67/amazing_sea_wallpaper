@@ -1,3 +1,4 @@
+import { isRealDate } from './dates'
 import { BEACH_MATERIALS, type BeachMaterial } from './beach'
 import { BEACH_STATES, type BeachState } from './beachState'
 import { SHOWERS } from './meteors'
@@ -338,7 +339,7 @@ const SPEC = object({
   name: string,
   note: string,
   date: (value, path) => {
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) fail(path, `must be YYYY-MM-DD; got ${JSON.stringify(value)}`)
+    if (typeof value !== 'string' || !isRealDate(value)) fail(path, `must be a real YYYY-MM-DD day; got ${JSON.stringify(value)}`)
   },
   seed: string,
   timeOfDay: oneOf(...TIMES),

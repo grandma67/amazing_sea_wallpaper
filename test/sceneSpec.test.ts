@@ -249,6 +249,9 @@ describe('parseSceneSpec', () => {
     // The commonest slip in a diff.mjs --off patch.
     expect(() => parseSceneSpec({ debug: { passes: { aerial: false } } } as never)).toThrow(/debug switches go under params/)
     expect(() => parseSceneSpec({ biome: 'arctic' })).toThrow(/spec\.biome must be one of/)
+    expect(() => parseSceneSpec({ date: '2026-10-32' })).toThrow(/spec\.date must be a real YYYY-MM-DD day/)
+    expect(() => parseSceneSpec({ date: '2024-13-14' })).toThrow(/spec\.date must be a real/)
+    expect(parseSceneSpec({ date: '2028-02-29' })).toEqual({ date: '2028-02-29' })
     // The shelf cloud's detail switches (shelfCloud.ts SHELF_TERMS).
     expect(() => parseSceneSpec({ params: { debug: { shelf: { tiers: false, stria: false } } } } as never)).not.toThrow()
     expect(() => parseSceneSpec({ params: { debug: { shelf: { scud: false } } } } as never)).toThrow(/is not a shelf term/)
