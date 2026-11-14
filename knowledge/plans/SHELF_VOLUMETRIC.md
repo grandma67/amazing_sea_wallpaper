@@ -1,6 +1,6 @@
 # Shelf cloud in the volumetric clouds
 
-**Status: phases 0–2 done (0.173–0.174, 2026-11-14); phase 3 (the gate) next.** Replaces the shelf cloud's mesh
+**Status: phases 0–3 done (0.173–0.175, 2026-11-14): the gate passed on cost and sharpness; phase 4 (the look) next.** Replaces the shelf cloud's mesh
 (`props/cloudEvents.ts` `shelfGeometry`, last tuned in 0.172) with cloud drawn by takram's
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
@@ -196,7 +196,25 @@ The steps as planned:
 - **Done when:** the shelf shows as cloud on the five days (contact sheet), and both identity
   checks pass.
 
-### 3. Gate: sharp enough, cheap enough (numbers, ~1 h)
+### 3. Gate: sharp enough, cheap enough ✅ 0.175
+Results (1080p, 16 frames; probe `{"az": 0, "el": [3, 12], "step": 0.02}`; TS prediction by
+marching `shelfDensity` along the view's centre line from `p.ctx.camera`, `params.mjs --rendered`):
+
+| | Result | Target |
+|---|---|---|
+| Cost, the five days vs `f105fe3` (`bench.mjs --runs 3`) | +3% in all (−4% to +10% a day, noisy); days without a shelf are untouched (no layer, no patch; identity diff in phase 2) | ≤ +10% ✅ |
+| Lip width, 10–90%, 2016-06-21 | 3 px (5.18° → 5.30°, 25.7 px/°); the mesh: 1 px | ≤ ~6 px ✅ |
+| Lip elevation, render vs TS | 5.21° vs 5.36°: 4 px | ~3 px: just over, accepted |
+| Face vs the deck above it, backlit (2016-06-21) | 1.39–1.48 vs 1.02–1.04 × 10³ cd/m²: 1.4×; the mesh: 0.65× | within ±25% ❌: phase 4 |
+| Lip contrast, midday telephoto (2005-01-28) | face ~1.93 vs ~1.9 × 10³ cd/m² below the lip: almost none | (not a target; found here): phase 4 |
+
+**Found on the way:** takram doubles the density before its detail noise
+(`sampleMedia`: `remapClamped(density * 2.0, …)`), so the edge shows where `shelfDensity` is
+~0.25 (`SHELF_VISIBLE_DENSITY`), not 0.5. With 40/60 m edges that put the lip 0.7° (18 px)
+below the TS's and 6 px soft; the edges are now 20/25 m. Predictions from the TS must use
+`SHELF_VISIBLE_DENSITY`.
+
+The steps as planned:
 - **Cost:** `bench.mjs --ref HEAD` on the five days, plus its default dates: **≤ +10%** render
   time on shelf days. The other dates must give an identical image (bench prints the pixel diff),
   with time within bench's noise.

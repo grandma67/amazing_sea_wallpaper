@@ -22,6 +22,10 @@ import { RETURN, SAMPLE_END } from './stormCells'
 // camera in the middle and wanders in kilometre scallops.
 
 /** Every number of the shape, written into the GLSL as is. */
+/** The density at which takram's clouds show the shelf's edge (see
+ * faceEdgeM): what a CPU prediction of where the edge shows should use. */
+export const SHELF_VISIBLE_DENSITY = 0.25
+
 export const SHELF_SHAPE = {
   /** Half the front's length (m), and how far its ends fade. */
   halfLengthM: 40_000,
@@ -39,9 +43,12 @@ export const SHELF_SHAPE = {
   topAboveBaseM: 300,
   /** Of the rise from lip to top, how much the underside climbs over its depth. */
   undersideRise: 0.75,
-  /** Edge widths (m): the face and lip, the underside, the top. */
-  faceEdgeM: 40,
-  undersideEdgeM: 60,
+  /** Edge widths (m): the face and lip, the underside, the top. takram
+   * doubles the density before its detail noise (sampleMedia), so the edge
+   * shows where this density is ~0.25: half the width below the middle.
+   * 40/60 m left the lip ~0.7° low and ~6 px soft at 3 km (2016-06-21). */
+  faceEdgeM: 20,
+  undersideEdgeM: 25,
   topEdgeM: 80,
   /** The back end fades into the storm's deck over this (m). */
   backFadeM: 800
