@@ -519,6 +519,7 @@ tool gotchas: TOOLS.md.
   clouds unshadowed and low-sun bases came out too pink (`primeCloudShadow`).
 - Temporal upscaling + along-ray-only jitter left spots and grain in averaged stills: Halton
   sub-pixel jitter + one final sky denoise fixed it.
+- Stretching a noise map to arrange its features stretches every feature in it: cloud streets made by squeezing takram's weather map 3× along the wind turned each cumulus into a brushed streak ("long horizontal lines" toward the wind's vanishing point, 0.192). Arrange with a mask over the unstretched map (rows of normal cells), and keep the mask's mean at 1 or the sky empties (a 0.3/1.25 mask emptied a `few` day).
 - Streaky clouds toward the vanishing point = float32 cancellation in the cube-sphere uv
   (`sqrt(a - sqrt(a² - 6mx²))` = 0 within ~1 km of our anchor's meridian), not wind or texture
   (`stabiliseCubeSphereUv`).

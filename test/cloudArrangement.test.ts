@@ -2,7 +2,16 @@ import { Ellipsoid, Geodetic, radians } from '@takram/three-geospatial'
 import { Matrix4, Vector2, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { arrangementMatrix, cloudDrift, cubeSphereUv } from '../src/cloudArrangement'
+import {
+  arrangementMatrix,
+  cloudDrift,
+  cubeSphereUv,
+  STREET_GAP,
+  STREET_PEAK,
+  streetFactor,
+  streetFrame,
+  streetRowsFor
+} from '../src/cloudArrangement'
 import { CLOUD_GENERA } from '../src/cloudTypes'
 import { dirFromAzEl } from '../src/params'
 import { allParams, scene, scenes, share } from './days'
@@ -96,6 +105,52 @@ describe('cloud arrangement', () => {
       const c = step(new Vector3(0, 1, 0).cross(wind).normalize())
       expect(apply(d).distanceTo(d.clone().multiplyScalar(0.25))).toBeLessThan(1e-6 * d.length() + 1e-9)
       expect(apply(c).distanceTo(c.clone().multiplyScalar(2))).toBeLessThan(1e-6 * c.length() + 1e-9)
+    }
+  })
+})
+
+describe('cloud streets', () => {
+  const anchor = new Geodetic(0, radians(40), 0).toECEF()
+  const worldToECEF = Ellipsoid.WGS84.getNorthUpEastFrame(anchor, new Matrix4())
+  const repeat = new Vector2(150, 150)
+  const toMetres = (frame: ReturnType<typeof streetFrame>, p: Vector3): Vector2 => {
+    const ecef = p.clone().applyMatrix4(worldToECEF)
+    const t = cubeSphereUv(ecef).multiply(repeat).sub(frame.origin)
+    const m = frame.toMetres
+    return new Vector2(m.x * t.x + m.z * t.y, m.y * t.x + m.w * t.y)
+  }
+
+  it('reads a point on the ground as metres along and across the wind', () => {
+    for (const heading of [0, 37, 90, 200, 326]) {
+      const wind = new Vector3(...dirFromAzEl(heading, 0))
+      const across = new Vector3(0, 1, 0).cross(wind).normalize()
+      const frame = streetFrame(worldToECEF, wind, repeat)
+      const m = toMetres(frame, wind.clone().multiplyScalar(2000).addScaledVector(across, -700))
+      expect(m.x).toBeCloseTo(2000, -1)
+      expect(m.y).toBeCloseTo(-700, -1)
+    }
+  })
+
+  it('rows the cloud along the wind, not across it, with the cells unstretched', () => {
+    const rows = streetRowsFor(1050, [0.3, 0.1])
+    expect(rows.spacingM).toBeGreaterThan(2000)
+    expect(rows.spacingM).toBeLessThan(8000)
+    // Along a row the factor stays high; across, it swings from row to gap.
+    const along = Array.from({ length: 50 }, (_, i) => streetFactor(rows, i * 200, 0))
+    const across = Array.from({ length: 50 }, (_, i) => streetFactor(rows, 0, i * 100))
+    const spread = (xs: number[]): number => Math.max(...xs) - Math.min(...xs)
+    expect(spread(across)).toBeGreaterThan(0.8)
+    expect(spread(along)).toBeLessThan(spread(across) / 2)
+    expect(Math.min(...across)).toBeCloseTo(STREET_GAP, 1)
+    expect(Math.max(...across)).toBeCloseTo(STREET_PEAK, 1)
+  })
+
+  it('every street day has a main layer to row', () => {
+    for (const p of allParams().filter(q => q.weather.arrangement?.kind === 'streets')) {
+      const main = CLOUD_GENERA[p.weather.formations[0]]
+      const { spacingM } = streetRowsFor(main.altitude + main.height, p.weather.weatherOffset)
+      expect(spacingM).toBeGreaterThan(2000)
+      expect(spacingM).toBeLessThan(8000)
     }
   })
 })

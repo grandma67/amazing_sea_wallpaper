@@ -38,8 +38,11 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   `pickFormations` draws one per étage, `pickSpecies` (own stream) refines and adds fractus,
   scud and duplicatus, ≤ 4 layers; `layerChannels` gives an étage's second layer the weather
   map's spare channel `a` (fine Perlin) so it doesn't mirror the first; storms:
-  `stormFormations`. `cloudArrangement.ts` patches the weather-map lookup with a 2×2 transform in
-  cube-sphere uv, so streets/bands follow `weather.arrangement.headingDeg`;
+  `stormFormations`. `cloudArrangement.ts`: bands patch the weather-map lookup with a 2×2 transform in
+  cube-sphere uv (stretched across `weather.arrangement.headingDeg`); streets keep the cells
+  unstretched and multiply the main layer's (layer 0, `localWeather.x`) weather by a row mask
+  across the wind (`streetFactor`, mirrored in `cloudStreet`: ×0.45 gap, ×1.55 row, spacing
+  `STREET_ASPECT` 3 × the layer's top, ±15% wander; the rows don't drift, the cells drift along them);
   `stabiliseCubeSphereUv` rewrites takram's u in a cancellation-free form.
 - **Storms:** `stormCells.ts` raises the Cb layer's weather to full (density ×3 in the core) in a
   cell (r ≈ 3.5 km + 10% of distance) over each bolt and rain curtain, in the clouds, shadow and

@@ -210,3 +210,4 @@ Sources and photos: [SEASONS.md](SEASONS.md) §4.2, [plans/SEA_ICE.md](plans/SEA
 - Clouds amplify light pollution: [Kyba et al. 2011, PLoS ONE](https://pmc.ncbi.nlm.nih.gov/articles/PMC3047560).
 - Reference photo of a storm lit from inside at night: [ABC](https://live-production.wcms.abc-cdn.net.au/a4a718109bb53994c7fc0cc1ea720938?impolicy=wcms_crop_resize&cropH=1365&cropW=2048&xPos=0&yPos=0&width=862&height=575).
 
+- Cloud-street spacing 2–4× the convective layer depth (Etling & Brown 1993, as summarised): [Wikipedia, Horizontal convective rolls](https://en.wikipedia.org/wiki/Horizontal_convective_rolls); roll wavelength ~3× in a model: [Chlond 1987](https://pure.mpg.de/pubman/item/item_2409691_2/component/file_3360539/chlond_1987.pdf) (search summary only).

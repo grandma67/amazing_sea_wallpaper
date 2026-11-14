@@ -35,7 +35,7 @@ import {
 
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
-import { arrangeClouds, stabiliseCubeSphereUv } from './cloudArrangement'
+import { arrangeClouds, stabiliseCubeSphereUv, streetRowsFor } from './cloudArrangement'
 import { patchRollCloud, rollLayer, type RollFrame, type RollShape } from './rollCloud'
 import { patchShelfCloud, shelfLayer, type ShelfSky } from './shelfCloud'
 import type { RollCloudParams } from './skyEvents'
@@ -222,7 +222,8 @@ export function createClouds(
   stabiliseCubeSphereUv(clouds)
   if (weather.arrangement != null) {
     const wind = new Vector3(...dirFromAzEl(weather.arrangement.headingDeg, 0))
-    arrangeClouds(clouds, worldToECEF, wind, weather.arrangement.kind)
+    const main = CLOUD_GENERA[weather.formations[0]]
+    arrangeClouds(clouds, worldToECEF, wind, weather.arrangement.kind, streetRowsFor(main.altitude + main.height, weather.weatherOffset))
   }
   patchStormCells(clouds, worldToECEF, cells, stormLayer(weather.formations))
   if (withShelf) patchShelfCloud(clouds, shelf, weather.formations.length, stormLayer(weather.formations))

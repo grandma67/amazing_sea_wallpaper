@@ -145,7 +145,9 @@ A 2×2 transform on takram's weather-map lookup in cube-sphere uv, along
 `weather.arrangement.headingDeg` (the wind). It applies to all layers. Not in storms. Spec
 `cloudArrangement`.
 - **Streets** (radiatus): along the wind. Main layer Cu (not congestus) or Sc, few or
-  scattered, wind ≥ 5 m/s. 40% on tropical coasts (trade winds), 25% elsewhere.
+  scattered, wind ≥ 5 m/s. 40% on tropical coasts (trade winds), 25% elsewhere. Rows of
+  unstretched cells, 3 × the layer's top apart (2–4× the convective layer's depth over the
+  sea: Etling & Brown 1993).
 - **Bands** (undulatus): across the wind. Main layer Ac, Cc or Sc, 30%.
 
 ## Special clouds
