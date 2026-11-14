@@ -30,29 +30,29 @@ rocks, plants, boats, mountains and volcanoes, birds, seals, dolphins and whales
 
 Sets your desktop to the day's `latest.jpg` every morning at 07:xx, with the minute random per
 machine. If today's image isn't out yet, it tries once more a few hours later. It never updates
-itself.
+itself. Everything lives in one `amazing-sea-wallpaper` folder (Linux `~/.local/share/`, macOS
+`~/Library/Application Support/`, Windows `%LOCALAPPDATA%\`).
 
-**Linux and macOS** (one script). On Linux it finds your desktop (GNOME, KDE, Cinnamon, MATE, XFCE,
-LXQt, Budgie, Pantheon, COSMIC) and stops on any other. It schedules with cron, or a systemd user
-timer where there's no cron (Arch, Fedora, openSUSE):
+**Linux and macOS** (one script): Ubuntu, Debian, Fedora, openSUSE, Mint, Zorin, elementary OS,
+Pop!_OS, Solus, Arch and Gentoo on their default desktops (GNOME, KDE, Cinnamon, Pantheon, Budgie,
+COSMIC). It uses cron, or a systemd user timer where there's no cron.
 
 ```sh
-curl -fsSLO https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/sea-wallpaper.sh
-less sea-wallpaper.sh && bash sea-wallpaper.sh --install     # options: --portrait, --hour 8
+curl -fsSLO https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/amazing-sea-wallpaper.sh
+less amazing-sea-wallpaper.sh && bash amazing-sea-wallpaper.sh --install     # --portrait, --hour 8
 ```
 
-No `curl` (some Debian and Gentoo installs)? Download it with `wget <same URL>` instead.
+No `curl` (Ubuntu and its family)? `wget` the same URL.
 
 **Windows 10 / 11** (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/sea-wallpaper.ps1 -OutFile sea-wallpaper.ps1
-notepad sea-wallpaper.ps1; powershell -ExecutionPolicy Bypass -File sea-wallpaper.ps1 -Install   # -Portrait, -Hour 8
+irm https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/amazing-sea-wallpaper.ps1 -OutFile amazing-sea-wallpaper.ps1
+notepad amazing-sea-wallpaper.ps1; powershell -ExecutionPolicy Bypass -File amazing-sea-wallpaper.ps1 -Install   # -Portrait, -Hour 8
 ```
 
-Afterwards: `sea-wallpaper --now` (set today's image right away), `--status` (version, last image,
-log), `--upgrade` (fetch a newer version), `--uninstall`. On Windows: `-Now`, `-Status`,
-`-Upgrade`, `-Uninstall` on the installed script, whose path the installer prints.
+Afterwards: `amazing-sea-wallpaper --now` (set today's image now), `--status`, `--upgrade`,
+`--uninstall`. On Windows, `-Now`, `-Status`, `-Upgrade`, `-Uninstall` on the installed script.
 
 ## Develop
 
