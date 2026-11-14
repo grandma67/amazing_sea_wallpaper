@@ -5,6 +5,21 @@
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
 
+## Read first
+
+Before phase 0, open (not grep):
+- `src/stormCells.ts`: the patch this plan copies (the two hook points, the guard, the uv → metres
+  matrix);
+- `src/clouds.ts` `createClouds`: the layer list, the patch calls, and the reflection cube's build
+  (line ~285);
+- takram's `node_modules/@takram/three-clouds/src/shaders/clouds.glsl`: `sampleWeather` and
+  `sampleMedia`, and the march loop in `clouds.frag` (~line 480);
+- `src/props/cloudEvents.ts` as of commit `c8d65df`: the 0.172 mesh, whose shape numbers this
+  plan reuses, and which phase 6 deletes;
+- `src/skyEvents.ts` `shelfCloudFor`, and `params.ts` where it's called (~line 1998);
+- LESSONS.md "takram sky, clouds, post" and "Storms and sky objects"; arch/SKY.md; TOOLS.md
+  "Gotchas"; tools/DEBUG.md "The pixel probe" and "Lines of pixels".
+
 ## Why
 
 A mesh can't look like cloud here. 0.172 got its brightness and hue right by measurement, but
@@ -98,7 +113,10 @@ citing Goff 1976, *Mon. Wea. Rev.* 104, 1429–1440.
   changes the storm on up to 112 days. The shelf's chance (40% of storms) is drawn before any
   of this, so it doesn't change.
 - **Off switch while building:** `params.debug.passes.shelfVolume: false` draws the 0.172 mesh
-  instead. Phase 6 deletes the mesh; after that `shelfCloud: false` is the before/after switch.
+  instead (add it to the `passes` row in tools/DEBUG.md while it exists). Phase 6 deletes the mesh;
+  after that `shelfCloud: false` is the before/after switch.
+- **Code layout:** `src/shelfCloud.ts` holds the frame, `shelfDensity` (TS), its GLSL string and
+  `patchShelfCloud`. Choices stay in `skyEvents.ts` and `params.ts`.
 
 ## Phases
 
@@ -117,7 +135,8 @@ and update this list.
   curtains and bolts in that sector to at least lip + 1 km. Every shelf day has one in the sector
   today. If a forced spec makes a day without one, keep the drawn distance.
 - Tests (`test/skyEvents.test.ts`): over `allParams()`, no shelf day has rain or a bolt within ±45°
-  nearer than its lip; the share of storms with a shelf is unchanged (`expectShare`).
+  nearer than its lip + 1 km, and every lip stands 3–8 km out. The existing "~40% of storms"
+  test must still pass unchanged.
 - `params.mjs --ref HEAD --changed 'p => p.place.id'` for the changelog (expect ≤ 112 days,
   `storm` fields only; anything else changing is a bug).
 - **Done when:** the tests pass, and a 1080p render of the five days shows bolts behind the
@@ -135,7 +154,7 @@ and update this list.
   - density 0 in front of the lip, below the lip and above the Cb base + 300 m;
   - ≥ 0.9 inside the face just behind the lip;
   - the lip within ±15% of `lipHeightM` all along the front;
-  - every tier step backs away from the camera;
+  - going up the face, each tier stands farther back (toward the storm) than the one below;
   - **the uv → metres error at 10, 20 and 40 km from the shelf's origin, < 50 m at 40 km**. If
     it isn't, build the matrix around the point on the front nearest the camera, which is where
     accuracy matters.
@@ -168,11 +187,16 @@ and update this list.
   checks pass.
 
 ### 3. Gate: sharp enough, cheap enough (numbers, ~1 h)
-- **Cost:** `bench.mjs --ref HEAD` on the five days and the default storm date: **≤ +10%**
-  render time on shelf days, 0% elsewhere.
-- **Lip:** `params.debug.probeLine` vertically through the lip on 2016-06-21 and 2005-01-28. The
-  luminance step from under the lip to the face should take ≤ ~6 px at 1080p. Measure the mesh
-  the same way, to compare.
+- **Cost:** `bench.mjs --ref HEAD` on the five days, plus its default dates: **≤ +10%** render
+  time on shelf days. The other dates must give an identical image (bench prints the pixel diff),
+  with time within bench's noise.
+- **Lip:** `params.debug.probeLine` `{"az": 0, "el": [0, 12], "step": 0.02}` (straight ahead, up
+  through the lip) on 2016-06-21 and 2005-01-28. The luminance step from under the lip to the
+  face should span ≤ ~6 px at 1080p; the probe's step is in degrees, so convert with the day's
+  lens. Measure the mesh the same way (`passes.shelfVolume: false`), to compare.
+- **Parity (TS vs GLSL):** the step's elevation should match the lip's elevation from the TS
+  (`shelfDensity`'s lip at azimuth 0: `atan((lip − eye height − curvature drop) / distance)`)
+  within ~3 px' worth of degrees. If not, the two sides differ: fix that before going on.
 - **Brightness:** `params.debug.probe` points on the face and the deck above it. The face should be within ±25%
   of the deck above it, backlit; front-lit it should be brighter than the deck.
 - **If the lip is too soft:** steepen the density edge (the smoothstep width) before anything
@@ -183,13 +207,12 @@ and update this list.
   smoothstep tails. Or cap the band at ±25 km.
 - **Stop here and report** if neither fix gets both numbers within the targets. The decision
   (keep the mesh, accept softer or more expensive) is the user's.
-- **Done when:** the three numbers are written into this plan and are within target.
+- **Done when:** the four results (cost, lip width, parity, brightness) are written into this plan
+  and are within target.
 
 ### 4. The look: tiers, striations, scud (~2–3 h, ≤ 3 render rounds)
-- Add to `shelfDensity`, TS and GLSL together. GLSL can't run in a unit test, so check that the
-  two sides agree on a render: predict the lip's pixel row at the frame's centre from the TS (the
-  lip point at the camera's azimuth, projected with the frame's camera), and compare it with the
-  phase 3 `probeLine` step. They should agree within 3 px. Add:
+- Add to `shelfDensity`, TS and GLSL together (the constants come from the one TS object). Re-run
+  phase 3's parity probe after each change. Add:
   - tiers as steps in the face's set-back, which drift and fade along the front (as in the 0.172
     mesh, commit `c8d65df`: tier height ±0.11 of the face, strength noise at ~1.8 km);
   - striations as ±15% density bands ~30 m apart that follow the lip;
