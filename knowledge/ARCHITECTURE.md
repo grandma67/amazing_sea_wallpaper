@@ -429,7 +429,8 @@ Sky:
 - Shelf cloud (0.172) still reads as a smooth band of mesh, not cloud: it sits 3–5° up, its edges
   are hard where the clouds are soft, and on telephoto days (2005-01-28, 2006-06-26) it shows
   straight bands edge to edge (cause not traced). Seen by eye on 4 real days; the fix is to draw
-  it in the volumetric clouds (like `stormCells.ts`), not a better mesh.
+  it in the volumetric clouds (like `stormCells.ts`), not a better mesh:
+  [plans/SHELF_VOLUMETRIC.md](plans/SHELF_VOLUMETRIC.md).
 - 2026-02-13: sparkly dots in the air over the sea.
 - Night sky units (NIGHT_SKY phase 2, until phase 3): the drawn sky has no natural background
   (airglow), so under a thin crescent the sky is darker than a real one and stars stand out too
