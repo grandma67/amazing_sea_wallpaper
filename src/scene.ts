@@ -62,7 +62,7 @@ import { patchSkyNoctilucent } from './noctilucent'
 import { patchSkyMeteors } from './meteors'
 import { auroraLux, auroraScale, patchCloudsAurora, patchSkyAurora } from './aurora'
 import { extinction, GLITTER_MAGNITUDE, planetStarData, PLANET_MAGNITUDES, PLANETS } from './planets'
-import { glowScale, patchSkyNightGlow, type GlowFrame } from './nightGlow'
+import { glowScale, patchSkyNightGlow, townSkyFor, type GlowFrame, type TownSky } from './nightGlow'
 import { eclipseSky } from './eclipse'
 import type { DebugPass } from './debug'
 import { ICE_REFLECTANCE, meterScene } from './exposure'
@@ -356,6 +356,8 @@ export async function renderScene(
     const scale = auroraScale(renderPerLux(params.nightSky, elongationDeg(params)))
     for (const material of [skyMaterial, envSkyMaterial]) patchSkyAurora(material, aurora, worldToECEF, scale)
   }
+  // The towns' light on the clouds from below (nightGlow.ts), on nights with a glow.
+  let townSky: TownSky | null = null
   if (glow != null) {
     const az = (params.coast.seawardAzimuthDeg * Math.PI) / 180
     const frame: GlowFrame = {
@@ -368,6 +370,7 @@ export async function renderScene(
     const scale = glowScale(params.nightSky, elongationDeg(params))
     const map = milkyWayMap ?? new Texture()
     for (const material of [skyMaterial, envSkyMaterial]) patchSkyNightGlow(material, glow, frame, map, scale, night && !moonlit)
+    if (pass('townLight')) townSky = townSkyFor(glow, frame.inland, scale)
   }
 
   // Stars at night and late twilight: the real bright-star catalogue, turned
@@ -704,7 +707,7 @@ export async function renderScene(
       : null
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit)
+      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky)
       : null
   // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
   // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).
@@ -919,7 +922,8 @@ export async function renderScene(
       envFrames,
       shelf,
       rolls,
-      flashLit
+      flashLit,
+      townSky
     )
   }
   // What the sky cube gives a level surface: the props' sky light.

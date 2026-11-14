@@ -155,6 +155,12 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   to a horizon glow with corona and stars, no direct sun, sky light ×~0.01, no aerial-perspective
   inscatter, dim environment on props. Simplification: the scene has no real location, so
   off-path days show the eclipse as if on the path (partials at a random 30–85%).
+- **Town light on cloud bases** (`nightGlow.ts` `patchCloudsTownLight`, CLOUD_ILLUMINATION phase 7;
+  `passes.townLight`): on Bortle 3–4 nights a cloud's face (the first cloud a ray meets in takram's
+  march, carried along it like the flash) is lit from below at 2.8 × the clear sky's artificial
+  zenith (Kyba 2011, 32 km from Berlin), up to ×3.6 toward the dome (`townFace`), sodium/LED
+  orange; in the frame and the reflection cube. Measured: an overcast Bortle 4 night's deck
+  2.3× the artificial zenith overhead (target 2.8 before the haze's share).
 - **Night glow** (`nightGlow.ts`, NIGHT_SKY phase 3): `nightGlowFor` (stream `'night-glow'`,
   whenever the sun is down) draws the airglow (zenith S10 by the solar cycle × a nightly spread,
   red share, bands) and takes the place's Bortle class (`places.ts` `BORTLE`). `patchSkyNightGlow`

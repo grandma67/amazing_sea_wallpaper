@@ -9,7 +9,10 @@ import {
   solarActivity,
   vanRhijn,
   zodiacalS10,
-  GREEN_LAYER_KM
+  GREEN_LAYER_KM,
+  OVERCAST_GAIN,
+  townFace,
+  townSkyFor
 } from '../src/nightGlow'
 import { PLACES } from '../src/places'
 import { allParams, scene, share } from './days'
@@ -93,5 +96,27 @@ describe('night glow', () => {
     const off = scene({ ...base, milkyWay: false, airglow: null, zodiacalLight: false, skyDarkness: 4 })
     expect(p.nightGlow!.milkyWay && p.nightGlow!.airglow && p.nightGlow!.zodiacal).toBe(true)
     expect(off.nightGlow).toMatchObject({ milkyWay: false, airglow: false, zodiacal: false, bortle: 4 })
+  })
+})
+
+describe('town light on clouds (CLOUD_ILLUMINATION phase 7)', () => {
+  const glow = (bortle: 1 | 2 | 3 | 4) => ({ ...scene({ timeOfDay: 'night', skyDarkness: bortle, eclipse: null, coast: 'beach' }, '2025-07-10').nightGlow!, bortle })
+  it('lights the base overhead 2.8× the clear sky\'s artificial zenith, only under a lit sky', () => {
+    expect(townSkyFor(glow(1), [1, 0, 0], 1)).toBeNull()
+    expect(townSkyFor(glow(2), [1, 0, 0], 1)).toBeNull()
+    const town = townSkyFor(glow(4), [1, 0, 0], 1)!
+    expect(town.zenith).toBeCloseTo(OVERCAST_GAIN * ARTIFICIAL[4].zenith, 9)
+    expect(townFace(town, 0, 0)).toBeCloseTo(town.zenith, 9)
+  })
+  it('is brighter toward the town, at most Berlin\'s own ratio', () => {
+    const town = townSkyFor(glow(4), [1, 0, 0], 1)!
+    const [dx, , dz] = town.dome!
+    const toward = townFace(town, dx * 20000, dz * 20000)
+    const away = townFace(town, -dx * 20000, -dz * 20000)
+    expect(toward).toBeGreaterThan(2 * away)
+    expect(toward / town.zenith).toBeLessThanOrEqual(10.1 / 2.8 + 1e-9)
+    // At sea: no dome, the same everywhere.
+    const sea = townSkyFor(glow(4), null, 1)!
+    expect(townFace(sea, 20000, 0)).toBe(sea.zenith)
   })
 })

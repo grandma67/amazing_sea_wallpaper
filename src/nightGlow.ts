@@ -1,4 +1,4 @@
-import { DataTexture, DataUtils, HalfFloatType, LinearFilter, Matrix3, RedFormat, Uniform, Vector2, Vector3, Vector4, type Texture } from 'three'
+import { DataTexture, DataUtils, HalfFloatType, LinearFilter, Matrix3, RedFormat, Uniform, Vector2, Vector3, Vector4, type ShaderMaterial, type Texture } from 'three'
 import type { SkyMaterial } from '@takram/three-atmosphere'
 
 import { hasLand } from './coastKind'
@@ -562,4 +562,98 @@ export function patchSkyNightGlow(
  * material's uniforms (dispose.ts walks them). */
 function zodiacal(): DataTexture {
   return zodiacalTexture()
+}
+
+// --- Town light on cloud bases (plans/CLOUD_ILLUMINATION.md phase 7) --------
+//
+// Clouds amplify light pollution: the overcast zenith is ×10.1 inside Berlin
+// and ×2.8 at 32 km from its centre (Kyba et al. 2011, PLoS ONE): the base is
+// a reflector lit from below. Our Bortle 3–4 coasts are the "tens of km"
+// case: a cloud's base overhead is 2.8 × the clear sky's artificial zenith,
+// brighter toward the town's dome (Berlin's own ratio, 10.1 / 2.8, at most).
+// Sodium and LED light: linear (1, 0.70, 0.40), sampled from a night photo of
+// a town-lit storm base.
+
+export const OVERCAST_GAIN = 2.8
+/** How much brighter the base is toward the town than overhead, at most. */
+export const DOME_GAIN = 10.1 / 2.8 - 1
+export const TOWN_COLOUR: [number, number, number] = [1, 0.7, 0.4]
+/** Bortle classes whose towns light the clouds (1–2: none worth drawing). */
+export const TOWN_BORTLE = 3
+
+/** What the clouds' shader needs. */
+export interface TownSky {
+  /** Base luminance overhead (render units, luma). */
+  zenith: number
+  /** The dome's direction (world, horizontal unit) and width (rad); null at sea. */
+  dome: [number, number, number] | null
+  widthRad: number
+  colour: [number, number, number]
+}
+
+/** The town light on the night's clouds, or null under a dark sky.
+ * `scale`: render units per S10 (glowScale). */
+export function townSkyFor(glow: NightGlowParams, inland: [number, number, number] | null, scale: number): TownSky | null {
+  if (glow.bortle < TOWN_BORTLE) return null
+  const zenith = OVERCAST_GAIN * ARTIFICIAL[glow.bortle].zenith * scale
+  const off = (glow.dome.offsetDeg * Math.PI) / 180
+  const dome: [number, number, number] | null =
+    inland == null ? null : [inland[0] * Math.cos(off) - inland[2] * Math.sin(off), 0, inland[0] * Math.sin(off) + inland[2] * Math.cos(off)]
+  const luma = 0.2126 * TOWN_COLOUR[0] + 0.7152 * TOWN_COLOUR[1] + 0.0722 * TOWN_COLOUR[2]
+  return { zenith, dome, widthRad: (glow.dome.widthDeg * Math.PI) / 180, colour: TOWN_COLOUR.map(c => c / luma) as [number, number, number] }
+}
+
+/** The base's luminance at a cloud face at world (x, z) (render units, luma):
+ * the GLSL below, term by term. Toward the dome it rises with the distance
+ * out (the cloud nearer the town). */
+export function townFace(town: TownSky, x: number, z: number): number {
+  const d = Math.hypot(x, z)
+  if (town.dome == null || d < 1) return town.zenith
+  const c = Math.min(Math.max((x * town.dome[0] + z * town.dome[2]) / d, -1), 1)
+  const a = Math.acos(c)
+  return town.zenith * (1 + DOME_GAIN * Math.exp((-0.5 * a * a) / (town.widthRad * town.widthRad)) * (d / (d + 5000)))
+}
+
+const TOWN_SKY_LINE = 'radiance += skyIrradiance * RECIPROCAL_PI4 * skyGradient * skyLightScale;'
+const TOWN_POWDER_END = '      #endif // POWDER\n'
+const TOWN_MARCH_START = '  float transmittanceSum = 0.0;\n'
+
+/** Light the clouds' faces from below by the towns (townFace). */
+export function patchCloudsTownLight(material: ShaderMaterial, town: TownSky): void {
+  const source = material.fragmentShader
+  if (source.split(TOWN_SKY_LINE).length !== 2 || source.split(TOWN_POWDER_END).length !== 2 || source.split(TOWN_MARCH_START).length !== 2) {
+    throw new Error('patchCloudsTownLight: the clouds shader has changed; update the patch')
+  }
+  const glsl = /* glsl */ `
+uniform vec4 townDome; // world direction (xyz, 0 at sea), width (rad)
+uniform vec4 townLight; // colour (rgb, luma 1), base luminance overhead
+vec3 townFaceGlow;
+bool townEntered;
+vec3 townFace(const vec3 ecef) {
+  vec3 p = (ecefToWorldMatrix * vec4(ecef - altitudeCorrection, 1.0)).xyz;
+  float d = length(p.xz);
+  float gain = 1.0;
+  if (d > 1.0 && dot(townDome.xyz, townDome.xyz) > 0.5) {
+    float a = acos(clamp(dot(p.xz / d, townDome.xz), -1.0, 1.0));
+    gain += ${DOME_GAIN.toFixed(6)} * exp(-0.5 * a * a / (townDome.w * townDome.w)) * d / (d + 5000.0);
+  }
+  return townLight.rgb * townLight.w * gain;
+}
+`
+  material.fragmentShader = source
+    .replace('vec4 marchClouds(', `${glsl}\nvec4 marchClouds(`)
+    .replace(TOWN_MARCH_START, `${TOWN_MARCH_START}  townEntered = false;\n`)
+    .replace(
+      TOWN_SKY_LINE,
+      `${TOWN_SKY_LINE}
+      // Town light on the cloud's face (nightGlow.ts patchCloudsTownLight).
+      if (!townEntered) {
+        townFaceGlow = townFace(position);
+        townEntered = true;
+      }`
+    )
+    .replace(TOWN_POWDER_END, `${TOWN_POWDER_END}      radiance += townFaceGlow * media.scattering;\n`)
+  material.uniforms.townDome = new Uniform(new Vector4(...(town.dome ?? [0, 0, 0]), town.widthRad))
+  material.uniforms.townLight = new Uniform(new Vector4(...town.colour, town.zenith))
+  material.needsUpdate = true
 }

@@ -1,6 +1,6 @@
 # Cloud illumination: lightning inside the cloud, storms at night, town light on cloud bases
 
-**Status: phases 1–6 done (0.183–0.189, 2026-11-15); phase 7 open.**
+**Status: done (phases 1–7, 0.183–0.190, 2026-11-15).**
 
 Reported on `/?date=2016-06-21` and `/?date=2026-11-02`: the lightning doesn't light the cloud,
 and nothing else lights the sky from below or inside either.
@@ -573,6 +573,18 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
      (`snapshot.mjs --where 'p => p.timeOfDay === "night" && p.weather.kind !== "clear" && p.nightGlow?.bortle >= 3' --sample 6`);
    - `bench.mjs`.
 7. **Commit:** "Towns light cloud bases from below (phase 7)".
+
+**As built (0.190):**
+- **The face approach, as phase 3:** the town light is added at the cloud's face, carried along
+  the ray. There is no optical-depth march toward the town, for the same reason as phase 3
+  (takram's clouds are thin).
+- **Calibration:** the spec field `skyDarkness` 4, forced overcast vs `passes.townLight` off.
+  - Deck overhead: 4.06·10⁻⁴ cd/m² with the town light, 0.98·10⁻⁴ without.
+  - The clear artificial zenith is 1.75·10⁻⁴.
+  - So the deck is 2.3× the artificial zenith (target 2.8, before the haze and the cloud's own
+    transparency). No gain constant was needed.
+- **Real nights** (29 cloudy Bortle 3–4 test nights): subtle warm undersides.
+- **Bench:** +0–3%.
 
 ## Docs (with each phase's commit)
 

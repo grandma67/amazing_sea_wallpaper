@@ -336,9 +336,9 @@ phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed 
   it has no detail, and the gap of air under it shows the town dome as a brown strip with a hard
   top edge. The same layout as by day; seen by eye with `passes.clouds` off and on, cause in the
   clouds' night light (not measured further).
-- Light pollution (`nightGlow.ts`): low clouds aren't lit from below by the towns. At the
-  night white balance (4000 K) the domes come out only mildly warm (sodium ~2100 K stays
-  orange; the LED share pulls them neutral).
+- Light pollution (`nightGlow.ts`): at the night white balance (4000 K) the domes and the town-lit
+  cloud bases (0.190) come out only mildly warm (sodium ~2100 K stays orange; the LED share pulls them
+  neutral).
 - Aurora (`aurora.ts`): clouds are lit by it (0.96), but on quiet starlit nights the glow barely
   shows: the clouds pass's stand-in sun (`scene.ts` `starlight`, nearly overhead, a sun's
   strength in the night's units) outweighs the display's physical light on cloud tops. The

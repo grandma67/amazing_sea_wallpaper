@@ -200,3 +200,13 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
 ## Sea ice
 
 Sources and photos: [SEASONS.md](SEASONS.md) §4.2, [plans/SEA_ICE.md](plans/SEA_ICE.md).
+
+## Cloud illumination (plans/CLOUD_ILLUMINATION.md)
+
+- Charge structure and CG initiation: [IEEE TechNav: lightning](https://technav.ieee.org/topic/lightning/); [NAP, The Earth's Electrical Environment](https://www.nap.edu/read/898/chapter/62); [Surv. Geophys. 2013 review](https://springerlink.bibliotecabuap.elogim.com/doi/10.1007/s10712-013-9230-6); [Edens, bolt-from-the-blue flashes](https://aem.eco/wp-content/uploads/2022/10/Edens-BFB.pdf).
+- Winter lightning's low charge: [IEEJ 2018](https://www.jstage.jst.go.jp/article/ieejpes/138/5/138_310/_article), [URSI AP 2025](https://www.ursi.org/proceedings/procAP25/papers/0454.pdf), [AMS 2013](https://ams.confex.com/ams/93Annual/webprogram/Paper218027.html).
+- Optical energy: [Guo & Krider (NTRS)](https://ntrs.nasa.gov/citations/19830068117); [Sandia 2023](https://www.sandia.gov/research/publications/details/lightning-radiometry-in-visible-and-infrared-bands-2023-09-01/); clouds spreading a flash: [NASA Earthdata](https://www.earthdata.nasa.gov/learn/data-in-action/properties-optical-lightning-flashes-clouds-illuminate), [CloudScat.jl, GMD 2020](https://gmd.copernicus.org/articles/13/5549/2020/).
+- Night storms over the sea: [Holle, AMS 2013](https://ams.confex.com/ams/93Annual/webprogram/Manuscript/Paper215133/8.1%20Holle-Diurnal%20AMS%202013.pdf); [Virts, WWLLN](https://www.nssl.noaa.gov/users/mansell/icae2014/preprints/abstract_short/Virts_289.pdf).
+- Clouds amplify light pollution: [Kyba et al. 2011, PLoS ONE](https://pmc.ncbi.nlm.nih.gov/articles/PMC3047560).
+- Reference photo of a storm lit from inside at night: [ABC](https://live-production.wcms.abc-cdn.net.au/a4a718109bb53994c7fc0cc1ea720938?impolicy=wcms_crop_resize&cropH=1365&cropW=2048&xPos=0&yPos=0&width=862&height=575).
+
