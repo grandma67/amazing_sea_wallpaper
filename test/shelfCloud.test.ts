@@ -1,0 +1,88 @@
+import { Vector3 } from 'three'
+import { describe, expect, it } from 'vitest'
+
+import { SHELF_SHAPE, shelfDensity, shelfFrame, shelfTop, valueNoise1 } from '../src/shelfCloud'
+import type { ShelfCloudParams } from '../src/skyEvents'
+import { seedInt } from '../src/skyMirror'
+import { allParams, scene } from './days'
+
+const BASE = 600
+const camera = new Vector3(0, 0, 0)
+
+/** A world point `back` m behind the lip line and `along` m along the front,
+ * with the bow and scallops added as shelfDensity takes them away: the
+ * frame's own coordinates. */
+function pointOn(shelf: ShelfCloudParams, along: number, back: number): [number, number] {
+  const frame = shelfFrame(shelf, camera)
+  const S = SHELF_SHAPE
+  const bow = -S.bowM * (1 - (along / S.halfLengthM) ** 2)
+  const wobble = S.wobbleM * (valueNoise1(seedInt(shelf.seed), along / S.wobbleScaleM) - 0.5)
+  const p = frame.origin.clone().addScaledVector(frame.across, along).addScaledVector(frame.toStorm, back + bow + wobble)
+  return [p.x, p.y]
+}
+
+const shelves = (): ShelfCloudParams[] => [
+  scene({ storm: 'squall', shelfCloud: true, eclipse: null, timeOfDay: 'daylight' }).storm!.shelf!,
+  ...allParams()
+    .filter(p => p.storm?.shelf != null)
+    .slice(0, 20)
+    .map(p => p.storm!.shelf!)
+]
+
+describe('shelf cloud density', () => {
+  it('is a wedge: empty in front of the lip, below it and above the top; full just behind the lip', () => {
+    for (const shelf of shelves()) {
+      const frame = shelfFrame(shelf, camera)
+      const at = (along: number, back: number, h: number) => shelfDensity(frame, shelf, BASE, ...pointOn(shelf, along, back), h)
+      for (const along of [-30_000, -5_000, 0, 7_000, 25_000]) {
+        expect(at(along, -200, shelf.lipHeightM + 50)).toBe(0)
+        expect(at(along, 300, shelf.lipHeightM - 100)).toBe(0)
+        expect(at(along, 1500, shelfTop(BASE) + 100)).toBe(0)
+        expect(at(along, 250, shelf.lipHeightM + 60)).toBeGreaterThanOrEqual(0.9)
+      }
+      // Off the ends and past the back: the storm's deck, not the shelf.
+      expect(at(SHELF_SHAPE.halfLengthM + 100, 500, shelf.lipHeightM + 100)).toBe(0)
+      expect(at(0, shelf.depthM + 10, shelfTop(BASE) - 100)).toBe(0)
+    }
+  })
+
+  it('has its lip at the drawn height all along the front, and the face sloping back as it rises', () => {
+    for (const shelf of shelves()) {
+      const frame = shelfFrame(shelf, camera)
+      for (const along of [-35_000, -12_000, 0, 9_000, 33_000]) {
+        // The lowest height with cloud just behind the lip.
+        let lowest = 0
+        for (let h = 0; h < 1200; h += 5) {
+          if (shelfDensity(frame, shelf, BASE, ...pointOn(shelf, along, 150), h) > 0.5) {
+            lowest = h
+            break
+          }
+        }
+        expect(Math.abs(lowest - shelf.lipHeightM) / shelf.lipHeightM).toBeLessThan(0.15)
+        // Where the face stands, going up: farther back each time.
+        let last = -Infinity
+        for (const h of [shelf.lipHeightM + 30, (shelf.lipHeightM + shelfTop(BASE)) / 2, shelfTop(BASE) - 120]) {
+          let front = 0
+          for (let back = -300; back < 3000; back += 5) {
+            if (shelfDensity(frame, shelf, BASE, ...pointOn(shelf, along, back), h) > 0.5) {
+              front = back
+              break
+            }
+          }
+          expect(front).toBeGreaterThan(last)
+          last = front
+        }
+      }
+    }
+  })
+
+  it('prints its cross-section (height × distance behind the lip)', () => {
+    const shelf = shelves()[0]
+    const frame = shelfFrame(shelf, camera)
+    const backs = [-100, 0, 100, 300, 600, 1000, 1500, 2000, 3000, 4000]
+    const rows = [shelfTop(BASE) + 50, 850, 750, 650, 550, 450, 400, 350, 300, 250, 200].map(h =>
+      `${String(h).padStart(5)} m ` + backs.map(b => ' .:-=+*#%@'[Math.round(shelfDensity(frame, shelf, BASE, ...pointOn(shelf, 0, b), h) * 9)]).join('  ')
+    )
+    console.log(`shelf lip ${Math.round(shelf.lipHeightM)} m, depth ${Math.round(shelf.depthM)} m, tiers ${shelf.tiers}; back (m): ${backs.join(' ')}\n${rows.join('\n')}`)
+  })
+})

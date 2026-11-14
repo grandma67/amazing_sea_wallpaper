@@ -1,6 +1,6 @@
 # Shelf cloud in the volumetric clouds
 
-**Status: phase 0 done (0.173, 2026-11-14); phase 1 next.** Replaces the shelf cloud's mesh
+**Status: phases 0–1 done (0.173, 2026-11-14); phase 2 next.** Replaces the shelf cloud's mesh
 (`props/cloudEvents.ts` `shelfGeometry`, last tuned in 0.172) with cloud drawn by takram's
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
@@ -75,7 +75,7 @@ citing Goff 1976, *Mon. Wea. Rev.* 104, 1429–1440.
 | A free weather channel on shelf days | `params.mjs --where 'p => p.storm?.shelf != null' --stats` formations | 197 shelf days (2005–2026), at most 3 layers (Cb r, cirrus-spissatus b, altostratus g; scud is removed on shelf days): **the texture channel `a` is always free, and so is a 4th layer** (`MAX_LAYERS` = 4). The shelf's layer index is `formations.length` (1, 2 or 3) |
 | The shadow pass and the reflection cube get the patch too | `stormCells.ts` patches `cloudsPass` and `shadowPass`; `clouds.ts:285` builds the cube's clouds with the same `createClouds` | yes: one patch in `createClouds` covers the frame, the shadow map and the water's sky |
 | The march resolves a lip a few tens of metres sharp | takram `qualityPresets.ts` defaults (preset `high`) | steps start at 50 m and grow ×1.01 a step (max 1000 m once mip > 1); at 4–8 km the mip is ~0, so steps are ~60–130 m along a ray. Vertically that's a few metres at 3–5° up. **Not proven; phase 3 measures it** |
-| uv → metres is linear enough over ±40 km | `stormCells.ts` uses one 2×2 matrix from 1 km steps, for cells ≤ 9 km away | **not checked past 9 km; phase 1 tests it.** `worldToECEF` is pure math (`scene.ts:227`: `Ellipsoid.WGS84.getNorthUpEastFrame` at the day's latitude, longitude 0), so a unit test can build it without WebGL |
+| uv → metres is linear enough over ±40 km | phase 1 test: latitudes 0–78°, four azimuths, 10–40 km along the front | **no.** At latitude 45° (longitude 0, where every scene is anchored) the front crosses a cube edge of takram's cube-sphere uv, and the linear map put a point ~90° off as seen from the camera. **Use the sample's own position instead:** every `sampleWeather` call (`clouds.frag` 368 and 510, `shadow.frag` 88) comes right after `vec2 uv = getGlobeUv(position);`, and `ecefToWorldMatrix` and `altitudeCorrection` are declared (`parameters.glsl`) before `clouds.glsl`. So `world = ecefToWorldMatrix · (position − altitudeCorrection)` is exact. (`stormCells.ts` still uses the uv map; its cells are ≤ 9 km, but a cell near a cube edge would be distorted the same way. Not checked.) |
 | Noise that matches in TS and GLSL | `skyMirror.ts` | `hashCell(seed, x, y)` and `hashGlsl(prefix)` give the same integer-cell hash on both sides. It's a hash, not noise: build value noise from it (smoothstep between cell hashes) on both sides |
 | The clouds are hazed with distance | DEBUG.md: clouds are composited in the aerial-perspective pass | yes: the shelf gets the same haze and sunset colour as the deck (fixes the pink band) |
 | Placement: the rain is behind the lip | `params.mjs … --stats`: the nearest curtain or bolt within ±45° of the shelf's azimuth vs `shelf.distanceM` | **wrong on 112 of 197 days (57%)**: a curtain or bolt in the shelf's direction is nearer than the lip, while it should be behind it. On the other 85, every curtain and bolt in the sector is behind the lip, and every day has at least one in the sector |
@@ -143,30 +143,31 @@ As built: `skyEvents.ts` `placeShelf` (stream `'shelf-lead'`), called after `she
   the mesh** even though they stand behind it (2006-06-26); not traced. Check this again with
   the volumetric shelf in phase 2.
 
-### 1. The shelf's density, in TS (~2 h)
-- New `src/shelfCloud.ts`:
-  - `shelfFrame(shelf, camera)`: origin, along-front and toward-storm axes, in world x/z.
-  - `shelfDensity(frame, shelf, x, z, heightM)`: the cross-section in Design, with value noise
-    built on `skyMirror.ts` `hashCell`, so the GLSL can match it (`hashGlsl`, prefix `shelf`).
-    Keep every constant in one TS object and write it into the GLSL string, so the two sides
-    can't drift apart.
-  - `localMetresFromUv`: moved out of `stormCells.ts` and shared.
-- Tests:
-  - density 0 in front of the lip, below the lip and above the Cb base + 300 m;
-  - ≥ 0.9 inside the face just behind the lip;
-  - the lip within ±15% of `lipHeightM` all along the front;
-  - going up the face, each tier stands farther back (toward the storm) than the one below;
-  - **the uv → metres error at 10, 20 and 40 km from the shelf's origin, < 50 m at 40 km**. If
-    it isn't, build the matrix around the point on the front nearest the camera, which is where
-    accuracy matters.
-- **Done when:** the tests pass. This includes a printed cross-section table (height × back
-  distance) whose numbers match the photos: lip lowest and in front, face receding, underside
-  rising.
+### 1. The shelf's density, in TS ✅
+As built: `src/shelfCloud.ts` has `SHELF_SHAPE` (every constant, for the GLSL), `shelfFrame`,
+`shelfDensity(frame, shelf, base, x, z, heightM)` and `valueNoise1` (value noise on
+`skyMirror.ts` `hashCell`). Tests (`test/shelfCloud.test.ts`):
+- the wedge is empty in front of the lip, below it, above the top, off its ends and past its
+  back, and full just behind the lip;
+- the lip is within ±15% of `lipHeightM` all along the front;
+- the face stands farther back at each higher height. Tiers come in phase 4, and get their
+  own test there.
+
+The cross-section it prints (lip 293 m, base 600 m; columns 0 to 4000 m behind the lip): lowest
+and in front at the lip, the face receding as it rises, the underside climbing into the storm,
+the top merging into the deck at ~900 m.
+
+The uv → metres test failed at a cube edge (see "Where the code stands"), so the patch reads the
+sample's position instead and there's no uv helper.
 
 ### 2. The shader patch, a plain wedge (~2–3 h)
 - `createClouds` appends the shelf's layer (Design) to the layer list before `new CloudLayers(…)`.
 - `patchShelfCloud(clouds, worldToECEF, frame, shelf, index, cbIndex)`, called in `createClouds`
   after `patchStormCells`; `index` is `formations.length`, `cbIndex` is `stormLayer(formations)`:
+  - after each `vec2 uv = getGlobeUv(position);` (two in `clouds.frag`, one in `shadow.frag`),
+    stores `position` in a global `shelfPosition`; `sampleWeather` turns it into world x/z with
+    takram's `ecefToWorldMatrix` and `altitudeCorrection` (see "Where the code stands"), and
+    takes the height from its own `height` argument;
   - at `SAMPLE_END`, raises `localWeather[cbIndex]` to full over the band (as the cells do);
   - before `RETURN`, sets `weather.density[index] = shelfDensity(…)`, times
     `shadowLayerMask[index]` in the shadow pass (`#ifdef SHADOW`, as takram masks it);
