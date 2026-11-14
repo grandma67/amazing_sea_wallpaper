@@ -32,13 +32,16 @@ Sets your desktop to the day's `latest.jpg` every morning at 07:xx, with the min
 machine. If today's image isn't out yet, it tries once more a few hours later. It never updates
 itself.
 
-**Ubuntu and macOS** (one script; on Linux it finds your desktop, GNOME, KDE, XFCE, Cinnamon, MATE
-or LXQt, and stops on any other):
+**Linux and macOS** (one script). On Linux it finds your desktop (GNOME, KDE, Cinnamon, MATE, XFCE,
+LXQt, Budgie, Pantheon, COSMIC) and stops on any other. It schedules with cron, or a systemd user
+timer where there's no cron (Arch, Fedora, openSUSE):
 
 ```sh
 curl -fsSLO https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/sea-wallpaper.sh
 less sea-wallpaper.sh && bash sea-wallpaper.sh --install     # options: --portrait, --hour 8
 ```
+
+No `curl` (some Debian and Gentoo installs)? Download it with `wget <same URL>` instead.
 
 **Windows 10 / 11** (PowerShell):
 
