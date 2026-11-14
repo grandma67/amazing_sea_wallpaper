@@ -88,7 +88,7 @@ describe.each(SCENES)('$name', ({ p }) => {
   // near shadow and receives it. Out: what lies flat on what it would shade
   // (marsh and litter below a 0.16 m texel, the sea-ice sheet), spray and clouds.
   it('casts and receives the near shadow on every solid lit object', () => {
-    const flat = new Set(['salt-marsh', 'leaf-litter', 'waterspout', 'shelf-cloud', 'roll-cloud'])
+    const flat = new Set(['salt-marsh', 'leaf-litter', 'waterspout', 'roll-cloud'])
     const solid: { kind: string; mesh: Mesh }[] = []
     build(p).group.traverse(o => {
       const mesh = o as Mesh

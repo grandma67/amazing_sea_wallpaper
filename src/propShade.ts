@@ -14,7 +14,7 @@ import { SKY_OPEN_GLSL } from './skylight'
 
 /** Prop kinds that are clouds themselves: they stand in the deck, so the map's
  * shade from above doesn't apply. */
-const CLOUD_KINDS = new Set(['shelf-cloud', 'roll-cloud'])
+const CLOUD_KINDS = new Set(['roll-cloud'])
 
 const SUN_LINE = 'getDirectionalLightInfo( directionalLight, directLight );'
 

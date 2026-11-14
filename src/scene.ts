@@ -658,11 +658,10 @@ export async function renderScene(
   composer.setSize(width, height, false)
   // Lightning and rain shafts hang from storm cells in the Cb layer.
   const cells = stormCells(params.storm, camera.position)
-  // The shelf cloud in the volumetric clouds (with passes.shelfVolume off,
-  // the 0.172 mesh draws it instead: props/cloudEvents.ts).
+  // The shelf cloud is drawn by the volumetric clouds (shelfCloud.ts).
   const shelfCloud = params.storm?.shelf
   const shelf: ShelfSky | null =
-    shelfCloud != null && pass('shelfVolume')
+    shelfCloud != null
       ? { frame: shelfFrame(shelfCloud, camera.position), shelf: shelfCloud, base: cloudBase(weather.formations, 'cumulonimbus'), shape: shelfShapeWith(params.debug?.shelf) }
       : null
   const clouds =

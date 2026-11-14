@@ -1,0 +1,13 @@
+{
+  "base": {},
+  "scenes": [
+    { "name": "backlit-near", "date": "2016-06-21" },
+    { "name": "frontlit-near", "date": "2016-06-21", "sunAzimuthDeg": 160 },
+    { "name": "telephoto-midday", "date": "2005-01-28" },
+    { "name": "golden-arctic", "date": "2005-09-07" },
+    { "name": "wide-bolts", "date": "2006-06-26" },
+    { "name": "sunrise", "date": "2010-04-01" },
+    { "name": "far-rain-below", "date": "2024-06-21" },
+    { "name": "lip-probe", "date": "2016-06-21", "params": { "debug": { "probeLine": [{ "az": 0, "el": [3, 12], "step": 0.02 }] } } }
+  ]
+}

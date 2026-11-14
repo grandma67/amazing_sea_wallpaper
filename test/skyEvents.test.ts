@@ -1,7 +1,7 @@
 import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { rollGeometry, shelfGeometry } from '../src/props/cloudEvents'
+import { rollGeometry } from '../src/props/cloudEvents'
 import { SHELF_BOLT_BEHIND_M, SHELF_LEAD_M, SHELF_SECTOR_DEG } from '../src/skyEvents'
 import { allParams, scene, scenes, share } from './days'
 
@@ -44,19 +44,11 @@ describe('cloud events', () => {
     expect(rate).toBeLessThan(0.75)
   })
 
-  it('builds finite meshes within budget', () => {
-    const p = scene({ storm: 'squall', shelfCloud: true, rollCloud: true, eclipse: null, timeOfDay: 'golden-hour' })
-    const shelf = shelfGeometry(p.storm!.shelf!, new Vector3(0, 0, -1), new Vector3(), 600).build()
+  it('builds a finite roll cloud within budget', () => {
+    const p = scene({ rollCloud: true, eclipse: null, timeOfDay: 'golden-hour' })
     const roll = rollGeometry(p.rollCloud!, new Vector3(1, 0, 0), new Vector3(0, 0, -3000)).build()
-    for (const g of [shelf, roll]) {
-      const pos = g.getAttribute('position')
-      for (let i = 0; i < pos.count; i++) expect(Number.isFinite(pos.getX(i) + pos.getY(i) + pos.getZ(i))).toBe(true)
-    }
-    // The shelf hangs under the 600 m base, not into it (the deck's thin
-    // underside would show what's above as a dark silhouette).
-    const ys = Array.from({ length: shelf.getAttribute('position').count }, (_, i) => shelf.getAttribute('position').getY(i))
-    expect(Math.max(...ys)).toBeLessThan(800)
-    expect(shelf.index!.count / 3).toBeLessThan(100_000)
+    const pos = roll.getAttribute('position')
+    for (let i = 0; i < pos.count; i++) expect(Number.isFinite(pos.getX(i) + pos.getY(i) + pos.getZ(i))).toBe(true)
     expect(roll.index!.count / 3).toBeLessThan(50_000)
   })
 })

@@ -104,8 +104,8 @@ describe('shadeProps', () => {
   it('leaves clouds out: they stand in the deck that casts the shade', () => {
     const material = new MeshStandardMaterial()
     const key = material.customProgramCacheKey()
-    const coverage = shadeProps(prop('shelf-cloud', new Mesh(undefined, material)), uniforms)
-    expect(coverage['shelf-cloud']).toMatchObject({ lit: 0, clouds: 1 })
+    const coverage = shadeProps(prop('roll-cloud', new Mesh(undefined, material)), uniforms)
+    expect(coverage['roll-cloud']).toMatchObject({ lit: 0, clouds: 1 })
     expect(material.customProgramCacheKey()).toBe(key)
   })
 

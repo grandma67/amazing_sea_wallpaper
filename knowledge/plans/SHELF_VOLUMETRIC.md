@@ -1,6 +1,6 @@
 # Shelf cloud in the volumetric clouds
 
-**Status: phases 0–4 done (0.173–0.177, 2026-11-14); phase 5 (reflections, shadows, real days) next.** Replaces the shelf cloud's mesh
+**Status: done (phases 0–6, 0.173–0.179, 2026-11-14).** Phase 7 (the roll cloud) and "Later" are open. Replaces the shelf cloud's mesh
 (`props/cloudEvents.ts` `shelfGeometry`, last tuned in 0.172) with cloud drawn by takram's
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
@@ -283,7 +283,17 @@ The steps as planned:
   - at sunset (2010-04-01) it carries the same light as the deck, with no flat pink band;
   - on 2005-01-28 no band runs straight across the frame.
 
-### 5. Reflections, shadows and real days (~1 h)
+### 5. Reflections, shadows and real days ✅
+8 real shelf days (`snapshot.mjs --where … --sample 8`, not the five): no ⚠, no holes or bands,
+bolts behind the lip. On the far days (2024-06-21, 2024-04-24, 2024-07-01, 2024-12-12,
+2025-02-12) the shelf read as a dark strip on the horizon with a straight top. Measured on
+2024-06-21 with the shelf on and off (`edges.mjs`): the dark strip is the storm's rain region,
+as dark without the shelf (580–640 cd/m²); its top is the lip (1.2 px sharp, 4.87° against the
+CPU's 5.04°); the face 1.09× the deck. Physically right; only the lip's straightness is left
+("Later"). The sea's mirror and the cloud shadow carry the shelf by construction (the cube's and
+the shadow pass's clouds have the patch); not measured on their own.
+
+The steps as planned:
 - The water's sky cube now holds the shelf. On a calm shelf day the sea should mirror it, where
   0.172's mesh was left out of the mirror. Check it with `snapshot.mjs --where 'p => p.storm?.shelf
   != null' --sample 8` (real days, not the five above), `--seeds 3` on one of them (the noise
@@ -293,7 +303,14 @@ The steps as planned:
 - **Done when:** the 8-day contact sheet has no ⚠ warnings and nothing looks wrong (bands, holes,
   a shelf without a deck over it, rain in front of the lip).
 
-### 6. Remove the mesh, finish (~1 h)
+### 6. Remove the mesh, finish ✅ 0.179
+The mesh, its prop kind, `CLOUD_KINDS` entry, `passes.shelfVolume` and the mesh's test are gone;
+`scenes/shelf.json` holds the five days, the front-lit spec, a far day and the lip probe.
+`diff.mjs --scene scenes/shelf.json --ref HEAD`: identical on all 8; `params.mjs --ref HEAD`:
+0 of 8035 days changed. Tools and knowledge from the work went in 0.178 (arch/SKY.md "takram's
+clouds, from the inside", `edges.mjs`, `rows.mjs`, `params.debug.shelf`).
+
+The steps as planned:
 - Delete `shelfGeometry`, `createShelfCloud`, `SHELF_SKY_OPEN`, the `shelf-cloud` prop kind
   (`props/index.ts`) and its entry in `propShade.ts` `CLOUD_KINDS`, and the `passes.shelfVolume`
   switch. Remove the mesh's tests (`test/skyEvents.test.ts` "builds finite meshes", and any
@@ -313,6 +330,14 @@ The same patch handles a detached tube: density from the distance to the tube's 
 underneath, on a free channel. It needs its own research (Burketown photos; tube 1–2 km thick, up
 to 1000 km long) and its own gate. Do it only after phase 6 shows the shelf is better than the
 mesh.
+
+## Later
+- **A tattered lip** (WMO: arcus has "more or less tattered edges"): on far days the lip reads
+  ruler-straight. A fine, multi-octave ragged edge (tens of metres, under ~500 m long) without the
+  1.2 km waves that read as hills (phase 4). Check with `edges.mjs` along the lip (`az` range).
+- **Front-lit tiers:** under a full deck the sun reaches the face neither way, so tiers barely
+  show front-lit. Real front-lit shelves (photo B) often stand ahead of the deck in sunlight:
+  a gap in the deck over the lip on front-lit days would let it in.
 
 ## Estimate
 

@@ -424,13 +424,13 @@ Sky:
   [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md).
 - 2016-08-09: the title's mountain range (36 km, 1.6 km high, in frame) can't be seen even with
   `fog: null`: lost in haze against a 3° sun. Not traced.
-- Backlit shelf cloud at sunset is a flat pink band (takram aerial perspective on the mesh;
-  e.g. 2010-04-01).
-- Shelf cloud: in the volumetric clouds since 0.174 (the mesh issues above and the 0.172 notes
-  apply only with `passes.shelfVolume: false`). On far and low-sun real days (2024-06-21,
-  2024-04-24, 2024-07-01, 2024-12-12, 2025-02-12) it reads as a flat strip near the horizon with
-  a straight top edge; seen by eye in phase 5, cause not measured yet:
-  [plans/SHELF_VOLUMETRIC.md](plans/SHELF_VOLUMETRIC.md).
+- Shelf cloud (volumetric since 0.174, the mesh gone in 0.179): on far real days (2024-06-21,
+  2024-04-24, 2024-07-01, 2024-12-12, 2025-02-12) it reads as a dark strip on the horizon with a
+  ruler-straight top. Measured on 2024-06-21 (`edges.mjs`, shelf on and off): the strip is the
+  storm's rain region, as dark with the shelf off; its top is the lip (1.2 px sharp, 4 px from the
+  CPU's prediction); the face is 1.09× the deck. What's left is the lip's straightness: the WMO's
+  arcus has "more or less tattered edges"; ours varies only over kilometres. Not built:
+  [plans/SHELF_VOLUMETRIC.md](plans/SHELF_VOLUMETRIC.md) "Later".
 - `stormCells.ts` maps the weather map's uv to metres linearly; near latitude ±45° (a cube edge
   of the cube-sphere uv at our longitude 0) that map breaks, as it did for the shelf (arch/SKY.md
   "takram's clouds, from the inside"). Cells are ≤ 9 km so it may not show; suspected, not checked.

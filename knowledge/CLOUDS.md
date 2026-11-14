@@ -131,7 +131,9 @@ Storms don't depend on the biome; differences in the cumulonimbus row are sample
 - Scud (stratus fractus) under the base in 60%.
 - Wind 14–22 m/s. Lightning in 75%, rain curtains 3–16 km out.
 - **Shelf cloud** (arcus): ~40% of storms; tiered wedge under the base toward the rain, lighter
-  sky under its lip. Spec `shelfCloud`. A mesh (`props/cloudEvents.ts`); matched in 0.172 to
+  sky under its lip. Spec `shelfCloud`, renders `scenes/shelf.json`. Drawn by the volumetric
+  clouds since 0.174 (`shelfCloud.ts`; how: arch/SKY.md), rain and bolts in its direction behind
+  the lip (0.173). Matched (0.172–0.177) to
   Commons photos "Shelf cloud forming.jpg", "Shelf Cloud Piracicaba 29-01-2024.jpg" (sun behind
   the storm: dark blue-grey face about as bright as the deck, fine striations, the lip the
   sharpest edge, top melting into the deck) and "Arcus clouds at yellow-white sunset.jpg"
