@@ -55,7 +55,7 @@ import { assetUrl } from './assets'
 import type { RGB } from './biome'
 import { createCamera } from './camera'
 import { moonlight as phaseLight } from './celestial'
-import { createClouds, loadCloudAssets, loadImageTexture, primeCloudShadow, renderCloudyEnvironment } from './clouds'
+import { createClouds, type RollSky, loadCloudAssets, loadImageTexture, primeCloudShadow, renderCloudyEnvironment } from './clouds'
 import { patchSkyContrails } from './contrails'
 import { patchSkyNoctilucent } from './noctilucent'
 import { patchSkyMeteors } from './meteors'
@@ -94,6 +94,7 @@ import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
+import { rollFrame } from './rollCloud'
 import { shelfFrame, shelfShapeWith, type ShelfSky } from './shelfCloud'
 import { cloudBase } from './cloudTypes'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
@@ -259,7 +260,7 @@ export async function renderScene(
   // Passes a debug spec switches off (debug.ts): on unless false.
   const pass = (name: DebugPass): boolean => params.debug?.passes?.[name] !== false
   const cloudAssetsLoaded =
-    (params.weather.kind === 'clear' && params.weather.dust == null) || !pass('clouds') ? Promise.resolve(null) : loadCloudAssets()
+    (params.weather.kind === 'clear' && params.weather.dust == null && params.rollCloud == null) || !pass('clouds') ? Promise.resolve(null) : loadCloudAssets()
   // The night sky's glow (nightGlow.ts) needs the Milky Way map.
   const glow = pass('glow') ? params.nightGlow : null
   const milkyWayLoaded =
@@ -664,9 +665,11 @@ export async function renderScene(
     shelfCloud != null
       ? { frame: shelfFrame(shelfCloud, camera.position), shelf: shelfCloud, base: cloudBase(weather.formations, 'cumulonimbus'), shape: shelfShapeWith(params.debug?.shelf) }
       : null
+  // The Morning Glory, likewise (rollCloud.ts).
+  const rolls: RollSky | null = params.rollCloud != null ? { roll: params.rollCloud, frame: rollFrame(params.rollCloud, camera.position, params.camera.headingDeg) } : null
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf)
+      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls)
       : null
   // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
   // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).
@@ -879,7 +882,8 @@ export async function renderScene(
       params.visibilityKm,
       cells,
       envFrames,
-      shelf
+      shelf,
+      rolls
     )
   }
   // What the sky cube gives a level surface: the props' sky light.

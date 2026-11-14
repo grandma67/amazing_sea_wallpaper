@@ -1,0 +1,11 @@
+{
+  "base": {},
+  "scenes": [
+    { "name": "frontlit", "date": "2018-10-01", "rollCloud": true, "sunAzimuthDeg": 160 },
+    { "name": "backlit", "date": "2018-10-01", "rollCloud": true, "sunAzimuthDeg": 15 },
+    { "name": "real-three-rolls", "date": "2007-10-15" },
+    { "name": "real-sailboat", "date": "2019-10-20" },
+    { "name": "real-clear-sky", "date": "2019-10-22" },
+    { "name": "real-cumulus", "date": "2024-10-11" }
+  ]
+}

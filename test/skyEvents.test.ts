@@ -1,7 +1,5 @@
-import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { rollGeometry } from '../src/props/cloudEvents'
 import { SHELF_BOLT_BEHIND_M, SHELF_LEAD_M, SHELF_SECTOR_DEG } from '../src/skyEvents'
 import { allParams, scene, scenes, share } from './days'
 
@@ -44,11 +42,4 @@ describe('cloud events', () => {
     expect(rate).toBeLessThan(0.75)
   })
 
-  it('builds a finite roll cloud within budget', () => {
-    const p = scene({ rollCloud: true, eclipse: null, timeOfDay: 'golden-hour' })
-    const roll = rollGeometry(p.rollCloud!, new Vector3(1, 0, 0), new Vector3(0, 0, -3000)).build()
-    const pos = roll.getAttribute('position')
-    for (let i = 0; i < pos.count; i++) expect(Number.isFinite(pos.getX(i) + pos.getY(i) + pos.getZ(i))).toBe(true)
-    expect(roll.index!.count / 3).toBeLessThan(50_000)
-  })
 })

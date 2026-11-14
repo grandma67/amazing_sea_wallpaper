@@ -2,8 +2,8 @@
 
 Everything placed in the scene (`src/props/`, built with `builder.ts` `MeshBuilder`), at real
 size: rocks, sea stacks, vegetation, birds, migratory flocks, ships, marine life, ice, colonies,
-pinnipeds, landforms, storm bolts, surf/rock spray, cloud events (`skyEvents.ts`,
-`props/cloudEvents.ts`), waterspout, stones and beachrock (COAST.md). Which animals appear where:
+pinnipeds, landforms (with the lenticular and pyrocumulus meshes), storm bolts, surf/rock spray,
+waterspout, stones and beachrock (COAST.md). Which animals appear where:
 [ANIMALS.md](../ANIMALS.md). Pitfalls: LESSONS.md "Placement", "Meshes".
 
 ## Plants

@@ -163,18 +163,22 @@ blue hour. Noctilucents are physically faint (optical depth ~1e-4; they need the
 down and our blue hour stops at −7°), so they stay subtle. Nacreous are pastel iridescent
 lenses.
 
-### Meshes (`props/waterspout.ts`, `skyEvents.ts`, `props/cloudEvents.ts`)
+### Cloud events (`skyEvents.ts`; meshes in `props/waterspout.ts`, `props/landforms.ts`; the Morning Glory in the volumetric clouds, `rollCloud.ts`)
 
 | Cloud | Where and when | Weather | Spec |
 |---|---|---|---|
 | **Waterspout** | Florida Keys/Caribbean May–Oct (peak Aug); Mediterranean Aug–Nov (peak Sep); other tropics in the wet season; 1 day in 3 years (too rare: [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md)) | daytime, building cumulus, light wind (fair-weather spout); or under storms (tornadic). Forces towering cumulus | `waterspout` |
-| **Morning Glory** (volutus) | tropical Indo-Pacific, dawn, Sep–Nov | – | `rollCloud` |
+| **Morning Glory** (volutus) | tropical Indo-Pacific, dawn, Sep–Nov (9 of 8035 days) | clear to scattered | `rollCloud` (`scenes/roll.json`) |
 | **Lenticulars** | over mountains and volcanoes | wind ≥ 10 m/s | `lenticular` |
 | **Pyrocumulus** (flammagenitus) | white cap on half the volcano plumes | – | – |
 
 The waterspout is an opaque, curved, striated funnel 10–50 m wide reaching into its own
-lowered soft base (a mesh can't see gaps in the deck), with a spray cascade. Morning Glory is
-1–3 lumpy banded tubes across the view and gets a title. Lenticulars are stacked lenses.
+lowered soft base (a mesh can't see gaps in the deck), with a spray cascade. The Morning Glory
+(0.180) is 1–3 tubes of volumetric cloud across the view, base 100–250 m, 0.8–1.2 km deep, 1–2 km
+wide, 2.5–5 km apart (the spacing an estimate), billowy (the radius varies ±18% over ~700 m and
+round the tube), a sharp leading edge on the camera's side and a soft trailing one; it gets a
+title. Size from R. Smith (LMU Munich); look from Commons "MorningGloryCloudBurketownFromPlane.jpg".
+Lenticulars are stacked lenses.
 
 ## Coastal weather
 

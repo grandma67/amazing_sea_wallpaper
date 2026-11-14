@@ -36,7 +36,9 @@ import {
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
 import { arrangeClouds, stabiliseCubeSphereUv } from './cloudArrangement'
+import { patchRollCloud, rollLayer, type RollFrame } from './rollCloud'
 import { patchShelfCloud, shelfLayer, type ShelfSky } from './shelfCloud'
+import type { RollCloudParams } from './skyEvents'
 import { patchStormCells, stormLayer, type StormCell } from './stormCells'
 import { applySeaHaze } from './seaHaze'
 import { CLOUD_GENERA, layerChannels, MAX_LAYERS } from './cloudTypes'
@@ -121,6 +123,13 @@ export function loadCloudAssets(): Promise<CloudAssets> {
   return assets
 }
 
+/** The Morning Glory's rolls for the clouds (rollCloud.ts), framed from the
+ * main camera so the reflection cube's clouds put them in the same place. */
+export interface RollSky {
+  roll: RollCloudParams
+  frame: RollFrame
+}
+
 export function createClouds(
   camera: Camera,
   weather: WeatherParams,
@@ -130,7 +139,8 @@ export function createClouds(
   lightECEF: Vector3,
   visibilityKm: number,
   cells: StormCell[] = [],
-  shelf: ShelfSky | null = null
+  shelf: ShelfSky | null = null,
+  rolls: RollSky | null = null
 ): CloudsEffect {
   const clouds = new CloudsEffect(camera)
   Object.assign(clouds, textures)
@@ -165,6 +175,8 @@ export function createClouds(
   // of the weather map it doesn't read (its density is shelfDensity).
   const shelfChannel = (['a', 'g', 'b', 'r'] as const).find(c => !channels.includes(c))
   const withShelf = shelf != null && weather.formations.length < MAX_LAYERS && shelfChannel != null
+  // The Morning Glory likewise (rollCloud.ts); never on a storm day, so never with the shelf.
+  const withRolls = !withShelf && rolls != null && weather.formations.length < MAX_LAYERS && shelfChannel != null
   const layers = new CloudLayers([
     ...weather.formations.map((genus, i) => {
       const spec = CLOUD_GENERA[genus]
@@ -185,11 +197,13 @@ export function createClouds(
         shadow: spec.etage !== 'high'
       }
     }),
-    ...(withShelf ? [shelfLayer(shelf, shelfChannel)] : [])
+    ...(withShelf ? [shelfLayer(shelf, shelfChannel)] : []),
+    ...(withRolls ? [rollLayer(rolls.roll, shelfChannel)] : [])
   ])
   // takram ends haze rays at the top of the highest layer: a clear dust day
-  // gets one empty layer through the dust's height.
-  if (weather.formations.length === 0 && weather.dust != null) {
+  // gets one empty layer through the dust's height (not with the rolls: their
+  // layer is the first then).
+  if (weather.formations.length === 0 && weather.dust != null && !withRolls) {
     layers[0].set({ channel: 'r', altitude: 0, height: 4000, densityScale: 0, shadow: false })
   }
   clouds.cloudLayers.copy(layers)
@@ -203,6 +217,7 @@ export function createClouds(
   }
   patchStormCells(clouds, worldToECEF, cells, stormLayer(weather.formations))
   if (withShelf) patchShelfCloud(clouds, shelf, weather.formations.length, stormLayer(weather.formations))
+  if (withRolls) patchRollCloud(clouds, rolls.roll, rolls.frame, weather.formations.length)
   applySeaHaze(clouds, visibilityKm * 1000, weather)
   // No temporal history: our frames are averaged afterwards (accumulate.ts).
   // takram's TAA reprojects the light-shaft buffer through scene depth and
@@ -247,7 +262,8 @@ export function renderCloudyEnvironment(
   visibilityKm: number,
   cells: StormCell[],
   frames = 12,
-  shelf: ShelfSky | null = null
+  shelf: ShelfSky | null = null,
+  rolls: RollSky | null = null
 ): void {
   const size = target.width
   // EffectComposer.setSize also resizes the renderer; restore it afterwards.
@@ -291,7 +307,7 @@ export function renderCloudyEnvironment(
     Object.assign(aerialPerspective, textures)
     aerialPerspective.worldToECEFMatrix.copy(worldToECEF)
     aerialPerspective.sunDirection.copy(lightECEF)
-    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells, shelf)
+    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells, shelf, rolls)
     clouds.qualityPreset = 'medium'
     clouds.temporalUpscale = false
     clouds.events.addEventListener('change', event => {

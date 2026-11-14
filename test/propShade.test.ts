@@ -101,14 +101,6 @@ describe('shadeProps', () => {
     expect(coverage.lamps).toMatchObject({ lit: 0, unlit: 2 })
   })
 
-  it('leaves clouds out: they stand in the deck that casts the shade', () => {
-    const material = new MeshStandardMaterial()
-    const key = material.customProgramCacheKey()
-    const coverage = shadeProps(prop('roll-cloud', new Mesh(undefined, material)), uniforms)
-    expect(coverage['roll-cloud']).toMatchObject({ lit: 0, clouds: 1 })
-    expect(material.customProgramCacheKey()).toBe(key)
-  })
-
   it('reaches spray through its own shader', () => {
     const material = new ShaderMaterial({ vertexShader: 'void main() { vec4 world = vec4(0.0); vShade = 1.0; }', uniforms: {} })
     const spray = new Points(undefined, material)

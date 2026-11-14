@@ -51,7 +51,7 @@ Allowed values are in `sceneSpec.ts`.
   null: none).
 - **Sky:** `weather`, `clouds` (genera/species, ≤ 4 layers, e.g.
   `["cumulus-humilis","cumulus-fractus"]`), `cloudArrangement`, `storm`, `shelfCloud` (renders: `scenes/shelf.json`),
-  `waterspout`, `rollCloud`, `lenticular`, `contrails` (true or a count), `noctilucent`,
+  `waterspout`, `rollCloud` (renders: `scenes/roll.json`), `lenticular`, `contrails` (true or a count), `noctilucent`,
   `nacreous`, `milkyWay`, `airglow`, `zodiacalLight` (false/null: off), `skyDarkness` (Bortle
   1–4 instead of the place's), `meteors` (true, a shower id like `"perseids"`, a count ≤ 3,
   null), `planets` (`false`/`null`: none; `"venus"`: frame Venus at blue hour when it's well

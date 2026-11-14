@@ -12,10 +12,6 @@ import { SKY_OPEN_GLSL } from './skylight'
 // ground, fading out over 0.5–3 m above each prop's foot, so a crown doesn't
 // hide the sky from its own leaves (they have their depth baked in, trees.ts).
 
-/** Prop kinds that are clouds themselves: they stand in the deck, so the map's
- * shade from above doesn't apply. */
-const CLOUD_KINDS = new Set(['roll-cloud'])
-
 const SUN_LINE = 'getDirectionalLightInfo( directionalLight, directLight );'
 
 // three's shadow of directional light i; the sun is light 0 (scene.ts).
@@ -55,8 +51,6 @@ export interface ShadeCoverage {
   unlit: number
   /** Spray, through its own shader. */
   spray: number
-  /** Clouds: left out on purpose. */
-  clouds: number
   casts: number
   receives: number
 }
@@ -135,13 +129,9 @@ export function shadeProps(root: Object3D, uniforms: Uniforms, view = false): Re
     let kindOf: unknown = o.userData.prop
     o.traverseAncestors(a => (kindOf ??= a.userData.prop))
     const kind = typeof kindOf === 'string' ? kindOf : 'other'
-    const row = (coverage[kind] ??= { lit: 0, shaded: 0, unlit: 0, spray: 0, clouds: 0, casts: 0, receives: 0 })
+    const row = (coverage[kind] ??= { lit: 0, shaded: 0, unlit: 0, spray: 0, casts: 0, receives: 0 })
     if (o.castShadow) row.casts++
     if (o.receiveShadow) row.receives++
-    if (CLOUD_KINDS.has(kind)) {
-      row.clouds++
-      return
-    }
     if (o.userData.spray === true) {
       const material = value as ShaderMaterial
       if (!done.has(material)) shadeSpray(material, uniforms)

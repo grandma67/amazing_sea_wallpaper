@@ -6,7 +6,9 @@ import type { Random } from './random'
 // Cloud events tied to a place or a storm, each on its own stream (see
 // params.ts): the shelf cloud at a storm's leading edge, the Morning Glory
 // roll cloud, lenticular clouds over mountains, the pyrocumulus cap on an
-// eruption plume. The meshes are in props/.
+// eruption plume. The shelf and the roll cloud are drawn by the volumetric
+// clouds (shelfCloud.ts, rollCloud.ts); lenticulars and the cap are meshes
+// (props/landforms.ts).
 
 /** Shelf cloud (arcus): a long, low wedge along a storm's gust front. */
 export interface ShelfCloudParams {
@@ -96,14 +98,18 @@ export function placeShelf(
  * dawn. The famous one is over the southern Gulf of Carpentaria
  * (Burketown, Queensland, ~17.5° S), from late September to early November,
  * seen on a good share of mornings in season (a 1979 expedition saw three
- * in two weeks). */
+ * in two weeks). Size (R. Smith, LMU Munich, "The Morning Glory and related
+ * phenomena"): base "often no more than 100 or 200 m", ~1 km deep, 1–2 km
+ * wide, 100 km or more long, often several in succession. */
 export interface RollCloudParams {
   /** Direction the tubes lie along (deg, world). */
   axisDeg: number
-  /** Ground distance to the first tube, and its base and diameter (m). */
+  /** Ground distance to the first tube, its base, depth and width (front
+   * to back) (m). */
   distanceM: number
   baseM: number
-  diameterM: number
+  depthM: number
+  widthM: number
   /** One to three tubes, one behind the other (m apart). */
   rolls: number
   spacingM: number
@@ -126,12 +132,16 @@ export function rollCloudFor(
     // Across the view, give or take.
     axisDeg: day.headingDeg + 90 + rng.normal(0, 12),
     distanceM: rng.range(3000, 7000),
-    baseM: rng.range(200, 400),
-    diameterM: rng.range(600, 1100),
+    baseM: rng.range(100, 250),
+    depthM: rng.range(800, 1200),
     rolls: rng.weighted([[1, 3], [2, 2], [3, 1]] as const),
+    // An estimate: no source gives the spacing of successive rolls.
     spacingM: rng.range(2500, 5000),
-    seed: rng.range(0, 1000)
+    seed: rng.range(0, 1000),
+    // Drawn last, so the draws before keep their values.
+    widthM: 0
   }
+  roll.widthM = rng.range(1000, 2000)
   return (force === undefined ? drawn : force === true) ? roll : null
 }
 

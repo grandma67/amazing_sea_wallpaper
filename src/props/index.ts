@@ -3,7 +3,6 @@ import { CylinderGeometry, Group, InstancedMesh, Matrix4, MeshStandardMaterial, 
 import type { PropContext } from './context'
 import { createBeachrock } from './beachrock'
 import { createBirds } from './birds'
-import { createRollCloud } from './cloudEvents'
 import { createColony } from './colony'
 import { createDesertBloom } from './bloomYears'
 import { createDebris } from './debris'
@@ -96,7 +95,6 @@ export function createProps(ctx: PropContext): Group {
   add('migratory-birds', () => createMigratoryBirds(ctx))
   add('storm', () => createStorm(ctx))
   add('waterspout', () => createWaterspout(ctx))
-  add('roll-cloud', () => createRollCloud(ctx))
   add('markers', () => createMarkers(ctx, group))
   return group
 }

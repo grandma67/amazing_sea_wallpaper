@@ -53,6 +53,13 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   `params.debug.shelf: {tiers: false, …}` zeroes a term on both sides; `lipElevationAhead`
   predicts where the lip shows (`scripts/edges.mjs` reads it off a `probeLine`). Placement:
   `skyEvents.ts` `placeShelf` keeps rain and bolts in its direction behind the lip.
+- **The Morning Glory** (`rollCloud.ts`, 0.180): the same way as the shelf, one more layer on roll
+  days (at most two layers there) whose density is `rollDensity`: per roll an ellipse across the
+  tube, base flattened, axis wandering, the radius lumped along and round it (the billows: takram's
+  noise can't make them inside a saturated density), a sharp edge on the camera side and a soft
+  one behind. Its own height fraction lights it (a standalone cloud, brighter on top). Clear days
+  load the cloud assets when there's a roll. The GLSL skips samples beyond a tube's widest lump
+  (+45% → +22% on roll days).
 - **takram's clouds, from the inside** (`three-clouds` 0.7.6, `src/shaders/clouds.glsl`,
   `clouds.frag`; found building the shelf, each cost a round):
   - `localWeather`, `weather.density`, `heightFraction` and `shadowLayerMask` are vec4s indexed

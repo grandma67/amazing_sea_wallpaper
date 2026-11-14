@@ -1,6 +1,6 @@
 # Shelf cloud in the volumetric clouds
 
-**Status: phases 0–6 done (0.173–0.179, 2026-11-14); phase 7 (the roll cloud) in progress.** "Later" is open. Replaces the shelf cloud's mesh
+**Status: done (phases 0–7, 0.173–0.180, 2026-11-14).** "Later" is open. Replaces the shelf cloud's mesh
 (`props/cloudEvents.ts` `shelfGeometry`, last tuned in 0.172) with cloud drawn by takram's
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
@@ -325,7 +325,20 @@ The steps as planned:
 - **Done when:** the mesh is gone, the tests pass, and `diff.mjs` with `shelfCloud: false` shows
   the shelf as the only difference on a shelf day.
 
-### 7. The Morning Glory roll cloud in the volumetric clouds
+### 7. The Morning Glory roll cloud in the volumetric clouds ✅ 0.180
+As built: `src/rollCloud.ts` (`ROLL_SHAPE`, `rollFrame`, `rollDensity`, `rollLayer`, `rollGlsl`,
+`patchRollCloud`); the mesh (`props/cloudEvents.ts`) and the clouds-as-props exception in
+`propShade.ts` are gone. 9 days change (`params.mjs --ref HEAD`), roll fields only.
+- **Round 1:** every roll a smooth slab with ruler-straight edges: a ~45 m edge left no partial
+  density for takram's shape noise (the shelf's lesson again). **Round 2:** the radius lumped
+  along and round the tube (±18% over ~700 m, ±8% over ~250 m) and wider edges: billowy banks,
+  crepuscular rays through them, bright sky under the base.
+- **Cost:** +45% on the 9 days at first; a GLSL early exit beyond each tube's widest lump made it
+  +22% (8–28% a day; +86% on the clear day 2019-10-22, which ran no cloud pass before). Over the
+  10% budget, kept: 9 days in 22 years, a large cloud filling the frame drawn as cloud.
+- Renders: `scenes/roll.json`.
+
+The plan for it:
 
 **Research** (sources: [Roger Smith, LMU Munich, "The Morning Glory and related phenomena"](https://www.meteo.physik.uni-muenchen.de/~roger/AustralianProjects/TheMorningGlory/TheMorningGlory.html),
 read; [Wikipedia: Morning Glory cloud](https://wikipedia.com/wiki/Morning_Glory_cloud) from a
