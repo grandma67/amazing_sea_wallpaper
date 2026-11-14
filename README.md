@@ -24,6 +24,62 @@ rocks, plants, boats, mountains and volcanoes, birds, seals, dolphins and whales
 - `/latest.jpg` (1920×1080) and `/latest-portrait.jpg` (1290×2796, with `/latest*.json` params): today's (UTC)
   wallpapers from the daily GitHub Action, for tools that can't run JavaScript.
 
+## Daily desktop wallpaper
+
+> **Status: planned.** The scripts in `crons/` aren't written yet; this is how they will work
+> (plan: `knowledge/plans/CRON.md`).
+
+A small script sets your desktop background to the day's `latest.jpg` every morning. It runs once
+at 07:xx local time. The minute is picked at random when you install, so not everyone fetches at
+once. If the site hasn't published today's image yet (the daily render usually lands between 01:00
+and 08:00 UTC), it checks once more about 3 hours later. It also runs when you log in, if the
+morning run was missed. Nothing to install: it uses bash and curl, or PowerShell on Windows.
+
+**Ubuntu (GNOME; KDE and XFCE best effort) and macOS**
+
+```sh
+git clone https://github.com/grandma67/amazing_sea_wallpaper.git
+cd amazing_sea_wallpaper
+./crons/install.sh              # add --portrait for an upright screen, --hour 8 for a later run
+```
+
+Without cloning, download the installer, read it, then run it:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/install.sh -o install.sh
+less install.sh && bash install.sh
+```
+
+Ubuntu uses your user crontab plus a login autostart entry. macOS uses a LaunchAgent, which
+catches up after sleep. On macOS the first run asks to let the terminal control
+"System Events": allow it, or the wallpaper can't be set.
+
+**Windows 10 / 11 (PowerShell)**
+
+```powershell
+git clone https://github.com/grandma67/amazing_sea_wallpaper.git
+cd amazing_sea_wallpaper
+Unblock-File .\crons\*.ps1
+powershell -ExecutionPolicy Bypass -File .\crons\install.ps1      # -Portrait, -Hour 8
+```
+
+This registers a Task Scheduler task, *AmazingSeaWallpaper*, that runs daily and at logon, plus a
+one-off retry task when needed. It doesn't change your execution policy.
+
+**Day to day**
+
+| | Linux / macOS | Windows |
+|---|---|---|
+| Set today's now | `~/.local/share/amazing-sea-wallpaper/sea-wallpaper.sh --now` (macOS: `~/Library/Application Support/AmazingSeaWallpaper/`) | `& "$env:LOCALAPPDATA\AmazingSeaWallpaper\sea-wallpaper.ps1" -Now` |
+| Status, last image, log | `./crons/install.sh --status` | `.\crons\install.ps1 -Status` |
+| Remove | `./crons/install.sh --uninstall` | `.\crons\install.ps1 -Uninstall` |
+
+The installer copies the script out of the clone, so you can delete the clone afterwards. The
+last 7 images are kept in that folder. Images are 1920×1080 (portrait 1290×2796), and bigger
+screens scale them up. The image follows the UTC date, so east of UTC the desktop can show the
+site's previous day until the morning's render is published. For a fork, set `--url
+https://<you>.github.io/<repo>/`.
+
 ## Develop
 
 ```sh
