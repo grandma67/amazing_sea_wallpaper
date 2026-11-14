@@ -1,6 +1,6 @@
 # Shelf cloud in the volumetric clouds
 
-**Status: phases 0–3 done (0.173–0.175, 2026-11-14): the gate passed on cost and sharpness; phase 4 (the look) next.** Replaces the shelf cloud's mesh
+**Status: phases 0–4 done (0.173–0.177, 2026-11-14); phase 5 (reflections, shadows, real days) next.** Replaces the shelf cloud's mesh
 (`props/cloudEvents.ts` `shelfGeometry`, last tuned in 0.172) with cloud drawn by takram's
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
@@ -240,7 +240,31 @@ The steps as planned:
 - **Done when:** the four results (cost, lip width, parity, brightness) are written into this plan
   and are within target.
 
-### 4. The look: tiers, striations, scud (~2–3 h, ≤ 3 render rounds)
+### 4. The look ✅ 0.177
+As built (`SHELF_SHAPE`, TS and GLSL): the lip's height varies ±12% over ~5 km (±1.5% over
+~1.2 km), the lip line wanders in 350 m and 80 m scallops; up to three **local** tiers (a 60 m
+groove under a 40 m bulge) between 15% and 65% of the face, drifting and fading along the front;
+±8 m striations every ~30 m following the lip. The GLSL skips samples where the density is
+surely 0 (above the top, in front of the face, past the back): round 1 took 2.9–11 s a render
+without that.
+
+Results (1080p; five days and the front-lit spec): no band runs straight across on 2005-01-28;
+the face is 0.98× the deck backlit (2016-06-21); the lip 3 px sharp, 3 px from the TS's
+prediction; at sunset (2010-04-01) the same light as the deck. Cost +5% over 0.176 (bench, five
+days), about +8% over the commit before the shelf. **Not met:** front-lit (photo B) the tiers
+barely show. Under a full storm deck the sun reaches the face neither way (takram's shadow map),
+so they have little light to shade; on the telephoto day they're soft bands.
+
+**Three rounds, three lessons:**
+- Steps that shift the whole face above them make the top edge jump where they fade: tiers must
+  be local.
+- 6% lip waves over 1.2 km read as a ridge of hills.
+- Scud as thresholded value noise lowering the underside drew flat-topped humps along the
+  front, identical through two tier changes. It was found by switching each detail off in turn
+  (scud, striations, lip), and removed; takram's detail noise tears the underside. Switch
+  details off one by one before the second guess.
+
+The steps as planned:
 - Add to `shelfDensity`, TS and GLSL together (the constants come from the one TS object). Re-run
   phase 3's parity probe after each change. Add:
   - tiers as steps in the face's set-back, which drift and fade along the front (as in the 0.172

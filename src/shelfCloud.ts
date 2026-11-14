@@ -51,8 +51,47 @@ export const SHELF_SHAPE = {
   undersideEdgeM: 25,
   topEdgeM: 80,
   /** The back end fades into the storm's deck over this (m). */
-  backFadeM: 800
+  backFadeM: 800,
+  // The look (phase 4). takram doubles the density, so the inside is
+  // saturated: every detail moves the cloud's surface, not its density.
+  /** The lip's height varies along the front: ±12% over ~5 km, ±1.5% over
+   * ~1.2 km (±6% read as a ridge of hills, 2016-06-21). */
+  lipVaryLarge: 0.24,
+  lipVaryLargeScaleM: 5_000,
+  lipVarySmall: 0.03,
+  lipVarySmallScaleM: 1_200,
+  /** Small scallops of the lip line (m) and their size (m). */
+  scallopM: 80,
+  scallopScaleM: 900,
+  /** Tiers: where each sits up the face drifts ±6% over ~1.6 km; each fades
+   * in and out over ~1.8 km. A tier is local: a groove (m) under a rounded
+   * bulge (m), the face back to its line above it. (A step that shifted the
+   * whole face above it made the top edge jump where tiers faded: flat-topped
+   * humps against the deck, 2006-06-26.) */
+  tierDrift: 0.12,
+  tierDriftScaleM: 1_600,
+  /** Tiers sit between these fractions of the face and fade out above the
+   * upper one: near the top, where the face thins into the deck, their
+   * plateaus shaded the top in flat-topped humps (2006-06-26). */
+  tierLowest: 0.15,
+  tierHighest: 0.65,
+  tierFadeScaleM: 1_800,
+  tierWidth: 0.04,
+  tierGrooveM: 60,
+  tierBulgeM: 40,
+  /** Striations: the face corrugated ±8 m in bands ~30 m apart that follow
+   * the lip, drifting up and down along the front over ~2.5 km. */
+  striaM: 8,
+  striaPeriodM: 30,
+  striaDrift: 14,
+  striaDriftScaleM: 2_500
+  // No scud tufts of its own: thresholded value noise lowering the underside
+  // drew flat-topped humps along the front (2006-06-26, found by switching
+  // each detail off). takram's detail noise tears the underside instead.
 } as const
+
+/** Noise streams (added to the shelf's integer seed): one per use. */
+const NOISE = { wobble: 0, lipLarge: 1, lipSmall: 2, scallop: 3, stria: 4, tierDrift: 10, tierFade: 20 } as const
 
 /** Where the shelf is measured from, in world x/z (x north, z east): the lip
  * line's middle, the along-front axis and the axis toward the storm. */
@@ -86,6 +125,27 @@ export function valueNoise1(seed: number, x: number): number {
   return hashCell(seed, i) * (1 - t) + hashCell(seed, i + 1) * t
 }
 
+/** How far the lip line stands from the frame's origin line toward the
+ * storm (m), `s` m along the front: bowed toward the camera in the middle,
+ * wandering in large and small scallops. */
+export function lipLine(shelf: ShelfCloudParams, s: number): number {
+  const S = SHELF_SHAPE
+  const seed = seedInt(shelf.seed)
+  const bow = -S.bowM * (1 - (s / S.halfLengthM) ** 2)
+  const wobble = S.wobbleM * (valueNoise1(seed + NOISE.wobble, s / S.wobbleScaleM) - 0.5)
+  const scallop = S.scallopM * (valueNoise1(seed + NOISE.scallop, s / S.scallopScaleM) - 0.5)
+  return bow + wobble + scallop
+}
+
+/** The lip's height `s` m along the front (m). */
+export function lipHeight(shelf: ShelfCloudParams, s: number): number {
+  const S = SHELF_SHAPE
+  const seed = seedInt(shelf.seed)
+  const large = S.lipVaryLarge * (valueNoise1(seed + NOISE.lipLarge, s / S.lipVaryLargeScaleM) - 0.5)
+  const small = S.lipVarySmall * (valueNoise1(seed + NOISE.lipSmall, s / S.lipVarySmallScaleM) - 0.5)
+  return shelf.lipHeightM * (1 + large + small)
+}
+
 /** Height of the storm's base the shelf hangs from, and the shelf's top (m). */
 export function shelfTop(base: number): number {
   return base + SHELF_SHAPE.topAboveBaseM
@@ -105,17 +165,24 @@ export function shelfDensity(frame: ShelfFrame, shelf: ShelfCloudParams, base: n
   const ends = 1 - smoothstep(S.halfLengthM - S.endFadeM, S.halfLengthM, Math.abs(s))
   if (ends <= 0) return 0
   const seed = seedInt(shelf.seed)
-  // Distance behind the lip line, which bows toward the camera and wanders.
-  const bow = -S.bowM * (1 - (s / S.halfLengthM) ** 2)
-  const wobble = S.wobbleM * (valueNoise1(seed, s / S.wobbleScaleM) - 0.5)
-  const back = b - bow - wobble
-  const lip = shelf.lipHeightM
+  // Distance behind the lip line.
+  const back = b - lipLine(shelf, s)
+  const lip = lipHeight(shelf, s)
   const top = shelfTop(base)
   const rise = top - lip
-  // Face: how far back the face stands at this height.
+  // Face: how far back the face stands at this height, set back in tiers
+  // (a step with a rounded bulge above it) and finely corrugated.
   const u = Math.min(1, Math.max(0, (heightM - lip) / rise))
   const run = S.faceRunM + S.faceRunPerTierM * shelf.tiers
-  const faceBack = run * (0.25 * u + 0.75 * u ** 1.6)
+  let faceBack = run * (0.25 * u + 0.75 * u ** 1.6)
+  for (let i = 0; i < shelf.tiers; i++) {
+    const at = S.tierLowest + ((S.tierHighest - S.tierLowest) * (i + 0.5)) / shelf.tiers + S.tierDrift * (valueNoise1(seed + NOISE.tierDrift + i, s / S.tierDriftScaleM) - 0.5)
+    const strength = valueNoise1(seed + NOISE.tierFade + i, s / S.tierFadeScaleM) * (1 - smoothstep(S.tierHighest, S.tierHighest + 0.15, u))
+    const d = (u - at) / S.tierWidth
+    faceBack += strength * (S.tierGrooveM * Math.exp(-(d * d)) - S.tierBulgeM * Math.exp(-((d - 1.5) ** 2)))
+  }
+  const drift = S.striaDrift * valueNoise1(seed + NOISE.stria, s / S.striaDriftScaleM)
+  faceBack += S.striaM * Math.sin(((heightM - lip) / S.striaPeriodM) * 2 * Math.PI + drift) * (1 - u)
   // Underside: its height this far back.
   const f = Math.min(1, Math.max(0, back / shelf.depthM))
   const under = lip + rise * S.undersideRise * f ** 1.3
@@ -168,7 +235,8 @@ export function shelfLayer(sky: ShelfSky, channel: 'r' | 'g' | 'b' | 'a') {
 
 const f1 = (x: number): string => x.toFixed(1)
 
-/** shelfDensity in GLSL (and the deck's band over it), from SHELF_SHAPE. */
+/** shelfDensity in GLSL (and the deck's band over it), from SHELF_SHAPE:
+ * the same steps as the TS, line for line. */
 export function shelfGlsl(): string {
   const S = SHELF_SHAPE
   return /* glsl */ `
@@ -182,11 +250,12 @@ uniform vec2 shelfToStorm;
 // Lip height, depth, top, face run (m).
 uniform vec4 shelfShape;
 uniform float shelfSeed;
-float shelfNoise1(const float x) {
+uniform float shelfTiers;
+float shelfNoise1(const float x, const float k) {
   float i = floor(x);
   float f = x - i;
   float t = f * f * (3.0 - 2.0 * f);
-  return mix(shelfHash1(i, shelfSeed), shelfHash1(i + 1.0, shelfSeed), t);
+  return mix(shelfHash1(i, shelfSeed + k), shelfHash1(i + 1.0, shelfSeed + k), t);
 }
 // (the shelf's density, 1 where the storm's deck must be full over it).
 vec2 shelfSample(const float height) {
@@ -197,13 +266,32 @@ vec2 shelfSample(const float height) {
   float ends = 1.0 - smoothstep(${f1(S.halfLengthM - S.endFadeM)}, ${f1(S.halfLengthM)}, abs(s));
   if (ends <= 0.0) return vec2(0.0);
   float q = s / ${f1(S.halfLengthM)};
-  float back = b + ${f1(S.bowM)} * (1.0 - q * q) - ${f1(S.wobbleM)} * (shelfNoise1(s / ${f1(S.wobbleScaleM)}) - 0.5);
-  float lip = shelfShape.x;
+  float lipLine = -${f1(S.bowM)} * (1.0 - q * q)
+    + ${f1(S.wobbleM)} * (shelfNoise1(s / ${f1(S.wobbleScaleM)}, ${f1(NOISE.wobble)}) - 0.5)
+    + ${f1(S.scallopM)} * (shelfNoise1(s / ${f1(S.scallopScaleM)}, ${f1(NOISE.scallop)}) - 0.5);
+  float back = b - lipLine;
   float depth = shelfShape.y;
   float top = shelfShape.z;
+  float band = ends * smoothstep(${f1(-BAND_FRONT_M)}, 0.0, back) * (1.0 - smoothstep(depth, depth + ${f1(BAND_BACK_M)}, back));
+  // Where the density is surely 0 (above the top, well in front of the face,
+  // past the back), skip the rest: most samples of the storm's deck.
+  if (height > top + ${f1(S.topEdgeM)} || back < -300.0 || back > depth) return vec2(0.0, band);
+  float lip = shelfShape.x * (1.0
+    + ${S.lipVaryLarge.toFixed(3)} * (shelfNoise1(s / ${f1(S.lipVaryLargeScaleM)}, ${f1(NOISE.lipLarge)}) - 0.5)
+    + ${S.lipVarySmall.toFixed(3)} * (shelfNoise1(s / ${f1(S.lipVarySmallScaleM)}, ${f1(NOISE.lipSmall)}) - 0.5));
   float rise = top - lip;
   float u = clamp((height - lip) / rise, 0.0, 1.0);
   float faceBack = shelfShape.w * (0.25 * u + 0.75 * pow(u, 1.6));
+  for (int i = 0; i < 3; i++) {
+    float fi = float(i);
+    if (fi >= shelfTiers) break;
+    float at = ${S.tierLowest.toFixed(3)} + ${(S.tierHighest - S.tierLowest).toFixed(3)} * (fi + 0.5) / shelfTiers + ${S.tierDrift.toFixed(3)} * (shelfNoise1(s / ${f1(S.tierDriftScaleM)}, ${f1(NOISE.tierDrift)} + fi) - 0.5);
+    float strength = shelfNoise1(s / ${f1(S.tierFadeScaleM)}, ${f1(NOISE.tierFade)} + fi) * (1.0 - smoothstep(${S.tierHighest.toFixed(3)}, ${(S.tierHighest + 0.15).toFixed(3)}, u));
+    float dt = (u - at) / ${S.tierWidth.toFixed(3)};
+    faceBack += strength * (${f1(S.tierGrooveM)} * exp(-dt * dt) - ${f1(S.tierBulgeM)} * exp(-(dt - 1.5) * (dt - 1.5)));
+  }
+  float drift = ${f1(S.striaDrift)} * shelfNoise1(s / ${f1(S.striaDriftScaleM)}, ${f1(NOISE.stria)});
+  faceBack += ${f1(S.striaM)} * sin((height - lip) / ${f1(S.striaPeriodM)} * 6.283185307 + drift) * (1.0 - u);
   float f = clamp(back / depth, 0.0, 1.0);
   float under = lip + rise * ${S.undersideRise.toFixed(3)} * pow(f, 1.3);
   float density = ends
@@ -211,7 +299,6 @@ vec2 shelfSample(const float height) {
     * smoothstep(${f1(-S.undersideEdgeM)}, ${f1(S.undersideEdgeM)}, height - under)
     * (1.0 - smoothstep(top - ${f1(S.topEdgeM)}, top + ${f1(S.topEdgeM)}, height))
     * (1.0 - smoothstep(depth - ${f1(S.backFadeM)}, depth, back));
-  float band = ends * smoothstep(${f1(-BAND_FRONT_M)}, 0.0, back) * (1.0 - smoothstep(depth, depth + ${f1(BAND_BACK_M)}, back));
   return vec2(density, band);
 }
 `
@@ -254,6 +341,7 @@ export function patchShelfCloud(clouds: CloudsEffect, sky: ShelfSky, index: numb
     material.uniforms.shelfToStorm = new Uniform(frame.toStorm.clone())
     material.uniforms.shelfShape = new Uniform(new Vector4(shelf.lipHeightM, shelf.depthM, shelfTop(sky.base), run))
     material.uniforms.shelfSeed = new Uniform(seedInt(shelf.seed))
+    material.uniforms.shelfTiers = new Uniform(shelf.tiers)
     material.needsUpdate = true
   }
 }
