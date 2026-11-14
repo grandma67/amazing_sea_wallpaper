@@ -30,7 +30,7 @@ sits in **one folder** of that name, in the OS's usual place for per-user applic
 Inside it:
 - `amazing-sea-wallpaper.sh|ps1`: the installed copy that runs.
 - `config`: `minute`, `hour`, `portrait`, `url`, `scheduler`, `proxy`.
-- `state`: `date`, `etag`, `sha256`, `title`, `set_at`, `retry_day`.
+- `state`: `date`, `sha256`, `title`, `set_at`, `retry_day`.
 - `wallpapers/<date>.jpg`: the last 7 kept.
 - `amazing-sea-wallpaper.log`: trimmed to 500 lines.
 - `lock/`.
@@ -62,6 +62,7 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
 | `cache-control: max-age=600`, `etag`; `If-None-Match` gives **304** | live `curl` (304 seen) |
 | The CDN caches the JSON and the JPEG separately, so for up to 10 min after a deploy a fresh JSON can come with yesterday's JPEG | follows from per-URL `max-age` |
 | Only today's image is published. If the render step fails (`continue-on-error`), there's no `latest.jpg` (404) that day | `.github/workflows/pages.yml` |
+| **Dated copies of today exist:** `daily/pc/<UTC date>.jpg` and `.json`, `daily/phone/<UTC date>.jpg` and `.json` (200 for 2026-11-14). Yesterday's is gone after the next deploy (404 for 11-13), and tomorrow's is 404 until the render lands. It's an internal CI path, not a published API | live `curl -I`; `pages.yml` (`--out dist/daily/pc`, `dist/daily/phone`) |
 | The CI is scheduled at 00:05 UTC but starts late. The last 10 scheduled runs finished between **01:10 and 07:43 UTC** (11-05…11-14: 02:09, 01:10, 02:18, 01:18, 02:00, 02:24, 07:31, 07:43, 06:51, 06:26) | GitHub API `actions/workflows/pages.yml/runs?event=schedule` |
 | A push to `main` re-renders the same day: the bytes and ETag change, the `date` doesn't | `pages.yml` |
 | The page's "today" is the local date; `latest.jpg` follows the UTC date | `src/main.ts:288` |
@@ -158,9 +159,19 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
   sent in the User-Agent and shown by `--status`. Bump it on every change to the file.
 - **No automatic updates.** Only `--upgrade` replaces the copy (from `main`, if the version is
   newer). Install from `main`; no tags.
-- **"Is it new?" = `latest.json`'s `date`, not a hash.** The ETag gives a 304 when unchanged. The
-  JPEG is fetched as `latest.jpg?d=<date>`, so the CDN can't pair today's JSON with yesterday's
-  cached image. The sha256 is kept for `--status`.
+- **Fetch by today's UTC date first, `latest` only to catch up.**
+  - The run requests `daily/pc/<today_utc>.jpg` (`daily/phone/…` with `--portrait`).
+    - 200 is today's image by definition: there's no date to compare, no hash, no ETag.
+    - Each dated URL only ever holds one day, so the CDN can't hand back another day's picture.
+    - 404 means not rendered yet, a tiny response.
+    - The title comes from `daily/pc/<today_utc>.json`; if that fails, the title is left empty
+      and the image is still set.
+  - Only when the dated file is 404 **and** the desktop is older than yesterday (a missed day, a
+    new install) does it fall back to `latest.json` + `latest.jpg?d=<date>`, the newest there is.
+    The `?d=` cache-buster stops the CDN pairing a fresh JSON with a stale JPEG.
+  - A test in CI (phase 6) fails if `pages.yml` stops writing `dist/daily/{pc,phone}/<date>.jpg`.
+    The `latest` fallback still works if that path ever goes away.
+  - The sha256 is kept for `--status`.
 - **One morning run, at most one re-run a day:** daily at 07:M local (M random per machine) and
   at login. If today's UTC image isn't out, or the fetch failed, one re-run (§4.3). No polling.
 - **Linux scheduler: cron where a cron daemon runs, otherwise a systemd user timer.** The script
@@ -236,17 +247,23 @@ today_utc = date -u +%F
 0. take the lock (mkdir lock/; pid inside; stale if > 10 min or pid dead) — else exit 0
 1. state.date == today_utc                         → exit 0, no network
 2. detect the session and desktop (§4.4)           → exit 2 / 3
-3. GET latest.json (If-None-Match: state.etag)
-4. 200 and json.date > state.date                  → GET latest.jpg?d=<json.date>; check HTTP 200,
-                                                     Content-Type image/jpeg, first bytes FF D8, > 50 KB;
-                                                     move to wallpapers/<date>.jpg; set; verify;
-                                                     write state; prune to 7; cancel a pending re-run
-5. (json.date < today_utc or step 3/4 failed)
+3. GET daily/pc/<today_utc>.jpg                    (daily/phone/… with --portrait)
+   200 → check it (below); set it as <today_utc>; title from daily/pc/<today_utc>.json → done (step 6)
+4. 404 and state.date < yesterday_utc (catch-up)   → GET latest.json; if its date > state.date:
+                                                     GET latest.jpg?d=<that date>; check; set it as <that date>
+5. still not today's (404, failed or bad image)
    and not --retry and state.retry_day != today    → schedule the one re-run; retry_day = today (local)
+6. after any set: verify, write state (date, sha256, title, set_at), prune to 7, cancel a pending re-run
+
+check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to wallpapers/<date>.jpg
 ```
 
-- A day missed entirely sets yesterday's image at step 4 and schedules the re-run at step 5.
-- A failed fetch (a 404 render-failure day, captive-portal HTML, offline) leaves the desktop and
+- On a usual morning before the render: one 404 (step 3), nothing to catch up (yesterday's image
+  is already set), one re-run scheduled.
+- After the render: one image download, done.
+- A day missed entirely: step 4 sets the newest image there is, and step 5 still schedules the
+  re-run for today's.
+- A failed fetch (a render-failure day, captive-portal HTML, offline) leaves the desktop and
   state as they were.
 - **Re-run time** = the later of *now + 3 h* and *08:00 UTC*, plus a random 0–30 min.
   - 08:00 UTC is just after the latest finish seen (07:43). Without that floor, UTC+3…+7
@@ -371,21 +388,24 @@ today_utc = date -u +%F
 - HTTP:
   - TLS 1.2 added to `[Net.ServicePointManager]::SecurityProtocol` (PS 5.1).
   - `$ProgressPreference='SilentlyContinue'`; `-UseBasicParsing`.
-  - 304: PS 5.1 throws (catch, read `Response.StatusCode`); PS 7 uses `-SkipHttpErrorCheck`.
+  - 404: PS 5.1 throws (catch, read `Response.StatusCode`); PS 7 uses `-SkipHttpErrorCheck`.
 
 ### 4.6 Spreading the load
 
 - Random minute per machine.
 - A random 0–300 s per scheduled run (systemd `RandomizedDelaySec`, Windows `RandomDelay`).
 - The re-run adds 0–30 min.
-- Per user per day: one `latest.json` request (mostly 304s) or two, plus one image.
+- Per user per day: one image (~290 KB) plus its title JSON (12.7 KB), and at most one small 404
+  before them. `latest.json` only on catch-up days.
 
 ## 5. What could break, and the answer
 
 | Risk | Answer |
 |---|---|
-| Fresh JSON, yesterday's cached JPEG | `latest.jpg?d=<date>` |
+| Wrong day's image from the CDN | dated URL (one day per URL); `latest.jpg?d=<date>` on catch-up |
 | Render failed that day (404) | state kept, one re-run |
+| CI stops writing `daily/<pc\|phone>/<date>.jpg` | CI test on `pages.yml`; `latest` fallback |
+| A 404 cached by the CDN for a few minutes | harmless: the re-run is ~3 h later |
 | Captive-portal HTML instead of a JPEG | Content-Type + `FF D8` + size |
 | Daily and login runs at once | `mkdir` lock |
 | Asleep at 07:M | launchd on wake, `StartWhenAvailable`, `Persistent=true`, cron + autostart |
@@ -447,19 +467,24 @@ Each phase ends with its checks passing, docs touched and one commit.
 5. **`amazing-sea-wallpaper.ps1`:** §4.2 commands and the Windows parts of §4.4–4.5. Done here
    when PSScriptAnalyzer and the parser are clean under `pwsh`, and `-DryRun` passes the
    fixtures.
-6. **CI** (`.github/workflows/crons.yml`, on changes to `crons/` or `scripts/snapshot.mjs`).
-   - Fixtures (`python3 -m http.server` plus a 304 handler): yesterday's and today's JSON, a
-     valid and a truncated JPEG, HTML as the image, 404.
+6. **CI** (`.github/workflows/crons.yml`, on changes to `crons/`, `scripts/snapshot.mjs` or `.github/workflows/pages.yml`).
+   - Fixtures (`python3 -m http.server`): a `daily/pc/` tree with or without today's file,
+     `latest.json` with yesterday's and older dates, a valid and a truncated JPEG, HTML as the
+     image.
    - `crons/test/run.sh` cases:
      - new → set
-     - same date, new ETag → not set
-     - stale → one re-run, re-run → none
-     - 404 → state kept, one re-run
+     - today's dated file present → set, no `latest.json` request
+     - dated 404, desktop already yesterday's → no catch-up, one re-run
+     - dated 404, desktop older → catch-up from `latest`, one re-run
+     - same-day redeploy (new bytes) → not set again (step 1)
+     - the re-run itself → never schedules another
+     - render-failure day (dated and latest both 404) → state kept, one re-run
      - bad image → exit 1
      - lock held → exit 0
    - Jobs:
      - `ubuntu-latest`: shellcheck, `run.sh` under bash 5 once with only curl and once with only
-       wget, the phase 3–4 stub tests, and a check that today's real `latest.json` still parses.
+       wget, the phase 3–4 stub tests, a check that today's real `latest.json` still parses, and
+       a grep that `pages.yml` still writes `dist/daily/pc/` and `dist/daily/phone/`.
      - `macos-latest`: `run.sh` under `/bin/bash` 3.2.
      - `windows-latest`: PSScriptAnalyzer and the `.ps1` cases under 5.1 and 7.
 7. **Docs:**
