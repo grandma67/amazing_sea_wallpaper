@@ -2,7 +2,9 @@ import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import { CLOUD_GENERA, cloudBase } from '../src/cloudTypes'
-import { CHARGE_HEIGHT_M, chargeHeightM, EXIT_SHARE, exitLift, lightningFor, ORIGIN_OFFSET_M } from '../src/lightning'
+import { readFileSync } from 'node:fs'
+
+import { CHARGE_HEIGHT_M, chargeHeightM, EXIT_SHARE, exitLift, FLASH, flashGlowCd, flashPower, flashShutter, lightningFor, ORIGIN_OFFSET_M } from '../src/lightning'
 import type { SceneParams } from '../src/params'
 import type { Climate } from '../src/places'
 import { season, type Season } from '../src/seasons'
@@ -95,5 +97,69 @@ describe('lightning: where the flash starts', () => {
     const forced = scene({ ...spec, lightning: { offsetKm: 2, azimuthDeg: 90, originM: 5000 } }, '2025-07-15')
     for (const o of forced.storm!.origins) expect(o).toEqual({ offsetM: 2000, azimuthDeg: 90, heightM: 5000 })
     expect({ ...forced, storm: { ...forced.storm!, origins: [] } }).toEqual({ ...free, storm: { ...free.storm!, origins: [] } })
+  })
+})
+
+describe('lightning: how bright (one rule for every hour)', () => {
+  const STARLIT = 2e-4
+  /** Glow ÷ ambient at depth d straight over the source. */
+  const ratio = (ambientCd: number, d: number): number => {
+    const t = flashShutter(ambientCd)
+    return flashGlowCd(flashPower(t), new Vector3(0, d, 0), new Vector3(0, 0, 0)) / ambientCd
+  }
+
+  it('meters like a photographer: f/8, ISO 100 by day, up to ISO 3200 and 30 s at night', () => {
+    expect(flashShutter(800)).toBeCloseTo(0.01, 3)
+    expect(flashShutter(STARLIT)).toBe(30)
+    expect(flashShutter(1e6)).toBeLessThan(1e-4)
+  })
+
+  it('catches part of a stroke on a very short shutter, the whole flash on a long one', () => {
+    expect(flashPower(1e-5) * 1e-5).toBeLessThan(0.05 * FLASH.strokeLmS)
+    expect(flashPower(0.01) * 0.01).toBeGreaterThan(FLASH.strokeLmS)
+    expect(flashPower(30) * 30).toBeCloseTo(FLASH.strokeLmS * FLASH.strokes, 0)
+  })
+
+  it('lights the cloud more, or as much, as the real scene darkens, with no step (no hidden hour)', () => {
+    // A metered photo holds the flash against the ambient by how much of it
+    // the shutter catches: more as the shutter lengthens, the same once it
+    // holds the whole flash, more again past the 30 s cap.
+    let last = 0
+    for (let log = 4; log >= -4; log -= 0.05) {
+      const r = ratio(10 ** log, 200)
+      expect(r).toBeGreaterThanOrEqual(last * (1 - 1e-9))
+      if (last > 0) expect(r / last).toBeLessThan(1.5)
+      last = r
+    }
+    expect(ratio(STARLIT, 200) / ratio(1e4, 200)).toBeGreaterThan(100)
+  })
+
+  it('gives a dim storm day a lit patch at the base and a night a glowing cloud', () => {
+    // 2016-06-21: the frame's median ~800 cd/m².
+    // The patch where the bolt leaves the base adds most of the base's own light.
+    expect(ratio(800, 200)).toBeGreaterThan(0.5)
+    expect(ratio(800, 200)).toBeLessThan(1.5)
+    expect(ratio(800, 2000)).toBeLessThan(0.03)
+    // A starlit night: the upper channel lights the cloud many times over.
+    expect(ratio(STARLIT, 2000)).toBeGreaterThan(15)
+  })
+
+  it('lets at most half the light out through a face (the dipole, integrated)', () => {
+    const P = 1e9
+    for (const d of [200, 1000, 3000]) {
+      const source = new Vector3(0, d, 0)
+      let flux = 0
+      const dr = d / 50
+      for (let r = dr / 2; r < 50 * d; r += dr) {
+        // Lambertian exitance M = π L over a ring.
+        flux += Math.PI * flashGlowCd(P, source, new Vector3(r, 0, 0)) * 2 * Math.PI * r * dr
+      }
+      expect(flux).toBeLessThan((P / 2) * 1.2)
+    }
+  })
+
+  it('never reads the time of day', () => {
+    const source = readFileSync('src/lightning.ts', 'utf8')
+    expect(source).not.toMatch(/timeOfDay|sunElevation|nightSky/)
   })
 })

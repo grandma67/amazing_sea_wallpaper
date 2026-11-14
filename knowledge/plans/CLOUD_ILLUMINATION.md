@@ -1,6 +1,6 @@
 # Cloud illumination: lightning inside the cloud, storms at night, town light on cloud bases
 
-**Status: phase 1 done (0.183, 2026-11-15); phases 2–7 open.**
+**Status: phases 1–2 done (0.183–0.184, 2026-11-15); phases 3–7 open.**
 
 Reported on `/?date=2016-06-21` and `/?date=2026-11-02`: the lightning doesn't light the cloud,
 and nothing else lights the sky from below or inside either.
@@ -344,6 +344,29 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
      ≤ P/2 × 1.2.
    - Grep in the test: `lightning.ts` doesn't mention `timeOfDay`.
 8. **Commit:** "Lightning's light from real energy and one camera rule (phase 2)".
+
+**As built (0.184); corrects the numbers above:**
+- **The kernel is halved:** `P·c / (4π² r²) × exp(−r / 4 km)`. The dipole lets all of P out
+  through its one face; a cloud loses about half through its base. The fade (`GLOW_REACH_M`)
+  stands for light leaking out of the faces, and keeps a wall's 0.3 floor from letting out more
+  than P/2.
+- **The stroke has a length** (`STROKE_S` 0.5 ms): a shutter shorter than that holds part of
+  it.
+- **Extra strokes:** the other strokes are caught in proportion to the shutter over the flash's
+  0.3 s.
+- **How the ratio behaves:** with the camera metered to the ambient, glow ÷ ambient depends on how
+  much of the flash the shutter holds. It grows from bright to dark, flat while the shutter holds
+  the whole flash (0.3–30 s), then ∝ 1/L past the 30 s cap. Never falls, no steps (tested).
+- **Glow ÷ ambient at 200 m / 2 km deep:**
+
+  | ambient (cd/m²) | 200 m deep | 2 km deep |
+  |---|---|---|
+  | 200 | 1.0× | 0.6% |
+  | 20 to 1 | 2.7× | 1.7% |
+  | 0.01 | 70× | 45% |
+  | 2·10⁻⁴ (starlit) | 3,500× | 22× |
+
+  So by day: a lit patch where the bolt leaves the base. The whole tower glows only at night.
 
 ## Phase 3: the cloud lit from inside (shader)
 
