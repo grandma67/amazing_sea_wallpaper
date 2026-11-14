@@ -2,8 +2,6 @@ import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import { CLOUD_GENERA, cloudBase } from '../src/cloudTypes'
-import { readFileSync } from 'node:fs'
-
 import { CHARGE_HEIGHT_M, chargeHeightM, EXIT_SHARE, exitLift, FLASH, flashGlowCd, flashPower, flashShutter, lightningFor, ORIGIN_OFFSET_M } from '../src/lightning'
 import type { SceneParams } from '../src/params'
 import type { Climate } from '../src/places'
@@ -159,7 +157,7 @@ describe('lightning: how bright (one rule for every hour)', () => {
   })
 
   it('never reads the time of day', () => {
-    const source = readFileSync('src/lightning.ts', 'utf8')
+    const source = Object.values(import.meta.glob('../src/lightning.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>)[0]
     expect(source).not.toMatch(/timeOfDay|sunElevation|nightSky/)
   })
 })
