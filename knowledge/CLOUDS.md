@@ -124,7 +124,7 @@ Storms don't depend on the biome; differences in the cumulonimbus row are sample
 
 ## Storms
 
-`stormFormations`, own streams. 7% of days that aren't night, any coast. Spec `storm`
+`stormFormations`, own streams. 7% of days (14% in a subtropical summer), night too since 0.189 (over the sea storms peak around midnight to early morning; the test days happen to roll 2 of 113 nights, forced nights 6.4%), any coast. Lightning starts in the charge region and lights the cloud from inside (`lightning.ts`). Spec `storm`
 (`"thunderstorm"`, `"squall"`).
 - Cumulonimbus: calvus, or capillatus with a Ci spissatus anvil at ~9–10 km (50/50).
 - Altostratus in 60%: opacus when the storm is dark (60% of storms), translucidus when bright.

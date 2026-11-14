@@ -1109,7 +1109,9 @@ function stormFormations(seed: string, altostratus: boolean, dark: boolean): Clo
  * grey rain shafts under the cells and, in most of them, lightning. Over the
  * open ocean thunderstorms are rarer than over land, but squall lines and
  * frontal storms pass through often enough to make them a chance event.
- * Not at night: the scene is moonlit and a storm would hide the moon.
+ * At night too, as often as by day: over the sea storms peak around
+ * midnight to early morning, over land in the afternoon, and coasts get both
+ * (WWLLN, Virts 2014; Holle 2013; plans/CLOUD_ILLUMINATION.md phase 6).
  */
 /** Half the horizontal field of view (degrees) of a lens on an image. */
 export function horizontalHalfFovDeg(focalLengthMm: number, aspect: number): number {
@@ -1126,21 +1128,20 @@ export function stormChance(climate: Climate, summer: boolean): number {
 
 /** Whether generateStorm will make a storm (its first draw), known before
  * the heading and lens it places the storm with. */
-function stormComes(seed: string, chance: number, timeOfDay: TimeOfDay, force?: Force<'thunderstorm' | 'squall'>): boolean {
-  return forced(force, timeOfDay !== 'night' && Random.derive(seed, 'storm').chance(chance))
+function stormComes(seed: string, chance: number, force?: Force<'thunderstorm' | 'squall'>): boolean {
+  return forced(force, Random.derive(seed, 'storm').chance(chance))
 }
 
 function generateStorm(
   seed: string,
   chance: number,
-  timeOfDay: TimeOfDay,
   headingDeg: number,
   halfFovDeg: number,
   force?: Force<'thunderstorm' | 'squall'>
 ): StormParams | null {
   const rng = Random.derive(seed, 'storm')
   // The same first draw as stormComes.
-  if (!forced(force, timeOfDay !== 'night' && rng.chance(chance))) return null
+  if (!forced(force, rng.chance(chance))) return null
   // Keep strikes and shafts inside the frame (a little narrower than the lens).
   const halfFov = Math.min(30, halfFovDeg * 0.8)
   const curtains = Array.from({ length: rng.int(1, 4) }, () => ({
@@ -1636,7 +1637,7 @@ function buildParams(
   // Jun–Sep north of the equator, Dec–Mar south of it.
   const summer = monthInSeason({ date, latitudeDeg }, 6, 9)
   const stormBarred = (eclipse != null || weather.marineLayer || weather.dust != null || spec.rainbow === true) && spec.storm === undefined
-  const stormy = !stormBarred && stormComes(seed, stormChance(climate, summer), timeOfDay, spec.storm)
+  const stormy = !stormBarred && stormComes(seed, stormChance(climate, summer), spec.storm)
   const rainbowRng = Random.derive(seed, 'rainbow')
   const rainbowDay =
     (spec.rainbow ??
@@ -1882,7 +1883,7 @@ function buildParams(
   // show through it.
   const storm = stormBarred
     ? null
-    : generateStorm(seed, stormChance(climate, summer), timeOfDay, headingDeg, horizontalHalfFovDeg(lensFor(aurora != null && spec.aurora != null), aspect), spec.storm)
+    : generateStorm(seed, stormChance(climate, summer), headingDeg, horizontalHalfFovDeg(lensFor(aurora != null && spec.aurora != null), aspect), spec.storm)
   if (storm != null) {
     const srng = Random.derive(seed, 'storm-weather')
     weather.kind = 'storm'

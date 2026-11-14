@@ -7,7 +7,7 @@ import type { SceneParams } from '../src/params'
 import type { Climate } from '../src/places'
 import { season, type Season } from '../src/seasons'
 import { stormCells } from '../src/stormCells'
-import { allParams, expectEvery, scene } from './days'
+import { allParams, DAYS, expectEvery, expectShare, scene } from './days'
 
 const camera = new Vector3(0, 10, 0)
 const boltDays = (): SceneParams[] => allParams().filter(p => (p.storm?.bolts.length ?? 0) > 0)
@@ -202,5 +202,13 @@ describe('lightning: the ground light', () => {
     const lux = (GROUND_SHARE * 1.17e6) / Math.PI / (5000 ** 2 + 600 ** 2)
     expect(lux / 0.002).toBeGreaterThan(2)
     expect(lux / 0.002).toBeLessThan(5)
+  })
+})
+
+describe('thunderstorms at night', () => {
+  it('come at night as often as by day (plans/CLOUD_ILLUMINATION.md phase 6)', () => {
+    // Every test day forced to night: the storm draw doesn't know the hour.
+    const nights = DAYS.filter((_, i) => i % 3 === 0).map(d => scene({ timeOfDay: 'night' }, d))
+    expectShare(nights, p => p.storm != null, 0.07)
   })
 })

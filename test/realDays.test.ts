@@ -57,7 +57,6 @@ const RULES: Rule[] = [
   ['mushrooms: only in their season, not arid', p => fungiFor(p) != null, p => fungiSeason(p) > 0 && p.place.climate !== 'arid'],
 
   // Weather.
-  ['a storm: by day', p => p.storm != null, p => p.timeOfDay !== 'night'],
   ['a bolt: 3–9 km off, near enough for its dark base to show', p => (p.storm?.bolts.length ?? 0) > 0, p => p.storm!.bolts.every(b => b.distance >= 3000 && b.distance <= 9000)],
   ['contrails: none at night, under overcast or in storms', p => p.timeOfDay === 'night' || p.weather.kind === 'overcast' || p.weather.kind === 'storm', p => p.contrails.length === 0],
   ['contrails: a few, 9–12 km up, wider than 30 m', p => p.contrails.length > 0, p => p.contrails.length <= MAX_CONTRAILS && p.contrails.every(c => c.altitudeM >= 9000 && c.altitudeM <= 12000 && c.widthM > 30)],

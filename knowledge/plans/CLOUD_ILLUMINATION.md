@@ -1,6 +1,6 @@
 # Cloud illumination: lightning inside the cloud, storms at night, town light on cloud bases
 
-**Status: phases 1–5 done (0.183–0.188, 2026-11-15); phases 6–7 open.**
+**Status: phases 1–6 done (0.183–0.189, 2026-11-15); phase 7 open.**
 
 Reported on `/?date=2016-06-21` and `/?date=2026-11-02`: the lightning doesn't light the cloud,
 and nothing else lights the sky from below or inside either.
@@ -536,6 +536,15 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
    ≈ the mean chance 0.07–0.08 (`expectShare`).
 5. **Render:** `snapshot.mjs --where 'p => p.storm != null && p.timeOfDay === "night"' --sample 8`.
 6. **Commit:** "Thunderstorms at night (phase 6)".
+
+**As built (0.189):**
+- **Real days:** 2 of 113 test nights changed (2026-03-27 subtropical beach, 2026-08-20 Pacific
+  open sea). Every test day forced to night gives 6.4%, so there is no bias; the real nights just
+  rolled low (P ≈ 1%).
+- **The rule's test** is the forced-night share (`expectShare` 0.07), not the real-night count.
+  The realDays row "a storm: by day" is gone.
+- **Renders:** the bolts and the glow show. The deck reads as flat bands (ARCHITECTURE "Known
+  issues"): an old look, now visible at night.
 
 ## Phase 7: town light on cloud bases
 

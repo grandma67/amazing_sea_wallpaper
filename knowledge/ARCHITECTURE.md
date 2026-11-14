@@ -331,6 +331,11 @@ phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed 
   bolt's top hangs in front of the range with no cloud round it and its flash has no face to light
   (forced night: no glow; probed). Seen by eye and probes; cause suspected: takram's height
   shaping thins the layer's bottom, and the storm cell's fill doesn't reach it there.
+- Night storms (0.189, real since CLOUD_ILLUMINATION phase 6): the Cb's base reads as flat bands
+  receding to the horizon (2026-08-20, 2026-03-27): lit only from above by the moon or the stand-in,
+  it has no detail, and the gap of air under it shows the town dome as a brown strip with a hard
+  top edge. The same layout as by day; seen by eye with `passes.clouds` off and on, cause in the
+  clouds' night light (not measured further).
 - Light pollution (`nightGlow.ts`): low clouds aren't lit from below by the towns. At the
   night white balance (4000 K) the domes come out only mildly warm (sodium ~2100 K stays
   orange; the LED share pulls them neutral).
