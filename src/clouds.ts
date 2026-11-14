@@ -39,6 +39,7 @@ import { arrangeClouds, stabiliseCubeSphereUv } from './cloudArrangement'
 import { patchRollCloud, rollLayer, type RollFrame, type RollShape } from './rollCloud'
 import { patchShelfCloud, shelfLayer, type ShelfSky } from './shelfCloud'
 import type { RollCloudParams } from './skyEvents'
+import { patchCloudsFlash, type FlashSky } from './lightning'
 import { patchStormCells, stormLayer, type StormCell } from './stormCells'
 import { applySeaHaze } from './seaHaze'
 import { CLOUD_GENERA, layerChannels, MAX_LAYERS } from './cloudTypes'
@@ -142,7 +143,8 @@ export function createClouds(
   visibilityKm: number,
   cells: StormCell[] = [],
   shelf: ShelfSky | null = null,
-  rolls: RollSky | null = null
+  rolls: RollSky | null = null,
+  flash: FlashSky | null = null
 ): CloudsEffect {
   const clouds = new CloudsEffect(camera)
   Object.assign(clouds, textures)
@@ -220,6 +222,8 @@ export function createClouds(
   patchStormCells(clouds, worldToECEF, cells, stormLayer(weather.formations))
   if (withShelf) patchShelfCloud(clouds, shelf, weather.formations.length, stormLayer(weather.formations))
   if (withRolls) patchRollCloud(clouds, rolls.roll, rolls.frame, weather.formations.length, rolls.shape)
+  // Lightning lights the cloud from inside (lightning.ts).
+  if (flash != null) patchCloudsFlash(clouds.cloudsPass.currentMaterial, flash)
   applySeaHaze(clouds, visibilityKm * 1000, weather)
   // No temporal history: our frames are averaged afterwards (accumulate.ts).
   // takram's TAA reprojects the light-shaft buffer through scene depth and
@@ -265,7 +269,8 @@ export function renderCloudyEnvironment(
   cells: StormCell[],
   frames = 12,
   shelf: ShelfSky | null = null,
-  rolls: RollSky | null = null
+  rolls: RollSky | null = null,
+  flash: FlashSky | null = null
 ): void {
   const size = target.width
   // EffectComposer.setSize also resizes the renderer; restore it afterwards.
@@ -309,7 +314,7 @@ export function renderCloudyEnvironment(
     Object.assign(aerialPerspective, textures)
     aerialPerspective.worldToECEFMatrix.copy(worldToECEF)
     aerialPerspective.sunDirection.copy(lightECEF)
-    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells, shelf, rolls)
+    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells, shelf, rolls, flash)
     clouds.qualityPreset = 'medium'
     clouds.temporalUpscale = false
     clouds.events.addEventListener('change', event => {

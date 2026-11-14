@@ -542,6 +542,22 @@ tool gotchas: TOOLS.md.
 
 ## Storms and sky objects
 
+- A light inside a cloud (CLOUD_ILLUMINATION phase 3): takram's clouds are optically thin over
+  kilometres, a real Cb is opaque in tens of metres. Adding a light's diffusion term at every
+  march sample averaged it over km of depth: an even, faint lift instead of a lit patch. Take the
+  light's value once where the ray first meets the storm's layer (its face, at or above the Cb
+  base, so scud below doesn't count) and carry it along the ray. Measure what the march passes on
+  with a fixed face value (`debug.flash.constant`) before blaming the kernel: it was the haze's
+  0.49, not the march.
+- Depths for a light under a cloud's face count from the drawn cloud's base, not from where the
+  bolt mesh starts (up to 200 m inside it): the low lights at "exit + 150 m" sat 340 m deep and lit
+  a patch 4× too faint.
+- `new Vector4()` is (0, 0, 0, **1**): uniform-array padding gets w = 1. Pad with explicit zeros.
+- A flash in a still is energy caught ÷ shutter against the ambient. With the camera metered to the
+  ambient, glow ÷ ambient depends on how much of the flash the shutter holds, not on the ambient
+  itself: flat while it holds the whole flash, rising past the 30 s cap and below a stroke's
+  length.
+
 - Anything meant to show under a storm sits below the volumetric base (Cb 600 m) and clear of scud
   (300–550 m); the deck hides whatever is inside it. Check heights against the day's layers
   (`params.mjs --fields weather.formations`, altitudes in `cloudTypes.ts`) before rendering.

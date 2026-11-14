@@ -98,6 +98,7 @@ import { rollFrame, rollShapeWith } from './rollCloud'
 import { shelfFrame, shelfShapeWith, type ShelfSky } from './shelfCloud'
 import { cloudBase } from './cloudTypes'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
+import { flashPower, flashShutter, flashSky, lightningFor } from './lightning'
 import { dustSkylight, dustTransmittance, reflectionExtinction } from './seaHaze'
 import { shadeProps } from './propShade'
 import { bindCloudShadow, bindLandShadow, bindShadow, FINE_SHADOW_SIZE, fineShadowScale, fitFineShadow, landCloudUniforms, renderLandShadow } from './shadow'
@@ -637,8 +638,24 @@ export async function renderScene(
         auroraBias +
         // Low suns light the clouds from below and the horizon stays bright.
         1.1 * gloom * Math.min(Math.max(params.sunElevationDeg / 15, 0), 1))
-  // Lightning's glow on the cloud base, mirrored by the sea.
-  const glows = flashGlows(params, camera)
+  // Lightning inside the cloud (lightning.ts, plans/CLOUD_ILLUMINATION.md):
+  // a camera exposed for the ambient light (lightning can't be metered) holds
+  // the flash's real energy over its shutter. passes.flashLight off: the old
+  // screen-space glow on the base, mirrored by the sea's own term.
+  const flashOn = pass('flashLight')
+  const flashWbLum = 0.2126 * whiteBalance.r + 0.7152 * whiteBalance.g + 0.0722 * whiteBalance.b
+  const renderPerCd = renderPerLux(params.nightSky, elongationDeg(params))
+  // The luminance the exposure puts at mid-grey (cd/m²).
+  const ambientCd = 0.18 / (exposure * flashWbLum) / renderPerCd
+  const flashShutterS = flashShutter(ambientCd)
+  const flashPowerLm = flashPower(flashShutterS)
+  const flashLit =
+    flashOn && cloudAssets != null && params.storm != null
+      ? flashSky(lightningFor(params, camera.position), cloudBase(weather.formations, 'cumulonimbus'), flashPowerLm, renderPerCd, params.debug?.flash?.scale ?? 1, params.debug?.flash?.lights)
+      : null
+  if (flashLit != null && params.debug?.flash?.constant != null) flashLit.constant = params.debug.flash.constant * renderPerCd
+  // The old glow on the cloud base, mirrored by the sea.
+  const glows = flashOn ? [] : flashGlows(params, camera)
   glows.forEach((g, i) => (u.flashGlows.value as Vector4[])[i].copy(g))
   u.flashCount.value = glows.length
   ;(u.flashRadiance.value as Color).setRGB(...FLASH_RADIANCE)
@@ -672,7 +689,7 @@ export async function renderScene(
       : null
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls)
+      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit)
       : null
   // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
   // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).
@@ -782,7 +799,7 @@ export async function renderScene(
   } else {
     composer.addPass(new EffectPass(camera, ...beams, grade))
   }
-  const rain = stormEffects(params, camera, exposure)
+  const rain = stormEffects(params, camera, exposure, !flashOn)
   if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
   const accumulate = clouds != null ? new AccumulatePass() : null
@@ -886,7 +903,8 @@ export async function renderScene(
       cells,
       envFrames,
       shelf,
-      rolls
+      rolls,
+      flashLit
     )
   }
   // What the sky cube gives a level surface: the props' sky light.
@@ -1143,6 +1161,9 @@ export async function renderScene(
       // The shutter a photographer would have used (s), and how far its look
       // went (0–1; only where the stars are hidden: longShutter).
       shutterSeconds: shutterOf(meter.medianExposed, meter.boost),
+      // Lightning (lightning.ts): the ambient at mid-grey (cd/m²), the
+      // lightning photographer's shutter (s) and the flash's light it holds (lm).
+      ...(params.storm != null ? { ambientCd, flashShutter: flashShutterS, flashPowerLm } : {}),
       longExposure: look,
       sceneLuminance,
       skyZenith: metered.zenith,

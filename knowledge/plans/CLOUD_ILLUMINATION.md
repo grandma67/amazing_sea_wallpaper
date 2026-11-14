@@ -1,6 +1,6 @@
 # Cloud illumination: lightning inside the cloud, storms at night, town light on cloud bases
 
-**Status: phases 1–2 done (0.183–0.184, 2026-11-15); phases 3–7 open.**
+**Status: phases 1–3 done (0.183–0.185, 2026-11-15); phases 4–7 open.**
 
 Reported on `/?date=2016-06-21` and `/?date=2026-11-02`: the lightning doesn't light the cloud,
 and nothing else lights the sky from below or inside either.
@@ -408,6 +408,33 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
       set (decision 3), and `snapshot.mjs --where 'p => p.storm?.bolts?.length > 0' --sample 8`.
       Also front-lit (`"sunAzimuthDeg": 160` on one date). At most 3 rounds in all.
 6. **Commit:** "Lightning lights the cloud from inside (phase 3)".
+
+**As built (0.185); four findings changed the design, each measured:**
+1. **Positions:** takram's march position is ECEF minus `altitudeCorrection`. The lights are
+   passed in world coordinates, and the sample is converted as `cloudShapes.ts` does.
+2. **Thin clouds:** takram's clouds are optically thin over kilometres, a real Cb within tens of
+   metres. Adding the kernel at every sample gave an even, faint lift. The kernel is now taken
+   once, where the ray first meets cloud at or above the Cb base (the face; scud below doesn't
+   count), and carried along the ray, × scattering, after the powder term.
+3. **What the march passes on:** `debug.flash.constant` 1000 cd/m² comes out ×0.45–0.62 on
+   2026-11-02. That's the haze (17 km visibility: 0.49 over 3.1 km), not the march.
+4. **Light depth:** the low lights are placed above the **Cb base**, not above the mesh's exit
+   (which starts up to 200 m inside the cloud). At "exit + 150 m" they sat 340 m deep and the
+   patch was 4× fainter.
+
+**Measured (1080p):**
+- 2026-11-02, the bolt at 3.2 km: +37% at the exit (el 10.5°) by day. The TS mirror gives the
+  same face value within 10%.
+- Starlit night: the base glows round both bolts, 33% of the frame changed.
+- Blue hour: a visible lit patch over the near bolt.
+- Day 2016-06-21: 0.06% of the frame changed (bolt at 5.7 km, haze).
+
+**Checks:**
+- Switch off = HEAD on 3 scenes (identical).
+- `Vector4()` padding had w = 1 (fixed, tested).
+- Bench vs 0.184: +3–4% on both dates and the starlit storm.
+
+**Moonlit night 2016-06-21:** the frame is too dark to show it. That's phase 4's exposure.
 7. **Cleanup commit:**
    - delete `FlashEffect`, `flashGlows`, `FLASH_RADIANCE` and the ocean's `flashGlows`
      uniforms and loop;

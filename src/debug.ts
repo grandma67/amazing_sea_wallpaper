@@ -34,6 +34,11 @@ export interface DebugParams {
    * lumps, shrink (rollCloud.ts ROLL_TERMS). On the CPU pass the same to
    * rollShapeWith. */
   roll?: Partial<Record<'wander' | 'rise' | 'lumps' | 'shrink', boolean>>
+  /** Lightning's light in the clouds (lightning.ts): `scale` multiplies its
+   * power, `lights` keeps only those light indices (0–3 along the channel
+   * from the origin, 4 and 5 the low ones 150 and 450 m inside the base);
+   * `constant` a fixed face glow in cd/m² instead (what the march passes on). */
+  flash?: { scale?: number; lights?: number[]; constant?: number }
   /** Fixed exposure instead of the one metered from the sky and weather
    * (diff.mjs --keep-exposure). */
   exposure?: number
@@ -91,7 +96,7 @@ export interface ProbeLine {
   step?: number
 }
 
-export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze', 'wetMirror', 'skyRay', 'skyFold'] as const
+export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze', 'wetMirror', 'skyRay', 'skyFold', 'flashLight'] as const
 export type DebugPass = (typeof DEBUG_PASSES)[number]
 import type { TerrainProbeSpec } from './terrainTerms'
 

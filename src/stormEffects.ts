@@ -283,7 +283,7 @@ class RainEffect extends Effect {
 }
 
 /** The day's rain effects (storm or rainbow shower), in compositing order. */
-export function stormEffects(params: SceneParams, camera: PerspectiveCamera, exposure: number): Effect[] {
+export function stormEffects(params: SceneParams, camera: PerspectiveCamera, exposure: number, flashGlow = true): Effect[] {
   const effects: Effect[] = []
   const { rainbow, storm } = params
   if (rainbow != null) {
@@ -292,7 +292,7 @@ export function stormEffects(params: SceneParams, camera: PerspectiveCamera, exp
   if (storm == null) return effects
   if (storm.curtains.length > 0) effects.push(new RainShaftEffect(params, storm.curtains, camera))
   const tops = boltTops(params, camera.position)
-  if (tops.length > 0) effects.push(new FlashEffect(tops, camera, exposure))
+  if (tops.length > 0 && flashGlow) effects.push(new FlashEffect(tops, camera, exposure))
   if (storm.rain > 0) effects.push(new RainEffect(storm.rain, camera.aspect, params.ocean.windSpeed))
   return effects
 }

@@ -2,7 +2,7 @@ import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import { CLOUD_GENERA, cloudBase } from '../src/cloudTypes'
-import { CHARGE_HEIGHT_M, chargeHeightM, EXIT_SHARE, exitLift, FLASH, flashGlowCd, flashPower, flashShutter, lightningFor, ORIGIN_OFFSET_M } from '../src/lightning'
+import { CHARGE_HEIGHT_M, chargeHeightM, LIGHTS_PER_FLASH, LOW_LIGHTS, MAX_FLASHES, exitLift, FLASH, flashGlowCd, flashPower, flashShutter, flashSky, lightningFor, ORIGIN_OFFSET_M } from '../src/lightning'
 import type { SceneParams } from '../src/params'
 import type { Climate } from '../src/places'
 import { season, type Season } from '../src/seasons'
@@ -40,9 +40,13 @@ function expectFlashesSound(p: SceneParams): void {
     expect(inCore(f.exit), `${p.date} exit`).toBe(true)
     // And the whole channel inside the cell's full weather.
     for (const v of f.inCloud) expect(cells.some(c => Math.hypot(v.x - c.x, v.z - c.z) <= 0.45 * c.radius), `${p.date} path`).toBe(true)
-    // Lights: on the channel, shares adding to 1, the exit's share last.
+    // Lights: shares adding to 1; the low ones just inside the cloud's base.
     expect(f.lights.reduce((s, l) => s + l.share, 0)).toBeCloseTo(1, 9)
-    expect(f.lights[f.lights.length - 1].share).toBe(EXIT_SHARE)
+    LOW_LIGHTS.forEach((l, k) => {
+      const light = f.lights[f.lights.length - LOW_LIGHTS.length + k]
+      expect(light.position.y - base).toBeGreaterThanOrEqual(l.aboveM - 1)
+      expect(light.position.y - base).toBeLessThan(l.aboveM + 400)
+    })
     for (const l of f.lights) expect(Number.isFinite(l.position.x + l.position.y + l.position.z)).toBe(true)
   })
 }
@@ -159,5 +163,26 @@ describe('lightning: how bright (one rule for every hour)', () => {
   it('never reads the time of day', () => {
     const source = Object.values(import.meta.glob('../src/lightning.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>)[0]
     expect(source).not.toMatch(/timeOfDay|sunElevation|nightSky/)
+  })
+})
+
+describe('lightning: what the clouds shader gets', () => {
+  it('packs every bolt\'s lights with their power in render units, and a bound round each', () => {
+    const p = boltDays().find(d => d.storm!.bolts.length >= 2)!
+    const flashes = lightningFor(p, camera)
+    const sky = flashSky(flashes, 600, 1e9, 2, 0.5)!
+    expect(sky.lights.length).toBe(MAX_FLASHES * LIGHTS_PER_FLASH)
+    expect(sky.count).toBe(Math.min(flashes.length, MAX_FLASHES))
+    const total = sky.lights.reduce((s, l) => s + l.w, 0)
+    expect(total).toBeCloseTo(sky.count * 1e9 * 2 * 0.5, -3)
+    // The colour keeps the power's luminance.
+    expect(0.2126 * sky.colour[0] + 0.7152 * sky.colour[1] + 0.0722 * sky.colour[2]).toBeCloseTo(1, 9)
+    // Every light inside its bolt's bound.
+    flashes.slice(0, MAX_FLASHES).forEach((f, b) => {
+      const bound = sky.bounds[b]
+      for (const l of f.lights) expect(Math.hypot(l.position.x - bound.x, l.position.y - bound.y, l.position.z - bound.z)).toBeLessThan(bound.w)
+    })
+    expect(flashSky([], 600, 1e9, 1)).toBeNull()
+    expect(flashSky(flashes, 600, 1e9, 1, 1, [5])!.lights.filter(l => l.w > 0).length).toBe(sky.count)
   })
 })

@@ -52,6 +52,18 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   kept inside its storm cell's core (`boltCell`: the cell sits between strike and origin, widened by
   half the offset), and 6 light points along it (the exit carries 30%). The bolt mesh draws the
   in-cloud channel too; the clouds composite over it, so it shows only where the cloud is thin.
+- **The cloud lit from inside** (`lightning.ts` `patchCloudsFlash`, phase 3; `passes.flashLight`):
+  - one camera rule for every hour: `ambientCd` (the luminance the exposure puts at mid-grey) →
+    `flashShutter` (f/8, ISO 100–3200, ≤ 30 s) → `flashPower` (lm caught ÷ shutter);
+  - 6 lights per bolt (`lightningFor`): 4 along the in-cloud channel, 2 low at 150 and 450 m above
+    the Cb base (35% of the light: they set the patch round the exit);
+  - in takram's `marchClouds` the kernel `flashGlowCd` (P·c/(4π² r²)·e^(−r/4 km), c = |Δy|/r ≥ 0.3)
+    is taken once where the ray first meets cloud at or above the Cb base, carried along the ray,
+    × the sample's scattering, after the powder term; in the frame and the env cube (the sea
+    mirrors it);
+  - measured on 2026-11-02 (bolt 3.2 km): +37% at the exit by day after 17 km visibility's haze
+    (0.49 over 3.1 km); the mirror agrees within 10%;
+  - the old screen-space `FlashEffect` and the ocean's own glow run only with the pass off.
 - **The shelf cloud** (`shelfCloud.ts`, plans/SHELF_VOLUMETRIC.md; 0.174–0.177): drawn by takram's
   clouds, not a mesh. On shelf days `createClouds` appends one layer (index `formations.length`,
   a free texture channel; shelf days have at most 3 layers) whose density is `shelfDensity`: a

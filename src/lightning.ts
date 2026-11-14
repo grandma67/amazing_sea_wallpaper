@@ -1,4 +1,4 @@
-import { Vector3 } from 'three'
+import { Uniform, Vector3, Vector4, type ShaderMaterial } from 'three'
 
 import { CLOUD_GENERA, cloudBase } from './cloudTypes'
 import type { Climate } from './places'
@@ -182,11 +182,33 @@ function alongPath(path: Vector3[], count: number): Vector3[] {
   return out
 }
 
-/** Share of the flash's light at the exit, the lowest part of the channel in
- * the cloud: the return stroke is brightest low down (estimate). */
-export const EXIT_SHARE = 0.3
-/** Light sources along the in-cloud channel, the exit not counted. */
-export const PATH_LIGHTS = 5
+/**
+ * The flash's lights: two low in the channel just inside the cloud (150 and
+ * 450 m above the Cb's base: the depth that sets the lit patch's size), where the return stroke is brightest and which light
+ * the patch on the base round the bolt (a light at depth d lights a spot of
+ * radius ~d), and the rest spread along the channel above (estimate).
+ */
+export const LOW_LIGHTS: readonly { aboveM: number; share: number }[] = [
+  { aboveM: 150, share: 0.2 },
+  { aboveM: 450, share: 0.15 }
+]
+/** Lights along the rest of the channel, from the origin down. */
+export const PATH_LIGHTS = 4
+/** Lights per flash. */
+export const LIGHTS_PER_FLASH = LOW_LIGHTS.length + PATH_LIGHTS
+
+/** The first point along `path` (walked from its end) at height `y` or above. */
+function pointAt(path: Vector3[], y: number): Vector3 {
+  for (let i = path.length - 2; i >= 0; i--) {
+    if (path[i].y >= y) {
+      const a = path[i + 1]
+      const b = path[i]
+      const t = (y - a.y) / Math.max(b.y - a.y, 1e-6)
+      return a.clone().lerp(b, Math.min(Math.max(t, 0), 1))
+    }
+  }
+  return path[0].clone()
+}
 
 /**
  * Each bolt's flash in the world (params.storm.bolts order). The channel
@@ -229,11 +251,14 @@ export function lightningFor(params: SceneParams, camera: Vector3): Flash[] {
         v.z = cell.z + (dz * reach) / d
       }
     }
+    const lowShare = LOW_LIGHTS.reduce((sum, l) => sum + l.share, 0)
+    // The path lights skip the channel's lowest stretch, which the low lights carry.
+    const upper = inCloud.filter(v => v.y - base > LOW_LIGHTS[LOW_LIGHTS.length - 1].aboveM + 150)
     const lights = [
-      ...alongPath(inCloud, PATH_LIGHTS + 1)
-        .slice(0, PATH_LIGHTS)
-        .map(position => ({ position, share: (1 - EXIT_SHARE) / PATH_LIGHTS })),
-      { position: exit.clone(), share: EXIT_SHARE }
+      ...alongPath(upper.length >= 2 ? upper : inCloud, PATH_LIGHTS).map(position => ({ position, share: (1 - lowShare) / PATH_LIGHTS })),
+      // Below the exit (the mesh starts its channel up to 200 m inside the
+      // cloud) the channel runs on down through the base: the light sits there.
+      ...LOW_LIGHTS.map(l => ({ position: base + l.aboveM >= exit.y ? pointAt(inCloud, base + l.aboveM) : exit.clone().setY(base + l.aboveM), share: l.share }))
     ]
     return { exit, origin, inCloud, branches, lights }
   })
@@ -325,4 +350,128 @@ export function flashGlowCd(powerLm: number, source: Vector3, point: Vector3): n
   const r = Math.max(source.distanceTo(point), GLOW_MIN_M)
   const c = Math.min(Math.max(Math.abs(point.y - source.y) / r, GLOW_SIDE), 1)
   return ((powerLm * c) / (4 * Math.PI ** 2 * r * r)) * Math.exp(-r / GLOW_REACH_M)
+}
+
+// --- The cloud lit from inside (phase 3) ------------------------------------
+
+/** Bolts lit in the clouds, and lights per bolt (flashLights is MAX × LIGHTS). */
+export const MAX_FLASHES = 3
+const LIGHTS = LIGHTS_PER_FLASH
+/** Past this distance from a bolt's channel the glow is < 1% by day (m). */
+const BOUND_M = 8000
+
+/** What the clouds' shader needs: lights in the world (xyz; the march's
+ * sample is taken there, as cloudShapes.ts does) with power in render units
+ * (w, the cd/m² kernel's P × the render units per cd/m²), each bolt's
+ * bounding sphere, and the glow's colour (luma 1). */
+export interface FlashSky {
+  /** The Cb's base (m): the face is the first cloud a ray meets at or above
+   * it (scud and fractus below the base aren't the storm's face). */
+  baseM: number
+  /** Debug: a fixed face glow (render units) instead of the lights', to read
+   * what the march passes on (params.debug.flash.constant). */
+  constant?: number
+  lights: Vector4[]
+  bounds: Vector4[]
+  count: number
+  colour: [number, number, number]
+}
+
+/**
+ * The flashes for the clouds' shader: `powerLm` the light the image holds
+ * (flashPower), `renderPerCd` render units per cd/m² (renderPerLux), `scale`
+ * a debug factor, `only` the light indices kept (debug).
+ */
+export function flashSky(flashes: Flash[], baseM: number, powerLm: number, renderPerCd: number, scale = 1, only?: number[]): FlashSky | null {
+  if (flashes.length === 0 || !(powerLm > 0)) return null
+  const used = flashes.slice(0, MAX_FLASHES)
+  const lights: Vector4[] = []
+  const bounds: Vector4[] = []
+  for (const f of used) {
+    f.lights.forEach((l, k) => {
+      const p = l.position
+      const keep = only == null || only.includes(k)
+      lights.push(new Vector4(p.x, p.y, p.z, keep ? powerLm * l.share * renderPerCd * scale : 0))
+    })
+    const centre = f.origin.clone().add(f.exit).multiplyScalar(0.5)
+    const c = centre
+    bounds.push(new Vector4(c.x, c.y, c.z, BOUND_M + 0.5 * f.origin.distanceTo(f.exit)))
+  }
+  while (lights.length < MAX_FLASHES * LIGHTS) lights.push(new Vector4(0, 0, 0, 0))
+  while (bounds.length < MAX_FLASHES) bounds.push(new Vector4(0, 0, 0, 0))
+  const luma = 0.2126 * FLASH.colour[0] + 0.7152 * FLASH.colour[1] + 0.0722 * FLASH.colour[2]
+  return { baseM, lights, bounds, count: used.length, colour: FLASH.colour.map(c => c / luma) as [number, number, number] }
+}
+
+const f = (x: number): string => x.toFixed(6)
+
+/** The kernel of flashGlowCd in GLSL, summed over the lights near a sample. */
+const FLASH_GLSL = /* glsl */ `
+uniform vec4 flashLights[${MAX_FLASHES * LIGHTS}];
+uniform vec4 flashBounds[${MAX_FLASHES}];
+uniform int flashCount;
+uniform vec3 flashColour;
+uniform float flashFaceHeight;
+uniform float flashConstant;
+// The glow where the ray first entered cloud (its visible face): a real
+// cloud is opaque within tens of metres, takram's within kilometres, so the
+// face's luminance is taken there and carried along the ray (patchCloudsFlash).
+vec3 flashFaceGlow;
+bool flashEntered;
+vec3 flashGlow(const vec3 ecef) {
+  // The sample in the world (y up), as cloudShapes.ts reads it.
+  vec3 p = (ecefToWorldMatrix * vec4(ecef - altitudeCorrection, 1.0)).xyz;
+  float sum = 0.0;
+  for (int b = 0; b < ${MAX_FLASHES}; b++) {
+    if (b >= flashCount) break;
+    vec4 bound = flashBounds[b];
+    if (distance(p, bound.xyz) > bound.w) continue;
+    for (int k = 0; k < ${LIGHTS}; k++) {
+      vec4 l = flashLights[b * ${LIGHTS} + k];
+      float r = max(distance(p, l.xyz), ${f(GLOW_MIN_M)});
+      float c = clamp(abs(p.y - l.y) / r, ${f(GLOW_SIDE)}, 1.0);
+      sum += l.w * c / (${f(4 * Math.PI ** 2)} * r * r) * exp(-r / ${f(GLOW_REACH_M)});
+    }
+  }
+  return flashColour * sum;
+}
+`
+
+/** The line of takram's marchClouds the flash's light is added after (the
+ * sky light, before the sum is multiplied by the scattering). */
+const SKY_LINE = 'radiance += skyIrradiance * RECIPROCAL_PI4 * skyGradient * skyLightScale;'
+/** The end of takram's powder term (darker thin edges toward the sun: a look
+ * for sunlight, not for a light inside the cloud): the flash is added after it. */
+const POWDER_END = '      #endif // POWDER\n'
+/** Where marchClouds sets up its sums (the march's start). */
+const MARCH_START = '  float transmittanceSum = 0.0;\n'
+
+/** Light the clouds from inside each flash's channel (flashGlowCd). */
+export function patchCloudsFlash(material: ShaderMaterial, sky: FlashSky): void {
+  const source = material.fragmentShader
+  if (source.split(SKY_LINE).length !== 2 || source.split(MARCH_START).length !== 2 || source.split(POWDER_END).length !== 2 || !source.includes('vec4 marchClouds(')) {
+    throw new Error('patchCloudsFlash: the clouds shader has changed; update the patch')
+  }
+  material.fragmentShader = source
+    .replace('vec4 marchClouds(', `${FLASH_GLSL}\nvec4 marchClouds(`)
+    .replace(MARCH_START, `${MARCH_START}  flashEntered = false;\n`)
+    .replace(
+      SKY_LINE,
+      `${SKY_LINE}
+      // Lightning inside the cloud (lightning.ts patchCloudsFlash): the face's
+      // glow, added after the powder term below.
+      if (!flashEntered && height >= flashFaceHeight) {
+        flashFaceGlow = flashConstant > 0.0 ? flashColour * flashConstant : flashGlow(position);
+        flashEntered = true;
+      }
+`
+    )
+    .replace(POWDER_END, `${POWDER_END}      if (flashEntered) radiance += flashFaceGlow * media.scattering;\n`)
+  material.uniforms.flashLights = new Uniform(sky.lights)
+  material.uniforms.flashBounds = new Uniform(sky.bounds)
+  material.uniforms.flashCount = new Uniform(sky.count)
+  material.uniforms.flashColour = new Uniform(new Vector3(...sky.colour))
+  material.uniforms.flashFaceHeight = new Uniform(sky.baseM)
+  material.uniforms.flashConstant = new Uniform(sky.constant ?? 0)
+  material.needsUpdate = true
 }

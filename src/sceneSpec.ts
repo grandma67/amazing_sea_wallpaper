@@ -569,6 +569,14 @@ function checkDebug(value: unknown, path: string): void {
     },
     shelf: (v, p) => checkTerms(v, p, 'shelf', ['bow', 'wobble', 'scallops', 'lipVary', 'tiers', 'stria']),
     roll: (v, p) => checkTerms(v, p, 'roll', ['wander', 'rise', 'lumps', 'shrink']),
+    flash: (v, p) => {
+      const o = v as Record<string, unknown>
+      if (o === null || typeof o !== 'object' || Array.isArray(o)) fail(p, 'must be {scale?, lights?, constant?}')
+      for (const k of Object.keys(o)) if (!['scale', 'lights', 'constant'].includes(k)) fail(`${p}.${k}`, 'is not a field: scale, lights, constant')
+      if (o.constant !== undefined) number(o.constant, `${p}.constant`)
+      if (o.scale !== undefined) number(o.scale, `${p}.scale`)
+      if (o.lights !== undefined && (!Array.isArray(o.lights) || (o.lights as unknown[]).some(i => typeof i !== 'number' || i < 0 || i > 5))) fail(`${p}.lights`, 'must be a list of light indices 0–5')
+    },
     probeLine: (v, path) => {
       const lines = Array.isArray(v) ? v : [v]
       if (lines.length === 0 || lines.length > 12) fail(path, 'must be a line or a list of 1–12')
