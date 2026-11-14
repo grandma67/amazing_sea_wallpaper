@@ -35,7 +35,8 @@ describes the planned use and is marked as planned until phase 1 ships.
   ```
   crons/
     sea-wallpaper.sh      # fetch + set, Linux and macOS (POSIX-ish bash 3.2: macOS ships 3.2)
-    install.sh            # install / --uninstall / --status, Linux (cron) and macOS (launchd)
+    install.sh            # install, Linux (cron) and macOS (launchd): one file, `uname` picks
+                          # the scheduler, setter, data dir and one-off re-run
     sea-wallpaper.ps1     # fetch + set, Windows (PowerShell 5.1, built into Windows 10/11)
     install.ps1           # install / -Uninstall / -Status, Task Scheduler
   ```
@@ -131,6 +132,11 @@ describes the planned use and is marked as planned until phase 1 ships.
 - **Tools only from the OS:** bash 3.2, `curl`, `date -u`; JSON read with `sed` on the one
   `"date"` and `"title"` lines (no `jq`, not installed by default on Ubuntu or macOS). Windows:
   PowerShell 5.1 (`Invoke-WebRequest -UseBasicParsing`, `ConvertFrom-Json`). Nothing to install.
+- **No clone needed:** the installer downloads `sea-wallpaper.sh` / `.ps1` from the raw base
+  into the data dir and links `~/.local/bin/sea-wallpaper` (Linux/macOS; Windows: the full
+  path). The installed script handles `--now`, `--status` and `--uninstall` itself, so nothing
+  depends on the downloaded installer or a clone afterwards. The README shows only the curl
+  (`irm` on Windows) route.
 - **Install** from a clone (`./crons/install.sh`, `.\crons\install.ps1`) or from one raw file
   (`curl -fsSL https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/install.sh -o install.sh`,
   read it, then `bash install.sh`). When run outside a clone, `install.sh` downloads
