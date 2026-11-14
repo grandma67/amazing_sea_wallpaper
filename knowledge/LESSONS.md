@@ -520,6 +520,11 @@ tool gotchas: TOOLS.md.
   behind ~70% haze (Koschmieder at 30 km) and washes pale.
 - A mesh hanging from the volumetric clouds (waterspout) can't see deck gaps: give it its own soft
   base (spray puffs).
+- A cloud drawn as a mesh is lit by the whole sky dome and has hard edges. Under a storm deck it
+  glowed at 2× the deck (0.172: sky light cut to a third, coloured in the deck's hue, measured
+  by row means on the render). Running its top up into the deck to hide the edge failed: the
+  deck's underside is too thin to cover it, and it showed as a dark silhouette. Prefer cloud
+  shapes in the volumetric clouds; a mesh only for what they can't hold.
 - Camera-facing ribbons widened along one fixed vector vanish where a segment runs along it
   (lightning as dashes): widen across each segment (`dir × toCamera`).
 - Exponential fog with large scale height fills the sky; a fog *bank* needs tens of metres.

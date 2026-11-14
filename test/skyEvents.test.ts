@@ -39,9 +39,11 @@ describe('cloud events', () => {
       const pos = g.getAttribute('position')
       for (let i = 0; i < pos.count; i++) expect(Number.isFinite(pos.getX(i) + pos.getY(i) + pos.getZ(i))).toBe(true)
     }
-    // The shelf hangs under the 600 m base, not into it.
+    // The shelf hangs under the 600 m base, not into it (the deck's thin
+    // underside would show what's above as a dark silhouette).
     const ys = Array.from({ length: shelf.getAttribute('position').count }, (_, i) => shelf.getAttribute('position').getY(i))
     expect(Math.max(...ys)).toBeLessThan(800)
+    expect(shelf.index!.count / 3).toBeLessThan(100_000)
     expect(roll.index!.count / 3).toBeLessThan(50_000)
   })
 })

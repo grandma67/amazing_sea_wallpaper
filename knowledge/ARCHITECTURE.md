@@ -426,6 +426,10 @@ Sky:
   `fog: null`: lost in haze against a 3° sun. Not traced.
 - Backlit shelf cloud at sunset is a flat pink band (takram aerial perspective on the mesh;
   e.g. 2010-04-01).
+- Shelf cloud (0.172) still reads as a smooth band of mesh, not cloud: it sits 3–5° up, its edges
+  are hard where the clouds are soft, and on telephoto days (2005-01-28, 2006-06-26) it shows
+  straight bands edge to edge (cause not traced). Seen by eye on 4 real days; the fix is to draw
+  it in the volumetric clouds (like `stormCells.ts`), not a better mesh.
 - 2026-02-13: sparkly dots in the air over the sea.
 - Night sky units (NIGHT_SKY phase 2, until phase 3): the drawn sky has no natural background
   (airglow), so under a thin crescent the sky is darker than a real one and stars stand out too
