@@ -256,11 +256,6 @@ uniform vec4 shipWake[${MAX_SHIPS}];
 uniform int shipCount;
 uniform vec3 sunDirection;
 uniform vec3 sunIrradiance;
-// Lightning flashes lighting the cloud base (stormEffects.ts flashGlows):
-// direction and angular radius, and their radiance.
-uniform vec4 flashGlows[3];
-uniform int flashCount;
-uniform vec3 flashRadiance;
 // Ships' lamps as point lights: world position, and intensity × colour in
 // scene units (irradiance at 1 m).
 uniform vec3 lampPositions[${MAX_LAMPS}];
@@ -558,20 +553,6 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
   vec3 reflected = textureLod(envMap, R, lod).rgb;
   // What the mirror image's haze fades to (below): the sky this ray sees.
   vec3 skyReflected = reflected;
-  // The flash on the cloud base is added after the clouds (a screen effect),
-  // so it isn't in the environment map: mirror its glow here, the same soft
-  // patch, wider than tall, round each bolt's top.
-  for (int i = 0; i < 3; i++) {
-    if (i >= flashCount) break;
-    vec3 glowDir = flashGlows[i].xyz;
-    float c = dot(R, glowDir);
-    if (c <= 0.0) continue;
-    vec3 right = normalize(cross(glowDir, vec3(0.0, 1.0, 0.0)));
-    vec3 up = cross(right, glowDir);
-    vec3 t = R / c;
-    vec2 d = vec2(dot(t, right) * 0.6, dot(t, up) * 1.2) / flashGlows[i].w;
-    reflected += flashRadiance * exp(-dot(d, d));
-  }
   // Land, rocks, trees and boats mirrored in the water (reflection.ts), over
   // the sky reflection, shifted by the waves and blurred by roughness.
   // A wave's tilt turns the reflected ray, which drifts off by an amount that
@@ -924,13 +905,10 @@ export function createOcean(
       envMaxLod: { value: 8 },
       sunDirection: { value: new Vector3(...params.sunDirection) },
       sunIrradiance: { value: new Color(0, 0, 0) },
-      flashGlows: { value: [0, 1, 2].map(() => new Vector4()) },
-      flashCount: { value: 0 },
       lampPositions: { value: Array.from({ length: MAX_LAMPS }, () => new Vector3()) },
       lampIntensities: { value: Array.from({ length: MAX_LAMPS }, () => new Vector3()) },
       lampCount: { value: 0 },
       longExposure: { value: 0 },
-      flashRadiance: { value: new Color(0, 0, 0) },
       skyIrradiance: { value: new Color(0, 0, 0) },
       deepColor: { value: new Color(...ocean.water.deep) },
       scatterColor: { value: new Color(...ocean.water.scatter) },

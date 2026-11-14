@@ -2,15 +2,15 @@ import { DoubleSide, Mesh, MeshBasicMaterial, Vector3, type Object3D } from 'thr
 
 import { cloudBase } from '../cloudTypes'
 import { lightningFor } from '../lightning'
-import { dirFromAzEl, type SceneParams } from '../params'
+import { dirFromAzEl } from '../params'
 import { Random } from '../random'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
 
 // Lightning bolts: forked channels from the cloud base to the sea. Their
 // brightness depends on the metered exposure, so scene.ts sets it later (see
-// setGlowBrightness). Rain shafts, the flash on the clouds and falling rain
-// are screen-space effects (stormEffects.ts).
+// setGlowBrightness). Rain shafts and falling rain are screen-space effects
+// (stormEffects.ts); the flash's light in the clouds is lightning.ts.
 
 /** A forked lightning channel from the cloud base down to the sea, as a
  * ribbon facing the camera. */
@@ -98,15 +98,6 @@ function inCloudRibbons(b: MeshBuilder, paths: { points: Vector3[]; width: numbe
       b.quad(v0, v1, v2, v3)
     }
   }
-}
-
-/** Where each bolt leaves the cloud base (world), for the flash glow. */
-export function boltTops(params: SceneParams, camera: Vector3): Vector3[] {
-  const base = cloudBase(params.weather.formations, 'cumulonimbus')
-  return (params.storm?.bolts ?? []).map(strike => {
-    const [dx, , dz] = dirFromAzEl(strike.azimuthDeg, 0)
-    return new Vector3(camera.x + dx * strike.distance, base, camera.z + dz * strike.distance)
-  })
 }
 
 export function createStorm(ctx: PropContext): Object3D[] {

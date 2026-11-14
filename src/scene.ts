@@ -97,7 +97,7 @@ import { stormCells } from './stormCells'
 import { rollFrame, rollShapeWith } from './rollCloud'
 import { shelfFrame, shelfShapeWith, type ShelfSky } from './shelfCloud'
 import { cloudBase } from './cloudTypes'
-import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
+import { stormEffects } from './stormEffects'
 import { flashPower, flashShutter, flashSky, lightningFor } from './lightning'
 import { dustSkylight, dustTransmittance, reflectionExtinction } from './seaHaze'
 import { shadeProps } from './propShade'
@@ -640,8 +640,8 @@ export async function renderScene(
         1.1 * gloom * Math.min(Math.max(params.sunElevationDeg / 15, 0), 1))
   // Lightning inside the cloud (lightning.ts, plans/CLOUD_ILLUMINATION.md):
   // a camera exposed for the ambient light (lightning can't be metered) holds
-  // the flash's real energy over its shutter. passes.flashLight off: the old
-  // screen-space glow on the base, mirrored by the sea's own term.
+  // the flash's real energy over its shutter; the reflection cube carries it to
+  // the sea. passes.flashLight off: no flash light.
   const flashOn = pass('flashLight')
   const flashWbLum = 0.2126 * whiteBalance.r + 0.7152 * whiteBalance.g + 0.0722 * whiteBalance.b
   const renderPerCd = renderPerLux(params.nightSky, elongationDeg(params))
@@ -654,11 +654,6 @@ export async function renderScene(
       ? flashSky(lightningFor(params, camera.position), cloudBase(weather.formations, 'cumulonimbus'), flashPowerLm, renderPerCd, params.debug?.flash?.scale ?? 1, params.debug?.flash?.lights)
       : null
   if (flashLit != null && params.debug?.flash?.constant != null) flashLit.constant = params.debug.flash.constant * renderPerCd
-  // The old glow on the cloud base, mirrored by the sea.
-  const glows = flashOn ? [] : flashGlows(params, camera)
-  glows.forEach((g, i) => (u.flashGlows.value as Vector4[])[i].copy(g))
-  u.flashCount.value = glows.length
-  ;(u.flashRadiance.value as Color).setRGB(...FLASH_RADIANCE)
 
   // --- Post-processing ------------------------------------------------------
   const aerialPerspective = new AerialPerspectiveEffect(camera)
@@ -799,7 +794,7 @@ export async function renderScene(
   } else {
     composer.addPass(new EffectPass(camera, ...beams, grade))
   }
-  const rain = stormEffects(params, camera, exposure, !flashOn)
+  const rain = stormEffects(params, camera)
   if (rain.length > 0) composer.addPass(new EffectPass(camera, ...rain))
   // Average stochastic cloud noise over frames, in linear HDR before bloom.
   const accumulate = clouds != null ? new AccumulatePass() : null

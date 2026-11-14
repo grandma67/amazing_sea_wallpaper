@@ -3,12 +3,11 @@ import { Uniform, Vector3, Vector4, type PerspectiveCamera } from 'three'
 
 import { cloudBase } from './cloudTypes'
 import { dirFromAzEl, type RainbowParams, type SceneParams, type StormParams } from './params'
-import { boltTops } from './props/storm'
 import { Random } from './random'
 
 // Screen-space rain, applied after exposure on top of the composited clouds:
-// distant rain shafts, rainbows, the lightning flash on the cloud base, and
-// rain falling right in front of the camera.
+// distant rain shafts, rainbows and rain falling right in front of the
+// camera. Lightning lights the clouds from inside (lightning.ts).
 
 const DEG = Math.PI / 180
 const MAX = 4
@@ -166,72 +165,6 @@ class RainbowEffect extends Effect {
   }
 }
 
-/** Colour and strength of the flash glow, in exposed (graded) units. */
-/**
- * The flash's glow on the cloud base as scene radiance (the scene's own
- * units, before exposure). A flash lights the cloud by the same amount
- * whatever the time of day, so against daylight it barely shows and the base
- * stays dark round a bright channel, as in daytime lightning photos; by blue
- * hour (exposure ~250) it adds ~0.1 after exposure and the cloud glows.
- */
-export const FLASH_RADIANCE: [number, number, number] = [0.09 / 250, 0.096 / 250, 0.12 / 250]
-
-/**
- * The flash glows as world directions from the camera (xyz) and angular
- * radius (w, rad): the sea mirrors them (ocean.ts). Same size as on screen
- * in FlashEffect (~800 m of cloud base round each bolt).
- */
-export function flashGlows(params: SceneParams, camera: PerspectiveCamera): Vector4[] {
-  if (params.storm == null) return []
-  const cap = 0.4 * Math.tan((camera.fov * DEG) / 2)
-  return boltTops(params, camera.position)
-    .slice(0, 3)
-    .map(top => {
-      const distance = top.distanceTo(camera.position)
-      const dir = top.clone().sub(camera.position).normalize()
-      return new Vector4(dir.x, dir.y, dir.z, Math.min(cap, 800 / distance))
-    })
-}
-
-/** Lightning lights up the cloud around the channel: a soft glow centred
- * where each bolt leaves the cloud base. */
-class FlashEffect extends Effect {
-  constructor(tops: Vector3[], camera: PerspectiveCamera, exposure: number) {
-    const points = tops.slice(0, 3).map(top => {
-      const ndc = top.clone().project(camera)
-      // Glow radius: ~800 m at the bolt's distance, as a fraction of the view.
-      const radius = Math.min(0.2, 800 / top.distanceTo(camera.position) / Math.tan((camera.fov * DEG) / 2) / 2)
-      return new Vector3(ndc.x * 0.5 + 0.5, ndc.y * 0.5 + 0.5, radius)
-    })
-    while (points.length < 3) points.push(new Vector3(-10, -10, 0.001))
-    super(
-      'FlashEffect',
-      /* glsl */ `
-      uniform vec3 flashes[3];
-      uniform vec3 flashGlow;
-      uniform float aspect;
-      void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
-        float glow = 0.0;
-        for (int i = 0; i < 3; i++) {
-          vec2 d = (uv - flashes[i].xy) * vec2(aspect, 1.0) / flashes[i].z;
-          // Wider than tall: the light spreads along the cloud base.
-          d *= vec2(0.6, 1.2);
-          glow += exp(-dot(d, d));
-        }
-        outputColor = vec4(inputColor.rgb + flashGlow * glow, inputColor.a);
-      }`,
-      {
-        blendFunction: BlendFunction.SET,
-        uniforms: new Map<string, Uniform>([
-          ['flashes', new Uniform(points)],
-          ['flashGlow', new Uniform(new Vector3(...FLASH_RADIANCE).multiplyScalar(exposure))],
-          ['aspect', new Uniform(camera.aspect)]
-        ])
-      }
-    )
-  }
-}
-
 /** Rain falling close to the camera: faint slanted streaks over the image,
  * plus the loss of contrast of looking through a downpour. */
 class RainEffect extends Effect {
@@ -283,7 +216,7 @@ class RainEffect extends Effect {
 }
 
 /** The day's rain effects (storm or rainbow shower), in compositing order. */
-export function stormEffects(params: SceneParams, camera: PerspectiveCamera, exposure: number, flashGlow = true): Effect[] {
+export function stormEffects(params: SceneParams, camera: PerspectiveCamera): Effect[] {
   const effects: Effect[] = []
   const { rainbow, storm } = params
   if (rainbow != null) {
@@ -291,8 +224,6 @@ export function stormEffects(params: SceneParams, camera: PerspectiveCamera, exp
   }
   if (storm == null) return effects
   if (storm.curtains.length > 0) effects.push(new RainShaftEffect(params, storm.curtains, camera))
-  const tops = boltTops(params, camera.position)
-  if (tops.length > 0 && flashGlow) effects.push(new FlashEffect(tops, camera, exposure))
   if (storm.rain > 0) effects.push(new RainEffect(storm.rain, camera.aspect, params.ocean.windSpeed))
   return effects
 }

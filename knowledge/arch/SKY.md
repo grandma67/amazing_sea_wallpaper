@@ -41,8 +41,8 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   `stabiliseCubeSphereUv` rewrites takram's u in a cancellation-free form.
 - **Storms:** `stormCells.ts` raises the Cb layer's weather to full (density ×3 in the core) in a
   cell (r ≈ 3.5 km + 10% of distance) over each bolt and rain curtain, in the clouds, shadow and
-  env-cube passes. `stormEffects.ts`: rain shafts, lightning flash (fixed scene radiance
-  `FLASH_RADIANCE`: invisible by day, a glow by blue hour), lens rain, rainbows. Bolts strike
+  env-cube passes. `stormEffects.ts`: rain shafts, lens rain, rainbows (the flash's light is
+  in the clouds: `lightning.ts`, below; the screen-space `FlashEffect` went in 0.186). Bolts strike
   3–9 km out, ribbons widened across each segment toward the camera, forks head down.
 - **Where a flash starts** (`lightning.ts`, plans/CLOUD_ILLUMINATION.md phase 1): in the storm's
   main negative charge, at the −15 °C height (`CHARGE_HEIGHT_M`, climate × season: ~7 km tropical,
@@ -63,7 +63,8 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
     mirrors it);
   - measured on 2026-11-02 (bolt 3.2 km): +37% at the exit by day after 17 km visibility's haze
     (0.49 over 3.1 km); the mirror agrees within 10%;
-  - the old screen-space `FlashEffect` and the ocean's own glow run only with the pass off.
+  - `passes.flashLight: false`: no flash light (0.185 kept the old screen-space glow under it;
+    removed in 0.186 with the ocean's own glow term).
 - **The shelf cloud** (`shelfCloud.ts`, plans/SHELF_VOLUMETRIC.md; 0.174–0.177): drawn by takram's
   clouds, not a mesh. On shelf days `createClouds` appends one layer (index `formations.length`,
   a free texture channel; shelf days have at most 3 layers) whose density is `shelfDensity`: a
