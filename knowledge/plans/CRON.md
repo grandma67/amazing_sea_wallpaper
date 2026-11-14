@@ -1,7 +1,8 @@
 # Daily desktop wallpaper: `amazing-sea-wallpaper` scripts (plan)
 
-Goal: a script that runs every morning, fetches the wallpaper the Pages site already renders
-(`latest.jpg`) and sets it as the desktop background. Each machine runs at its own random minute,
+Goal: a script that runs every morning, fetches the day's wallpaper the Pages site already
+renders (`daily/pc/<UTC date>.jpg`, falling back to `latest.jpg`) and sets it as the desktop
+background. Each machine runs at its own random minute,
 so users don't all hit the site at once.
 - Linux and macOS share one bash script; Windows has a PowerShell one. Both live in `crons/`.
 - Scope: each OS's **default edition**:
@@ -12,7 +13,7 @@ so users don't all hit the site at once.
     desktops.
   - macOS, and Windows 10/11 (activated).
 
-Status: plan (2026-11-14). Nothing built. The README section is marked "planned" until phase 7.
+Status: plan (2026-11-14). Nothing built. The README section is marked "planned" until phase 9.
 Testing: on this Mac (macOS 27.0.1, bash 3.2.57) during the build; Linux and Windows later.
 Until a distro is tried, it ships labelled untested.
 
@@ -43,9 +44,9 @@ removed by `--uninstall`:
 | OS | Entry outside the folder | Name |
 |---|---|---|
 | Linux, cron | a line in the user's crontab (the cron spool) | tagged `# amazing-sea-wallpaper`; re-run `# amazing-sea-wallpaper-retry` |
-| Linux, systemd | `~/.config/systemd/user/` symlinks, made by `systemctl --user link` to unit files kept in the folder | `amazing-sea-wallpaper.service` / `.timer`, `amazing-sea-wallpaper-retry.timer` |
+| Linux, systemd | `~/.config/systemd/user/` symlinks, made by `systemctl --user link` to unit files kept in the folder | `amazing-sea-wallpaper.service` / `.timer`, `amazing-sea-wallpaper-retry.service` / `.timer` |
 | Linux, login | `~/.config/autostart/amazing-sea-wallpaper.desktop` (cron backend only) | — |
-| macOS | `~/Library/LaunchAgents/amazing-sea-wallpaper.plist` (launchd only loads agents at login from there) | label `amazing-sea-wallpaper`; re-run `amazing-sea-wallpaper-retry` |
+| macOS | `~/Library/LaunchAgents/amazing-sea-wallpaper.plist`, and `amazing-sea-wallpaper-retry.plist` while a re-run is pending (launchd only loads agents at login from there) | labels `amazing-sea-wallpaper`, `amazing-sea-wallpaper-retry` |
 | Windows | Task Scheduler folder `\amazing-sea-wallpaper\` | tasks `amazing-sea-wallpaper`, `amazing-sea-wallpaper-retry` |
 | Linux, macOS | the command link in `~/.local/bin/` | `amazing-sea-wallpaper` |
 
@@ -58,8 +59,8 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
 
 | Fact | How checked |
 |---|---|
-| `latest.jpg`: 1920×1080, ~290 KB. `latest-portrait.jpg`: 1290×2796. `latest.json` (12.7 KB) has exactly one `"date": "YYYY-MM-DD"` (the UTC day rendered) and one `"title"` (UTF-8), one key per line | live `curl` + `grep -o`; `scripts/snapshot.mjs:223` |
-| `cache-control: max-age=600`, `etag`; `If-None-Match` gives **304** | live `curl` (304 seen) |
+| `latest.jpg`: 1920×1080, ~290 KB. `latest-portrait.jpg`: 1290×2796. `latest.json` (12.7 KB, the same file as the day's `daily/pc/<date>.json`) has exactly one `"date": "YYYY-MM-DD"` (the UTC day rendered) and one `"title"` (UTF-8, no quotes in titles), one key per line | live `curl` + `grep -o`; `scripts/snapshot.mjs:223` |
+| Every file has `cache-control: max-age=600` | live `curl -I` |
 | The CDN caches the JSON and the JPEG separately, so for up to 10 min after a deploy a fresh JSON can come with yesterday's JPEG | follows from per-URL `max-age` |
 | Only today's image is published. If the render step fails (`continue-on-error`), there's no `latest.jpg` (404) that day | `.github/workflows/pages.yml` |
 | **Dated copies of today exist:** `daily/pc/<UTC date>.jpg` and `.json`, `daily/phone/<UTC date>.jpg` and `.json` (200 for 2026-11-14). Yesterday's is gone after the next deploy (404 for 11-13), and tomorrow's is 404 until the render lands. It's an internal CI path, not a published API | live `curl -I`; `pages.yml` (`--out dist/daily/pc`, `dist/daily/phone`) |
@@ -145,7 +146,7 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
 
 ### 2.5 Still open (settled during the build, none changes the design)
 
-- macOS: the picture survives logout/login (phase 1; the Store entry suggests yes).
+- macOS: the picture survives logout/login (phase 2; the Store entry suggests yes).
 - Solus: whether cron is present. Either backend works.
 - openSUSE: which of KDE or GNOME the new installer preselects. Both are supported.
 
@@ -166,11 +167,14 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
     - 404 means not rendered yet, a tiny response.
     - The title comes from `daily/pc/<today_utc>.json`; if that fails, the title is left empty
       and the image is still set.
-  - Only when the dated file is 404 **and** the desktop is older than yesterday (a missed day, a
-    new install) does it fall back to `latest.json` + `latest.jpg?d=<date>`, the newest there is.
+  - It falls back to `latest.json` + `latest.jpg?d=<date>` (the newest there is) only when the
+    dated file is 404 and either:
+    - the desktop is older than yesterday (a missed day, a new install, `--now`), or
+    - this is the re-run, one cheap check that also gets today's image if the dated path ever
+      goes away.
+
     The `?d=` cache-buster stops the CDN pairing a fresh JSON with a stale JPEG.
-  - A test in CI (phase 6) fails if `pages.yml` stops writing `dist/daily/{pc,phone}/<date>.jpg`.
-    The `latest` fallback still works if that path ever goes away.
+  - A CI check (phase 8) fails if `pages.yml` stops writing `dist/daily/{pc,phone}/<date>.jpg`.
   - The sha256 is kept for `--status`.
 - **One morning run, at most one re-run a day:** daily at 07:M local (M random per machine) and
   at login. If today's UTC image isn't out, or the fetch failed, one re-run (§4.3). No polling.
@@ -220,7 +224,7 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
 ```
 crons/amazing-sea-wallpaper.sh    # Linux + macOS: install, run, re-run, status, upgrade, uninstall
 crons/amazing-sea-wallpaper.ps1   # Windows: the same; PowerShell 5.1 and 7
-crons/test/                       # fixtures, fake session trees, stubs, runner (phase 6)
+crons/test/                       # fixtures, fake session trees, stubs, runner (phase 1)
 ```
 
 ### 4.2 Commands
@@ -228,13 +232,13 @@ crons/test/                       # fixtures, fake session trees, stubs, runner 
 | Bash | PowerShell | Does |
 |---|---|---|
 | `--install [--portrait] [--hour H] [--url U] [--scheduler cron\|systemd]` | `-Install [-Portrait] [-Hour H] [-Url U]` | checks tools and session (§4.4), copies itself into the folder, writes `config` (random minute; `proxy` from `https_proxy` now, since cron and launchd won't pass it), removes the other Linux backend's entries, registers the schedule (§4.5), runs once (`--now`). Safe to re-run |
-| *(no flag: the schedule)* | *(none)* | the daily run (§4.3) after a random 0–300 s sleep |
-| `--login` | `-Login` | the login run: no sleep, waits for the session (§4.3) |
+| *(no flag: the schedule)* | *(none)* | the daily run (§4.3) after a random 0–300 s sleep. launchd (`RunAtLoad`), the Windows logon trigger and systemd (`Persistent=true`) start this same command at login |
+| `--login` | `-Login` | the cron backend's autostart entry: like the daily run, without the sleep |
 | `--retry` | `-Retry` | the one re-run; removes its own job, never schedules another |
-| `--now` | `-Now` | no sleep, ignores the state |
+| `--now` | `-Now` | no sleep, ignores the state: today's dated image, else the newest `latest`; never schedules a re-run |
 | `--dry-run` | `-DryRun` | fetch and check; prints what it would set or schedule; changes nothing |
 | `--status` | `-Status` | version, OS/distro, desktop, scheduler and next run, last date/title/sha256, pending re-run, last 10 log lines. No network |
-| `--upgrade` | `-Upgrade` | download from `main` to a temp file, syntax-check (`bash -n`; the PowerShell parser), compare `VERSION`; if newer, replace the copy and re-run `--install` with the saved config; else "up to date" |
+| `--upgrade` | `-Upgrade` | download from `main` to a temp file in the folder, syntax-check (`bash -n`; the PowerShell parser), compare `VERSION`. If newer: **`mv`** it over the copy (bash reads a running script as it goes, so it's never rewritten in place), then re-run `--install` with the saved config. Else "up to date" |
 | `--uninstall` | `-Uninstall` | remove every entry in §1's second table; asks before deleting the folder |
 
 Exit codes: 0 done or nothing to do · 1 network, HTTP or bad image · 2 unknown desktop · 3 no GUI
@@ -245,14 +249,14 @@ session · 4 missing tool, blocked by policy, or no scheduler.
 ```
 today_utc = date -u +%F
 0. take the lock (mkdir lock/; pid inside; stale if > 10 min or pid dead) — else exit 0
-1. state.date == today_utc                         → exit 0, no network
+1. state.date == today_utc (and not --now)         → exit 0, no network
 2. detect the session and desktop (§4.4)           → exit 2 / 3
 3. GET daily/pc/<today_utc>.jpg                    (daily/phone/… with --portrait)
-   200 → check it (below); set it as <today_utc>; title from daily/pc/<today_utc>.json → done (step 6)
-4. 404 and state.date < yesterday_utc (catch-up)   → GET latest.json; if its date > state.date:
-                                                     GET latest.jpg?d=<that date>; check; set it as <that date>
-5. still not today's (404, failed or bad image)
-   and not --retry and state.retry_day != today    → schedule the one re-run; retry_day = today (local)
+   200 → check it (below); set it as <today_utc>; title from the matching .json → done (step 6)
+4. not set at 3, and (state.date < yesterday_utc  → GET latest.json; if its date > state.date:
+          or --retry or --now)                       GET latest.jpg?d=<that date>; check; set it as <that date>
+5. today's not set (404, failed or bad image)
+   and not --retry/--now and state.retry_day != today → schedule the one re-run; retry_day = today (local)
 6. after any set: verify, write state (date, sha256, title, set_at), prune to 7, cancel a pending re-run
 
 check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to wallpapers/<date>.jpg
@@ -269,7 +273,7 @@ check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to 
   - 08:00 UTC is just after the latest finish seen (07:43). Without that floor, UTC+3…+7
     (07:00 local = 00:00–04:00 UTC) would retry too early.
   - From UTC+8 east, 07:00 local is before 00:00 UTC, so today's UTC image is already out and
-    there's no re-run (the site's local "yesterday", §6).
+    there's no re-run (the site's local "yesterday", §7).
   - The margin is thin (10 runs). If the CI keeps finishing later, the floor moves in a version
     bump.
 - **No session yet** (login race: autostart or a `Persistent` timer firing before the desktop
@@ -277,6 +281,8 @@ check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to 
   exit 3.
 - Proxy: `curl -x` / `wget -e https_proxy=` from `config` when set.
 - Limits: `curl --fail --retry 2 --max-time 60`, `wget --tries=3 --timeout=60`.
+- Exit status: 0 when today's (or the newest) image is set or nothing was due; 1 when a fetch or
+  check failed, even if a re-run was scheduled.
 
 ### 4.4 Session, desktop and setters
 
@@ -297,7 +303,7 @@ check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to 
 
 | Tokens | Session `comm` | Setter | Default on |
 |---|---|---|---|
-| `GNOME`, `ubuntu`, `zorin`, `pop`, `Unity` | `gnome-shell` | `gsettings set org.gnome.desktop.background picture-uri 'file://<path>'`; `picture-uri-dark` the same (when `gsettings range` lists the key); `picture-options 'zoom'`; read back with `gsettings get` | Ubuntu, Debian, Zorin, Fedora, openSUSE |
+| `GNOME`, `ubuntu`, `zorin`, `pop`, `Unity` | `gnome-shell` | `gsettings set org.gnome.desktop.background picture-uri 'file://<path>'`; `picture-uri-dark` the same (when `gsettings list-keys org.gnome.desktop.background` has it); `picture-options 'zoom'`; read back with `gsettings get` | Ubuntu, Debian, Zorin, Fedora, openSUSE |
 | `Pantheon` | `gala` | `picture-uri 'file://<path>'`, **`picture-uri-dark ''`** (as elementary's Settings does), `picture-options 'zoom'` | elementary OS |
 | `Budgie` | `budgie-daemon` | the GNOME keys (the daemon restarts swaybg on change) | Solus |
 | `X-Cinnamon` | `cinnamon` | `gsettings set org.cinnamon.desktop.background picture-uri 'file://<path>'`, `picture-options 'zoom'`; read back | Linux Mint |
@@ -384,7 +390,8 @@ check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to 
 - A Group Policy execution policy (`Get-ExecutionPolicy -List`, MachinePolicy/UserPolicy) beats
   `Bypass`: install stops with a message.
 - Re-run: task `amazing-sea-wallpaper-retry`, `-Once -At <local>`, trigger `EndBoundary` +6 h,
-  `-DeleteExpiredTaskAfter 00:00:01` (needs the end boundary). `-Retry` unregisters it.
+  `-DeleteExpiredTaskAfter 00:00:01` (needs the end boundary), the same settings and action with
+  `-Retry`. `-Retry` unregisters it.
 - HTTP:
   - TLS 1.2 added to `[Net.ServicePointManager]::SecurityProtocol` (PS 5.1).
   - `$ProgressPreference='SilentlyContinue'`; `-UseBasicParsing`.
@@ -396,7 +403,7 @@ check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to 
 - A random 0–300 s per scheduled run (systemd `RandomizedDelaySec`, Windows `RandomDelay`).
 - The re-run adds 0–30 min.
 - Per user per day: one image (~290 KB) plus its title JSON (12.7 KB), and at most one small 404
-  before them. `latest.json` only on catch-up days.
+  before them. `latest.json` only on catch-up days and on the re-run.
 
 ## 5. What could break, and the answer
 
@@ -404,7 +411,7 @@ check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to 
 |---|---|
 | Wrong day's image from the CDN | dated URL (one day per URL); `latest.jpg?d=<date>` on catch-up |
 | Render failed that day (404) | state kept, one re-run |
-| CI stops writing `daily/<pc\|phone>/<date>.jpg` | CI test on `pages.yml`; `latest` fallback |
+| CI stops writing `daily/<pc\|phone>/<date>.jpg` | CI check on `pages.yml`; the re-run's `latest` check still gets today's image |
 | A 404 cached by the CDN for a few minutes | harmless: the re-run is ~3 h later |
 | Captive-portal HTML instead of a JPEG | Content-Type + `FF D8` + size |
 | Daily and login runs at once | `mkdir` lock |
@@ -428,71 +435,99 @@ check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to 
 | macOS job switched off in Login Items | `--status` says so |
 | `~/.local/bin` not on `PATH` (Arch; Debian before the folder exists) | full path printed; schedules use full paths |
 | Windows console flash, EDR, policy, CLM, TLS, non-ASCII paths | §4.4–4.5 |
-| `latest.json` format changes | first match + `YYYY-MM-DD` check; CI test on today's real file (phase 6) |
+| `latest.json` format changes | first match + `YYYY-MM-DD` check; CI test on today's real file (phase 8) |
 | Broken upgrade download | syntax check + version compare before replacing |
+| Replacing the script while it runs | `mv` over it (a new inode), never rewritten in place |
 | Immutable distros (Silverblue, Aeon, Bazzite) | everything under `$HOME` and user units |
 
 ## 6. Phases
 
-Each phase ends with its checks passing, docs touched and one commit.
+Each phase ends with its checks passing, this plan updated where the build taught something,
+and one commit. The test harness comes first, so every later phase is checked by it.
 
-1. **Core of `amazing-sea-wallpaper.sh`, on this Mac.**
-   - Scope: version metadata, helpers, the folder, config/state/lock, the run (§4.3) with the
-     image checks and cache-buster, `--now`, `--dry-run`, `--status`, the macOS session check
-     and setter with polling. Test overrides `AMAZING_SEA_WALLPAPER_TODAY` and
-     `AMAZING_SEA_WALLPAPER_NOW_EPOCH`.
+1. **Test harness** (`crons/test/`).
+   - A fixture site served by `python3 -m http.server` from a temp folder the runner fills per
+     case:
+     - `daily/pc/<date>.jpg` and `.json` present or absent
+     - `latest.json` with today's, yesterday's or an older date
+     - a valid JPEG, a truncated JPEG, HTML served as the image
+     - everything absent (a render-failure day)
+   - Test hooks in the script, off unless set:
+     - `AMAZING_SEA_WALLPAPER_TODAY` / `AMAZING_SEA_WALLPAPER_NOW_EPOCH`: fake clock
+     - `AMAZING_SEA_WALLPAPER_HOME`: the folder, in a temp dir
+     - `AMAZING_SEA_WALLPAPER_STUBS=1`: setters and schedulers append their command lines to a log
+       instead of acting, so a CI runner's desktop and crontab are never touched
+   - `crons/test/run.sh`: runs each case with the hooks and compares the exit code, the state
+     file and the stub log with expected values.
+   - Done when the runner runs (against a stub script) under `/bin/bash` 3.2 on this Mac.
+2. **The run, on this Mac** (`crons/amazing-sea-wallpaper.sh`).
+   - Scope:
+     - version metadata, the bash 3.2 helpers, the folder, config/state/lock
+     - the run (§4.3): dated fetch, `latest` catch-up, checks, prune
+     - `--now`, `--dry-run`, `--status`
+     - macOS session check and setter with polling
    - Done when:
-     - `--dry-run` against the live site prints today's date and title.
-     - `--now` changes every display, and the picture survives logout/login. Record the current
-       picture first and restore it (`DefaultDesktop.heic` today).
-     - A second run the same UTC day makes no request.
+     - These `run.sh` cases pass with stubs:
+       - today's dated file → set, no `latest.json` request
+       - dated 404 with yesterday's already set → nothing set, one re-run requested
+       - dated 404 with an older state → catch-up from `latest`, one re-run
+       - `--retry` → never requests another
+       - render-failure day → state kept, one re-run, exit 1
+       - same-day second run → no request
+       - bad image or HTML → exit 1, state kept
+       - lock held → exit 0
+     - Against the live site, without stubs: `--dry-run` prints today's date and title, and
+       `--now` changes every display. Record the current picture first and restore it
+       (`DefaultDesktop.heic` today).
+     - The picture survives logout/login.
      - `shellcheck --shell=bash` is clean; `/bin/bash -n` (3.2) passes.
-2. **macOS install, re-run, upgrade, uninstall.**
+3. **macOS scheduling, upgrade, uninstall.**
+   - Scope: `--install` (copy, config, LaunchAgent, first run), the retry plist and `--retry`,
+     `--upgrade`, `--uninstall`, the command link.
    - Done when:
      - `--status` and `launchctl print gui/$UID/amazing-sea-wallpaper` show 07:M.
-     - A fixture with yesterday's date → one `amazing-sea-wallpaper-retry.plist` at the right
-       local time. Running again makes none; `--retry` deletes it.
-     - A 404 fixture → state kept, one re-run.
-     - `--upgrade` replaces the copy on a higher `VERSION` and says "up to date" on the same one.
+     - A stale fixture → one `amazing-sea-wallpaper-retry.plist` at the right local time;
+       running again makes none; `--retry` deletes it.
+     - `--upgrade` on a fixture with a higher `VERSION` replaces the copy by `mv` and re-installs;
+       with the same version it says "up to date".
      - `--uninstall` leaves nothing from §1 behind.
      - A sleep through 07:M → the run happens on wake.
-3. **Linux detection and scheduling** (same file): §4.4 steps 1–4, both backends and their
-   re-runs, autostart, tool checks with distro hints, curl and wget. Done here when the
-   detection passes fake trees (`/proc` stand-ins, `pgrep`/`loginctl` stubs on `PATH`) for every
-   row, plus unknown (exit 2) and none (exit 3). The crontab lines, unit files and autostart file
-   must match golden files.
-4. **Linux setters:** every row of §4.4. Stubs for `gsettings` and `plasma-apply-wallpaperimage`
-   record their arguments. The COSMIC writer runs on a temp `HOME` seeded with the epoch-1.11.0
-   `all` file and a `.Dark`/`.Light` tree, compared with golden files.
-5. **`amazing-sea-wallpaper.ps1`:** §4.2 commands and the Windows parts of §4.4–4.5. Done here
-   when PSScriptAnalyzer and the parser are clean under `pwsh`, and `-DryRun` passes the
-   fixtures.
-6. **CI** (`.github/workflows/crons.yml`, on changes to `crons/`, `scripts/snapshot.mjs` or `.github/workflows/pages.yml`).
-   - Fixtures (`python3 -m http.server`): a `daily/pc/` tree with or without today's file,
-     `latest.json` with yesterday's and older dates, a valid and a truncated JPEG, HTML as the
-     image.
-   - `crons/test/run.sh` cases:
-     - new → set
-     - today's dated file present → set, no `latest.json` request
-     - dated 404, desktop already yesterday's → no catch-up, one re-run
-     - dated 404, desktop older → catch-up from `latest`, one re-run
-     - same-day redeploy (new bytes) → not set again (step 1)
-     - the re-run itself → never schedules another
-     - render-failure day (dated and latest both 404) → state kept, one re-run
-     - bad image → exit 1
-     - lock held → exit 0
-   - Jobs:
-     - `ubuntu-latest`: shellcheck, `run.sh` under bash 5 once with only curl and once with only
-       wget, the phase 3–4 stub tests, a check that today's real `latest.json` still parses, and
-       a grep that `pages.yml` still writes `dist/daily/pc/` and `dist/daily/phone/`.
-     - `macos-latest`: `run.sh` under `/bin/bash` 3.2.
-     - `windows-latest`: PSScriptAnalyzer and the `.ps1` cases under 5.1 and 7.
-7. **Docs:**
+4. **Linux detection** (same file, §4.4 steps 1–4).
+   - Done when `run.sh` passes fake trees (`/proc` stand-ins, `pgrep`/`loginctl` stubs on `PATH`):
+     - each row of the desktop table
+     - an unknown desktop → exit 2
+     - no session → exit 3
+     - a session appearing after 30 s → found within the 120 s wait
+5. **Linux setters** (every row of §4.4).
+   - Done when the stub log matches the expected `gsettings` / `plasma-apply-wallpaperimage`
+     calls for each desktop.
+   - The COSMIC writer, on a temp `HOME` seeded with the epoch-1.11.0 `all` file and with and
+     without `.Dark`/`.Light` folders, produces the golden files.
+6. **Linux scheduling and tools.**
+   - Scope: backend choice (§3), the cron line and retry line, the systemd units and retry units,
+     the autostart entry, `--install`/`--uninstall`/`--upgrade` on Linux, the curl/wget paths,
+     and missing-tool hints by `/etc/os-release`.
+   - Done when the generated crontab, units and autostart file match golden files, and every
+     `run.sh` case passes with only curl and with only wget on `PATH`.
+7. **`amazing-sea-wallpaper.ps1`** (§4.2 commands, the Windows parts of §4.3–4.5).
+   - Done when PSScriptAnalyzer and the parser are clean under `pwsh` on this Mac, and the fetch
+     and state cases pass with `-DryRun` and the stub hook.
+8. **CI** (`.github/workflows/crons.yml`, on changes to `crons/`, `scripts/snapshot.mjs` or
+   `.github/workflows/pages.yml`).
+   - `ubuntu-latest`:
+     - shellcheck
+     - `run.sh` under bash 5, with only curl and with only wget
+     - a parse of today's real `latest.json`
+     - a grep that `pages.yml` still writes `dist/daily/pc/` and `dist/daily/phone/`
+   - `macos-latest`: `run.sh` under `/bin/bash` 3.2, with stubs.
+   - `windows-latest`: PSScriptAnalyzer and the `.ps1` cases under PowerShell 5.1 and 7, with
+     stubs.
+9. **Docs:**
    - README section without "planned", listing the tested editions.
    - `changelog.md` row.
-   - ARCHITECTURE.md "Page, cache, CI": who reads `latest*.jpg` and when, and the late CI as a
-     known issue (measured from the Actions API).
-   - TOOLS.md: `crons/test/run.sh`.
+   - ARCHITECTURE.md "Page, cache, CI": who reads `daily/*` and `latest*`, and when; the late
+     CI finish as a known issue (measured from the Actions API).
+   - TOOLS.md: `crons/test/run.sh` and the test hooks.
 
 **Later testing on real machines or VMs**, by users:
 1. Ubuntu 24.04 (Wayland + X11)
