@@ -1,14 +1,14 @@
-import { Uniform, Vector2, type Vector3, Vector4 } from 'three'
+import { Vector2, type Vector3, Vector4 } from 'three'
 import type { CloudsEffect } from '@takram/three-clouds'
 
+import { f1, patchCloudShape, setLayerDensity, shapeLayer, smoothstep, valueNoise1, VISIBLE_DENSITY, withTermsOff } from './cloudShapes'
 import { cloudBase, type CloudGenus } from './cloudTypes'
 import { dirFromAzEl } from './params'
 import type { ShelfCloudParams } from './skyEvents'
-import { hashCell, hashGlsl, seedInt } from './skyMirror'
-import { RETURN, SAMPLE_END } from './stormCells'
+import { seedInt } from './skyMirror'
 
-// The shelf cloud as cloud: a density the volumetric clouds draw (the shader
-// patch is in phase 2 of plans/SHELF_VOLUMETRIC.md). This file holds the
+// The shelf cloud as cloud: a density the volumetric clouds draw
+// (plans/SHELF_VOLUMETRIC.md; the shared base is cloudShapes.ts). This file holds the
 // shape on the CPU: the frame it's measured in, its density at a point, and
 // the constants the GLSL is written from, so both sides share one source.
 // The shader gets each sample's world position from its ECEF one (takram's
@@ -22,11 +22,11 @@ import { RETURN, SAMPLE_END } from './stormCells'
 // top merging into the storm's base. Along the front it bows toward the
 // camera in the middle and wanders in kilometre scallops.
 
-/** Every number of the shape, written into the GLSL as is. */
 /** The density at which takram's clouds show the shelf's edge (see
  * faceEdgeM): what a CPU prediction of where the edge shows should use. */
-export const SHELF_VISIBLE_DENSITY = 0.25
+export const SHELF_VISIBLE_DENSITY = VISIBLE_DENSITY
 
+/** Every number of the shape, written into the GLSL as is. */
 export const SHELF_SHAPE = {
   /** Half the front's length (m), and how far its ends fade. */
   halfLengthM: 40_000,
@@ -108,9 +108,7 @@ export type ShelfTerm = keyof typeof SHELF_TERMS
 
 /** SHELF_SHAPE with the given terms off. */
 export function shelfShapeWith(off: Partial<Record<ShelfTerm, boolean>> | undefined): ShelfShape {
-  const shape: Record<string, number> = { ...SHELF_SHAPE }
-  for (const [term, keys] of Object.entries(SHELF_TERMS)) if (off?.[term as ShelfTerm] === false) for (const k of keys) shape[k] = 0
-  return shape as ShelfShape
+  return withTermsOff<ShelfShape, ShelfTerm>(SHELF_SHAPE, SHELF_TERMS, off)
 }
 
 /** Noise streams (added to the shelf's integer seed): one per use. */
@@ -132,20 +130,6 @@ export function shelfFrame(shelf: ShelfCloudParams, camera: Vector3): ShelfFrame
     across: new Vector2(-dz, dx),
     toStorm
   }
-}
-
-const smoothstep = (a: number, b: number, x: number): number => {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
-  return t * t * (3 - 2 * t)
-}
-
-/** 1D value noise in [0, 1], cells of 1 (smoothstep between cell hashes):
- * the GLSL builds it the same way on `hashGlsl`. */
-export function valueNoise1(seed: number, x: number): number {
-  const i = Math.floor(x)
-  const f = x - i
-  const t = f * f * (3 - 2 * f)
-  return hashCell(seed, i) * (1 - t) + hashCell(seed, i + 1) * t
 }
 
 /** How far the lip line stands from the frame's origin line toward the
@@ -277,48 +261,22 @@ const BAND_BACK_M = 1500
  * at the bottom" tears the underside). */
 export function shelfLayer(sky: ShelfSky, channel: 'r' | 'g' | 'b' | 'a') {
   const top = shelfTop(sky.base) + SHELF_SHAPE.topEdgeM
-  return {
-    channel,
-    altitude: 100,
-    height: top - 100,
-    densityScale: 0.3,
-    shapeAmount: 0.3,
-    shapeDetailAmount: 0.6,
-    weatherExponent: 1,
-    shapeAlteringBias: 0.35,
-    coverageFilterWidth: 0.5,
-    densityProfile: { expTerm: 0, exponent: 0, linearTerm: 0, constantTerm: 1 },
-    shadow: true
-  }
+  return shapeLayer(channel, 100, top - 100, 0.3, 0.6)
 }
-
-const f1 = (x: number): string => x.toFixed(1)
 
 /** shelfDensity in GLSL (and the deck's band over it), from SHELF_SHAPE:
  * the same steps as the TS, line for line. */
 export function shelfGlsl(S: ShelfShape = SHELF_SHAPE): string {
   return /* glsl */ `
-${hashGlsl('shelf')}
-// The sample's position (takram's ECEF), stored where each sampleWeather
-// call gets its uv.
-vec3 shelfPosition = vec3(0.0);
 uniform vec2 shelfOrigin;
 uniform vec2 shelfAcross;
 uniform vec2 shelfToStorm;
 // Lip height, depth, top, face run (m).
 uniform vec4 shelfShape;
-uniform float shelfSeed;
 uniform float shelfTiers;
-float shelfNoise1(const float x, const float k) {
-  float i = floor(x);
-  float f = x - i;
-  float t = f * f * (3.0 - 2.0 * f);
-  return mix(shelfHash1(i, shelfSeed + k), shelfHash1(i + 1.0, shelfSeed + k), t);
-}
 // (the shelf's density, 1 where the storm's deck must be full over it).
 vec2 shelfSample(const float height) {
-  vec3 world = (ecefToWorldMatrix * vec4(shelfPosition - altitudeCorrection, 1.0)).xyz;
-  vec2 d = world.xz - shelfOrigin;
+  vec2 d = shelfWorld().xz - shelfOrigin;
   float s = dot(d, shelfAcross);
   float b = dot(d, shelfToStorm);
   float ends = 1.0 - smoothstep(${f1(S.halfLengthM - S.endFadeM)}, ${f1(S.halfLengthM)}, abs(s));
@@ -362,8 +320,6 @@ vec2 shelfSample(const float height) {
 `
 }
 
-const CAPTURE = 'vec2 uv = getGlobeUv(position);'
-
 /**
  * Patch the clouds' and their shadows' shaders: the shelf's layer (index
  * `index`) takes shelfDensity as its density, after takram's coverage remap
@@ -378,29 +334,22 @@ export function patchShelfCloud(clouds: CloudsEffect, sky: ShelfSky, index: numb
   const { frame, shelf } = sky
   const S = sky.shape ?? SHELF_SHAPE
   const run = S.faceRunM + S.faceRunPerTierM * shelf.tiers
-  for (const material of [clouds.cloudsPass.currentMaterial, clouds.shadowPass.currentMaterial]) {
-    const source = material.fragmentShader
-    const captures = source.split(CAPTURE).length - 1
-    if (source.split(SAMPLE_END).length !== 2 || source.split(RETURN).length !== 2 || captures < 1)
-      throw new Error('patchShelfCloud: the clouds shader has changed; update the patch')
-    material.fragmentShader = source
-      .replaceAll(CAPTURE, `${CAPTURE}\n    shelfPosition = position;`)
-      .replace('WeatherSample sampleWeather(', `${shelfGlsl(S)}\nWeatherSample sampleWeather(`)
-      .replace(SAMPLE_END, `${SAMPLE_END}  vec2 shelfHere = shelfSample(height);\n  localWeather.${cb} = max(localWeather.${cb}, shelfHere.y);\n`)
-      .replace(
-        RETURN,
-        // The shelf is part of the storm's base: it takes the storm layer's
-        // height fraction, which takram's sky light reads (skyGradient = 0.5
-        // + 0.5 × fraction). Its own ~900 m layer put the face at 0.3–0.9:
-        // 1.4× the deck's sky light, a pale band that read as sky.
-        `\n  weather.density.${layer} = shelfHere.x;\n  weather.heightFraction.${layer} = weather.heightFraction.${cb};\n  #ifdef SHADOW\n  weather.density.${layer} *= shadowLayerMask.${layer};\n  #endif${RETURN}`
-      )
-    material.uniforms.shelfOrigin = new Uniform(frame.origin.clone())
-    material.uniforms.shelfAcross = new Uniform(frame.across.clone())
-    material.uniforms.shelfToStorm = new Uniform(frame.toStorm.clone())
-    material.uniforms.shelfShape = new Uniform(new Vector4(shelf.lipHeightM, shelf.depthM, shelfTop(sky.base), run))
-    material.uniforms.shelfSeed = new Uniform(seedInt(shelf.seed))
-    material.uniforms.shelfTiers = new Uniform(shelf.tiers)
-    material.needsUpdate = true
-  }
+  patchCloudShape(clouds, {
+    prefix: 'shelf',
+    glsl: shelfGlsl(S),
+    seed: seedInt(shelf.seed),
+    afterSample: `  vec2 shelfHere = shelfSample(height);\n  localWeather.${cb} = max(localWeather.${cb}, shelfHere.y);\n`,
+    // The shelf is part of the storm's base: it takes the storm layer's
+    // height fraction, which takram's sky light reads (skyGradient = 0.5
+    // + 0.5 × fraction). Its own ~900 m layer put the face at 0.3–0.9:
+    // 1.4× the deck's sky light, a pale band that read as sky.
+    beforeReturn: `${setLayerDensity(layer, 'shelfHere.x')}\n  weather.heightFraction.${layer} = weather.heightFraction.${cb};`,
+    uniforms: {
+      shelfOrigin: frame.origin.clone(),
+      shelfAcross: frame.across.clone(),
+      shelfToStorm: frame.toStorm.clone(),
+      shelfShape: new Vector4(shelf.lipHeightM, shelf.depthM, shelfTop(sky.base), run),
+      shelfTiers: shelf.tiers
+    }
+  })
 }

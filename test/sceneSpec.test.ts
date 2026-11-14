@@ -8,6 +8,7 @@ import { debrisFor } from '../src/props/debris'
 import { FLOWERS, shoreLifeFor } from '../src/props/shoreLife'
 import { Random } from '../src/random'
 import { deepPatch, parseSceneSpec, type SceneSpec } from '../src/sceneSpec'
+import { ROLL_TERMS } from '../src/rollCloud'
 import { SHELF_TERMS } from '../src/shelfCloud'
 import { allParams, DAYS, expectSameDay, scene as sceneOn } from './days'
 
@@ -252,6 +253,8 @@ describe('parseSceneSpec', () => {
     expect(() => parseSceneSpec({ params: { debug: { shelf: { tiers: false, stria: false } } } } as never)).not.toThrow()
     expect(() => parseSceneSpec({ params: { debug: { shelf: { scud: false } } } } as never)).toThrow(/is not a shelf term/)
     for (const term of Object.keys(SHELF_TERMS)) expect(() => parseSceneSpec({ params: { debug: { shelf: { [term]: false } } } } as never)).not.toThrow()
+    for (const term of Object.keys(ROLL_TERMS)) expect(() => parseSceneSpec({ params: { debug: { roll: { [term]: false } } } } as never)).not.toThrow()
+    expect(() => parseSceneSpec({ params: { debug: { roll: { tiers: false } } } } as never)).toThrow(/is not a roll term/)
     expect(() => parseSceneSpec({ props: { marine: 'shark' } })).toThrow(/spec\.props\.marine/)
     expect(() => parseSceneSpec({ props: { ships: ['submarine'] } })).toThrow(/spec\.props\.ships\[0\]/)
     expect(() => parseSceneSpec({ props: { bloom: ['heather'] } })).toThrow(/spec\.props\.bloom\[0\]/)

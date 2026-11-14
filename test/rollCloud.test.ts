@@ -1,7 +1,7 @@
 import { Vector2, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { ROLL_SHAPE, rollDensity, rollFrame } from '../src/rollCloud'
+import { ROLL_SHAPE, ROLL_TERMS, rollDensity, rollFrame, rollGlsl, rollShapeWith } from '../src/rollCloud'
 import type { RollCloudParams } from '../src/skyEvents'
 import { allParams, scene } from './days'
 
@@ -102,5 +102,24 @@ describe('Morning Glory rolls', () => {
           }
         }
     }
+  })
+
+  it('switches each detail term off on the CPU and in the GLSL alike (params.debug.roll)', () => {
+    expect(rollShapeWith(undefined)).toEqual(ROLL_SHAPE)
+    for (const [term, keys] of Object.entries(ROLL_TERMS)) {
+      const shape = rollShapeWith({ [term]: false })
+      for (const k of keys) {
+        expect(shape[k]).toBe(0)
+        expect(ROLL_SHAPE[k]).not.toBe(0)
+      }
+    }
+    // Lumps off: a plain tube, its radius the same all round.
+    const { roll, heading } = rolls().at(-1)!
+    const f = rollFrame(roll, camera, heading)
+    const plain = rollShapeWith({ lumps: false, wander: false, rise: false })
+    const centreH = roll.baseM + roll.depthM / 2
+    expect(rollDensity(f, roll, ...at(roll, heading, 0, 0), centreH, plain)).toBe(1)
+    expect(rollDensity(f, roll, ...at(roll, heading, 5000, 0), centreH, plain)).toBe(1)
+    expect(rollGlsl(rollShapeWith({ lumps: false }))).toContain('float lumps = 1.0\n      + 0.000 *')
   })
 })

@@ -60,6 +60,27 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
   one behind. Its own height fraction lights it (a standalone cloud, brighter on top). Clear days
   load the cloud assets when there's a roll. The GLSL skips samples beyond a tube's widest lump
   (+45% → +22% on roll days).
+- **A new cloud shape in the volumetric clouds** (the shared base: `cloudShapes.ts`; the shelf and
+  the Morning Glory are built on it). Check each before the first render; every item cost a round
+  on one of them:
+  1. **One layer, density set before `return`** (`patchCloudShape`, `setLayerDensity`), its
+     position read at the uv capture (`<prefix>World()`), never through uv.
+  2. **Soft edges ≥ ~0.12 of the radius** (or ≥ 20 m for a sharp lip, with the edge at density
+     0.25, `VISIBLE_DENSITY`): takram doubles the density, so a thinner edge leaves its shape
+     noise nothing to bite (shelf: straight bands; roll round 1: a smooth slab).
+  3. **Detail moves the surface, not the density** (a radius or a face position): inside, the
+     density is saturated. Small-scale waves of more than a few % of the size read as hills.
+  4. **An early exit and its test from the start**: skip a sample's noise where the density is
+     surely 0 (above the top, past the ends, beyond the widest lump); a CPU test that the density
+     is 0 past the bound. Without it: shelf 11 s renders, roll +45%.
+  5. **Whose height fraction lights it:** its own layer (a standalone cloud: brighter on top), or
+     the deck it belongs to (the shelf: the Cb's, or it reads as sky).
+  6. **Clear days skip the cloud pass:** load the cloud assets when the shape is there.
+  7. **Terms and switches:** every detail term's amplitude in the constants object, listed in a
+     `*_TERMS` table, switchable with `params.debug.<shape>` (`withTermsOff`): an artifact is found
+     by switching terms off one by one, before a second guess.
+  8. **Measure before looking:** `bench.mjs --ref HEAD` (10%), and `edges.mjs` on a `probeLine`
+     against the CPU's prediction (parity, sharpness, brightness against what's above and below).
 - **takram's clouds, from the inside** (`three-clouds` 0.7.6, `src/shaders/clouds.glsl`,
   `clouds.frag`; found building the shelf, each cost a round):
   - `localWeather`, `weather.density`, `heightFraction` and `shadowLayerMask` are vec4s indexed

@@ -36,7 +36,7 @@ import {
 import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
 import { arrangeClouds, stabiliseCubeSphereUv } from './cloudArrangement'
-import { patchRollCloud, rollLayer, type RollFrame } from './rollCloud'
+import { patchRollCloud, rollLayer, type RollFrame, type RollShape } from './rollCloud'
 import { patchShelfCloud, shelfLayer, type ShelfSky } from './shelfCloud'
 import type { RollCloudParams } from './skyEvents'
 import { patchStormCells, stormLayer, type StormCell } from './stormCells'
@@ -128,6 +128,8 @@ export function loadCloudAssets(): Promise<CloudAssets> {
 export interface RollSky {
   roll: RollCloudParams
   frame: RollFrame
+  /** ROLL_SHAPE, or with terms off (`params.debug.roll`). */
+  shape?: RollShape
 }
 
 export function createClouds(
@@ -217,7 +219,7 @@ export function createClouds(
   }
   patchStormCells(clouds, worldToECEF, cells, stormLayer(weather.formations))
   if (withShelf) patchShelfCloud(clouds, shelf, weather.formations.length, stormLayer(weather.formations))
-  if (withRolls) patchRollCloud(clouds, rolls.roll, rolls.frame, weather.formations.length)
+  if (withRolls) patchRollCloud(clouds, rolls.roll, rolls.frame, weather.formations.length, rolls.shape)
   applySeaHaze(clouds, visibilityKm * 1000, weather)
   // No temporal history: our frames are averaged afterwards (accumulate.ts).
   // takram's TAA reprojects the light-shaft buffer through scene depth and

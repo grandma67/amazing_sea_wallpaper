@@ -94,7 +94,7 @@ import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
-import { rollFrame } from './rollCloud'
+import { rollFrame, rollShapeWith } from './rollCloud'
 import { shelfFrame, shelfShapeWith, type ShelfSky } from './shelfCloud'
 import { cloudBase } from './cloudTypes'
 import { FLASH_RADIANCE, flashGlows, stormEffects } from './stormEffects'
@@ -666,7 +666,10 @@ export async function renderScene(
       ? { frame: shelfFrame(shelfCloud, camera.position), shelf: shelfCloud, base: cloudBase(weather.formations, 'cumulonimbus'), shape: shelfShapeWith(params.debug?.shelf) }
       : null
   // The Morning Glory, likewise (rollCloud.ts).
-  const rolls: RollSky | null = params.rollCloud != null ? { roll: params.rollCloud, frame: rollFrame(params.rollCloud, camera.position, params.camera.headingDeg) } : null
+  const rolls: RollSky | null =
+    params.rollCloud != null
+      ? { roll: params.rollCloud, frame: rollFrame(params.rollCloud, camera.position, params.camera.headingDeg), shape: rollShapeWith(params.debug?.roll) }
+      : null
   const clouds =
     cloudAssets != null
       ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls)

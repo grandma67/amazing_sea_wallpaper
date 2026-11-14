@@ -15,6 +15,11 @@
 //                                              shows every one), waiting out rate limits; prints
 //                                              size, licence and title, and writes a numbered
 //                                              contact sheet (assets-src/_search/QUERY.jpg)
+//   node scripts/asset.mjs search --wiki ARTICLE… [--lang en] [--all] [--min-width 800]
+//                                              the photos a Wikipedia article uses (its own
+//                                              pick, most on Commons): for a name that also
+//                                              means other things ("Morning Glory": flowers),
+//                                              where a keyword search fills with noise
 //   node scripts/asset.mjs patch SKIN_ID       a skin recipe (src/props/skins.json) checked in one
 //                                              image: its patch outlined on the photo beside the
 //                                              baked, tiled layer (assets-src/_patch/ID.jpg; needs
@@ -88,7 +93,9 @@ const texelArg = Number(option('texel', 2))
 const thresholdArg = Number(option('threshold', 0.5))
 const pxGrid = flag('px')
 const allLicences = flag('all')
-const minWidth = Number(option('min-width', 1500))
+const wiki = flag('wiki')
+const lang = option('lang', 'en')
+const minWidth = Number(option('min-width', wiki ? 800 : 1500))
 rejectUnknown()
 const [command, source, ...rest] = args
 if (rest.length > 0 && command !== 'search') throw new Error(`unexpected arguments ${rest.join(' ')}`)
@@ -543,12 +550,15 @@ async function contactSheet(urls, out) {
 /** Commons photos for each query, usable licences only (unless --all). */
 async function search(queries) {
   for (const query of queries) {
-    const q = new URLSearchParams({
-      action: 'query', format: 'json', generator: 'search', gsrnamespace: '6', gsrlimit: '40', gsrsearch: `${query} filetype:bitmap`,
-      prop: 'imageinfo', iiprop: 'size|url|extmetadata', iiurlwidth: '320', iiextmetadatafilter: 'LicenseShortName|Artist'
-    })
-    const d = await get(`https://commons.wikimedia.org/w/api.php?${q}`)
+    const info = { prop: 'imageinfo', iiprop: 'size|url|extmetadata', iiurlwidth: '320', iiextmetadatafilter: 'LicenseShortName|Artist' }
+    // --wiki: the images an article uses (generator=images), with their
+    // Commons licence; SVGs (maps, flags, icons) left out.
+    const q = wiki
+      ? new URLSearchParams({ action: 'query', format: 'json', titles: query, generator: 'images', gimlimit: '50', redirects: '1', ...info })
+      : new URLSearchParams({ action: 'query', format: 'json', generator: 'search', gsrnamespace: '6', gsrlimit: '40', gsrsearch: `${query} filetype:bitmap`, ...info })
+    const d = await get(wiki ? `https://${lang}.wikipedia.org/w/api.php?${q}` : `https://commons.wikimedia.org/w/api.php?${q}`)
     const hits = Object.values(d.query?.pages ?? {})
+      .filter(p => !wiki || !/\.svg$/i.test(p.title))
       .map(p => ({ title: p.title, ii: p.imageinfo?.[0] }))
       .filter(h => h.ii != null && h.ii.width >= minWidth)
       .map(h => ({ ...h, licence: h.ii.extmetadata?.LicenseShortName?.value ?? '?' }))

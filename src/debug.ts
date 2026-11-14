@@ -30,6 +30,10 @@ export interface DebugParams {
    * scallops, lipVary, tiers, stria (shelfCloud.ts SHELF_TERMS). On the CPU
    * pass the same to shelfShapeWith. */
   shelf?: Partial<Record<'bow' | 'wobble' | 'scallops' | 'lipVary' | 'tiers' | 'stria', boolean>>
+  /** The Morning Glory's detail terms to switch off (false): wander, rise,
+   * lumps, shrink (rollCloud.ts ROLL_TERMS). On the CPU pass the same to
+   * rollShapeWith. */
+  roll?: Partial<Record<'wander' | 'rise' | 'lumps' | 'shrink', boolean>>
   /** Fixed exposure instead of the one metered from the sky and weather
    * (diff.mjs --keep-exposure). */
   exposure?: number

@@ -1,15 +1,14 @@
-import { Uniform, Vector2, type Vector3, Vector4 } from 'three'
+import { Vector2, type Vector3, Vector4 } from 'three'
 import type { CloudsEffect } from '@takram/three-clouds'
 
+import { f1, patchCloudShape, setLayerDensity, shapeLayer, smoothstep, valueNoise1, valueNoise2, VISIBLE_DENSITY, withTermsOff } from './cloudShapes'
 import { dirFromAzEl } from './params'
-import { SHELF_VISIBLE_DENSITY, valueNoise1 } from './shelfCloud'
 import type { RollCloudParams } from './skyEvents'
-import { hashCell, hashGlsl, seedInt } from './skyMirror'
-import { RETURN, SAMPLE_END } from './stormCells'
+import { seedInt } from './skyMirror'
 
 // The Morning Glory as cloud: tubes the volumetric clouds draw (as the shelf,
-// shelfCloud.ts; plans/SHELF_VOLUMETRIC.md phase 7). The shape on the CPU,
-// and the GLSL written from the same constants.
+// shelfCloud.ts, on the shared base cloudShapes.ts; plans/SHELF_VOLUMETRIC.md
+// phase 7). The shape on the CPU, and the GLSL written from the same constants.
 //
 // Each roll is an ellipse across the tube: ~1 km deep, 1–2 km wide, its base
 // a hundred or two metres over the sea and flattened; its axis wanders along
@@ -49,6 +48,23 @@ export const ROLL_SHAPE = {
   layerTopM: 150
 } as const
 
+export type RollShape = { readonly [K in keyof typeof ROLL_SHAPE]: number }
+
+/** The shape's detail terms, each switchable off (`params.debug.roll:
+ * { lumps: false }`), on the CPU and in the GLSL alike. */
+export const ROLL_TERMS = {
+  wander: ['wanderM'],
+  rise: ['riseM'],
+  lumps: ['lumpLarge', 'lumpSmall'],
+  shrink: ['shrinkPerRoll']
+} as const satisfies Record<string, readonly (keyof typeof ROLL_SHAPE)[]>
+export type RollTerm = keyof typeof ROLL_TERMS
+
+/** ROLL_SHAPE with the given terms off. */
+export function rollShapeWith(off: Partial<Record<RollTerm, boolean>> | undefined): RollShape {
+  return withTermsOff<RollShape, RollTerm>(ROLL_SHAPE, ROLL_TERMS, off)
+}
+
 /** Where the rolls are measured from, in world x/z (x north, z east): the
  * first roll's middle, its axis, and the direction away from the camera. */
 export interface RollFrame {
@@ -72,26 +88,8 @@ export function rollFrame(roll: RollCloudParams, camera: Vector3, headingDeg: nu
   return { centre: new Vector2(camera.x, camera.z).addScaledVector(heading, roll.distanceM), axis, toBack }
 }
 
-/** 2D value noise in [0, 1], cells of 1 (smoothstep between cell hashes):
- * the GLSL builds it the same way on `hashGlsl`. */
-export function valueNoise2(seed: number, x: number, y: number): number {
-  const i = Math.floor(x)
-  const j = Math.floor(y)
-  const tx = (x - i) * (x - i) * (3 - 2 * (x - i))
-  const ty = (y - j) * (y - j) * (3 - 2 * (y - j))
-  const a = hashCell(seed, i, j) * (1 - tx) + hashCell(seed, i + 1, j) * tx
-  const b = hashCell(seed, i, j + 1) * (1 - tx) + hashCell(seed, i + 1, j + 1) * tx
-  return a * (1 - ty) + b * ty
-}
-
-const smoothstep = (a: number, b: number, x: number): number => {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
-  return t * t * (3 - 2 * t)
-}
-
 /** The rolls' density at a world point (0–1). */
-export function rollDensity(frame: RollFrame, roll: RollCloudParams, x: number, z: number, heightM: number): number {
-  const R = ROLL_SHAPE
+export function rollDensity(frame: RollFrame, roll: RollCloudParams, x: number, z: number, heightM: number, R: RollShape = ROLL_SHAPE): number {
   const dx = x - frame.centre.x
   const dz = z - frame.centre.y
   const along = dx * frame.axis.x + dz * frame.axis.y
@@ -125,54 +123,22 @@ export function rollDensity(frame: RollFrame, roll: RollCloudParams, x: number, 
 
 /** The rolls' cloud layer: from the sea to above the first (tallest) roll. */
 export function rollLayer(roll: RollCloudParams, channel: 'r' | 'g' | 'b' | 'a') {
-  return {
-    channel,
-    altitude: 0,
-    height: roll.baseM + roll.depthM * (1 + ROLL_SHAPE.lumpLarge + ROLL_SHAPE.lumpSmall) + ROLL_SHAPE.riseM + ROLL_SHAPE.layerTopM,
-    densityScale: 0.3,
-    shapeAmount: 0.6,
-    shapeDetailAmount: 0.8,
-    weatherExponent: 1,
-    shapeAlteringBias: 0.35,
-    coverageFilterWidth: 0.5,
-    densityProfile: { expTerm: 0, exponent: 0, linearTerm: 0, constantTerm: 1 },
-    shadow: true
-  }
+  const R = ROLL_SHAPE
+  return shapeLayer(channel, 0, roll.baseM + roll.depthM * (1 + R.lumpLarge + R.lumpSmall) + R.riseM + R.layerTopM, 0.6, 0.8)
 }
 
-const f1 = (x: number): string => x.toFixed(1)
-
 /** rollDensity in GLSL, from ROLL_SHAPE: the same steps as the TS. */
-export function rollGlsl(): string {
-  const R = ROLL_SHAPE
+export function rollGlsl(R: RollShape = ROLL_SHAPE): string {
   return /* glsl */ `
-${hashGlsl('roll')}
-vec3 rollPosition = vec3(0.0);
 uniform vec2 rollCentre;
 uniform vec2 rollAxis;
 uniform vec2 rollBack;
 // Base, depth, width, spacing (m).
 uniform vec4 rollShape;
 uniform float rollCount;
-uniform float rollSeed;
-float rollNoise2(const vec2 p, const float k) {
-  vec2 i = floor(p);
-  vec2 f = p - i;
-  vec2 t = f * f * (3.0 - 2.0 * f);
-  float a = mix(rollHash2(i, rollSeed + k), rollHash2(i + vec2(1.0, 0.0), rollSeed + k), t.x);
-  float b = mix(rollHash2(i + vec2(0.0, 1.0), rollSeed + k), rollHash2(i + vec2(1.0), rollSeed + k), t.x);
-  return mix(a, b, t.y);
-}
-float rollNoise1(const float x, const float k) {
-  float i = floor(x);
-  float f = x - i;
-  float t = f * f * (3.0 - 2.0 * f);
-  return mix(rollHash1(i, rollSeed + k), rollHash1(i + 1.0, rollSeed + k), t);
-}
 float rollSample(const float height) {
   if (height > rollShape.x + rollShape.y * ${(1 + R.lumpLarge + R.lumpSmall).toFixed(3)} + ${f1(R.riseM + R.layerTopM)}) return 0.0;
-  vec3 world = (ecefToWorldMatrix * vec4(rollPosition - altitudeCorrection, 1.0)).xyz;
-  vec2 d = world.xz - rollCentre;
+  vec2 d = rollWorld().xz - rollCentre;
   float along = dot(d, rollAxis);
   float across = dot(d, rollBack);
   float ends = 1.0 - smoothstep(${f1(R.halfLengthM - R.endFadeM)}, ${f1(R.halfLengthM)}, abs(along));
@@ -206,35 +172,26 @@ float rollSample(const float height) {
 `
 }
 
-const CAPTURE = 'vec2 uv = getGlobeUv(position);'
-
 /** Patch the clouds' and their shadows' shaders: the rolls' layer (`index`)
  * takes rollDensity as its density, after takram's coverage remap. */
-export function patchRollCloud(clouds: CloudsEffect, roll: RollCloudParams, frame: RollFrame, index: number): void {
+export function patchRollCloud(clouds: CloudsEffect, roll: RollCloudParams, frame: RollFrame, index: number, R: RollShape = ROLL_SHAPE): void {
   if (index < 0 || index > 3) return
-  const layer = 'xyzw'[index]
-  for (const material of [clouds.cloudsPass.currentMaterial, clouds.shadowPass.currentMaterial]) {
-    const source = material.fragmentShader
-    if (source.split(SAMPLE_END).length !== 2 || source.split(RETURN).length !== 2 || !source.includes(CAPTURE))
-      throw new Error('patchRollCloud: the clouds shader has changed; update the patch')
-    material.fragmentShader = source
-      .replaceAll(CAPTURE, `${CAPTURE}\n    rollPosition = position;`)
-      .replace('WeatherSample sampleWeather(', `${rollGlsl()}\nWeatherSample sampleWeather(`)
-      .replace(
-        RETURN,
-        `\n  weather.density.${layer} = rollSample(height);\n  #ifdef SHADOW\n  weather.density.${layer} *= shadowLayerMask.${layer};\n  #endif${RETURN}`
-      )
-    material.uniforms.rollCentre = new Uniform(frame.centre.clone())
-    material.uniforms.rollAxis = new Uniform(frame.axis.clone())
-    material.uniforms.rollBack = new Uniform(frame.toBack.clone())
-    material.uniforms.rollShape = new Uniform(new Vector4(roll.baseM, roll.depthM, roll.widthM, roll.spacingM))
-    material.uniforms.rollCount = new Uniform(roll.rolls)
-    material.uniforms.rollSeed = new Uniform(seedInt(roll.seed))
-    material.needsUpdate = true
-  }
+  patchCloudShape(clouds, {
+    prefix: 'roll',
+    glsl: rollGlsl(R),
+    seed: seedInt(roll.seed),
+    beforeReturn: setLayerDensity('xyzw'[index], 'rollSample(height)'),
+    uniforms: {
+      rollCentre: frame.centre.clone(),
+      rollAxis: frame.axis.clone(),
+      rollBack: frame.toBack.clone(),
+      rollShape: new Vector4(roll.baseM, roll.depthM, roll.widthM, roll.spacingM),
+      rollCount: roll.rolls
+    }
+  })
 }
 
 /** Is a point in a roll as takram shows it (for CPU predictions). */
 export function rollVisible(frame: RollFrame, roll: RollCloudParams, x: number, z: number, heightM: number): boolean {
-  return rollDensity(frame, roll, x, z, heightM) > SHELF_VISIBLE_DENSITY
+  return rollDensity(frame, roll, x, z, heightM) > VISIBLE_DENSITY
 }

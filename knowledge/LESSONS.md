@@ -43,6 +43,14 @@ tool gotchas: TOOLS.md.
 
 ## Debugging approach
 
+- **Reflection on the Morning Glory (0.180, 2 look rounds + 2 bench runs).** It repeated two of
+  the shelf's mistakes days after they were written down: a thin edge (a smooth slab) and no
+  early exit (+45%). The lessons were about the shelf's numbers, not the kind of work, and the roll
+  was built by copying the shelf's patch, so every pitfall had to be met again. Now: a shared base
+  (`cloudShapes.ts`), the checklist in arch/SKY.md "A new cloud shape", and switches for every
+  shape (`params.debug.roll`). Write a lesson as a rule for the next thing of its kind, and put
+  repeated machinery in one module before the second copy. Photos: a name that means other things
+  fills a keyword search with noise; `asset.mjs search --wiki ARTICLE` lists an article's own.
 - **Reflection on the shelf cloud (0.172–0.177, ~12 render batches).** Three rounds went into
   improving a mesh before asking why a cloud was a mesh at all: ask what a feature *is* before
   tuning it (a cloud shape belongs in the volumetric clouds; see "takram sky, clouds, post").
