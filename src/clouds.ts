@@ -39,6 +39,7 @@ import { arrangeClouds, stabiliseCubeSphereUv } from './cloudArrangement'
 import { patchRollCloud, rollLayer, type RollFrame, type RollShape } from './rollCloud'
 import { patchShelfCloud, shelfLayer, type ShelfSky } from './shelfCloud'
 import type { RollCloudParams } from './skyEvents'
+import { patchCloudFace } from './cloudFace'
 import { patchCloudsFlash, type FlashSky } from './lightning'
 import { patchCloudsTownLight, type TownSky } from './nightGlow'
 import { patchStormCells, stormLayer, type StormCell } from './stormCells'
@@ -146,7 +147,9 @@ export function createClouds(
   shelf: ShelfSky | null = null,
   rolls: RollSky | null = null,
   flash: FlashSky | null = null,
-  town: TownSky | null = null
+  town: TownSky | null = null,
+  /** params.debug.cloudFace: output the face's height and distance (cloudFace.ts). */
+  face = false
 ): CloudsEffect {
   const clouds = new CloudsEffect(camera)
   Object.assign(clouds, textures)
@@ -228,6 +231,7 @@ export function createClouds(
   if (flash != null) patchCloudsFlash(clouds.cloudsPass.currentMaterial, flash)
   // The towns light the clouds from below at night (nightGlow.ts).
   if (town != null) patchCloudsTownLight(clouds.cloudsPass.currentMaterial, town)
+  if (face) patchCloudFace(clouds.cloudsPass.currentMaterial)
   applySeaHaze(clouds, visibilityKm * 1000, weather)
   // No temporal history: our frames are averaged afterwards (accumulate.ts).
   // takram's TAA reprojects the light-shaft buffer through scene depth and

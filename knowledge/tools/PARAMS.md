@@ -44,6 +44,12 @@ node scripts/params.mjs --scene scenes/snow.json --project ice-foot,rocks --rows
 #        6.4    -4.6     6.4     0.4     0.0    …        …     1259,776   1259,790   -     ← its real nearest point
 ```
 
+`--project storm` also lists each flash (`lightning.ts`): origin, the six lights (share) and exit
+as world points with their pixel, the point on the Cb base under each, and the TS mirror's glow
+there per 10⁹ lm (all lights summed). Multiply by a render's `debug.flashPowerLm` / 1e9 and by the
+haze's transmittance to get what `probe: {world: [x, base, z]}` should read; check with
+`debug.cloudFace` that cloud is there at all.
+
 Points are a mesh's vertices or an instance's origin, so a big instanced piece is measured at its origin.
 Also per point: world `x`, `z` and `mirror px` (where the sea shows its reflection) for
 `params.debug.probe` `{world: [x, y, z]}` / `{mirror: …}`, and `covered by`: the first prop between

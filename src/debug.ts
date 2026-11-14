@@ -39,6 +39,11 @@ export interface DebugParams {
    * from the origin, 4 and 5 the low ones 150 and 450 m inside the base);
    * `constant` a fixed face glow in cd/m² instead (what the march passes on). */
   flash?: { scale?: number; lights?: number[]; constant?: number }
+  /** The clouds' output replaced by where each ray first meets cloud
+   * (cloudFace.ts): a probe's raw R = the face's height (in 10 m), G = its
+   * distance (km), B = 100 on cloud; keep `aerial` on (it composites the
+   * clouds); the exposure is pinned at 0.05. */
+  cloudFace?: boolean
   /** Fixed exposure instead of the one metered from the sky and weather
    * (diff.mjs --keep-exposure). */
   exposure?: number

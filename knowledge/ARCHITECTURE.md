@@ -329,8 +329,10 @@ phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed 
 - Lightning on some far bolts (found in CLOUD_ILLUMINATION phase 4, 2026-11-15): on 2016-06-21 (bolt
   5.7 km off, mountains behind) takram draws almost no Cb near its 600 m base over the bolt, so the
   bolt's top hangs in front of the range with no cloud round it and its flash has no face to light
-  (forced night: no glow; probed). Seen by eye and probes; cause suspected: takram's height
-  shaping thins the layer's bottom, and the storm cell's fill doesn't reach it there.
+  (forced night: no glow; probed). Measured with `debug.cloudFace`: the ray to the base point
+  under the exit first meets cloud 6.3 km out at 340 m (beyond the bolt), the one 900 m higher at
+  7.6 km: no Cb over the bolt at all, the deck starts behind it. Cause not traced further (the
+  storm cell's fill at that distance, or takram's height shaping).
 - Night storms (0.189, real since CLOUD_ILLUMINATION phase 6): the Cb's base reads as flat bands
   receding to the horizon (2026-08-20, 2026-03-27): lit only from above by the moon or the stand-in,
   it has no detail, and the gap of air under it shows the town dome as a brown strip with a hard

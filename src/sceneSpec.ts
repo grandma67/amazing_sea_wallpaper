@@ -569,6 +569,7 @@ function checkDebug(value: unknown, path: string): void {
     },
     shelf: (v, p) => checkTerms(v, p, 'shelf', ['bow', 'wobble', 'scallops', 'lipVary', 'tiers', 'stria']),
     roll: (v, p) => checkTerms(v, p, 'roll', ['wander', 'rise', 'lumps', 'shrink']),
+    cloudFace: boolean,
     flash: (v, p) => {
       const o = v as Record<string, unknown>
       if (o === null || typeof o !== 'object' || Array.isArray(o)) fail(p, 'must be {scale?, lights?, constant?}')

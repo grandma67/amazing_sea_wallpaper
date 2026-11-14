@@ -128,6 +128,28 @@ LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky obj
     position exactly instead of inverting the uv.
   - The cube-sphere uv has seams on cube edges, and our scenes sit at longitude 0, so latitude
     ±45° lies on one: a linear uv → metres map across it went ~90° wrong (as seen from the camera).
+- **A light inside or under takram's clouds** (lightning, town light; CLOUD_ILLUMINATION phases
+  3 and 7, about 10 render rounds lost before these were known). Check each before the first
+  render:
+  1. **Positions:** the march's `position` is ECEF − `altitudeCorrection`: convert the sample to
+     the world as `cloudShapes.ts` does (`ecefToWorldMatrix * (position − altitudeCorrection)`),
+     pass lights in world coordinates.
+  2. **takram's clouds are optically thin over kilometres** (a real Cb: tens of metres). A
+     light's term added at every sample averages over km of depth: an even faint lift. Take its
+     value once at the cloud's **face** (the first sample, or the first in the right layer) and
+     carry it along the ray, × `media.scattering`.
+  3. **Is there cloud where the light is?** `debug.cloudFace` (face height and distance per
+     probe) before reading any glow: a far bolt can have no Cb over it.
+  4. **Mirror first:** compute the face value with the TS mirror on the probed ray's own face
+     point (`params.mjs --project storm` lists base points and per-10⁹-lm glow) before comparing
+     a render with expectations.
+  5. **What the march and haze pass on:** a fixed face value (`debug.flash.constant`) measures it
+     (2026-11-02: ×0.45–0.62, the haze's 0.49 at 3 km): don't blame the kernel for the haze.
+  6. **Which `#define`s run:** before moving a term past one (`POWDER`), check it's defined.
+  7. **Depths from the drawn cloud's base**, not from where a mesh starts inside it.
+  8. **The frame meter re-reads the last frame** (`FrameMeterPass`): a boost meant to exclude a
+     light has to be held (`held`), or the last frame's reading, with the light in, wins.
+  9. **`new Vector4()` pads with w = 1**: pad uniform arrays with explicit zeros.
 - **Sky-shader features** (patched into takram's sky: functions before `getSkyRadiance(`):
   `eclipse.ts`, `contrails.ts`, `noctilucent.ts`.
 - **Moon and eclipses:** `celestial.ts`: phase law (Allen's magnitude fit: half moon ~1/10 of

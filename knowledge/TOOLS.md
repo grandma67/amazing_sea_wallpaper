@@ -194,6 +194,19 @@ minutes (dep optimisation).
   `node_modules/.vite` (a worktree symlinking `node_modules`): stop 5174,
   `rm -rf node_modules/.vite`, start again. `refServer.mjs` gives its worktree its own `cacheDir`.
 - macOS has no `timeout`; don't wrap commands in one (snapshot has `--budget`).
+- **`snapshot.mjs` takes dates or `--scene`/`--where`, not both**: dates beside `--scene` fail
+  ("dates are ignored"). Put real dates in the spec file (`{"name":"d","date":"…"}`).
+- **The probe's raw value is clamped:** the grade clamps exposed values at 40, so `raw` tops out
+  at 40 ÷ exposure (~8 on a storm day). A probe reading the same number everywhere has hit it:
+  pin a lower `debug.exposure`.
+- **Identical numbers after a shader edit aren't a cache:** there is no render cache under
+  automation (`renderCache.ts`). Check whether the term you moved even runs (its `#ifdef`, e.g.
+  takram's `POWDER`) before suspecting the server; `curl localhost:5174/src/X.ts | grep` shows what
+  the page loads.
+- **Killing the dev server** (`lsof … | xargs kill`) also stops a `run_in_background` vite task; the
+  next render says "dev server not reachable": start it again before the next render.
+- **Sampling a reference photo's colours** without PIL: `sips -s format bmp in.jpg --out x.bmp`, then
+  read the BMP in node (header: offset at 10, width 18, height 22, bpp 28; rows bottom-up, BGR).
 - zsh: `LINES` and `COLUMNS` are the terminal's variables; assigning JSON to `LINES` fails with
   "bad output format specification". Keep line specs in a file (`--line "$(cat $SP/lines.json)"`).
 - Each `params.mjs` call costs a few seconds (it builds the modules): a shell loop over seeds or

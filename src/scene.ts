@@ -634,8 +634,11 @@ export async function renderScene(
   whiteBalance.lerp(new Color(1.12, 1.0, 0.84).multiply(whiteBalance), gloom)
   // A debug spec can fix it (diff.mjs --keep-exposure), so a sky or weather
   // change doesn't re-expose the whole frame.
+  // debug.cloudFace writes numbers up to ~800 raw (cloudFace.ts): pin an
+  // exposure that keeps them under the grade's clamp (40 exposed).
   const exposure =
     params.debug?.exposure ??
+    (params.debug?.cloudFace === true ? 0.05 : undefined) ??
     (0.16 / Math.max(sceneLuminance, 1e-9)) * nightScale * 2 **
       (evBias[params.timeOfDay] +
         eclipseBias +
@@ -707,7 +710,7 @@ export async function renderScene(
       : null
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky)
+      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky, params.debug?.cloudFace === true)
       : null
   // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
   // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).

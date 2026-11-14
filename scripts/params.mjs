@@ -49,6 +49,9 @@
 //                  box, nearest; then the --rows nearest points in frame (default
 //                  12): distance, shore s and a, height, height above the ground,
 //                  pixel. For "where does this end / what's next to the camera".
+//                  KIND storm also lists each flash (lightning.ts): origin, lights and
+//                  exit as probe points, and the mirror's glow on the base under each
+//                  light per 10⁹ lm (scale by a render's debug.flashPowerLm).
 // --above M        with --project: only points at least M above the sea (a face, not
 //                  the underwater skirt), e.g. to probe an island and its mirror image.
 //                  "covered by": a prop between the camera and the point (props only,
@@ -678,6 +681,31 @@ if (projectArg != null) {
             const mirror = v.y > 0 && m.z < 1 && Math.abs(m.x) <= 1 && Math.abs(m.y) <= 1 ? pixel(m) : '-'
             console.log(`   ${cells.join(' ')} ${xz.join(' ')}   ${pixel(n).padEnd(10)} ${mirror.padEnd(10)} ${cover(v, '')}`)
           }
+        }
+        // Lightning (lightning.ts): each flash's origin, lights and exit as
+        // probe points, and the TS mirror's glow on the cloud base straight
+        // under each light (all lights summed) per 10⁹ lm: × debug.flashPowerLm
+        // / 1e9 from a render is what a probe at {world: [x, base, z]} should
+        // read before the haze (a render's probe is ~0.5 of it at 3 km in rain).
+        if (wanted.includes('storm') && p.storm != null && p.storm.bolts.length > 0) {
+          const { lightningFor, flashGlowCd } = await here.mod('/src/lightning.ts')
+          const { cloudBase } = await here.mod('/src/cloudTypes.ts')
+          const base = cloudBase(p.weather.formations, 'cumulonimbus')
+          const pixel = n => (n.z < 1 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1 ? `${Math.round(((n.x + 1) / 2) * W)},${Math.round(((1 - n.y) / 2) * H)}` : 'off frame')
+          lightningFor(p, camera.position).forEach((f, i) => {
+            const bolt = p.storm.bolts[i]
+            console.log(`  flash ${i}: bolt ${bolt.distance.toFixed(0)} m at ${bolt.azimuthDeg.toFixed(1)}°, Cb base ${base} m; probe {world: [x, y, z]}`)
+            console.log('      point          share        x        y        z   px          base under it   cd per 1e9 lm there')
+            const rows = [['origin', null, f.origin], ...f.lights.map((l, k) => [`light ${k}`, l.share, l.position]), ['exit', null, f.exit]]
+            for (const [label, share, v] of rows) {
+              const under = new three.Vector3(v.x, base, v.z)
+              const glow = f.lights.reduce((sum, l) => sum + flashGlowCd(1e9 * l.share, l.position, under), 0)
+              const xyz = [v.x, v.y, v.z].map(x => x.toFixed(0).padStart(8)).join(' ')
+              console.log(
+                `      ${label.padEnd(10)} ${(share == null ? '-' : share.toFixed(3)).padStart(6)} ${xyz}   ${pixel(v.clone().project(camera)).padEnd(11)} ${pixel(under.clone().project(camera)).padEnd(15)} ${glow.toPrecision(3)}`
+              )
+            }
+          })
         }
       }
     }
