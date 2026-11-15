@@ -82,6 +82,12 @@ fake `/proc`, `pgrep` and `loginctl` under `AMAZING_SEA_WALLPAPER_ROOT`. Hooks t
 (off unless set): `AMAZING_SEA_WALLPAPER_HOME`, `_TODAY`, `_NOW_EPOCH`, `_STUBS=1`, `_OS`,
 `_ROOT`, `_DOWNLOADER` (`none` = neither), `_RANDOM`, `_STUB_MISSING`, `_STUB_NOSESSION`.
 `shellcheck --shell=bash crons/*.sh crons/test/*.sh` and PSScriptAnalyzer (`pwsh`) must be clean.
+Tools, installed once at the start of any `crons/` work (not one per phase): `brew install
+shellcheck wget coreutils powershell` (PowerShell is a formula now; the cask is gone), then
+`pwsh -c 'Set-PSRepository PSGallery -InstallationPolicy Trusted; Install-Module
+PSScriptAnalyzer -Scope CurrentUser'`. GNU `date`/`stat` (the Linux branches) on this Mac: put
+symlinks named `date` and `stat` to `gdate`/`gstat` in a folder first on `PATH` for one run.
+Linux distros and Windows can't run here: push a branch (ask first) and read `crons.yml`'s jobs.
 
 Shaders are read, not compiled: `test/glsl.test.ts` checks every `/* glsl */` for reserved names, brackets and
 `#include`s. What still takes a render: other GLSL errors, how anything looks, GPU memory (`check:restart`).

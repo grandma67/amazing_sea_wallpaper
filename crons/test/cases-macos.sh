@@ -86,19 +86,19 @@ case_retry_plist_lifecycle() {
 new_version() {
   # new_version VERSION [BROKEN]: the script with another VERSION on the fixture site as new.sh
   mkdir -p "$SITE"
-  sed "s/^VERSION=\"1\.0\.0\"/VERSION=\"$1\"/" "$SCRIPT" > "$SITE/new.sh"
+  sed "s/^VERSION=\"[0-9.]*\"/VERSION=\"$1\"/" "$SCRIPT" > "$SITE/new.sh"
   [ -n "${2:-}" ] && printf 'if then fi\n' >> "$SITE/new.sh"
 }
 
 case_upgrade_newer() {
   site_dated pc "$TODAY" valid
   run_script --install --hour 6
-  new_version 1.0.1
+  new_version 9.0.0
   : > "$CASE_HOME/stubs.log"
   run_script --upgrade --from "${SITE_URL}new.sh"
   expect_exit 0
-  expect_output 'upgraded 1\.0\.0 → 1\.0\.1'
-  grep -q '^VERSION="1.0.1"' "$CASE_DIR/$COPY_REL" || fail "copy not replaced"
+  expect_output 'upgraded [0-9.]+ → 9\.0\.0'
+  grep -q '^VERSION="9.0.0"' "$CASE_DIR/$COPY_REL" || fail "copy not replaced"
   expect_stub 'bootstrap .*/amazing-sea-wallpaper\.plist$' 1
   expect_contains home/config '^hour=6$'
   [ "$(plist_int "$PLIST" Hour)" = 6 ] || fail "the re-install lost --hour"
@@ -108,7 +108,7 @@ case_upgrade_newer() {
 case_upgrade_same_version() {
   site_dated pc "$TODAY" valid
   run_script --install
-  new_version 1.0.0
+  new_version "$(grep -m 1 '^VERSION=' "$SCRIPT" | cut -d'"' -f2)"
   run_script --upgrade --from "${SITE_URL}new.sh"
   expect_exit 0
   expect_output 'up to date'

@@ -96,7 +96,7 @@ clock() {
 # ---------- fixture site ----------
 
 # image_bytes KIND → stdout. valid: a real JPEG padded with a comment segment to ~60 KB (passes
-# the > 50 KB check); truncated: its first 30 KB; html: a captive-portal page; small: the bare
+# the > 20 KB check); truncated: its first 15 KB (under it); html: a captive-portal page; small: the bare
 # 884-byte JPEG.
 image_bytes() {
   case $1 in
@@ -104,7 +104,12 @@ image_bytes() {
       printf '\377\330\377\376\352\142'
       head -c 60000 /dev/zero
       tail -c +3 "$HERE/tiny.jpg" ;;
-    truncated) image_bytes valid | head -c 30000 ;;
+    dark)
+      # a valid ~40 KB JPEG: the size of the darkest real nights (39-46 KB at 1080p)
+      printf '\377\330\377\376\234\102'
+      head -c 40000 /dev/zero
+      tail -c +3 "$HERE/tiny.jpg" ;;
+    truncated) image_bytes valid | head -c 15000 ;;
     html) printf '<!doctype html><html><body>Sign in to the Wi-Fi</body></html>\n' ;;
     small) cat "$HERE/tiny.jpg" ;;
     *) echo "image_bytes: unknown kind $1" >&2; return 1 ;;

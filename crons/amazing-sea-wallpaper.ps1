@@ -1,4 +1,4 @@
-# amazing-sea-wallpaper version: 1.0.0
+# amazing-sea-wallpaper version: 1.0.1
 <#
 .SYNOPSIS
   Sets the day's Amazing Sea Wallpaper (https://grandma67.github.io/amazing_sea_wallpaper/) as the
@@ -41,7 +41,7 @@ param(
     [switch]$ShowWindow
 )
 
-$Version = '1.0.0'
+$Version = '1.0.1'
 $Name = 'amazing-sea-wallpaper'
 $DefaultUrl = 'https://grandma67.github.io/amazing_sea_wallpaper/'
 $UpgradeUrl = 'https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/amazing-sea-wallpaper.ps1'
@@ -249,7 +249,8 @@ function Test-Image([hashtable]$R, [string]$File) {
     if ($R.Type -ne 'image/jpeg') { return "Content-Type $($R.Type)" }
     $bytes = [IO.File]::ReadAllBytes($File)
     if ($bytes.Length -lt 2 -or $bytes[0] -ne 0xFF -or $bytes[1] -ne 0xD8) { return 'not a JPEG' }
-    if ($bytes.Length -le 51200) { return "only $($bytes.Length) bytes" }
+    if ($bytes.Length -le 20480) {   # > 20 KB: dark nights go down to 39 KB (see the .sh)
+        return "only $($bytes.Length) bytes" }
     return ''
 }
 

@@ -26,6 +26,10 @@
 //                     the frame per kind, nearest pool/swash/damp/wet rock (m, at);
 //                     one line per render. Find near-pool days: --where … --water,
 //                     then summary.mjs DIR 'j => j.debug.water.nearest.pool?.m'
+// --fail-blank        a blank frame (no picture: the frame shrunk to 160×90 spans < BLANK_RANGE
+//                     luma levels, e.g. a black canvas) is not saved and the run exits 1 after
+//                     the others; prints each frame's luma range. CI uses it, so a failed
+//                     render never becomes latest.jpg (2026-11-15 published a black frame).
 // --ref REF           render that commit (worktree on port 5177); implies --drop-unknown
 // --drop-unknown      leave out (and name) spec fields the served commit rejects
 // DEBUG=1             print each render's debug (exposure, luminance, …)
@@ -78,6 +82,11 @@ const cropKinds = list(option('crop', null))
 const propKinds = [...new Set([...list(option('props', null)), ...cropKinds])]
 const budget = Number(option('budget', 900))
 const water = flag('water')
+const failBlank = flag('fail-blank')
+// The darkest real frames measured at CI settings (1920×1080, 24 frames) span far more than
+// this (knowledge/tools/RENDER.md "Blank frames"); a black canvas spans 0.
+const BLANK_RANGE = 4
+let blankFrames = 0
 // A misspelt or unsupported option (e.g. --match) used to be ignored and the
 // whole spec file rendered.
 rejectUnknown()
@@ -204,7 +213,7 @@ for (const { date, spec: asked, name } of todo) {
   messages.gl() // not this render's
   await page.goto(url.toString())
   await page.waitForFunction(() => window.__sea != null)
-  const { dataUrl, params } = await page.evaluate(async quality => {
+  const { dataUrl, params, luma } = await page.evaluate(async quality => {
     const result = await window.__sea.ready
     // The canvas may belong to the render worker: ask it for the image.
     const blob = await result.toBlob('image/jpeg', quality)
@@ -213,12 +222,32 @@ for (const { date, spec: asked, name } of todo) {
       reader.onload = () => resolve(reader.result)
       reader.readAsDataURL(blob)
     })
+    // The saved JPEG shrunk to 160×90: its luma range finds a blank frame (--fail-blank).
+    const small = new OffscreenCanvas(160, 90)
+    const g = small.getContext('2d')
+    g.drawImage(await createImageBitmap(blob), 0, 0, 160, 90)
+    const px = g.getImageData(0, 0, 160, 90).data
+    let min = 255, max = 0, sum = 0
+    for (let i = 0; i < px.length; i += 4) {
+      const y = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]
+      min = Math.min(min, y); max = Math.max(max, y); sum += y
+    }
     return {
       dataUrl,
-      params: { ...window.__sea.params, debug: result.debug }
+      params: { ...window.__sea.params, debug: result.debug },
+      luma: { min, max, mean: sum / (px.length / 4) }
     }
   }, quality)
   const file = join(outDir, `${name}.jpg`)
+  const blank = luma.max - luma.min < BLANK_RANGE
+  if (failBlank) console.log(`  frame luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)}, mean ${luma.mean.toFixed(1)}${blank ? ' ⚠ BLANK' : ''}`)
+  if (blank) {
+    console.log(`  ⚠ blank frame: luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)} (a failed render?)${failBlank ? '; not saved' : ''}`)
+    if (failBlank) {
+      blankFrames++
+      continue
+    }
+  }
   await writeFile(file, Buffer.from(dataUrl.split(',')[1], 'base64'))
   await writeFile(join(outDir, `${name}.json`), JSON.stringify({ ...params, spec }, null, 2))
   console.log(`${file}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${params.title}`)
@@ -316,3 +345,7 @@ for (const { date, spec: asked, name } of todo) {
 }
 
 await browser.close()
+if (blankFrames > 0) {
+  console.log(`[snapshot] ${blankFrames} blank frame(s) not saved (--fail-blank)`)
+  process.exitCode = 1
+}

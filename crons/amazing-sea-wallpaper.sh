@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# amazing-sea-wallpaper version: 1.0.0
+# amazing-sea-wallpaper version: 1.0.1
 #
 # Sets the day's Amazing Sea Wallpaper (https://grandma67.github.io/amazing_sea_wallpaper/) as
 # the desktop background every morning, on Linux (GNOME, Pantheon, Budgie, Cinnamon, KDE Plasma,
@@ -21,7 +21,7 @@
 #   AMAZING_SEA_WALLPAPER_HOME, _TODAY, _NOW_EPOCH, _STUBS=1, _OS=macos|linux, _ROOT,
 #   _DOWNLOADER=curl|wget, _RANDOM, _STUB_MISSING, _STUB_NOSESSION.
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 NAME=amazing-sea-wallpaper
 DEFAULT_URL="https://grandma67.github.io/amazing_sea_wallpaper/"
 UPGRADE_URL="https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/amazing-sea-wallpaper.sh"
@@ -482,7 +482,9 @@ fetch() {
   [ "$HTTP" != 000 ]
 }
 
-# check_image FILE: the last fetch was a real JPEG (HTTP 200, image/jpeg, FF D8, > 50 KB)
+# check_image FILE: the last fetch was a real JPEG (HTTP 200, image/jpeg, FF D8, > 20 KB).
+# 20 KB, not more: real dark nights go down to 39 KB (1080p); a blank frame is caught in CI by
+# pixels (snapshot.mjs --fail-blank), since JPEG sizes of black differ by encoder (13-34 KB).
 check_image() {
   local magic size
   [ "$HTTP" = 200 ] || { WHY="HTTP $HTTP"; return 1; }
@@ -490,7 +492,7 @@ check_image() {
   magic=$(head -c 2 "$1" | od -An -tx1 | tr -d ' \n')
   [ "$magic" = ffd8 ] || { WHY="not a JPEG (starts $magic)"; return 1; }
   size=$(filesize "$1")
-  [ "$size" -gt 51200 ] || { WHY="only $size bytes"; return 1; }
+  [ "$size" -gt 20480 ] || { WHY="only $size bytes"; return 1; }
 }
 
 json_field() {

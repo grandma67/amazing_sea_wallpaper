@@ -128,8 +128,17 @@ case_bad_image_kept_state() {
   expect_exit 1
   expect_state date "$YESTERDAY"
   expect_no_stub '^osascript set'
-  expect_output 'only 30000 bytes'
+  expect_output 'only 15000 bytes'
   expect_no_file "wallpapers/$TODAY.jpg"
+}
+
+case_dark_night_size_is_accepted() {
+  # 2026-12-01's real polar night is 39 KB at 1080p: a 50 KB floor refused it (1.0.0)
+  site_dated pc "$TODAY" dark
+  state "date=$YESTERDAY"
+  run_script
+  expect_exit 0
+  expect_state date "$TODAY"
 }
 
 case_html_portal_kept_state() {
@@ -327,7 +336,7 @@ case_status_offline() {
   run_script --status
   expect_exit 0
   expect_requests 0
-  expect_output '^amazing-sea-wallpaper 1\.0\.0$'
+  expect_output '^amazing-sea-wallpaper [0-9]+\.[0-9]+\.[0-9]+$'
   expect_output 'daily at 07:07 local'
   expect_output "last set:  $TODAY \"Dawn\""
   expect_output '    line 12'

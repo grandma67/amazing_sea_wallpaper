@@ -55,13 +55,15 @@ jobs:
           # downscaled image; 20:9 Androids crop ~3% of the width). Phone first,
           # as the app falls back to it. snapshot.mjs gives up after --budget
           # seconds (default 900, too short for SwiftShader); both fit the
-          # step's 120 min.
+          # step's 120 min. --fail-blank: a blank frame (2026-11-15 published a black
+          # one) isn't saved and fails the step, so no daily/ or latest file goes out and
+          # the desktop scripts keep yesterday's and re-run later.
           node scripts/snapshot.mjs --url http://localhost:4173/ --out dist/daily/phone \
-            --w 1290 --h 2796 --frames 24 --quality 0.92 --budget 3600 "$TODAY"
+            --w 1290 --h 2796 --frames 24 --quality 0.92 --fail-blank --budget 3600 "$TODAY"
           cp "dist/daily/phone/$TODAY.jpg" dist/latest-portrait.jpg
           cp "dist/daily/phone/$TODAY.json" dist/latest-portrait.json
           node scripts/snapshot.mjs --url http://localhost:4173/ --out dist/daily/pc \
-            --w 1920 --h 1080 --frames 24 --quality 0.92 --budget 3000 "$TODAY"
+            --w 1920 --h 1080 --frames 24 --quality 0.92 --fail-blank --budget 3000 "$TODAY"
           cp "dist/daily/pc/$TODAY.jpg" dist/latest.jpg
           cp "dist/daily/pc/$TODAY.json" dist/latest.json
 

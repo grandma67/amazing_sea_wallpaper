@@ -26,7 +26,7 @@ rocks, plants, boats, mountains and volcanoes, birds, seals, dolphins and whales
 
 ## Daily desktop wallpaper
 
-> **Status: version 1.0.0, new.** Tested on macOS 27 (install, the daily agent, the re-run,
+> **Status: version 1.0.1, new.** Tested on macOS 27 (install, the daily agent, the re-run,
 > uninstall). The Linux desktops and Windows are checked with automated tests only, so each is
 > **untested** on a real machine until someone tries it; reports are welcome. Plan and reasons:
 > `knowledge/plans/CRON.md`.

@@ -81,8 +81,15 @@ case_ps1_html_and_truncated() {
   rm -f "$SITE/daily/pc/$TODAY.jpg.ctype"
   run_script
   expect_exit 1
-  expect_output 'only 30000 bytes'
+  expect_output 'only 15000 bytes'
   expect_state date "$YESTERDAY"
+}
+
+case_ps1_dark_night_size_is_accepted() {
+  site_dated pc "$TODAY" dark
+  run_script
+  expect_exit 0
+  expect_state date "$TODAY"
 }
 
 case_ps1_same_day_no_request() {
@@ -162,26 +169,26 @@ case_ps1_uninstall() {
 
 ps1_new_version() {
   mkdir -p "$SITE"
-  sed "s/^\$Version = '1\.0\.0'/\$Version = '$1'/" "$SCRIPT" > "$SITE/new.ps1"
+  sed "s/^\$Version = '[0-9.]*'/\$Version = '$1'/" "$SCRIPT" > "$SITE/new.ps1"
   [ -n "${2:-}" ] && printf 'function {\n' >> "$SITE/new.ps1"
 }
 
 case_ps1_upgrade() {
   site_dated pc "$TODAY" valid
   run_script -Install -Hour 6
-  ps1_new_version 1.0.1
+  ps1_new_version 9.0.0
   : > "$CASE_HOME/stubs.log"
   run_script -Upgrade -From "${SITE_URL}new.ps1"
   expect_exit 0
-  expect_output 'upgraded 1\.0\.0 -> 1\.0\.1'
-  grep -q "^\$Version = '1.0.1'" "$CASE_HOME/amazing-sea-wallpaper.ps1" || fail "copy not replaced"
+  expect_output 'upgraded [0-9.]+ -> 9\.0\.0'
+  grep -q "^\$Version = '9.0.0'" "$CASE_HOME/amazing-sea-wallpaper.ps1" || fail "copy not replaced"
   expect_stub '^register-task amazing-sea-wallpaper daily 06:' 1
 }
 
 case_ps1_upgrade_same_and_broken() {
   site_dated pc "$TODAY" valid
   run_script -Install
-  ps1_new_version 1.0.0
+  ps1_new_version "$(grep -m 1 "^\$Version = " "$SCRIPT" | cut -d"'" -f2)"
   run_script -Upgrade -From "${SITE_URL}new.ps1"
   expect_output 'up to date'
   ps1_new_version 1.2.0 broken

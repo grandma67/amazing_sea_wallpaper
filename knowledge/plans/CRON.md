@@ -13,7 +13,7 @@ so users don't all hit the site at once.
     desktops.
   - macOS, and Windows 10/11 (activated).
 
-Status: built (2026-11-15): phases 1–9 done, version 1.0.0. 116 test cases pass (bash 3.2 and with
+Status: built (2026-11-15): phases 1–9 done, version 1.0.1 (size floor 20 KB). 118 test cases pass (bash 3.2 and with
 GNU `date`, curl and wget, pwsh 7.7). Live on this Mac (macOS 27.0.1): `--now`, `--install`, the
 LaunchAgent setting the picture, `--uninstall`. Left for real machines: every Linux edition and
 Windows (the list at the end of §6), the picture across a macOS logout, a sleep through 07:M.
@@ -282,7 +282,9 @@ today_utc = date -u +%F
 6. after any set: verify, write state (date, sha256, title, set_at), prune to 7 (never the file now
    set: macOS stores a file:// URL to it, not a copy, §2.4), cancel a pending re-run
 
-check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to wallpapers/<date>.jpg
+check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 20 KB; moved to wallpapers/<date>.jpg
+        (20 KB since 1.0.1: real dark nights are 39-46 KB at 1080p, tools/RENDER.md "Blank frames";
+        blank frames are stopped in CI by pixels, snapshot.mjs --fail-blank)
 ```
 
 - On a usual morning before the render: one 404 (step 3), nothing to catch up (yesterday's image
@@ -494,8 +496,9 @@ and one commit. The test harness comes first, so every later phase is checked by
      - The script gets `--url <fixture>/` (with the trailing slash) and the four hooks; cases set
        the clock with `clock "YYYY-MM-DD HH:MM"` (UTC; default 2026-11-14 06:30).
      - Images: `valid` is a real 16×16 JPEG padded by a COM segment to 60 KB (decodes, ends
-       `FF D9`); `truncated` its first 30 KB; `html`; `small` (884 B). A truncated file over
-       50 KB would pass the check: accepted, the size and magic only catch portals and stubs.
+       `FF D9`); `dark` a valid 40 KB one (1.0.1); `truncated` the first 15 KB; `html`; `small`
+       (884 B). A truncated file over 20 KB would pass the check: accepted, the size and magic only
+       catch portals, stubs and the browser's black 1080p frame (13 KB).
      - All in one folder, no subfolders. Phase 2 adds `cases-run.sh` (no `SCRIPT_UNDER_TEST`: the real script); the runner skips a
        case file whose script doesn't exist yet.
 2. **The run, on this Mac** (`crons/amazing-sea-wallpaper.sh`).

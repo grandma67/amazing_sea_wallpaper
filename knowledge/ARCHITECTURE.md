@@ -260,7 +260,8 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   login; a 404 means "not rendered yet" and gets one re-run at the later of +3 h and 08:00 UTC.
   `latest.json` + `latest.jpg?d=<date>` only to catch up (a missed day, a new install, the re-run).
   So `pages.yml` must keep writing `dist/daily/{pc,phone}/<date>.{jpg,json}`: `crons.yml` fails if
-  it stops. A picture under 50 KB, not `image/jpeg`, or not starting `FF D8` is refused.
+  it stops. A picture under 20 KB, not `image/jpeg`, or not starting `FF D8` is refused (real
+  dark nights go down to 39 KB; blank frames are stopped in CI, below).
 - **Link previews:** `index.html` and `random/index.html` carry Open Graph / Twitter tags with an
   absolute `og:image` (`https://grandma67.github.io/amazing_sea_wallpaper/og-image.jpg`, 1200×630,
   `public/og-image.jpg`, keep < 300 KB for WhatsApp). Crawlers don't run JS, so the tags must be
@@ -286,9 +287,11 @@ phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed 
 - **The daily render on 2026-11-15 is an all-black frame** (measured: `daily/pc/2026-11-15.jpg`
   and `latest.jpg` are 12 998 bytes, 1920×1080, black, for a "Midday · tropical cobble beach"
   title, while the 06:09 UTC scheduled Pages run reports success; 11-14's was ~290 KB). The
-  wallpaper scripts refuse it (size check) and keep yesterday's. Cause **not looked into**:
-  the render step is `continue-on-error` and nothing checks its output; a size or mean-brightness
-  check after `snapshot.mjs` in `pages.yml` would turn it into a failed render (no `latest.jpg`).
+  wallpaper scripts refused it (size check) and kept yesterday's. Cause of the black frame **not
+  looked into**. Guarded since 0.194: `pages.yml` renders with `snapshot.mjs --fail-blank` (a frame
+  whose 160×90 luma spans < 4 levels isn't saved and fails the step, so nothing is published that
+  day and the scripts re-run); measured on 16 real nights, the darkest spans 11.9
+  (tools/RENDER.md "Blank frames").
 - **The scheduled render finishes late** (measured from the Actions API, CRON.md §2.1): 01:10–
   07:43 UTC over 10 days for a 00:05 UTC schedule, so in Europe the 07:xx desktop run often finds
   no picture yet and waits for its re-run (08:00 UTC or later).

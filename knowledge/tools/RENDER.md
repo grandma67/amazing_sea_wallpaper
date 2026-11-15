@@ -45,9 +45,29 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
 - `--ref HEAD`: "was this already broken?" (implies `--drop-unknown`, so a new feature's scene
   file works as it is).
 - `--budget SECONDS` (default 900) kills hung renders.
+- `--fail-blank` (CI uses it): each frame's luma range at 160×90 is printed; a frame spanning
+  < 4 levels is **blank** (not saved, the run exits 1). Without the flag a blank frame still
+  gets a ⚠. See "Blank frames" below.
 - A shader compile failure prints `[browser error] THREE.WebGLProgram: Shader Error` +
   `ERROR: 0:LINE: …` and the numbered source; read them, don't grep them away. Reserved words:
   LESSONS.md "Shaders".
+
+### Blank frames (2026-11-15)
+
+The Pages run of 2026-11-15 published an all-black 1920×1080 frame (12 998 bytes) as
+`latest.jpg` and `daily/pc/<date>.jpg` while the job reported success. Measured at CI settings
+(1920×1080, 24 frames, quality 0.92) on 16 real nights (`--where` night, then moonless ones):
+
+| Frame | Luma range at 160×90 | Mean | JPEG |
+|---|---|---|---|
+| the black frame | 0.0–0.0 | 0.0 | 13 KB |
+| 2025-07-10 starry night, fog bank (darkest) | 0.0–11.9 | 2.2 | 46 KB |
+| 2026-12-01 polar night, starlit | 0.9–20.1 | 12.4 | 39 KB |
+| the other 13 nights | ranges ≥ 51 | 4.8–87 | 52–359 KB |
+
+So the blank test is the range (< 4 levels: ~3× under the darkest real frame), not the size or
+the mean: real nights go down to 39 KB and a mean of 2.2. The desktop scripts' size floor was
+lowered for the same reason (`crons/`, 1.0.1).
 
 ## `scripts/diff.mjs`: did it show up?
 

@@ -49,6 +49,12 @@ tool gotchas: TOOLS.md.
   Use `if` inside a redirected group.
 - **Windows PowerShell 5.1 reads a BOM-less UTF-8 `.ps1` as ANSI** (CRON phase 7): keep scripts
   ASCII (CI checks), and don't name a function after a built-in (`Write-Log` is one on 6.1+).
+- **A threshold on our own output is measured on its extremes first** (0.194): the scripts' "real
+  picture > 50 KB" was a plan estimate from one day's 290 KB image; real polar and foggy nights are
+  39–46 KB at 1080p, so 1.0.0 would have refused them. And file size can't tell blank from dark
+  (a black 1080p JPEG is 13 KB from the browser, 34 KB from `sips`): test pixels (luma range,
+  `snapshot.mjs --fail-blank`) where they're available. Render the darkest/brightest real days
+  (`--where … --sample`) before fixing a number.
 - **Test a system change on a real machine with a way back first** (CRON phase 3): the install
   path already held the user's own experiments, so the live test listed the folder before,
   uninstalled without `--yes`, and removed only the files it had added.

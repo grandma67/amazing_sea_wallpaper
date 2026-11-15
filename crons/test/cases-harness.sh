@@ -41,7 +41,7 @@ case_truncated_image() {
   site_dated pc "$TODAY" truncated
   run_script
   expect_exit 1
-  expect_output ', magic ffd8, 30000 bytes'
+  expect_output ', magic ffd8, 15000 bytes'
 }
 
 case_wrong_content_type() {
