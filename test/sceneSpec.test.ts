@@ -202,6 +202,7 @@ describe('forcing a field keeps the rest of the day', () => {
     { name: 'a reef', base: { ...SAND_BEACH, tide: 'mid', place: 'norway-west' }, off: {}, on: { reef: true }, same: ['coast.noiseOffset', 'coast.sand', 'camera.headingDeg', 'place'] },
     { name: 'the beach state', base: { ...SAND_BEACH, place: 'scotland', reef: null }, off: { beachState: 'reflective' }, on: { beachState: 'dissipative' }, same: ['coast.noiseOffset', 'coast.grainMm', 'camera', 'place'] },
     { name: 'a salt marsh', base: { eclipse: null, place: 'wadden-north-sea', coast: 'beach' }, off: { saltMarsh: null }, on: { saltMarsh: true }, same: ['camera.headingDeg', 'coast.tide', 'coast.noiseOffset'] },
+    { name: 'the surge', base: { ...SAND_BEACH, place: 'wadden-north-sea' }, off: { surge: null }, on: { surge: 1.2 }, same: ['coast.tide.mean', 'coast.tide.range', 'coast.terrace', 'camera.headingDeg', 'weather', 'ocean'] },
     { name: 'the tide stage', base: { ...SAND_BEACH, place: 'brittany' }, off: {}, on: { tide: 'high' }, same: ['coast.tide.mean', 'coast.terrace', 'title'] },
     { name: 'the swell', base: { place: 'namibia', coast: 'beach', beachMaterial: 'sand', sand: 'white' }, off: {}, on: { swellHeight: 2.5, swellPeriod: 12 }, same: ['camera', 'coast.noiseOffset', 'ocean.windSpeed'] },
     { name: 'sea ice', base: { eclipse: null }, off: { seaIce: null }, on: { seaIce: 'fast' }, same: ['place.id', 'camera.headingDeg', 'weather'], dates: ['2024-07-14', '2025-02-20'] },
@@ -232,7 +233,7 @@ describe('forcing a field keeps the rest of the day', () => {
   })
 
   // Spread from a file or a helper with `field: undefined`: not forced.
-  it.each(['seaIce', 'snow', 'fog', 'storm', 'lighthouse', 'reef', 'aurora', 'coast'] as const)('%s: undefined is not forced', field => {
+  it.each(['seaIce', 'snow', 'fog', 'storm', 'lighthouse', 'reef', 'aurora', 'coast', 'surge'] as const)('%s: undefined is not forced', field => {
     expect(generateParams(DAY, 0, 16 / 9, { [field]: undefined })).toEqual(generateParams(DAY))
   })
 })

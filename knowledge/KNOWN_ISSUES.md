@@ -132,6 +132,11 @@ say how the cause was found.
 
 ## Coast and surf
 
+- **Surge (0.200):** a salt marsh never floods: the surge is capped 0.3 m below the marsh top,
+  because the terrain has no sea dike or higher ground for a camera (found by `test/surge.test.ts`).
+  Beach cameras keep 0.3 m above the water on the bare profile (`params.ts` can't read the full
+  terrain); before 0.200, 10 of 433 beach days stood the camera in the water (wobble ignored).
+  Surge days not yet render-checked.
 - **Beach cameras in the water:** shoreline and along-beach cameras are placed at the drawn
   distance in s, but the coast's wobble at a = 0 (±25 m) shifts them (rocky shores and flats
   correct for it with `wobbleAtCamera`): 12 of 433 beach days (2.8%) stand in the water, most at

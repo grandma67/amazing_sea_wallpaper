@@ -194,6 +194,9 @@ export interface SceneSpec {
   tide?: TideStage
   /** Today's tidal range (m), low to high water. */
   tidalRange?: number
+  /** The weather's part of the water level (m, tides.ts surgeFor: wind
+   * setup, air pressure, the sea's season); null: none (as before 0.200). */
+  surge?: number | null
   /** A fringing reef offshore (reef.ts): true on any beach (implies one), null: none. */
   reef?: boolean | null
   /** A salt marsh behind the beach (tidalFlat.ts): true on any beach
@@ -377,6 +380,7 @@ const SPEC = object({
   beachState: oneOf(...BEACH_STATES),
   tide: oneOf('low', 'mid', 'high'),
   tidalRange: number,
+  surge: (value, path) => (value === null ? undefined : number(value, path)),
   reef: oneOf(true, false, null),
   saltMarsh: oneOf(true, false, null),
   beachrock: oneOf(true, false, null),

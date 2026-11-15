@@ -26,8 +26,12 @@ export interface Tide {
   springRange: number
   /** Today's range (m), low to high water. */
   range: number
-  /** Water level above mean sea (m), −range/2..range/2. */
+  /** Water level above mean sea (m): the tide (−range/2..range/2) plus
+   * `surge`. */
   level: number
+  /** The part of `level` the weather makes (m, `surgeFor`): wind setup,
+   * air pressure and the season's mean sea level; 0 in `tideFor`. */
+  surge: number
   /** Semidiurnal phase (rad): 0 high water, π low water. */
   phase: number
 }
@@ -79,8 +83,68 @@ export function tideFor(
     springRange: Math.max(meanRange * SPRING, range),
     range,
     level: (range / 2) * Math.cos(phase),
+    surge: 0,
     phase
   }
+}
+
+/** How a coast's sea piles up under an onshore wind: the wind setup of a
+ * steady stress over a shelf, η = C_d (ρ_air/ρ_sea) U² L / (g h) (Pugh &
+ * Woodworth; REGIONS.md §3.2), with `SHELF` the fetch over depth L/h:
+ * `shallow` (North Sea, Baltic, Yellow Sea, Adriatic, the big tidal bays,
+ * NW Australia, the Gulf: 2·10⁴, so 30 m/s gives ~3 m, the 1953 North Sea
+ * surge), `shelf` (most coasts, 6·10³, est.), `steep` (oceanic islands,
+ * fjords, deep seas and the Pacific margins, 1.5·10³, est.). */
+export type Shelf = 'shallow' | 'shelf' | 'steep'
+export const SHELF: Record<Shelf, number> = { shallow: 20000, shelf: 6000, steep: 1500 }
+/** C_d (1.3·10⁻³) × ρ_air/ρ_sea (1.25·10⁻³) / g. */
+const SETUP_K = (1.3e-3 * 1.25e-3) / 9.81
+/** An offshore wind draws the water down less than an onshore one piles it
+ * up (the setdown spreads over open water; est.). */
+const SETDOWN = 0.5
+/** The sea under the day's sky: 1 cm higher per hPa below the mean (the
+ * inverse barometer); pressure by the weather (est.: a storm's low ~25 hPa
+ * down, a clear anticyclone ~8 up). */
+export const PRESSURE_HPA: Record<'clear' | 'cirrus' | 'few' | 'scattered' | 'broken' | 'overcast' | 'storm', number> = {
+  clear: 8,
+  cirrus: 4,
+  few: 2,
+  scattered: 0,
+  broken: -5,
+  overcast: -10,
+  storm: -25
+}
+
+/** A sea's yearly cycle of mean level (m): amplitude and the month of the
+ * high (local calendar). Baltic 4–13 cm, high Nov–Jan, low Apr–May;
+ * Mediterranean 3–10 cm, high Sep–Nov, low Mar–May (REGIONS.md §3.1). */
+export interface SeaSeason {
+  amplitude: number
+  peakMonth: number
+}
+
+export interface SurgeDay {
+  /** Wind at 10 m (m/s) and where it blows toward (deg). */
+  windSpeed: number
+  windHeadingDeg: number
+  /** Where the coast faces (deg): onshore is toward seaward + 180. */
+  seawardAzimuthDeg: number
+  shelf: Shelf
+  weather: keyof typeof PRESSURE_HPA
+  season?: SeaSeason
+  /** Local calendar month, 1–12. */
+  month: number
+}
+
+/** The weather's part of today's water level (m): wind setup (onshore up,
+ * offshore down by half), the inverse barometer, and the sea's season. */
+export function surgeFor(day: SurgeDay): number {
+  const onshore = Math.cos(((day.windHeadingDeg - day.seawardAzimuthDeg - 180) * Math.PI) / 180)
+  const setup = SETUP_K * day.windSpeed ** 2 * SHELF[day.shelf] * onshore
+  const wind = setup >= 0 ? setup : setup * SETDOWN
+  const pressure = -0.01 * PRESSURE_HPA[day.weather]
+  const season = day.season == null ? 0 : day.season.amplitude * Math.cos(((day.month - day.season.peakMonth) * Math.PI) / 6)
+  return wind + pressure + season
 }
 
 /** The terrace a beach of this spring range needs: none on micro-tidal
@@ -102,8 +166,10 @@ export function highWater(coast: { tide?: Pick<Tide, 'springRange'>; terrace?: T
 /** World heights (sea level 0) of today's high water and of the spring high
  * water, the highest the sea has reached lately (plants and wrack above it). */
 export function tideMarks(coast: Pick<CoastParams, 'tide'>): { high: number; spring: number } {
-  const { range, springRange, level } = coast.tide
-  return { high: range / 2 - level, spring: springRange / 2 - level }
+  const { range, springRange, level, surge } = coast.tide
+  // Today's high water carries today's surge; the spring line is where the
+  // sea has reached lately (the wrack, the plants' edge), so it doesn't.
+  return { high: range / 2 + (surge ?? 0) - level, spring: springRange / 2 - level }
 }
 
 /** Relative tide range RTR = range / Hb (Masselink & Short 1993): below 3

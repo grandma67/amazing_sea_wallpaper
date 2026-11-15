@@ -3,6 +3,7 @@ import { biomeNamed, climateBiome, type Biome, type Climate, type RGB, type Sand
 import type { OceanName } from './oceans'
 import type { CrocodileKind, LizardKind, MonkeyKind, TurtleSpecies } from './props/wildlife'
 import type { Random } from './random'
+import type { SeaSeason, Shelf } from './tides'
 
 // Places: each day draws one real stretch of coast first (PLAN_BIOMES 1a),
 // and biome, ocean, climate and latitude follow from it. Data and weights:
@@ -99,6 +100,11 @@ export interface Place {
   stones: readonly RGB[]
   /** Mean tidal range (m), a span: each day's beach draws one in it (tides.ts). */
   tide: readonly [number, number]
+  /** How the sea piles up under an onshore wind (tides.ts `surgeFor`). */
+  shelf: Shelf
+  /** The sea's yearly cycle of mean level, where it shows (Baltic,
+   * Mediterranean). */
+  seaSeason?: SeaSeason
   /** Chance a beach day has a fringing reef offshore (reef.ts). */
   reef: number
   /** What the shore is on land days (not the open sea): a beach, a rocky
@@ -340,6 +346,47 @@ const TIDE: Record<string, readonly [number, number]> = {
   'cook-inlet': [7, 9.5],
   'yellow-sea': [5, 8],
   'nw-australia': [5, 9]
+}
+
+// Storm surge (tides.ts surgeFor, REGIONS.md §3.2): fetch over depth. Shallow:
+// the North Sea, the Baltic, the Yellow Sea, the northern Adriatic (acqua
+// alta), the big tidal bays, the Persian Gulf, the Gulf of Mexico's shelf
+// and NW Australia's cyclone coast. Steep: oceanic islands, fjords, deep
+// enclosed seas and narrow Pacific and Indian Ocean margins. The rest:
+// a continental shelf (est. by place).
+const SHELF_BY_PLACE: Record<string, Shelf> = {
+  'wadden-north-sea': 'shallow',
+  baltic: 'shallow',
+  'yellow-sea': 'shallow',
+  adriatic: 'shallow',
+  'bristol-channel': 'shallow',
+  'morecambe-bay': 'shallow',
+  'mont-saint-michel': 'shallow',
+  fundy: 'shallow',
+  'cook-inlet': 'shallow',
+  'persian-gulf': 'shallow',
+  'nw-australia': 'shallow',
+  'north-australia': 'shallow',
+  'florida-carolinas': 'shallow',
+  ...Object.fromEntries(
+    [
+      'hawaii', 'pacific-islands', 'maldives', 'azores-madeira', 'canaries', 'reunion-mauritius', 'comoros', 'galapagos',
+      'lesser-antilles-volcanic', 'bahamas-bermuda', 'south-georgia', 'kerguelen-heard', 'south-sandwich', 'south-shetland',
+      'nz-subantarctic', 'andaman-lakshadweep', 'norway-west', 'norway-north', 'aegean', 'western-med', 'north-africa-levant',
+      'red-sea', 'california', 'central-chile', 'atacama-peru', 'british-columbia', 'se-alaska', 'pacific-northwest',
+      'kamchatka-kurils-aleutians', 'sumatra-java-south', 'east-africa', 'natal', 'south-japan', 'japan', 'patagonia-fjords',
+      'greenland', 'iceland', 'iceland-faroe', 'svalbard', 'oman-yemen', 'horn-of-africa'
+    ].map(id => [id, 'steep' as Shelf])
+  )
+}
+// The sea's yearly cycle of mean level (REGIONS.md §3.1): Baltic 4–13 cm,
+// highest Nov–Jan; Mediterranean 3–10 cm, highest Sep–Nov (local months).
+const SEA_SEASON: Record<string, SeaSeason> = {
+  baltic: { amplitude: 0.1, peakMonth: 12 },
+  adriatic: { amplitude: 0.07, peakMonth: 10 },
+  aegean: { amplitude: 0.07, peakMonth: 10 },
+  'western-med': { amplitude: 0.07, peakMonth: 10 },
+  'north-africa-levant': { amplitude: 0.07, peakMonth: 10 }
 }
 
 // Dry seasons of savanna coasts (SEASONS.md §2.2). Where a place also holds
@@ -658,6 +705,8 @@ function resolve(): Place[] {
       sand: row.sand ?? PLACE_SAND[row.id] ?? defaults.sand,
       stones: row.stones ?? defaults.stones ?? STONE_COLORS[row.biome],
       tide: TIDE[row.id] ?? TIDE[region] ?? DEFAULT_TIDE,
+      shelf: SHELF_BY_PLACE[row.id] ?? 'shelf',
+      ...(SEA_SEASON[row.id] != null ? { seaSeason: SEA_SEASON[row.id] } : {}),
       reef: REEF[row.id] ?? REEF[region] ?? 0,
       coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome], FLAT[row.id] ?? 0),
       mud: MUD[row.id] ?? DEFAULT_MUD,

@@ -34,7 +34,7 @@ import { reefFor, reefShelter, type Reef } from './reef'
 import { flatGround, flatWaterline, tidalFlatFor, type SaltMarsh, type TidalFlat } from './tidalFlat'
 import { ROCK_NAMES, rockGround, rockShoreFor, rockWaterline, wobbleAtCamera, type RockShore } from './rockShore'
 import type { Shelter } from './shelter'
-import { MICRO_TIDE, relativeTideRange, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
+import { MICRO_TIDE, relativeTideRange, surgeFor, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
 // Everything random about a scene is decided here, from the date alone.
@@ -825,12 +825,7 @@ function generateCoast(
   // The camera stands by today's water (shoreline, along the beach) or on
   // the land (framed, overlook): the drawn distances are from the water.
   if (hasLand({ type })) {
-    coast.waterline =
-      coast.rock != null
-        ? rockWaterline(coast.rock, coast.nearshoreSlope, coast.seabedDepth, tide.level)
-        : coast.flat != null
-          ? flatWaterline(coast.flat, coast.marsh!, coast.nearshoreSlope, coast.seabedDepth, tide.level)
-          : waterlineAt(coast, tide.level)
+    coast.waterline = waterlineOf(coast)
     coast.distanceToWater -= coast.waterline
   }
 
@@ -883,8 +878,67 @@ function generateCoast(
       case 'shoreline':
         break
     }
+    keepBeachCameraDry(coast)
   }
   return { coast, eyeHeight }
+}
+
+/** Today's water on the coast's profile (s from the land's s = 0). */
+function waterlineOf(coast: CoastParams): number {
+  const level = coast.tide.level
+  return coast.rock != null
+    ? rockWaterline(coast.rock, coast.nearshoreSlope, coast.seabedDepth, level)
+    : coast.flat != null
+      ? flatWaterline(coast.flat, coast.marsh!, coast.nearshoreSlope, coast.seabedDepth, level)
+      : waterlineAt(coast, level)
+}
+
+/** How high above today's water a beach camera placed by it stands, at
+ * least, on the bare profile (m): more than the runnels, cusps and bumps
+ * take off it (`params.ts` can't read the full terrain: import cycle). */
+const CAMERA_DRY = 0.3
+
+/** A beach camera placed from the water (shoreline, along the beach). */
+function byTheWater(coast: CoastParams): boolean {
+  return coast.type === 'beach' && coast.rock == null && coast.flat == null && (coast.composition === 'shoreline' || coast.composition === 'along-beach')
+}
+
+/** Keep a beach camera out of the water: no nearer than where the bare
+ * profile stands CAMERA_DRY above today's water, at the camera's own shore
+ * position (s = −distanceToWater less the wobble at a = 0). Before 0.200, 10
+ * of 433 beach days stood one placed by the water in it; a surge can reach
+ * a framed camera on a low backshore too. */
+function keepBeachCameraDry(coast: CoastParams): void {
+  if (coast.type !== 'beach' || coast.rock != null || coast.flat != null) return
+  coast.distanceToWater = Math.max(coast.distanceToWater, -waterlineAt(coast, coast.tide.level + CAMERA_DRY) - wobbleAtCamera(coast))
+}
+
+/**
+ * The weather's surge on today's water (tides.ts surgeFor, REGIONS.md §3.2),
+ * once the coast faces its final way: the level rises (or falls), the
+ * water's edge moves, a camera placed from the water moves with it, and a
+ * camera on rock or a flat steps inland until it is dry again.
+ */
+function applySurge(coast: CoastParams, drawn: number): void {
+  // A salt marsh (behind a beach or a flat) floods in a big surge (up to the sea dikes);
+  // the terrain has neither the dike nor higher ground for a camera, so the
+  // water stops CAMERA_DRY below the marsh top (KNOWN_ISSUES.md).
+  const surge = coast.marsh != null ? Math.min(drawn, Math.max(0, coast.marsh.height - CAMERA_DRY - coast.tide.level)) : drawn
+  coast.tide.level += surge
+  coast.tide.surge = surge
+  if (surge === 0 || !hasLand(coast)) return
+  const before = coast.waterline
+  coast.waterline = waterlineOf(coast)
+  // Rising water pushes a camera that stood by it inland; falling water
+  // leaves it where it was (its ground only gets drier).
+  if (surge > 0 && byTheWater(coast)) coast.distanceToWater -= coast.waterline - before
+  keepBeachCameraDry(coast)
+  if (coast.rock != null) {
+    for (let i = 0; i < 60 && rockGround(coast) < coast.runup + 0.3; i++) coast.distanceToWater += 3
+  } else if (coast.flat != null) {
+    const wobble = wobbleAtCamera(coast)
+    for (let i = 0; i < 80 && flatGround(coast, wobble) < coast.runup + 0.15; i++) coast.distanceToWater += 3
+  }
 }
 
 /** Where the camera stands on a rocky shore, and its eye height: on the
@@ -1971,6 +2025,18 @@ function buildParams(
   const roughBeach = storm != null || (Math.abs(latitudeDeg) > 25 && season({ date, latitudeDeg }) === 'winter')
   const tide = tideFor(place.tide, moonPhaseDeg, Random.derive(seed, 'tide'), spec)
   const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach, frozen: seaIce != null }, tide, spec)
+  // Storm surge, the air's weight and the sea's season on the water (no
+  // draws). Sea ice takes the wind's grip off the water.
+  const drawnSurge = surgeFor({
+    windSpeed: seaIce != null ? 0 : windSpeed,
+    windHeadingDeg,
+    seawardAzimuthDeg: coast.seawardAzimuthDeg,
+    shelf: place.shelf,
+    weather: weather.kind,
+    ...(place.seaSeason != null ? { season: place.seaSeason } : {}),
+    month: Number(date.slice(5, 7))
+  })
+  applySurge(coast, spec.surge === null ? 0 : (spec.surge ?? drawnSurge))
 
   const timeLabel: Record<TimeOfDay, string> = {
     'golden-hour': isEvening ? 'Golden hour' : 'Morning gold',

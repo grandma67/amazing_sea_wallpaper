@@ -287,6 +287,18 @@ Against the project (`tides.ts`, arch/COAST.md "Tides"):
   3. **Wind-led seas** (46 land days): the day's level should come from wind and season
      (Baltic: up to metres in a winter gale), not a 0.02–0.4 m tide.
 
+### 3.2 Storm surge and the weather's water level (built 0.200)
+
+`surgeFor` (tides.ts) adds to the tide: wind setup η = C_d (ρ_air/ρ_sea) U² (L/h) / g with the
+onshore part of the wind (offshore draws down half as far, est.), L/h by place (`shelf` in
+places.ts: shallow 2·10⁴, calibrated so 30 m/s gives ~3 m, the 1953 North Sea surge; shelf 6·10³
+and steep 1.5·10³, est.); the inverse barometer, 1 cm per hPa, pressure by weather kind (est.: storm
+−25 hPa, clear +8); the yearly sea-level cycle of the Baltic (10 cm, high in Dec) and the
+Mediterranean (7 cm, high in Oct). No wind grip under sea ice. Real land days (2024–26): 87% within
+±10 cm, storms 0.3–0.7 m, none over 1 m. A marsh's top caps it (no dikes in the terrain).
+Not built yet: real tide timing and diurnal/mixed types (§3.1 items 1–2; plan: NOAA `harcon` and
+TICON constants per place, harmonic synthesis of M2, S2, K1, O1).
+
 ## 4. Bioluminescence seasons (phase 13, later)
 
 Glowing surf needs a dense dinoflagellate bloom (*Lingulodinium polyedra* in California,
