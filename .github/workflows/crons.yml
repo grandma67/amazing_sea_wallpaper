@@ -35,8 +35,9 @@ jobs:
 
       - name: pages.yml still writes the dated files the scripts fetch first
         run: |
-          grep -q -- '--out dist/daily/pc ' .github/workflows/pages.yml
-          grep -q -- '--out dist/daily/phone ' .github/workflows/pages.yml
+          # Rendered outside dist/, then copied in once both sizes pass (0.195).
+          grep -q 'dist/daily/pc/' .github/workflows/pages.yml
+          grep -q 'dist/daily/phone/' .github/workflows/pages.yml
           grep -q 'dist/latest.json' .github/workflows/pages.yml
           grep -q 'dist/latest-portrait.json' .github/workflows/pages.yml
 
