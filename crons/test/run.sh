@@ -25,6 +25,9 @@ BASH_UNDER_TEST=${BASH_UNDER_TEST:-}
 SCRIPT_OVERRIDE=
 ONLY=
 DOWNLOADER=
+PWSH=${PWSH:-pwsh}
+INTERP=()
+URL_FLAG=--url
 CASE_FILES=()
 
 while [ $# -gt 0 ]; do
@@ -33,6 +36,7 @@ while [ $# -gt 0 ]; do
     --script) SCRIPT_OVERRIDE=$2; shift 2 ;;
     --only) ONLY=$2; shift 2 ;;
     --downloader) DOWNLOADER=$2; shift 2 ;;
+    --pwsh) PWSH=$2; shift 2 ;;
     -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) CASE_FILES+=("$1"); shift ;;
   esac
@@ -193,7 +197,7 @@ run_script() {
       AMAZING_SEA_WALLPAPER_RANDOM="${CASE_RANDOM:-0}" \
       AMAZING_SEA_WALLPAPER_DOWNLOADER="$DOWNLOADER" \
       ${CASE_ENV:+$CASE_ENV} \
-      "$BASH_UNDER_TEST" "$SCRIPT" --url "$SITE_URL" "$@" > "$OUT" 2>&1
+      ${INTERP[@]+"${INTERP[@]}"} "$SCRIPT" "$URL_FLAG" "$SITE_URL" "$@" > "$OUT" 2>&1
   EXIT=$?
   RUNS=$((RUNS + 1))
 }
@@ -207,7 +211,7 @@ run_raw() {
       AMAZING_SEA_WALLPAPER_HOME="$CASE_HOME" AMAZING_SEA_WALLPAPER_TODAY="$TODAY" \
       AMAZING_SEA_WALLPAPER_NOW_EPOCH="$NOW_EPOCH" AMAZING_SEA_WALLPAPER_STUBS=1 \
       AMAZING_SEA_WALLPAPER_OS="${CASE_OS:-macos}" AMAZING_SEA_WALLPAPER_RANDOM="${CASE_RANDOM:-0}" \
-      AMAZING_SEA_WALLPAPER_DOWNLOADER="$DOWNLOADER" ${CASE_ENV:+$CASE_ENV} "$BASH_UNDER_TEST" "$SCRIPT" "$@" > "$OUT" 2>&1
+      AMAZING_SEA_WALLPAPER_DOWNLOADER="$DOWNLOADER" ${CASE_ENV:+$CASE_ENV} ${INTERP[@]+"${INTERP[@]}"} "$SCRIPT" "$@" > "$OUT" 2>&1
   EXIT=$?
   RUNS=$((RUNS + 1))
 }
@@ -276,6 +280,12 @@ for file in "${CASE_FILES[@]}"; do
     echo "SKIP $(basename "$file"): no $SCRIPT"
     continue
   fi
+  case $SCRIPT in
+    *.ps1)
+      if ! command -v "$PWSH" >/dev/null 2>&1; then echo "SKIP $(basename "$file"): no $PWSH"; continue; fi
+      INTERP=("$PWSH" -NoProfile -NonInteractive -File); URL_FLAG=-Url ;;
+    *) INTERP=("$BASH_UNDER_TEST"); URL_FLAG=--url ;;
+  esac
   group=$(basename "$file" .sh); group=${group#cases-}
   for name in $(declare -F | awk '{print $3}' | grep '^case_'); do
     short=${name#case_}

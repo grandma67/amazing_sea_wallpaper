@@ -581,6 +581,18 @@ and one commit. The test harness comes first, so every later phase is checked by
 7. **`amazing-sea-wallpaper.ps1`** (§4.2 commands, the Windows parts of §4.3–4.5).
    - Done when PSScriptAnalyzer and the parser are clean under `pwsh` on this Mac, and the fetch
      and state cases pass with `-DryRun` and the stub hook.
+   - **Built (2026-11-15):** `crons/amazing-sea-wallpaper.ps1` and `crons/test/cases-ps1.sh`
+     (18 cases; the runner calls `pwsh -NoProfile -File` for `.ps1` case files and skips them
+     without pwsh). PowerShell 7.7 (`brew install powershell`; the cask is gone) and
+     PSScriptAnalyzer 1.25: no warnings or errors, three Information notes; 0 parse errors.
+     Learned:
+     - **Pure ASCII:** Windows PowerShell 5.1 reads a BOM-less UTF-8 file as ANSI, so the file
+       has no `§` or `·` (the analyzer's `PSUseBOMForUnicodeEncodedFile`).
+     - `Write-Log` is a built-in cmdlet name in PowerShell 6.1+ on Windows: renamed
+       `Write-AswLog`.
+     - The state and config are the same `key=value` files as the bash script.
+     - Not run on Windows yet: `SystemParametersInfoW`, the registry, Task Scheduler cmdlets,
+       `conhost --headless`, policy checks (stubbed here; CI parses under 5.1 and 7).
 8. **CI** (`.github/workflows/crons.yml`, on changes to `crons/`, `scripts/snapshot.mjs` or
    `.github/workflows/pages.yml`).
    - `ubuntu-latest`:
