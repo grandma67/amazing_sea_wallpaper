@@ -27,7 +27,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Does a new off switch give back the old image exactly | `diff.mjs --ref HEAD --off PATCH --off-here` (expect "identical"); when HEAD already has the feature (a later phase), `--off-both` | [tools/RENDER.md](tools/RENDER.md) |
 | Render time vs a commit (10% rule); same image | `bench.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A new mesh alone | `mesh.mjs` | [tools/RENDER.md](tools/RENDER.md) |
-| A mesh before and after a change, one command | `mesh.mjs --ref HEAD` (`NAME.compare.jpg`); a head close-up: `--focus head` |
+| A mesh before and after a change, one command | `mesh.mjs --ref HEAD` (`NAME.compare.jpg`); a head close-up: `--focus head` | [tools/RENDER.md](tools/RENDER.md) |
 | Small parts of a big mesh at real size (cones, fruit, catkins on a 17 m tree) | `mesh.mjs --focus top` (the top 30%) or `--focus box:X0,Y0,Z0,X1,Y1,Z1`; a tree with a fruit row on it: `'props/fruitPreview#fruitTree($rng, KIND, DATE?, PLACE?, CLIMATE?, LAT?)'` | [tools/RENDER.md](tools/RENDER.md) |
 | Triangles a prop draws (× its instances), before building more on it | `params.mjs --count KIND` (no render), `snapshot.mjs --props` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
@@ -49,13 +49,13 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | A new cloud shape in the volumetric clouds | `src/cloudShapes.ts` (patch, noise, layer, switches) and its checklist | [arch/SKY.md](arch/SKY.md) "A new cloud shape" |
 | Where a sky direction lands in the frame (is it in frame, which pixel) | `src.skyFrame` (`project`, `pixelOf`, `inSky`) in `params.mjs` or code | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
-| A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded |
+| A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded | "Real colours" below |
 | Is a prop **visible** on a day (not behind props or terrain), which spec dates show it best; how hazed far land is | `params.mjs --find KIND` | tools/PARAMS.md "Which days show it" |
 | How much turf, bare land, sea a camera sees, by distance | `src.groundSeen.groundSeen(p.ctx)` in a `params.mjs` expression | tools/PARAMS.md |
 | Photos of a species with a licence we can ship (PD, CC0, CC BY) | `asset.mjs search QUERY…` (numbered contact sheet; waits out Commons' rate limit) | `asset.mjs` header |
 | Reference photos when the name also means other things (a keyword search fills with noise) | `asset.mjs search --wiki ARTICLE…` (the article's own photos; `--all` for share-alike ones, fine to look at, not to ship) | `asset.mjs` header |
-| An animal skin from a photo (atlas layer) | `asset.mjs search` → `asset.mjs fetch commons:File:… --id ID` → `asset.mjs grid ID --px` (pixel labels) → recipe in `src/props/skins.json` → `asset.mjs patch ID` (outline on the photo beside the baked tile) → `npm run skins` (sets up its Python; warns when a layer clips; `contrast: "auto"`) → `mesh.mjs --material 'props/skins#skinPreviewMaterial()'` | `scripts/skinBake.py` header | [arch/PROPS.md](arch/PROPS.md) "Animal skins" |
-| A scanned model as a prop mesh (vertex colours, levels of detail) | `asset.mjs bake ID` → `src/props/scans/ID.ts`; `mesh.mjs 'props/scans/index#scanVariant(…)'` | "Real colours" below; NATURE_PLAN.md §11 | header; "Real colours" below; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §1 |
+| An animal skin from a photo (atlas layer) | `asset.mjs search` → `asset.mjs fetch commons:File:… --id ID` → `asset.mjs grid ID --px` (pixel labels) → recipe in `src/props/skins.json` → `asset.mjs patch ID` (outline on the photo beside the baked tile) → `npm run skins` (sets up its Python; warns when a layer clips; `contrast: "auto"`) → `mesh.mjs --material 'props/skins#skinPreviewMaterial()'` | `scripts/skinBake.py` header; [arch/PROPS.md](arch/PROPS.md) "Animal skins" |
+| A scanned model as a prop mesh (vertex colours, levels of detail) | `asset.mjs bake ID` → `src/props/scans/ID.ts`; `mesh.mjs 'props/scans/index#scanVariant(…)'` | "Real colours" below; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §11 |
 
 ## Tests
 
@@ -136,9 +136,9 @@ each source file as fully covered, so leave it out.
 
 ## Real colours from photos and scans (`asset.mjs`)
 
-- **Brightness:** a photo's is the camera's (auto-exposure put a moor at ~0.23 linear; heath is
-  ~0.05–0.1). Take hue from photos; brightness from a calibrated scan (Poly Haven, ambientCG), or
-  `--anchor` a known material **next to the target, in the same light**. Petals with no anchor:
+- **Brightness:** a photo's is the camera's (LESSONS.md "Colours from photos"). Take hue from
+  photos; brightness from a calibrated scan (Poly Haven, ambientCG), or `--anchor` a known material
+  **next to the target, in the same light**. Petals with no anchor:
   the brightest unclipped cluster ×0.8 (`--petal`), ±30%.
 - **Region:** `asset.mjs grid ID` writes the image with a labelled 10% grid; read `--region` off it,
   don't guess from a contact sheet. `--hue H0,H1[,S]` keeps only the target's pixels (flowers, not
@@ -223,13 +223,23 @@ minutes (dep optimisation).
   next render says "dev server not reachable": start it again before the next render.
 - **Sampling a reference photo's colours** without PIL: `sips -s format bmp in.jpg --out x.bmp`, then
   read the BMP in node (header: offset at 10, width 18, height 22, bpp 28; rows bottom-up, BGR).
-- zsh: `LINES` and `COLUMNS` are the terminal's variables; assigning JSON to `LINES` fails with
-  "bad output format specification". Keep line specs in a file (`--line "$(cat $SP/lines.json)"`).
 - Each `params.mjs` call costs a few seconds (it builds the modules): a shell loop over seeds or
   places timed out. Ask once over a date range with `--list --where 'p => …'` or `--stats`.
 - **PDFs:** `pdftotext -layout FILE out.txt` (poppler, `brew install poppler`, installed 2026-11-06), then grep. WebFetch can't read a PDF, but it saves the bytes and says where: run `pdftotext` on that. Numbers in figures aren't in the text: use the paper's prose and tables, and say so.
-- **Reference photos:** `asset.mjs search QUERY` (licence-filtered, a numbered contact sheet). Python's `urllib` fails here on certificates (`CERTIFICATE_VERIFY_FAILED`): use the script or curl. Wikimedia Commons' API finds them with a thumbnail URL (`curl -G https://commons.wikimedia.org/w/api.php -d action=query -d format=json -d generator=search -d gsrnamespace=6 --data-urlencode gsrsearch=… -d prop=imageinfo -d iiprop=url\|mime -d iiurlwidth=900`). Save them in their own scratchpad folder and `Read` the JPEG. Plain web search returns captions, not pictures. Record each file's page in the plan. To measure one: `asset.mjs measure 'commons:File:NAME.jpg'` (licence and author recorded; it retries Commons' 429s, which come after ~5 quick requests).
-- **zsh, not bash:** an unquoted `$VAR` isn't split into words, so `F="a b"; sed … $F` and `D="d1 d2"; cmd $D` pass one argument, and often fail quietly. Use a `for` over literal words, or `${=VAR}`. An unmatched glob is an error (`--include=*`: quote it), and a bare `======` is too (`echo '---'`).
+- **Reference photos:** `asset.mjs search QUERY` (table above). Plain web search returns captions,
+  not pictures. Python's `urllib` fails here on certificates (`CERTIFICATE_VERIFY_FAILED`): use the
+  script or curl (Commons' API: `curl -G https://commons.wikimedia.org/w/api.php -d action=query -d
+  format=json -d generator=search -d gsrnamespace=6 --data-urlencode gsrsearch=… -d prop=imageinfo
+  -d iiprop=url\|mime -d iiurlwidth=900`). Save them in their own scratchpad folder and `Read` the
+  JPEG; record each file's page in the plan. Commons rate-limits (429) after ~5 quick requests; the
+  script retries.
+- **zsh, not bash:** an unquoted `$VAR` isn't split into words, so `F="a b"; sed … $F` and
+  `M="node x.mjs"; $M args` pass one argument and often fail quietly (five colour measurements
+  silently didn't run, 0.151). Use a shell function (`m() { node x.mjs "$@"; }`), a `for` over
+  literal words, or `${=VAR}`. An unmatched glob is an error (`--include=*`: quote it), and a bare
+  `======` is too (`echo '---'`). `LINES` and `COLUMNS` are the terminal's: assigning JSON to `LINES`
+  fails ("bad output format specification"); keep line specs in a file (`--line "$(cat
+  $SP/lines.json)"`).
 - **Patching with a heredoc:** in `<<'EOF'` nothing is unescaped, so `\`` stays a backslash and backtick in the file. In `<<EOF` it's the reverse: `$` and backticks run. Use `<<'EOF'` and write backticks plain.
 - Vitest hides `console.log` from passing tests: `--silent=false`, or `process.stderr.write(…)` in
   a throwaway probe test (deleted afterwards). Better: probe with `params.mjs` (`p.ctx`, `src.X`).
@@ -240,8 +250,7 @@ minutes (dep optimisation).
   nowhere, silently). Edit with Python asserting one match, or the Edit tool.
 - **JS `toFixed` keeps the sign of zero:** `(-2e-16).toFixed(6)` is `"-0.000000"`, so keys built
   from it split equal points (a blob's seam). Use `Math.round(x * 1e6) || 0`.
-- **Python edit scripts that assert one match:** a replacement that adds text a later pattern
-  searches for makes that later assert fail (and nothing is written): order the edits, or use
-  the Edit tool.
-- Scripted edits: Python `str.replace` hits every match (`"  cirrus: {"` also hit the choice
-  table), and loose regexes hit params. Prefer Edit, or assert exactly one match.
+- **Scripted edits:** Python `str.replace` hits every match (`"  cirrus: {"` also hit the choice
+  table) and loose regexes hit params: prefer the Edit tool, or assert exactly one match. With
+  asserts, a replacement that adds text a later pattern searches for makes that later assert fail
+  (and nothing is written): order the edits.

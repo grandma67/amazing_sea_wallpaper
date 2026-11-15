@@ -115,18 +115,16 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
 
 - `NAME.diff.jpg`'s top panels are cropped to the changed box, not the frame: don't read pixel
   positions off it (`OUT/on/NAME.jpg` is the full frame). Every diff also saves `NAME.crop.jpg`:
-  that box at full size (`--crop X,Y,W,H` for another rectangle). To look closer at a spot,
-  `--zoom-at X,Y` (full-frame pixels; 320×120 around it, ×3): with `--a/--b`, no new render.
+  off | on side by side at full size over the changed box (`--crop X,Y,W,H` for another
+  rectangle; `--zoom N` enlarges with sharp pixels: tell a real edge from something in front of
+  it). To look closer at a spot, `--zoom-at X,Y` (full-frame pixels; 320×120 around it, ×3); with
+  `--a/--b`, no new render.
 - `--where EXPR [--sample N] [--spread EXPR]`: real days instead of `--scene` (as `snapshot.mjs`),
   with `--off` or `--ref`: the first render round's real days in one command.
 
-- Renders at 1920×1080 and 16 frames unless `--w --h --frames` say otherwise (`snapshot.mjs` alone
-  defaults to 4K).
-- `--crop X,Y,W,H` or `--crop box` (the changed box) saves `NAME.crop.jpg`: off | on side by side
-  at full size, where `NAME.diff.jpg` is shrunk. `--zoom N` enlarges it with sharp pixels. Use it to
-  tell a real edge from something standing in front of it.
-
-- A failed snapshot now prints its own reason ("dev server not reachable …"): before 0.156 `diff.mjs` showed only "snapshot.mjs failed:".
+- Renders at 1920×1080 and 16 frames unless `--w --h --frames` say otherwise (`snapshot.mjs`
+  alone defaults to 4K, so pass `--w 1920 --h 1080` to probe a frame seen in a diff).
+- A failed snapshot prints its own reason ("dev server not reachable …").
 - `--keep-camera`: terrain changes (bars, cusps, tides) also move the camera, which stands on the
   ground. With it the "on" renders go first and each "off" render stands at the same height
   (`params.camera.groundM`, from `debug.cameraGroundM`). Heading and lens are the date's in both;
@@ -146,8 +144,7 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
   the feature against this tree without it, and differ on every scene that has it. With
   `--off-both`, "identical" means the switch still gives back HEAD's image with the feature off.
 - At a ref, `snapshot.mjs` leaves out fields the ref doesn't have **and values it doesn't know
-  yet** (a kind added since: `props.bloom: ["flamboyant"]`), and says so; before 0.142 the second
-  crashed the run (`bench.mjs --ref`).
+  yet** (a kind added since: `props.bloom: ["flamboyant"]`), and says so.
 - `--threshold N` (0–255, default 4): above JPEG noise; two renders of the same code on the same
   GPU are identical.
 
@@ -155,16 +152,11 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
 
 - `snapshot.mjs` checks its server every 1–2 s: when the dev server stops answering or the `--ref`
   server exits, it stops at once (exit 3) and prints the end of the ref server's log
-  (`/private/tmp/claude-ref-PORT.log`, overwritten each run). Before, the page waited on modules
-  from a dead server until the 30-minute page timeout or the 15-minute budget.
+  (`/private/tmp/claude-ref-PORT.log`, overwritten each run). Read that log first.
 - The page timeout is 5 minutes (`--timeout MS`).
-- `--ref` refuses a port another server already answers on ("port 5177 is already taken"):
-  before, with `--strictPort` the new server failed and the run rendered against the old one.
-- Each run's worktree path is its own (`/private/tmp/claude-TAG-SHA-PID`): with one path per
-  commit, a previous run's reaper could remove the next run's tree.
-- Found in the 0.142 review: a ref render hung for 10 minutes with no ref server alive. The cause
-  of the server's exit is unknown (its output went to `ignore`; it couldn't be reproduced: the
-  same command took 11.7 s on a fresh server). The next one will leave a log.
+- `--ref` refuses a port another server already answers on ("port 5177 is already taken").
+- Each run's worktree path is its own (`/private/tmp/claude-TAG-SHA-PID`), so one run's reaper
+  can't remove another's tree.
 
 ## `scripts/haze.mjs`: how does the frame haze these objects?
 
@@ -306,8 +298,6 @@ For a render's real luminance use the probes.
 - **Zoom into one render:** `--match '^NAME$' --region X0,Y0,X1,Y1` (fractions of the frame,
   not pixels: a `--props` box `[627,926,821,1080]` at 1920×1080 is `0.33,0.86,0.43,1`). A single
   image fills the 2400 px sheet, so a small region comes out magnified.
-- Post-exposure units: sky ≈ 0.1–1; above 40 clamps to white. The night moon disc is ~10⁴, so
-  anything drawn on it must be a 10⁻⁴–10⁻³ fraction.
 
 ## Page UI (no rendering change)
 
