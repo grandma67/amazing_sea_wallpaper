@@ -569,7 +569,8 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
     float k = 1.0;
     if (hitDepth < 1.0) {
       vec4 view = planarProjInv * vec4(base * 2.0 - 1.0, hitDepth * 2.0 - 1.0, 1.0);
-      float L = length(view.xyz / view.w);
+      // Never ∞ or NaN (a depth a hair under 1: reflection.ts mirrorRayLength).
+      float L = mirrorRayLength(view, 0.0);
       float D = length(vWorld - cameraPosition);
       k = clamp(1.0 - D / max(L, D), 0.0, 1.0);
     }

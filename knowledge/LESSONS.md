@@ -466,7 +466,11 @@ tool gotchas: TOOLS.md.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
   bloom dashes (Metal fast-math also defeats `isnan`). `min(NaN, x)` is undefined: Apple GPUs
   give x, x86 SwiftShader keeps the NaN and bloom's blur spreads it over the whole frame as black
-  (CI 0.195). The frame meter zeroes NaN/±∞ by their bits before bloom (`frameNonFinite`). Overflowing `exp()` gave NaN terrain.
+  (CI 0.195). The frame meter zeroes NaN/±∞ by their bits before bloom (`frameNonFinite`).
+- **Unprojecting a depth near 1 divides by w ≈ 0** (0.195): the mirror depth a hair under the
+  far value gave the Mac huge finite distances and x86 SwiftShader ∞, then NaN (∞ in a point,
+  0·∞ in haze). Cap every distance read from a depth buffer at the "nothing" value with a
+  comparison that NaN also fails (`len < 1e5 ? … : 1e5`), not `min()` (undefined for NaN). Overflowing `exp()` gave NaN terrain.
 
 ## takram sky, clouds, post
 

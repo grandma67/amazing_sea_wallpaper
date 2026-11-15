@@ -303,7 +303,13 @@ phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed 
   reproduces it on the Mac. The frame meter now zeroes NaN/±∞ before bloom and reports
   `frameNonFinite`. **Confirmed** on the runner (`58c26e7`): `frameNonFinite` 3 (phone) and 1
   (PC), both frames normal and published, luma the same as the Mac's to the decimal (PC 4.8–191.8,
-  mean 121.1). Which shader makes the NaN on x86 SwiftShader is **not found** yet.
+  mean 121.1). **Source found** (`debug.nanTrace` on the runner): the terrain alone,
+  4 pixels on damp sand 30–50 m out (terrainProbe: kind 2, mirror 0.12–0.42) along the mirrored
+  skyline. **Suspected** mechanism: the mirror depth a hair under 1 unprojects with w ≈ 0 to ∞,
+  and ∞ in `P + Rm·t` or 0·∞ in the haze is NaN; the Mac has the same spots finite (capping them
+  changed 0.15% of 11-15's phone frame, all in that band, max 15/255). Fixed by
+  `reflection.ts mirrorRayLength` (≥ 1e5, ∞ or NaN → 1e5), also in `ocean.ts`; to be confirmed on
+  the runner.
 - **The scheduled render finishes late** (measured from the Actions API, CRON.md §2.1): 01:10–
   07:43 UTC over 10 days for a 00:05 UTC schedule, so in Europe the 07:xx desktop run often finds
   no picture yet and waits for its re-run (08:00 UTC or later).

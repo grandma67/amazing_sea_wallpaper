@@ -48,13 +48,24 @@ uniform float reflectionSeaHaze;
  * uniforms of MIRROR_UNIFORMS_GLSL. The target is cleared to transparent
  * black, so its mips hold premultiplied colour. */
 export const MIRROR_GLSL = /* glsl */ `
+/** How far past the water (D: the eye's distance to it) the mirror camera's
+ * point \`view\` lies; 1e5 (nothing: a direction) when that isn't finite. A
+ * depth a hair under 1 unprojects with w ≈ 0 to ∞, and ∞ in P + Rm·t or
+ * 0·∞ in the haze is NaN: x86 SwiftShader's depth buffer gave four such
+ * pixels on damp sand along the mirrored skyline (CI, 2026-11-15; the Mac's
+ * never did). A NaN fails the comparison too. */
+float mirrorRayLength(vec4 view, float D) {
+  float len = length(view.xyz / view.w);
+  return len < 1e5 ? max(len - D, 0.0) : 1e5;
+}
+
 /** How far the mirrored ray runs past the water to what the mirror camera
  * sees at uv (1e5: nothing, a direction); D is the eye's distance to the water. */
 float mirrorDistance(vec2 uv, float D) {
   float depth = textureLod(planarDepth, uv, 0.0).r;
   if (depth >= 1.0) return 1e5;
   vec4 view = planarProjInv * vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
-  return max(length(view.xyz / view.w) - D, 0.0);
+  return mirrorRayLength(view, D);
 }
 
 /** Follow the water's reflected ray Rm from P for t (the length of the
@@ -78,7 +89,7 @@ vec4 mirrorAlongRay(vec3 P, float D, float t, vec3 Rm, float alpha, float sinVie
   float landDepth = textureLod(planarDepth, uv, 0.0).r;
   if (landDepth < 1.0) {
     vec4 view = planarProjInv * vec4(uv * 2.0 - 1.0, landDepth * 2.0 - 1.0, 1.0);
-    hazeT = max(length(view.xyz / view.w) - D, 0.0);
+    hazeT = mirrorRayLength(view, D);
   }
   vec3 up = vec3(0.0, 1.0, 0.0) - Rm * Rm.y;
   float spread = 2.0 * atan(alpha * 0.70710678);
