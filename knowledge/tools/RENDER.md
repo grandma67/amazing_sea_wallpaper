@@ -78,9 +78,7 @@ the canvas keeps what was drawn so far. So, since 0.195:
 - a render whose WebGL context was lost fails (`scene.ts`): `⚠ render failed`, the GL messages,
   not saved, exit 1;
 - `pages.yml` renders both sizes into `$RUNNER_TEMP` and copies them into `dist/` only when both
-  pass;
-- `.github/workflows/render-check.yml` renders a day on the runner with the watchdog on and off
-  (push to the `render-check` branch, or run it from the Actions tab) and uploads the images.
+  pass.
 
 ## `scripts/diff.mjs`: did it show up?
 
