@@ -13,7 +13,7 @@ so users don't all hit the site at once.
     desktops.
   - macOS, and Windows 10/11 (activated).
 
-Status: plan (2026-11-14; open questions researched 2026-11-15). Building: phase 1. The README section is marked "planned" until phase 9.
+Status: plan (2026-11-14; open questions researched 2026-11-15). Phase 1 done (2026-11-15); next: phase 2. The README section is marked "planned" until phase 9.
 Testing: on this Mac (macOS 27.0.1, bash 3.2.57) during the build; Linux and Windows later.
 Until a distro is tried, it ships labelled untested.
 
@@ -482,6 +482,21 @@ and one commit. The test harness comes first, so every later phase is checked by
    - `crons/test/run.sh`: runs each case with the hooks and compares the exit code, the state
      file and the stub log with expected values.
    - Done when the runner runs (against a stub script) under `/bin/bash` 3.2 on this Mac.
+   - **Built (2026-11-15):** `crons/test/run.sh [--bash B] [--script S] [--only RE] [CASE_FILE…]`,
+     `server.py`, `stub-script.sh`, `fixtures/tiny.jpg`, `cases/harness.sh` (9 self-tests,
+     passing under `/bin/bash` 3.2.57; shellcheck 0.11 clean). What it fixed for the script:
+     - `server.py` instead of bare `python3 -m http.server`: it logs every request (with its
+       query) for `expect_requested` / `expect_requests N`, and a `<file>.ctype` sidecar serves
+       HTML as `daily/pc/<date>.jpg`. Binds 127.0.0.1 on a free port.
+     - `state` and `config` are `key=value` lines (first match wins); the runner reads them so.
+     - Stubs append one line per action to `<home>/stubs.log`.
+     - The script gets `--url <fixture>/` (with the trailing slash) and the four hooks; cases set
+       the clock with `clock "YYYY-MM-DD HH:MM"` (UTC; default 2026-11-14 06:30).
+     - Images: `valid` is a real 16×16 JPEG padded by a COM segment to 60 KB (decodes, ends
+       `FF D9`); `truncated` its first 30 KB; `html`; `small` (884 B). A truncated file over
+       50 KB would pass the check: accepted, the size and magic only catch portals and stubs.
+     - Phase 2 adds `cases/run.sh` (no `SCRIPT_UNDER_TEST`: the real script); the runner skips a
+       case file whose script doesn't exist yet.
 2. **The run, on this Mac** (`crons/amazing-sea-wallpaper.sh`).
    - Scope:
      - version metadata, the bash 3.2 helpers, the folder, config/state/lock
