@@ -325,6 +325,10 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
   grazing sun. Grep for every tilt: the same effect was in two places.
 - **Set a value where it's built (sea ice, 0.115):** overwriting `coast.runup` after `generateCoast`
   left the berm at the old high-tide line (`beach.test.ts` caught it).
+- **A pile is a surface, not a random height per piece (sea ice rubble, 0.197):** each piece raised by its own hash
+  hung in the air beside empty cells, and the far set (2 m slabs on 5 m cells) never had pieces to rest on. Raise pieces
+  only to a smooth pile surface, fill every cell there and stack the pieces under it; whatever floats must know where the
+  shader opens water (mirror its discards in TS).
 - **Shared vertices round a slab's sides read as a drum (sea ice, 0.114):** a low-poly plate needs
   `toCreasedNormals`. A block 4.5 m across and as tall reads as a boulder; ice rubble is slabs as
   thick as the ice.

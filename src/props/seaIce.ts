@@ -1,12 +1,12 @@
 import { BufferAttribute, Color, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, Quaternion, Vector2, Vector3, type BufferGeometry, type Object3D } from 'three'
 import { mergeVertices, toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js'
 
-import { hashCell } from '../cellNoise'
+import { fbm, hashCell, smoothstep, vnoise } from '../cellNoise'
 import { createPolarGrid, squareGrid, viewWedge } from '../grid'
 import type { RGB } from '../biome'
 import type { CoastParams, SceneParams } from '../params'
 import type { Random } from '../random'
-import { ICE_FREEBOARD, iceRubble, type SeaIceParams } from '../seaIce'
+import { ICE_FREEBOARD, iceDrift, iceRubble, type SeaIceParams } from '../seaIce'
 import { hasLand, terrainHeight, worldToShore } from '../terrain'
 import { MeshBuilder } from './builder'
 import type { PropContext } from './context'
@@ -45,6 +45,12 @@ const MIN_RUBBLE = 0.2
 /** A pile's top above the ice (m). Estimate: sail + keel is 5–15 m (Eriksson et al.
  * 2025, citing Leppäranta & Hakala 1992), and the keel is most of it. */
 const PILE_HEIGHT = 2.2
+/** Rubble denser than this piles up; thinner, it lies one piece deep on the ice. */
+const PILE_FROM = 0.5
+/** Pieces in a pile rest on one another, about this far apart in height (m). */
+const PILE_LAYER = 0.35
+/** Share of a piece's thickness under the water when it floats (ice ~0.9). */
+const DRAFT = 0.85
 
 /** Sea ice mesh today? */
 export function seaIceFor(params: SceneParams): SeaIceParams | null {
@@ -480,8 +486,31 @@ export function lumpGeometry(rng: Random): BufferGeometry {
   return geometry
 }
 
-/** One piece of rubble, by a hash of its cell; null where there's none. */
-export function iceBlock(ice: SeaIceParams, coast: CoastParams, set: (typeof BLOCK_SETS)[number], cx: number, cz: number): { x: number; z: number; y: number; size: number; h: (salt: number) => number; rubble: number } | null {
+/** The top of the rubble over the ice (m): one smooth surface, so neighbouring
+ * pieces stand at about the same height and each rests on what is under it;
+ * hummocks a few metres across, not a level wall. `px`, `pz`: world + origin. */
+export function pileHeight(rubble: number, px: number, pz: number): number {
+  const hummock = 0.25 + 0.75 * vnoise(px / 7, pz / 7) ** 1.5
+  return PILE_HEIGHT * smoothstep(PILE_FROM, 1, rubble) * hummock
+}
+
+/** Open water under the sheet here: the lead at the shore and, on drift days, the
+ * fields between the floes. Mirrors the sheet's discards (SURFACE_GLSL), not its
+ * narrow cracks. */
+export function iceOpenWater(ice: SeaIceParams, x: number, z: number, off: number, rubble: number): boolean {
+  const px = x + ice.origin[0]
+  const pz = z + ice.origin[1]
+  if (ice.lead > 0 && off < ice.lead * (0.4 + 1.2 * vnoise(px / 70, pz / 70))) return true
+  if (ice.cover >= 0.98 || rubble >= 0.5) return false
+  const t = 0.5 + (0.5 - ice.cover) * 0.8
+  const open = iceDrift(ice, x, z, off) * (1 - smoothstep(t - 0.015, t + 0.015, fbm(px / 1500, pz / 1500)))
+  return open > 0.5
+}
+
+/** One piece of rubble, by a hash of its cell; null where there's none. `base`
+ * is what it lies on (the ice, the beach, or the sea when `afloat` in the lead),
+ * `pile` the rubble's height there; `y` the top piece's base. */
+export function iceBlock(ice: SeaIceParams, coast: CoastParams, set: (typeof BLOCK_SETS)[number], cx: number, cz: number): { x: number; z: number; y: number; base: number; pile: number; afloat: boolean; size: number; h: (salt: number) => number; rubble: number } | null {
   const ix = cx + Math.floor(ice.origin[0] / set.cell)
   const iz = cz + Math.floor(ice.origin[1] / set.cell)
   const h = (salt: number): number => hashCell(ix ^ (salt * 7919), iz + salt) / 4294967296
@@ -490,12 +519,17 @@ export function iceBlock(ice: SeaIceParams, coast: CoastParams, set: (typeof BLO
   const off = offshore(coast, x, z)
   if (off < ice.lead - 8) return null
   const rubble = iceRubble(ice, x, z, off)
-  if (rubble < MIN_RUBBLE || h(3) > rubble) return null
+  if (rubble < MIN_RUBBLE) return null
   const ground = hasLand(coast) ? terrainHeight(coast, x, z) : -1
+  // In open water a piece floats: nothing to pile on.
+  const afloat = ground < 0 && iceOpenWater(ice, x, z, off, rubble)
+  // Only the near set piles: the far one's pieces are too sparse to carry one another.
+  const pile = afloat || !set.lumps ? 0 : pileHeight(rubble, x + ice.origin[0], z + ice.origin[1])
+  // A pile is solid; elsewhere the rubble's density is the chance of a piece.
+  if (pile < PILE_LAYER && h(3) > rubble) return null
   const size = set.size[0] + (set.size[1] - set.size[0]) * h(4) ** 2
-  // A pile: most pieces low, fewer up to its top where the rubble is thickest.
-  const up = PILE_HEIGHT * rubble * h(5) ** 2.2
-  return { x, z, y: Math.max(ground, ICE_FREEBOARD) + up - 0.1, size, h, rubble }
+  const base = afloat ? 0 : Math.max(ground, ICE_FREEBOARD) - 0.1
+  return { x, z, y: base + pile * (0.8 + 0.2 * h(5)), base, pile, afloat, size, h, rubble }
 }
 
 export function createSeaIce(ctx: PropContext): Object3D[] {
@@ -547,24 +581,43 @@ export function createSeaIce(ctx: PropContext): Object3D[] {
         if (block == null) continue
         const { h, size } = block
         if (Math.hypot(block.x - cam.x, block.z - cam.z) < CAMERA_GAP + size) continue
+        const { pile } = block
         const position = new Vector3(block.x, block.y, block.z)
         const spin = new Quaternion().setFromAxisAngle(yUp, h(10) * Math.PI * 2)
         // Near the camera, nothing rises above the eye and blocks the view: only
         // whether a piece is drawn reads the camera, not where it lies.
         const rises = (top: number): boolean => distance < VIEW_RANGE && top > cam.y - 0.05
+        // Plates, not blocks: never thicker than about a third of their width.
+        const thickOf = (s: number, u: number): number => Math.min(s * 0.3, SLAB_THICKNESS[0] + (SLAB_THICKNESS[1] - SLAB_THICKNESS[0]) * u)
+        /** A slab tilted on what is under it: on a corner on flat ice, steeper up a pile. */
+        const slab = (at: Vector3, s: number, salt: number, spinAngle: number, target: Matrix4[]): number => {
+          const thick = thickOf(s, h(salt + 1))
+          const tilt = block.afloat ? 0.04 * h(salt + 2) : 0.03 + 0.09 * h(salt + 2) + 0.8 * (pile / PILE_HEIGHT) * h(salt + 3)
+          axis.set(h(salt + 4) - 0.5, 0, h(salt + 5) - 0.5).normalize()
+          const q = new Quaternion().setFromAxisAngle(axis, tilt).multiply(new Quaternion().setFromAxisAngle(yUp, spinAngle))
+          // Afloat, most of it is under the water.
+          if (block.afloat) at.y = -DRAFT * thick
+          placed.push({ m: new Matrix4().compose(at, q, new Vector3(s * 0.55, thick, s * 0.55 * (0.6 + 0.7 * h(salt + 6)))), distance, target })
+          return at.y + thick + s * 0.8 * Math.sin(tilt)
+        }
+        const variant = (salt: number): Matrix4[] => bySlab[setIndex][Math.floor(h(salt) * SLAB_VARIANTS)]
         if (set.lumps && ice.snow > 0.3 && h(6) < 0.15) {
           if (rises(position.y + size * 0.6)) continue
+          if (block.afloat) position.y = -0.3 * size * 0.7
           placed.push({ m: new Matrix4().compose(position, spin, new Vector3(size * 1.3, size * (0.7 + 0.5 * h(12)), size * (0.9 + 0.6 * h(13)))), distance, target: lumps })
-          continue
+        } else {
+          const thick = thickOf(size, h(11))
+          if (rises(position.y + thick + size * 0.8 * Math.sin(0.12 + 0.8 * (pile / PILE_HEIGHT)))) continue
+          slab(position, size, 10, h(10) * Math.PI * 2, variant(15))
         }
-        // Slabs lie tilted on one another: steeper up the pile.
-        const tilt = (0.1 + 0.8 * block.rubble * h(7)) * (0.5 + 0.5 * h(14))
-        axis.set(h(8) - 0.5, 0, h(9) - 0.5).normalize()
-        const q = new Quaternion().setFromAxisAngle(axis, tilt).multiply(spin)
-        // Plates, not blocks: never thicker than about a third of their width.
-        const thick = Math.min(size * 0.3, SLAB_THICKNESS[0] + (SLAB_THICKNESS[1] - SLAB_THICKNESS[0]) * h(11))
-        if (rises(position.y + thick + size * 0.8 * Math.sin(tilt))) continue
-        placed.push({ m: new Matrix4().compose(position, q, new Vector3(size * 0.55, thick, size * 0.55 * (0.6 + 0.7 * h(13)))), distance, target: bySlab[setIndex][Math.floor(h(15) * SLAB_VARIANTS)] })
+        // Under the top piece, the ones it rests on: a pile is slabs on slabs, down to the ice.
+        const under = Math.floor((block.y - block.base) / PILE_LAYER)
+        for (let j = 0; j < under; j++) {
+          const salt = 40 + 10 * j
+          const s = size * (0.8 + 0.4 * h(salt))
+          const at = new Vector3(block.x + (h(salt + 7) - 0.5) * size * 0.6, block.base + (block.y - block.base) * (j / under), block.z + (h(salt + 8) - 0.5) * size * 0.6)
+          slab(at, s, salt, h(salt + 9) * Math.PI * 2, variant(salt + 9))
+        }
       }
     }
     // Over budget, the nearest stay: they're the ones seen as pieces.

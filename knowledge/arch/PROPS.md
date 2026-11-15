@@ -187,7 +187,9 @@ waterspout, stones and beachrock (COAST.md). Which animals appear where:
   below depth resolution past ~1 km. The look is in its fragment shader, from world position and `off`: plates by cell
   noise, cracks and leads (discard over the water), drifts, pools. `iceRubble`, mirrored in GLSL, says where it's piled:
   ridges, a shore belt, the edge's barrier. Rubble is instanced slabs and lumps by a hash of a world cell, near and far
-  sets with budgets, drawn by `rubbleMaterial` (cloud, layers, snow and chips from world position); only range, frustum and budget read the camera. Waves: `params.ts` caps the wind and zeroes the
+  sets with budgets. Nothing hangs in the air: `pileHeight` is one smooth, hummocky surface (rubble > 0.5, near set only) where every
+  cell gets a piece, each resting on slabs stacked under it to the ice; thinner rubble and the far set lie one deep with a small tilt;
+  over open water (`iceOpenWater`, mirroring the sheet's lead and drift-field discards) a piece floats with 85% under. Drawn by `rubbleMaterial` (cloud, layers, snow and chips from world position); only range, frustum and budget read the camera. Waves: `params.ts` caps the wind and zeroes the
   swell, so surf and spray turn themselves off; `waterSpot`, `marineFor` and `createShips` give nothing afloat.
   `ctx.seaLevel` returns the ice's height, so what rests on the sea rests on it; sea smoke and spouts go in `params.ts`. Bergs (`sea.ice`) stay, frozen in.
   Off: `"seaIce": null`, or `props.seaIce: false` for the mesh alone.
