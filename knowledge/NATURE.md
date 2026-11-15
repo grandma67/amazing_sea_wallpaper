@@ -1,4 +1,4 @@
-# Living things by season: flowers, blossom, fungi, fireflies, moss, seaweed, animals
+# Living things by season: flowers, blossom, fungi, fireflies, moss, seaweed, animals, salt
 
 What blooms, fruits, glows, greens or arrives on a coast through the year, beyond what
 [SEASONS.md](SEASONS.md) already covers (leaf colour and fall, grass, litter, colonies, whales,
@@ -23,7 +23,8 @@ Built from this research (plans/NATURE_PLAN.md phases 1–16, 0.139–0.155; how
 arch/PROPS.md "Plants"): bush and tree blossom, heath, moss on rock and trunks, the spray belt and
 shore weed, fairy rings, mushrooms, fireflies and glow-worms, lomas, bloom years. Seasonal before it:
 beach flowers (`FLOWERS`), salt marsh (`marshLook`), leaves and litter (`phenology.ts`), sargassum.
-Not built: bioluminescent surf (REGIONS.md §4, PLAN_BIOMES 13) and the phase-14 animals (§6;
+Salt and the vegetation line (§9): the lower edge matches; crown shear and gale browning not
+built. Not built: bioluminescent surf (REGIONS.md §4, PLAN_BIOMES 13) and the phase-14 animals (§6;
 NATURE_PLAN phase 17 waits on them).
 
 ## 1. Flowers and blossom
@@ -261,6 +262,35 @@ built but 4:
 | Fab Standard License (2026-11-12) | projects may be distributed commercially; no standalone redistribution; end users mustn't be able to extract the asset (summary; the full EULA wasn't readable): a web build can't satisfy that, so excluded | Fab licence docs, Unreal forum (unanswered) |
 | Atacama bloom | dominated by *Cistanthe longiscapa* (magenta; reddish, orange, yellow, pink forms; Caldera 2021 had big purple and yellow patches); *Nolana* white, bluish, lilac; ~200 species; mid-Sep to mid-Nov; big blooms every 5–10 years | Frontiers in Ecology and Evolution 2022, UC Chile |
 
+## 9. Salt: how close to the sea plants grow (2026-11-16)
+
+There is no single "plants grow from x m above sea level". The lower edge is set by **sea water
+reaching the ground** (tide plus wave run-up); above it, **airborne salt spray** sets which plants
+grow and how tall, falling off with distance and height and rising with exposure and gales. Salt in
+the soil matters less than salt on the leaves: rain leaches the soil.
+
+| Fact | Consequence | Evidence |
+|---|---|---|
+| **Lower edge = the frequent storm run-up**, not a tide level: the seaward vegetation line tracks "frequent maximum high water levels" and ignores day-to-day water levels; a tide-datum line (MHW) sits lower on the beach than the high-water line on run-up-dominated coasts, as gauges miss the run-up | perennial plants start at about the spring high water plus storm run-up (the storm line, where driftwood lies), on a beach and at a rock shore's top; below that only strandline annuals *(est.)* | Coastal vegetation-line studies (J. Coastal Research, low-gradient sandy beaches); Moore et al. 2006 (summaries) |
+| **Spray falls off steeply inland**: sea-salt sodium on the Lizard (Cornwall) 4.92 kg ha⁻¹ day⁻¹ at 50 m from the west coast, 1.15 at 100 m, 0.54 at 500 m, 0.14–0.16 at 3–10 km | ×4 less from 50 to 100 m, ×9 by 500 m: the strongest zonation is in the first ~100–200 m *(our reading)* | Malloch 1972, quoted in Holyoak's *Bryophytes of Cornwall* (read) |
+| **Gales drive it**: deposition correlates with days of wind above 14 m s⁻¹; on a live oak canopy 0.29 mg cm⁻² h⁻¹ at 7–8 m s⁻¹ against 1.67 at 12–13 m s⁻¹ (~6×), the front of the crown catching more than the rear at low wind | exposed coasts carry the zones far higher and further inland than sheltered ones (as the lichen belt, §8: ~1 m sheltered to tens of metres up exposed cliffs) | Malloch 1972; Boyce 1954 (*Ecol. Monogr.* 24) via UNCW table (read) |
+| **Zonation, primary is salt spray**: on dunes, herbs and grasses on the foredune (marram, sea oats), woody shrubs in the swales and on the secondary dune, maritime forest leeward of the secondary dunes; on cliffs a sequence bottom to top (crevice plants, maritime grassland, heath) set by cliff height and slope; maritime species' share follows soil sodium | the order we already draw (grass and bushes forward, trees behind the dunes) is right; on exposed cliff tops grass and heath before any trees *(est. for "before any trees")* | Fire Island NPS study; EUNIS Atlantic sea cliffs; Catlins (Otago) cliff study; Malloch 1972 |
+| **Salt shears the crowns**: seaward buds and twigs die, landward buds survive in the twig's lee, giving curved stems; maritime-forest trees are small with flat tops, "canopy height limited by the intensity of salt spray deposition"; the windward edge can be espalier-like | the canopy rises inland in a slope from the shrub front *(no slope angle found)*; trees nearest the sea short, flat-topped, leaning away from the sea | Boyce 1954 (UNCW figure 15); Fire Island NPS study |
+| **Shrubs shelter what is behind and under them** (less spray, cooler soil) | denser woody cover can start right behind the first shrub line | Long Island dune transects (Lane et al. 2008, summary) |
+| **Gale damage reaches 2–3 km inland**: after summer gales, leaves and young shoots blacken and wither on the windward side | a storm-season tint on the seaward side of crowns, strongest near the sea *(not built; est. for how long it lasts)* | Malloch 1972 |
+| Soil salt is a poor proxy: in one California study soil salt did not correlate with distance from the seaward edge | key the effect by spray (exposure, distance, height), not by a soil-salinity field | Vivrette 1980 (summary) |
+
+Against the project (measured 2026-11-16, `params.mjs` over the 433 beach days):
+
+- **Lower edge: right.** Plants stand above `dry` = spring high water + `coast.runup` + 0.6 m
+  (`vegetation.ts`); the storm line (`beachLines`) is at high water + 2.2 × run-up. With the run-up
+  0.5 m (78% of beach days) the two are the same height; on the 7% with 1 m they differ by ~0.6 m.
+  Rock shores start plants on top of the back face, above the spray belt's base.
+- **Spray belt on rock: built** (`sprayBelt`, 1.5 / 3.5–3.9 / 12 m by exposure, §4, §8).
+- **Not built:** the crown shear (tree height rising inland from the shrub front: today a
+  `windBent` place's kinds are bent 20–35° downwind and ×0.75 tall at every distance), and the gale
+  browning on crowns' seaward side.
+
 ## Sources
 
 All read through search summaries unless marked "read".
@@ -375,3 +405,10 @@ All read through search summaries unless marked "read".
   https://thecoastalstar.com/profiles/blogs/on-the-water-researchers-studying-why-migrating-blacktip-sharks-a
 - Monarchs: https://www.energy.gov/documents/griffiths-and-villablanca-2015-monarch-butterfly-overwintering-groves ,
   https://atlasobscura.com/places/monarch-butterfly-grove
+- Salt spray and the vegetation line (§9): https://cisfbr.org.uk/Bryo/Cornish_Bryophytes_Coastal.html (Malloch 1972, read) ,
+  https://people.uncw.edu/hosier/BIE/bieimages/table_3.htm and https://people.uncw.edu/hosier/bie/bieimages/dunslkfigure15.htm (Boyce 1954, read) ,
+  https://npshistory.com/series/science/7/chap2.htm (Fire Island, read) , https://eunis.eea.europa.eu/habitats/20134 ,
+  https://ref.coastalrestorationtrust.org.nz/site/assets/files/3754/coastal_cliff_vegetation_of_the_catlins_region_otago_south_island_new_zealand.pdf ,
+  https://sbbotanicgarden.org/wp-content/uploads/2022/08/Vivrette_1980-Zonation_coastal_plant_salt_level_correlation.pdf ,
+  https://bioone.org/journals/Journal-of-Coastal-Research/volume-24/issue-sp3/07-0853.1/Characterizing-Environmental-Gradients-and-Their-Influence-on-Vegetation-Zonation-in/10.2112/07-0853.1.full ,
+  https://journals.flvc.org/jcr/article/view/80736 , https://data-ww3.ifremer.fr/BIB/Moore_etal_JCR2006.pdf (summaries)

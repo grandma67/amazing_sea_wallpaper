@@ -194,6 +194,9 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   LH046 (https://edis.ifas.ufl.edu/lh046), K-State lawn problem solver
   (https://www.k-state.edu/turf/resources/lawn-problem-solver/problem-solver/off-color/dark/fairy-ring/index.html).
   No photo measured: the band's colour and width are estimates.
+- Salt spray and the vegetation line (research only, NATURE.md §9): Malloch 1972 (Lizard sodium
+  deposition by distance), Boyce 1954 (salt-spray community, crown shear), Fire Island NPS study,
+  EUNIS sea cliffs, Vivrette 1980; links in NATURE.md "Sources"
 - Mushrooms (0.151; `props/fungi.ts`): seasons and hosts NATURE.md §2 (Wild Food UK, UF/IFAS);
   false parasol on warm-climate lawns: Qld Fungi (https://qldfungi.org.au/garden-fungi-chlorophyllum-molybdites),
   Wikipedia "Chlorophyllum molybdites". Cap colours measured from Commons photos (public domain:

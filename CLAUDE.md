@@ -15,7 +15,7 @@ Docs in `knowledge/` (read what the task needs):
 - Research by topic: `SEASONS.md` (leaves, grass, colonies, whales, seals, winter sleep,
   waterfowl, snow, sea ice), `BUSHES.md` (which shrub `bush` is on each coast; flowers, fruit,
   shedding), `TREES.md` (every tree kind's flowers, fruit, cones, catkins, shedding), `NATURE.md`
-  (blossom, fungi, fireflies, moss, seaweed, phase-14 animals), `STARS.md` (night sky),
+  (blossom, fungi, fireflies, moss, seaweed, phase-14 animals, salt spray and how near the sea plants grow), `STARS.md` (night sky),
   `REFLECTION.md` (when water, wet sand and ice mirror; how GPUs draw it), `REGIONS.md` (places,
   grain, tides); sources in `REFERENCES.md`.
 - `plans/`: open plans (APP, LIVE_MODE, TERRAIN_FORMS, WATERSPOUT_FOG, PLAN_BIOMES phases 13–14)
