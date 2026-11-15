@@ -44,16 +44,14 @@ say how the cause was found.
   exposure. All three show once a cloudy night is opened up.
 - **Lighthouses** (found 2026-11-07): on 14 of 92 lighthouse days (9 open sea, 4 beach, 1 rock
   shore) the title says "lighthouse" but `createLighthouse` finds no site and builds none
-  (`2024-05-13`); the title should follow what's placed, or the site search widen. Since 0.129 the
-  beams are averaged over the shutter (a beam frozen on the camera whited out `2015-02-22`,
-  `2024-07-24`). Still bright, by the model's physics, not tuned: a camera inside a beam's slow
-  sweep (`2024-07-24`: 9.7° in 2.4 s) sees a wide glow round the lamp; a camera in the beams' plane
-  facing the lamp over whole turns (`2015-02-22`: 1.7° above it, 2.5 turns) sees a pale
-  forward-scattered veil; the forced rock light in fog
-  (`{"date":"2025-07-10","timeOfDay":"night","lighthouse":"rock","fog":"advection"}`) still glows
-  over the whole frame, much less than before. The beam power (`beamScale` in `scene.ts`, a multiple
-  of the sky's luminance) has no candela behind it: check it against a real lamp (~10⁵–10⁶ cd)
-  before tuning any of these.
+  (`2024-05-13`); the title should follow what's placed, or the site search widen. Since 0.196 the
+  lamp is 10⁶ cd (the whiteouts of `2025-08-21`, `2024-11-30`, the veil of `2015-02-22` are gone).
+  Left, judged by eye on renders, not measured: the forced rock light in night fog
+  (`{"date":"2025-07-10","timeOfDay":"night","lighthouse":"rock","fog":"advection"}`) keeps a large
+  forward-scattered halo (real round a bright lamp in fog, its size unchecked against a photo); at
+  sunset the lit glazing (90 cd/m², `LANTERN_SIDE_CD` an estimate) is darker than the sky behind it
+  and shows as a dull band, with no sky reflection on the glass; the divergence stays 2.2° (e-fold
+  half-width; Sabik's LED beacon is 1.5° full width at 5%, classic lenses wider).
 - **Light pollution** (`nightGlow.ts`): at the night white balance (4000 K) the domes and the
   town-lit cloud bases (0.190) come out only mildly warm (sodium ~2100 K stays orange; the LED
   share pulls them neutral).

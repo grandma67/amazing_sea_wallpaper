@@ -30,7 +30,32 @@ import { outlineRadius, type WaterIsland } from './props/surf'
 const MAX = 12
 const DEG = Math.PI / 180
 /** Half-width of a beam (rad): Fresnel panels spread it a few degrees. */
-const DIVERGENCE = 2.2 * DEG
+export const DIVERGENCE = 2.2 * DEG
+
+/** Peak luminous intensity of a major light's beam (cd). A big rotating
+ * light is ~10⁵–10⁶ cd: Sabik's VRB-25 LED beacon, white, 0.41–2.08 M cd;
+ * the brightest classic lenses "a few millions of candle power"
+ * (REFERENCES.md, Lighthouse intensity). */
+export const LAMP_CD = 1e6
+/** Radius of the lens's lit face (m): a flash fills it. */
+export const LENS_RADIUS = 0.6
+
+/** A beam's power in the shader's units (its on-axis irradiance at w = 1:
+ * E = power / w², w ≈ t tan δ, so power = I tan² δ), for an intensity in
+ * render units per cd (renderPerLux). */
+export function beamPower(renderPerCd: number, intensityCd = LAMP_CD): number {
+  return intensityCd * Math.tan(DIVERGENCE) ** 2 * renderPerCd
+}
+
+/** The flash's glare as a lamp seen through the lens's point spread
+ * (beamCandela): its intensity (cd × render units per cd/m²) and the PSF's
+ * core and halo widths (rad), as the stars' (starLight.ts PSF). */
+export interface LampGlare {
+  intensity: number
+  coreSigma: number
+  haloSigma: number
+  haloShare: number
+}
 /** Gap between the beams of one group (deg). */
 const GROUP_SPREAD = 10
 
@@ -218,7 +243,10 @@ export class LighthouseBeamEffect extends Effect {
     /** Land the beams meet (beamLight); none: every beam lit all the way
      * (passes.beamShadow off, as before phase 5). */
     ground: ((x: number, z: number) => number) | null = null,
-    islands: readonly WaterIsland[] = []
+    islands: readonly WaterIsland[] = [],
+    /** The flash as a lamp of real intensity through the lens's point spread
+     * (passes.beamCandela); null: the fixed glare against `power`, as before. */
+    lamp: LampGlare | null = null
   ) {
     const directions = beamDirections(light, lantern.seawardAzimuthDeg)
     const beams = directions.map(b => new Vector4(b.x, b.y, b.z, 1))
@@ -258,6 +286,11 @@ export class LighthouseBeamEffect extends Effect {
       }
       uniform int count;
       uniform float power;
+      uniform vec3 tint;
+      uniform float lampIntensity;
+      uniform float coreSigma;
+      uniform float haloSigma;
+      uniform float haloShare;
       uniform float haze;
       uniform float fogSigma;
       uniform float fogBase;
@@ -398,11 +431,25 @@ export class LighthouseBeamEffect extends Effect {
         vec3 toL = normalize(lantern - eye);
         float angle = acos(clamp(dot(dir, toL), -1.0, 1.0));
         float seen = step(toLantern - 8.0, sceneDistance) * exp(-sigmaAt(mix(eye, lantern, 0.5)) * toLantern);
-        float glare = exp(-angle / 0.002) +
-          flash * (exp(-angle * angle / 4e-6) * 15.0 + exp(-angle / 0.01) * 1.5 + exp(-angle / 0.06) * 0.15);
-        light += vec3(power * seen * glare * 1e-5);
+        if (lampIntensity > 0.0) {
+          // The flash's irradiance at the eye, I / r², spread over the lens's
+          // point spread, its core widened by the lit lens's own disc (a
+          // disc of radius R has variance R² / 4 per axis). The steady glow
+          // between flashes is the glazing mesh's.
+          float irradiance = lampIntensity * flash / (toLantern * toLantern);
+          float disc = ${LENS_RADIUS.toFixed(3)} / toLantern;
+          float core2 = coreSigma * coreSigma + 0.25 * disc * disc;
+          float halo2 = haloSigma * haloSigma + 0.25 * disc * disc;
+          float spread = (1.0 - haloShare) * exp(-0.5 * angle * angle / core2) / (6.28318531 * core2) +
+            haloShare * exp(-0.5 * angle * angle / halo2) / (6.28318531 * halo2);
+          light += vec3(seen * irradiance * spread);
+        } else {
+          float glare = exp(-angle / 0.002) +
+            flash * (exp(-angle * angle / 4e-6) * 15.0 + exp(-angle / 0.01) * 1.5 + exp(-angle / 0.06) * 0.15);
+          light += vec3(power * seen * glare * 1e-5);
+        }
         // Warm incandescent/metal-halide white.
-        outputColor = vec4(inputColor.rgb + light * vec3(1.0, 0.9, 0.75), inputColor.a);
+        outputColor = vec4(inputColor.rgb + light * tint, inputColor.a);
       }`,
       {
         blendFunction: BlendFunction.SET,
@@ -416,6 +463,12 @@ export class LighthouseBeamEffect extends Effect {
           ['beams', new Uniform(beams)],
           ['count', new Uniform(count)],
           ['power', new Uniform(power)],
+          // Warm incandescent/metal-halide white; in candela, of unit luminance.
+          ['tint', new Uniform(lamp != null ? new Vector3(1, 0.9, 0.75).multiplyScalar(1 / (0.2126 + 0.7152 * 0.9 + 0.0722 * 0.75)) : new Vector3(1, 0.9, 0.75))],
+          ['lampIntensity', new Uniform(lamp?.intensity ?? 0)],
+          ['coreSigma', new Uniform(lamp?.coreSigma ?? 1)],
+          ['haloSigma', new Uniform(lamp?.haloSigma ?? 1)],
+          ['haloShare', new Uniform(lamp?.haloShare ?? 0)],
           // Damp sea air: ~25 km visibility.
           ['haze', new Uniform(3.912 / 25_000)],
           ['fogSigma', new Uniform(fog != null ? fogSigma(fog) : 0)],

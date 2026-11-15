@@ -95,6 +95,13 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   lighthouse-technology/lens-rotation): flashes per minute = lit panels × turns per minute; the
   Cuckolds, Fl(2) 6s, two panels lit, 10 rpm. St Augustine Lighthouse, "Clockwork mechanism"
   (staugustinelighthouse.org). From search summaries.
+- Lighthouse intensity (0.196): Sabik Marine VRB-25 LED rotating beacon datasheet (almarin.es/docs/
+  content/vrb25.pdf, read): white peak 410,000–2,080,000 cd by panels and tiers, horizontal and
+  vertical divergence 1.5° at 5% of peak, range 27.5 NM by night. The World Lighthouse Hub,
+  "Measurements" (pharology.eu, read): the brightest lights "a few millions of candle power",
+  popular figures ~100,000. Britannica, "Lighthouse: intensity, visibility and character of lights"
+  (search summary): thousands to millions of candelas; nominal range at 10 NM meteorological
+  visibility.
 
 - Savanna dry seasons (0.101; SEASONS.md has the links; from search summaries): Bureau of
   Meteorology and Greening Australia (northern savanna's rains and curing), Williams and Cook 2001

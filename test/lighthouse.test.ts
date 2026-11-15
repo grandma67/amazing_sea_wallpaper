@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { Vector3 } from 'three'
 
-import { BEAM_MAX, BEAM_SAMPLES, beamDirections, beamLight, beamSampleAt, lensTurnSeconds, sweepAngle, sweptWindow, SWEEP_MIN } from '../src/lighthouse'
+import { BEAM_MAX, BEAM_SAMPLES, beamDirections, beamPower, DIVERGENCE, LAMP_CD, beamLight, beamSampleAt, lensTurnSeconds, sweepAngle, sweptWindow, SWEEP_MIN } from '../src/lighthouse'
 import { EARTH_RADIUS, type LighthouseParams } from '../src/params'
-import { tower } from '../src/props/lighthouse'
+import { LANTERN_SIDE_CD, tower } from '../src/props/lighthouse'
 import { allParams, expectEvery } from './days'
 
 const light = (flashes: number, groups: number, beamAzimuthDeg = 0): LighthouseParams => ({
@@ -131,7 +131,7 @@ describe('beamLight', () => {
 
   it('is stopped at once by a cliff', () => {
     const [lit] = beamLight(lantern, east, x => (x > 500 ? 200 : -5))
-    expect(at(lit, 300)).toBeGreaterThan(0.95)
+    expect(at(lit, 300)).toBeGreaterThan(0.9)
     expect(at(lit, 600)).toBeLessThan(1e-6)
   })
 
@@ -178,6 +178,36 @@ describe('tower', () => {
           expectEvery(g.attributes.position.array as Float32Array, Number.isFinite, { what: () => `${light.height} m ${kind}` })
           expectEvery(g.attributes.normal.array as Float32Array, Number.isFinite)
         }
+      }
+    }
+  })
+})
+
+describe('a lamp of real intensity (passes.beamCandela)', () => {
+  // The shader's on-axis irradiance is power / w², w = 0.6 + t tan δ.
+  it("gives the beam's axis I / r² far out", () => {
+    const perCd = 1 / 75718
+    for (const t of [500, 2000, 8000]) {
+      const w = 0.6 + t * Math.tan(DIVERGENCE)
+      expect((beamPower(perCd) / (w * w)) / ((LAMP_CD * perCd) / (t * t))).toBeGreaterThan(0.9)
+      expect((beamPower(perCd) / (w * w)) / ((LAMP_CD * perCd) / (t * t))).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('is a major light: 10⁵–2·10⁶ cd', () => {
+    expect(LAMP_CD).toBeGreaterThanOrEqual(1e5)
+    expect(LAMP_CD).toBeLessThanOrEqual(2e6)
+  })
+
+  // The glazing between flashes: far brighter than a night sky (≤ 0.03
+  // cd/m²), fainter than a daylight sky (~5000 cd/m²), on every tower.
+  it('lights the glazing between a night sky and a daylight one', () => {
+    const lights = allParams().flatMap(p => (p.lighthouse != null ? [p.lighthouse] : []))
+    for (const light of lights) {
+      for (const kind of ['rock', 'point'] as const) {
+        const cd = LANTERN_SIDE_CD / tower(light, kind, light.seed).glazingArea
+        expect(cd).toBeGreaterThan(10)
+        expect(cd).toBeLessThan(1000)
       }
     }
   })

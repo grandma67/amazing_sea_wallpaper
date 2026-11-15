@@ -335,8 +335,11 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
   `nightScale`) or relative brightness.
 - Post-exposure units: sky ≈ 0.1–1; > 40 clamps white (GradeEffect). Effects added after exposure in
   fixed units look equally strong by day and dusk: physical sources need fixed scene radiance ×
-  exposure. Fixed-power lights (lanterns, beams) scale per time of day against the metered sky, or
-  they vanish at dusk and blind at night.
+  exposure. A fixed-power light is set in candela and turned into render units by `renderPerLux`
+  (lighthouse 0.196, ships' lamps, lightning), not as a multiple of the metered sky: per-time-of-day
+  multiples (the old lighthouse `beamScale`) were ~10⁶× too bright at blue hour, and a flash on the
+  camera, scaled ×5,700 by a storm's dusk exposure, whited out the frame (2025-08-21). A real light
+  fades by day and at dusk on its own; its point on the camera goes through the lens PSF.
 - Pale things (foam, spray, mist) vanish against a low sun ahead: check front-lit
   (`sunAzimuthDeg` ≈ 160, daylight) first, then backlit.
 - A low sun lights vertical flanks far more than flat sand: dark animals look pale beside the beach

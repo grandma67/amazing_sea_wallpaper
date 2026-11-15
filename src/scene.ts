@@ -72,7 +72,7 @@ import { cloudDrift } from './cloudArrangement'
 import { windDirection } from './props/wind'
 import { FogEffect } from './fog'
 import { fogSunTransmittance } from './fogLayer'
-import { LighthouseBeamEffect } from './lighthouse'
+import { beamPower, LAMP_CD, LighthouseBeamEffect } from './lighthouse'
 import { createMoon, placeMoon } from './moon'
 import { createOcean, MAX_LAMPS, setOceanIslands, setOceanRocks, setOceanShips } from './ocean'
 import { SUN_ANGULAR_RADIUS, type SceneParams } from './params'
@@ -91,7 +91,7 @@ import { setGlowBrightness } from './props/storm'
 import { setSprayLighting, type WaterIsland } from './props/surf'
 import { foldedSkyCube, renderPlanarReflection } from './reflection'
 import { apply, ECLIPTIC_POLE, skyRotation, sunECI } from './skyClock'
-import { darkZenithLuminance, elongationDeg, renderPerLux, starScale, STARLIT_LUX } from './starLight'
+import { darkZenithLuminance, elongationDeg, PSF, renderPerLux, starScale, STARLIT_LUX } from './starLight'
 import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
@@ -761,7 +761,7 @@ export async function renderScene(
   } else {
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }
-  setGlowBrightness(props, sceneLuminance)
+  setGlowBrightness(props, sceneLuminance, pass('beamCandela') ? renderPerLux(params.nightSky, elongationDeg(params)) : null)
   // Ships' lamps: candela into scene units by what the metered sky really is.
   const perCdM2 = sceneLuminance / skyLuminance(params)
   setLampBrightness(props, perCdM2)
@@ -800,6 +800,12 @@ export async function renderScene(
     daylight: 1e5,
     midday: 1e5
   }
+  // passes.beamCandela: a lamp of real intensity (LAMP_CD) in the sky's own
+  // units, so the beams show as much as the haze really scatters (faint at
+  // dusk, plain at night) and a flash on the camera is a lamp through the
+  // lens's point spread; off: the old multiples of the metered sky.
+  const candela = pass('beamCandela')
+  const pixelAngle = vfov / 1080
   const beams =
     lantern != null && params.lighthouse?.lit === true
       ? [
@@ -808,9 +814,12 @@ export async function renderScene(
             lantern,
             params.fog,
             camera,
-            sceneLuminance * beamScale[params.timeOfDay],
+            candela ? beamPower(renderPerCd) : sceneLuminance * beamScale[params.timeOfDay],
             pass('beamShadow') ? (x, z) => terrainHeight(params.coast, x, z) : null,
-            pass('beamShadow') ? ((props.userData.waterIslands ?? []) as WaterIsland[]) : []
+            pass('beamShadow') ? ((props.userData.waterIslands ?? []) as WaterIsland[]) : [],
+            candela
+              ? { intensity: LAMP_CD * renderPerCd, coreSigma: PSF.coreSigma * pixelAngle, haloSigma: PSF.haloSigma * pixelAngle, haloShare: PSF.haloShare }
+              : null
           )
         ]
       : []

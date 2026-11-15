@@ -138,12 +138,18 @@ export function createStorm(ctx: PropContext): Object3D[] {
 
 /**
  * Light self-luminous props (lightning, lava) once the exposure is known:
- * `userData.glow` = { color, scale } relative to the metered sky luminance.
+ * `userData.glow` = { color, scale } relative to the metered sky luminance,
+ * or, given `renderPerCd` (render units per cd/m²), `cd`: a real luminance
+ * (a colour of unit luminance × cd/m²; the lit lantern's glazing).
  */
-export function setGlowBrightness(root: Object3D, sceneLuminance: number): void {
+export function setGlowBrightness(root: Object3D, sceneLuminance: number, renderPerCd: number | null = null): void {
   root.traverse(o => {
-    const glow = o.userData.glow as { color: [number, number, number]; scale: number } | undefined
+    const glow = o.userData.glow as { color: [number, number, number]; scale: number; cd?: number } | undefined
     if (glow == null) return
-    ;((o as Mesh).material as MeshBasicMaterial).color.setRGB(...glow.color).multiplyScalar(sceneLuminance * glow.scale)
+    const color = ((o as Mesh).material as MeshBasicMaterial).color.setRGB(...glow.color)
+    if (glow.cd != null && renderPerCd != null) {
+      const luma = 0.2126 * glow.color[0] + 0.7152 * glow.color[1] + 0.0722 * glow.color[2]
+      color.multiplyScalar((glow.cd * renderPerCd) / luma)
+    } else color.multiplyScalar(sceneLuminance * glow.scale)
   })
 }

@@ -308,6 +308,16 @@ node scripts/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --
   same way, on the CPU (`sweptFlash`). The shutter is the sky meter's (the frame median cancels out of
   `shutterOf`) × the frame's boost, set again after the first look restarts. Cost ~1% (≤ 4%).
   Off: `passes.beamSweep: false` (frozen, as before 0.129).
+  **Brightness in candela** (0.196): the lamp is `LAMP_CD` = 10⁶ cd (a major light), in the sky's
+  own units by `renderPerLux` (render units per cd/m², starLight.ts). The shader's beam power is
+  the on-axis irradiance at w = 1 (E = power / w², w ≈ t tan δ, so power = I tan² δ: `beamPower`),
+  so the haze scatters what it really would: side-on at 1 km ~4·10⁻⁴ cd/m², lost against a 1–10
+  cd/m² blue-hour sky, plain against a 10⁻⁴–10⁻² night sky. A flash on the camera is I / r² at the
+  eye (× the haze between) spread over the stars' lens PSF (`PSF` core 0.6 px, 4% halo at 2 px, at
+  1080p), the core widened by the lit lens's disc (`LENS_RADIUS` 0.6 m); bloom does the rest. The
+  glazing between flashes is `LANTERN_SIDE_CD` (500 cd, an estimate) over its side-on area, ~90
+  cd/m² (`userData.glow.cd`, `setGlowBrightness` with `renderPerCd`). Off: `passes.beamCandela:
+  false` (multiples of the metered sky per time of day, as before).
 
 ## On the beach
 

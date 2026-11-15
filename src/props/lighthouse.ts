@@ -37,6 +37,11 @@ export interface LanternInfo {
   seawardAzimuthDeg: number | null
 }
 
+/** Light the lantern sheds sideways between flashes (cd): the lamp's stray
+ * light through the lens's edges and the glazing. An estimate (~5e-4 of the
+ * beam: a 1 kW lamp's ~20,000 lm, a tenth of it stray, spread round). */
+export const LANTERN_SIDE_CD = 500
+
 /** Lantern brightness against the metered sky (setGlowBrightness): a fixed
  * lamp looks brighter the darker the sky. */
 const LANTERN_GLOW: Record<TimeOfDay, number> = {
@@ -106,7 +111,11 @@ function cottage(b: MeshBuilder, at: Vector3, size: number, roof: RGB): void {
 /** Tower, gallery and dome (vertex coloured), and the lantern glazing as
  * its own mesh so it can glow. Base at the origin. */
 /** The tower (body: shaft, gallery, dome) and its glazing, base on y = 0. */
-export function tower(light: LighthouseParams, kind: LighthouseParams['site'], seed: number): { body: MeshBuilder; lantern: MeshBuilder; lampHeight: number } {
+export function tower(
+  light: LighthouseParams,
+  kind: LighthouseParams['site'],
+  seed: number
+): { body: MeshBuilder; lantern: MeshBuilder; lampHeight: number; glazingArea: number } {
   const H = light.height
   const rock = light.paint === 'granite' || kind === 'rock'
   // Wave-swept rock towers are stout with a flared, concave foot (Smeaton's
@@ -169,7 +178,8 @@ export function tower(light: LighthouseParams, kind: LighthouseParams['site'], s
   const lantern = new MeshBuilder()
   const glass: RGB = [1, 1, 1]
   lantern.tube([new Vector3(0, sill, 0), new Vector3(0, sill + 0.001, 0), new Vector3(0, top - 0.001, 0), new Vector3(0, top, 0)], k => (k === 0 || k === 1 ? 0.01 : Rl * 0.97), () => glass, 24)
-  return { body, lantern, lampHeight: (sill + top) / 2 }
+  // Seen from the side, the glazing shows as a rectangle 2R wide.
+  return { body, lantern, lampHeight: (sill + top) / 2, glazingArea: 2 * Rl * 0.97 * (top - sill) }
 }
 
 /** Where to stand it: a rocky point jutting from the beach, or a rock at sea. */
@@ -260,7 +270,7 @@ export function createLighthouse(ctx: PropContext, avoid: Object3D | null): Obje
   const placed = site(ctx, light, avoid)
   if (placed == null) return []
   const { foot, at, seawardAzimuthDeg, kind } = placed
-  const { body, lantern, lampHeight } = tower(light, kind, light.seed)
+  const { body, lantern, lampHeight, glazingArea } = tower(light, kind, light.seed)
   if (kind === 'point') {
     // The keeper's cottage beside the tower, on the landward side.
     const away = new Vector3(-Math.sin((seawardAzimuthDeg! * Math.PI) / 180), 0, Math.cos((seawardAzimuthDeg! * Math.PI) / 180))
@@ -280,7 +290,9 @@ export function createLighthouse(ctx: PropContext, avoid: Object3D | null): Obje
       : new MeshStandardMaterial({ color: 0x0d1014, roughness: 0.1, metalness: 0.6 })
   )
   glass.position.copy(at)
-  if (light.lit) glass.userData.glow = { color: [1, 0.86, 0.62], scale: LANTERN_GLOW[ctx.params.timeOfDay] }
+  // The glazing between flashes: the lamp's side light over its face (cd/m²,
+  // passes.beamCandela), else a multiple of the metered sky.
+  if (light.lit) glass.userData.glow = { color: [1, 0.86, 0.62], scale: LANTERN_GLOW[ctx.params.timeOfDay], cd: LANTERN_SIDE_CD / glazingArea }
   const info: LanternInfo = { position: at.clone().setY(at.y + lampHeight), seawardAzimuthDeg }
   mesh.userData.lighthouse = info
   return [foot, mesh, glass]
