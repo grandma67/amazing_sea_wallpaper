@@ -1,8 +1,7 @@
 # Stars, shooting stars and the night sky
 
-Research for the night view (2026-10-31). What we draw today and what to build next:
-[plans/NIGHT_SKY.md](plans/NIGHT_SKY.md). Moon, eclipses, noctilucent and nacreous clouds are
-already built ([arch/SKY.md](arch/SKY.md)). Glowing surf (bioluminescence):
+Research for the night view (2026-10-31), all of it built (plans/NIGHT_SKY.md; how it works:
+[arch/SKY.md](arch/SKY.md)); our own measured numbers are in §10. Glowing surf (bioluminescence):
 [REGIONS.md](REGIONS.md), PLAN_BIOMES 13.
 
 Sourced numbers have a source in the last section. Lines marked *(general)* are textbook
@@ -287,60 +286,44 @@ showers, moon, clouds, radiant height and hour (decision in the plan).
   after moonset. Milky seas: mostly the NW Indian Ocean off Somalia.
 - **Noctilucent and nacreous clouds:** built (`noctilucent.ts`).
 
-## 10. What we draw today (2026-10-31)
+## 10. Measured in our sky
 
-Renders of `{"timeOfDay":"night"}` on 2026-08-12 (Perseid peak, new moon), starlit clear and
-broken, and moonlit 2026-08-28:
+All of §2–8 is built (plans/NIGHT_SKY.md phases 1–6; how it works: arch/SKY.md "Moon and
+eclipses", "Night glow", "Meteors", "Planets", "Aurora"). Numbers measured on our renders and
+generator, for checks and tests:
 
-- **Stars:** BSC5 via takram `StarsMaterial`, 1-pixel points, intensity `4000 × nightScale^−1.2`
-  (an empirical boost), not in the sea reflection. Sparse next to a real dark-sky photo.
-  **Fixed 2026-11-03** (phase 2, `starLight.ts`, `stars.ts`): real light from magnitude in the
-  sky's units (one render unit ≈ 75,700 lux; the old boost was 10⁴–10⁵× too bright, so every
-  catalogue star saturated, even at blue hour), a lens point spread (core σ 0.6 px + halo), and
-  flux-correct stars in the reflection cube. Measured takram zenith (render units → cd/m² ×
-  75,700): sun 0° 2.1e-3, −2° 7.4e-4, −4° 1.4e-4, −6° 1.4e-5 (~1 cd/m²), −8° 6.4e-7, −10° 7.5e-8
-  (~19.3 mag/arcsec²), −12° 1.4e-8, −18° 2.0e-10 (darker than airglow below ~−13°: phase 3).
-  The starlit stand-in sky's zenith is 0.065. Limiting magnitude with 10% contrast at 1080p and
-  50° lens: civil end (−6°) ~3, −8° > 3, −10° past the catalogue.
-- **The sky turns at the wrong time** (fixed 2026-11-03, sky clock, `skyClock.ts`): stars were
-  rotated for `date 00:00 UTC + ocean.time` at longitude 0, not tied to the sun. Now the real
-  sun for the date lands on the scene's sun; the moon stays within 5° of the ecliptic. 9.6% of
-  days have a sun elevation the latitude can't reach that day (mostly high-latitude winter
-  middays; 11 nights where the sun never sinks to −16°): the pole stays exact, the sun is off.
-- **Starlit sky colour:** a Bruneton "day" sky lit by a fake sun overhead (`starlight =
-  [0.2, 0.96, 0.2]`), graded down (since phase 2 only the sky: the ground gets 0.002 lux of
-  diffuse light, no direct light). A real moonless sky is airglow (greenish/neutral, brighter
-  toward the horizon), not a blue Rayleigh sky. Clouds under it read as dark silhouettes, which
-  is right with no light domes.
-- **Meteors** (built 2026-11-03, `meteors.ts`): frame share by solid angle × meteor density at
-  each elevation (`meteorDensity`, ~(1/sin el)^0.6, nothing below ~5°): median ~0.1 of an
-  observer's count. Camera limit +2.5 dark, −0.8 per magnitude of brighter sky (full moon
-  ~−0.3: ×3–10 fewer). Shares: clear dark Perseid peak 0.6–0.8 by framing, ordinary dark night
-  ~0.03, real days 0.3%.
-- **Planets** (built 2026-11-03, `planets.ts`): visibility at blue hour is physical: with
-  the sun 4° down, Venus at −3.9, 18–25° from the sun and 7–21° up peaks at ~1.1–2× the sky in
-  a 1080p pixel of a 21 mm lens (extinction ~0.5, the glow round the sun ~5× the zenith), so
-  framing waits for the sun 5.5–7° down. ~23% of twilight and night frames hold a planet
-  brighter than mag 1 (Mercury often, low in twilight, mostly hidden by it).
-- **Missing:** ~~Milky Way, airglow, zodiacal light, meteors, planets~~ (phases 3–5),
-  aurora, faint stars below ~6.5 as points.
-- **Night colour** (2026-11-04): a camera at ~4000 K, not night vision (ARCHITECTURE.md
-  "Frame and post"). The airglow's camera colour: ~75% warm continuum (sodium, OH, O₂) + ~25%
-  green line, the red line a few % of the luminance; raw dark-sky photos run ~R/G 0.85, B/G 0.6
-  (general), teal-blue at 4000 K.
-- **Night glow** (built 2026-11-03, `nightGlow.ts`): units S10 (1 S10 = a 10th-magnitude star
-  per square degree = 27.78 mag/arcsec² ≈ 1.10 nW m⁻² sr⁻¹ in V). Dark zenith ≈ 220 S10 =
-  airglow 145 (up to ~270 at solar maximum) + zodiacal 60 + scattered starlight 15 (Wikipedia);
-  at 40° N averaged over a year: airglow 165, zodiacal 95, integrated starlight 75 nW m⁻² sr⁻¹
-  (Masana et al. 2021, Table 4). Zodiacal light: Leinert et al. 1998 Table 17 (S10): ecliptic
-  pole 77, 90° from the sun on the ecliptic 259, 30° 2,480, gegenschein 230 vs 179 at 150°.
-  Milky Way: the SVS map scaled so the zenith at 40° N makes 68 S10 with the catalogue: Sgr
-  star cloud ~1,050 S10 (20.2 mag/arcsec²), Scutum ~630, Cygnus ~170, poles 6–9. Two Masana
-  pixels at l = 45° (57 and 99 S10, 0.15° wide, in the Aquila dust) come out ~2× in our 0.35°
-  texels. The core is in frame on ~3% of Namibia's nights (it must be up, low and ahead: real
-  photographers aim for it).
-- Share of days (test days, `params.mjs`): night 10.3% (moonlit 7.1%, starlit 3.2%); clear,
-  few or cirrus nights 4.9%; blue hour 11.3%; nights at |latitude| ≥ 60°: 3.5%.
+- **takram's zenith** (render units → cd/m² × 75,700): sun 0° 2.1e-3, −2° 7.4e-4, −4° 1.4e-4, −6°
+  1.4e-5 (~1 cd/m²), −8° 6.4e-7, −10° 7.5e-8 (~19.3 mag/arcsec²), −12° 1.4e-8, −18° 2.0e-10 (darker
+  than airglow below ~−13°, so the night glow replaces it on starlit nights). Limiting magnitude
+  with 10% contrast at 1080p and a 50° lens: civil end (−6°) ~3, −8° > 3, −10° past the catalogue.
+- **Sky clock:** 9.6% of days have a sun elevation the latitude can't reach that day (mostly
+  high-latitude winter middays; 11 nights where the sun never sinks to −16°): the pole stays exact,
+  the sun is off.
+- **Meteors:** frame share by solid angle × meteor density at each elevation (`meteorDensity`,
+  ~(1/sin el)^0.6, nothing below ~5°): median ~0.1 of an observer's count. Camera limit +2.5 dark,
+  −0.8 per magnitude of brighter sky (full moon ~−0.3: ×3–10 fewer). Shares: clear dark Perseid peak
+  0.6–0.8 by framing, ordinary dark night ~0.03, real days 0.3%.
+- **Planets:** with the sun 4° down, Venus at −3.9, 18–25° from the sun and 7–21° up peaks at
+  ~1.1–2× the sky in a 1080p pixel of a 21 mm lens (extinction ~0.5, the glow round the sun ~5× the
+  zenith), so framing waits for the sun 5.5–7° down. ~23% of twilight and night frames hold a
+  planet brighter than mag 1 (Mercury often, low in twilight, mostly hidden by it).
+- **Night colour:** a camera at ~4000 K, not night vision (ARCHITECTURE.md "Frame and post"). The
+  airglow's camera colour: ~75% warm continuum (sodium, OH, O₂) + ~25% green line, the red line a
+  few % of the luminance; raw dark-sky photos run ~R/G 0.85, B/G 0.6 *(general)*, teal-blue at
+  4000 K.
+- **Night glow units:** S10 (1 S10 = a 10th-magnitude star per square degree = 27.78 mag/arcsec² ≈
+  1.10 nW m⁻² sr⁻¹ in V). Dark zenith ≈ 220 S10 = airglow 145 (up to ~270 at solar maximum) +
+  zodiacal 60 + scattered starlight 15 (Wikipedia); at 40° N averaged over a year: airglow 165,
+  zodiacal 95, integrated starlight 75 nW m⁻² sr⁻¹ (Masana et al. 2021, Table 4). Zodiacal light:
+  Leinert et al. 1998 Table 17 (S10): ecliptic pole 77, 90° from the sun on the ecliptic 259, 30°
+  2,480, gegenschein 230 vs 179 at 150°. Milky Way: the SVS map scaled so the zenith at 40° N makes
+  68 S10 with the catalogue: Sgr star cloud ~1,050 S10 (20.2 mag/arcsec²), Scutum ~630, Cygnus ~170,
+  poles 6–9. Two Masana pixels at l = 45° (57 and 99 S10, 0.15° wide, in the Aquila dust) come out
+  ~2× in our 0.35° texels. The core is in frame on ~3% of Namibia's nights (it must be up, low and
+  ahead).
+- **Share of days** (test days): night 10.3% (moonlit 7.1%, starlit 3.2%); clear, few or cirrus
+  nights 4.9%; blue hour 11.3%; nights at |latitude| ≥ 60°: 3.5%. Not drawn: faint stars below ~6.5
+  as points.
 
 ## Sources
 

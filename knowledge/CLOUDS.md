@@ -201,8 +201,9 @@ Sources: [June Gloom](https://en.wikipedia.org/wiki/June_Gloom),
 ## Limits
 
 takram draws at most 4 layers, all sharing one weather map and repeat (`localWeatherRepeat` ×
-`cellScale`). The arrangement transform hits every layer. There are no per-object volumetric
-shapes, so single clouds (spouts, rolls, lenticulars) are meshes.
+`cellScale`). The arrangement transform hits every layer. A single cloud shape needs its own
+layer whose density a shader patch sets (`cloudShapes.ts`: the shelf cloud and the Morning Glory,
+arch/SKY.md "A new cloud shape"); spouts and lenticulars are still meshes.
 
 ## Not done yet
 

@@ -14,8 +14,7 @@ Rocky shores (PLAN_BIOMES 8, about a quarter of all days) have no sand: no turtl
 hermit or shore crabs, shells, sand flowers or beach animals (monkeys, crocodiles, hippos,
 monitors, green and spiny-tailed iguanas). Marine iguanas stay (on the platform near the
 water); seals haul out on the rock by the water instead of a beach; seabird colonies and
-everything at sea or in the air are as on beaches. So beach animals appear on fewer days
-than before 0.62.
+everything at sea or in the air are as on beaches.
 
 ## Rules
 

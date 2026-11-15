@@ -17,19 +17,14 @@ Conventions (as SEASONS.md):
   380, tidal flat 2; by climate tropical 300, polar 205, temperate 191, boreal 120, subtropical
   103, Mediterranean 94, arid 82.
 
-## 0. What the project already has (so this doc doesn't repeat it)
+## 0. Status
 
-| Thing | Where | Season? |
-|---|---|---|
-| 12 beach flowers (`FLOWERS`) | `props/shoreLife.ts` | yes, by biome and months |
-| Salt marsh green → straw, glasswort red | `props/saltMarsh.ts` `marshLook` | yes |
-| Autumn leaves, bare trees, spring green, litter | `phenology.ts`, `props/trees.ts`, `props/leafLitter.ts` | yes |
-| Moss, lichen, algae on boulders (`GROWTH`) | `props/rocks.ts` | **no**, by biome only |
-| Lichen bands, weed, barnacles on rock shores (`LICHEN`) | `rockShore.ts`, `terrain.ts` | **no** |
-| Wrack, kelp, sargassum on the beach | `props/debris.ts` | sargassum only |
-| Bioluminescent surf | planned, REGIONS.md §4 | months per place, researched |
-| Flowering trees and shrubs, fungi, fireflies, insects | – | not modelled |
-| Sea otters, walrus, polar bears, waders, herons, blacktip sharks | planned, PLAN_BIOMES 14 | no season research before this doc |
+Built from this research (plans/NATURE_PLAN.md phases 1–16, 0.139–0.155; how it works:
+arch/PROPS.md "Plants"): bush and tree blossom, heath, moss on rock and trunks, the spray belt and
+shore weed, fairy rings, mushrooms, fireflies and glow-worms, lomas, bloom years. Seasonal before it:
+beach flowers (`FLOWERS`), salt marsh (`marshLook`), leaves and litter (`phenology.ts`), sargassum.
+Not built: bioluminescent surf (REGIONS.md §4, PLAN_BIOMES 13) and the phase-14 animals (§6;
+NATURE_PLAN phase 17 waits on them).
 
 ## 1. Flowers and blossom
 
@@ -215,7 +210,8 @@ thickest in summer and thin after winter storms. Neither is in the project yet: 
 
 ## 7. What this means for realism (summary)
 
-Biggest visible gains, roughly in order of (days touched × how much it changes the frame):
+The gains this research found, in order of (days touched × how much it changes the frame); all
+built but 4:
 
 1. **Seasonal colour on plants we already draw**: gorse yellow in April–May, heather purple in
    August–September, pōhutukawa crimson at Christmas, wattle yellow in the austral late winter,
@@ -228,7 +224,7 @@ Biggest visible gains, roughly in order of (days touched × how much it changes 
 5. **Desert bloom** on the Atacama one year in three, and **fungi** (mostly for the move-around
    mode).
 
-## 8. Details for the plan (added 2026-11-07)
+## 8. Details (findings by topic, 2026-11-07 to 11-13)
 
 | Topic | Finding | Evidence |
 |---|---|---|

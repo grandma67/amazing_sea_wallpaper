@@ -1,8 +1,8 @@
 # Reflections: when water and ice mirror, and how to draw it
 
 Research for mirror images in the sea, wet sand, pools and ice (2026-11-08). How the
-reflection works today: [arch/OCEAN.md](arch/OCEAN.md) "Reflections". The plan this doc
-leads to: [plans/REFLECTION.md](plans/REFLECTION.md) (§6 is the short version).
+reflection works: [arch/OCEAN.md](arch/OCEAN.md) "Reflections". Built from it:
+[plans/REFLECTION.md](plans/REFLECTION.md) (§5 here sums it up).
 
 Sourced numbers have a source in the last section. Lines marked *(general)* are textbook
 knowledge or my own working that I didn't re-read in a source: check them before you turn them
@@ -185,53 +185,24 @@ water film over a bright bottom is my own *(general)*.
 - **Anisotropy:** a Beckmann/GGX lobe made elliptical by the view gives vertical streaks; a
   mip lookup can't, so streaks need a few taps along the vertical *(general)*.
 
-## 5. What the code does today (2026-11-08)
+## 5. What was built, and what's left
 
-`ocean.ts` lines ~527–552, `scene.ts` ~920–939:
+Built in plans/REFLECTION.md phases 1–6 (0.130–0.135); how it works: arch/OCEAN.md "Short
+waves", "Reflections". What each phase replaced, in short: a wave shift ~130× too small (now the
+lookup follows the reflected ray, whose turn across a mirror camera of vertical field φ is Δuv ≈
+2β·k/φ *(my working)*: ~5.3 per unit slope with a 63 mm lens); a blur that counted only the
+unresolved waves (now the full Cox–Munk spread); an isotropic blur (now anisotropic vertical
+streaks); a 5 km cutoff standing in for haze (now haze over the mirror path, (1 − T)² for the sea
+haze as takram's main pass); wet sand and pools that mirrored only the sky (now the scene); waves
+too smooth to follow the wind (measured: drawn + unresolved slope variance 6–25% of Cox–Munk on
+2003-03-11, 0.005 vs 0.080 at 15 m/s; now ripple layers carry the tail); the sea's horizon
+reflection aimed up to 5.7° high (now the wave's own normal and a folded sky cube).
 
-1. **Fixed in 0.131 (follow the reflected ray). Was: wave shift far too small.** `uv = base + N.xz * 0.04 * k` moves the lookup by 0.04 of
-   the screen per unit of slope. A real tilt β turns the ray 2β radians; across a mirror
-   camera with vertical field of view φ that's Δuv ≈ 2β·k/φ *(my working)*. With a 63 mm lens
-   (φ ≈ 0.38 rad) that's ~5.3 per unit slope, about 130× more, and it should depend on the lens.
-2. **Fixed in 0.130–0.131. Was: the blur counted only the unresolved waves.** `alpha` is the slope variance of waves too
-   small to draw (plus capillaries, rain, rips). Near the camera the drawn waves carry most of
-   the slope, and they only shift the lookup (item 1), so a 15 m/s sea still holds a crisp
-   island. The spread that matters is the full Cox–Munk one: drawn and unresolved together.
-3. **Fixed in 0.132 (anisotropic streaks). Was: isotropic blur** (one `textureLod`): round smudges where the physics gives vertical streaks
-   (§1.3). Skipped on 10-31 as not worth the taps; the fix for items 1–2 makes it matter more.
-4. **Fixed in 0.133 (haze over the mirror path). Was: the 5 km cutoff** (`userData.distant`,
-   `islands.ts`, `landforms.ts`) stood in for the missing haze (§2). The haze fades toward the sky
-   the ray mirrors and weights the sea haze (1 − T)², as takram's main pass does
-   (plans/REFLECTION.md phase 4).
-5. **Fixed in 0.134 (the terrain reads the mirror image). Was: wet sand and pools** reflected
-   only the sky (env map). Now pools, runnels, the swash film and damp sand mirror the scene with
-   the sea's lookup from their own height (plans/REFLECTION.md phase 5).
-6. **Fixed in 0.130 (ripple layers, arch/OCEAN.md "Short waves"). Was: the waves were too smooth for any of this to follow the wind** (measured 2026-11-08,
-   plans/REFLECTION.md phase 0): drawn + unresolved slope variance is 6–25% of Cox–Munk on
-   2003-03-11 (0.005 vs 0.080 at 15 m/s). The spectrum stops at ~8 cm waves, JONSWAP's tail
-   saturates near 0.018, and `seaDevelopment` scales the short waves too. Real seas get most of
-   their slope from 1 mm–10 cm waves that follow the wind.
-7. **Local calm**: `shelter.ts` (fetch-limited calm), `slick` (ship wakes) and `gust` (fbm)
-   already change the waves. Once the reflection follows the full slope spread, they'll give
-   mirror patches in the lee and glassy wake streaks for free.
-8. **Fixed in 0.135 (phase 6): the sea's sky reflection near the horizon.** It was aimed up to
-   5.7° high by the shading's face-the-viewer normal, and rough water's blurred lookups averaged
-   in the cube's dark ground: the sea at the horizon was up to ~3× too dark under cloud decks.
-
-## 6. Next steps (a sketch for a plan)
-
-1. Haze the reflection over t: apply the aerial-perspective transmittance and inscatter for
-   the island → water path in the ocean shader (the depth texture gives t). Then drop
-   `distant` from the reflection's `hide` list (keep it for the sky-only cloud events, if they
-   need it).
-2. A physical spread: take the total slope variance (resolved over the pixel + unresolved),
-   turn it into an angle (2·atan(σ/√2)), then into texels of the mirror target with the lens's
-   φ, scaled by k. Use it for both the shift and the blur.
-3. Streaks: 3–5 taps along the screen's vertical, sideways blur × sin γ.
-4. Check against §1.2: on a 15 m/s day, the islands leave only a faint darkening; on a calm day
-   (`swellHeight` small, wind < 2 m/s, `params.mjs --where`), a sharp image. Use `diff.mjs` with
-   the reflection pass off, on a clear and a cloudy sky.
-5. Later: pools and the swash film read `planarMap`; melt ponds on summer sea ice.
+Still open (each its own plan; tasks.md C6): calm in the lee of islands and headlands
+(`shelter.ts` already gives fetch-limited calm, `slick` and `gust` change the waves, so a
+wind-shadow mask would make mirror patches for free), natural slicks on light-wind days, mirroring
+ice (thin new ice, melt ponds on summer sea ice), whitecap cover against Monahan &
+O'Muircheartaigh 1980.
 
 ## Sources
 

@@ -14,18 +14,15 @@ Conventions:
 - Values marked *(est.)* are our estimates from the general pattern, not from a source we read.
   Sources are at the end and in REFERENCES.md.
 
-## 1. What the project already follows
+## 1. Scope
 
-Before this work (0.97), these already used the season (`seasons.ts`): beach flowers in bloom
-(`FLOWERS`), fog season and sea smoke, summer cumulus, polar nacreous clouds in winter,
-noctilucent clouds in summer, Mediterranean summer haze, spring and autumn bird passage, salt
-marsh colour (`marshLook`), winter beaches one state flatter, Arctic sea ice, polar ship
-seasons, turtle nesting (local months per place), waterspout season, the aurora's equinox peak
-and the real polar sun (≥ 63°).
-
-Nothing followed the season on **trees, grass, ground cover, seabird colonies, whales, seals,
-crabs or lizards**. That is what this research is for. Flowering shrubs and trees, fungi,
-fireflies, moss, seaweed and the phase-14 animals are in [NATURE.md](NATURE.md).
+Already seasonal before this research (0.97, `seasons.ts`): beach flowers (`FLOWERS`), fog and sea
+smoke, summer cumulus, nacreous and noctilucent clouds, Mediterranean summer haze, bird passage,
+salt-marsh colour (`marshLook`), winter beaches one state flatter, Arctic sea ice, polar ship
+seasons, turtle nesting (local months), waterspouts, the aurora's equinox peak and the real polar
+sun (≥ 63°). This doc covers trees, grass, ground cover, colonies, whales, seals, crabs, lizards,
+snow and sea ice (all built: plans/SEASONS_PLAN.md). Flowering shrubs and trees, fungi, fireflies,
+moss, seaweed and the phase-14 animals: [NATURE.md](NATURE.md).
 
 ## 2. Plants
 
@@ -225,9 +222,9 @@ offshore:
 | Gulls | most leave Nov–Mar (ivory and glaucous gulls stay) *(est.)* | all year | all year | all year |
 | Flamingos | – | – | – | Mediterranean all year (Camargue), Florida winter *(est.)* |
 
-## 4. Weather and climate (already mostly in the project)
+## 4. Weather and climate
 
-- **Fog, haze, clouds:** fog seasons, summer haze, summer cumulus: done (§1).
+- **Fog, haze, clouds:** seasonal already (§1).
 - **Snow and ice on the shore:** §4.1.
 - **Mountain snow line** (`phenology.ts` `SNOW_SEASON`): lowest mid-January to mid-March, highest
   mid-August to mid-September, in the day's hemisphere. Alps 1961–2010: median snow line ~800 m in

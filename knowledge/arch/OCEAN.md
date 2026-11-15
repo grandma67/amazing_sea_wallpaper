@@ -82,21 +82,16 @@ surf".
   unfloored roughness (`mirrorAlpha`: no 0.02 floor for the sun's size), the lookup's move in
   target pixels × 3.5 → lod (up to 9). Calm water mirrors sharply (bands where incoming waves
   tilt the surface, wiggly streaks under thin things); past ~3 m/s 2–6°-tall islands leave
-  nothing, as photos show. With it off, the old nudge below.
+  nothing, as photos show. With it off, the old nudge (`N.xz · 0.04`).
   **Streaks (0.132, `passes.reflectionStreaks`, phase 3):** the blur runs along the streak (the
   lookup's move when R tilts up, × 3.5) and only × sin γ (≥ 1 texel) across it: three
   `textureGrad` taps along the streak on a target with anisotropic filtering
   (`texture.anisotropy` = the GPU's max, 16 in headless Chrome), up to ~48:1. The square mip blur
   had smeared a 50 px island ~250 px sideways and lost it; now light air (1.5–3.5 m/s) keeps a
   soft column under tall objects with pines as vertical streaks, and a storm's lightning a
-  vertical glow. +1% render time. Explicit-lod lookups ignore the anisotropy (switch off is exact).
-  The old blur is isotropic (one `textureLod`). Real reflections on a wavy sea streak vertically
-  (≈ 1/sin(grazing) taller than wide), but anisotropic streaking was tried on paper and skipped
-  (10-31): renders of `scenes/islands-water.json` (colony calm/rough, karst islands, iceberg) already
-  read as vertical columns under each object, and `textureGrad` alone only blurs more both ways
-  without anisotropic filtering, so it would need 3–5 vertical taps per sea pixel for slightly
-  crisper column sides. (Superseded: with the 0.130 roughness the square blur lost whole
-  reflections; the fix was turning anisotropic filtering on, above.)
+  vertical glow (real reflections on a wavy sea are ≈ 1/sin(grazing) taller than wide). +1% render
+  time. Explicit-lod lookups ignore the anisotropy, so the switch-off path (one isotropic
+  `textureLod`) is exact.
   **Haze (0.133, `passes.reflectionHaze`, phase 4):** far land is mirrored (no 5 km cutoff; only
   `userData.skyLike` shelf and roll clouds are hidden, the cube mirrors clouds) and the image is
   hazed over its object → water leg (the main pass hazes water → eye): `T = exp(−(air +
