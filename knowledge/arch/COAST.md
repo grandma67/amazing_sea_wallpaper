@@ -121,8 +121,13 @@ Plan and research: [plans/ROCK_SHORE.md](../plans/ROCK_SHORE.md); shares: COASTS
   just behind. Distances are corrected for the wobble at a = 0 (`wobbleAtCamera`), the camera
   is moved off the back face, then stepped inland 3 m at a time until the ground
   (`rockGround`) is above the run-up.
-- **Shading** (terrain fragment shader, `rockW`): the rock's colour mottled with grain and a
-  patchy joint-crack network up close, darker on faces; weed, mussels and barnacles below the
+- **Shading** (terrain fragment shader, `rockW`): the rock's colour mottled, with a
+  patchy joint-crack network up close. Close-up detail (`rockGrainAt`, 0.198): mottle at 33 and 9 cm, mineral
+  grains at 5 mm (dark minerals clumped 5–30%, grey quartz ~25%, contrast `ROCK_GRAIN` by biome in
+  `rockShore.ts`) and a bump (knobs 5 cm, pits 1.5 cm) on the shading normal; on three planes by the
+  surface's facing (no smear down a boulder's side), in local metres (`vWorld` + `noiseOffset` mod 61 m:
+  the offset is km, too big for 5 mm cells in float), each scale faded by a footprint measured against
+  the surface's own facing, darker on faces; weed, mussels and barnacles below the
   spring high water; black lichen in the splash zone; lichen crusts (`LICHEN` by biome) higher;
   cobbles on gully floors; pools in hollows and gullies between today's sea and the spring high
   water (mirror-flat); wet rock a dull sheen; ground cover from 1 m behind the top over 8 m.

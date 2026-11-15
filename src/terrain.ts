@@ -20,7 +20,7 @@ import { createPolarGrid, ringStep, squareGrid, viewWedge } from './grid'
 import { EARTH_RADIUS, type CoastParams, type SceneParams } from './params'
 import { lagoonSlope, REEF_DROP, REEF_RAMP } from './reef'
 import { MIRROR_GLSL, MIRROR_UNIFORMS_GLSL } from './reflection'
-import { LICHEN, MOSS_COLOR, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
+import { LICHEN, MOSS_COLOR, ROCK_GRAIN, ROCK_MIN_FACE, rockSurface, type RockShore } from './rockShore'
 import { desertBloomFor } from './bloomYears'
 import { FAIRY_DARK, FAIRY_DEAD_COLOR, FAIRY_RING_GLSL } from './fairyRings'
 import { BELT_FADE, BELT_RUNUP, fairyRingsFor, groundCoverTint, HEATH_MASK_EDGE, HEATH_MASK_TERRAIN, heathFor, LAVER_COLOR, MOSS_DRY, mossEdge, mossLook, phenologyFor, SEA_LETTUCE_COLOR, shoreWeed, sprayBelt } from './phenology'
@@ -173,6 +173,49 @@ float cellBorder(vec2 p) {
     }
   }
   return sqrt(d2) - sqrt(d1);
+}
+
+// Value noise and its slope: (n, dn/dx, dn/dy).
+vec3 vnoiseD(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = p - i;
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  vec2 du = 6.0 * f * (1.0 - f);
+  ivec2 c = ivec2(i);
+  float a = cellValue(c);
+  float b = cellValue(c + ivec2(1, 0));
+  float d = cellValue(c + ivec2(0, 1));
+  float e = cellValue(c + ivec2(1, 1));
+  float k = a - b - d + e;
+  return vec3(a + (b - a) * u.x + (d - a) * u.y + k * u.x * u.y, du * vec2(b - a + k * u.y, d - a + k * u.x));
+}
+
+// Rock seen close (photos: weathered granite): (colour factor, mean 1; the bump's
+// slope along the plane's two axes), each scale fading by the pixel's size \`fp\`
+// (m) so the far rock keeps its mean. \`uv\`: metres in the plane, small numbers
+// (5 mm cells). \`grain\`: the speckle's contrast by rock (rockShore.ts ROCK_GRAIN).
+vec3 rockGrainAt(vec2 uv, float fp, float grain) {
+  // Weathered mottle, 33 and 9 cm.
+  float fine = 1.0 - smoothstep(0.05, 0.4, fp);
+  float colour = 1.0 + fine * (0.42 * (vnoise(uv * 3.0) - 0.5) + 0.21 * (vnoise(uv * 11.0) - 0.5));
+  // Mineral grains, ~5 mm: dark micas and hornblende in light feldspar and quartz.
+  float gf = grain * (1.0 - smoothstep(0.003, 0.012, fp));
+  if (gf > 0.0) {
+    // Dark minerals clump: their share wanders 5–30% over ~2 cm. Quartz greyer, ~25%.
+    vec2 g = uv / 0.005 + 0.8 * vec2(vnoise(uv / 0.013), vnoise(uv / 0.013 + 7.0));
+    float v = cellValue(ivec2(floor(g)));
+    float dark = 0.05 + 0.25 * smoothstep(0.25, 0.75, vnoise(uv / 0.02 + 3.0));
+    float speck = v < dark ? 0.45 : v < dark + 0.25 ? 0.8 : 0.98 + 0.14 * fract(v * 7.3);
+    // Mean ~0.88 at the mean dark share 0.175: divided out, so the far rock keeps its colour.
+    colour *= mix(1.0, speck / 0.88, gf);
+  }
+  // Relief: knobs ~5 cm, pits ~1.5 cm (heights ~5 and ~1.5 mm).
+  vec2 slope = vec2(0.0);
+  float knobs = 1.0 - smoothstep(0.012, 0.05, fp);
+  if (knobs > 0.0) slope += knobs * 0.1 * vnoiseD(uv / 0.05 + 31.0).yz;
+  float pits = 1.0 - smoothstep(0.004, 0.015, fp);
+  if (pits > 0.0) slope += pits * 0.05 * (0.5 + grain) * vnoiseD(uv / 0.015 + 57.0).yz;
+  return vec3(colour, slope);
 }
 
 // Sea foam. Spent whitewater isn't a sheet with round holes: the bubbles
@@ -1116,6 +1159,7 @@ uniform vec3 snowLook;
 // Rocky shores: the rock's colour and the lichens' (linear albedo).
 uniform vec3 rockColor;
 uniform vec3 lichenColor;
+uniform float rockGrain;
 // Moss on the rocky shore: amount, share dried brown, patch mask's lower edge
 // (phenology.ts mossLook; amount 0: none); its green by biome.
 uniform vec3 mossLook;
@@ -1262,7 +1306,31 @@ void main() {
   float rockPools = 0.0;
   if (rockW > 0.0) {
     float fine = 1.0 - smoothstep(0.05, 0.4, footprint);
-    vec3 rockC = rockColor * (0.72 + 0.5 * fbm(q / 2.5) + 0.4 * fine * (vnoise(q * 3.0) - 0.5) + 0.2 * fine * (vnoise(q * 11.0) - 0.5));
+    // Close-up detail on three planes by the surface's facing, so a boulder's side
+    // isn't the top's pattern smeared down it; in local metres (noiseOffset is km).
+    vec3 rp = vWorld + vec3(mod(noiseOffset.x, 61.0), 0.0, mod(noiseOffset.y, 61.0));
+    float rockFp = clamp(length(toCamera) * pixelAngle / max(abs(dot(Nland, normalize(toCamera))), 0.05), 0.001, 200.0);
+    vec3 tw = pow(abs(Nland), vec3(4.0));
+    tw /= tw.x + tw.y + tw.z;
+    float grainC = 0.0;
+    vec3 rockBump = vec3(0.0);
+    if (tw.y > 0.02) {
+      vec3 r = rockGrainAt(rp.xz, rockFp, rockGrain);
+      grainC += tw.y * r.x;
+      rockBump += tw.y * vec3(r.y, 0.0, r.z);
+    }
+    if (tw.x > 0.02) {
+      vec3 r = rockGrainAt(rp.zy + 17.0, rockFp, rockGrain);
+      grainC += tw.x * r.x;
+      rockBump += tw.x * vec3(0.0, r.z, r.y);
+    }
+    if (tw.z > 0.02) {
+      vec3 r = rockGrainAt(rp.xy + 29.0, rockFp, rockGrain);
+      grainC += tw.z * r.x;
+      rockBump += tw.z * vec3(r.y, r.z, 0.0);
+    }
+    grainC /= tw.x * step(0.02, tw.x) + tw.y * step(0.02, tw.y) + tw.z * step(0.02, tw.z);
+    vec3 rockC = rockColor * (0.72 + 0.5 * fbm(q / 2.5)) * grainC;
     // Joints and cracks close up: a warped network of dark lines.
     if (fine > 0.0) {
       vec2 w = q / 1.6 + 0.6 * vec2(vnoise(q / 3.0), vnoise(q / 3.0 + 9.0));
@@ -1322,6 +1390,8 @@ void main() {
     float hollow = max(smoothstep(0.6, 0.85, g), 1.0 - smoothstep(0.3, 0.36, fbm(q / 18.0)));
     rockPools = onPlatform * hollow * (1.0 - smoothstep(tideSpring - 0.2, tideSpring + 0.1, h));
     albedo = rockC;
+    // The relief under the pixel, for the light (not under a pool's mirror).
+    N = normalize(N - rockBump * (1.0 - rockPools));
   }
 
   // The marsh sward: the month's colour, mottled; the accent (sea lavender,
@@ -1681,6 +1751,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       gridStep: { value: new Vector2(ringStep(rings, TERRAIN_INNER_RADIUS, TERRAIN_OUTER_RADIUS), wedge.span / segments) },
       debugLines: { value: coast.rock != null ? new Vector2(-1e5, -1e5) : new Vector2(beachLines(coast).highTide, beachLines(coast).stormLine) },
       lichenColor: { value: new Color(...LICHEN[params.biome.name]) },
+      rockGrain: { value: ROCK_GRAIN[params.biome.name] },
       mossLook: { value: new Vector3(moss?.amount ?? 0, moss?.dry ?? 0, mossEdge(moss?.amount ?? 0)) },
       mossColor: { value: new Color(...MOSS_COLOR[params.biome.name]) },
       shoreWeed: { value: new Vector3(weed.laver, weed.seaLettuce, sprayBelt(params.place.id)) },

@@ -442,6 +442,11 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
   uint math is exact in WebGL2 and JS (`Math.imul`). Any float hash ends in the fract of a large
   product float32 rounds differently (airglow fbm 0.63 on the CPU, 0.22 on the GPU). Each patch
   prefixes its copy (`ng`, `au`): patches share one shader.
+- **Fine shader detail needs small coordinates and the surface's own footprint (rock grain, 0.198):** `q =
+  p + noiseOffset` reaches ±5000 m, so millimetre cells there are float noise; use world position plus the
+  offset mod a few tens of metres. The terrain's `footprint` assumes flat ground: on a steep face seen head-on
+  it is many times too big and fades the detail out; divide by |N·V| instead. Noise read in x, z smears down
+  steep heightfield faces: blend three planes by the normal.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
   bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN terrain.
   `min(NaN, x)` is undefined: Apple GPUs give x, x86 SwiftShader keeps the NaN and bloom spreads it

@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { hasBeach, hasLand, hasSurfZone } from '../src/coastKind'
 import { Random } from '../src/random'
-import { bareRock, ROCK_KINDS, rockShoreFor, rockWaterline, scarpFoot, wobbleAtCamera } from '../src/rockShore'
+import { bareRock, ROCK_GRAIN, ROCK_KINDS, rockShoreFor, rockWaterline, scarpFoot, wobbleAtCamera } from '../src/rockShore'
 import { terrainHeight, terrainNormal } from '../src/terrain'
+import { BIOMES } from '../src/biome'
 import { placeNamed, PLACES } from '../src/places'
 import { allParams, expectDryCameras, expectShare, heightAt as at, scene, scenes } from './days'
 
@@ -166,5 +167,16 @@ describe('rock shore shares', () => {
     const rocky = land.filter(p => p.coast.rock != null)
     expectShare(rocky, p => p.coast.rock!.kind === 'cliff', 0.33)
     for (const p of rocky) expect(p.coast.composition === 'overlook').toBe(p.coast.rock!.kind === 'cliff')
+  })
+})
+
+describe('rock grain up close', () => {
+  it('every biome has a grain contrast, speckled granite strongest in the north', () => {
+    for (const [b] of BIOMES) {
+      expect(ROCK_GRAIN[b.name], b.name).toBeGreaterThan(0)
+      expect(ROCK_GRAIN[b.name], b.name).toBeLessThanOrEqual(1)
+    }
+    for (const [b] of BIOMES) expect(ROCK_GRAIN.nordic).toBeGreaterThanOrEqual(ROCK_GRAIN[b.name])
+    expect(ROCK_GRAIN.volcanic).toBeLessThan(ROCK_GRAIN.nordic / 2)
   })
 })

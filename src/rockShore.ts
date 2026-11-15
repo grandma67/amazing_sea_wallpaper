@@ -78,6 +78,18 @@ export const LICHEN: Record<Biome['name'], RGB> = {
   desert: [0.5, 0.32, 0.1]
 }
 
+/** Contrast of the rock's mineral grains seen up close, by biome (the rock follows
+ * it): coarse speckled granite and gneiss on glaciated northern coasts; fine,
+ * even basalt, limestone and sandstone elsewhere (estimates from photos of
+ * weathered surfaces; terrain.ts rockGrainAt). */
+export const ROCK_GRAIN: Record<Biome['name'], number> = {
+  nordic: 0.8,
+  tropical: 0.5,
+  mediterranean: 0.3,
+  desert: 0.3,
+  volcanic: 0.2
+}
+
 /** Kind weights: cliff tops about a third (much rocky coast is only seen
  * from above), platforms most of the rest. */
 const KIND_WEIGHTS: readonly (readonly [RockKind, number])[] = [
