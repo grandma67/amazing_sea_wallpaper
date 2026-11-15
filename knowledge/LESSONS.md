@@ -55,6 +55,11 @@ tool gotchas: TOOLS.md.
   (a black 1080p JPEG is 13 KB from the browser, 34 KB from `sips`): test pixels (luma range,
   `snapshot.mjs --fail-blank`) where they're available. Render the darkest/brightest real days
   (`--where … --sample`) before fixing a number.
+- **A CI-only render failure is reproduced on the runner, not guessed at** (0.195): 11-15 rendered
+  fine on the Mac with the same Chromium and SwiftShader, and its half-black phone frame passed the
+  blank test. Read the published files, not only the run log, and test the fix with a workflow
+  that renders on the runner both ways (`render-check.yml`). Copy outputs into the published
+  folder only after every render passed.
 - **Test a system change on a real machine with a way back first** (CRON phase 3): the install
   path already held the user's own experiments, so the live test listed the folder before,
   uninstalled without `--yes`, and removed only the files it had added.

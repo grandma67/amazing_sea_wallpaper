@@ -56,16 +56,22 @@ jobs:
           # as the app falls back to it. snapshot.mjs gives up after --budget
           # seconds (default 900, too short for SwiftShader); both fit the
           # step's 120 min. --fail-blank: a blank frame (2026-11-15 published a black
-          # one) isn't saved and fails the step, so no daily/ or latest file goes out and
-          # the desktop scripts keep yesterday's and re-run later.
-          node scripts/snapshot.mjs --url http://localhost:4173/ --out dist/daily/phone \
+          # one) isn't saved and fails the step; so does a render whose WebGL context was
+          # lost. Both render outside dist/ and are copied in only when both pass, so a
+          # failure publishes neither (2026-11-15's run published a half-black phone
+          # image before the PC render failed) and the desktop scripts keep yesterday's.
+          OUT="$RUNNER_TEMP/daily"
+          node scripts/snapshot.mjs --url http://localhost:4173/ --out "$OUT/phone" \
             --w 1290 --h 2796 --frames 24 --quality 0.92 --fail-blank --budget 3600 "$TODAY"
-          cp "dist/daily/phone/$TODAY.jpg" dist/latest-portrait.jpg
-          cp "dist/daily/phone/$TODAY.json" dist/latest-portrait.json
-          node scripts/snapshot.mjs --url http://localhost:4173/ --out dist/daily/pc \
+          node scripts/snapshot.mjs --url http://localhost:4173/ --out "$OUT/pc" \
             --w 1920 --h 1080 --frames 24 --quality 0.92 --fail-blank --budget 3000 "$TODAY"
-          cp "dist/daily/pc/$TODAY.jpg" dist/latest.jpg
-          cp "dist/daily/pc/$TODAY.json" dist/latest.json
+          mkdir -p dist/daily/phone dist/daily/pc
+          cp "$OUT/phone/$TODAY.jpg" "$OUT/phone/$TODAY.json" dist/daily/phone/
+          cp "$OUT/pc/$TODAY.jpg" "$OUT/pc/$TODAY.json" dist/daily/pc/
+          cp "$OUT/phone/$TODAY.jpg" dist/latest-portrait.jpg
+          cp "$OUT/phone/$TODAY.json" dist/latest-portrait.json
+          cp "$OUT/pc/$TODAY.jpg" dist/latest.jpg
+          cp "$OUT/pc/$TODAY.json" dist/latest.json
 
       - uses: actions/upload-pages-artifact@v5
         with:

@@ -14,6 +14,9 @@
 //                     that depends on the day's seed); saved as NAME-s1, NAME-s2…
 // --out DIR (out)  --w 3840 --h 2160  --frames N (page default 64)  --quality 0.92
 // --url http://localhost:5174/  --angle metal|swiftshader  --channel chrome|chromium
+// --gpu-watchdog on|off  Chromium's GPU hang watchdog (default: off with swiftshader, where
+//                     one slow draw on a CI runner can trip it, reset the GPU and leave a
+//                     half-black frame; on otherwise). tools/RENDER.md "Blank frames".
 // --props KINDS|all   per prop: placed, in frame, nearest m, triangles (× instances), pixel box, CPU build
 //                     time; then the three slowest kinds
 // --crop KINDS|all    also save NAME.KIND.jpg cropped to that prop's box
@@ -71,6 +74,8 @@ const frames = option('frames', null)
 const channel = option('channel', process.env.CI ? undefined : 'chrome')
 // 'metal' uses the Mac's GPU; 'swiftshader' is software WebGL (CI has no GPU).
 const angle = option('angle', process.env.CI ? 'swiftshader' : 'metal')
+const watchdog = option('gpu-watchdog', angle === 'swiftshader' ? 'off' : 'on')
+if (watchdog !== 'on' && watchdog !== 'off') throw new Error(`--gpu-watchdog must be on or off, not ${watchdog}`)
 const timeoutMs = Number(option('timeout', 5 * 60_000))
 const sceneArg = option('scene', null)
 const whereArg = option('where', null)
@@ -87,6 +92,8 @@ const failBlank = flag('fail-blank')
 // this (knowledge/tools/RENDER.md "Blank frames"); a black canvas spans 0.
 const BLANK_RANGE = 4
 let blankFrames = 0
+// Renders the page reported as failed (a lost WebGL context, a shader error…).
+let failedRenders = 0
 // A misspelt or unsupported option (e.g. --match) used to be ignored and the
 // whole spec file rendered.
 rejectUnknown()
@@ -155,7 +162,13 @@ if (ref != null) {
 
 const browser = await chromium.launch({
   channel,
-  args: ['--ignore-gpu-blocklist', '--enable-gpu', `--use-angle=${angle}`, '--enable-unsafe-swiftshader']
+  args: [
+    '--ignore-gpu-blocklist',
+    '--enable-gpu',
+    `--use-angle=${angle}`,
+    '--enable-unsafe-swiftshader',
+    ...(watchdog === 'off' ? ['--disable-gpu-watchdog'] : [])
+  ]
 })
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
 page.setDefaultTimeout(timeoutMs)
@@ -213,31 +226,42 @@ for (const { date, spec: asked, name } of todo) {
   messages.gl() // not this render's
   await page.goto(url.toString())
   await page.waitForFunction(() => window.__sea != null)
-  const { dataUrl, params, luma } = await page.evaluate(async quality => {
-    const result = await window.__sea.ready
-    // The canvas may belong to the render worker: ask it for the image.
-    const blob = await result.toBlob('image/jpeg', quality)
-    const dataUrl = await new Promise(resolve => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result)
-      reader.readAsDataURL(blob)
-    })
-    // The saved JPEG shrunk to 160×90: its luma range finds a blank frame (--fail-blank).
-    const small = new OffscreenCanvas(160, 90)
-    const g = small.getContext('2d')
-    g.drawImage(await createImageBitmap(blob), 0, 0, 160, 90)
-    const px = g.getImageData(0, 0, 160, 90).data
-    let min = 255, max = 0, sum = 0
-    for (let i = 0; i < px.length; i += 4) {
-      const y = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]
-      min = Math.min(min, y); max = Math.max(max, y); sum += y
-    }
-    return {
-      dataUrl,
-      params: { ...window.__sea.params, debug: result.debug },
-      luma: { min, max, mean: sum / (px.length / 4) }
-    }
-  }, quality)
+  let rendered
+  try {
+    rendered = await page.evaluate(async quality => {
+      const result = await window.__sea.ready
+      // The canvas may belong to the render worker: ask it for the image.
+      const blob = await result.toBlob('image/jpeg', quality)
+      const dataUrl = await new Promise(resolve => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.readAsDataURL(blob)
+      })
+      // The saved JPEG shrunk to 160×90: its luma range finds a blank frame (--fail-blank).
+      const small = new OffscreenCanvas(160, 90)
+      const g = small.getContext('2d')
+      g.drawImage(await createImageBitmap(blob), 0, 0, 160, 90)
+      const px = g.getImageData(0, 0, 160, 90).data
+      let min = 255, max = 0, sum = 0
+      for (let i = 0; i < px.length; i += 4) {
+        const y = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]
+        min = Math.min(min, y); max = Math.max(max, y); sum += y
+      }
+      return {
+        dataUrl,
+        params: { ...window.__sea.params, debug: result.debug },
+        luma: { min, max, mean: sum / (px.length / 4) }
+      }
+    }, quality)
+  } catch (error) {
+    // The page's render rejected (scene.ts: a lost WebGL context fails it): nothing is saved.
+    console.log(`  ⚠ render failed: ${String(error.message ?? error).split('\n')[0]}; not saved`)
+    await page.waitForTimeout(100)
+    for (const message of messages.gl()) console.log(`  GL: ${message}`)
+    failedRenders++
+    continue
+  }
+  const { dataUrl, params, luma } = rendered
   const file = join(outDir, `${name}.jpg`)
   const blank = luma.max - luma.min < BLANK_RANGE
   if (failBlank) console.log(`  frame luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)}, mean ${luma.mean.toFixed(1)}${blank ? ' ⚠ BLANK' : ''}`)
@@ -347,5 +371,9 @@ for (const { date, spec: asked, name } of todo) {
 await browser.close()
 if (blankFrames > 0) {
   console.log(`[snapshot] ${blankFrames} blank frame(s) not saved (--fail-blank)`)
+  process.exitCode = 1
+}
+if (failedRenders > 0) {
+  console.log(`[snapshot] ${failedRenders} render(s) failed, not saved`)
   process.exitCode = 1
 }

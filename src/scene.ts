@@ -219,6 +219,11 @@ export async function renderScene(
     preserveDrawingBuffer: true,
     powerPreference: 'high-performance'
   })
+  // A lost context (the GPU process reset: on CI, its watchdog under SwiftShader) leaves the
+  // canvas black or half drawn; three restores the context, so check the event, not
+  // isContextLost(), and fail the render below instead of returning that picture.
+  let contextLost = false
+  renderer.domElement.addEventListener('webglcontextlost', () => (contextLost = true))
   renderer.setPixelRatio(1)
   renderer.setSize(width, height, false)
   renderer.toneMapping = NoToneMapping
@@ -1240,6 +1245,11 @@ export async function renderScene(
   // the GPU runs it, and a program deleted before then logs 'GL_INVALID_VALUE:
   // glGetProgramiv: Program object expected' once per program (~48 warnings).
   await gpuIdle(gl as WebGL2RenderingContext)
+  if (contextLost || gl.isContextLost()) {
+    renderer.dispose()
+    renderer.forceContextLoss()
+    throw new Error('the WebGL context was lost during the render (GPU reset); the picture is incomplete')
+  }
 
   // The picture is in the canvas: free everything else (knowledge/LEAKS.md).
   gpu.addTree(scene)

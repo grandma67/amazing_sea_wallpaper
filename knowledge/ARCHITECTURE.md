@@ -291,7 +291,12 @@ phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed 
   looked into**. Guarded since 0.194: `pages.yml` renders with `snapshot.mjs --fail-blank` (a frame
   whose 160×90 luma spans < 4 levels isn't saved and fails the step, so nothing is published that
   day and the scripts re-run); measured on 16 real nights, the darkest spans 11.9
-  (tools/RENDER.md "Blank frames").
+  (tools/RENDER.md "Blank frames"). The 0.194 run hit it again: the PC frame black (stopped) and
+  the phone frame drawn only in its top ~9% (published: luma 0–114 passed). **Measured:** the
+  same day at CI settings renders fine on the Mac (same Chromium 1248, SwiftShader), so it's the
+  runner. **Suspected:** the GPU watchdog resetting the GPU mid-draw. Since 0.195 CI renders with
+  `--gpu-watchdog off`, a lost context fails the render, and both sizes publish together or not
+  at all; `render-check.yml` (watchdog on vs off on the runner) tests the suspicion.
 - **The scheduled render finishes late** (measured from the Actions API, CRON.md §2.1): 01:10–
   07:43 UTC over 10 days for a 00:05 UTC schedule, so in Europe the 07:xx desktop run often finds
   no picture yet and waits for its re-run (08:00 UTC or later).

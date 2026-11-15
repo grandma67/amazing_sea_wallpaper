@@ -69,6 +69,19 @@ So the blank test is the range (< 4 levels: ~3× under the darkest real frame), 
 the mean: real nights go down to 39 KB and a mean of 2.2. The desktop scripts' size floor was
 lowered for the same reason (`crons/`, 1.0.1).
 
+The 0.194 run hit it again: PC black (stopped), phone drawn only in its top ~9% (luma 0–114,
+mean 9.8: passed, published). The same day at CI settings (`--angle swiftshader --channel
+chromium`) renders normally on the Mac (luma 4.8–191.8, mean 121), so the runner is the cause.
+Suspected: Chromium's GPU watchdog resets the GPU process during one slow SwiftShader draw and
+the canvas keeps what was drawn so far. So, since 0.195:
+- `--gpu-watchdog on|off` (default off with SwiftShader: `--disable-gpu-watchdog`);
+- a render whose WebGL context was lost fails (`scene.ts`): `⚠ render failed`, the GL messages,
+  not saved, exit 1;
+- `pages.yml` renders both sizes into `$RUNNER_TEMP` and copies them into `dist/` only when both
+  pass;
+- `.github/workflows/render-check.yml` renders a day on the runner with the watchdog on and off
+  (push to the `render-check` branch, or run it from the Actions tab) and uploads the images.
+
 ## `scripts/diff.mjs`: did it show up?
 
 Checks every spec first (a bad field fails before any render), then renders each as-is (`OUT/on`) and with `--off` merged deeply (`OUT/off`), and prints %
