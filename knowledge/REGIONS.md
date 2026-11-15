@@ -1,7 +1,7 @@
 # Places and regions
 
 Research behind `src/places.ts` and PLAN_BIOMES: the places a day is drawn from (§1), sand grain
-and beach-state shapes (§2, built in phase 4), tidal ranges (§3, built in phase 5) and
+and beach-state shapes (§2, built in phase 4), tidal ranges (§3, built in phase 5), how the tide moves: type, timing, wind (§3.1, research) and
 bioluminescence seasons (§4, phase 13, later). The code is the source of truth for the values it
 uses; this file keeps the reasoning and sources.
 
@@ -244,6 +244,49 @@ Alaska 3.5–5 m. Added from general knowledge (≈, not in the table above): Ma
 Tierra del Fuego 2–6 m (Beagle Channel small, Atlantic side large), Baja–Sonora 1–4 m (the
 upper Gulf's 7–9 m is a small part of that place).
 
+### 3.1 Ebb and flow: tide type, timing, wind (2026-11-16)
+
+§3 says how high the tide goes; this says **how it moves**: how many highs a day, when springs
+come, at what hour high water falls, and where the wind moves the water more than the tide.
+Tides follow the ocean basin and the coast's shape, not rock or climate, so they are keyed by
+**place**, as `TIDE` is (ARCHITECTURE.md "Biome, climate or place"), not by biome.
+
+| Fact | Consequence | Evidence |
+|---|---|---|
+| **Tide type** by the form factor F = (K₁ + O₁)/(M₂ + S₂): semidiurnal 0–0.25, mixed mainly semidiurnal 0.25–1.5, mixed mainly diurnal 1.5–3, diurnal > 3; transitions gradual | semidiurnal: two nearly equal highs a day (12 h 25 min apart); mixed: two unequal highs; diurnal: one high a day | Bosboom & Stive, *Coastal Dynamics* §4.4 (read); Davies & Clayton 1980 |
+| **Where:** most coastlines semidiurnal or mainly semidiurnal mixed; diurnal patches in the Gulf of Mexico, the Caribbean, the Indonesian archipelago, the North Pacific, the Pacific Antarctic embayment, parts of SE Asia (Vietnam), west Alaska. North America: Atlantic coasts semidiurnal, Pacific coasts mixed (San Francisco mainly semidiurnal; Manila mainly diurnal). By ocean area: 64% mixed, 31% semidiurnal, 4% diurnal | the place table below | Bosboom & Stive (read); Penn State EARTH 107, CCC oceanography (summaries); *Sci. Rep.* 2023 (summary) |
+| **Diurnal coasts are small-tide coasts:** "many of the areas where diurnal tides dominate have a micro-tidal regime and none a macro-tidal regime" | a diurnal place's range stays in §3's micro span; the type changes the timing, not the height | Bosboom & Stive (read) |
+| **The daily inequality** (one high higher than the other) grows with latitude and with the Moon's declination: largest at "tropic tides" (Moon at greatest declination, every 13.66 days), least at "equatorial tides" (Moon over the equator) | on mixed coasts the higher high water is the one that sets the wrack and the plants' line; on diurnal coasts the biggest range of the fortnight comes at the Moon's greatest declination, **not at new and full moon** *(the offset is general tidal theory; the sources read don't state it outright)* | Bosboom & Stive; Australian Hydrographic Office glossary; Liverpool tidal FAQ (summaries) |
+| **High water comes at a fixed hour for a place:** the "establishment of the port" (high water full and change) is the time from the Moon's crossing of the meridian at new or full moon to the next high water; fixed for each place, from 6 min (Harwich) to 11 h 45 min (North Foreland); the Moon crosses ~50 min later each day, so high water does too | at a given port, spring low waters always fall at about the same clock time (one reason some beaches are famous for low tide at sunset); the tide's phase is set by the date, the Moon and the place, not free | Wikipedia "Establishment of a port"; Admiralty Tide Tables primer (summaries) |
+| **Where wind beats tide:** in micro-tidal seas (Baltic, Black Sea, Mediterranean) the yearly cycle of monthly mean sea level is mostly larger than the tide, and of the order of the surges; the Baltic's levels come from its filling state, seiches and surges (surges lead in the west, filling in the centre and north); St Petersburg's 1824 flood reached 4.21 m, modelled extremes 3.5–4.5 m, the highest levels in Nov–Jan | on the Baltic, Mediterranean and Red Sea the day's water level should follow wind, pressure and season, not a tide: a winter westerly gale raises the eastern Baltic by metres; calm high pressure lowers it | Remote Sensing 2020 (European altimetry, summary); NHESS 2023/2024 Gulf of Finland studies (summaries) |
+
+**Tide type by place** (the project's places; *(est.)* = from the general pattern above, not a
+source naming that coast). Days are land days over 2024–2026 (715).
+
+| Type | Places | Land days |
+|---|---|---|
+| Semidiurnal | Atlantic Europe (`britain-ireland` places, `brittany`, `mont-saint-michel`, `wadden-north-sea`, `norway-*`, `iceland*`), Atlantic North America (`maine`, `fundy`, `nova-scotia`, `newfoundland`, `florida-carolinas`' Atlantic side), and by default the rest *(est. for Africa, India, Brazil, Patagonia, New Zealand)* | 491 |
+| Mixed (mainly semidiurnal) | `california`, `pacific-northwest`, `british-columbia`, `se-alaska`, `gulf-alaska`, `cook-inlet`; `hawaii` *(est.)* | in the 178 below |
+| Mixed (mainly diurnal) or diurnal | `philippines` (Manila), `mainland-se-asia` (Vietnam), `indonesia`, `yucatan-belize` and the Gulf of Mexico, `antilles`, `lesser-antilles-volcanic` (Caribbean), `alaska-north`, `kamchatka-kurils-aleutians`, `russian-far-east` (North Pacific); `sw-australia`, `western-australia-desert`, `taiwan-south-china`, `persian-gulf`, `south-shetland` *(est.)* | 178 (both mixed rows) |
+| Wind-led (tide < 0.5 m) | `baltic`, `adriatic`, `aegean`, `western-med`, `north-africa-levant`, `red-sea` | 46 |
+
+Against the project (`tides.ts`, arch/COAST.md "Tides"):
+
+- **Built:** the range by place (`TIDE`), springs and neaps by the Moon's phase (`springFactor`), the
+  wrack and plants at the spring high water.
+- **Not built:**
+  1. **Timing:** `tideFor` draws the phase at random on `'tide'`, so the hour of high water has
+     nothing to do with the Moon or the clock. Real: phase = the Moon's hour angle − the place's
+     establishment. Needs an establishment per place (port tables: UKHO, NOAA, SHOM; none
+     gathered yet). Matters most where the range is big (`TIDE` ≥ 4 m: Brittany, Fundy, Bristol
+     Channel, Yellow Sea, NW Australia, Cook Inlet), where low water bares a terrace hundreds of
+     metres wide.
+  2. **Diurnal and mixed coasts** (178 land days): one high a day, or two unequal ones, and on
+     diurnal coasts springs at the Moon's greatest declination, not new and full moon. Visible
+     effect small: these coasts are micro-tidal (≤ ~1 m).
+  3. **Wind-led seas** (46 land days): the day's level should come from wind and season
+     (Baltic: up to metres in a winter gale), not a 0.02–0.4 m tide.
+
 ## 4. Bioluminescence seasons (phase 13, later)
 
 Glowing surf needs a dense dinoflagellate bloom (*Lingulodinium polyedra* in California,
@@ -349,3 +392,16 @@ Bioluminescence: [USC Sea Grant: San Diego red tide](https://dornsife.usc.edu/us
 [Jervis Bay (Australian Geographic)](https://australiangeographic.com.au/tag/bioluminescence),
 [Bioluminescent waves (UCSD)](https://today.ucsd.edu/story/new-study-uses-simulations-to-reveal-bioluminescent-light-intensity-in-breaking-waves),
 [Toyama firefly squid](https://www.amusingplanet.com/2012/03/firefly-squids-in-toyama-bay-japan.html).
+
+Ebb and flow (§3.1):
+[Global tidal environments (Bosboom & Stive)](https://geo.libretexts.org/Bookshelves/Oceanography/Coastal_Dynamics_(Bosboom_and_Stive)/04%3A_Global_wave_and_tidal_environments/4.04%3A_Large-scale_variation_in_tidal_characteristics/4.4.01%3A_Global_tidal_environments),
+[Tide classification (CCC)](https://pressbooks.ccconline.org/introduction-to-oceanography/?p=404),
+[Tides (Penn State EARTH 107)](https://courses.ems.psu.edu/earth107/node/982),
+[Mixed tidal regimes (Sci. Rep. 2023)](https://www.nature.com/articles/s41598-023-31657-x),
+[Tidal glossary (Australian Hydrographic Office)](https://hydro.gov.au/prodserv/data/tides/tidal-glossary.htm),
+[Tropical tides (Liverpool)](https://liverpool.ac.uk/~vassilr/mina/tropical.html),
+[Establishment of a port](https://Www.wikipedia.org/wiki/Establishment_of_a_port),
+[Admiralty Tide Tables primer](https://siranah.de/html/sail030d.htm),
+[European coastal sea level from altimetry (Remote Sensing 2020)](https://mdpi-res.com/d_attachment/remotesensing/remotesensing-12-03419/article_deploy/remotesensing-12-03419.pdf),
+[Gulf of Finland extremes (NHESS 2024)](https://nhess.copernicus.org/articles/24/1835/2024/),
+[Baltic sea level components (NHESS 2023 preprint)](https://nhess.copernicus.org/preprints/nhess-2023-102/nhess-2023-102.pdf).

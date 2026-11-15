@@ -17,7 +17,7 @@ Docs in `knowledge/` (read what the task needs):
   shedding), `TREES.md` (every tree kind's flowers, fruit, cones, catkins, shedding), `NATURE.md`
   (blossom, fungi, fireflies, moss, seaweed, phase-14 animals, salt spray and how near the sea plants grow), `STARS.md` (night sky),
   `REFLECTION.md` (when water, wet sand and ice mirror; how GPUs draw it), `REGIONS.md` (places,
-  grain, tides); sources in `REFERENCES.md`.
+  grain, tides: ranges, and ebb and flow by place); sources in `REFERENCES.md`.
 - `plans/`: open plans (APP, LIVE_MODE, TERRAIN_FORMS, WATERSPOUT_FOG, PLAN_BIOMES phases 13–14)
   and the records of finished ones (each with its decisions and open leftovers).
 

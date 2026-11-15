@@ -1,7 +1,7 @@
 # References
 
 Sources behind built features. Research for planned work lives with its plan: coasts in
-[COASTS.md](COASTS.md), regions/grain/tides/bioluminescence in [REGIONS.md](REGIONS.md), clouds
+[COASTS.md](COASTS.md), regions/grain/tides (ranges, ebb and flow)/bioluminescence in [REGIONS.md](REGIONS.md), clouds
 (WMO atlas) in [CLOUDS.md](CLOUDS.md), biomes in [plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md),
 blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATURE.md).
 
@@ -165,6 +165,9 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   breaker height; Hong Kong CEDD "Typical natural beach slopes" and Bascom 1951 (slope by grain);
   edge-wave cusp spacing λ = g T² tanβ / π (Guza & Inman 1975); sources in REGIONS.md §2 and
   PLAN_BIOMES.md
+- Tides, ebb and flow (research only, REGIONS.md §3.1): tide types (Bosboom & Stive; Davies &
+  Clayton 1980), tropic and equatorial tides, the establishment of a port, wind-led Baltic and
+  Mediterranean levels; links in REGIONS.md "Sources".
 - Tides: ranges per region in REGIONS.md §3 (Aviso, Kjerfve 1981, US Harbors, Kartverket via
   Yachting Monthly, Wadden Sea World Heritage, Britannica, NASA Earth Observatory, Vegagerðin,
   OJMS 2015 Red Sea model); Masselink & Short 1993 (relative tide range, tide-modified and
