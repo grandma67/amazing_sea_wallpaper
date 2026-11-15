@@ -41,15 +41,6 @@ jobs:
           grep -q 'dist/latest.json' .github/workflows/pages.yml
           grep -q 'dist/latest-portrait.json' .github/workflows/pages.yml
 
-      - name: today's real latest.json parses the way the scripts read it
-        run: |
-          curl -sSf --retry 2 https://grandma67.github.io/amazing_sea_wallpaper/latest.json -o latest.json
-          d=$(grep -o '"date": *"[0-9-]*"' latest.json | head -n 1 | sed 's/.*"\([0-9-]*\)"$/\1/')
-          t=$(grep -o '"title": *"[^"]*"' latest.json | head -n 1)
-          echo "date=$d $t"
-          echo "$d" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-          [ -n "$t" ]
-
       - name: tests (bash 5, curl; .ps1 cases under pwsh)
         run: bash crons/test/run.sh --bash bash --downloader curl
 
@@ -57,6 +48,27 @@ jobs:
         run: |
           command -v wget || sudo apt-get install -y wget
           bash crons/test/run.sh --bash bash --downloader wget crons/test/cases-run.sh crons/test/cases-linux.sh
+
+  # Its own job, so the tests above run whatever the live site holds.
+  live-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: today's real latest.json parses the way the scripts read it
+        run: |
+          code=$(curl -sS --retry 2 -o latest.json -w '%{http_code}' https://grandma67.github.io/amazing_sea_wallpaper/latest.json)
+          # No picture published (a failed render publishes nothing since 0.195): the scripts
+          # keep yesterday's, so warn, don't fail.
+          if [ "$code" = 404 ]; then
+            echo "::warning::latest.json is not published (404): the last Pages render failed"
+            exit 0
+          fi
+          [ "$code" = 200 ] || { echo "latest.json: HTTP $code"; exit 1; }
+          d=$(grep -o '"date": *"[0-9-]*"' latest.json | head -n 1 | sed 's/.*"\([0-9-]*\)"$/\1/')
+          t=$(grep -o '"title": *"[^"]*"' latest.json | head -n 1)
+          echo "date=$d $t"
+          echo "$d" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          [ -n "$t" ]
 
   macos:
     runs-on: macos-latest

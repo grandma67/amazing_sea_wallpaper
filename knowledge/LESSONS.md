@@ -59,7 +59,9 @@ tool gotchas: TOOLS.md.
   fine on the Mac with the same Chromium and SwiftShader, and its half-black phone frame passed the
   blank test. Read the published files, not only the run log, and test the fix with a run on
   the runner itself (the Pages workflow). Copy outputs into the published folder only after every
-  render passed. Before changing `pages.yml`, read `crons.yml`: it greps `pages.yml`'s text.
+  render passed. Before changing `pages.yml`, read `crons.yml`: it greps `pages.yml`'s text. A check of the live
+  site runs in its own job and warns on a 404 (a day with no picture is expected now), so it
+  doesn't skip the script tests.
 - **Test a system change on a real machine with a way back first** (CRON phase 3): the install
   path already held the user's own experiments, so the live test listed the folder before,
   uninstalled without `--yes`, and removed only the files it had added.
