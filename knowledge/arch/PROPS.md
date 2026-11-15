@@ -16,6 +16,14 @@ waterspout, stones and beachrock (COAST.md). Which animals appear where:
   pool skips the filter: Tierra del Fuego has southern beech (`broadleaf`) and no conifers, South Georgia only
   tussock grass. `place.windBent` kinds lean 20–35° downwind (the day's wind) and are 25% shorter,
   hero trees included (`vegetation.ts`).
+- **Salt** (0.199, NATURE.md §9; `saltOn`, after placement, by position, no draws): trees
+  (`SALT_SHEARED`: not palms, pandanus, bushes, grass) are capped by the canopy wedge
+  `saltCanopy(u, sprayExposure(place))` (5 m at 10 m from s = 0 to 25 m at 1 km; exposed 5 m to
+  100 m; sheltered +8 m; ±15% by a position hash), shorter and wider for their height above it.
+  Bushes of a moderately tolerant species (`SALT_TOLERANCE` in `shrubs.ts`, by `crownShrub`, the
+  blossom hash) don't grow within `SHRUB_LEE` (10 / 30 / 60 m by exposure) of `saltFront` (the
+  kind's start, on a beach not before the storm line). Beach flowers (`FLOWERS`) are strandline
+  species and the turf maritime grassland: unchanged. `props.saltShear: false` switches it off.
 - **Seasons** (`phenology.ts`, 0.98): `createVegetation` passes `plantSeason(kind, phen)` to
   each builder. Deciduous trees (by `deciduousShare`, hashed per tree from its shape) skip
   leaves with 1 − `on` and colour them from `autumnColors` with `turned` (hashed per leaf, top

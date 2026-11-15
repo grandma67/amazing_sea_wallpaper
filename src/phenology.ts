@@ -1018,12 +1018,42 @@ export const BELT_FADE = 3
 /** The spray belt's height (m above the spring high water + `BELT_RUNUP`)
  * for a place; a place in two climates takes its main climate's default. */
 export function sprayBelt(placeId: string): number {
-  if (BELT_SHELTERED.includes(placeId)) return 1.5
-  if (BELT_EXPOSED.includes(placeId)) return 12
+  const exposure = sprayExposure(placeId)
+  if (exposure === 'sheltered') return 1.5
+  if (exposure === 'exposed') return 12
   const place = PLACES.find(p => p.id === placeId)
   const main = place == null ? 'temperate' : (Object.entries(place.climate) as [Climate, number][]).sort((a, b) => b[1] - a[1])[0][0]
   return main === 'temperate' || main === 'boreal' ? 3.9 : 3.5
 }
+
+/** How much salt spray a place's coast takes: sheltered seas, exposed ocean
+ * fronts, or between (the spray belt's lists). */
+export type SprayExposure = 'sheltered' | 'moderate' | 'exposed'
+export function sprayExposure(placeId: string): SprayExposure {
+  return BELT_SHELTERED.includes(placeId) ? 'sheltered' : BELT_EXPOSED.includes(placeId) ? 'exposed' : 'moderate'
+}
+
+/**
+ * The tallest a tree grows `u` m inland of s = 0 (the high-tide foot) under
+ * salt spray (NATURE.md §9): spray kills the buds that grow above their
+ * neighbours' shelter, so the canopy is a wedge rising inland. Northland's
+ * survey (Tāne's Tree Trust): upper height ~5 m within 10 m of high water,
+ * 15 m at 100 m, 25 m at 1 km (a log trend, `moderate`); on the exposed west
+ * coast 5 m for the first 100 m and ~18 m only past 800 m (`exposed`).
+ * Sheltered seas: 8 m higher (est.; no source found).
+ */
+export function saltCanopy(u: number, exposure: SprayExposure): number {
+  const d = Math.max(10, u)
+  if (exposure === 'exposed') return d <= 100 ? 5 : 5 + 14.4 * Math.log10(d / 100)
+  return 5 + 10 * Math.log10(d / 10) + (exposure === 'sheltered' ? 8 : 0)
+}
+
+/** How far behind the coast's first plants (m) a moderately salt-tolerant
+ * shrub starts: in the lee of the first, tolerant line (extension services'
+ * tiers: "grows near the beachfront but sheltered by more tolerant plants or
+ * dunes"); est. from the dune-back shrubs 1–21 m behind the crest (Long
+ * Island) and spray ×4 less from 50 to 100 m inland (Malloch). */
+export const SHRUB_LEE: Record<SprayExposure, number> = { sheltered: 10, moderate: 30, exposed: 60 }
 
 /** Moss today: amount, the share mixed toward dry brown (half of the
  * dryness: some mosses stay green when dry) and the spray belt it keeps

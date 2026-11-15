@@ -1,0 +1,8 @@
+{ "base": { "eclipse": null, "storm": null, "fog": null, "weather": "few", "timeOfDay": "daylight", "landform": null, "coast": "beach", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "nz-north-along-pohutukawa", "date": "2025-12-20", "place": "new-zealand-north", "composition": "along-beach", "props": { "vegetation": ["broadleaf", "bush", "grass"] } },
+    { "name": "brittany-framed-broadleaf", "date": "2025-07-10", "place": "brittany", "composition": "framed", "props": { "vegetation": ["broadleaf", "bush", "grass"] } },
+    { "name": "scotland-along-conifer-exposed", "date": "2025-07-10", "place": "scotland", "composition": "along-beach", "props": { "vegetation": ["conifer", "bush", "grass"] } },
+    { "name": "med-framed-stone-pine-sheltered", "date": "2025-06-10", "place": "western-med", "composition": "framed", "props": { "vegetation": ["stone-pine", "bush", "grass"] } },
+    { "name": "cornwall-framed-bushes", "date": "2025-05-10", "place": "cornwall-wales", "composition": "framed", "props": { "vegetation": ["bush", "grass"] } }
+  ] }

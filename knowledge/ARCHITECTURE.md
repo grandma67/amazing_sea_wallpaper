@@ -184,6 +184,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | fruits, cones, catkins, propagules | `fruits.ts` `FRUIT` | plant kind × climate (palms: tropical coconut, subtropical dates, Florida's sabal) × northern-equivalent day; spruce crop by calendar year and place (`mastYear`, a hash) | right |
 | bloom years (desert bloom, Namaqualand, Baja) | `bloomYears.ts` `bloomRegion`, `bloomYear`, `desertBloomFor` | place × ocean × latitude; one draw per region and calendar year; local calendar months | right |
 | lomas (fog-hill green) | `phenology.ts` `LOMAS`, `lomasFor` | place (`atacama-peru`, 6–30°S) × local calendar day | right |
+| salt on plants (canopy wedge, shrub lee), spray belt | `phenology.ts` `sprayExposure`, `saltCanopy`, `SHRUB_LEE`; `shrubs.ts` `SALT_TOLERANCE` | place (exposure lists; default by distance from s = 0), shrub species | right |
 | fireflies and glow-worms | `props/fireflies.ts` `FIREFLY_REGIONS`, `firefliesFor`, `fireflyWeather` | place × local calendar month (peak ×1, else ×0.4); the evening, moon and weather by kind | right |
 | mushrooms: season and kinds | `phenology.ts` `FUNGUS_SEASON`, `fungiSeason`; `props/fungi.ts` `FUNGI` | season by climate × hemisphere (subtropical by month, tropics by the place's dry season); kinds by climate and host plant | right |
 | fairy rings' strength by season | `phenology.ts` `FAIRY_SEASON`, `fairyRingsFor` | climate × hemisphere (northern-equivalent days); the rings themselves by world cell hash (`fairyRings.ts`) | right |

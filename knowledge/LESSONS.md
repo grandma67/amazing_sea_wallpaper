@@ -6,6 +6,11 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
 
 ## Process
 
+- **Read TOOLS.md "Gotchas" and SCENE_SPECS.md "Writing specs" before the first fetch or spec, not
+  after (salt, 0.199):** both already had the answer (`pdftotext` on the bytes WebFetch saves; a
+  front-lit base) and skipping them cost failed fetches and a backlit render round. A count of real
+  days that builds props: `--every K` first, the full run once at the end.
+
 - **Write lessons as rules, and share the machinery (Morning Glory, 0.180, 2 look rounds + 2
   bench runs):** it repeated two of the shelf's mistakes days after they were written down (a thin
   edge, a smooth slab; no early exit, +45%): the lessons were about the shelf's numbers, not the
@@ -287,6 +292,14 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
   pine's nearest in-frame instance is within 30 m on 14% of its days and past 300 m on 58% (arch/PROPS.md
   "Where each plant kind stands"), so its 12 cm cones show on few days. `--find` reports only the
   nearest *unoccluded* one, `--count` only the overall minimum: use `scripts/plant-near.js`.
+- **A position hash can't be recomputed from an instance matrix (salt, 0.199):** `instanceMatrix` is
+  float32, and `sin(x · 12.9898 …) · 43758` turns the rounding into a different hash, so a probe
+  that re-derived each bush's species from the mesh found "hawthorn" the code never placed (~8 calls
+  debugging correct code). Read identity from `p.plants` / `plantInstances` (the code's positions,
+  stored per instance); a new per-instance decision goes into `mesh.userData.plants` too.
+- **"Where a kind starts" isn't where its plants stand (salt, 0.199):** measuring the shrub lee from
+  `inland`'s minimum put it 0–20 m too far forward; plants also need dry ground, so the first line
+  is the storm line on beaches (`saltFront`; arch/COAST.md "Who measures from the shore").
 - A pale, even colour under a tree reads as a stain, and a map's discs as neat ellipses from above:
   fainter, warped, in drifts; the leaves on top carry the look.
 - **Small things near the ground: ask what covers them (mushrooms, 0.151):** 3 mushrooms "in frame"

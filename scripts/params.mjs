@@ -19,6 +19,9 @@
 //                  across --spread EXPR (default place, coast, time of day): the
 //                  largest groups first, one day each, then round again.
 // --spread EXPR    what to spread a --sample over: 'p => …', any value.
+// --every K        keep every K-th date (a uniform thinning, before anything is
+//                  generated): a quick share from probes that build props
+//                  (p.plants takes ~0.5 s a day; --every 10 reads 3 years in ~1 min).
 // --expect EXPR    over the place table, weighted by share of days: numbers
 //                  averaged, the rest counted, null skips the place. No sampling.
 // --weight EXPR    with --expect: weigh each place by its share of days × 'pl => …'
@@ -130,6 +133,7 @@ const jitters = Number(option('jitters', 8))
 const limitArg = option('limit', null)
 const limit = Number(limitArg ?? (ref != null ? 20 : 1e9))
 const sample = Number(option('sample', 0))
+const every = Number(option('every', 1))
 const spreadArg = option('spread', 'p => [p.place.id, p.coast.type, p.timeOfDay]')
 rejectUnknown()
 if (weightArg != null && expect == null) throw new Error('--weight goes with --expect')
@@ -147,11 +151,12 @@ async function specs() {
 
 /** Given DATEs win over a spec's own date; without either, the test days. */
 function datesFor(spec) {
+  const thin = dates => (every > 1 ? dates.filter((_, i) => i % every === 0) : dates)
   if (given.length > 0) {
     const { date: _, ...rest } = spec
-    return { spec: rest, dates: given }
+    return { spec: rest, dates: thin(given) }
   }
-  return { spec, dates: spec.date != null ? [spec.date] : TEST_DAYS }
+  return { spec, dates: spec.date != null ? [spec.date] : thin(TEST_DAYS) }
 }
 
 const get = (p, path) => path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), p)
@@ -164,7 +169,7 @@ async function load(root) {
   // is written into the worktree while git removes it.
   const server = await createServer({ root, cacheDir: resolve('node_modules/.vite-params'), server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom', logLevel: 'error' })
   const mod = path => server.ssrLoadModule(path)
-  const [{ generateParams }, { parseSceneSpec }, { propChoices }, { frameView, generateSceneParams }, places, { createCamera }, { PropContext }] = await Promise.all([
+  const [{ generateParams }, { parseSceneSpec }, { propChoices }, { frameView, generateSceneParams }, places, { createCamera }, { PropContext }, vegetation] = await Promise.all([
     mod('/src/params.ts'),
     mod('/src/sceneSpec.ts'),
     mod('/src/props/choices.ts'),
@@ -172,7 +177,8 @@ async function load(root) {
     // Older refs may not have places.ts.
     mod('/src/places.ts').catch(() => ({})),
     mod('/src/camera.ts'),
-    mod('/src/props/context.ts')
+    mod('/src/props/context.ts'),
+    mod('/src/props/vegetation.ts')
   ])
   // Older refs may not have waterFilms.ts.
   const waterFilms = existsSync(resolve(root, 'src/waterFilms.ts')) ? await mod('/src/waterFilms.ts') : {}
@@ -220,6 +226,32 @@ async function load(root) {
           ctx = new PropContext(p, camera, null, (camera.fov * Math.PI) / 180 / 1080)
         }
         return ctx
+      },
+      enumerable: false
+    })
+    // Every plant placed today with its identity (vegetation.ts
+    // plantInstances: kind, x y z, u, top, shrub, salt, distance, inFrame).
+    // Built on each read, so it follows p.withProps.
+    Object.defineProperty(out, 'plants', {
+      get: () => {
+        if (vegetation.plantInstances == null) throw new Error('p.plants: this tree has no plantInstances (older ref)')
+        return vegetation.plantInstances(out.ctx)
+      },
+      enumerable: false
+    })
+    // Run f with these spec props merged into today's overrides (as a spec's
+    // "props"), then put them back: an on/off comparison on the same day,
+    // e.g. p.withProps({ saltShear: false }, () => p.plants).
+    Object.defineProperty(out, 'withProps', {
+      value: (patch, f) => {
+        const params = out.ctx.params
+        const before = params.overrides
+        params.overrides = { ...(before ?? {}), ...patch }
+        try {
+          return f()
+        } finally {
+          params.overrides = before
+        }
       },
       enumerable: false
     })

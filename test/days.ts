@@ -58,6 +58,12 @@ export function scenes(spec: SceneSpec, count = 30): SceneParams[] {
   return Array.from({ length: count }, (_, i) => generateParams(DAYS[Math.floor((i * DAYS.length) / count)], 0, 16 / 9, spec))
 }
 
+/** The spec with these props merged into its own (an on/off pair:
+ * `view(withProps(spec, { saltShear: false }))`). */
+export function withProps(spec: SceneSpec, props: NonNullable<SceneSpec['props']>): SceneSpec {
+  return { ...spec, props: { ...spec.props, ...props } }
+}
+
 /** A PropContext for a spec at `height` px, without WebGL (the first
  * composition attempt, like scene(); the page may re-roll a bad framing): for testing what a prop places, how far away and how many
  * pixels it gets (ctx.pixelAngle) before rendering. */

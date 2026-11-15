@@ -216,6 +216,24 @@ node scripts/params.mjs --scene '{"saltMarsh":true,"composition":"framed"}' --st
 node scripts/params.mjs --scene '{"coast":"tidal-flat"}' --stats 'p => src.terrain.worldToShore(p.coast, 0, 0).map(Math.round)' 2025-07-10
 ```
 
+### Plants on real days: `p.plants`, `p.withProps`, `--every`
+
+`p.plants` lists every plant `createVegetation` placed today (`vegetation.ts` `plantInstances`):
+`kind`, `x y z`, `u` (m inland of s = 0), `top` (drawn height), `shrub` (a bush's species),
+`salt` (`saltOn`'s cap), `distance`, `inFrame` (its middle). Identity comes from the code's own
+positions: **never re-derive a position hash from an instance matrix** (float32; LESSONS.md
+"Seasons and plants"). `p.withProps(patch, f)` runs `f` with spec props merged into today's
+overrides, for an on/off pair on the same day. Building plants costs ~0.3 s a day: `--every K`
+keeps every K-th date (uniform, before generation), so a share over three years takes a minute.
+
+```sh
+node scripts/params.mjs --rendered --every 3 --where 'p => p.coast.type !== "open-sea"' --stats 'p => p.plants.filter(t => t.inFrame && t.kind === "bush").length > 0'
+node scripts/params.mjs --scene '{"place":"cornwall-wales","coast":"beach","props":{"vegetation":["bush"]}}' --stats 'p => { const on = new Set(p.plants.map(t => t.x)); return p.withProps({ saltShear: false }, () => p.plants).filter(t => !on.has(t.x)).map(t => "dropped " + t.shrub) }' 2025-05-10
+node scripts/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --stats "$(cat scripts/plant-near.js)"   # nearest in-frame instance per kind
+```
+
+Tests: `plantInstances(view(spec))` and `withProps(spec, { … })` (`test/days.ts`).
+
 ### Sky directions in the frame: `src.skyFrame`
 
 `skyFrame.ts` projects world directions exactly as the render camera does (lens, yaw, pitch,

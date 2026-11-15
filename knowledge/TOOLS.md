@@ -51,6 +51,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Does changing days in the page leak (GPU, heap, workers) | `restart.mjs` (`npm run check:restart`) | [LEAKS.md](LEAKS.md) |
 | A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded | "Real colours" below |
 | Is a prop **visible** on a day (not behind props or terrain), which spec dates show it best; how hazed far land is | `params.mjs --find KIND` | tools/PARAMS.md "Which days show it" |
+| Each plant today: kind, distance from shore, height, species, salt; on/off on the same day | `params.mjs` `p.plants`, `p.withProps(patch, f)`, `--every K` for a quick share | tools/PARAMS.md "Plants on real days" |
 | How much turf, bare land, sea a camera sees, by distance | `src.groundSeen.groundSeen(p.ctx)` in a `params.mjs` expression | tools/PARAMS.md |
 | Photos of a species with a licence we can ship (PD, CC0, CC BY) | `asset.mjs search QUERY…` (numbered contact sheet; waits out Commons' rate limit) | `asset.mjs` header |
 | Reference photos when the name also means other things (a keyword search fills with noise) | `asset.mjs search --wiki ARTICLE…` (the article's own photos; `--all` for share-alike ones, fine to look at, not to ship) | `asset.mjs` header |

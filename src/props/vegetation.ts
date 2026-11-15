@@ -10,9 +10,10 @@ import {
 } from 'three'
 
 import type { RGB, VegetationKind } from '../biome'
+import { beachLines } from '../beach'
 import { fruitFor, fruitStage, withFruit, type Fruiting } from '../fruits'
-import { BELT_RUNUP, BLOOM, bloomGrows, mossLook, phenologyFor, plantSeason, withBlossom, type Blooming, type PlantSeason } from '../phenology'
-import { shrubsHere, type ShrubSpecies } from '../shrubs'
+import { BELT_RUNUP, BLOOM, bloomGrows, mossLook, phenologyFor, plantSeason, saltCanopy, SHRUB_LEE, sprayExposure, withBlossom, type BloomRow, type Blooming, type PlantSeason } from '../phenology'
+import { SALT_TOLERANCE, shrubsHere, type ShrubSpecies } from '../shrubs'
 import { placeNamed } from '../places'
 import { LICHEN, MOSS_COLOR } from '../rockShore'
 import { Random } from '../random'
@@ -287,6 +288,61 @@ function oldBlossom(
   return undefined
 }
 
+/** Which shrub a bush at (x, z) is, on the blossom hash (`crownBlossom`):
+ * an older bloom row's kind (`rows`: those growing here, in `BLOOM` order),
+ * one of the place's species past `offset`, or `plain`. Whether or not it
+ * flowers today. */
+export function crownShrub(x: number, z: number, rows: readonly BloomRow[], shrubs: Pick<CrownShrubs, 'species' | 'offset'>): keyof typeof SALT_TOLERANCE {
+  const u = positionHash(x, z, 'bush'.length * 7.1)
+  let start = 0
+  for (const r of rows) {
+    if (u < start + r.crowns) return r.kind as 'gorse' | 'rock-rose' | 'wattle'
+    start += r.crowns
+  }
+  start = shrubs.offset
+  for (const s of shrubs.species) {
+    if (u >= start && u < start + s.share) return s.species
+    start += s.share
+  }
+  return 'plain'
+}
+
+/** Trees that salt spray prunes into a wedge (NATURE.md §9); palms and
+ * pandanus stand tall on the strand, bushes and grass are under the cap. */
+const SALT_SHEARED: readonly VegetationKind[] = ['stone-pine', 'olive', 'broadleaf', 'birch', 'acacia', 'conifer', 'cypress', 'eucalyptus']
+
+/**
+ * Salt on one plant (NATURE.md §9), from where it stands, not the camera:
+ * a moderately tolerant shrub (`SALT_TOLERANCE`) within `SHRUB_LEE` of the
+ * coast's first line (`front`, m inland of s = 0: `saltFront`) doesn't grow
+ * (`drop`); a
+ * tree's height is capped by the canopy wedge (`saltCanopy`, ±15% by a
+ * position hash, so the pruned canopy isn't a flat lid).
+ */
+export function saltOn(
+  kind: VegetationKind,
+  x: number,
+  z: number,
+  coast: Parameters<typeof worldToShore>[0],
+  front: number,
+  exposure: ReturnType<typeof sprayExposure>,
+  bush?: { rows: readonly BloomRow[]; shrubs: Pick<CrownShrubs, 'species' | 'offset'> }
+): { drop?: true; cap?: number } {
+  const u = -worldToShore(coast, x, z)[0]
+  if (kind === 'bush' && bush != null) {
+    return u < front + SHRUB_LEE[exposure] && SALT_TOLERANCE[crownShrub(x, z, bush.rows, bush.shrubs)] === 'moderate' ? { drop: true } : {}
+  }
+  if (!SALT_SHEARED.includes(kind)) return {}
+  return { cap: saltCanopy(u, exposure) * (0.85 + 0.15 * positionHash(x, z, 91.3)) }
+}
+
+/** Where a kind's first plants can stand (m inland of s = 0): its start
+ * (`uMin`), and on a beach not before the storm line, the frequent storm
+ * run-up the vegetation line follows (NATURE.md §9). */
+export function saltFront(coast: Parameters<typeof beachLines>[0] & { rock?: unknown; flat?: unknown }, uMin: number): number {
+  return coast.rock != null || coast.flat != null ? uMin : Math.max(uMin, beachLines(coast).stormLine)
+}
+
 const KINDS: Record<VegetationKind, KindSpec> = {
   palm: {
     build: palm,
@@ -543,6 +599,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
   const s = new Vector3()
   // Flag trees (southern beech in Tierra del Fuego) lean downwind.
   const windBent = placeNamed(params.place.id).windBent
+  const exposure = sprayExposure(params.place.id)
   const downwind = windDirection(params)
   const seaward = new Vector3(Math.sin((coast.seawardAzimuthDeg * Math.PI) / 180), 0, -Math.cos((coast.seawardAzimuthDeg * Math.PI) / 180))
 
@@ -639,14 +696,21 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     // fruit, which hangs on that species' bushes only (the crown's twin).
     const allFruit = fruitFor(kind, params)
     const season = withFruit(plantSeason(kind, phenology), allFruit.filter(f => f.row.species == null), phenology)
+    const oldBush = BLOOM.filter(r => r.plant === 'bush' && r.species == null && bloomGrows(r, params))
     const shrubs: CrownShrubs | undefined =
       kind === 'bush'
         ? {
             species: shrubsHere(params, shrubForce(params.overrides)),
-            offset: BLOOM.filter(r => r.plant === 'bush' && r.species == null && bloomGrows(r, params)).reduce((s, r) => s + r.crowns, 0),
+            offset: oldBush.reduce((s, r) => s + r.crowns, 0),
             fruit: allFruit.filter(f => f.row.species != null)
           }
         : undefined
+    // Salt (NATURE.md §9): no tender shrubs on the front line, trees pruned
+    // to the canopy wedge. Decided after placement, by position: no draws.
+    // `props.saltShear: false` switches it off.
+    const salted = placed.map(t =>
+      params.overrides?.saltShear === false ? {} : saltOn(kind, t.elements[12], t.elements[14], coast, saltFront(coast, uMin), exposure, shrubs && { rows: oldBush, shrubs })
+    )
     // Blossom: each tree flowers or not by its position (a hash, no draw), so
     // any share shows and a moving camera sees the same trees in flower.
     const flowers = placed.map(t => crownBlossom(season?.bloom, kind, t.elements[12], t.elements[14], coast, uMin, shrubs))
@@ -663,12 +727,15 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
       })
       const groups = new Map<string, number[]>([['', []]])
       for (const i of indices) {
+        if (salted[i].drop) continue
         const f = flowers[i]
         const key = f == null ? '' : `${f.b?.row.kind ?? ''}:${f.color}:${f.fruit?.row.kind ?? ''}`
         if (!groups.has(key)) groups.set(key, [])
         groups.get(key)!.push(i)
       }
       const plain = spec.build(recorder, biome.foliage, season)
+      plain.computeBoundingBox()
+      const naturalTop = plain.boundingBox!.max.y
       for (const [key, members] of groups) {
         if (members.length === 0) continue
         let geometry = plain
@@ -685,9 +752,25 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
         const mesh = new InstancedMesh(geometry, bent.material, members.length)
         mesh.customDepthMaterial = bent.depth
         mesh.userData.plantKind = kind
+        // Each instance's identity at full precision (instanceMatrix is
+        // float32, and the position hashes don't survive its rounding):
+        // read through `plantInstances`.
+        mesh.userData.plants = members.map(i => ({
+          x: placed[i].elements[12],
+          z: placed[i].elements[14],
+          ...(kind === 'bush' && shrubs != null ? { shrub: crownShrub(placed[i].elements[12], placed[i].elements[14], oldBush, shrubs) } : {}),
+          salt: salted[i]
+        }))
         if (key !== '') mesh.userData.blossom = key
         members.forEach((i, j) => {
           m.copy(placed[i])
+          // Above the wedge: shorter, and wider for its height (flat-topped).
+          const cap = salted[i].cap
+          const top = naturalTop * Math.hypot(m.elements[4], m.elements[5], m.elements[6])
+          if (cap != null && top > cap) {
+            const f = cap / top
+            m.scale(new Vector3(Math.sqrt(f), f, Math.sqrt(f)))
+          }
           // Blades under the snow (drawn all the same: the draws stay).
           if (kind === 'grass' && params.snow != null && grassBuried(m.elements[12], m.elements[14], params.snow.cover)) m.scale(new Vector3(0, 0, 0))
           mesh.setMatrixAt(j, m)
@@ -710,4 +793,45 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     }
   }
   return meshes
+}
+
+/** One placed plant, for probes and tests (`params.mjs` `p.plants`). */
+export interface PlantInstance {
+  kind: VegetationKind
+  x: number
+  y: number
+  z: number
+  /** m inland of s = 0. */
+  u: number
+  /** Height of its top above its base, as drawn (m). */
+  top: number
+  /** A bush's species (`crownShrub`). */
+  shrub?: keyof typeof SALT_TOLERANCE
+  /** What salt did (`saltOn`): `cap` for trees; dropped bushes aren't listed. */
+  salt: { drop?: true; cap?: number }
+  /** From the camera (m), and whether its middle is in frame (`ctx.inFrame`). */
+  distance: number
+  inFrame: boolean
+}
+
+/** Every plant `createVegetation` placed, with its identity from the code's
+ * own positions (not re-derived from the float32 instance matrices). */
+export function plantInstances(ctx: PropContext, meshes: InstancedMesh[] = createVegetation(ctx)): PlantInstance[] {
+  const out: PlantInstance[] = []
+  const m = new Matrix4()
+  for (const mesh of meshes) {
+    const ids = mesh.userData.plants as { x: number; z: number; shrub?: PlantInstance['shrub']; salt: PlantInstance['salt'] }[] | undefined
+    if (ids == null) continue
+    mesh.geometry.computeBoundingBox()
+    const h0 = mesh.geometry.boundingBox!.max.y
+    for (let j = 0; j < mesh.count; j++) {
+      mesh.getMatrixAt(j, m)
+      const e = m.elements
+      if (e[0] === 0 && e[5] === 0) continue
+      const { x, z, shrub, salt } = ids[j]
+      const top = h0 * Math.hypot(e[4], e[5], e[6])
+      out.push({ kind: mesh.userData.plantKind, x, y: e[13], z, u: -worldToShore(ctx.params.coast, x, z)[0], top, ...(shrub != null ? { shrub } : {}), salt, distance: ctx.distance(x, z), inFrame: ctx.inFrame(x, e[13] + top / 2, z, 1) })
+    }
+  }
+  return out
 }

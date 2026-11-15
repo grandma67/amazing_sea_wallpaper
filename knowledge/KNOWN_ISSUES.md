@@ -204,6 +204,12 @@ say how the cause was found.
 
 ## Props
 
+- **Salt (0.199), left over:** (1) no gale browning on the seaward side of crowns (needs a weather
+  history: "a gale in the last weeks"); (2) a pruned tree is its mesh scaled shorter and wider, so a
+  pruned spruce is a squat cone, not a flat-topped, flagged one; (3) framed shots' hero trees can
+  stand 1–2 m from high water (placed by height above `dry` only), so the wedge cuts them to ~5 m and
+  the shot loses its framing (2025-05-30, Arctic Canada: four birches 14–18 m → ~5 m). Found by
+  `diff.mjs --off '{"props":{"saltShear":false}}'` on real days.
 - **2026-05-01:** a sailboat drawn as a bare, steeply tilted mast. Not traced.
 - Elephant seals within ~25 m look like smooth boulders (beach herds keep 30 m off); hippos are
   stylised up close (barrel + boxy head).

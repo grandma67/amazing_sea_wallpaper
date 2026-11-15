@@ -23,8 +23,7 @@ Built from this research (plans/NATURE_PLAN.md phases 1–16, 0.139–0.155; how
 arch/PROPS.md "Plants"): bush and tree blossom, heath, moss on rock and trunks, the spray belt and
 shore weed, fairy rings, mushrooms, fireflies and glow-worms, lomas, bloom years. Seasonal before it:
 beach flowers (`FLOWERS`), salt marsh (`marshLook`), leaves and litter (`phenology.ts`), sargassum.
-Salt and the vegetation line (§9): the lower edge matches; crown shear and gale browning not
-built. Not built: bioluminescent surf (REGIONS.md §4, PLAN_BIOMES 13) and the phase-14 animals (§6;
+Salt (§9, 0.199): the canopy wedge and the shrub lee built; gale browning not built. Not built: bioluminescent surf (REGIONS.md §4, PLAN_BIOMES 13) and the phase-14 animals (§6;
 NATURE_PLAN phase 17 waits on them).
 
 ## 1. Flowers and blossom
@@ -287,9 +286,22 @@ Against the project (measured 2026-11-16, `params.mjs` over the 433 beach days):
   0.5 m (78% of beach days) the two are the same height; on the 7% with 1 m they differ by ~0.6 m.
   Rock shores start plants on top of the back face, above the spray belt's base.
 - **Spray belt on rock: built** (`sprayBelt`, 1.5 / 3.5–3.9 / 12 m by exposure, §4, §8).
-- **Not built:** the crown shear (tree height rising inland from the shrub front: today a
-  `windBent` place's kinds are bent 20–35° downwind and ×0.75 tall at every distance), and the gale
-  browning on crowns' seaward side.
+- **Built (0.199):** the canopy wedge on trees (`saltCanopy`) and tender shrubs kept off the first
+  line (`SALT_TOLERANCE`, `SHRUB_LEE`); arch/PROPS.md "Salt". Beach flowers (`FLOWERS`) are all
+  strandline species and the turf is maritime grassland, so they keep their places; the turf's
+  fade-in starts a few metres seaward of the storm line on 12.5% of beach days, thin there (pioneer
+  grass, kept).
+- **Not built:** the gale browning on crowns' seaward side (no weather history to say "after a
+  gale"; KNOWN_ISSUES.md).
+
+More evidence for the build (2026-11-16):
+
+| Fact | Evidence |
+|---|---|
+| **The wedge, measured:** upper height just over 5 m within 10 m of high water, over 15 m at 100 m, over 25 m at 1 km (log trend, all Northland sites, pōhutukawa setting the top); exposed west coast: plateau at 5 m for the first 100 m, under 20 m overall, ~18 m only past 800 m; east coast over 15 m at 100 m; radiata pine 120 m in from the seaward edge 13.4 m, under a third of the pines further in (~45 m) | Tāne's Tree Trust, *Adaptive management of coastal forestry buffers* §3 (read, full text) |
+| Spray-pruned canopies are "smooth" and "of evenly increasing height away from the coast"; spray prunes any tree that grows above the sheltering dune; Massachusetts maritime forest < 30 ft (9 m) | FNAI maritime hammock (citing Boyce 1954); NPS Cape Lookout; Mass. natural communities (summaries) |
+| **Shrub tiers:** high tolerance withstands direct spray, used on the ocean-facing front; moderate grows near the beachfront only sheltered by more tolerant plants, structures or dunes; low "well back"; within ~1/8 mile (200 m) of salt water plant at least moderately tolerant | Clemson HGIC, UF/IFAS, UGA (summaries) |
+
 
 ## Sources
 
@@ -411,4 +423,8 @@ All read through search summaries unless marked "read".
   https://ref.coastalrestorationtrust.org.nz/site/assets/files/3754/coastal_cliff_vegetation_of_the_catlins_region_otago_south_island_new_zealand.pdf ,
   https://sbbotanicgarden.org/wp-content/uploads/2022/08/Vivrette_1980-Zonation_coastal_plant_salt_level_correlation.pdf ,
   https://bioone.org/journals/Journal-of-Coastal-Research/volume-24/issue-sp3/07-0853.1/Characterizing-Environmental-Gradients-and-Their-Influence-on-Vegetation-Zonation-in/10.2112/07-0853.1.full ,
-  https://journals.flvc.org/jcr/article/view/80736 , https://data-ww3.ifremer.fr/BIB/Moore_etal_JCR2006.pdf (summaries)
+  https://journals.flvc.org/jcr/article/view/80736 , https://data-ww3.ifremer.fr/BIB/Moore_etal_JCR2006.pdf (summaries) ;
+  the wedge: https://ref.coastalrestorationtrust.org.nz/site/assets/files/11649/3_role_of_natural_regeneration_in_transitioning_coastal_exotic_buffers_to_native_forest.pdf (read) ,
+  https://www.fnai.org/PDFs/NC/Mar_Hammock.pdf , https://www.mass.gov/doc/maritime-forestwoodland/download ; shrub tiers:
+  https://hgic.clemson.edu/factsheet/salt-tolerant-plants/ , https://gardeningsolutions.ifas.ufl.edu/design/landscaping-for-specific-sites/salt-tolerant-plants/ ,
+  https://fieldreport.caes.uga.edu/?p=62267 (summaries)

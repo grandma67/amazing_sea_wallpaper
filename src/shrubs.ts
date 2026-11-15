@@ -114,3 +114,42 @@ export function shrubGrows(s: ShrubSpecies, day: ShrubDay): boolean {
 export function shrubsHere(day: ShrubDay, forced: readonly string[] = []): ShrubSpecies[] {
   return SHRUBS.filter(s => shrubGrows(s, day) || forced.includes(s.species))
 }
+
+/**
+ * How much salt spray a shrub takes (NATURE.md §9), by the extension
+ * services' tiers (UF/IFAS, Clemson, UGA): `high` withstands direct spray and
+ * makes the coast's first woody line; `moderate` grows near the beach only in
+ * the lee of the first line or the dunes (phenology.ts `SHRUB_LEE`). Rows
+ * name the bloom rows' kinds too (gorse, rock rose, wattle: older bush rows)
+ * and `plain`, a bush with no species (the coast's own strand scrub: arid
+ * saltbush, fynbos, …). Evidence: dune and strand shrubs by BUSHES.md (sea
+ * buckthorn, Japanese rose, sea grape, naupaka, Natal plum); coastal wattle
+ * 5–10 m tall on Northland's west-coast dunes (Tāne's Tree Trust); gorse and
+ * blackthorn on grazed, exposed cliff tops (NATURE.md §8); the rest est.
+ */
+export type SaltTolerance = 'high' | 'moderate'
+export const SALT_TOLERANCE: Record<ShrubKind | 'gorse' | 'rock-rose' | 'wattle' | 'plain', SaltTolerance> = {
+  'sea-buckthorn': 'high',
+  'rugosa-rose': 'high',
+  blackthorn: 'high',
+  hawthorn: 'moderate',
+  'spanish-broom': 'moderate',
+  lentisk: 'high',
+  'strawberry-tree': 'moderate',
+  myrtle: 'moderate',
+  'sea-grape': 'high',
+  naupaka: 'high',
+  'saw-palmetto': 'high',
+  'coast-banksia': 'high',
+  'coast-tea-tree': 'high',
+  manuka: 'moderate',
+  'bush-lupine': 'high',
+  salal: 'moderate',
+  willow: 'high',
+  calafate: 'moderate',
+  'natal-plum': 'high',
+  gorse: 'high',
+  'rock-rose': 'moderate',
+  wattle: 'high',
+  plain: 'high'
+}
