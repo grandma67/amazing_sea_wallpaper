@@ -163,12 +163,10 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
 
 - macOS: the picture survives logout/login (phase 2; the Store entry suggests yes; nothing
   found online).
-- macOS: the setter works when the `gui/$UID` LaunchAgent runs it, not only from a terminal
-  (phase 3; the Tahoe report in §2.4). If it doesn't, the fallback is a small unsigned helper
-  `.app` the agent starts with `open -g`, which runs in the GUI audit session. That one would
-  change the design.
 
-Settled 2026-11-15: Solus packages no cron (systemd backend); openSUSE's installer preselects
+Settled 2026-11-15: the setter works from the `gui/$UID` LaunchAgent (phase 3: `launchctl
+kickstart` → the run slept its random delay, then set the picture; no audit-session error; the
+Tahoe report doesn't apply to an agent bootstrapped into the GUI domain). Solus packages no cron (systemd backend); openSUSE's installer preselects
 no desktop (KDE and GNOME both stay supported).
 
 ## 3. Decisions
@@ -550,6 +548,19 @@ and one commit. The test harness comes first, so every later phase is checked by
        with the same version it says "up to date".
      - `--uninstall` leaves nothing from §1 behind.
      - A sleep through 07:M → the run happens on wake.
+   - **Built (2026-11-15):** `crons/test/cases-macos.sh` (17 cases) and golden plists in
+     `crons/test/golden/` (`plutil -lint` OK). Live on this Mac, against a real render served by
+     `test/server.py`: `--install` (the agent showed `Hour 7, Minute 20`, `runatload`, and set the
+     picture), `launchctl kickstart -k` with a stale state set it again from launchd (§2.5),
+     `--status`, `--uninstall` (no agent, plist or link left; the folder kept without `--yes`).
+     The original picture was restored. A folder with the user's own experiments already sat at
+     the install path: `--uninstall` without `--yes` keeps it, and only the files the install
+     added were removed by hand. Learned:
+     - `{ …; [ -n "$X" ] && printf …; } > tmp && mv tmp f` never moves when the last test is
+       false: the config was silently not written (the upgrade then re-installed against the
+       real site). Use `if` inside such groups.
+     - Not checked: the run on wake after a sleep through 07:M (launchd's documented behaviour;
+       needs the machine asleep), and the picture across logout/login (needs the user).
 4. **Linux detection** (same file, §4.4 steps 1–4).
    - Done when `run.sh` passes fake trees (`/proc` stand-ins, `pgrep`/`loginctl` stubs on `PATH`):
      - each row of the desktop table

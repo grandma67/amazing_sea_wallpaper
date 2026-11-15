@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>amazing-sea-wallpaper-retry</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>@CASE@/home/amazing-sea-wallpaper.sh</string>
+    <string>--retry</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>@CASE@/home/amazing-sea-wallpaper.log</string>
+  <key>StandardErrorPath</key>
+  <string>@CASE@/home/amazing-sea-wallpaper.log</string>
+</dict>
+</plist>

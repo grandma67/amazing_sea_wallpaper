@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Test runner for crons/amazing-sea-wallpaper.sh (plan: knowledge/plans/CRON.md, phase 1).
 #
-#   crons/test/run.sh [--bash PATH] [--script PATH] [--only REGEX] [CASE_FILE...]
+#   crons/test/run.sh [--bash PATH] [--script PATH] [--only REGEX] [--downloader curl|wget]
+#                     [CASE_FILE...]       (UPDATE_GOLDEN=1 rewrites crons/test/golden/)
 #
 # Each case file (default: crons/test/cases-*.sh) may set SCRIPT_UNDER_TEST (relative to crons/)
 # and defines functions named case_<name>. Each case gets a fresh fixture site, folder, request
@@ -23,6 +24,7 @@ CRONS=$(dirname "$HERE")
 BASH_UNDER_TEST=${BASH_UNDER_TEST:-}
 SCRIPT_OVERRIDE=
 ONLY=
+DOWNLOADER=
 CASE_FILES=()
 
 while [ $# -gt 0 ]; do
@@ -30,7 +32,8 @@ while [ $# -gt 0 ]; do
     --bash) BASH_UNDER_TEST=$2; shift 2 ;;
     --script) SCRIPT_OVERRIDE=$2; shift 2 ;;
     --only) ONLY=$2; shift 2 ;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    --downloader) DOWNLOADER=$2; shift 2 ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) CASE_FILES+=("$1"); shift ;;
   esac
 done
@@ -188,6 +191,7 @@ run_script() {
       AMAZING_SEA_WALLPAPER_STUBS=1 \
       AMAZING_SEA_WALLPAPER_OS="${CASE_OS:-macos}" \
       AMAZING_SEA_WALLPAPER_RANDOM="${CASE_RANDOM:-0}" \
+      AMAZING_SEA_WALLPAPER_DOWNLOADER="$DOWNLOADER" \
       ${CASE_ENV:+$CASE_ENV} \
       "$BASH_UNDER_TEST" "$SCRIPT" --url "$SITE_URL" "$@" > "$OUT" 2>&1
   EXIT=$?
@@ -203,7 +207,7 @@ run_raw() {
       AMAZING_SEA_WALLPAPER_HOME="$CASE_HOME" AMAZING_SEA_WALLPAPER_TODAY="$TODAY" \
       AMAZING_SEA_WALLPAPER_NOW_EPOCH="$NOW_EPOCH" AMAZING_SEA_WALLPAPER_STUBS=1 \
       AMAZING_SEA_WALLPAPER_OS="${CASE_OS:-macos}" AMAZING_SEA_WALLPAPER_RANDOM="${CASE_RANDOM:-0}" \
-      ${CASE_ENV:+$CASE_ENV} "$BASH_UNDER_TEST" "$SCRIPT" "$@" > "$OUT" 2>&1
+      AMAZING_SEA_WALLPAPER_DOWNLOADER="$DOWNLOADER" ${CASE_ENV:+$CASE_ENV} "$BASH_UNDER_TEST" "$SCRIPT" "$@" > "$OUT" 2>&1
   EXIT=$?
   RUNS=$((RUNS + 1))
 }

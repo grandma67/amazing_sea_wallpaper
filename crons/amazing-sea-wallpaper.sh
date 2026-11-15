@@ -450,7 +450,8 @@ setter_name() {
 # ---------- downloads ----------
 
 downloader() {
-  if [ -n "${AMAZING_SEA_WALLPAPER_DOWNLOADER:-}" ]; then echo "$AMAZING_SEA_WALLPAPER_DOWNLOADER"
+  if [ "${AMAZING_SEA_WALLPAPER_DOWNLOADER:-}" = none ]; then return 1
+  elif [ -n "${AMAZING_SEA_WALLPAPER_DOWNLOADER:-}" ]; then echo "$AMAZING_SEA_WALLPAPER_DOWNLOADER"
   elif command -v curl >/dev/null 2>&1; then echo curl
   elif command -v wget >/dev/null 2>&1; then echo wget
   elif command -v wget2 >/dev/null 2>&1; then echo wget2
@@ -820,7 +821,7 @@ do_install() {
   {
     printf 'minute=%s\nhour=%s\nportrait=%s\nurl=%s\nscheduler=%s\nproxy=%s\n' \
       "$minute" "$hour" "$OPT_PORTRAIT" "$URL" "$backend" "${https_proxy:-${HTTPS_PROXY:-}}"
-    [ -n "$OPT_SCHEDULER" ] && printf 'scheduler_forced=%s\n' "$OPT_SCHEDULER"
+    if [ -n "$OPT_SCHEDULER" ]; then printf 'scheduler_forced=%s\n' "$OPT_SCHEDULER"; fi
   } > "$CONFIG.tmp" && mv "$CONFIG.tmp" "$CONFIG"
 
   # the other Linux backend's entries go
