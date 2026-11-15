@@ -76,6 +76,12 @@ A GPU watchdog reset was suspected and ruled out: with `--disable-gpu-watchdog` 
 the same frames to the decimal (phone 0.0–114.3 mean 9.8, PC black) and no context loss, so the
 failure is deterministic on the runner (x86 SwiftShader, Ubuntu 26 migration from 10-19), likely
 a NaN (one NaN pixel in the meter makes the exposure NaN: the whole frame black). Since 0.195:
+- the `DEBUG=1` run (`6ef0262`) showed the meter fine on the runner (exposure 2.73,
+  `frameMedian` 0.164 phone, 0.188 PC) and the frame black after it: the black is made in
+  `finish` (bloom). Reproduced on the Mac by writing NaN into a 1%-wide patch after the grade:
+  the whole frame went black (luma 0–0); with the meter's guard, normal. So `FrameMeterPass`
+  zeroes NaN/±∞ pixels (bit test, not `isnan`) before bloom and reports `frameNonFinite` (meter
+  cells, each 16 samples: a lower bound). The Mac reads 0 on 11-14 and 11-15;
 - `DEBUG=1` in `pages.yml`: each render's debug numbers in the log (NaN prints as "NaN");
 - a blank frame is kept as `NAME.blank.jpg`/`.json` (not published); a failed render step
   uploads `$RUNNER_TEMP/daily` as the run's `failed-render` artifact;

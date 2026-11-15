@@ -1202,6 +1202,8 @@ export async function renderScene(
       // The frame's own meter (frameMeter.ts): its exposed median before the
       // boost, and the boost.
       frameMedian: meter.medianExposed,
+      // Meter cells that read NaN or ±∞ (zeroed before bloom: frameMeter.ts).
+      frameNonFinite: meter.nonFinite,
       // The props' sky light: what the cube gives a level surface, and the
       // starlit top-up (ambient).
       cubeSkylight,

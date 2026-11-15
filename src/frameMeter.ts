@@ -53,6 +53,9 @@ void main() {
 export class FrameMeterPass extends Pass {
   /** The last reading: exposed median before the boost. */
   medianExposed = 0
+  /** Meter cells (each the mean of 16 frame samples) that read NaN or ±∞ on the
+   * last reading: a bad pixel the shader below zeroes before bloom spreads it. */
+  nonFinite = 0
   boost = 1
   /** A boost metered earlier and kept (a storm night: metered with the
    * lightning off, lightning.ts); the median is still read. */
@@ -86,9 +89,16 @@ export class FrameMeterPass extends Pass {
       uniform sampler2D map;
       uniform float boost;
       varying vec2 vUv;
+      // NaN or ±∞, read from the bits: compilers may fold isnan() away (Metal
+      // fast-math). min() on a NaN is undefined: Apple's GPUs give the other
+      // operand, x86 SwiftShader can keep the NaN, and bloom's blur then spreads
+      // it over most of the frame as black (CI, 2026-11-15; tools/RENDER.md
+      // "Blank frames"). Zeroed here, the last pass before bloom.
+      bool nonFinite(float x) { return (floatBitsToUint(x) & 0x7f800000u) == 0x7f800000u; }
       void main() {
         vec4 c = texture2D(map, vUv);
-        gl_FragColor = vec4(c.rgb * boost, c.a);
+        bool bad = nonFinite(c.r) || nonFinite(c.g) || nonFinite(c.b);
+        gl_FragColor = vec4(bad ? vec3(0.0) : c.rgb * boost, c.a);
       }
     `,
     uniforms: { map: new Uniform<Texture | null>(null), boost: new Uniform(1) },
@@ -110,6 +120,7 @@ export class FrameMeterPass extends Pass {
     renderer.readRenderTargetPixels(this.small, 0, 0, METER_W, METER_H, this.pixels)
     const lum = new Float32Array(METER_W * METER_H)
     for (let i = 0; i < lum.length; i++) lum[i] = this.pixels[i * 4]
+    this.nonFinite = lum.reduce((n, v) => (Number.isFinite(v) ? n : n + 1), 0)
     this.medianExposed = median(lum)
     this.boost = this.held ?? this.boostFor(this.medianExposed)
 

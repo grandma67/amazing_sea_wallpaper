@@ -298,7 +298,10 @@ phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed 
   same frames to the decimal): the failure is deterministic on the runner. **Suspected:** a NaN
   in the meter or exposure on x86 SwiftShader or the Ubuntu 26 image. Since 0.195 a lost context
   fails the render, both sizes publish together or not at all, and a failed run keeps its frames
-  and debug numbers (`failed-render` artifact, `DEBUG=1` log).
+  and debug numbers (`failed-render` artifact, `DEBUG=1` log). **Measured** on the runner: the
+  meter reads a normal frame (median 0.16–0.19), so the black is made by bloom; a NaN patch
+  reproduces it on the Mac. The frame meter now zeroes NaN/±∞ before bloom and reports
+  `frameNonFinite`; which shader makes the NaN on x86 SwiftShader is **not found** yet.
 - **The scheduled render finishes late** (measured from the Actions API, CRON.md §2.1): 01:10–
   07:43 UTC over 10 days for a 00:05 UTC schedule, so in Europe the 07:xx desktop run often finds
   no picture yet and waits for its re-run (08:00 UTC or later).

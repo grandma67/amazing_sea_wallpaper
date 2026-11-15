@@ -464,7 +464,9 @@ tool gotchas: TOOLS.md.
   octave touching it differs (airglow fbm 0.63 on the CPU, 0.22 on the GPU), even with "sine-free"
   hashes. Each patch prefixes its copy (`ng`, `au`): patches share one shader.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
-  bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN terrain.
+  bloom dashes (Metal fast-math also defeats `isnan`). `min(NaN, x)` is undefined: Apple GPUs
+  give x, x86 SwiftShader keeps the NaN and bloom's blur spreads it over the whole frame as black
+  (CI 0.195). The frame meter zeroes NaN/±∞ by their bits before bloom (`frameNonFinite`). Overflowing `exp()` gave NaN terrain.
 
 ## takram sky, clouds, post
 
