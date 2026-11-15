@@ -55,7 +55,9 @@ tool gotchas: TOOLS.md.
   (a black 1080p JPEG is 13 KB from the browser, 34 KB from `sips`): test pixels (luma range,
   `snapshot.mjs --fail-blank`) where they're available. Render the darkest/brightest real days
   (`--where … --sample`) before fixing a number.
-- **A CI-only render failure is reproduced on the runner, not guessed at** (0.195): 11-15 rendered
+- **A CI-only render failure is reproduced on the runner, not guessed at** (0.195): a fix for a
+  guessed cause (the GPU watchdog) cost a run; identical numbers twice meant deterministic, which
+  a timing cause can't be. Get the failing frame and its numbers off the runner first. 11-15 rendered
   fine on the Mac with the same Chromium and SwiftShader, and its half-black phone frame passed the
   blank test. Read the published files, not only the run log, and test the fix with a run on
   the runner itself (the Pages workflow). Copy outputs into the published folder only after every

@@ -72,9 +72,13 @@ lowered for the same reason (`crons/`, 1.0.1).
 The 0.194 run hit it again: PC black (stopped), phone drawn only in its top ~9% (luma 0–114,
 mean 9.8: passed, published). The same day at CI settings (`--angle swiftshader --channel
 chromium`) renders normally on the Mac (luma 4.8–191.8, mean 121), so the runner is the cause.
-Suspected: Chromium's GPU watchdog resets the GPU process during one slow SwiftShader draw and
-the canvas keeps what was drawn so far. So, since 0.195:
-- `--gpu-watchdog on|off` (default off with SwiftShader: `--disable-gpu-watchdog`);
+A GPU watchdog reset was suspected and ruled out: with `--disable-gpu-watchdog` the runner gave
+the same frames to the decimal (phone 0.0–114.3 mean 9.8, PC black) and no context loss, so the
+failure is deterministic on the runner (x86 SwiftShader, Ubuntu 26 migration from 10-19), likely
+a NaN (one NaN pixel in the meter makes the exposure NaN: the whole frame black). Since 0.195:
+- `DEBUG=1` in `pages.yml`: each render's debug numbers in the log (NaN prints as "NaN");
+- a blank frame is kept as `NAME.blank.jpg`/`.json` (not published); a failed render step
+  uploads `$RUNNER_TEMP/daily` as the run's `failed-render` artifact;
 - a render whose WebGL context was lost fails (`scene.ts`): `⚠ render failed`, the GL messages,
   not saved, exit 1;
 - `pages.yml` renders both sizes into `$RUNNER_TEMP` and copies them into `dist/` only when both

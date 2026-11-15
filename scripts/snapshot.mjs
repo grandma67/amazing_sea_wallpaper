@@ -14,9 +14,6 @@
 //                     that depends on the day's seed); saved as NAME-s1, NAME-s2…
 // --out DIR (out)  --w 3840 --h 2160  --frames N (page default 64)  --quality 0.92
 // --url http://localhost:5174/  --angle metal|swiftshader  --channel chrome|chromium
-// --gpu-watchdog on|off  Chromium's GPU hang watchdog (default: off with swiftshader, where
-//                     one slow draw on a CI runner can trip it, reset the GPU and leave a
-//                     half-black frame; on otherwise). tools/RENDER.md "Blank frames".
 // --props KINDS|all   per prop: placed, in frame, nearest m, triangles (× instances), pixel box, CPU build
 //                     time; then the three slowest kinds
 // --crop KINDS|all    also save NAME.KIND.jpg cropped to that prop's box
@@ -33,6 +30,7 @@
 //                     luma levels, e.g. a black canvas) is not saved and the run exits 1 after
 //                     the others; prints each frame's luma range. CI uses it, so a failed
 //                     render never becomes latest.jpg (2026-11-15 published a black frame).
+//                     The blank frame goes to NAME.blank.jpg/.json for a look instead.
 // --ref REF           render that commit (worktree on port 5177); implies --drop-unknown
 // --drop-unknown      leave out (and name) spec fields the served commit rejects
 // DEBUG=1             print each render's debug (exposure, luminance, …)
@@ -74,8 +72,6 @@ const frames = option('frames', null)
 const channel = option('channel', process.env.CI ? undefined : 'chrome')
 // 'metal' uses the Mac's GPU; 'swiftshader' is software WebGL (CI has no GPU).
 const angle = option('angle', process.env.CI ? 'swiftshader' : 'metal')
-const watchdog = option('gpu-watchdog', angle === 'swiftshader' ? 'off' : 'on')
-if (watchdog !== 'on' && watchdog !== 'off') throw new Error(`--gpu-watchdog must be on or off, not ${watchdog}`)
 const timeoutMs = Number(option('timeout', 5 * 60_000))
 const sceneArg = option('scene', null)
 const whereArg = option('where', null)
@@ -92,6 +88,9 @@ const failBlank = flag('fail-blank')
 // this (knowledge/tools/RENDER.md "Blank frames"); a black canvas spans 0.
 const BLANK_RANGE = 4
 let blankFrames = 0
+/** JSON.stringify writes NaN and ±Infinity as null: keep them readable (a NaN exposure is
+ * what blackens a whole frame). */
+const keepNonFinite = (_key, value) => (typeof value === 'number' && !Number.isFinite(value) ? String(value) : value)
 // Renders the page reported as failed (a lost WebGL context, a shader error…).
 let failedRenders = 0
 // A misspelt or unsupported option (e.g. --match) used to be ignored and the
@@ -162,13 +161,7 @@ if (ref != null) {
 
 const browser = await chromium.launch({
   channel,
-  args: [
-    '--ignore-gpu-blocklist',
-    '--enable-gpu',
-    `--use-angle=${angle}`,
-    '--enable-unsafe-swiftshader',
-    ...(watchdog === 'off' ? ['--disable-gpu-watchdog'] : [])
-  ]
+  args: ['--ignore-gpu-blocklist', '--enable-gpu', `--use-angle=${angle}`, '--enable-unsafe-swiftshader']
 })
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
 page.setDefaultTimeout(timeoutMs)
@@ -266,8 +259,12 @@ for (const { date, spec: asked, name } of todo) {
   const blank = luma.max - luma.min < BLANK_RANGE
   if (failBlank) console.log(`  frame luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)}, mean ${luma.mean.toFixed(1)}${blank ? ' ⚠ BLANK' : ''}`)
   if (blank) {
-    console.log(`  ⚠ blank frame: luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)} (a failed render?)${failBlank ? '; not saved' : ''}`)
+    console.log(`  ⚠ blank frame: luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)} (a failed render?)${failBlank ? `; not saved (kept as ${name}.blank.jpg)` : ''}`)
     if (failBlank) {
+      // Kept for a look, under a name nothing publishes, with its debug numbers.
+      await writeFile(join(outDir, `${name}.blank.jpg`), Buffer.from(dataUrl.split(',')[1], 'base64'))
+      await writeFile(join(outDir, `${name}.blank.json`), JSON.stringify({ ...params, spec }, keepNonFinite, 2))
+      if (process.env.DEBUG) console.log(JSON.stringify(params.debug, keepNonFinite))
       blankFrames++
       continue
     }
@@ -275,7 +272,7 @@ for (const { date, spec: asked, name } of todo) {
   await writeFile(file, Buffer.from(dataUrl.split(',')[1], 'base64'))
   await writeFile(join(outDir, `${name}.json`), JSON.stringify({ ...params, spec }, null, 2))
   console.log(`${file}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${params.title}`)
-  if (process.env.DEBUG) console.log(JSON.stringify(params.debug))
+  if (process.env.DEBUG) console.log(JSON.stringify(params.debug, keepNonFinite))
   // The pixel probe (params.debug.probe): one line per point.
   for (const r of params.debug?.probe ?? []) {
     const at = Array.isArray(r.at) ? `[${r.at.join(', ')}]` : r.at.world != null ? `world ${r.at.world.join(',')}` : r.at.mirror != null ? `mirror of ${r.at.mirror.join(',')}` : `az ${r.at.az} el ${r.at.el}`

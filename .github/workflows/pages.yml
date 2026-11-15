@@ -43,8 +43,13 @@ jobs:
       - run: npm run build
 
       - name: Render today's wallpaper
+        id: render
         continue-on-error: true
         timeout-minutes: 120
+        # Each render's debug numbers (exposure, scene luminance, frame meter) in the log;
+        # a NaN prints as "NaN" (tools/RENDER.md "Blank frames").
+        env:
+          DEBUG: '1'
         run: |
           npx playwright install --with-deps chromium
           npx vite preview --port 4173 --strictPort &
@@ -72,6 +77,15 @@ jobs:
           cp "$OUT/phone/$TODAY.json" dist/latest-portrait.json
           cp "$OUT/pc/$TODAY.jpg" dist/latest.jpg
           cp "$OUT/pc/$TODAY.json" dist/latest.json
+
+      # A failed render: its frames (a blank one as NAME.blank.jpg/.json) for a look,
+      # downloadable from the run's page. Not published.
+      - uses: actions/upload-artifact@v5
+        if: steps.render.outcome == 'failure'
+        with:
+          name: failed-render
+          path: ${{ runner.temp }}/daily
+          if-no-files-found: warn
 
       - uses: actions/upload-pages-artifact@v5
         with:
