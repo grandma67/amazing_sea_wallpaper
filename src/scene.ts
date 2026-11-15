@@ -67,6 +67,7 @@ import { eclipseSky } from './eclipse'
 import type { DebugPass } from './debug'
 import { ICE_REFLECTANCE, meterScene } from './exposure'
 import { frameBoost, frameBoostRule, FrameMeterPass, longExposureLook, shutterSeconds } from './frameMeter'
+import { NonFiniteStagePass, passLabel, traceMeshes } from './nanTrace'
 import { cloudDrift } from './cloudArrangement'
 import { windDirection } from './props/wind'
 import { FogEffect } from './fog'
@@ -888,6 +889,15 @@ export async function renderScene(
   // (passes.frameMeter) or with a pinned exposure it still reads, at ×1.
   const boostRule = params.debug?.exposure == null && pass('frameMeter') ? frameBoostRule(params) : null
   const meter = new FrameMeterPass(m => (boostRule == null ? 1 : frameBoost(m, boostRule)))
+  // debug.nanTrace: a NaN/∞ reading after every pass so far (nanTrace.ts).
+  const nanStages: NonFiniteStagePass[] = []
+  if (params.debug?.nanTrace === true) {
+    for (const p of [...composer.passes]) {
+      const stage = new NonFiniteStagePass(passLabel(p))
+      composer.addPass(stage, composer.passes.indexOf(p) + 1)
+      nanStages.push(stage)
+    }
+  }
   composer.addPass(meter)
   const probePass = allBoxes.length > 0 ? new ProbePass(allBoxes, height) : null
   if (probePass != null) composer.addPass(probePass)
@@ -1115,6 +1125,7 @@ export async function renderScene(
     meter.enabled = last || firstLook
     if (probePass != null) probePass.enabled = last
     if (skyDenoise != null) skyDenoise.enabled = last
+    for (const stage of nanStages) stage.enabled = last
     composer.render(1 / 60)
     if (firstLook) {
       restarted = true
@@ -1144,6 +1155,15 @@ export async function renderScene(
       const done = gpuIdle(renderer.getContext() as WebGL2RenderingContext)
       if (previousFrame != null) await previousFrame
       previousFrame = done
+    }
+  }
+  // Before the jitter goes: the meshes are drawn as the last frame was.
+  let nanTrace: Record<string, unknown> | undefined
+  if (nanStages.length > 0) {
+    const sceneBox = nanStages[0].reading?.box ?? null
+    nanTrace = {
+      stages: nanStages.map(s => ({ after: s.after, ...s.reading })),
+      meshes: sceneBox != null ? traceMeshes(renderer, scene, camera, sceneBox, width, height) : null
     }
   }
   camera.clearViewOffset()
@@ -1204,6 +1224,7 @@ export async function renderScene(
       frameMedian: meter.medianExposed,
       // Meter cells that read NaN or ±∞ (zeroed before bloom: frameMeter.ts).
       frameNonFinite: meter.nonFinite,
+      nanTrace,
       // The props' sky light: what the cube gives a level surface, and the
       // starlit top-up (ambient).
       cubeSkylight,

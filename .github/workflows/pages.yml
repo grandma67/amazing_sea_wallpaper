@@ -78,6 +78,32 @@ jobs:
           cp "$OUT/pc/$TODAY.jpg" dist/latest.jpg
           cp "$OUT/pc/$TODAY.json" dist/latest.json
 
+      # TEMPORARY (remove after one run): where x86 SwiftShader's NaN pixels on 2026-11-15
+      # come from (params.debug.nanTrace: each pass's NaN count and positions, each object
+      # drawn alone). Not published; the log has it, the nan-trace artifact the frames.
+      - name: Trace NaN on 2026-11-15 (temporary)
+        continue-on-error: true
+        timeout-minutes: 40
+        run: |
+          if ! curl -sf http://localhost:4173/ > /dev/null; then
+            npx vite preview --port 4173 --strictPort &
+            for i in $(seq 1 30); do curl -sf http://localhost:4173/ > /dev/null && break; sleep 1; done
+          fi
+          for size in "phone 1290 2796" "pc 1920 1080"; do
+            set -- $size
+            node scripts/snapshot.mjs --url http://localhost:4173/ --out "$RUNNER_TEMP/trace" \
+              --w "$2" --h "$3" --frames 24 --budget 1200 \
+              --scene "{\"name\":\"$1\",\"date\":\"2026-11-15\",\"params\":{\"debug\":{\"nanTrace\":true}}}" || true
+          done
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        continue-on-error: true
+        with:
+          name: nan-trace
+          path: ${{ runner.temp }}/trace
+          if-no-files-found: warn
+
       # A failed render: its frames (a blank one as NAME.blank.jpg/.json) for a look,
       # downloadable from the run's page. Not published.
       - uses: actions/upload-artifact@v5

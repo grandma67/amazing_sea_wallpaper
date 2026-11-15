@@ -88,6 +88,17 @@ const failBlank = flag('fail-blank')
 // this (knowledge/tools/RENDER.md "Blank frames"); a black canvas spans 0.
 const BLANK_RANGE = 4
 let blankFrames = 0
+/** params.debug.nanTrace (src/nanTrace.ts) as short lines: CI logs cut a long one. */
+function printNanTrace(trace) {
+  if (trace == null) return
+  for (const st of trace.stages) {
+    const where = st.box == null ? '' : ` box ${st.box.join(',')} at ${st.at.map(p => p.join(',')).join(' ')}`
+    console.log(`  nanTrace after ${st.after}: ${st.nan} NaN, ${st.inf} inf${where}`)
+  }
+  if (trace.meshes == null) return console.log('  nanTrace meshes: not run (the scene pass is clean)')
+  console.log(`  nanTrace meshes: ${trace.meshes.found.length} of ${trace.meshes.tested} drawn objects make NaN/inf alone`)
+  for (const m of trace.meshes.found) console.log(`    ${m.path} [${m.material}] (${m.what}): ${m.nan} NaN, ${m.inf} inf`)
+}
 /** JSON.stringify writes NaN and ±Infinity as null: keep them readable (a NaN exposure is
  * what blackens a whole frame). */
 const keepNonFinite = (_key, value) => (typeof value === 'number' && !Number.isFinite(value) ? String(value) : value)
@@ -265,6 +276,7 @@ for (const { date, spec: asked, name } of todo) {
       await writeFile(join(outDir, `${name}.blank.jpg`), Buffer.from(dataUrl.split(',')[1], 'base64'))
       await writeFile(join(outDir, `${name}.blank.json`), JSON.stringify({ ...params, spec }, keepNonFinite, 2))
       if (process.env.DEBUG) console.log(JSON.stringify(params.debug, keepNonFinite))
+      printNanTrace(params.debug?.nanTrace)
       blankFrames++
       continue
     }
@@ -273,6 +285,7 @@ for (const { date, spec: asked, name } of todo) {
   await writeFile(join(outDir, `${name}.json`), JSON.stringify({ ...params, spec }, null, 2))
   console.log(`${file}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${params.title}`)
   if (process.env.DEBUG) console.log(JSON.stringify(params.debug, keepNonFinite))
+  printNanTrace(params.debug?.nanTrace)
   // The pixel probe (params.debug.probe): one line per point.
   for (const r of params.debug?.probe ?? []) {
     const at = Array.isArray(r.at) ? `[${r.at.join(', ')}]` : r.at.world != null ? `world ${r.at.world.join(',')}` : r.at.mirror != null ? `mirror of ${r.at.mirror.join(',')}` : `az ${r.at.az} el ${r.at.el}`

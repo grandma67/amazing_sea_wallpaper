@@ -65,6 +65,11 @@ export interface DebugParams {
    * wet rock (m, and where in the image), in `debug.water`. Changes nothing
    * in the picture. */
   water?: boolean
+  /** Find where NaN/∞ pixels come from (nanTrace.ts): after every pass up to
+   * the frame meter, the full-resolution count, box and positions; and each
+   * drawn object alone over the scene pass's bad pixels. In `debug.nanTrace`.
+   * Changes nothing in the picture. */
+  nanTrace?: boolean
   /** Read the terrain shader's own terms (terrainTerms.ts TERRAIN_TERMS: h,
    * s, a, x, z, pools, wet, snow, rockBare…) at image or world points and/or
    * on a grid every N px, in `debug.terrainProbe`. Changes nothing in the
