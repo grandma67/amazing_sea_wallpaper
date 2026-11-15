@@ -1,0 +1,8 @@
+[Unit]
+Description=Amazing Sea Wallpaper: today's picture as the desktop background (re-run)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env bash "@CASE@/home/amazing-sea-wallpaper.sh" --retry
+StandardOutput=append:@CASE@/home/amazing-sea-wallpaper.log
+StandardError=append:@CASE@/home/amazing-sea-wallpaper.log

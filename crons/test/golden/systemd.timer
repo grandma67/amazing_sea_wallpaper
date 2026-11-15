@@ -1,0 +1,10 @@
+[Unit]
+Description=Amazing Sea Wallpaper
+
+[Timer]
+OnCalendar=*-*-* 07:17:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=Amazing Sea Wallpaper re-run
+
+[Timer]
+OnCalendar=2026-11-14 09:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

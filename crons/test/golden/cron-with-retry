@@ -1,0 +1,4 @@
+# m h dom mon dow command
+0 1 * * * echo mine
+0 7 * * * /usr/bin/env bash '@CASE@/home/amazing-sea-wallpaper.sh' >> '@CASE@/home/amazing-sea-wallpaper.log' 2>&1 # amazing-sea-wallpaper
+30 9 14 11 * /usr/bin/env bash '@CASE@/home/amazing-sea-wallpaper.sh' --retry >> '@CASE@/home/amazing-sea-wallpaper.log' 2>&1 # amazing-sea-wallpaper-retry

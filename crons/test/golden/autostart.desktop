@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Amazing Sea Wallpaper
+Comment=Sets today's Amazing Sea Wallpaper picture at login
+Exec=/usr/bin/env bash "@CASE@/home/amazing-sea-wallpaper.sh" --login
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=30
