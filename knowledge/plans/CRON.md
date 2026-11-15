@@ -13,7 +13,7 @@ so users don't all hit the site at once.
     desktops.
   - macOS, and Windows 10/11 (activated).
 
-Status: plan (2026-11-14). Nothing built. The README section is marked "planned" until phase 9.
+Status: plan (2026-11-14; open questions researched 2026-11-15). Building: phase 1. The README section is marked "planned" until phase 9.
 Testing: on this Mac (macOS 27.0.1, bash 3.2.57) during the build; Linux and Windows later.
 Until a distro is tried, it ships labelled untested.
 
@@ -80,8 +80,8 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
 | elementary OS 8 | Pantheon (Gala 8.x), `Pantheon` | yes (Ubuntu 24.04 base) | as Ubuntu | base manifest; settings source below |
 | Pop!_OS 24.04 | COSMIC (epoch 1.11), `COSMIC` | yes (Ubuntu 24.04 base) | as Ubuntu | `cosmic-session` `data/start-cosmic` sets `XDG_CURRENT_DESKTOP=COSMIC` |
 | Fedora 43/44 Workstation | GNOME, `GNOME` | **no** (cron dropped from Workstation in F34) | curl yes (dnf); wget is wget2 | [Fedora WS #183](https://pagure.io/fedora-workstation/issue/183), [Fedora KDE #485](https://pagure.io/fedora-kde/SIG/issue/485) |
-| openSUSE Tumbleweed / Leap 16 | KDE Plasma or GNOME (installer choice; moving to the Agama installer in 2026) | **no** (systemd timers by policy) | curl yes | [opensuse-factory](https://lists.opensuse.org/archives/list/factory@lists.opensuse.org/thread/LK6DLRW7KNYHTQWDMLC2FTVOATZP5VO3/), [Phoronix](https://phoronix.com/news/openSUSE-Tumbleweed-Goes-Agama) |
-| Solus 4.x Budgie | Budgie 10.10 (Wayland, labwc), `Budgie:GNOME` | not established; the design works either way | — | [Budgie on Solus](https://aquilapl.github.io/Budgie-test-10.10/) |
+| openSUSE Tumbleweed / Leap 16 | KDE Plasma or GNOME: **no default**, the user must pick one (Agama 21: "openSUSE does not endorse any of those environments as the default option"; Tumbleweed moves to Agama before the end of 2026) | **no** (systemd timers by policy) | curl yes | [opensuse-factory](https://lists.opensuse.org/archives/list/factory@lists.opensuse.org/thread/LK6DLRW7KNYHTQWDMLC2FTVOATZP5VO3/), [Phoronix](https://phoronix.com/news/openSUSE-Tumbleweed-Goes-Agama), [Agama 21](https://agama-project.github.io/blog/2026/05/21/agama-21), [openSUSE News 2026-11-09](https://news.opensuse.org/2026/11/09/agama-is-coming-to-tw/) |
+| Solus 4.x Budgie | Budgie 10.10 (Wayland, labwc), `Budgie:GNOME` | **no**: no cron daemon is packaged at all (no `cronie`, `fcron`, `dcron`, `anacron`) | — | full tree of [getsolus/packages](https://github.com/getsolus/packages) (39 413 entries, not truncated) searched for `cron`, 2026-11-15; [Budgie on Solus](https://aquilapl.github.io/Budgie-test-10.10/) |
 | Arch | none (archinstall profiles) | **no** (cronie optional and not enabled) | curl always (pacman) | [Arch wiki Cron](https://wiki.archLINUX.org/title/Cron), [FS#38255](https://bugs.archlinux.org/task/38255) |
 | Gentoo | none | user's choice; **OpenRC** by default (no systemd user manager) | wget in @system | — |
 
@@ -132,10 +132,25 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
     old picture, and the new one after ~4 s.
   - It's saved in `~/Library/Application Support/com.apple.wallpaper/Store/Index.plist` under the
     current Space as a `com.apple.wallpaper.choice.image` choice, so it's stored on disk, not
-    just shown.
+    just shown. The choice's `Configuration` is a nested bplist (base64 in the XML) holding a
+    `file://` URL to the picture, a reference, not a copy (2026-11-15: two entries point to
+    our file, two still to `DefaultDesktop.heic`, probably other Spaces or the idle record).
+    The readback matched after ~1 s that time.
   - No Apple Events permission was asked. The original picture was restored afterwards.
 - **macOS, not this route:** "System Events" from a launchd job fails with −1743 (no consent
   prompt there) ([Apple forum](https://discussions-jp-prz.apple.com/thread/255432048)).
+- **macOS, a risk for scheduled runs (one user's report, Tahoe 26):** cron jobs there fail with
+  "Could not switch to audit session: Operation not permitted"; `setDesktopImageURL` from cron
+  was "unstable on schedule" and from a LaunchAgent "partially worked" (loaded with the legacy
+  `launchctl load`, domain not said). A GUI menu-bar app worked every time
+  ([Apple Community](https://discussions.apple.com/thread/256136171)). Our test ran from a
+  terminal, so the setter from a `gui/$UID` LaunchAgent is unproven: phase 3 tests it.
+- **macOS, why pictures revert after a restart (user reports):** the picture file deleted,
+  Auto-Rotate or a dynamic wallpaper on, an external display plugged or unplugged
+  ([MakeUseOf](https://www.makeuseof.com/how-to-fix-mac-wallpaper-changing-after-restart/),
+  [MacRumors](https://forums.macrumors.com/threads/wallpaper-resets-every-time-when-using-external-monitor.2441114)).
+  The first is ours to avoid (never prune the set file); nothing found on NSWorkspace-set
+  pictures and logout.
 - **launchd:** `man launchd.plist`: with `StartCalendarInterval`, "unlike cron which skips job
   invocations when the computer is asleep, launchd will start the job the next time the computer
   wakes up", with missed intervals coalesced into one. A powered-off Mac is covered by `RunAtLoad`
@@ -146,9 +161,15 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
 
 ### 2.5 Still open (settled during the build, none changes the design)
 
-- macOS: the picture survives logout/login (phase 2; the Store entry suggests yes).
-- Solus: whether cron is present. Either backend works.
-- openSUSE: which of KDE or GNOME the new installer preselects. Both are supported.
+- macOS: the picture survives logout/login (phase 2; the Store entry suggests yes; nothing
+  found online).
+- macOS: the setter works when the `gui/$UID` LaunchAgent runs it, not only from a terminal
+  (phase 3; the Tahoe report in §2.4). If it doesn't, the fallback is a small unsigned helper
+  `.app` the agent starts with `open -g`, which runs in the GUI audit session. That one would
+  change the design.
+
+Settled 2026-11-15: Solus packages no cron (systemd backend); openSUSE's installer preselects
+no desktop (KDE and GNOME both stay supported).
 
 ## 3. Decisions
 
@@ -183,7 +204,7 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
   1. A `crontab` command and a running daemon (`pgrep -x` `cron`, `crond` or `fcron`): **cron**.
      This covers Ubuntu, Debian, Mint, Zorin, elementary, Pop!_OS, and Gentoo with a cron.
   2. Else `systemctl --user` works: **systemd timer**. This covers Fedora, openSUSE, Arch, and
-     Solus without cron.
+     Solus (no cron packaged).
   3. Else exit 4 with the distro's install line (Gentoo OpenRC:
      `emerge sys-process/cronie && rc-update add cronie default`).
 
@@ -257,7 +278,8 @@ today_utc = date -u +%F
           or --retry or --now)                       GET latest.jpg?d=<that date>; check; set it as <that date>
 5. today's not set (404, failed or bad image)
    and not --retry/--now and state.retry_day != today → schedule the one re-run; retry_day = today (local)
-6. after any set: verify, write state (date, sha256, title, set_at), prune to 7, cancel a pending re-run
+6. after any set: verify, write state (date, sha256, title, set_at), prune to 7 (never the file now
+   set: macOS stores a file:// URL to it, not a copy, §2.4), cancel a pending re-run
 
 check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 50 KB; moved to wallpapers/<date>.jpg
 ```
@@ -486,6 +508,9 @@ and one commit. The test harness comes first, so every later phase is checked by
      `--upgrade`, `--uninstall`, the command link.
    - Done when:
      - `--status` and `launchctl print gui/$UID/amazing-sea-wallpaper` show 07:M.
+     - The setter works from the agent, not just a terminal: with a stale state,
+       `launchctl kickstart gui/$UID/amazing-sea-wallpaper` changes the picture on every display,
+       and the log has no audit-session error (§2.4).
      - A stale fixture → one `amazing-sea-wallpaper-retry.plist` at the right local time;
        running again makes none; `--retry` deletes it.
      - `--upgrade` on a fixture with a higher `VERSION` replaces the copy by `mv` and re-installs;
