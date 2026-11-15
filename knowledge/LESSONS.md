@@ -41,6 +41,18 @@ tool gotchas: TOOLS.md.
   thrown away) and the server's output went to `ignore`. Keep a failing run's whole output; give
   every long-lived child a log; check the thing you wait on is still alive.
 
+- **BSD `date -j -f FORMAT` fills fields the format lacks from now** (CRON phase 2): parsing
+  `'%Y-%m-%d %H:%M'` kept the current seconds, so 08:00 UTC came out 54 s late. Always parse
+  seconds (`… %H:%M:%S` with `:00`).
+- **`{ a; [ -n "$x" ] && b; } > tmp && mv tmp f` doesn't move when `$x` is empty** (CRON
+  phase 3): the group's status is the last test's, so the config was silently never written.
+  Use `if` inside a redirected group.
+- **Windows PowerShell 5.1 reads a BOM-less UTF-8 `.ps1` as ANSI** (CRON phase 7): keep scripts
+  ASCII (CI checks), and don't name a function after a built-in (`Write-Log` is one on 6.1+).
+- **Test a system change on a real machine with a way back first** (CRON phase 3): the install
+  path already held the user's own experiments, so the live test listed the folder before,
+  uninstalled without `--yes`, and removed only the files it had added.
+
 ## Debugging approach
 
 - **Reflection on the Morning Glory (0.180, 2 look rounds + 2 bench runs).** It repeated two of

@@ -13,7 +13,10 @@ so users don't all hit the site at once.
     desktops.
   - macOS, and Windows 10/11 (activated).
 
-Status: plan (2026-11-14; open questions researched 2026-11-15). Phase 1 done (2026-11-15); next: phase 2. The README section is marked "planned" until phase 9.
+Status: built (2026-11-15): phases 1–9 done, version 1.0.0. 116 test cases pass (bash 3.2 and with
+GNU `date`, curl and wget, pwsh 7.7). Live on this Mac (macOS 27.0.1): `--now`, `--install`, the
+LaunchAgent setting the picture, `--uninstall`. Left for real machines: every Linux edition and
+Windows (the list at the end of §6), the picture across a macOS logout, a sleep through 07:M.
 Testing: on this Mac (macOS 27.0.1, bash 3.2.57) during the build; Linux and Windows later.
 Until a distro is tried, it ships labelled untested.
 
@@ -548,7 +551,7 @@ and one commit. The test harness comes first, so every later phase is checked by
        with the same version it says "up to date".
      - `--uninstall` leaves nothing from §1 behind.
      - A sleep through 07:M → the run happens on wake.
-   - **Built (2026-11-15):** `crons/test/cases-macos.sh` (17 cases) and golden plists in
+   - **Built (2026-11-15):** `crons/test/cases-macos.sh` (16 cases) and golden plists in
      `crons/test/golden/` (`plutil -lint` OK). Live on this Mac, against a real render served by
      `test/server.py`: `--install` (the agent showed `Hour 7, Minute 20`, `runatload`, and set the
      picture), `launchctl kickstart -k` with a stale state set it again from launchd (§2.5),
@@ -603,12 +606,23 @@ and one commit. The test harness comes first, so every later phase is checked by
    - `macos-latest`: `run.sh` under `/bin/bash` 3.2, with stubs.
    - `windows-latest`: PSScriptAnalyzer and the `.ps1` cases under PowerShell 5.1 and 7, with
      stubs.
+   - **Built (2026-11-15):** `.github/workflows/crons.yml` (not run yet: it runs on the first push
+     touching `crons/`). Changed from the plan: the `.ps1` cases run under `pwsh` in the ubuntu
+     and macOS jobs (both images have it); `windows-latest` runs PSScriptAnalyzer, a 5.1 parse
+     plus an ASCII check, and `crons/test/ps1-smoke.ps1` under 5.1 and 7 (`-Status`, and
+     `-DryRun` on the live site), not the bash runner (Git Bash path translation would make the
+     stub paths unreliable, and it couldn't be tried from here). The GNU `date`/`stat` branches
+     were run here too (brew coreutils first on `PATH`): 89 bash cases passed. Learned: run
+     `date --version` once (`GNU_DATE`), not on each date call (10× slower).
 9. **Docs:**
    - README section without "planned", listing the tested editions.
    - `changelog.md` row.
    - ARCHITECTURE.md "Page, cache, CI": who reads `daily/*` and `latest*`, and when; the late
      CI finish as a known issue (measured from the Actions API).
    - TOOLS.md: `crons/test/run.sh` and the test hooks.
+   - **Done (2026-11-15):** README (status: tested on macOS, untested elsewhere), changelog 0.193,
+     ARCHITECTURE "Page, cache, CI" and two known issues (the late CI, the black 11-15 frame),
+     TOOLS "Tests", LESSONS "Scripts".
 
 **Later testing on real machines or VMs**, by users:
 1. Ubuntu 24.04 (Wayland + X11)

@@ -73,6 +73,16 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Noise and the shortcuts that skip it | `test/noise.test.ts`, `test/terrain.test.ts` (no step in the ground) |
 | A rule of one feature: chances, rates, shapes | `test/<feature>.test.ts` |
 
+**Desktop-wallpaper scripts** (`crons/`): `crons/test/run.sh` (bash, not Vitest; ~1 min) runs
+`crons/test/cases-*.sh` against the scripts with a fixture site (`server.py`, a free port, a
+request log), a fake clock and per-case `HOME`, and stubs that log every desktop and scheduler
+call to `<folder>/stubs.log`. Options: `--only REGEX`, `--bash /bin/bash` (3.2), `--downloader
+curl|wget`, `--pwsh`; `UPDATE_GOLDEN=1` rewrites `crons/test/golden/` (read the diff). Linux cases
+fake `/proc`, `pgrep` and `loginctl` under `AMAZING_SEA_WALLPAPER_ROOT`. Hooks the scripts read
+(off unless set): `AMAZING_SEA_WALLPAPER_HOME`, `_TODAY`, `_NOW_EPOCH`, `_STUBS=1`, `_OS`,
+`_ROOT`, `_DOWNLOADER` (`none` = neither), `_RANDOM`, `_STUB_MISSING`, `_STUB_NOSESSION`.
+`shellcheck --shell=bash crons/*.sh crons/test/*.sh` and PSScriptAnalyzer (`pwsh`) must be clean.
+
 Shaders are read, not compiled: `test/glsl.test.ts` checks every `/* glsl */` for reserved names, brackets and
 `#include`s. What still takes a render: other GLSL errors, how anything looks, GPU memory (`check:restart`).
 

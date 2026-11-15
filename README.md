@@ -26,10 +26,13 @@ rocks, plants, boats, mountains and volcanoes, birds, seals, dolphins and whales
 
 ## Daily desktop wallpaper
 
-> **Status: planned** (`knowledge/plans/CRON.md`); the scripts in `crons/` aren't written yet.
+> **Status: version 1.0.0, new.** Tested on macOS 27 (install, the daily agent, the re-run,
+> uninstall). The Linux desktops and Windows are checked with automated tests only, so each is
+> **untested** on a real machine until someone tries it; reports are welcome. Plan and reasons:
+> `knowledge/plans/CRON.md`.
 
-Sets your desktop to the day's `latest.jpg` every morning at 07:xx, with the minute random per
-machine. If today's image isn't out yet, it tries once more a few hours later. It never updates
+Sets your desktop to the day's picture (the same one as `latest.jpg`) every morning at 07:xx,
+with the minute random per machine. If today's image isn't out yet, it tries once more a few hours later. It never updates
 itself. Everything lives in one `amazing-sea-wallpaper` folder (Linux `~/.local/share/`, macOS
 `~/Library/Application Support/`, Windows `%LOCALAPPDATA%\`).
 
@@ -51,8 +54,14 @@ irm https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons
 notepad amazing-sea-wallpaper.ps1; powershell -ExecutionPolicy Bypass -File amazing-sea-wallpaper.ps1 -Install   # -Portrait, -Hour 8
 ```
 
-Afterwards: `amazing-sea-wallpaper --now` (set today's image now), `--status`, `--upgrade`,
-`--uninstall`. On Windows, `-Now`, `-Status`, `-Upgrade`, `-Uninstall` on the installed script.
+Afterwards: `amazing-sea-wallpaper --now` (set today's image now), `--dry-run`, `--status`,
+`--upgrade`, `--uninstall`. If `~/.local/bin` isn't on your `PATH`, install prints the full path.
+On Windows, `-Now`, `-DryRun`, `-Status`, `-Upgrade`, `-Uninstall` on the installed script
+(`%LOCALAPPDATA%\amazing-sea-wallpaper\amazing-sea-wallpaper.ps1`).
+
+Other desktops (XFCE, MATE, LXQt, tiling window managers) aren't supported yet: the script stops
+with a message instead of guessing. The picture is the UTC day's, so east of about UTC+8 it shows
+the site's "yesterday". Developers: `crons/test/run.sh` runs the tests (TOOLS.md "Tests").
 
 ## Develop
 
