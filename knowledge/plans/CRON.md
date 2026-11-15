@@ -518,6 +518,24 @@ and one commit. The test harness comes first, so every later phase is checked by
        (`DefaultDesktop.heic` today).
      - The picture survives logout/login.
      - `shellcheck --shell=bash` is clean; `/bin/bash -n` (3.2) passes.
+   - **Built (2026-11-15):** `crons/amazing-sea-wallpaper.sh` (the whole file, Linux parts too;
+     they're checked in phases 4–6) and `crons/test/cases-run.sh` (33 cases, all passing under
+     `/bin/bash` 3.2; shellcheck clean). Learned:
+     - **BSD `date -j -f '%Y-%m-%d %H:%M'` keeps the current seconds** (the 08:00 UTC floor came
+       out 54 s late): `utc_epoch` always parses `:SS`.
+     - **Live, 2026-11-15:** `--dry-run` refused the real `daily/pc/2026-11-15.jpg` and
+       `latest.jpg`: both are a 12 998-byte **all-black** 1920×1080 frame although the 06:09 UTC
+       Pages run succeeded. The size check is what caught it: keep it. A site bug, not the
+       script's (reported to the user).
+     - Live `--now` (a real render served by `test/server.py`, folder in a temp dir) set the one
+       display; the readback matched at the first poll (~1 s); exit 0. The original
+       (`DefaultDesktop.heic`) was restored after phase 3.
+     - A 404 on the dated file alone is exit 0 ("not out yet"); a 404 on `latest.json`, a bad
+       image or no answer is exit 1. A failed dated fetch (not 404) skips the catch-up.
+     - The runner gives every case its own `HOME`, `TZ=UTC`, an empty desktop environment and
+       `AMAZING_SEA_WALLPAPER_OS=macos` (stubs make the macOS parts run on Linux CI too), plus
+       `AMAZING_SEA_WALLPAPER_RANDOM` (fixed random draws).
+     - Not checked yet: the picture surviving logout/login (needs the user at the machine).
 3. **macOS scheduling, upgrade, uninstall.**
    - Scope: `--install` (copy, config, LaunchAgent, first run), the retry plist and `--retry`,
      `--upgrade`, `--uninstall`, the command link.

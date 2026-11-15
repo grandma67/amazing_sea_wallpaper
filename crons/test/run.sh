@@ -166,15 +166,44 @@ state_get() {
 
 # ---------- running ----------
 
-# run_script ARGS…: runs the script under test with the hooks; sets EXIT and OUT (its output file)
+# fake_cmd NAME BODY: a command on the case's PATH (before the system's), e.g. pgrep, loginctl
+fake_cmd() {
+  printf '#!/bin/sh\n%s\n' "$2" > "$CASE_DIR/bin/$1"
+  chmod +x "$CASE_DIR/bin/$1"
+}
+
+# run_script ARGS…: runs the script under test with the hooks; sets EXIT and OUT (its output file).
+# HOME is the case's own (USER_HOME), TZ is UTC unless the case sets CASE_TZ, the OS is CASE_OS
+# (default macos: the stubs make the macOS parts run anywhere), and the desktop session variables
+# are cleared so detection only sees the case's fakes. CASE_ENV adds VAR=value words.
 run_script() {
   OUT=$CASE_DIR/out.log
-  env AMAZING_SEA_WALLPAPER_HOME="$CASE_HOME" \
+  # shellcheck disable=SC2086  # CASE_ENV is VAR=value words
+  env -u XDG_CURRENT_DESKTOP -u DBUS_SESSION_BUS_ADDRESS -u DISPLAY -u WAYLAND_DISPLAY \
+      -u XDG_RUNTIME_DIR -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u https_proxy -u HTTPS_PROXY -u INVOCATION_ID \
+      HOME="$USER_HOME" TZ="${CASE_TZ:-UTC}" PATH="$CASE_DIR/bin:$PATH" \
+      AMAZING_SEA_WALLPAPER_HOME="$CASE_HOME" \
       AMAZING_SEA_WALLPAPER_TODAY="$TODAY" \
       AMAZING_SEA_WALLPAPER_NOW_EPOCH="$NOW_EPOCH" \
       AMAZING_SEA_WALLPAPER_STUBS=1 \
+      AMAZING_SEA_WALLPAPER_OS="${CASE_OS:-macos}" \
+      AMAZING_SEA_WALLPAPER_RANDOM="${CASE_RANDOM:-0}" \
       ${CASE_ENV:+$CASE_ENV} \
       "$BASH_UNDER_TEST" "$SCRIPT" --url "$SITE_URL" "$@" > "$OUT" 2>&1
+  EXIT=$?
+  RUNS=$((RUNS + 1))
+}
+# run_raw ARGS…: like run_script without --url
+run_raw() {
+  OUT=$CASE_DIR/out.log
+  # shellcheck disable=SC2086
+  env -u XDG_CURRENT_DESKTOP -u DBUS_SESSION_BUS_ADDRESS -u DISPLAY -u WAYLAND_DISPLAY \
+      -u XDG_RUNTIME_DIR -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u https_proxy -u HTTPS_PROXY -u INVOCATION_ID \
+      HOME="$USER_HOME" TZ="${CASE_TZ:-UTC}" PATH="$CASE_DIR/bin:$PATH" \
+      AMAZING_SEA_WALLPAPER_HOME="$CASE_HOME" AMAZING_SEA_WALLPAPER_TODAY="$TODAY" \
+      AMAZING_SEA_WALLPAPER_NOW_EPOCH="$NOW_EPOCH" AMAZING_SEA_WALLPAPER_STUBS=1 \
+      AMAZING_SEA_WALLPAPER_OS="${CASE_OS:-macos}" AMAZING_SEA_WALLPAPER_RANDOM="${CASE_RANDOM:-0}" \
+      ${CASE_ENV:+$CASE_ENV} "$BASH_UNDER_TEST" "$SCRIPT" "$@" > "$OUT" 2>&1
   EXIT=$?
   RUNS=$((RUNS + 1))
 }
@@ -211,6 +240,20 @@ expect_no_stub() { expect_stub "$1" 0; }
 expect_file() { [ -e "$CASE_HOME/$1" ] || fail "missing $1"; }
 expect_no_file() { [ ! -e "$CASE_HOME/$1" ] || fail "unexpected $1"; }
 expect_output() { grep -Eq "$1" "$OUT" || fail "output lacks /$1/"; }
+expect_no_output() { ! grep -Eq "$1" "$OUT" || fail "output has /$1/: $(grep -E "$1" "$OUT" | head -n 2 | tr '\n' ' ')"; }
+# expect_contains PATH REGEX / expect_lacks PATH REGEX: PATH relative to the case dir
+# (home/… is the folder, userhome/… the user's HOME)
+expect_contains() { grep -Eq "$2" "$CASE_DIR/$1" 2>/dev/null || fail "$1 lacks /$2/"; }
+expect_lacks() { ! grep -Eq "$2" "$CASE_DIR/$1" 2>/dev/null || fail "$1 has /$2/"; }
+# expect_golden PATH GOLDEN: PATH (relative to the case dir) equals crons/test/golden/GOLDEN after
+# replacing the case dir with @CASE@
+expect_golden() {
+  local got="$CASE_DIR/$1" want="$HERE/golden/$2"
+  [ -f "$got" ] || { fail "missing $1"; return; }
+  if [ -n "${UPDATE_GOLDEN:-}" ]; then mkdir -p "$HERE/golden"; sed "s|$CASE_DIR|@CASE@|g" "$got" > "$want"; return; fi
+  sed "s|$CASE_DIR|@CASE@|g" "$got" | diff -u "$want" - > "$CASE_DIR/golden.diff" 2>&1 ||
+    fail "$1 differs from golden/$2: $(head -n 20 "$CASE_DIR/golden.diff")"
+}
 
 # ---------- cases ----------
 
@@ -236,11 +279,12 @@ for file in "${CASE_FILES[@]}"; do
     CASE_N=$((CASE_N + 1))
     CASE_DIR=$WORK/case$CASE_N
     CASE_HOME=$CASE_DIR/home
-    mkdir -p "$CASE_HOME"
+    USER_HOME=$CASE_DIR/userhome
+    mkdir -p "$CASE_HOME" "$USER_HOME" "$CASE_DIR/bin"
     rm -rf "$SITE"; mkdir -p "$SITE"
     : > "$REQUESTS"
     FAILS=
-    CASE_ENV=
+    CASE_ENV=; CASE_TZ=; CASE_OS=; CASE_RANDOM=
     EXIT=
     OUT=$CASE_DIR/out.log; : > "$OUT"
     clock "2026-11-14 06:30"
