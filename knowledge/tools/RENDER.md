@@ -69,32 +69,33 @@ So the blank test is the range (< 4 levels: ~3× under the darkest real frame), 
 the mean: real nights go down to 39 KB and a mean of 2.2. The desktop scripts' size floor was
 lowered for the same reason (`crons/`, 1.0.1).
 
-The 0.194 run hit it again: PC black (stopped), phone drawn only in its top ~9% (luma 0–114,
-mean 9.8: passed, published). The same day at CI settings (`--angle swiftshader --channel
-chromium`) renders normally on the Mac (luma 4.8–191.8, mean 121), so the runner is the cause.
-A GPU watchdog reset was suspected and ruled out: with `--disable-gpu-watchdog` the runner gave
-the same frames to the decimal (phone 0.0–114.3 mean 9.8, PC black) and no context loss, so the
-failure is deterministic on the runner (x86 SwiftShader, Ubuntu 26 migration from 10-19), likely
-a NaN (one NaN pixel in the meter makes the exposure NaN: the whole frame black). Since 0.195:
-- the `DEBUG=1` run (`6ef0262`) showed the meter fine on the runner (exposure 2.73,
-  `frameMedian` 0.164 phone, 0.188 PC) and the frame black after it: the black is made in
-  `finish` (bloom). Reproduced on the Mac by writing NaN into a 1%-wide patch after the grade:
-  the whole frame went black (luma 0–0); with the meter's guard, normal. So `FrameMeterPass`
-  zeroes NaN/±∞ pixels (bit test, not `isnan`) before bloom and reports `frameNonFinite` (meter
-  cells, each 16 samples: a lower bound). The Mac reads 0 on 11-14 and 11-15; the runner read
-  3 (phone) and 1 (PC), and with the guard both frames matched the Mac's luma to the decimal
-  and were published. Where they come from: `params.debug.nanTrace` (tools/DEBUG.md), traced on
-  the runner by a temporary `pages.yml` step ("Trace NaN on 2026-11-15", artifact `nan-trace`);
-- any render with `frameNonFinite` > 0 prints `⚠ NAME: N meter cell(s) read NaN/inf`, and on
-  GitHub Actions a `NaN pixels` warning on the run's summary: a new NaN source on the runner
-  shows there although the guard keeps it out of the picture. Trace it with `nanTrace`;
-- `DEBUG=1` in `pages.yml`: each render's debug numbers in the log (NaN prints as "NaN");
-- a blank frame is kept as `NAME.blank.jpg`/`.json` (not published); a failed render step
-  uploads `$RUNNER_TEMP/daily` as the run's `failed-render` artifact;
-- a render whose WebGL context was lost fails (`scene.ts`): `⚠ render failed`, the GL messages,
-  not saved, exit 1;
-- `pages.yml` renders both sizes into `$RUNNER_TEMP` and copies them into `dist/` only when both
-  pass.
+**What blanked it (0.195):** NaN pixels. x86 SwiftShader on the runner made a few (1–4 per
+frame) where the Mac makes none: the terrain's wet-sand mirror unprojected a mirror depth a
+hair under 1 (w ≈ 0) to an infinite distance, and ∞ became NaN (fixed: `reflection.ts`
+`mirrorRayLength`). The grade's `min(c, 40)` is undefined for NaN (Apple GPUs return 40), and
+bloom's blur spread a NaN over most or all of the frame as black; the frame meter's median
+skips NaN, so `frameMedian` stayed normal. The Mac renders the day the same as before.
+
+**What catches the next one:**
+- `FrameMeterPass` zeroes NaN/±∞ pixels (a bit test: fast-math folds `isnan` away) before
+  bloom, and `debug.frameNonFinite` counts the meter cells that had any (each 16 samples: a
+  lower bound). A render with any prints `⚠ NAME: N meter cell(s) read NaN/inf`, and on GitHub
+  Actions a `NaN pixels` warning on the run's summary.
+- `params.debug.nanTrace` (tools/DEBUG.md) finds the source: each pass's NaN pixels and each
+  object drawn alone. Run it on the runner (a step in `pages.yml` with `--scene
+  '{"date":…,"params":{"debug":{"nanTrace":true}}}'`), then read the named shader's terms at
+  those pixels locally with `terrainProbe` or `probe`.
+- `--fail-blank` keeps a blank frame as `NAME.blank.jpg`/`.json` (not published); a failed
+  render step uploads them as the run's `failed-render` artifact. `DEBUG=1` prints NaN in the
+  debug line as "NaN", not null.
+- A render whose WebGL context was lost fails (`scene.ts`): `⚠ render failed`, the GL
+  messages, nothing saved, exit 1.
+- `pages.yml` renders both sizes into `$RUNNER_TEMP` and copies them into `dist/` only when
+  both pass: the 0.194 run had published a phone frame drawn only in its top ~9% (luma 0–114,
+  mean 9.8 passed the blank test) before the PC render failed.
+
+Ruled out on the way: Chromium's GPU watchdog (with it off the runner gave the same frames to
+the decimal: deterministic, not a reset).
 
 ## `scripts/diff.mjs`: did it show up?
 

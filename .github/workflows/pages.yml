@@ -46,10 +46,6 @@ jobs:
         id: render
         continue-on-error: true
         timeout-minutes: 120
-        # Each render's debug numbers (exposure, scene luminance, frame meter) in the log;
-        # a NaN prints as "NaN" (tools/RENDER.md "Blank frames").
-        env:
-          DEBUG: '1'
         run: |
           npx playwright install --with-deps chromium
           npx vite preview --port 4173 --strictPort &
@@ -60,11 +56,11 @@ jobs:
           # downscaled image; 20:9 Androids crop ~3% of the width). Phone first,
           # as the app falls back to it. snapshot.mjs gives up after --budget
           # seconds (default 900, too short for SwiftShader); both fit the
-          # step's 120 min. --fail-blank: a blank frame (2026-11-15 published a black
-          # one) isn't saved and fails the step; so does a render whose WebGL context was
-          # lost. Both render outside dist/ and are copied in only when both pass, so a
-          # failure publishes neither (2026-11-15's run published a half-black phone
-          # image before the PC render failed) and the desktop scripts keep yesterday's.
+          # step's 120 min. A blank frame (--fail-blank) or a lost WebGL context fails the
+          # step; both sizes render outside dist/ and are copied in only when both pass,
+          # so a failure publishes neither and the desktop scripts keep yesterday's. NaN
+          # pixels the frame meter zeroed show as a "NaN pixels" warning on the run
+          # (tools/RENDER.md "Blank frames").
           OUT="$RUNNER_TEMP/daily"
           node scripts/snapshot.mjs --url http://localhost:4173/ --out "$OUT/phone" \
             --w 1290 --h 2796 --frames 24 --quality 0.92 --fail-blank --budget 3600 "$TODAY"
@@ -77,32 +73,6 @@ jobs:
           cp "$OUT/phone/$TODAY.json" dist/latest-portrait.json
           cp "$OUT/pc/$TODAY.jpg" dist/latest.jpg
           cp "$OUT/pc/$TODAY.json" dist/latest.json
-
-      # TEMPORARY (remove after one run): where x86 SwiftShader's NaN pixels on 2026-11-15
-      # come from (params.debug.nanTrace: each pass's NaN count and positions, each object
-      # drawn alone). Not published; the log has it, the nan-trace artifact the frames.
-      - name: Trace NaN on 2026-11-15 (temporary)
-        continue-on-error: true
-        timeout-minutes: 40
-        run: |
-          if ! curl -sf http://localhost:4173/ > /dev/null; then
-            npx vite preview --port 4173 --strictPort &
-            for i in $(seq 1 30); do curl -sf http://localhost:4173/ > /dev/null && break; sleep 1; done
-          fi
-          for size in "phone 1290 2796" "pc 1920 1080"; do
-            set -- $size
-            node scripts/snapshot.mjs --url http://localhost:4173/ --out "$RUNNER_TEMP/trace" \
-              --w "$2" --h "$3" --frames 24 --budget 1200 \
-              --scene "{\"name\":\"$1\",\"date\":\"2026-11-15\",\"params\":{\"debug\":{\"nanTrace\":true}}}" || true
-          done
-
-      - uses: actions/upload-artifact@v5
-        if: always()
-        continue-on-error: true
-        with:
-          name: nan-trace
-          path: ${{ runner.temp }}/trace
-          if-no-files-found: warn
 
       # A failed render: its frames (a blank one as NAME.blank.jpg/.json) for a look,
       # downloadable from the run's page. Not published.

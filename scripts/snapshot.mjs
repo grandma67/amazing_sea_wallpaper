@@ -109,8 +109,7 @@ function printNanTrace(trace) {
   console.log(`  nanTrace meshes: ${trace.meshes.found.length} of ${trace.meshes.tested} drawn objects make NaN/inf alone`)
   for (const m of trace.meshes.found) console.log(`    ${m.path} [${m.material}] (${m.what}): ${m.nan} NaN, ${m.inf} inf`)
 }
-/** JSON.stringify writes NaN and ±Infinity as null: keep them readable (a NaN exposure is
- * what blackens a whole frame). */
+/** JSON.stringify writes NaN and ±Infinity as null: keep them readable. */
 const keepNonFinite = (_key, value) => (typeof value === 'number' && !Number.isFinite(value) ? String(value) : value)
 // Renders the page reported as failed (a lost WebGL context, a shader error…).
 let failedRenders = 0

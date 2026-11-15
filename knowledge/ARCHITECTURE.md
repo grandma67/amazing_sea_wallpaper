@@ -284,32 +284,14 @@ date or spec) or **suspected** (inferred, not yet checked). A suspected cause is
 fact: REFLECTION phase 4 wrote "the cloudy cube's horizon is ~3× darker" from sea pixels, and
 phase 6 spent its first renders on it before a direct read (`cubeProbe`) showed the cube was right.
 
-- **The daily render on 2026-11-15 is an all-black frame** (measured: `daily/pc/2026-11-15.jpg`
-  and `latest.jpg` are 12 998 bytes, 1920×1080, black, for a "Midday · tropical cobble beach"
-  title, while the 06:09 UTC scheduled Pages run reports success; 11-14's was ~290 KB). The
-  wallpaper scripts refused it (size check) and kept yesterday's. Cause of the black frame **not
-  looked into**. Guarded since 0.194: `pages.yml` renders with `snapshot.mjs --fail-blank` (a frame
-  whose 160×90 luma spans < 4 levels isn't saved and fails the step, so nothing is published that
-  day and the scripts re-run); measured on 16 real nights, the darkest spans 11.9
-  (tools/RENDER.md "Blank frames"). The 0.194 run hit it again: the PC frame black (stopped) and
-  the phone frame drawn only in its top ~9% (published: luma 0–114 passed). **Measured:** the
-  same day at CI settings renders fine on the Mac (same Chromium 1248, SwiftShader), so it's the
-  runner. A GPU watchdog reset was ruled out (with it off, the
-  same frames to the decimal): the failure is deterministic on the runner. **Suspected:** a NaN
-  in the meter or exposure on x86 SwiftShader or the Ubuntu 26 image. Since 0.195 a lost context
-  fails the render, both sizes publish together or not at all, and a failed run keeps its frames
-  and debug numbers (`failed-render` artifact, `DEBUG=1` log). **Measured** on the runner: the
-  meter reads a normal frame (median 0.16–0.19), so the black is made by bloom; a NaN patch
-  reproduces it on the Mac. The frame meter now zeroes NaN/±∞ before bloom and reports
-  `frameNonFinite`. **Confirmed** on the runner (`58c26e7`): `frameNonFinite` 3 (phone) and 1
-  (PC), both frames normal and published, luma the same as the Mac's to the decimal (PC 4.8–191.8,
-  mean 121.1). **Source found** (`debug.nanTrace` on the runner): the terrain alone,
-  4 pixels on damp sand 30–50 m out (terrainProbe: kind 2, mirror 0.12–0.42) along the mirrored
-  skyline. **Suspected** mechanism: the mirror depth a hair under 1 unprojects with w ≈ 0 to ∞,
-  and ∞ in `P + Rm·t` or 0·∞ in the haze is NaN; the Mac has the same spots finite (capping them
-  changed 0.15% of 11-15's phone frame, all in that band, max 15/255). Fixed by
-  `reflection.ts mirrorRayLength` (≥ 1e5, ∞ or NaN → 1e5), also in `ocean.ts`; to be confirmed on
-  the runner.
+- **The daily render on 2026-11-15 was black on CI** (0.194–0.195; fixed, measured). The runner's
+  x86 SwiftShader made 1–4 NaN pixels on damp sand where the terrain mirrors the skyline
+  (`debug.nanTrace` on the runner: the terrain alone; `terrainProbe`: kind 2, mirror 0.12–0.42).
+  A mirror depth a hair under 1 unprojected with w ≈ 0 to ∞, then NaN; bloom spread it over the
+  frame as black. The Mac has the same spots finite. Fixed by `reflection.ts mirrorRayLength`
+  (also `ocean.ts`); NaN reaching bloom is now zeroed by the frame meter and warned about
+  (`frameNonFinite`, a `NaN pixels` annotation on CI). Other shaders may hold the same kind of
+  edge on the runner: the warning names the day (tools/RENDER.md "Blank frames").
 - **The scheduled render finishes late** (measured from the Actions API, CRON.md §2.1): 01:10–
   07:43 UTC over 10 days for a 00:05 UTC schedule, so in Europe the 07:xx desktop run often finds
   no picture yet and waits for its re-run (08:00 UTC or later).

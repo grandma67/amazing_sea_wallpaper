@@ -220,9 +220,9 @@ export async function renderScene(
     preserveDrawingBuffer: true,
     powerPreference: 'high-performance'
   })
-  // A lost context (the GPU process reset: on CI, its watchdog under SwiftShader) leaves the
-  // canvas black or half drawn; three restores the context, so check the event, not
-  // isContextLost(), and fail the render below instead of returning that picture.
+  // A lost context (the GPU process reset or crashed) leaves the canvas black or half
+  // drawn; three restores the context, so check the event, not isContextLost(), and
+  // fail the render below instead of returning that picture.
   let contextLost = false
   renderer.domElement.addEventListener('webglcontextlost', () => (contextLost = true))
   renderer.setPixelRatio(1)

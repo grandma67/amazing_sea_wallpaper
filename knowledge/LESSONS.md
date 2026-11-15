@@ -55,15 +55,14 @@ tool gotchas: TOOLS.md.
   (a black 1080p JPEG is 13 KB from the browser, 34 KB from `sips`): test pixels (luma range,
   `snapshot.mjs --fail-blank`) where they're available. Render the darkest/brightest real days
   (`--where … --sample`) before fixing a number.
-- **A CI-only render failure is reproduced on the runner, not guessed at** (0.195): a fix for a
-  guessed cause (the GPU watchdog) cost a run; identical numbers twice meant deterministic, which
-  a timing cause can't be. Get the failing frame and its numbers off the runner first. 11-15 rendered
-  fine on the Mac with the same Chromium and SwiftShader, and its half-black phone frame passed the
-  blank test. Read the published files, not only the run log, and test the fix with a run on
-  the runner itself (the Pages workflow). Copy outputs into the published folder only after every
-  render passed. Before changing `pages.yml`, read `crons.yml`: it greps `pages.yml`'s text. A check of the live
-  site runs in its own job and warns on a 404 (a day with no picture is expected now), so it
-  doesn't skip the script tests.
+- **A CI-only render failure is traced on the runner, not guessed at** (0.195): a fix for a
+  guessed cause (the GPU watchdog) cost a run; identical numbers on two runs meant
+  deterministic, which a timing cause can't be. Get the failing frame and its numbers off the
+  runner (debug values, `failed-render`, `nanTrace`), then reproduce the mechanism locally (a
+  NaN patch blacked the Mac's frame too). Read the published files, not only the run log: the
+  half-black phone frame passed the blank test. Copy outputs into the published folder only
+  after every render passed. Before changing `pages.yml`, read `crons.yml`: it greps
+  `pages.yml`'s text; its live-site check is a separate job that warns on a 404.
 - **Test a system change on a real machine with a way back first** (CRON phase 3): the install
   path already held the user's own experiments, so the live test listed the folder before,
   uninstalled without `--yes`, and removed only the files it had added.
@@ -464,13 +463,14 @@ tool gotchas: TOOLS.md.
   octave touching it differs (airglow fbm 0.63 on the CPU, 0.22 on the GPU), even with "sine-free"
   hashes. Each patch prefixes its copy (`ng`, `au`): patches share one shader.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
-  bloom dashes (Metal fast-math also defeats `isnan`). `min(NaN, x)` is undefined: Apple GPUs
+  bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN terrain.
+  `min(NaN, x)` is undefined: Apple GPUs
   give x, x86 SwiftShader keeps the NaN and bloom's blur spreads it over the whole frame as black
   (CI 0.195). The frame meter zeroes NaN/±∞ by their bits before bloom (`frameNonFinite`).
 - **Unprojecting a depth near 1 divides by w ≈ 0** (0.195): the mirror depth a hair under the
   far value gave the Mac huge finite distances and x86 SwiftShader ∞, then NaN (∞ in a point,
   0·∞ in haze). Cap every distance read from a depth buffer at the "nothing" value with a
-  comparison that NaN also fails (`len < 1e5 ? … : 1e5`), not `min()` (undefined for NaN). Overflowing `exp()` gave NaN terrain.
+  comparison that NaN also fails (`len < 1e5 ? … : 1e5`), not `min()` (undefined for NaN).
 
 ## takram sky, clouds, post
 
