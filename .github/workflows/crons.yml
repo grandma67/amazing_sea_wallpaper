@@ -1,0 +1,96 @@
+# Tests the daily desktop-wallpaper scripts in crons/ (plan: knowledge/plans/CRON.md, phase 8).
+# Everything runs with the scripts' stub hooks: no runner's desktop, crontab or tasks are touched.
+# It also fails when pages.yml stops writing the dated files the scripts fetch first.
+
+name: Wallpaper scripts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'crons/**'
+      - 'scripts/snapshot.mjs'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/crons.yml'
+  pull_request:
+    paths:
+      - 'crons/**'
+      - 'scripts/snapshot.mjs'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/crons.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: shellcheck
+        run: shellcheck --shell=bash crons/amazing-sea-wallpaper.sh crons/test/*.sh
+
+      - name: pages.yml still writes the dated files the scripts fetch first
+        run: |
+          grep -q -- '--out dist/daily/pc ' .github/workflows/pages.yml
+          grep -q -- '--out dist/daily/phone ' .github/workflows/pages.yml
+          grep -q 'dist/latest.json' .github/workflows/pages.yml
+          grep -q 'dist/latest-portrait.json' .github/workflows/pages.yml
+
+      - name: today's real latest.json parses the way the scripts read it
+        run: |
+          curl -sSf --retry 2 https://grandma67.github.io/amazing_sea_wallpaper/latest.json -o latest.json
+          d=$(grep -o '"date": *"[0-9-]*"' latest.json | head -n 1 | sed 's/.*"\([0-9-]*\)"$/\1/')
+          t=$(grep -o '"title": *"[^"]*"' latest.json | head -n 1)
+          echo "date=$d $t"
+          echo "$d" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          [ -n "$t" ]
+
+      - name: tests (bash 5, curl; .ps1 cases under pwsh)
+        run: bash crons/test/run.sh --bash bash --downloader curl
+
+      - name: tests (bash 5, wget)
+        run: |
+          command -v wget || sudo apt-get install -y wget
+          bash crons/test/run.sh --bash bash --downloader wget crons/test/cases-run.sh crons/test/cases-linux.sh
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: tests (/bin/bash 3.2, curl)
+        run: /bin/bash crons/test/run.sh --bash /bin/bash
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          $r = Invoke-ScriptAnalyzer -Path crons/amazing-sea-wallpaper.ps1 -Severity Warning, Error
+          $r | Format-Table RuleName, Line, Message -AutoSize -Wrap
+          if ($r) { exit 1 }
+
+      - name: parses under Windows PowerShell 5.1, ASCII only
+        shell: powershell
+        run: |
+          $e = $null
+          [void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path crons/amazing-sea-wallpaper.ps1), [ref]$null, [ref]$e)
+          if ($e.Count) { $e; exit 1 }
+          if ([IO.File]::ReadAllBytes((Resolve-Path crons/amazing-sea-wallpaper.ps1)) | Where-Object { $_ -gt 127 }) { 'non-ASCII byte'; exit 1 }
+
+      - name: smoke test under PowerShell 7
+        shell: pwsh
+        run: ./crons/test/ps1-smoke.ps1
+
+      - name: smoke test under Windows PowerShell 5.1
+        shell: powershell
+        run: ./crons/test/ps1-smoke.ps1

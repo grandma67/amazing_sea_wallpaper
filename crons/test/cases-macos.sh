@@ -131,8 +131,7 @@ case_upgrade_broken_download() {
   expect_exit 1
   expect_output "doesn't parse"
   cmp -s "$SCRIPT" "$CASE_DIR/$COPY_REL" || fail "copy changed"
-  # shellcheck disable=SC2012
-  [ -z "$(ls -a "$CASE_HOME" | grep '^\.upgrade')" ] || fail "temp file left"
+  for f in "$CASE_HOME"/.upgrade*; do [ ! -e "$f" ] || fail "temp file left: $f"; done
 }
 
 case_upgrade_404() {

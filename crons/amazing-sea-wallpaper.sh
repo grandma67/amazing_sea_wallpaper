@@ -54,7 +54,8 @@ has() {
 rand() { if [ -n "${AMAZING_SEA_WALLPAPER_RANDOM:-}" ]; then local r=$AMAZING_SEA_WALLPAPER_RANDOM; [ "$r" -ge "$1" ] && r=$(($1 - 1)); echo "$r"; else echo $((RANDOM % $1)); fi; }
 nap() { if [ -n "$STUBS" ]; then stub_log "sleep $1"; else sleep "$1"; fi; }
 
-is_gnu_date() { date --version >/dev/null 2>&1; }
+if date --version >/dev/null 2>&1; then GNU_DATE=1; else GNU_DATE=; fi
+is_gnu_date() { [ -n "$GNU_DATE" ]; }
 now_epoch() { if [ -n "${AMAZING_SEA_WALLPAPER_NOW_EPOCH:-}" ]; then echo "$AMAZING_SEA_WALLPAPER_NOW_EPOCH"; else date +%s; fi; }
 utc_today() { if [ -n "${AMAZING_SEA_WALLPAPER_TODAY:-}" ]; then echo "$AMAZING_SEA_WALLPAPER_TODAY"; else date -u +%F; fi; }
 # utc_epoch "YYYY-MM-DD HH:MM" → seconds

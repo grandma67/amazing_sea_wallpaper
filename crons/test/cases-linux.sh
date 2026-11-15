@@ -1,4 +1,4 @@
-# shellcheck shell=bash disable=SC2034  # CASE_* are read by run.sh
+# shellcheck shell=bash disable=SC2034,SC2016  # CASE_* are read by run.sh; fakes are literal
 # Linux: session and desktop detection (phase 4), setters (phase 5), scheduling and tools
 # (phase 6). A fake tree stands in for /proc, /etc/os-release and /usr/share
 # (AMAZING_SEA_WALLPAPER_ROOT), with fake pgrep and loginctl on PATH.
