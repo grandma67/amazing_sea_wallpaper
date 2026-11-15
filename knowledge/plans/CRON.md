@@ -245,7 +245,7 @@ no desktop (KDE and GNOME both stay supported).
 ```
 crons/amazing-sea-wallpaper.sh    # Linux + macOS: install, run, re-run, status, upgrade, uninstall
 crons/amazing-sea-wallpaper.ps1   # Windows: the same; PowerShell 5.1 and 7
-crons/test/                       # fixtures, fake session trees, stubs, runner (phase 1)
+crons/test/                       # one flat folder: run.sh, server.py, stub-script.sh, tiny.jpg, cases-*.sh
 ```
 
 ### 4.2 Commands
@@ -483,7 +483,7 @@ and one commit. The test harness comes first, so every later phase is checked by
      file and the stub log with expected values.
    - Done when the runner runs (against a stub script) under `/bin/bash` 3.2 on this Mac.
    - **Built (2026-11-15):** `crons/test/run.sh [--bash B] [--script S] [--only RE] [CASE_FILE…]`,
-     `server.py`, `stub-script.sh`, `fixtures/tiny.jpg`, `cases/harness.sh` (9 self-tests,
+     `server.py`, `stub-script.sh`, `tiny.jpg`, `cases-harness.sh` (9 self-tests,
      passing under `/bin/bash` 3.2.57; shellcheck 0.11 clean). What it fixed for the script:
      - `server.py` instead of bare `python3 -m http.server`: it logs every request (with its
        query) for `expect_requested` / `expect_requests N`, and a `<file>.ctype` sidecar serves
@@ -495,7 +495,7 @@ and one commit. The test harness comes first, so every later phase is checked by
      - Images: `valid` is a real 16×16 JPEG padded by a COM segment to 60 KB (decodes, ends
        `FF D9`); `truncated` its first 30 KB; `html`; `small` (884 B). A truncated file over
        50 KB would pass the check: accepted, the size and magic only catch portals and stubs.
-     - Phase 2 adds `cases/run.sh` (no `SCRIPT_UNDER_TEST`: the real script); the runner skips a
+     - All in one folder, no subfolders. Phase 2 adds `cases-run.sh` (no `SCRIPT_UNDER_TEST`: the real script); the runner skips a
        case file whose script doesn't exist yet.
 2. **The run, on this Mac** (`crons/amazing-sea-wallpaper.sh`).
    - Scope:

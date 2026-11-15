@@ -3,7 +3,7 @@
 #
 #   crons/test/run.sh [--bash PATH] [--script PATH] [--only REGEX] [CASE_FILE...]
 #
-# Each case file (default: crons/test/cases/*.sh) may set SCRIPT_UNDER_TEST (relative to crons/)
+# Each case file (default: crons/test/cases-*.sh) may set SCRIPT_UNDER_TEST (relative to crons/)
 # and defines functions named case_<name>. Each case gets a fresh fixture site, folder, request
 # log and stub log; it builds them with the site_*/state_* helpers below, calls run_script, then
 # checks with the expect_* helpers. The script under test runs with the test hooks:
@@ -38,7 +38,7 @@ if [ -z "$BASH_UNDER_TEST" ]; then
   if [ -x /bin/bash ]; then BASH_UNDER_TEST=/bin/bash; else BASH_UNDER_TEST=$(command -v bash); fi
 fi
 if [ ${#CASE_FILES[@]} -eq 0 ]; then
-  for f in "$HERE"/cases/*.sh; do CASE_FILES+=("$f"); done
+  for f in "$HERE"/cases-*.sh; do CASE_FILES+=("$f"); done
 fi
 command -v python3 >/dev/null || { echo "run.sh: python3 is needed for the fixture site" >&2; exit 4; }
 command -v curl >/dev/null || { echo "run.sh: curl is needed by the runner" >&2; exit 4; }
@@ -96,10 +96,10 @@ image_bytes() {
     valid)
       printf '\377\330\377\376\352\142'
       head -c 60000 /dev/zero
-      tail -c +3 "$HERE/fixtures/tiny.jpg" ;;
+      tail -c +3 "$HERE/tiny.jpg" ;;
     truncated) image_bytes valid | head -c 30000 ;;
     html) printf '<!doctype html><html><body>Sign in to the Wi-Fi</body></html>\n' ;;
-    small) cat "$HERE/fixtures/tiny.jpg" ;;
+    small) cat "$HERE/tiny.jpg" ;;
     *) echo "image_bytes: unknown kind $1" >&2; return 1 ;;
   esac
 }
@@ -229,6 +229,7 @@ for file in "${CASE_FILES[@]}"; do
     echo "SKIP $(basename "$file"): no $SCRIPT"
     continue
   fi
+  group=$(basename "$file" .sh); group=${group#cases-}
   for name in $(declare -F | awk '{print $3}' | grep '^case_'); do
     short=${name#case_}
     if [ -n "$ONLY" ] && ! printf '%s\n' "$short" | grep -Eq "$ONLY"; then continue; fi
@@ -245,10 +246,10 @@ for file in "${CASE_FILES[@]}"; do
     clock "2026-11-14 06:30"
     "$name"
     if [ -z "$FAILS" ]; then
-      PASS=$((PASS + 1)); echo "ok   $(basename "$file" .sh)/$short"
+      PASS=$((PASS + 1)); echo "ok   $group/$short"
     else
       FAILED=$((FAILED + 1)); FAILED_NAMES="$FAILED_NAMES $short"
-      echo "FAIL $(basename "$file" .sh)/$short$FAILS"
+      echo "FAIL $group/$short$FAILS"
       if [ -s "$OUT" ]; then echo "    output:"; sed 's/^/      /' "$OUT" | tail -n 20; fi
     fi
   done

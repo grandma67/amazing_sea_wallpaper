@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# A stand-in for amazing-sea-wallpaper.sh that only exercises the test harness (cases/harness.sh):
+# A stand-in for amazing-sea-wallpaper.sh that only exercises the test harness (cases-harness.sh):
 # it honours the test hooks, fetches today's dated image from --url, checks it, writes the state
 # and logs a stub "set" or "schedule retry". Not the real logic (CRON.md §4.3).
 set -u
