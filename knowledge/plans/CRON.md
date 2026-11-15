@@ -625,7 +625,7 @@ and one commit. The test harness comes first, so every later phase is checked by
    - TOOLS.md: `crons/test/run.sh` and the test hooks.
    - **Done (2026-11-15):** README (status: tested on macOS, untested elsewhere), changelog 0.193,
      ARCHITECTURE "Page, cache, CI" and two known issues (the late CI, the black 11-15 frame),
-     TOOLS "Tests", LESSONS "Scripts".
+     TOOLS "Tests", LESSONS "Scripts and tools".
 
 **Later testing on real machines or VMs**, by users:
 1. Ubuntu 24.04 (Wayland + X11)

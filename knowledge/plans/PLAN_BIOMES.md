@@ -4,8 +4,8 @@ Brings the wallpaper's coasts closer to the world's: real places, stony beaches,
 reef-fronted tropical beaches, tides, beach shapes that follow the waves, more sand colours, calm
 lagoons, missing climates, the real sun for the place and date, and (later) coastal weather and
 the animals these open up. Research: COASTS.md, REGIONS.md. How the built parts work:
-ARCHITECTURE.md and `arch/`. Status 2026-10-31: phases 0–8 done; 9, 11, 12 planned; 10, 13,
-14 later.
+ARCHITECTURE.md and `arch/`. **Status: phases 0–9, 11, 12 done (0.39–0.72); 10 moved to
+[TERRAIN_FORMS.md](TERRAIN_FORMS.md) phase 5; 13 and 14 later** (each needs its own plan).
 
 ## Status
 
@@ -23,16 +23,15 @@ ARCHITECTURE.md and `arch/`. Status 2026-10-31: phases 0–8 done; 9, 11, 12 pla
 | 7 | Reef-fronted tropical beaches | most island beaches sit behind a fringing reef | done (0.60); ~48% of tropical beach days, not ~60% (continental places have few reefs); crest at about spring low water; crest white water is its own band |
 | 8 | Rocky shore | ~36% of coast is rock, about half cliff-backed | done (0.62): 25.3% of days (38.7% of land days); [ROCK_SHORE.md](ROCK_SHORE.md); relief in the height function, softened with distance against grid aliasing |
 | 9 | Tidal flats and salt marsh | 21% of coast is mud | done (0.64); [TIDAL_FLAT.md](TIDAL_FLAT.md); ~0.3% of days (the five places are 1.9% of days, not enough for ~3%) |
-| 10 | Landforms: barrier lagoon, spit, fjord | | later, own plan |
+| 10 | Landforms: barrier lagoon, spit, fjord | | moved to TERRAIN_FORMS.md phase 5 (design below) |
 | 11 | Climates: temperate, subtropical, polar | temperate oceanic and humid subtropical coasts | done (0.66–0.71): `climateBiome`, cloud leanings, wrack, crabs, seals, colonies and birds by climate; flat places get no mountains or high islands |
 | 12 | The real sun: polar night, midnight sun | | done (0.72): from 63°; Dec–Jan night and blue hour 18% → 30% of days; Svalbard (76–80°) December is night only (noon below −6°), so the twilight-noon render is Tromsø's latitude |
 | 13 | Weather extras: offshore wind, glowing surf, sea-breeze Cu; snow and ice foot done (0.111, [SNOW.md](SNOW.md)) | | later, own plan |
 | 14 | Animals: sea otters, walrus, polar bears, waders… | | later |
 
-Open from done phases (ARCHITECTURE.md "Known issues"): beach-state share retune (ask first;
-COASTS.md "Beach state and tides"), no trough behind longshore bars, step-like emerged rip channels
-at low tide, waves re-forming at full height behind bars, straight reef shelter (passes don't let
-swell in).
+Open from done phases: KNOWN_ISSUES.md "Coast and surf", "Rocky shores", "Tidal flats and salt
+marsh" (beach-state share retune: ask first; no trough behind longshore bars; step-like emerged rip
+channels; waves re-forming behind bars; straight reef shelter).
 
 Dependencies: 8 needs 2, 5; 9 needs 5, 8; 10 needs 6, 8; 11 needs 1, 3; 12 needs 1; 13 needs 11,
 12; 14 needs 5, 7, 8, 9, 11. Phase 8 and the later 10 and 13 are each bigger than phases 0–3
@@ -45,72 +44,32 @@ and a link here. Stopping after 12 leaves a complete result.
 - **Terrain is one cross-section:** `terrainHeightAt` is a function of `s` (plus noise), branched
   by coast kind. Shapes that vary along the shore in plan view (spit, lagoon behind a barrier,
   fjord walls) need separate heightfield meshes (like `islands.ts`).
-- **Time of day is a weighted category** (main stream, step 3 of the draw order), not the sun of
-  a real place and date; eclipses override it after the draw.
-- **The sun's azimuth is relative to the camera:** `relSunAz` is drawn for framing and added to
-  the random `headingDeg`, so no day has the sun at its real compass bearing.
+- **Below 63° the sun is framed, not real:** time of day is a weighted category and `relSunAz` is
+  added to a random `headingDeg`, so the sun isn't at its real compass bearing (phase 12 made it
+  real from 63°; ARCHITECTURE.md "Ideas").
 - **Latitude drives more than the atmosphere:** `scene.ts` (atmosphere anchor), `noctilucent.ts`,
   `seaHaze.ts`, `skyEvents.ts` (tropical ≥ 10°).
 
-## Rules for every phase (beyond CLAUDE.md)
+## Rules for the remaining phases (beyond CLAUDE.md)
 
-- **Old dates may change on purpose, never by accident** (decision 5): a phase may change the days
-  it is about, even all of them, if that is more realistic or simpler; no dummy draws or
-  byte-identical tests just to keep old pictures. Own streams and "draw, then force" stay, so
-  nothing cascades and `diff.mjs --off` compares the same scene. Pure refactors are checked by
-  params and `bench.mjs` pixel diff ≤ 1/255. Each changelog row says which days change.
-- **Place data lives in `places.ts`:** a new per-place choice (coast kind, …) is a field there with
-  a region default, not a table keyed by biome × ocean.
-- **Terrain and shore phases write the geometry down before code:** where s = 0 sits, the
-  profile's pieces and how they join (heights and slopes at each join), what `distanceToWater`,
-  `waterline` and `beachLines` mean afterwards, and which readers in arch/COAST.md "Coordinates
-  and heights" and "A new seabed or shore profile" change. Check drawn vs reached numbers in
-  `profile.mjs` (a forced spec can sketch it) before any shader work. Add a **forced extremes**
-  table: for low, mid and high tide (springs) × each composition, where the camera stands, what
-  must stay dry (marsh, berm, plants) and its height against the spring high water + run-up; then
-  `expectDryCameras` in the tests and the `profile.mjs` dry-land check (phase 9's marsh, drawn for
-  mid tide, drowned the camera at spring high water and again when the beach width was capped).
-- **Research per phase:** 1–2 searches for the phase's numbers before code, recorded with their
-  source in REGIONS.md or COASTS.md. Cite only what was read (phase 7 had to take a figure out).
-  Check this plan's own physical claims with the code before building on them (phase 12's
-  "Svalbard noon blue-hour glow" is impossible at 78°: the noon sun is −11°).
-- **Biome-keyed tables:** before a phase, read ARCHITECTURE.md "Biome, climate or place" and
-  probe its leftovers on the phase's places (phase 11 found Florida's mountains only in renders).
-- **Props are their own step:** a new prop (salt-marsh tufts, tidepool life) gets its own
-  checklist line and commit after the terrain and water work.
-- **Shares:** test targets from `params.mjs --expect`; after the first passing test, `params.mjs
-  --ref HEAD --stats` on every choice the phase touches (a ⚠ is the point of the phase or a bug,
-  decided before rendering).
-- **Budget:** render time within ~10% per phase (`bench.mjs`); meshes < 100k tris; instanced
-  near-camera detail ≤ ~0.5M tris for everything added here together (stones have their own
-  ~1M). Measure the terrain shader each time it grows; branch on coast kind so one profile runs
-  per day.
-- **Docs per phase:** changelog row naming which days change; ARCHITECTURE.md/`arch/`,
-  LESSONS.md, REFERENCES.md; COASTS.md shares re-measured over 2024–2026; REGIONS.md new place
-  fields; CLOUDS.md, ANIMALS.md as touched; SCENE_SPECS.md fields and fixed dates for new looks;
-  CLAUDE.md views list for new coast kinds (`rock-shore`, `tidal-flat`); `scenes/<phase>.json`.
+CLAUDE.md §1–4 hold the general ones (geometry and forced extremes before code, research,
+biome-keyed tables, shares, budget). Added here:
+- **Old dates may change on purpose, never by accident** (decision 5; ARCHITECTURE.md
+  "Decisions"): no dummy draws or byte-identical tests just to keep old pictures; own streams and
+  "draw, then force" stay. Pure refactors: params and `bench.mjs` pixel diff ≤ 1/255. Each
+  changelog row says which days change.
+- **Place data lives in `places.ts`:** a new per-place choice is a field there with a region
+  default, not a table keyed by biome × ocean.
+- **Props are their own step:** a new prop (tidepool life, an animal) gets its own checklist line
+  and commit after the terrain and water work.
+- **Budget:** instanced near-camera detail ≤ ~0.5M tris for everything added here together (stones
+  have their own ~1M).
+- **Docs per phase:** beyond CLAUDE.md §4, COASTS.md shares re-measured over 2024–2026, REGIONS.md
+  for new place fields, CLAUDE.md's views list for new coast kinds, `scenes/<phase>.json`.
 
-## Remaining phases
+## Phases (design notes)
 
-### 8. Rocky shore ([plans/ROCK_SHORE.md](ROCK_SHORE.md))
-
-~38% of land days (≈ 25% of all days) become a rocky shore, from the place's `coast` weights
-(stream `'coast-kind'`; fjord, North Atlantic and North Pacific coasts ~55%, Mediterranean ~40%,
-tropical, desert and barrier coasts 10–20%). Kinds: wave-cut platform, boulder shore, cliff top
-(a third; the overlook). The rock relief (bedding ledges, joint gullies, boulders) lives in the
-terrain height function so every reader agrees; the surf breaks on the platform edge by depth,
-with spray bursts along it. Props follow the plan's table (no sand animals, rock haul-outs,
-wrack in gullies). Spec `coast: "rock-shore"`, `rockShore`.
-
-### 9. Tidal flats and salt marsh ([plans/TIDAL_FLAT.md](TIDAL_FLAT.md))
-
-Coast kind `tidal-flat` from the place's `coast` weights in wadden-north-sea, morecambe-bay,
-mont-saint-michel, yellow-sea (~0.5) and fundy (0.25), when the tide is below mid; at or above
-mid the same day is a beach with a salt marsh behind (`saltMarsh`). The five places are only
-1.94% of days, so flats are ~0.3% of days, not ~3%. Terrain: s = 0 the marsh edge at mean high
-water, a straight km-wide flat (1:2000–1:300) to spring low water, meandering creeks in the
-height, the sea a far line; the marsh a level platform at spring high water with a low cliff,
-seasonal colour and tufts. Spec `coast: "tidal-flat"`, `saltMarsh`.
+Phases 8 and 9 have their own records: [ROCK_SHORE.md](ROCK_SHORE.md), [TIDAL_FLAT.md](TIDAL_FLAT.md).
 
 ### 10. Landforms: barrier lagoon, spit, fjord (later, own plan)
 
@@ -255,13 +214,6 @@ mangrove shelter from barriers follow from 8 and 10.
 - **"After a storm" beach states:** each date is generated on its own, with no history; storm
   days and winter months stand in (phase 4).
 - **Toyama's glowing firefly squid** (Mar–Jun): not plankton; a separate feature if wanted.
-
-## Wrap-up (across phases) — done 0.97
-
-- `scenes/coasts.json`: one spec per new coast, climate and weather, for regression renders.
-- SCENE_SPECS.md fixed dates for new looks (PEI red beach, Wadden low tide, Maldives reef,
-  California June gloom, Svalbard polar night and midnight sun).
-- README.md feature list, if it lists coasts or biomes.
 
 ## Decisions (2026-10-23)
 

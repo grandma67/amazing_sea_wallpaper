@@ -5,21 +5,6 @@
 volumetric clouds, through a shader patch like `stormCells.ts`. Then the Morning Glory roll cloud
 can follow (phase 7).
 
-## Read first
-
-Before phase 0, open (not grep):
-- `src/stormCells.ts`: the patch this plan copies (the two hook points, the guard, the uv → metres
-  matrix);
-- `src/clouds.ts` `createClouds`: the layer list, the patch calls, and the reflection cube's build
-  (line ~285);
-- takram's `node_modules/@takram/three-clouds/src/shaders/clouds.glsl`: `sampleWeather` and
-  `sampleMedia`, and the march loop in `clouds.frag` (~line 480);
-- `src/props/cloudEvents.ts` as of commit `c8d65df`: the 0.172 mesh, whose shape numbers this
-  plan reuses, and which phase 6 deletes;
-- `src/skyEvents.ts` `shelfCloudFor`, and `params.ts` where it's called (~line 1998);
-- LESSONS.md "takram sky, clouds, post" and "Storms and sky objects"; arch/SKY.md; TOOLS.md
-  "Gotchas"; tools/DEBUG.md "The pixel probe" and "Lines of pixels".
-
 ## Why
 
 A mesh can't look like cloud here. 0.172 got its brightness and hue right by measurement, but
@@ -63,24 +48,6 @@ citing Goff 1976, *Mon. Wea. Rev.* 104, 1429–1440.
   600 m Cb base; it stays an estimate.
 - **Light** (photos): with the sun behind the storm, the face is dark blue-grey, about as bright
   as the deck. Front-lit, it's bright and billowy, and changes along the front.
-
-## Where the code stands (checked 2026-11-14)
-
-| Claim | Checked with | Answer |
-|---|---|---|
-| takram's `sampleWeather` knows each sample's height | `node_modules/@takram/three-clouds/src/shaders/clouds.glsl` (v0.7.6) | `sampleWeather(uv, height, mipLevel)` returns `density` per layer; `stormCells.ts` already patches it in two places (`SAMPLE_END`, after the weather texture is read, and `RETURN`) |
-| How a layer is addressed in the shader | `clouds.glsl`, `stormCells.ts` line 108 | `localWeather`, `weather.density`, `heightFraction` and `shadowLayerMask` are vec4s **indexed by layer** (`'xyzw'[layerIndex]`), not by the texture channel. The channel only picks which colour of the weather texture a layer reads |
-| Density written into `localWeather` gets thinned | `sampleWeather` | yes: `localWeather` then goes through the coverage remap (`factor = 1 − coverage × heightScale`), so a value set there is cut on days with coverage < 1. A density meant as-is must be written to `weather.density` just before `return` |
-| takram copes with an extra layer overlapping the Cb | `CloudLayers.ts` `packIntervalHeights` | yes: the gaps it skips are found by counting open layers, so overlapping layers merge into one span |
-| A free weather channel on shelf days | `params.mjs --where 'p => p.storm?.shelf != null' --stats` formations | 197 shelf days (2005–2026), at most 3 layers (Cb r, cirrus-spissatus b, altostratus g; scud is removed on shelf days): **the texture channel `a` is always free, and so is a 4th layer** (`MAX_LAYERS` = 4). The shelf's layer index is `formations.length` (1, 2 or 3) |
-| The shadow pass and the reflection cube get the patch too | `stormCells.ts` patches `cloudsPass` and `shadowPass`; `clouds.ts:285` builds the cube's clouds with the same `createClouds` | yes: one patch in `createClouds` covers the frame, the shadow map and the water's sky |
-| The march resolves a lip a few tens of metres sharp | takram `qualityPresets.ts` defaults (preset `high`) | steps start at 50 m and grow ×1.01 a step (max 1000 m once mip > 1); at 4–8 km the mip is ~0, so steps are ~60–130 m along a ray. Vertically that's a few metres at 3–5° up. **Not proven; phase 3 measures it** |
-| uv → metres is linear enough over ±40 km | phase 1 test: latitudes 0–78°, four azimuths, 10–40 km along the front | **no.** At latitude 45° (longitude 0, where every scene is anchored) the front crosses a cube edge of takram's cube-sphere uv, and the linear map put a point ~90° off as seen from the camera. **Use the sample's own position instead:** every `sampleWeather` call (`clouds.frag` 368 and 510, `shadow.frag` 88) comes right after `vec2 uv = getGlobeUv(position);`, and `ecefToWorldMatrix` and `altitudeCorrection` are declared (`parameters.glsl`) before `clouds.glsl`. So `world = ecefToWorldMatrix · (position − altitudeCorrection)` is exact. (`stormCells.ts` still uses the uv map; its cells are ≤ 9 km, but a cell near a cube edge would be distorted the same way. Not checked.) |
-| Noise that matches in TS and GLSL | `skyMirror.ts` | `hashCell(seed, x, y)` and `hashGlsl(prefix)` give the same integer-cell hash on both sides. It's a hash, not noise: build value noise from it (smoothstep between cell hashes) on both sides |
-| The clouds are hazed with distance | DEBUG.md: clouds are composited in the aerial-perspective pass | yes: the shelf gets the same haze and sunset colour as the deck (fixes the pink band) |
-| Placement: the rain is behind the lip | `params.mjs … --stats`: the nearest curtain or bolt within ±45° of the shelf's azimuth vs `shelf.distanceM` | **wrong on 112 of 197 days (57%)**: a curtain or bolt in the shelf's direction is nearer than the lip, while it should be behind it. On the other 85, every curtain and bolt in the sector is behind the lip, and every day has at least one in the sector |
-| Times of day on shelf days | `--stats 'p => p.timeOfDay'` | golden hour 62, daylight 50, midday 36, sun on horizon 29, blue hour 20 |
-| Storm days in all | `--stats` | 528 of 8035 (6.6%); shelf on 197 (37% of storms) |
 
 ## Design
 
@@ -382,7 +349,3 @@ billowy tubes, base low over the sea); `bench.mjs` within +10% on roll days; the
 - **Front-lit tiers:** under a full deck the sun reaches the face neither way, so tiers barely
   show front-lit. Real front-lit shelves (photo B) often stand ahead of the deck in sunlight:
   a gap in the deck over the lip on front-lit days would let it in.
-
-## Estimate
-
-About 10–13 h for phases 0–6. Phase 3 is the go/no-go point, after ~5–6 h.

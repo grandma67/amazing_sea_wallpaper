@@ -39,23 +39,6 @@ allows (~5%, estimate) is **not visible at all**, and rough water reads darker a
 calm water, because tilted facets reflect higher, bluer sky. So phases 1–2's windy target is "no
 visible image", not "a faint column".
 
-## Where we stand (read in the code, 2026-11-08)
-
-| Piece | Today | Problem |
-|---|---|---|
-| Mirror render | `reflection.ts`: the scene from a camera mirrored in y = 0 into a half-res HalfFloat target with mipmaps (`LinearMipmapLinearFilter`) and a float depth texture; drawn once per image | fine |
-| Far objects | `userData.distant` (islands > 5 km `islands.ts:349`, all landforms `landforms.ts:329`, two cloud events `cloudEvents.ts:99,161`) left out (`scene.ts` ~930) | stands in for missing haze (§2) |
-| Wave shift | `uv = base + N.xz · 0.04 · k` (`ocean.ts` ~549) | ~130× too small for a 63 mm lens and blind to the lens (§5.1) |
-| Blur | `textureLod(planarMap, log2(α·300·k))`, capped at lod 6, α from unresolved waves only | the drawn waves never blur it: a 15 m/s sea keeps a crisp image (§5.2) |
-| Shape | one isotropic lookup | round smudges, not vertical streaks (§1.3) |
-| Haze | none on the mirror path | far images too dark and sharp |
-| Wet sand, pools | `terrain.ts` ~1367: env map only | no rocks or cliffs in rock pools or the swash film |
-| Sky reflection | `reflect(-V, N)` into the env cube, lod from α | already physical: the planar part should match it |
-| Sea drawing | once, in frame 0 (`StillScenePass`); only clouds converge over the frames | nothing averages a noisy lookup afterwards |
-
-Cost measured 2026-11-08 (`bench.mjs`, 4 days with mountains): drawing the far objects in the
-mirror is 0% (2.1/2.3/2.0/2.6 s before and after).
-
 ## How the frame hazes objects (what phase 4 must match)
 
 Read in `seaHaze.ts`, `scene.ts` and takram's atmosphere (2026-11-08):
@@ -450,38 +433,3 @@ the frame's on 2003-03-11). Measured, it was two other things:
   `whitecapFraction`), but on 2003-03-11 they don't read (backlit, a half-developed sea).
   Monahan & O'Muircheartaigh 1980 give W = 3.84·10⁻⁶ U^3.41: 1% at 10 m/s, ~3.8% at 14.9 m/s
   *(my arithmetic)*. Check against that; not a reflection matter.
-
-## Tests
-
-- `test/glsl` after every shader edit; then `--w 320 --h 180 --frames 1`.
-- `propSwitches.test.ts` / `sceneSpec.test.ts` rows for the new switches.
-- A unit test of the phase 2 lookup's maths in TS: a flat sea gives today's uv; a tilt β turns
-  the hit by 2β; the result is the same in angle for a 20 mm and a 90 mm lens.
-- A unit test of the phase 4 haze: T and the haze colour for 2003-03-11 (V = 32 km) match the
-  numbers above; a clear day without dust uses only the air's extinction.
-- A unit test of phase 1: drawn (from `synthesizeOcean`) + tail is within 20% of Cox–Munk at
-  3, 5, 10, 15 m/s for development 0.35 and 0.9; the tail is 0 at and below 1 m/s;
-  `significantHeight` unchanged.
-- Real days in the first render round: `snapshot.mjs --where 'p => p.landform || p.islands' --sample 8`.
-- Before commit: `npm test`, `npx tsc --noEmit`, `params.mjs --ref HEAD` (should be 0 days:
-  no choice changes), `bench.mjs` (≤ +2% per phase, 10% overall).
-
-## Time (estimate)
-
-| Phase | Work | Sessions |
-|---|---|---|
-| 0 | done: slope numbers, scene file, baseline renders, targets | 1 |
-| 1 | short-wave tail per day, glitter and sky check on real windy days | ~1–1½ |
-| 2 | the ray lookup, lod, edges and sparkle | 1–2 |
-| 3 | vertical taps (likely needed) | ~½ |
-| 4 | haze uniforms and shader, drop the cutoff, 3 render rounds | ~1 |
-| 5 | terrain binding order, 2 coasts | ~1 |
-
-About 5–6 more sessions. Each phase keeps its own switch, so any one can be judged (and
-backed out) alone.
-
-## Docs to update as phases land
-
-arch/OCEAN.md "Reflections", ARCHITECTURE.md (known issues: the cutoff goes), LESSONS.md,
-REFLECTION.md §5 (what the code does), changelog.md, tools/DEBUG.md (the slope-variance view),
-SCENE_SPECS.md if a spec field is added.

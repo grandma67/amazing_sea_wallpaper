@@ -1171,13 +1171,3 @@ Phases 1–16 are built (0.139–0.155). Phase 17 waits on PLAN_BIOMES phase 14:
 bears, walrus, sea otters and kelp, waders, blacktips, monarchs) needs its own plan and meshes
 first; its season row goes in `animalSeasons.ts` when it's built. Outside this plan: the Atacama's coastal escarpment
 ([TERRAIN_FORMS.md](TERRAIN_FORMS.md) phase 2), which gives phase 15's lomas all 3 days.
-
-## Checks (all phases)
-
-- Before the first render, per phase: the docs named in CLAUDE.md §1 opened, real sizes from photos,
-  the in-frame count with `--project` / `--rendered`.
-- `diff.mjs` for visibility with each off switch on a clear and a cloudy day; real days in the first
-  render round; `bench.mjs` (phase 14 ≤ 5%; every other phase ~0%).
-- `npm test` and `npx tsc --noEmit`; `params.mjs --ref HEAD` for the changelog row.
-- Docs: changelog.md, ARCHITECTURE.md (new tables in "Biome, climate or place"), `arch/PROPS.md`,
-  SEASONS.md pointer, ANIMALS.md, SCENE_SPECS.md, REFERENCES.md, NATURE.md for new numbers.

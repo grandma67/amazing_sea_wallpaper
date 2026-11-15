@@ -93,10 +93,6 @@ left in runnels).
   rendered and judged (photo P in plans/REFLECTION.md).
 - Off = identical (`diff.mjs --ref HEAD --off-here`); render time +0% with the view off.
 
-## Size (estimate)
-
-Steps 1–2: about one session. Step 3: another, only if needed.
-
 ## Afterwards (2026-11-12): tools from the retrospective
 
 Step 3's mismatch took ~10 rounds: no way to read a shader term (three temporary shader edits),

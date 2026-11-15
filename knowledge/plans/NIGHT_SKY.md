@@ -1,30 +1,8 @@
 # Night sky: stars, shooting stars, Milky Way, planets, aurora
 
-Plan (2026-10-31; decisions recorded 2026-11-01, see the end; phase 1 done 2026-11-03). Research and numbers: [STARS.md](../STARS.md). Current code:
-[arch/SKY.md](../arch/SKY.md) "Moon and eclipses", `scene.ts` (stars block), `params.ts`
-(`nightSky`, `moonlight`).
-
-## Where we start
-
-From renders of 2026-08-12 (Perseid peak, new moon) and 2026-08-28 (full moon), and from the code:
-
-1. **The star sky isn't tied to the sun.** Stars are rotated for `date 00:00 UTC + ocean.time`
-   at longitude 0; the sun's direction comes from time of day + heading. Blue-hour skies show the
-   midnight sky, and the sun and moon aren't where they belong among the stars. Everything below
-   that sits on the ecliptic or a radiant (planets, zodiacal light, meteors, Milky Way season)
-   needs this fixed first.
-2. **Stars are sparse and boosted by hand** (`4000 × nightScale^−1.2`, 1-pixel points, BSC to
-   ~6.5). A real tripod photo of a dark coast reaches mag ~8–9 and shows the Milky Way.
-3. **A moonless sky is a graded-down blue day sky** (Bruneton lit by a fake sun overhead). It
-   should be airglow: dark, slightly green or neutral, brighter toward the horizon.
-4. **Missing:** Milky Way, planets, meteors, airglow, zodiacal light, aurora.
-
-Shares (test days): night 10.3% (starlit 3.2%), clear-ish nights 4.9%, blue hour 11.3%, nights at
-|lat| ≥ 60° 3.5%. Blue hour is as common as night, so features that show in blue hour (Venus,
-Jupiter, bright stars) reach more days.
-
-Budget: night renders take ~1.3 s at 1080p (day ~2–3 s), so there's room. Every feature is a sky
-term (per sky pixel, no geometry) or a few points.
+**Status: done (phases 1–6, 0.84–0.91).** Open leftovers: KNOWN_ISSUES.md "Sky" (aurora on
+clouds, airglow crests, lunar eclipse) and "Later or not at all" below. Research and numbers:
+[STARS.md](../STARS.md). How it works: [arch/SKY.md](../arch/SKY.md).
 
 ## Phases (build order)
 

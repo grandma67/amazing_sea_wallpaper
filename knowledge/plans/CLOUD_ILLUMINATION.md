@@ -31,75 +31,6 @@ What R shows:
 
    Reasons under "What stays as it is".
 
-## Read first (open them, don't grep)
-
-- `src/stormEffects.ts` (`FLASH_RADIANCE`, `flashGlows`, `FlashEffect`, `stormEffects`).
-- `src/props/storm.ts` (`bolt`, `boltTops`, `createStorm`, `setGlowBrightness`) and
-  `src/stormCells.ts`.
-- `src/aurora.ts` `patchCloudsAurora`: the pattern phases 3 and 7 copy. It adds a light beside
-  the sky term in takram's `marchClouds`, with a guard that throws if the shader changed.
-- `src/clouds.ts` `createClouds` (both passes are built through it) and
-  `renderCloudyEnvironment` (calls `createClouds` per cube face, so the sea's mirror gets the
-  patch too).
-- `src/ocean.ts` around `flashGlows` (~l. 259, ~566, ~927).
-- `node_modules/@takram/three-clouds/src/shaders/clouds.frag` `marchClouds` (~l. 480–600):
-  - `radiance` is built per sample;
-  - `radiance *= media.scattering`;
-  - `scatteringIntegral = (radiance − radiance·T) / extinction`.
-
-  So in thick cloud, a source term J added before that multiply comes out as ≈ J × albedo (~1):
-  **J is the surface luminance itself**, in render units.
-- `marchOpticalDepth`, `approximateMultipleScattering` (same file).
-- `src/frameMeter.ts` (`frameBoostRule`, `shutterSeconds`).
-- `src/scene.ts`:
-  - exposure (~l. 625–645);
-  - `shutterOf` and `cdPerUnit` (~l. 1020–1030);
-  - the long-exposure restart (~l. 1100–1150).
-- `src/starLight.ts` (`renderPerLux`, `RENDER_UNIT`).
-- `src/nightGlow.ts` (`ARTIFICIAL`, `s10Luminance`, the dome).
-- `src/params.ts`:
-  - `stormChance`, `stormComes`, `generateStorm` (~l. 1100–1160);
-  - where `summer` is set (~l. 1633).
-- `src/debug.ts` `DEBUG_PASSES`.
-- arch/SKY.md "Storms", "takram's clouds, from the inside", "A new cloud shape".
-- LESSONS.md "takram sky, clouds, post", "Storms and sky objects".
-- ARCHITECTURE.md "Known issues" (light pollution, lighthouses) and "Biome, climate or place".
-- TOOLS.md "Gotchas"; tools/DEBUG.md (probe, probeLine); SCENE_SPECS.md "Adding a spec field".
-
-## What's drawn now (measured 2026-11-15; 1080p, 16 frames)
-
-**The flash:**
-- It is a screen-space Gaussian (`FlashEffect`), ~800 m in radius, centred on the cloud base
-  straight over each strike.
-- Its radiance is fixed at `FLASH_RADIANCE`: luma 3.8·10⁻⁴ render units × `RENDER_UNIT`
-  75,717 ≈ **29 cd/m²** by day.
-- 2016-06-21's frame median is ≈ 800 cd/m² (0.0509 exposed ÷ exposure 4.79 × 75,717), so the
-  glow adds a few % and can't be seen. Both reported dates render bright bolts under an evenly
-  lit deck.
-- The sea mirrors the old glow through a separate term in `ocean.ts`.
-
-**Where the bolt starts:**
-- `bolt()` starts the channel at the Cb base + 0–200 m (the first draw of its stream
-  `${seed}/bolt/${strike.seed}`), straight over the strike.
-- Nothing inside the cloud carries light.
-
-**No storms at night:**
-- `stormComes`/`generateStorm` bar them: "the scene is moonlit and a storm would hide the moon",
-  written before starlit nights, the frame meter and the long exposure.
-- Test days with bolts: 53 of 1095. By time of day: golden hour 16, daylight 12,
-  sun-on-horizon 10, blue hour 10, midday 5, night 0.
-- A forced night storm renders **black**: `frameBoostRule` lifts only `broken` and `overcast`
-  nights, and storm days have `weather.kind === "storm"`.
-
-**The moon:**
-- 2024-10-16 and 2026-05-31 have the moon in frame: an aureole round the disc, a glade, and cloud
-  edges lit on the moon's side.
-- 2024-05-22: silver-lit broken cumulus congestus.
-- Moonlight already lights the clouds and the sky; nothing to build.
-
-**Towns:** they don't light cloud bases (ARCHITECTURE.md "Known issues", light pollution). Of
-101 cloudy test nights, 29 are Bortle 3–4.
-
 ## Research (sources read, in search summaries unless noted)
 
 - [IEEE TechNav: lightning](https://technav.ieee.org/topic/lightning/)
@@ -230,23 +161,6 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
 - **The moon:** it already lights clouds and the sky round it (above).
 - **Moonlight bounced off the sea:** 2–6% of the light (Fresnel) from a small glade, unmeasurable
   on a cloud.
-
-## Done when
-
-1. **2016-06-21** (bolt at 5.7 km) and **2026-11-02** (bolts at 3.2, 6.7, 8.5 km):
-   - a patch on the base where each bolt leaves the cloud, brighter than the base round it;
-   - probes within ±30% of `flashGlowCd` (phase 2);
-   - the sea mirrors it.
-2. **The same storm at different hours:** forced at midday, sun-on-horizon, blue hour and night,
-   glow ÷ base grows only as the real scene luminance falls (a unit test and probes).
-3. **Forced night storms** (both dates, moonlit and starlit):
-   - the Cb lit from inside, brightest up and to one side of the exit (R);
-   - the frame not black;
-   - sand and sea lit by the flash.
-4. **Clouds with no bolt** look as before: an off switch gives the old image.
-5. **Overcast Bortle 4 night:** the base orange toward the dome, its luminance ≈ 2.8× the clear
-   artificial zenith (probe).
-6. **Render time** on storm days ≤ +10% (`bench.mjs --ref HEAD`).
 
 ## Phase 1: where the flash is (geometry; no light yet)
 
@@ -585,26 +499,3 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
     transparency). No gain constant was needed.
 - **Real nights** (29 cloudy Bortle 3–4 test nights): subtle warm undersides.
 - **Bench:** +0–3%.
-
-## Docs (with each phase's commit)
-
-- **arch/SKY.md "Storms":**
-  - lightning starts in the charge region, with the −15 °C table;
-  - the in-cloud glow kernel and its TS mirror;
-  - the one camera rule;
-  - the flash on land and sea;
-  - night storms;
-  - town light;
-  - why lighthouses, the moon and the sea glade light no clouds.
-- **ARCHITECTURE.md:** "Known issues" and the climate-keyed list.
-- **LESSONS.md:**
-  - "A light inside a cloud travels by diffusion, not a ray: a short optical-depth march puts it
-    at zero."
-  - "A flash in a still is energy ÷ shutter, against the real ambient: no per-hour factor."
-- **CLOUDS.md "Storms":** the night share and the flash origin.
-- **SCENE_SPECS.md:** `lightning`.
-- **REFERENCES.md:** the sources above.
-- **changelog.md:** one row per phase, with `params.mjs --ref HEAD` counts.
-- **Before each commit:** `npm test` and `npx tsc --noEmit`. One commit per phase; never commit
-  TODO.md.
-- **Stop the dev server** when done: `lsof -tiTCP:5174 -sTCP:LISTEN | xargs kill`.

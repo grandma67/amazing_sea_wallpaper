@@ -29,36 +29,6 @@ From memory, not read in this research: engines apply cloud shade as a factor on
 every lit material ("light function"). I found no source on how Horizon or Red Dead do it; the Nubis
 talk's slides may say.
 
-## Where we stand
-
-Direct light in one line: `sun × min(near map, land map) × cloud map`. The sea, terrain and every lit
-prop now read the land and cloud maps (`propShade.ts`). Near shadows depend on each object's
-`receiveShadow`, and casting on its `castShadow`. Counts from `debug.shadowCoverage` over
-`scenes/shadows.json` (objects, not instances); 2026-11-06:
-
-| Kind | Lit, all shaded | Casts | Receives near shadows | Gap for phase 2 |
-|---|---|---|---|---|
-| Sea, terrain | own shaders | terrain: near map (0.123) | yes | terrain not in the land map |
-| Vegetation | 196 | 196 (0.123) | 196 | |
-| Shore life (flowers, crabs...) | 97 | 97 | 97 | |
-| Debris | 60 | 60 | 60 | |
-| Rocks, stones, beachrock | 40 | 40 | 40 | |
-| Boats, ships | 22 | 22 | 22 | |
-| Ice | 8 | 8 | 8 | |
-| Mangroves | 3 | 3 | 3 | |
-| Lighthouse | 3 | 2 | 2 | |
-| Wildlife (8 forced scenes) | 2–5 per scene | all | all | |
-| Birds, migratory birds | 42 | 42 | 42 (0.123) | |
-| Marine animals | 10 | 10 | 10 (0.123) | |
-| Seals | 6 | 6 | 6 (0.123) | |
-| Colony | 4 | 4 (0.123) | 4 | |
-| Islands | 5 | both maps (0.123) | 5 | |
-| Mountains | 3 | both maps (0.123) | 3 | |
-| Salt marsh, leaf litter | 8 + 4 | no: smaller than a texel | yes | |
-| Surf, whale and ship spray | own shader, per droplet | no | no | |
-| Lamps, lava, lightning | unlit | no | not needed | |
-| Shelf and roll clouds | left out: they are clouds | no | no | |
-
 ## Phases
 
 Order: each phase is judged better after the one before. Cost is checked with `bench.mjs`; adding
@@ -259,12 +229,6 @@ No extra frames (estimate).
 
 **Done:** all 22 cloudy nights read in a contact sheet; open nights unchanged in `diff.mjs`; a test of
 `boost` and `shutterSeconds`.
-
-## For each phase
-
-Specs over dates; `diff.mjs` proves it shows; a contact sheet of `scenes/shadows.json`; `npm test`,
-`npx tsc --noEmit`; `params.mjs --ref HEAD` (expect 0 days, except a new spec field); update
-changelog, `arch/SKY.md`, LESSONS.md. One commit per phase.
 
 ## Questions for later
 
