@@ -81,7 +81,9 @@ a NaN (one NaN pixel in the meter makes the exposure NaN: the whole frame black)
   `finish` (bloom). Reproduced on the Mac by writing NaN into a 1%-wide patch after the grade:
   the whole frame went black (luma 0–0); with the meter's guard, normal. So `FrameMeterPass`
   zeroes NaN/±∞ pixels (bit test, not `isnan`) before bloom and reports `frameNonFinite` (meter
-  cells, each 16 samples: a lower bound). The Mac reads 0 on 11-14 and 11-15;
+  cells, each 16 samples: a lower bound). The Mac reads 0 on 11-14 and 11-15; the runner read
+  3 (phone) and 1 (PC), and with the guard both frames matched the Mac's luma to the decimal
+  and were published;
 - `DEBUG=1` in `pages.yml`: each render's debug numbers in the log (NaN prints as "NaN");
 - a blank frame is kept as `NAME.blank.jpg`/`.json` (not published); a failed render step
   uploads `$RUNNER_TEMP/daily` as the run's `failed-render` artifact;
