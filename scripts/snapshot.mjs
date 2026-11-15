@@ -88,6 +88,16 @@ const failBlank = flag('fail-blank')
 // this (knowledge/tools/RENDER.md "Blank frames"); a black canvas spans 0.
 const BLANK_RANGE = 4
 let blankFrames = 0
+/** NaN/∞ the frame meter zeroed before bloom (frameMeter.ts): not in the picture, but a
+ * shader made them, on this machine (x86 SwiftShader on CI; the Mac reads 0). On GitHub
+ * Actions also a warning on the run, so a new source shows on its summary. */
+function warnNonFinite(name, debug) {
+  const n = debug?.frameNonFinite ?? 0
+  if (!(n > 0)) return
+  const text = `${name}: ${n} meter cell(s) read NaN/inf, zeroed before bloom; find the shader with params.debug.nanTrace (tools/DEBUG.md)`
+  console.log(`  ⚠ ${text}`)
+  if (process.env.GITHUB_ACTIONS === 'true') console.log(`::warning title=NaN pixels::${text}`)
+}
 /** params.debug.nanTrace (src/nanTrace.ts) as short lines: CI logs cut a long one. */
 function printNanTrace(trace) {
   if (trace == null) return
@@ -277,6 +287,7 @@ for (const { date, spec: asked, name } of todo) {
       await writeFile(join(outDir, `${name}.blank.json`), JSON.stringify({ ...params, spec }, keepNonFinite, 2))
       if (process.env.DEBUG) console.log(JSON.stringify(params.debug, keepNonFinite))
       printNanTrace(params.debug?.nanTrace)
+      warnNonFinite(name, params.debug)
       blankFrames++
       continue
     }
@@ -286,6 +297,7 @@ for (const { date, spec: asked, name } of todo) {
   console.log(`${file}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${params.title}`)
   if (process.env.DEBUG) console.log(JSON.stringify(params.debug, keepNonFinite))
   printNanTrace(params.debug?.nanTrace)
+  warnNonFinite(name, params.debug)
   // The pixel probe (params.debug.probe): one line per point.
   for (const r of params.debug?.probe ?? []) {
     const at = Array.isArray(r.at) ? `[${r.at.join(', ')}]` : r.at.world != null ? `world ${r.at.world.join(',')}` : r.at.mirror != null ? `mirror of ${r.at.mirror.join(',')}` : `az ${r.at.az} el ${r.at.el}`
