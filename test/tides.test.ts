@@ -4,7 +4,8 @@ import { beachLines } from '../src/beach'
 import { hasLand } from '../src/coastKind'
 import { placeNamed, PLACES } from '../src/places'
 import { Random } from '../src/random'
-import { MICRO_TIDE, NEAP, SPRING, springFactor, terraceFor, tideFor, tideMarks, tideModified, waterlineAt } from '../src/tides'
+import { GAUGE_KM, harmonicsFor, MICRO_TIDE, terraceFor, tideFor, tideHeight, tideMarks, tideModified, waterlineAt, type Harmonics } from '../src/tides'
+import { TIDE_GAUGES } from '../src/tideGauges'
 import { allParams, heightAt as at, scene, scenes } from './days'
 
 const beach = { coast: 'beach', beachMaterial: 'sand', eclipse: null } as const
@@ -30,30 +31,82 @@ describe('tide ranges', () => {
   })
 })
 
-describe('tideFor', () => {
-  it('has springs at new and full moon, neaps at the quarters', () => {
-    expect(springFactor(18)).toBeCloseTo(SPRING)
-    expect(springFactor(198)).toBeCloseTo(SPRING)
-    expect(springFactor(108)).toBeCloseTo(NEAP)
-    for (let phase = 0; phase < 360; phase += 7) {
-      expect(springFactor(phase)).toBeGreaterThanOrEqual(NEAP - 1e-9)
-      expect(springFactor(phase)).toBeLessThanOrEqual(SPRING + 1e-9)
-    }
+// NOAA's constants (api.tidesandcurrents.noaa.gov harcon, metres, Greenwich
+// phase) and its hourly predictions for 2025-07-10 (MSL, GMT), every 3 h.
+const PENSACOLA: Harmonics = { lonEast: -87.21, M2: [0.017, 172.1], S2: [0.005, 175.9], K1: [0.125, 58.2], O1: [0.122, 47.9] }
+const SAN_FRANCISCO: Harmonics = { lonEast: -122.47, M2: [0.576, 208.2], S2: [0.137, 216.2], K1: [0.37, 225.4], O1: [0.23, 208.4] }
+const NOAA_PREDICTIONS: [Harmonics, number[], number][] = [
+  [PENSACOLA, [-0.15, -0.25, -0.18, -0.01, 0.18, 0.31, 0.29, 0.1], 0.08],
+  [SAN_FRANCISCO, [0.1, 0.5, 0.96, 0.16, -1.07, -0.93, 0.01, 0.45], 0.3]
+]
+/** A clock in GMT for a gauge: local solar hours from universal ones. */
+const gmt = (h: Harmonics, date: string, ut: number) => ({ date, localHours: ut + h.lonEast / 15 })
+
+describe('the harmonic tide', () => {
+  it.each(NOAA_PREDICTIONS)('matches NOAA’s predictions (%#)', (h, values, tolerance) => {
+    values.forEach((v, i) => expect(Math.abs(tideHeight(h, gmt(h, '2025-07-10', i * 3)) - v)).toBeLessThan(tolerance))
   })
 
-  it('keeps the level within the range, and the spec forces stage and range', () => {
-    for (let i = 0; i < 200; i++) {
-      const t = tideFor([4, 8], i * 1.8, new Random(`t${i}`))
-      expect(Math.abs(t.level)).toBeLessThanOrEqual(t.range / 2 + 1e-9)
+  const highs = (h: Harmonics, date: string): number => {
+    let n = 0
+    const at = (t: number) => tideHeight(h, { date, localHours: 0 }, t)
+    for (let t = 0.25; t < 24.84; t += 0.25) if (at(t) > at(t - 0.25) && at(t) >= at(t + 0.25)) n++
+    return n
+  }
+
+  it('has one high water a day on a diurnal coast, two on a semidiurnal one', () => {
+    expect(highs(PENSACOLA, '2025-07-10')).toBe(1)
+    expect(highs(harmonicsFor('brittany'), '2025-07-10')).toBe(2)
+  })
+
+  it('has springs after new and full moon, neaps at the quarters (Brittany, 2025)', () => {
+    const h = harmonicsFor('brittany')
+    const range = (date: string) => {
+      const v = Array.from({ length: 100 }, (_, i) => tideHeight(h, { date, localHours: 0 }, i * 0.25))
+      return Math.max(...v) - Math.min(...v)
+    }
+    // New moon 2025-07-24, first quarter 2025-08-01 (springs a day or two late).
+    expect(range('2025-07-25') / range('2025-08-02')).toBeGreaterThan(1.6)
+  })
+
+  it('brings spring high water at about the same clock time each fortnight', () => {
+    const h = harmonicsFor('brittany')
+    const hwTime = (date: string) => {
+      let best = 0
+      for (let t = 0; t < 12.42; t += 0.1) if (tideHeight(h, { date, localHours: t }) > tideHeight(h, { date, localHours: best })) best = t
+      return best
+    }
+    // Two days after new moons through 2025.
+    const times = ['2025-01-31', '2025-03-31', '2025-05-29', '2025-07-26', '2025-09-23', '2025-11-22'].map(hwTime)
+    expect(Math.max(...times) - Math.min(...times)).toBeLessThan(1.5)
+  })
+
+  it('uses a gauge only near the place', () => {
+    for (const [id, g] of Object.entries(TIDE_GAUGES)) {
+      const h = harmonicsFor(id)
+      if (g.km <= GAUGE_KM) expect(h.M2).toEqual(g.M2)
+      else expect(h.M2[0]).toBe(1)
+    }
+  })
+})
+
+describe('tideFor', () => {
+  const clock = { date: '2025-07-10', localHours: 15 }
+  it('keeps the level between the day’s low and high, scaled to the drawn mean; the spec forces stage and range', () => {
+    for (let i = 0; i < 60; i++) {
+      const t = tideFor([4, 8], harmonicsFor('brittany'), { date: '2025-07-10', localHours: i * 0.7 }, new Random(`t${i}`))
+      expect(t.level).toBeLessThanOrEqual(t.high + 1e-9)
+      expect(t.level).toBeGreaterThanOrEqual(t.high - t.range - 1e-9)
       expect(t.range).toBeLessThanOrEqual(t.springRange + 1e-9)
       expect(t.mean).toBeGreaterThanOrEqual(4)
     }
-    const high = tideFor([4, 8], 0, new Random('x'), { tide: 'high' })
-    expect(high.level).toBeCloseTo(high.range / 2)
-    expect(tideFor([4, 8], 0, new Random('x'), { tide: 'low' }).level).toBeCloseTo(-high.range / 2)
-    expect(tideFor([4, 8], 0, new Random('x'), { tide: 'mid' }).level).toBeCloseTo(0)
+    const h = harmonicsFor('brittany')
+    const high = tideFor([4, 8], h, clock, new Random('x'), { tide: 'high' })
+    expect(high.level).toBeCloseTo(high.high)
+    expect(tideFor([4, 8], h, clock, new Random('x'), { tide: 'low' }).level).toBeCloseTo(high.high - high.range)
+    expect(tideFor([4, 8], h, clock, new Random('x'), { tide: 'mid' }).level).toBeCloseTo(high.high - high.range / 2)
     // Forcing draws the same, so the mean is the drawn one.
-    expect(tideFor([4, 8], 0, new Random('x'), { tidalRange: 15 })).toMatchObject({ range: 15, springRange: 15, mean: high.mean })
+    expect(tideFor([4, 8], h, clock, new Random('x'), { tidalRange: 15 })).toMatchObject({ range: 15, springRange: 15, mean: high.mean })
   })
 })
 
@@ -107,7 +160,7 @@ describe('the beach for its range', () => {
   it('leaves micro-tidal days within a few centimetres of mean sea', () => {
     for (const p of scenes({ ...beach, place: 'aegean' }, 20)) {
       expect(p.coast.terrace.width).toBe(0)
-      expect(Math.abs(p.coast.tide.level)).toBeLessThan(0.3)
+      expect(Math.abs(p.coast.tide.level - p.coast.tide.surge)).toBeLessThan(0.3)
     }
   })
 })

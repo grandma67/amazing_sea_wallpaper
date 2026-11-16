@@ -3,12 +3,13 @@ import type { BeachState } from './beachState'
 import type { CoastParams } from './params'
 import { lagoonSlope, type Reef } from './reef'
 import type { Random } from './random'
+import { TIDE_GAUGES, type Constituent } from './tideGauges'
 
-// Tides (PLAN_BIOMES phase 5). Each place has a mean range (places.ts, from
-// knowledge/REGIONS.md §3); the day's range follows the moon (springs at new
-// and full moon, neaps at the quarters) and the level is a random point of
-// the semidiurnal cycle (real high-water times depend on each port; a random
-// phase is right for an unnamed beach).
+// Tides (PLAN_BIOMES phase 5; harmonics 0.201). Each place has a mean range
+// (places.ts, from knowledge/REGIONS.md §3) and a tide curve from its nearest
+// gauge's constituents (tideGauges.ts, §3.3): the date and the scene's local
+// solar time set when high water comes, how many a day, springs and neaps
+// and tropic tides; the curve is scaled to the beach's mean range.
 //
 // Tides lower the land instead of raising the sea (decision 6): sea level 0
 // stays everywhere, and the terrain (terrain.ts) and everything standing on
@@ -32,7 +33,10 @@ export interface Tide {
   /** The part of `level` the weather makes (m, `surgeFor`): wind setup,
    * air pressure and the season's mean sea level; 0 in `tideFor`. */
   surge: number
-  /** Semidiurnal phase (rad): 0 high water, π low water. */
+  /** Today's high water above mean sea (m, the tide alone): a mixed tide's
+   * higher high water. */
+  high: number
+  /** The M2 term's phase (rad): 0 at its high water, π at its low. */
   phase: number
 }
 
@@ -45,44 +49,145 @@ export interface Terrace {
 
 /** Below this range (micro-tidal, m) the beach face alone spans the tide. */
 export const MICRO_TIDE = 2
-/** Spring and neap ranges × the mean: Incheon's spring/neap ≈ 1.46 (REGIONS.md §3). */
-export const SPRING = 1.2
-export const NEAP = 0.8
-/** Springs come about a day and a half after new and full moon (the age of
- * the tide), ~12° of moon phase a day. */
-const TIDE_AGE_DEG = 18
 /** Low-tide terraces: ~1:65, and no wider than 400 m (wider ones are tidal
  * flats, phase 9). */
 const TERRACE_SLOPE = 0.015
 const TERRACE_MAX = 400
 
-const STAGE_PHASE: Record<TideStage, number> = { high: 0, mid: Math.PI / 2, low: Math.PI }
-
-/** Spring–neap factor on the mean range: × 1.2 at springs, × 0.8 at neaps. */
-export function springFactor(moonPhaseDeg: number): number {
-  const mid = (SPRING + NEAP) / 2
-  const amp = (SPRING - NEAP) / 2
-  return mid + amp * Math.cos((2 * (moonPhaseDeg - TIDE_AGE_DEG) * Math.PI) / 180)
+/** Where the scene stands in time: its local date and local apparent solar
+ * hours (from the sun: `sunHourAngleDeg`; the scene has no longitude or
+ * clock, the gauge's longitude gives universal time). */
+export interface TideClock {
+  date: string
+  localHours: number
 }
 
-/** The day's tide at a place of mean range `[lo, hi]` (m): two draws on the
- * `'tide'` stream (the beach's mean range, the phase), then the spec forces
- * the stage and the range. */
+/** A place's tide in four constituents (tideGauges.ts, REGIONS.md §3.3). */
+export interface Harmonics {
+  lonEast: number
+  M2: Constituent
+  S2: Constituent
+  K1: Constituent
+  O1: Constituent
+}
+
+/** A gauge further than this (km) from the place's coast doesn't stand for
+ * it (the Red Sea's nearest is 1146 km off): the place takes a shape by its
+ * tide type instead. */
+export const GAUGE_KM = 250
+/** Shapes by tide type for places without a near gauge (amplitudes, M2 = 1
+ * or K1 = 1; S2 two-fifths of M2 and 30° later, springs ~1.2 days after new
+ * and full moon: typical; Bosboom & Stive's classes). */
+const SHAPES = {
+  semidiurnal: { M2: 1, S2: 0.38, K1: 0.08, O1: 0.06 },
+  mixed: { M2: 1, S2: 0.3, K1: 0.6, O1: 0.4 }
+} as const
+/** Far places that aren't semidiurnal (REGIONS.md §3.1): the Sea of Japan's
+ * mixed tide (its nearest gauge, 718 km off, has F 1.5). */
+const FAR_MIXED = new Set(['russian-far-east'])
+
+/** A place's constituents: its gauge's, or a typed shape with phases from a
+ * hash of the id (an unnamed port: real phases change along any coast). */
+export function harmonicsFor(placeId: string, lonEast = 0): Harmonics {
+  const g = TIDE_GAUGES[placeId]
+  if (g != null && g.km <= GAUGE_KM) return { lonEast: g.lon, M2: g.M2, S2: g.S2, K1: g.K1, O1: g.O1 }
+  const shape = SHAPES[FAR_MIXED.has(placeId) ? 'mixed' : 'semidiurnal']
+  const hash = (salt: number): number => {
+    let h = 2166136261 ^ salt
+    for (let i = 0; i < placeId.length; i++) h = Math.imul(h ^ placeId.charCodeAt(i), 16777619)
+    return ((h >>> 0) % 3600) / 10
+  }
+  const m2 = hash(1)
+  const k1 = hash(2)
+  return { lonEast: g?.lon ?? lonEast, M2: [shape.M2, m2], S2: [shape.S2, m2 + 30], K1: [shape.K1, k1], O1: [shape.O1, k1 - 15] }
+}
+
+const J2000_MS = Date.UTC(2000, 0, 1, 12)
+
+/** The tide's height above mean sea (m, in the gauge's units) `hours` after
+ * the clock: Σ A cos(V − G) over M2, S2, K1, O1, with the equilibrium
+ * arguments from the mean longitudes of the Moon (s) and the Sun (h) and the
+ * mean sun's Greenwich hour angle (T): M2 2T − 2s + 2h, S2 2T, K1 T + h − 90°,
+ * O1 T − 2s + h + 90° (Schureman; nodal factors left out, ≤ ±11%). Checked
+ * against NOAA's predictions (test/tides.test.ts): Pensacola's diurnal tide
+ * to 5 cm, San Francisco's mixed one to 14 cm. */
+export function tideHeight(h: Harmonics, clock: TideClock, hours = 0): number {
+  const [y, m, d] = clock.date.split('-').map(Number)
+  const ut = clock.localHours + hours - h.lonEast / 15
+  const days = (Date.UTC(y, m - 1, d) - J2000_MS) / 86400000 + ut / 24
+  const s = 218.3165 + 13.17639648 * days
+  const sun = 280.4661 + 0.98564736 * days
+  const T = 180 + 15 * ut
+  const term = ([a, g]: Constituent, v: number): number => a * Math.cos(((v - g) * Math.PI) / 180)
+  return term(h.M2, 2 * T - 2 * s + 2 * sun) + term(h.S2, 2 * T) + term(h.K1, T + sun - 90) + term(h.O1, T - 2 * s + sun + 90)
+}
+
+/** Lowest and highest water within a lunar day centred on `hours` (step
+ * 15 min). */
+function dayExtremes(h: Harmonics, clock: TideClock, hours: number): [number, number] {
+  let lo = Infinity
+  let hi = -Infinity
+  for (let t = -LUNAR_DAY / 2; t <= LUNAR_DAY / 2; t += 0.25) {
+    const v = tideHeight(h, clock, hours + t)
+    lo = Math.min(lo, v)
+    hi = Math.max(hi, v)
+  }
+  return [lo, hi]
+}
+const LUNAR_DAY = 24.84
+
+/** The gauge's mean and spring ranges around the date: the mean and the
+ * 90th percentile of 30 lunar days' ranges (a semidiurnal day's bigger tide,
+ * a diurnal day's one). */
+function rangesAround(h: Harmonics, clock: TideClock): { mean: number; spring: number } {
+  const ranges: number[] = []
+  for (let k = -15; k < 15; k++) {
+    let lo = Infinity
+    let hi = -Infinity
+    for (let t = 0; t < LUNAR_DAY; t += 0.5) {
+      const v = tideHeight(h, clock, k * LUNAR_DAY + t)
+      lo = Math.min(lo, v)
+      hi = Math.max(hi, v)
+    }
+    ranges.push(hi - lo)
+  }
+  ranges.sort((a, b) => a - b)
+  return { mean: ranges.reduce((s, r) => s + r, 0) / ranges.length, spring: ranges[Math.floor(ranges.length * 0.9)] }
+}
+
+/** The day's tide at a place of mean range `[lo, hi]` (m): the beach's mean
+ * range is a draw in the span; the curve (when high water comes, one high a
+ * day or two, springs and neaps, tropic tides) is the place's harmonics
+ * (REGIONS.md §3.3) on the date and local time, scaled to that mean. Two
+ * draws on the `'tide'` stream (the second, the old random phase, kept so
+ * the stream stays put); the spec forces the stage and the range. */
 export function tideFor(
   mean: readonly [number, number],
-  moonPhaseDeg: number,
+  harmonics: Harmonics,
+  clock: TideClock,
   rng: Random,
   force: { tide?: TideStage; tidalRange?: number } = {}
 ): Tide {
   const meanRange = mean[0] + (mean[1] - mean[0]) * rng.float()
-  const drawnPhase = rng.range(0, 2 * Math.PI)
-  const range = force.tidalRange ?? meanRange * springFactor(moonPhaseDeg)
-  const phase = force.tide != null ? STAGE_PHASE[force.tide] : drawnPhase
+  rng.range(0, 2 * Math.PI)
+  const [lo, hi] = dayExtremes(harmonics, clock, 0)
+  const gauge = rangesAround(harmonics, clock)
+  const scale = force.tidalRange != null ? force.tidalRange / Math.max(1e-6, hi - lo) : meanRange / Math.max(1e-6, gauge.mean)
+  const now = tideHeight(harmonics, clock)
+  const level = force.tide === 'high' ? hi : force.tide === 'low' ? lo : force.tide === 'mid' ? (hi + lo) / 2 : now
+  const range = scale * (hi - lo)
+  // The M2 term's phase now (0 at its high water), for reading the cycle.
+  const [y, m, d] = clock.date.split('-').map(Number)
+  const ut = clock.localHours - harmonics.lonEast / 15
+  const days = (Date.UTC(y, m - 1, d) - J2000_MS) / 86400000 + ut / 24
+  const v = 2 * (180 + 15 * ut) - 2 * (218.3165 + 13.17639648 * days) + 2 * (280.4661 + 0.98564736 * days)
+  const phase = ((((v - harmonics.M2[1]) % 360) + 360) % 360) * (Math.PI / 180)
   return {
     mean: meanRange,
-    springRange: Math.max(meanRange * SPRING, range),
+    springRange: Math.max(force.tidalRange != null ? 0 : scale * gauge.spring, range),
     range,
-    level: (range / 2) * Math.cos(phase),
+    level: scale * level,
+    high: scale * hi,
     surge: 0,
     phase
   }
@@ -166,10 +271,10 @@ export function highWater(coast: { tide?: Pick<Tide, 'springRange'>; terrace?: T
 /** World heights (sea level 0) of today's high water and of the spring high
  * water, the highest the sea has reached lately (plants and wrack above it). */
 export function tideMarks(coast: Pick<CoastParams, 'tide'>): { high: number; spring: number } {
-  const { range, springRange, level, surge } = coast.tide
+  const { range, springRange, level, surge, high } = coast.tide
   // Today's high water carries today's surge; the spring line is where the
   // sea has reached lately (the wrack, the plants' edge), so it doesn't.
-  return { high: range / 2 + (surge ?? 0) - level, spring: springRange / 2 - level }
+  return { high: (high ?? range / 2) + (surge ?? 0) - level, spring: springRange / 2 - level }
 }
 
 /** Relative tide range RTR = range / Hb (Masselink & Short 1993): below 3

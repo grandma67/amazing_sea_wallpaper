@@ -165,6 +165,9 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   breaker height; Hong Kong CEDD "Typical natural beach slopes" and Bascom 1951 (slope by grain);
   edge-wave cusp spacing λ = g T² tanβ / π (Guza & Inman 1975); sources in REGIONS.md §2 and
   PLAN_BIOMES.md
+- Tide curves and surge (0.200–0.201, REGIONS.md §3.2–3.3): TICON (Piccioni et al. 2019, CC-BY,
+  GESLA-2 gauges), NOAA CO-OPS constants and predictions (checks), Schureman's equilibrium
+  arguments, wind setup (Pugh & Woodworth), the 1953 North Sea surge as the shallow-shelf anchor.
 - Tides, ebb and flow (research only, REGIONS.md §3.1): tide types (Bosboom & Stive; Davies &
   Clayton 1980), tropic and equatorial tides, the establishment of a port, wind-led Baltic and
   Mediterranean levels; links in REGIONS.md "Sources".

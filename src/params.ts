@@ -1,6 +1,6 @@
 import { MoonPhase } from 'astronomy-engine'
 
-import { eclipseOfType, eclipseOn, moonlight as phaseLight, REAL_SUN_LATITUDE, sunAzimuthDeg, sunLimits, type EclipseParams, type SunLimits } from './celestial'
+import { eclipseOfType, eclipseOn, moonlight as phaseLight, REAL_SUN_LATITUDE, sunAzimuthDeg, sunHourAngleDeg, sunLimits, type EclipseParams, type SunLimits } from './celestial'
 
 import { beachName, isStony, materialChances, STONE_SIZES, STONY_RUNUP, stonyShape, type BeachMaterial, type Ridge } from './beach'
 import { beachShape, beachStateFor, breakerHeight, grainIn, sedimentFor, wavePeriod, type Bar, type BeachState, type Cusps, type Rips } from './beachState'
@@ -34,7 +34,7 @@ import { reefFor, reefShelter, type Reef } from './reef'
 import { flatGround, flatWaterline, tidalFlatFor, type SaltMarsh, type TidalFlat } from './tidalFlat'
 import { ROCK_NAMES, rockGround, rockShoreFor, rockWaterline, wobbleAtCamera, type RockShore } from './rockShore'
 import type { Shelter } from './shelter'
-import { MICRO_TIDE, relativeTideRange, surgeFor, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
+import { harmonicsFor, MICRO_TIDE, relativeTideRange, surgeFor, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
 // Everything random about a scene is decided here, from the date alone.
@@ -2023,7 +2023,10 @@ function buildParams(
   oceanSwell.swellWavelength = Math.min(320, or(oceanSwell.swellWavelength * basin.swellWavelength, forcedLength))
   const oceanState = { airWindSpeed: windSpeed, windSpeed: spec.wind ?? (seaIce != null ? Math.min(ICE_WAVE_WIND, windSpeed * iceCalm) : windSpeed * iceCalm), windHeadingDeg, ...oceanSwell }
   const roughBeach = storm != null || (Math.abs(latitudeDeg) > 25 && season({ date, latitudeDeg }) === 'winter')
-  const tide = tideFor(place.tide, moonPhaseDeg, Random.derive(seed, 'tide'), spec)
+  // The tide at the scene's local solar time (REGIONS.md §3.3): the sun's
+  // hour angle gives it; the place's gauge, when high water comes.
+  const localHours = 12 + sunHourAngleDeg(latitudeDeg, date, sunElevationDeg, isEvening) / 15
+  const tide = tideFor(place.tide, harmonicsFor(place.id), { date, localHours }, Random.derive(seed, 'tide'), spec)
   const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach, frozen: seaIce != null }, tide, spec)
   // Storm surge, the air's weight and the sea's season on the water (no
   // draws). Sea ice takes the wind's grip off the water.

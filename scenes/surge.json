@@ -1,0 +1,7 @@
+{ "base": { "eclipse": null },
+  "scenes": [
+    { "name": "north-australia-real-0.72", "date": "2024-06-16" },
+    { "name": "portugal-storm-real-0.61", "date": "2024-06-24" },
+    { "name": "yellow-sea-storm-real-0.48", "date": "2025-06-04" },
+    { "name": "baltic-forced-1m", "date": "2025-07-10", "place": "baltic", "coast": "beach", "composition": "shoreline", "timeOfDay": "daylight", "weather": "broken", "sunAzimuthDeg": 160, "storm": null, "fog": null, "surge": 1 }
+  ] }

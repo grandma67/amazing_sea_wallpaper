@@ -101,8 +101,11 @@ describe('stony beach props', () => {
       const { coast } = ctx.params
       const m = new Matrix4()
       for (const mesh of createPinnipeds(ctx, null) as InstancedMesh[]) {
-        for (let i = 0; i < mesh.count; i++) {
-          mesh.getMatrixAt(i, m)
+        // Instanced herds, or a single animal as a plain mesh.
+        const instanced = typeof mesh.getMatrixAt === 'function'
+        for (let i = 0; i < (instanced ? mesh.count : 1); i++) {
+          if (instanced) mesh.getMatrixAt(i, m)
+          else m.copy(mesh.matrix)
           const at = new Vector3().setFromMatrixPosition(m)
           const ground = ctx.ground(at.x, at.z)
           // Heads in the water.

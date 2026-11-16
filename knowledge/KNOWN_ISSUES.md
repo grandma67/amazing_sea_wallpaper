@@ -136,7 +136,12 @@ say how the cause was found.
   because the terrain has no sea dike or higher ground for a camera (found by `test/surge.test.ts`).
   Beach cameras keep 0.3 m above the water on the bare profile (`params.ts` can't read the full
   terrain); before 0.200, 10 of 433 beach days stood the camera in the water (wobble ignored).
-  Surge days not yet render-checked.
+- **Tide curves (0.201):** places whose nearest TICON gauge is > 250 km off (Red Sea, Comoros,
+  India, Arctic Canada, Yellow Sea, Andamans, …) have a typed shape with a hashed phase, not their
+  real timing; the Yellow Sea especially deserves a real gauge (Incheon). A forced `moonPhaseDeg` or
+  eclipse doesn't move the tide (it follows the date's real Moon). No shallow-water constituents
+  (M4): big estuary tides (Anchorage) are symmetric, ~7% off. Local solar time comes from the
+  sun's elevation, so a forced sun elevation moves the tide too.
 - **Beach cameras in the water:** shoreline and along-beach cameras are placed at the drawn
   distance in s, but the coast's wobble at a = 0 (±25 m) shifts them (rocky shores and flats
   correct for it with `wobbleAtCamera`): 12 of 433 beach days (2.8%) stand in the water, most at

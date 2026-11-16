@@ -175,6 +175,17 @@ export function sunLimits(latitudeDeg: number, date: string): SunLimits {
   return { max: 90 - Math.abs(latitudeDeg - dec), min: Math.abs(latitudeDeg + dec) - 90 }
 }
 
+/** The sun's hour angle (deg, west positive: afternoon) when it stands
+ * `elevationDeg` up on `date` at a signed latitude, in the morning or the
+ * evening; out of the day's range, the nearest culmination. Local apparent
+ * solar time is 12 h + this / 15. */
+export function sunHourAngleDeg(latitudeDeg: number, date: string, elevationDeg: number, evening: boolean): number {
+  const phi = latitudeDeg * DEG
+  const dec = solarDeclinationDeg(date) * DEG
+  const cosH = (Math.sin(elevationDeg * DEG) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec))
+  return (Math.acos(Math.max(-1, Math.min(1, cosH))) / DEG) * (evening ? 1 : -1)
+}
+
 /** The sun's compass azimuth (degrees from north, clockwise) when it stands
  * `elevationDeg` up on `date` at a signed latitude: in the afternoon and
  * evening (west of the meridian) or the morning (east). An elevation out of

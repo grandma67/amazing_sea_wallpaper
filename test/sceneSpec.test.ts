@@ -37,8 +37,13 @@ describe('scene specs', () => {
         expect(q.latitudeDeg).toBe(p.latitudeDeg)
         expect(q.biome.name).toBe(p.biome.name)
         expect(q.sea.ocean).toBe(p.sea.ocean)
-        expect(q.coast.type).toBe(p.coast.type)
-        expect(q.coast.composition).toBe(p.coast.composition)
+        // The tide follows the clock (REGIONS.md §3.3): a tidal flat shows
+        // below mid tide, a beach with a salt marsh above, and the camera
+        // goes with the coast.
+        if (p.coast.flat == null && p.coast.marsh == null && q.coast.flat == null && q.coast.marsh == null) {
+          expect(q.coast.type).toBe(p.coast.type)
+          expect(q.coast.composition).toBe(p.coast.composition)
+        }
         expect(q.ocean.windHeadingDeg).toBe(p.ocean.windHeadingDeg)
         // A wide lens goes with an aurora, or a rainbow, even one that a later
         // draw of fog or a storm takes away (params.ts): the storm stays on 13

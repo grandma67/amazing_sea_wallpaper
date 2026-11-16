@@ -225,11 +225,14 @@ and salt marsh".
 ## Tides (`tides.ts`, PLAN_BIOMES 5)
 
 - `place.tide` is a mean-range span (`TIDE` in `places.ts`, REGIONS.md §3; 1–2 m by default).
-  `tideFor` draws the beach's mean in it and a semidiurnal phase on `'tide'`; today's range =
-  mean × `springFactor(moonPhaseDeg)` (1.2 at springs ~1.5 days after new and full moon, 0.8 at
-  neaps); level = range/2 × cos(phase). Specs force the stage (`tide`) and `tidalRange`.
-  `coast.tide` keeps `springRange` (mean × 1.2, or today's if bigger), which the beach is built
-  for:
+  `tideFor` draws the beach's mean in it; the curve is the place's four constituents
+  (`harmonicsFor`, `tideGauges.ts`, REGIONS.md §3.3) at the date and the scene's local solar time,
+  scaled to that mean: today's `range` (low to high within a lunar day), `high` (a mixed tide's
+  higher high water), `level`. Specs force the stage (`tide`: today's high, low or between) and
+  `tidalRange`. Then `surgeFor` (0.200, §3.2) adds the weather's part to `level` (`surge`), once
+  the coast faces its final way (`applySurge` in `params.ts`); beach cameras keep 0.3 m above the
+  water on the bare profile (`keepBeachCameraDry`). `coast.tide` keeps `springRange` (the 90th
+  percentile of 30 days' ranges, or today's if bigger), which the beach is built for:
   - above s = 0 a berm as high as the spring high water (`highWater`, ≤ 1 m) over its width;
   - above `MICRO_TIDE` (2 m) a low-tide terrace (`coast.terrace`: ±(range − 2)/2 around mean sea
     at ~1:65, flattened to stay ≤ 400 m) between s = 0 and the shoreface; `seaDistance(s)`

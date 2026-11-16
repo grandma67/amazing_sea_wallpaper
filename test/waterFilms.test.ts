@@ -57,10 +57,12 @@ describe('nearestPool (against debug.water on the same frames)', () => {
     expect(r.at![1]).toBeGreaterThan(0.9)
   })
 
-  it('finds the rock pool in front of the camera on 2024-06-13 (GPU 15.9 m)', () => {
+  // Re-measured 2026-11-16 after the harmonic tide moved the day's water
+  // (snapshot.mjs --water: nearest pool 12.3 m, 51 px; was 15.9 m).
+  it('finds the rock pool in front of the camera on 2024-06-13 (GPU 12.3 m)', () => {
     const r = nearestPool(rendered('2024-06-13'))
-    expect(r.m).toBeGreaterThan(14)
-    expect(r.m).toBeLessThan(18)
+    expect(r.m).toBeGreaterThan(10.5)
+    expect(r.m).toBeLessThan(14)
   })
 
   it('finds none where the render has none (2025-06-15, a beach)', () => {
