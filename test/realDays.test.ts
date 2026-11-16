@@ -1,7 +1,9 @@
 import { describe, it } from 'vitest'
 
 import type { SceneParams } from '../src/params'
+import { hasLand } from '../src/coastKind'
 import { MAX_CONTRAILS } from '../src/contrails'
+import { terrainHeight } from '../src/terrain'
 import { OCEANS } from '../src/oceans'
 import { fungiFor } from '../src/props/fungi'
 import { bloomRegion, desertBloomFor } from '../src/bloomYears'
@@ -24,6 +26,10 @@ const dark = (p: SceneParams): boolean => p.timeOfDay === 'night' || p.timeOfDay
 const fogHeight = (p: SceneParams, lo: number, hi: number): boolean => p.fog!.height >= lo && p.fog!.height <= hi
 
 const RULES: Rule[] = [
+  // The camera stands on the drawn ground, above today's still water (sea,
+  // tide and surge): 10 beach days had it in the water before 0.200.
+  ['the camera: on land days, above the water', p => hasLand(p.coast), p => terrainHeight(p.coast, 0, 0) > 0],
+
   // Things in the sky need the sky to be dark and open.
   ['an aurora: at night', p => p.aurora != null, p => p.timeOfDay === 'night'],
   ['an aurora: no overcast, fog or storm', p => p.aurora != null, p => p.weather.kind !== 'overcast' && p.fog == null && p.storm == null],

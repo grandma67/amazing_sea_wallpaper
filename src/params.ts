@@ -34,6 +34,7 @@ import { reefFor, reefShelter, type Reef } from './reef'
 import { flatGround, flatWaterline, tidalFlatFor, type SaltMarsh, type TidalFlat } from './tidalFlat'
 import { ROCK_NAMES, rockGround, rockShoreFor, rockWaterline, wobbleAtCamera, type RockShore } from './rockShore'
 import type { Shelter } from './shelter'
+import { terrainHeight } from './terrain'
 import { harmonicsFor, MICRO_TIDE, relativeTideRange, surgeFor, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
@@ -41,7 +42,7 @@ import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type Sce
 // Directions use the world frame: +Y up, azimuth 0 = -Z, increasing clockwise
 // when seen from above (toward +X).
 
-export const EARTH_RADIUS = 6_371_000
+export { EARTH_RADIUS } from './earth'
 const DEG = Math.PI / 180
 
 export type TimeOfDay =
@@ -893,24 +894,25 @@ function waterlineOf(coast: CoastParams): number {
       : waterlineAt(coast, level)
 }
 
-/** How high above today's water a beach camera placed by it stands, at
- * least, on the bare profile (m): more than the runnels, cusps and bumps
- * take off it (`params.ts` can't read the full terrain: import cycle). */
+/** How far below a salt marsh's top a surge stops (m). */
 const CAMERA_DRY = 0.3
+/** How high above today's still water the ground under a beach camera
+ * stands, at least (m), on the drawn terrain (`terrainHeight`). */
+const GROUND_DRY = 0.05
 
 /** A beach camera placed from the water (shoreline, along the beach). */
 function byTheWater(coast: CoastParams): boolean {
   return coast.type === 'beach' && coast.rock == null && coast.flat == null && (coast.composition === 'shoreline' || coast.composition === 'along-beach')
 }
 
-/** Keep a beach camera out of the water: no nearer than where the bare
- * profile stands CAMERA_DRY above today's water, at the camera's own shore
- * position (s = −distanceToWater less the wobble at a = 0). Before 0.200, 10
- * of 433 beach days stood one placed by the water in it; a surge can reach
- * a framed camera on a low backshore too. */
+/** Keep a beach camera out of the water: step it inland (2 m at a time)
+ * until the drawn ground under it (`terrainHeight`, runnels, cusps and the
+ * shore's wobble included) is GROUND_DRY above today's still water. Before
+ * 0.200, 10 of 433 beach days stood a camera placed by the water in it; a
+ * surge can reach a framed camera on a low backshore too. */
 function keepBeachCameraDry(coast: CoastParams): void {
   if (coast.type !== 'beach' || coast.rock != null || coast.flat != null) return
-  coast.distanceToWater = Math.max(coast.distanceToWater, -waterlineAt(coast, coast.tide.level + CAMERA_DRY) - wobbleAtCamera(coast))
+  for (let i = 0; i < 100 && terrainHeight(coast, 0, 0) < GROUND_DRY; i++) coast.distanceToWater += 2
 }
 
 /**

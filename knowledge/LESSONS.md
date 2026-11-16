@@ -200,7 +200,10 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
   0` is `sea` to the bit, `(land - sea) + sea` is not. Out at sea (`t === 0`) a beach height drops 16
   noise lookups (`beachHeight`).
 - Module cycles: `tides.ts` importing `terrain.ts` (which imports `tides.ts`) left half the test
-  files failing to load. Put shared helpers in a module with no imports (`reef.ts`).
+  files failing to load. Put shared helpers in a module with no imports (`reef.ts`). A cycle can
+  hang on one constant: `terrain.ts` imported only `EARTH_RADIUS` from `params.ts`, which cost the
+  surge ten test rounds of guessing the ground from the bare profile (0.200). Look for what a
+  cycle is made of (`scripts/importReach.py`) before working around it.
 
 ## Colours from photos
 
@@ -619,7 +622,8 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
   saw a pink blanket (2016-08-09). Real sea fog stops at an inversion; give a layer a top and check
   the high eyes (open sea and overlooks, 40–160 m).
 - Effects that depend on where the eye is (fog above or below it) belong in the render, where the
-  camera's ground is known; `params.ts` can't call `terrainHeight` (import cycle).
+  camera's ground is known. (`params.ts` can call `terrainHeight` since 0.202; the cycle was one
+  constant, `EARTH_RADIUS`, now in `earth.ts`.)
 - A framing chosen for a sky object (a rainbow's turn from the sun, an aurora's wide lens) has to
   wait for, or undo on, whatever later cancels the object (storm, fog), or the day keeps a 14 mm storm
   shot facing away from the sun (2024-06-21 until 0.121). Decide the cancel first where its draw
@@ -692,8 +696,9 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
 
 - **A camera's shore position includes the wobble (surge, 0.200):** a beach camera placed at
   s = −distanceToWater from a bare-profile waterline stood in the water on 10 of 433 beach days; its
-  real s is −distanceToWater − `wobbleAtCamera` (3–25 m). Rock and flat cameras already corrected
-  for it; beaches didn't (`keepBeachCameraDry`).
+  real s is −distanceToWater − `wobbleAtCamera` (3–25 m). Check the drawn ground
+  (`terrainHeight(coast, 0, 0)`), not a profile; `realDays.test.ts` now holds every land camera
+  above the water.
 - **Before a tide model, check it against real predictions (0.201):** NOAA's API gives a station's
   constants (`harcon`) and its own hourly predictions; four constituents matched Pensacola to 5 cm,
   which settled the equilibrium arguments' signs in one run.

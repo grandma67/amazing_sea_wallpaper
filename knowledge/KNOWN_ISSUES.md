@@ -134,8 +134,8 @@ say how the cause was found.
 
 - **Surge (0.200):** a salt marsh never floods: the surge is capped 0.3 m below the marsh top,
   because the terrain has no sea dike or higher ground for a camera (found by `test/surge.test.ts`).
-  Beach cameras keep 0.3 m above the water on the bare profile (`params.ts` can't read the full
-  terrain); before 0.200, 10 of 433 beach days stood the camera in the water (wobble ignored).
+  Before 0.200, 10 of 433 beach days stood the camera in the water (wobble ignored); since 0.202 a
+  beach camera steps inland until the drawn ground is 5 cm above it.
 - **Tide curves (0.201):** places whose nearest TICON gauge is > 250 km off (Red Sea, Comoros,
   India, Arctic Canada, Yellow Sea, Andamans, …) have a typed shape with a hashed phase, not their
   real timing; the Yellow Sea especially deserves a real gauge (Incheon). A forced `moonPhaseDeg` or

@@ -20,7 +20,7 @@ import {
   type WebGLRenderer
 } from 'three'
 
-import { EARTH_RADIUS } from './params'
+import { EARTH_RADIUS } from './earth'
 
 // Lets the custom terrain and ocean shaders receive the sun's shadow map,
 // which three.js renders for the standard-material props (rocks, plants...).

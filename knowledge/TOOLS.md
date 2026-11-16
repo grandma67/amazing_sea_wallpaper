@@ -52,6 +52,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded | "Real colours" below |
 | Is a prop **visible** on a day (not behind props or terrain), which spec dates show it best; how hazed far land is | `params.mjs --find KIND` | tools/PARAMS.md "Which days show it" |
 | Each plant today: kind, distance from shore, height, species, salt; on/off on the same day | `params.mjs` `p.plants`, `p.withProps(patch, f)`, `--every K` for a quick share | tools/PARAMS.md "Plants on real days" |
+| Can module A import B without a cycle (B half-loaded)? | `python3 -I scripts/importReach.py src/A.ts src/B.ts`: the value-import chain from A to B, or "does not reach" | below, "Gotchas" |
 | How much turf, bare land, sea a camera sees, by distance | `src.groundSeen.groundSeen(p.ctx)` in a `params.mjs` expression | tools/PARAMS.md |
 | Photos of a species with a licence we can ship (PD, CC0, CC BY) | `asset.mjs search QUERY…` (numbered contact sheet; waits out Commons' rate limit) | `asset.mjs` header |
 | Reference photos when the name also means other things (a keyword search fills with noise) | `asset.mjs search --wiki ARTICLE…` (the article's own photos; `--all` for share-alike ones, fine to look at, not to ship) | `asset.mjs` header |
@@ -220,6 +221,14 @@ minutes (dep optimisation).
   automation (`renderCache.ts`). Check whether the term you moved even runs (its `#ifdef`, e.g.
   takram's `POWDER`) before suspecting the server; `curl localhost:5174/src/X.ts | grep` shows what
   the page loads.
+- **Tests that hold values measured on a render** break when a day's frame moves (a tide, camera
+  or composition change): `test/waterFilms.test.ts` (nearest pool: GPU 15.2 m on the Mont-Saint-Michel
+  spec, 12.3 m on 2024-06-13; re-measure with `snapshot.mjs --water DATE` and its `nearest pool`
+  line) and `test/stars.test.ts` (sky brightness by `debug.skyZenith`, forced time: unaffected by the
+  coast). Re-measure, don't widen the bounds; say so in the test's comment.
+- **Import cycles:** `params.ts` already loads `terrain.ts` (through the surf props); a module that
+  `params.ts` loads must not import a value from `params.ts`. Constants that both need live in their
+  own module (`earth.ts`). Check before adding an import: `scripts/importReach.py`.
 - **Killing the dev server** (`lsof … | xargs kill`) also stops a `run_in_background` vite task; the
   next render says "dev server not reachable": start it again before the next render.
 - **Sampling a reference photo's colours** without PIL: `sips -s format bmp in.jpg --out x.bmp`, then

@@ -1,6 +1,7 @@
 import { PerspectiveCamera } from 'three'
 
-import { EARTH_RADIUS, type SceneParams } from './params'
+import { EARTH_RADIUS } from './earth'
+import type { SceneParams } from './params'
 import { cameraPitch } from './skyFrame'
 import { hasLand, terrainHeight } from './terrain'
 

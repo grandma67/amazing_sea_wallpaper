@@ -2,7 +2,8 @@ import { BlendFunction, Effect, EffectAttribute } from 'postprocessing'
 import { ClampToEdgeWrapping, DataTexture, DataUtils, HalfFloatType, LinearFilter, RedFormat, RepeatWrapping, Uniform, Vector3, Vector4, type PerspectiveCamera } from 'three'
 
 import { fogProfile, fogSigma } from './fogLayer'
-import { dirFromAzEl, EARTH_RADIUS, type FogParams, type LighthouseParams } from './params'
+import { EARTH_RADIUS } from './earth'
+import { dirFromAzEl, type FogParams, type LighthouseParams } from './params'
 import type { LanternInfo } from './props/lighthouse'
 import { outlineRadius, type WaterIsland } from './props/surf'
 

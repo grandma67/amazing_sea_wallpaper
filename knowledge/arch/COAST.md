@@ -222,6 +222,29 @@ and salt marsh".
   over `cuspReach` (the swash zone, at least 0.35 × spacing; on steep gravel the daily run-up
   alone is ~1 m).
 
+## What `generateParams` decides when (the coast and its water)
+
+Read before changing anything the camera, the tide or the coast's direction depends on (a later
+step can't feed an earlier one without moving it):
+
+1. Place, climate, date; the sun (`sunElevationDeg`, morning or evening), so the scene's local
+   solar time (`sunHourAngleDeg`); the Moon's phase; weather, wind (speed, heading), storm, fog,
+   sea ice.
+2. **Tide** (`tideFor`): the place's curve at the date and local time, scaled to the drawn mean.
+3. **`generateCoast`**: coast kind (a tidal flat only below mid tide), material, state, terrace
+   (from `springRange`), reef, marsh, rock or flat shape; **waterline** (`waterlineOf`, from
+   `tide.level`); then the **composition**, which sets the final `seawardAzimuthDeg` and
+   `distanceToWater` (shoreline and along-beach cameras from the waterline; rock and flat cameras
+   step inland until dry); `keepBeachCameraDry`.
+4. **Surge** (`surgeFor`, needs the final azimuth): `applySurge` adds it to `tide.level`, moves the
+   waterline, moves a beach camera placed by the water with a rising sea, and re-checks every
+   camera's ground (beach: `keepBeachCameraDry` on `terrainHeight`; rock and flat: their loops).
+5. Composition checks and retries (`composition.ts`) re-run 3–4 with `attempt` + 1.
+
+`params.ts` reads the drawn ground with `terrainHeight` (0.202: `EARTH_RADIUS` moved to
+`earth.ts`, so `terrain.ts` no longer imports `params.ts`; check a new import with
+`python3 -I scripts/importReach.py FROM TO`).
+
 ## Tides (`tides.ts`, PLAN_BIOMES 5)
 
 - `place.tide` is a mean-range span (`TIDE` in `places.ts`, REGIONS.md §3; 1–2 m by default).
@@ -230,8 +253,8 @@ and salt marsh".
   scaled to that mean: today's `range` (low to high within a lunar day), `high` (a mixed tide's
   higher high water), `level`. Specs force the stage (`tide`: today's high, low or between) and
   `tidalRange`. Then `surgeFor` (0.200, §3.2) adds the weather's part to `level` (`surge`), once
-  the coast faces its final way (`applySurge` in `params.ts`); beach cameras keep 0.3 m above the
-  water on the bare profile (`keepBeachCameraDry`). `coast.tide` keeps `springRange` (the 90th
+  the coast faces its final way (`applySurge` in `params.ts`); a beach camera steps inland until the
+  drawn ground under it is 5 cm above the water (`keepBeachCameraDry`, `terrainHeight`). `coast.tide` keeps `springRange` (the 90th
   percentile of 30 days' ranges, or today's if bigger), which the beach is built for:
   - above s = 0 a berm as high as the spring high water (`highWater`, ≤ 1 m) over its width;
   - above `MICRO_TIDE` (2 m) a low-tide terrace (`coast.terrace`: ±(range − 2)/2 around mean sea
