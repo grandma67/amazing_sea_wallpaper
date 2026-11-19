@@ -201,8 +201,13 @@ function site(ctx: PropContext, light: LighthouseParams, avoid: Object3D | null)
   // Near first, then further; on a beach, a rock if no point fits the
   // frame and the other way round.
   const kinds: LighthouseParams['site'][] = !hasLand(coast) ? ['rock'] : light.site === 'point' ? ['point', 'rock'] : ['rock', 'point']
-  for (let i = 0; i < 600; i++) {
-    const kind = kinds[Math.floor(i / 300) % kinds.length]
+  // Rocks are looked for in the lower frame first. A horizon set above the
+  // frame's middle puts 250 m+ of sea above that band (15 of 92 lighthouse
+  // days found no site), so a second round looks up to the horizon; the first
+  // round's draws are unchanged, so days that found a site keep it.
+  for (let i = 0; i < 1200; i++) {
+    const kind = kinds[Math.floor((i % 600) / 300) % kinds.length]
+    const ndcTop = i < 600 ? 0.05 : 0.6
     const reach = 1 + (i % 300) / 100
     let p: Vector3 | null
     let width: number
@@ -214,7 +219,7 @@ function site(ctx: PropContext, light: LighthouseParams, avoid: Object3D | null)
       width = rng.range(50, 110)
       height = rng.range(10, 26)
     } else {
-      p = ctx.seaPoint(rng, [-0.9, 0.05], 250, 700 * reach, 4)
+      p = ctx.seaPoint(rng, [-0.9, ndcTop], 250, 700 * reach, 4)
       width = rng.range(22, 45)
       height = rng.range(3, 9)
     }

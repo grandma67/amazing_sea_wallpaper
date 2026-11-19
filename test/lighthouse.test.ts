@@ -4,8 +4,8 @@ import { Vector3 } from 'three'
 
 import { BEAM_MAX, BEAM_SAMPLES, beamDirections, beamPower, DIVERGENCE, LAMP_CD, beamLight, beamSampleAt, lensTurnSeconds, sweepAngle, sweptWindow, SWEEP_MIN } from '../src/lighthouse'
 import { EARTH_RADIUS, type LighthouseParams } from '../src/params'
-import { LANTERN_SIDE_CD, tower } from '../src/props/lighthouse'
-import { allParams, expectEvery } from './days'
+import { createLighthouse, LANTERN_SIDE_CD, tower } from '../src/props/lighthouse'
+import { allParams, expectEvery, viewOf } from './days'
 
 const light = (flashes: number, groups: number, beamAzimuthDeg = 0): LighthouseParams => ({
   site: 'rock',
@@ -210,5 +210,15 @@ describe('a lamp of real intensity (passes.beamCandela)', () => {
         expect(cd).toBeLessThan(1000)
       }
     }
+  })
+
+  // The title names it, so it must be built: a horizon above the frame's
+  // middle once left 15 of 92 lighthouse days with no site at sea.
+  it('is built on every day whose title says lighthouse', () => {
+    const missing = allParams()
+      .filter(p => p.lighthouse != null)
+      .filter(p => createLighthouse(viewOf(p), null).length === 0)
+      .map(p => `${p.date} ${p.place.id} ${p.coast.type}`)
+    expect(missing).toEqual([])
   })
 })

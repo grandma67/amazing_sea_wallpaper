@@ -61,9 +61,8 @@ say how the cause was found.
   moonlight's ~4100 K it should be near neutral. A starlit cloud deck is lit blue (raw B/R 2.4: the
   stand-in sun's Bruneton colour), not by the airglow's warm green. Birds stay sharp in a 30–130 s
   exposure. All three show once a cloudy night is opened up.
-- **Lighthouses** (found 2026-11-07): on 14 of 92 lighthouse days (9 open sea, 4 beach, 1 rock
-  shore) the title says "lighthouse" but `createLighthouse` finds no site and builds none
-  (`2024-05-13`); the title should follow what's placed, or the site search widen. Since 0.196 the
+- **Lighthouses** (found 2026-11-07): every lighthouse day builds one since 0.210 (15 of 92 found
+  no site when the horizon sat above the frame's middle). Since 0.196 the
   lamp is 10⁶ cd (the whiteouts of `2025-08-21`, `2024-11-30`, the veil of `2015-02-22` are gone).
   Left, judged by eye on renders, not measured: the forced rock light in night fog
   (`{"date":"2025-07-10","timeOfDay":"night","lighthouse":"rock","fog":"advection"}`) keeps a large
