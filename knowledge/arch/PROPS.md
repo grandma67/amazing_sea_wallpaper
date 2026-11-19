@@ -24,6 +24,11 @@ waterspout, stones and beachrock (COAST.md). Which animals appear where:
   blossom hash) don't grow within `SHRUB_LEE` (10 / 30 / 60 m by exposure) of `saltFront` (the
   kind's start, on a beach not before the storm line). Beach flowers (`FLOWERS`) are strandline
   species and the turf maritime grassland: unchanged. `props.saltShear: false` switches it off.
+  Trees likewise (0.220, `treeSaltTolerance`, by what the kind stands for here): high-tolerance
+  trees stand on the front line under the wedge; moderate ones only behind `SHRUB_LEE`, low ones
+  behind `TREE_LEE_LOW`; tender trees in the zone are dropped (no draws). A framed shot's hero
+  kind is the first that can stand ~9 m in front of the camera (else the bushes).
+  `props.saltTrees: false`: trees anywhere, cut to the wedge, as 0.199–0.219.
 - **Seasons** (`phenology.ts`, 0.98): `createVegetation` passes `plantSeason(kind, phen)` to
   each builder. Deciduous trees (by `deciduousShare`, hashed per tree from its shape) skip
   leaves with 1 − `on` and colour them from `autumnColors` with `turned` (hashed per leaf, top

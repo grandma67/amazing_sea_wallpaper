@@ -130,6 +130,9 @@ export interface PropOverrides {
   /** false: no salt on plants (NATURE.md §9): trees full height to the
    * shore, every shrub species on the first line, as before 0.199. */
   saltShear?: boolean
+  /** false: trees whose seedlings die in the spray still stand on the front
+   * line, cut to the canopy wedge, as before 0.220 (treeSaltTolerance). */
+  saltTrees?: boolean
   /** null: nothing washed up; fields replace the drawn ones. */
   debris?: Partial<DebrisSpec> | null
   /** null: no crabs, shells or flowers; fields replace the drawn ones. */
@@ -447,6 +450,7 @@ const SPEC = object({
     fruit: (value, path) => (typeof value === 'boolean' ? undefined : listOf(oneOf(...FRUIT_KINDS))(value, path)),
     eucalyptus: boolean,
     saltShear: boolean,
+    saltTrees: boolean,
     moss: boolean,
     skins: boolean,
     shoreWeed: boolean,

@@ -1063,6 +1063,45 @@ export function saltCanopy(u: number, exposure: SprayExposure): number {
  * Island) and spray ×4 less from 50 to 100 m inland (Malloch). */
 export const SHRUB_LEE: Record<SprayExposure, number> = { sheltered: 10, moderate: 30, exposed: 60 }
 
+/** How well a tree kind's species here stands salt spray (NATURE.md §9): a
+ * high one grows on the front line, sheared to the canopy wedge
+ * (`saltCanopy`); a moderate one only in the lee of the first line
+ * (`SHRUB_LEE`), a low one "well back" (`TREE_LEE_LOW`). Seedlings of the
+ * others die in the spray: they aren't there, not there and stunted.
+ * Sourced: pōhutukawa sets the front's top in Northland (Tāne's Tree
+ * Trust); live oak "always safe" on Florida's coast (UF/IFAS); tropical
+ * almond, a beach tree (TREES.md); English oak "resilient with time" on UK
+ * coasts. The rest est. (no source found for holm oak, stone pine, Sitka and
+ * Norway spruce, birch, olive, cypress, umbrella thorn, gums, southern beech).
+ * Keyed by what the kind stands for here (TREES.md §1): climate, then place. */
+export type TreeSaltTolerance = 'high' | 'moderate' | 'low'
+/** Sitka spruce's coasts (`conifer` there): it grows into the spray (est.). */
+const SITKA_PLACES: readonly string[] = ['british-columbia', 'pacific-northwest', 'se-alaska', 'gulf-alaska', 'cook-inlet']
+export function treeSaltTolerance(kind: string, placeId: string, climate: Climate): TreeSaltTolerance {
+  switch (kind) {
+    case 'broadleaf':
+      // Pōhutukawa in the north of New Zealand; southern beech further south.
+      if (placeId === 'new-zealand-north') return 'high'
+      if (placeId === 'new-zealand-south' || placeId === 'tierra-del-fuego' || placeId === 'patagonia-fjords') return 'moderate'
+      // Tropical almond; live oak; holm oak (est.). Oak and beech elsewhere.
+      return climate === 'tropical' || climate === 'subtropical' || climate === 'mediterranean' ? 'high' : 'moderate'
+    case 'stone-pine':
+      return 'high'
+    case 'conifer':
+      return SITKA_PLACES.includes(placeId) ? 'high' : 'low'
+    default:
+      return 'moderate'
+  }
+}
+/** How far behind the coast's first plants a low-tolerance tree starts (m):
+ * extension services' "well back", ~200 m of salt water at the most exposed
+ * (est.: 3 × SHRUB_LEE). */
+export const TREE_LEE_LOW: Record<SprayExposure, number> = { sheltered: 30, moderate: 90, exposed: 180 }
+/** Where a tree of this tolerance can stand, m behind the first plants. */
+export function treeSaltLee(tolerance: TreeSaltTolerance, exposure: SprayExposure): number {
+  return tolerance === 'high' ? 0 : tolerance === 'moderate' ? SHRUB_LEE[exposure] : TREE_LEE_LOW[exposure]
+}
+
 /** Moss today: amount, the share mixed toward dry brown (half of the
  * dryness: some mosses stay green when dry) and the spray belt it keeps
  * above. */

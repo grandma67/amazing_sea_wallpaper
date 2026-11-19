@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { BLOOM, bloomGrows, saltCanopy, SHRUB_LEE, sprayBelt, sprayExposure } from '../src/phenology'
+import { BLOOM, bloomGrows, saltCanopy, SHRUB_LEE, sprayBelt, sprayExposure, treeSaltLee, treeSaltTolerance } from '../src/phenology'
 import { crownBlossom, crownShrub, plantInstances, saltFront, saltOn, type PlantInstance } from '../src/props/vegetation'
 import type { SceneSpec } from '../src/sceneSpec'
 import { SALT_TOLERANCE, SHRUB_KINDS, shrubsHere } from '../src/shrubs'
@@ -95,7 +95,8 @@ describe('salt on real plants', () => {
   it('keeps every tree under the wedge, which cuts some trees', () => {
     let cut = 0
     for (const [place, kind] of [['brittany', 'broadleaf'], ['scotland', 'conifer'], ['western-med', 'stone-pine']] as const) {
-      const spec: SceneSpec = { ...BASE, place, props: { vegetation: [kind] } }
+      // The wedge alone: tender trees left where they stand (saltTrees).
+      const spec: SceneSpec = { ...BASE, place, props: { vegetation: [kind], saltTrees: false } }
       const on = plants(spec, '2025-07-10').filter(t => t.kind === kind)
       const exposure = sprayExposure(place)
       expectEvery(on, t => t.top <= saltCanopy(t.u, exposure) + 1e-6, { what: t => [t.u, t.top] })
@@ -125,4 +126,37 @@ describe('salt on real plants', () => {
     }
     expect(gone.map(t => t.shrub)).toContain('hawthorn')
   })
+
+  it('keeps trees whose seedlings die in the spray behind the first line, and frames shots with them', () => {
+    // Birch (moderate) and Norway spruce (low) on exposed and sheltered coasts.
+    for (const [place, kind] of [['scotland', 'birch'], ['scotland', 'conifer'], ['baltic', 'birch'], ['norway-west', 'conifer']] as const) {
+      // With the shore's bushes too: they frame the shot where trees can't.
+      const spec: SceneSpec = { ...BASE, place, props: { vegetation: [kind, 'bush'] } }
+      const lee = treeSaltLee(treeSaltTolerance(kind, place, view(spec, 1080, '2025-07-10').params.place.climate), sprayExposure(place))
+      expect(lee).toBeGreaterThan(0)
+      for (const date of ['2025-07-10', '2025-08-10', '2025-09-10']) {
+        const day = view(spec, 1080, date).params
+        const every = plants(spec, date)
+        const all = every.filter(t => t.kind === kind)
+        // No tree in front of its line (the front: the storm line or the
+        // rock's top, at the earliest the kind's own start).
+        const front = saltFront(day.coast, 0) + lee
+        expectEvery(all, t => t.u >= front - 1e-6, { what: t => [t.u, front], allowEmpty: true })
+        // The framed shot still has framing plants near the camera.
+        expect(every.filter(t => t.distance < 40).length).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('leaves the hardy trees on the front line: pōhutukawa, stone pine, Sitka spruce, tropical almond', () => {
+    expect(treeSaltTolerance('broadleaf', 'new-zealand-north', 'subtropical')).toBe('high')
+    expect(treeSaltTolerance('stone-pine', 'western-med', 'mediterranean')).toBe('high')
+    expect(treeSaltTolerance('conifer', 'british-columbia', 'temperate')).toBe('high')
+    expect(treeSaltTolerance('broadleaf', 'caribbean', 'tropical')).toBe('high')
+    expect(treeSaltTolerance('conifer', 'norway-west', 'boreal')).toBe('low')
+    expect(treeSaltTolerance('birch', 'baltic', 'boreal')).toBe('moderate')
+    expect(treeSaltLee('high', 'exposed')).toBe(0)
+    expect(treeSaltLee('low', 'exposed')).toBeGreaterThan(treeSaltLee('moderate', 'exposed'))
+  })
 })
+

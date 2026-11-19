@@ -13,7 +13,8 @@ import { allParams, scene, view, viewOf } from './days'
 const day = (date: string, climate: Climate, latitudeDeg = 50): PhenologyDay => ({ date, latitudeDeg, place: { id: 'x', climate } })
 const litter = (date: string, climate: Climate, lat = 50): number => phenologyFor(day(date, climate, lat)).litter
 
-const spec = (extra: SceneSpec): SceneSpec => ({ eclipse: null, place: 'brittany', composition: 'framed', timeOfDay: 'midday', fog: null, ...extra, props: { vegetation: ['broadleaf'], ...extra.props } })
+// Trees under the camera to test (not salt: saltTrees keeps tender trees on the front line).
+const spec = (extra: SceneSpec): SceneSpec => ({ eclipse: null, place: 'brittany', composition: 'framed', timeOfDay: 'midday', fog: null, ...extra, props: { vegetation: ['broadleaf'], saltTrees: false, ...extra.props } })
 
 describe('litter curve', () => {
   it('builds after peak colour, stays the winter on temperate ground, and goes with spring', () => {

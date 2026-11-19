@@ -52,17 +52,18 @@ describe('off switches', () => {
     ['wildlife', { ...BEACH, biome: 'tropical', composition: 'along-beach', props: { wildlife: { monkey: 'capuchin' } } }, { wildlife: null }, createWildlife, '2024-09-30'],
     ['mangroves', { ...BEACH, biome: 'tropical', props: { mangroves: 'rhizophora' } }, { mangroves: null }, createMangroves],
     ['salt marsh', { ...BEACH, place: 'wadden-north-sea', saltMarsh: true, tide: 'high', composition: 'framed' }, { saltMarsh: false }, createSaltMarsh, '2025-07-10'],
-    ['leaf litter', { ...BEACH, place: 'brittany', composition: 'framed', timeOfDay: 'midday', props: { vegetation: ['broadleaf'] } }, { vegetation: ['broadleaf'], leafLitter: false }, plants, '2025-01-15'],
+    // saltTrees: false keeps tender trees near the camera for these three.
+    ['leaf litter', { ...BEACH, place: 'brittany', composition: 'framed', timeOfDay: 'midday', props: { vegetation: ['broadleaf'], saltTrees: false } }, { vegetation: ['broadleaf'], saltTrees: false, leafLitter: false }, plants, '2025-01-15'],
     ['sea ice', { eclipse: null, place: 'baltic', seaIce: 'fast' }, { seaIce: false }, createSeaIce, '2025-02-20'],
     ['ice foot', { eclipse: null, place: 'greenland', coast: 'beach', snow: true, props: { iceFoot: true } }, { iceFoot: false }, createIceFoot, '2025-02-15'],
     ['ships', { ...BEACH, coast: 'open-sea', props: { ships: ['container-ship'] } }, { ships: false }, createShips, '2024-09-30'],
     ['gulls', { ...BEACH, props: { birds: true } }, { birds: false }, createBirds],
     ['marine life', { ...BEACH, coast: 'open-sea', props: { marine: 'dolphin' } }, { marine: null }, createMarineLife, '2024-09-30'],
     ['migratory birds', { ...BEACH, props: { migratory: 'goose' } }, { migratory: null }, createMigratoryBirds],
-    ['fungi', { ...BEACH, place: 'scotland', composition: 'framed', props: { vegetation: ['birch', 'conifer'], fungi: true } }, { vegetation: ['birch', 'conifer'], fungi: false }, ctx => createFungi(ctx, createVegetation(ctx)), '2025-10-28'],
+    ['fungi', { ...BEACH, place: 'scotland', composition: 'framed', props: { vegetation: ['birch', 'conifer'], saltTrees: false, fungi: true } }, { vegetation: ['birch', 'conifer'], saltTrees: false, fungi: false }, ctx => createFungi(ctx, createVegetation(ctx)), '2025-10-28'],
     ['fireflies', { ...BEACH, place: 'maine', composition: 'framed', timeOfDay: 'night', props: { fireflies: 'flash' } }, { fireflies: false }, ctx => createFireflies(ctx, createVegetation(ctx), []), '2025-07-10'],
     ['desert bloom', { ...BEACH, place: 'atacama-peru', composition: 'framed', props: { desertBloom: true } }, { desertBloom: false }, createDesertBloom, '2025-09-11'],
-    ['eucalyptus', { ...BEACH, place: 'east-australia', composition: 'framed', props: { vegetation: ['eucalyptus'] } }, { vegetation: ['eucalyptus'], eucalyptus: false }, createVegetation]
+    ['eucalyptus', { ...BEACH, place: 'east-australia', composition: 'framed', props: { vegetation: ['eucalyptus'], saltTrees: false } }, { vegetation: ['eucalyptus'], saltTrees: false, eucalyptus: false }, createVegetation]
   ]
 
   it.each(rows)('%s', (_, on, off, create, date) => {

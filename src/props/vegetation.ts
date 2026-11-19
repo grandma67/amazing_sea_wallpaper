@@ -12,7 +12,7 @@ import {
 import type { RGB, VegetationKind } from '../biome'
 import { beachLines } from '../beach'
 import { fruitFor, fruitStage, withFruit, type Fruiting } from '../fruits'
-import { BELT_RUNUP, BLOOM, bloomGrows, mossLook, phenologyFor, plantSeason, saltCanopy, SHRUB_LEE, sprayExposure, withBlossom, type BloomRow, type Blooming, type PlantSeason } from '../phenology'
+import { BELT_RUNUP, BLOOM, bloomGrows, mossLook, phenologyFor, plantSeason, saltCanopy, SHRUB_LEE, sprayExposure, treeSaltLee, treeSaltTolerance, withBlossom, type BloomRow, type Blooming, type PlantSeason } from '../phenology'
 import { SALT_TOLERANCE, shrubsHere, type ShrubSpecies } from '../shrubs'
 import { placeNamed } from '../places'
 import { LICHEN, MOSS_COLOR } from '../rockShore'
@@ -315,7 +315,7 @@ const SALT_SHEARED: readonly VegetationKind[] = ['stone-pine', 'olive', 'broadle
  * Salt on one plant (NATURE.md §9), from where it stands, not the camera:
  * a moderately tolerant shrub (`SALT_TOLERANCE`) within `SHRUB_LEE` of the
  * coast's first line (`front`, m inland of s = 0: `saltFront`) doesn't grow
- * (`drop`); a
+ * (`drop`), nor a tree within `treeLee` of it (`treeSaltTolerance`); a
  * tree's height is capped by the canopy wedge (`saltCanopy`, ±15% by a
  * position hash, so the pruned canopy isn't a flat lid).
  */
@@ -326,13 +326,16 @@ export function saltOn(
   coast: Parameters<typeof worldToShore>[0],
   front: number,
   exposure: ReturnType<typeof sprayExposure>,
-  bush?: { rows: readonly BloomRow[]; shrubs: Pick<CrownShrubs, 'species' | 'offset'> }
+  bush?: { rows: readonly BloomRow[]; shrubs: Pick<CrownShrubs, 'species' | 'offset'> },
+  /** How far behind `front` this tree kind starts here (`treeSaltLee`). */
+  treeLee = 0
 ): { drop?: true; cap?: number } {
   const u = -worldToShore(coast, x, z)[0]
   if (kind === 'bush' && bush != null) {
     return u < front + SHRUB_LEE[exposure] && SALT_TOLERANCE[crownShrub(x, z, bush.rows, bush.shrubs)] === 'moderate' ? { drop: true } : {}
   }
   if (!SALT_SHEARED.includes(kind)) return {}
+  if (treeLee > 0 && u < front + treeLee) return { drop: true }
   return { cap: saltCanopy(u, exposure) * (0.85 + 0.15 * positionHash(x, z, 91.3)) }
 }
 
@@ -589,8 +592,26 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     // Last: a 15–25 m gum 9–30 m off shows only its trunk.
     'eucalyptus'
   ]
+  const exposure = sprayExposure(params.place.id)
+  // Where each kind's first plants stand (m inland of s = 0): on the bare
+  // rock's top or behind the marsh, and trees whose seedlings die in the
+  // spray behind the first line (treeSaltTolerance). `props.saltTrees:
+  // false`: anywhere, as before 0.220.
+  const uMinOf = (kind: VegetationKind): number => {
+    const [beachMin] = KINDS[kind].inland(coast.beachWidth, coast.duneWidth)
+    return coast.rock != null || coast.flat != null ? Math.max(beachMin, coast.beachWidth) : coast.marsh != null ? Math.max(beachMin, coast.marsh.start + coast.marsh.width) : beachMin
+  }
+  const leeOf = (kind: VegetationKind): number =>
+    params.overrides?.saltShear === false || params.overrides?.saltTrees === false || !SALT_SHEARED.includes(kind)
+      ? 0
+      : treeSaltLee(treeSaltTolerance(kind, params.place.id, params.place.climate), exposure)
+  // Framed shots are framed by what grows between the camera and the sea: the
+  // first kind that can stand a few metres in front of it (on an exposed
+  // coast's first 100 m: hardy shrubs, not trees cut to stumps).
+  const cameraU = -worldToShore(coast, ctx.camera.position.x, ctx.camera.position.z)[0]
+  const framesHere = (kind: VegetationKind): boolean => leeOf(kind) === 0 || saltFront(coast, uMinOf(kind)) + leeOf(kind) < cameraU - 9
   const heroKind =
-    coast.composition === 'framed' ? order.find(k => kinds.some(([kind]) => kind === k)) : undefined
+    coast.composition === 'framed' ? order.find(k => kinds.some(([kind]) => kind === k) && framesHere(k)) : undefined
 
   const meshes: InstancedMesh[] = []
   const m = new Matrix4()
@@ -599,20 +620,21 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
   const s = new Vector3()
   // Flag trees (southern beech in Tierra del Fuego) lean downwind.
   const windBent = placeNamed(params.place.id).windBent
-  const exposure = sprayExposure(params.place.id)
   const downwind = windDirection(params)
   const seaward = new Vector3(Math.sin((coast.seawardAzimuthDeg * Math.PI) / 180), 0, -Math.cos((coast.seawardAzimuthDeg * Math.PI) / 180))
 
   for (const [kind, weight] of kinds) {
     const spec = KINDS[kind]
     const target = Math.round(spec.count * lushness * Math.min(1.5, weight / 3))
-    const [beachMin, uMax] = spec.inland(coast.beachWidth, coast.duneWidth)
+    const [, uMax] = spec.inland(coast.beachWidth, coast.duneWidth)
     // On a rocky shore nothing grows on the bare rock: plants start on top
     // of the back face (beachWidth there); behind a tidal flat's marsh.
-    const uMin = coast.rock != null || coast.flat != null ? Math.max(beachMin, coast.beachWidth) : coast.marsh != null ? Math.max(beachMin, coast.marsh.start + coast.marsh.width) : beachMin
+    const uMin = uMinOf(kind)
     const seed = rng.int(0, 1e6)
     const placed: Matrix4[] = []
     const colors: Color[] = []
+    const treeLee = leeOf(kind)
+    const treeFront = saltFront(coast, uMin) + treeLee
 
     // Framed shots: a few big plants near the edges of the frame, close to
     // the camera, so the sea is seen past them.
@@ -629,6 +651,8 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
         const z = camera.position.z + dir.z * dist
         const y = ctx.ground(x, z)
         if (y < dry) continue
+        // A framing tree where it can grow: further back, not cut to a stump.
+        if (treeLee > 0 && -worldToShore(coast, x, z)[0] < treeFront) continue
         const size = spec.scale[0] + (spec.scale[1] - spec.scale[0]) * rng.range(0.4, 0.9)
         const yaw = rng.range(0, Math.PI * 2)
         q.setFromAxisAngle(new Vector3(0, 1, 0), yaw)
@@ -709,7 +733,7 @@ export function createVegetation(ctx: PropContext): InstancedMesh[] {
     // to the canopy wedge. Decided after placement, by position: no draws.
     // `props.saltShear: false` switches it off.
     const salted = placed.map(t =>
-      params.overrides?.saltShear === false ? {} : saltOn(kind, t.elements[12], t.elements[14], coast, saltFront(coast, uMin), exposure, shrubs && { rows: oldBush, shrubs })
+      params.overrides?.saltShear === false ? {} : saltOn(kind, t.elements[12], t.elements[14], coast, saltFront(coast, uMin), exposure, shrubs && { rows: oldBush, shrubs }, treeLee)
     )
     // Blossom: each tree flowers or not by its position (a hash, no draw), so
     // any share shows and a moving camera sees the same trees in flower.

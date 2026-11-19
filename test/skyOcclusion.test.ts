@@ -6,7 +6,8 @@ import { CROWN, crownOpacity, crownReach, crownsOf, discViewFactor, skyOpenField
 import type { SceneSpec } from '../src/sceneSpec'
 import { scene, view } from './days'
 
-const spec = (extra: SceneSpec = {}): SceneSpec => ({ eclipse: null, place: 'brittany', composition: 'framed', timeOfDay: 'midday', fog: null, ...extra, props: { vegetation: ['broadleaf'], ...extra.props } })
+// Trees under the camera to test (not salt: saltTrees keeps tender trees on the front line).
+const spec = (extra: SceneSpec = {}): SceneSpec => ({ eclipse: null, place: 'brittany', composition: 'framed', timeOfDay: 'midday', fog: null, ...extra, props: { vegetation: ['broadleaf'], saltTrees: false, ...extra.props } })
 
 describe('discViewFactor', () => {
   it('is r² / (r² + h²) right under the disc', () => {
