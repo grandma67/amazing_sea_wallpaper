@@ -8,6 +8,7 @@ import {
   HalfFloatType,
   LinearFilter,
   LinearMipmapLinearFilter,
+  type Material,
   Matrix4,
   Mesh,
   PerspectiveCamera,
@@ -198,7 +199,11 @@ export function renderPlanarReflection(
   width: number,
   height: number,
   hide: Object3D[],
-  scale = 0.5
+  scale = 0.5,
+  /** Meshes cut above a height in the mirror only: lightning's channel
+   * inside the cloud, which takram's clouds hide in the frame but which this
+   * render (no volumetric clouds) would show in the water (2025-10-28). */
+  clip: { objects: Object3D[]; belowY: number } | null = null
 ): PlanarReflection {
   const { mirror, textureMatrix } = mirrorCamera(camera)
 
@@ -218,6 +223,20 @@ export function renderPlanarReflection(
 
   const visibility = hide.map(o => o.visible)
   hide.forEach(o => (o.visible = false))
+  // Keep y ≤ belowY on the clipped meshes for this render only.
+  const clipPlanes = clip == null ? [] : [new Plane(new Vector3(0, -1, 0), clip.belowY)]
+  const clipped = (clip?.objects ?? []).flatMap(o => {
+    const m = (o as Mesh).material as Material | undefined
+    return m == null || Array.isArray(m) ? [] : [{ m, planes: m.clippingPlanes }]
+  })
+  const localClipping = renderer.localClippingEnabled
+  if (clipped.length > 0) {
+    renderer.localClippingEnabled = true
+    for (const c of clipped) {
+      c.m.clippingPlanes = clipPlanes
+      c.m.needsUpdate = true
+    }
+  }
   const clearColor = renderer.getClearColor(new Color())
   const clearAlpha = renderer.getClearAlpha()
   renderer.setClearColor(0x000000, 0)
@@ -227,6 +246,13 @@ export function renderPlanarReflection(
   renderer.setRenderTarget(null)
   renderer.setClearColor(clearColor, clearAlpha)
   hide.forEach((o, i) => (o.visible = visibility[i]))
+  if (clipped.length > 0) {
+    renderer.localClippingEnabled = localClipping
+    for (const c of clipped) {
+      c.m.clippingPlanes = c.planes
+      c.m.needsUpdate = true
+    }
+  }
 
   return { target: renderTarget, textureMatrix, projectionInverse: mirror.projectionMatrixInverse.clone() }
 }

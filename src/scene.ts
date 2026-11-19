@@ -1059,7 +1059,15 @@ export async function renderScene(
       // was a 2×2 block (2025-04-25, tasks.md C4). Full size on bolt days
       // only (passes.boltMirror).
       const boltDay = (params.storm?.bolts.length ?? 0) > 0 && pass('boltMirror')
-      const reflection = renderPlanarReflection(renderer, scene, camera, width, height, hide, boltDay ? 1 : 0.5)
+      // The channel inside the cloud is hidden by takram's clouds in the
+      // frame, but the mirror has no volumetric clouds: cut the bolts at the
+      // Cb's base there (passes.boltMirrorClip).
+      const bolts: Object3D[] = []
+      props.traverse(o => {
+        if (o.userData.bolt === true) bolts.push(o)
+      })
+      const clip = bolts.length > 0 && pass('boltMirrorClip') ? { objects: bolts, belowY: cloudBase(weather.formations, 'cumulonimbus') } : null
+      const reflection = renderPlanarReflection(renderer, scene, camera, width, height, hide, boltDay ? 1 : 0.5, clip)
       gpu.add(reflection.target)
       ocean.material.uniforms.planarMap.value = reflection.target.texture
       ocean.material.uniforms.planarMatrix.value.copy(reflection.textureMatrix)

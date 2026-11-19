@@ -131,6 +131,8 @@ export function createStorm(ctx: PropContext): Object3D[] {
     )
     // Far brighter than anything else in the frame.
     mesh.userData.glow = { color: [0.85, 0.9, 1], scale: 250 }
+    // The planar mirror cuts it at the cloud base (scene.ts, reflection.ts).
+    mesh.userData.bolt = true
     objects.push(mesh)
   })
   return objects

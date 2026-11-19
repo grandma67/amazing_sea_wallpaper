@@ -61,6 +61,8 @@ How the sky code works. What is drawn where and how often: [CLOUDS.md](../CLOUDS
   kept inside its storm cell's core (`boltCell`: the cell sits between strike and origin, widened by
   half the offset), and 6 light points along it (the exit carries 30%). The bolt mesh draws the
   in-cloud channel too; the clouds composite over it, so it shows only where the cloud is thin.
+  The planar mirror has no volumetric clouds, so there the bolts are clipped at the Cb's base
+  (`renderPlanarReflection` clip, 0.217).
 - **The cloud lit from inside** (`lightning.ts` `patchCloudsFlash`, phase 3; `passes.flashLight`):
   - one camera rule for every hour: `ambientCd` (the luminance the exposure puts at mid-grey) →
     `flashShutter` (f/8, ISO 100–3200, ≤ 30 s) → `flashPower` (lm caught ÷ shutter);
