@@ -104,4 +104,14 @@ describe('places', () => {
     // A spec can still ask for one.
     expect(scene({ place: 'greenland', landform: 'strato' }).landform?.kind).toBe('strato')
   })
+
+  it('gives Iceland black, near-neutral basalt stones (no red scoria)', () => {
+    const stones = placeNamed('iceland').stones
+    for (const [r, g, b] of stones) {
+      expect(Math.max(r, g, b)).toBeLessThan(0.12)
+      expect(r / b).toBeLessThan(1.05)
+      expect(r / b).toBeGreaterThan(0.85)
+    }
+  })
 })
+

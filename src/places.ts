@@ -1,4 +1,4 @@
-import { FUNDY_STONES, STONE_COLORS, type BeachMaterial } from './beach'
+import { FUNDY_STONES, ICELAND_STONES, STONE_COLORS, type BeachMaterial } from './beach'
 import { biomeNamed, climateBiome, type Biome, type Climate, type RGB, type SandStyle, type VegetationKind } from './biome'
 import type { OceanName } from './oceans'
 import type { CrocodileKind, LizardKind, MonkeyKind, TurtleSpecies } from './props/wildlife'
@@ -676,7 +676,7 @@ const ROWS: readonly PlaceRow[] = [
   { id: 'japan', biome: 'volcanic', latitude: [31, 43], km: 15_000, ocean: { pacific: 1 }, climate: { temperate: 70, subtropical: 30 } }, // Honshu, Kyushu volcanic coasts, Izu Islands, Hokkaido
   { id: 'kamchatka-kurils-aleutians', region: 'kamchatka-kurils', biome: 'volcanic', latitude: [43, 60], km: 6_000, ocean: { pacific: 1 }, climate: { boreal: 1 } }, // Kamchatka, Kurils, Aleutians
   { id: 'new-zealand-north', biome: 'volcanic', latitude: [-40, -36], km: 4_000, ocean: { pacific: 1 }, climate: { subtropical: 50, temperate: 50 } }, // Taranaki, Bay of Plenty, Auckland
-  { id: 'iceland', biome: 'volcanic', latitude: [63, 66], km: 2_500, ocean: { atlantic: 1 }, climate: { boreal: 1 } }, // Reynisfjara, Snæfellsnes
+  { id: 'iceland', biome: 'volcanic', latitude: [63, 66], km: 2_500, ocean: { atlantic: 1 }, climate: { boreal: 1 }, stones: ICELAND_STONES }, // Reynisfjara, Snæfellsnes
   { id: 'canaries', biome: 'volcanic', latitude: [27, 29], km: 1_600, ocean: { atlantic: 1 }, climate: { subtropical: 1 } }, // Canary Islands
   { id: 'azores-madeira', biome: 'volcanic', latitude: [32, 39], km: 1_100, ocean: { atlantic: 1 }, climate: { subtropical: 1 } }, // Azores, Madeira
   { id: 'lesser-antilles-volcanic', biome: 'volcanic', latitude: [13, 17], km: 1_800, ocean: { atlantic: 1 }, climate: { tropical: 1 } }, // Montserrat, St Lucia, Martinique, Cape Verde

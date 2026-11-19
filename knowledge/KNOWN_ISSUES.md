@@ -185,9 +185,7 @@ say how the cause was found.
   rock pool within ~15 m beside a boulder hasn't been rendered yet (plans/WATER_VIEW.md).
 - **Stony beaches:** shingle reads as a flat mottled colour on most 1080p views (a 2–5 cm pebble is
   under a pixel past ~10 m at eye height; the nearest ground is often 20–40 m); `framed` stands
-  15–60 m inland behind the plants, so it never has stones in the foreground. Iceland (volcanic
-  biome) gets the volcanic default plants, including palms; its basalt cobbles render brown
-  (palette mean pulled up by the red scoria entry and exposure).
+  15–60 m inland behind the plants, so it never has stones in the foreground.
 
 ## Rocky shores (PLAN_BIOMES 8)
 

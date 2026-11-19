@@ -85,6 +85,18 @@ export const STONE_COLORS: Record<Biome['name'], readonly RGB[]> = {
   ]
 }
 
+/** Iceland's black beaches (Reynisfjara, Djúpalónssandur): basalt pebbles
+ * and cobbles, black to dark grey, near neutral; no red scoria, whose one
+ * entry in the volcanic palette (mean red/blue 1.48) turned them brown
+ * (tasks.md D24: a dry cobble beach read raw red/blue 1.84 against the
+ * light's 1.48). Albedo estimated (basalt ~0.05–0.1). */
+export const ICELAND_STONES: readonly RGB[] = [
+  [0.05, 0.05, 0.055],
+  [0.065, 0.065, 0.07],
+  [0.08, 0.08, 0.085],
+  [0.1, 0.1, 0.105]
+]
+
 /** Bay of Fundy: red Triassic sandstone with grey basalt and greywacke. */
 export const FUNDY_STONES: readonly RGB[] = [
   [0.33, 0.15, 0.1],
