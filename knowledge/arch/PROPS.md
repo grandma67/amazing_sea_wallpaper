@@ -48,8 +48,8 @@ waterspout, stones and beachrock (COAST.md). Which animals appear where:
   rock-rose and wattle rows that grow there, so their crowns don't move), so the bush that flowers
   is the one that fruits. Its flowers (`BLOOM` rows with `species`) and fruit (`FRUIT` rows with
   `species`, never on the plain mesh) go on its variant's twin (key `flower:colour:fruit`).
-  Bare-twig flowering (blackthorn) thins the leaves with the flowering. Known issue: a flowering
-  twin skips the spring fresh-green tint, so a late-flowering bush reads a little darker.
+  Bare-twig flowering (blackthorn) thins the leaves with the flowering. A flowering twin of a
+  deciduous crown keeps spring's fresh-green tint (0.219), not its leaf fall or autumn colour.
 - **Fruits** (`fruits.ts` `FRUIT`, 0.168, knowledge/TREES.md): coconuts, Canary dates and sabal
   fruit on palms, pandanus heads, stone-pine and spruce cones, olives, tropical almonds (only on the
   deciduous crowns, by `crownKey`), birch catkins, red-mangrove propagules. `fruitFor(plant, day)`

@@ -208,6 +208,23 @@ describe('flowering twins', () => {
     expect(flame.g.getAttribute('position').count).toBeLessThan(tree.g.getAttribute('position').count)
   })
 
+  it('keep spring\'s fresh leaves on a deciduous crown in flower', () => {
+    const gorse = twin('bush', day('2025-05-01', 'cornwall-wales'))
+    const meanGreen = (fresh: number) => {
+      const rng = new Random('plant')
+      const g = bush(rng, FOLIAGE, { ...gorse, deciduous: 1, fresh })
+      const c = g.getAttribute('color')
+      let sum = 0
+      for (let i = 0; i < c.count; i++) sum += c.getY(i)
+      return { green: sum / c.count, count: c.count, next: rng.float() }
+    }
+    const [summer, spring] = [meanGreen(0), meanGreen(1)]
+    // Same shape and draws; the new leaves paler.
+    expect(spring.count).toBe(summer.count)
+    expect(spring.next).toBe(summer.next)
+    expect(spring.green).toBeGreaterThan(summer.green * 1.05)
+  })
+
   const spec: SceneSpec = { eclipse: null, place: 'western-med', coast: 'beach', composition: 'framed', timeOfDay: 'midday', props: { vegetation: ['bush', 'broadleaf'] } }
   const plants = (s: SceneSpec, date: string) => createVegetation(view(s, 1080, date)) as InstancedMesh[]
   const matrices = (meshes: InstancedMesh[], kind: string) =>

@@ -301,6 +301,9 @@ interface Foliage {
  * in the shade of the others) and the top is lighter, which reads as volume
  * even though there's no ambient occlusion.
  */
+/** Spring's new leaves for their first weeks: a paler yellow-green. */
+const FRESH_LEAF: RGB = [0.12, 0.2, 0.03]
+
 function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
   if (tips.length === 0) return
   const center = new Vector3()
@@ -320,6 +323,10 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
   // unless the row flowers on a deciduous tree with its new leaves (oak).
   const blossom = f.season?.blossom
   const season = f.season != null && (blossom == null || blossom.keepsSeason) && key < f.season.deciduous ? f.season : undefined
+  // Spring's new leaves still show on a deciduous crown in flower (it keeps
+  // its leaves, but they're as fresh as its plain twin's): before 0.219 the
+  // flowering twin skipped the tint and read darker (tasks.md D32).
+  const freshInFlower = season == null && f.season != null && blossom != null && key < f.season.deciduous ? f.season.fresh : 0
   const early = (hash(key * 91.3, 3.3) - 0.5) * 0.3
   // For what falls from it (props/leafLitter.ts).
   b.userData.deciduous = season != null
@@ -375,9 +382,9 @@ function leaves(b: MeshBuilder, rng: Random, tips: Tip[], f: Foliage): void {
           color = scale(autumn, shade * (0.8 + 0.4 * hash(k, base.y)))
         } else if (season.fresh > 0) {
           // New leaves: a paler yellow-green for their first weeks.
-          color = mix(color, scale([0.12, 0.2, 0.03], shade), 0.5 * season.fresh)
+          color = mix(color, scale(FRESH_LEAF, shade), 0.5 * season.fresh)
         }
-      }
+      } else if (freshInFlower > 0) color = mix(color, scale(FRESH_LEAF, shade), 0.5 * freshInFlower)
       // Blossom (after every draw): a share of the cards are flowers, the
       // outside of the crown first, smaller than a leaf; a crown that flowers
       // bare (flamboyant) drops leaves first, inside first.

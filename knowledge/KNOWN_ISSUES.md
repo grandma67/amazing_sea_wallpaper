@@ -136,7 +136,7 @@ say how the cause was found.
   from an overlook stands apart like a young open stand, where a NSW headland has a closed canopy
   (`scenes/eucalyptus.json` `nsw-overlook`, 0.145); **suspected**: the vegetation's shared count
   and clumping (`KINDS`), not the mesh (`mesh.mjs` at 150 m shows a full crown); tropical
-  broadleaf is as sparse. A flowering bush twin skips the spring fresh-green tint (arch/PROPS.md).
+  broadleaf is as sparse.
 
 ## Coast and surf
 
