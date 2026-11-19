@@ -161,6 +161,10 @@ say how the cause was found.
   eclipse doesn't move the tide (it follows the date's real Moon). No shallow-water constituents
   (M4): big estuary tides (Anchorage) are symmetric, ~7% off. Local solar time comes from the
   sun's elevation, so a forced sun elevation moves the tide too.
+- **Ebb and flow (0.206):** the drain rate is calibrated on one point (fine sand, 2 m tide, Egmond);
+  other grains follow Hazen's d², the drying time (3 h) and the fringe (0.06 / d) are estimates. No
+  reference photo was matched; the look was judged on `scenes/tideFlow.json` and real days. Tidal
+  currents (the water's own flow in channels and inlets) are not drawn. Flats keep their old film.
 - **Beach cameras in the water:** shoreline and along-beach cameras are placed at the drawn
   distance in s, but the coast's wobble at a = 0 (±25 m) shifts them (rocky shores and flats
   correct for it with `wobbleAtCamera`): 12 of 433 beach days (2.8%) stand in the water, most at

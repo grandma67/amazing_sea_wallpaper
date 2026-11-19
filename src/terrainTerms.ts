@@ -34,6 +34,8 @@ export const TERRAIN_TERMS = {
   pools: 'pools',
   wet: 'wet',
   exposed: 'exposed',
+  /** Damp sand's darkening weight (with ebb and flow: seepage, fringe, drying). */
+  damp: 'dampW',
   gloss: 'gloss',
   /** How much of the scene the film mirrors (gloss × mirror × (1 − own)). */
   mirror: 'clamp(mirrorW, 0.0, 1.0)',
@@ -68,7 +70,7 @@ export function termsGlsl(): string {
   return /* glsl */ `
   if (terrainView == ${TERMS_MODE}) {
     float termKind = 1.0;
-    if (exposed * (1.0 - hard) > 0.5) termKind = 2.0;
+    if (dampW * (1.0 - hard) > 0.5) termKind = 2.0;
     if (wet * hard > 0.5) termKind = 3.0;
     if (wet * (1.0 - hard) > 0.5) termKind = 4.0;
     if (pools > 0.5) termKind = 5.0;

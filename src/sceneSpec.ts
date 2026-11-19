@@ -13,7 +13,7 @@ import { CLIMATES, PLACES, REGION_IDS, type Climate } from './places'
 import { FIREFLY_KINDS, type FireflyKind } from './props/fireflyKinds'
 import { ROCK_KINDS, type RockKind } from './rockShore'
 import type { SeaIceForce } from './seaIce'
-import type { TideStage } from './tides'
+import type { TideFlowForce, TideStage } from './tides'
 import { DEBUG_MARKERS, DEBUG_PASSES, OCEAN_VIEWS, TERRAIN_VIEWS } from './debug'
 import { TERRAIN_TERM_NAMES } from './terrainTerms'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
@@ -194,6 +194,10 @@ export interface SceneSpec {
   tide?: TideStage
   /** Today's tidal range (m), low to high water. */
   tidalRange?: number
+  /** Ebb or flow (tides.ts tideFlowFor): 'ebb' falling, 'flood' rising (with
+   * `tide: 'mid'`, half tide that way; alone, today's level that way); null:
+   * none (the wet sand as before 0.206). */
+  tideFlow?: TideFlowForce | null
   /** The weather's part of the water level (m, tides.ts surgeFor: wind
    * setup, air pressure, the sea's season); null: none (as before 0.200). */
   surge?: number | null
@@ -380,6 +384,7 @@ const SPEC = object({
   beachState: oneOf(...BEACH_STATES),
   tide: oneOf('low', 'mid', 'high'),
   tidalRange: number,
+  tideFlow: oneOf('ebb', 'flood', null),
   surge: (value, path) => (value === null ? undefined : number(value, path)),
   reef: oneOf(true, false, null),
   saltMarsh: oneOf(true, false, null),

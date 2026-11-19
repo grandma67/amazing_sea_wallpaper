@@ -1,0 +1,11 @@
+{
+  "base": { "eclipse": null, "storm": null, "fog": null, "timeOfDay": "daylight", "weather": "scattered", "coast": "beach", "beachMaterial": "sand", "date": "2024-05-08", "sunAzimuthDeg": 160 },
+  "scenes": [
+    { "name": "wadden-ebb", "place": "wadden-north-sea", "tide": "mid", "tideFlow": "ebb", "composition": "along-beach" },
+    { "name": "wadden-flood", "place": "wadden-north-sea", "tide": "mid", "tideFlow": "flood", "composition": "along-beach" },
+    { "name": "brittany-ebb", "place": "brittany", "tide": "mid", "tideFlow": "ebb", "composition": "along-beach" },
+    { "name": "brittany-flood", "place": "brittany", "tide": "mid", "tideFlow": "flood", "composition": "along-beach" },
+    { "name": "brittany-low", "place": "brittany", "tide": "low", "composition": "along-beach" },
+    { "name": "brittany-ebb-backlit", "place": "brittany", "tide": "mid", "tideFlow": "ebb", "composition": "shoreline", "timeOfDay": "golden-hour", "sunAzimuthDeg": 20 }
+  ]
+}

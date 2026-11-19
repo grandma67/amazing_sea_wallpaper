@@ -38,7 +38,48 @@ export interface Tide {
   high: number
   /** The M2 term's phase (rad): 0 at its high water, π at its low. */
   phase: number
+  /** Ebb and flow (REGIONS.md §3.4, `tideFlowFor`, `drainBeach`): the
+   * water's history over the last tide; null with the spec's `tideFlow: null`
+   * (the look before 0.206). */
+  flow: TideFlow | null
 }
+
+export type TideFlowForce = 'ebb' | 'flood'
+
+/** The last tide's history at today's moment, in metres above today's still
+ * water (the tide alone; a surge lifts it all alike) and hours. */
+export interface TideFlow {
+  /** How fast the tide rises now (m/h): > 0 on the flood, < 0 on the ebb. */
+  rate: number
+  /** The highest still water of the last 13 h above today's (m, ≥ 0). */
+  lastHigh: number
+  /** Hours since the still water last stood i × `step` above today's
+   * (i = 0..7), capped at `SINCE_CAP`: how long that ground has been out. */
+  since: number[]
+  step: number
+  /** The beach's exit point above today's still water (m, `drainBeach`): the
+   * groundwater can't drain as fast as the ebb, so it seeps out over the
+   * beach face below this; 0 on the flood and on stones. */
+  seep: number
+  /** The sand's capillary fringe (m): the surface stays moist this far
+   * above the exit point. */
+  fringe: number
+  /** Where on the curve the scene stands (hours from its clock; a forced
+   * stage moves it) and the curve's scale to the beach's range. */
+  moment: number
+  scale: number
+}
+
+/** Hours since a height was last wet beyond which it reads as dry. */
+export const SINCE_CAP = 24
+/** Samples of `TideFlow.since`. */
+export const SINCE_SAMPLES = 8
+/** The look-back over the last tide (h): a lunar half-day and a bit. */
+const LOOK_BACK = 13
+/** Sand's surface drying after the water leaves (h, e-folding): saturated
+ * ~20% moisture to the dry beach's ~5% over ~5 h, from a bar crest drying
+ * 2.5–4% an hour (Egmond, EGU2017-8791; est.). */
+export const DRYING_HOURS = 3
 
 /** A low-tide terrace between the high-tide beach (s = 0, height +height
  * above mean sea) and low water (s = width, −height). */
@@ -166,7 +207,7 @@ export function tideFor(
   harmonics: Harmonics,
   clock: TideClock,
   rng: Random,
-  force: { tide?: TideStage; tidalRange?: number } = {}
+  force: { tide?: TideStage; tidalRange?: number; tideFlow?: TideFlowForce | null } = {}
 ): Tide {
   const meanRange = mean[0] + (mean[1] - mean[0]) * rng.float()
   rng.range(0, 2 * Math.PI)
@@ -189,8 +230,128 @@ export function tideFor(
     level: scale * level,
     high: scale * hi,
     surge: 0,
-    phase
+    phase,
+    flow: force.tideFlow === null ? null : tideFlowFor(harmonics, clock, scale, flowMoment(harmonics, clock, force))
   }
+}
+
+/** Where on the curve (hours from the clock) the scene stands: now, or for
+ * a forced stage the moment of today's high, low or half tide (on the forced
+ * flow's side, else the nearest); a forced flow alone moves to the nearest
+ * moment at today's level with the water going that way. Within half a lunar
+ * day of now. */
+export function flowMoment(h: Harmonics, clock: TideClock, force: { tide?: TideStage; tideFlow?: TideFlowForce | null }): number {
+  const flow = force.tideFlow ?? undefined
+  if (force.tide == null && flow == null) return 0
+  const at = (t: number): number => tideHeight(h, clock, t)
+  const step = 1 / 12
+  const times: number[] = []
+  for (let t = -LUNAR_DAY / 2; t <= LUNAR_DAY / 2 + 1e-9; t += step) times.push(t)
+  if (force.tide === 'high' || force.tide === 'low') {
+    let best = 0
+    for (const t of times) if (force.tide === 'high' ? at(t) > at(best) : at(t) < at(best)) best = t
+    return best
+  }
+  const [lo, hi] = dayExtremes(h, clock, 0)
+  const target = force.tide === 'mid' ? (lo + hi) / 2 : at(0)
+  let best: number | null = null
+  for (const t of times) {
+    const a = at(t) - target
+    const b = at(t + step) - target
+    if (a === 0 && b === 0) continue
+    if (a > 0 === b > 0 && a !== 0) continue
+    const rising = b > a
+    if (flow != null && rising !== (flow === 'flood')) continue
+    const crossing = t + (step * a) / (a - b)
+    if (best == null || Math.abs(crossing) < Math.abs(best)) best = crossing
+  }
+  return best ?? 0
+}
+
+/** The last tide's history at `moment` (hours from the clock), scaled to
+ * the beach's range: the rate, the last high and how long each height above
+ * today's water has been out. The exit point (`seep`) needs the beach's
+ * grain: `drainBeach` sets it. */
+export function tideFlowFor(h: Harmonics, clock: TideClock, scale: number, moment: number): TideFlow {
+  const at = (t: number): number => scale * tideHeight(h, clock, moment + t)
+  const now = at(0)
+  const rate = (at(1 / 12) - at(-1 / 12)) * 6
+  const dt = 1 / 12
+  let lastHigh = 0
+  for (let t = 0; t <= LOOK_BACK; t += dt) lastHigh = Math.max(lastHigh, at(-t) - now)
+  const step = Math.max(lastHigh, 0.05) / (SINCE_SAMPLES - 1)
+  const since = Array.from({ length: SINCE_SAMPLES }, (_, i) => {
+    const dz = i * step
+    for (let t = 0; t <= SINCE_CAP; t += dt) if (at(-t) - now >= dz - 1e-9) return Math.min(t, SINCE_CAP)
+    return SINCE_CAP
+  })
+  return { rate, lastHigh, since, step, seep: 0, fringe: 0, moment, scale }
+}
+
+/** How fast the beach drains (1/h): its exit point falls toward the sea at
+ * this rate × its height above it (the head drives the outflow), with the
+ * beach's conductivity ∝ d² (Hazen); calibrated so fine sand (0.2 mm) on a
+ * 2 m tide stays saturated over about the lower third of the intertidal at
+ * low water (Brakenhoff et al. 2019, Egmond; est. for other grains). Stones
+ * drain at once. */
+export function drainRate(material: BeachMaterial, grainMm: number): number {
+  if (material === 'shingle' || material === 'cobble') return Infinity
+  return DRAIN_FINE * (grainMm / 0.2) ** 2
+}
+const DRAIN_FINE = 0.35
+
+/** The capillary fringe above the water table (m): up to ~1 m in very fine
+ * sand, a few cm in very coarse (coastalwiki "Beach groundwater"), ∝ 1/d. */
+export function capillaryFringe(material: BeachMaterial, grainMm: number): number {
+  if (material === 'shingle' || material === 'cobble') return 0.02
+  return Math.min(1, 0.06 / grainMm)
+}
+
+/** The exit point above today's still water (m): the rising sea takes it
+ * up (the beach fills faster than the tide rises); on the ebb it lags,
+ * falling at `drain` × its height above the sea (1/h), leaving a seepage
+ * face below it (Turner 1993; coastalwiki "Beach groundwater"). Marched over
+ * a lunar day from the sea. */
+export function exitPoint(h: Harmonics, clock: TideClock, scale: number, moment: number, drain: number): number {
+  if (!Number.isFinite(drain)) return 0
+  const dt = 1 / 12
+  const start = -LUNAR_DAY - LOOK_BACK
+  let sea = scale * tideHeight(h, clock, moment + start)
+  let exit = sea
+  for (let t = start + dt; t <= 1e-9; t += dt) {
+    sea = scale * tideHeight(h, clock, moment + t)
+    exit = Math.max(sea, exit - Math.min(1, drain * dt) * (exit - sea))
+  }
+  return exit - sea
+}
+
+/** The beach's part of the flow (needs its material and grain). */
+export function drainBeach(flow: TideFlow, h: Harmonics, clock: TideClock, material: BeachMaterial, grainMm: number): TideFlow {
+  return {
+    ...flow,
+    seep: exitPoint(h, clock, flow.scale, flow.moment, drainRate(material, grainMm)),
+    fringe: capillaryFringe(material, grainMm)
+  }
+}
+
+/** Sand's moisture at height `h` above today's still water, with the
+ * swash reaching `wetLine` (the terrain shader's `moist`): 1 on the seepage
+ * face below the exit point, the capillary fringe above it, or what's left
+ * after the hours since the swash last reached it. */
+export function surfaceMoisture(flow: Pick<TideFlow, 'since' | 'step' | 'seep' | 'fringe'>, h: number, wetLine: number): number {
+  const x = Math.max(0, h - wetLine) / flow.step
+  const k = Math.min(Math.floor(x), SINCE_SAMPLES - 2)
+  const f = Math.min(1, x - k)
+  const hours = x > SINCE_SAMPLES - 1 ? SINCE_CAP : flow.since[k] * (1 - f) + flow.since[k + 1] * f
+  const above = h - flow.seep
+  const seep = 1 - smoothstepTs(-0.03, 0.03, above)
+  const fringe = 1 - smoothstepTs(0.3 * flow.fringe, Math.max(flow.fringe, 1e-3), above)
+  return Math.max(seep, fringe, Math.exp(-hours / DRYING_HOURS))
+}
+
+function smoothstepTs(a: number, b: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
+  return t * t * (3 - 2 * t)
 }
 
 /** How a coast's sea piles up under an onshore wind: the wind setup of a

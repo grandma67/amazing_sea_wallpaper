@@ -35,7 +35,7 @@ import { flatGround, flatWaterline, tidalFlatFor, type SaltMarsh, type TidalFlat
 import { ROCK_NAMES, rockGround, rockShoreFor, rockWaterline, wobbleAtCamera, type RockShore } from './rockShore'
 import type { Shelter } from './shelter'
 import { terrainHeight } from './terrain'
-import { harmonicsFor, MICRO_TIDE, relativeTideRange, surgeFor, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
+import { drainBeach, harmonicsFor, MICRO_TIDE, relativeTideRange, surgeFor, terraceFor, tideFor, tideModified, waterlineAt, type Terrace, type Tide } from './tides'
 import { deepPatch, forced, forcedKind, type Force, type PropOverrides, type SceneSpec } from './sceneSpec'
 
 // Everything random about a scene is decided here, from the date alone.
@@ -2028,8 +2028,12 @@ function buildParams(
   // The tide at the scene's local solar time (REGIONS.md §3.3): the sun's
   // hour angle gives it; the place's gauge, when high water comes.
   const localHours = 12 + sunHourAngleDeg(latitudeDeg, date, sunElevationDeg, isEvening) / 15
-  const tide = tideFor(place.tide, harmonicsFor(place.id), { date, localHours }, Random.derive(seed, 'tide'), spec)
+  const harmonics = harmonicsFor(place.id)
+  const tideClock = { date, localHours }
+  const tide = tideFor(place.tide, harmonics, tideClock, Random.derive(seed, 'tide'), spec)
   const { coast, eyeHeight } = generateCoast(seed, attempt, headingDeg, place, climate, oceanState, { rough: roughBeach, frozen: seaIce != null }, tide, spec)
+  // Ebb or flow: how far the beach still seeps, from its grain (no draws).
+  if (coast.tide.flow != null) coast.tide.flow = drainBeach(coast.tide.flow, harmonics, tideClock, coast.material, coast.grainMm)
   // Storm surge, the air's weight and the sea's season on the water (no
   // draws). Sea ice takes the wind's grip off the water.
   const drawnSurge = surgeFor({

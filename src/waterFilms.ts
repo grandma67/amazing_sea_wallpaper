@@ -41,7 +41,8 @@ export function poolAt(params: SceneParams, x: number, z: number, footprint = 0.
   if (h < 0) return none(h)
   const { high: tideHigh, spring: tideSpring } = tideMarks(coast)
   const runup = coast.runup
-  const highMark = tideHigh + runup
+  // The last high water with ebb and flow (the shader's `highMark`).
+  const highMark = (coast.tide.flow != null ? coast.tide.flow.lastHigh : tideHigh) + runup
   const rock = coast.type === 'rock-shore'
   const flat = coast.type === 'tidal-flat'
   // Every mask below needs the ground under one of these heights.

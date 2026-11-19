@@ -30,7 +30,7 @@ import { seasonMonth } from './seasons'
 import { SHADOW_GLSL, shadowUniforms } from './shadow'
 import { SKY_OPEN_GLSL, skyOpenUniforms } from './skylight'
 import { flatSurface, marshLook, type SaltMarsh, type TidalFlat } from './tidalFlat'
-import { highWater, tideMarks } from './tides'
+import { DRYING_HOURS, highWater, SINCE_CAP, SINCE_SAMPLES, tideMarks } from './tides'
 
 export { hasBeach, hasLand, hasSurfZone, type CoastKind } from './coastKind'
 
@@ -1131,6 +1131,21 @@ uniform float runup;
 // World heights of today's high water and the spring high water (tides.ts).
 uniform float tideHigh;
 uniform float tideSpring;
+// Ebb and flow (tides.ts TideFlow): x on, y the since table's step (m), z
+// the exit point above today's still water (m), w the capillary fringe (m);
+// tideFlowAge x the last high water (m above today's), y the drying time
+// (h); tideSince hours since the still water last stood i × step above
+// today's.
+uniform vec4 tideFlow;
+uniform vec2 tideFlowAge;
+uniform float tideSince[${SINCE_SAMPLES}];
+float tideSinceAt(float dz) {
+  float x = max(dz, 0.0) / tideFlow.y;
+  if (x > ${SINCE_SAMPLES - 1}.0) return ${SINCE_CAP.toFixed(1)};
+  int k = min(int(floor(x)), ${SINCE_SAMPLES - 2});
+  float f = min(1.0, x - float(k));
+  return mix(tideSince[k], tideSince[k + 1], f);
+}
 uniform vec3 groundCover;
 uniform float groundCoverAmount;
 // Heath (phenology.ts heathFor) on a rocky shore's ground cover: the stems'
@@ -1495,10 +1510,30 @@ void main() {
   // Sand the falling tide has left since high water: still saturated near
   // the water, draining higher up; on a low-tide terrace water stays ponded
   // in runnels along the shore and in puddles.
-  float highMark = tideHigh + runup;
+  // With ebb and flow (tideFlow.x, 0.206) the mark is the last high water,
+  // not today's highest (which may still be to come).
+  float highMark = (tideFlow.x > 0.5 ? tideFlowAge.x : tideHigh) + runup;
   // Marsh mud between the clumps is damp but matte (roots, algal film).
-  float exposed = (1.0 - smoothstep(0.8 * highMark, highMark, h)) * (1.0 - wet) * (1.0 - marshW) * (1.0 - 0.8 * marshBand);
+  float keepDamp = (1.0 - wet) * (1.0 - marshW) * (1.0 - 0.8 * marshBand);
+  float exposed = (1.0 - smoothstep(0.8 * highMark, highMark, h)) * keepDamp;
   float drained = clamp(h / max(highMark, 0.01), 0.0, 1.0);
+  // Damp sand (darkening weight) and its film (gloss). Without the flow: the
+  // whole band below today's high water, glossier near the water. With it
+  // (REGIONS.md §3.4): a shining seepage face below the beach's exit point
+  // (an ebb's), the capillary fringe above it, and sand drying by the hours
+  // since the swash last reached it, so a flood's sand above the swash is
+  // drier than an ebb's.
+  float dampW = exposed;
+  float dampGloss = exposed * (1.0 - hard) * mix(0.5 - 0.4 * drained, 0.85 - 0.3 * drained, flatW);
+  if (tideFlow.x > 0.5) {
+    float above = h - tideFlow.z;
+    float seepW = 1.0 - smoothstep(-0.03, 0.03, above);
+    float fringe = 1.0 - smoothstep(0.3 * tideFlow.w, max(tideFlow.w, 1e-3), above);
+    float moist = max(max(seepW, fringe), exp(-tideSinceAt(h - wetLine) / tideFlowAge.y));
+    // A flat's mud holds its film whatever the tide does.
+    dampW = mix(keepDamp * max(seepW, 0.85 * moist), exposed, flatW);
+    dampGloss = (1.0 - hard) * mix(keepDamp * mix(0.12 * moist, 0.55, seepW), exposed * (0.85 - 0.3 * drained), flatW);
+  }
   float pools = 0.0;
   if (terrace.y > 0.0) {
     float onTerrace = smoothstep(0.0, 8.0, sa.x) * (1.0 - smoothstep(terrace.y - 8.0, terrace.y, sa.x));
@@ -1516,9 +1551,9 @@ void main() {
     pools = max(pools, smoothstep(0.06, 0.14, creek) * (1.0 - smoothstep(highMark, highMark + 0.3, h)));
     pools = max(pools, exposed * smoothstep(0.6, 0.68, fbm(q / 35.0 + 9.0) + 0.1 * (fbm(q / 4.0) - 0.5)) * (1.0 - 0.5 * mudW) * smoothstep(0.0, 3.0, sa.x));
   }
-  albedo *= mix(1.0, 0.68, exposed * (1.0 - hard)) * mix(1.0, 0.6, pools);
+  albedo *= mix(1.0, 0.68, dampW * (1.0 - hard)) * mix(1.0, 0.6, pools);
   // Wet mud and flat sand hold a film of water: glossier than a beach.
-  float gloss = max(max(wet, pools), exposed * (1.0 - hard) * mix(0.5 - 0.4 * drained, 0.85 - 0.3 * drained, flatW));
+  float gloss = max(max(wet, pools), dampGloss);
   gloss = max(gloss * (1.0 - snowW), 0.5 * sprayIce);
 
   vec3 L = sunDirection;
@@ -1669,7 +1704,7 @@ ${termsGlsl()}
       // and runnels cyan; brighter where the film mirrors more of the
       // scene (gloss × mirror × (1 − own)).
       dbg = vec3(0.08);
-      dbg = mix(dbg, vec3(0.1, 0.75, 0.15), exposed * (1.0 - hard));
+      dbg = mix(dbg, vec3(0.1, 0.75, 0.15), dampW * (1.0 - hard));
       dbg = mix(dbg, vec3(0.6), wet * hard);
       dbg = mix(dbg, vec3(0.1, 0.3, 0.95), wet * (1.0 - hard));
       dbg = mix(dbg, vec3(0.0, 0.9, 0.9), pools);
@@ -1732,6 +1767,9 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       runup: { value: coast.runup },
       tideHigh: { value: tideMarks(coast).high },
       tideSpring: { value: tideMarks(coast).spring },
+      tideFlow: { value: new Vector4(coast.tide.flow != null ? 1 : 0, coast.tide.flow?.step ?? 1, coast.tide.flow?.seep ?? 0, coast.tide.flow?.fringe ?? 0) },
+      tideFlowAge: { value: new Vector2(coast.tide.flow?.lastHigh ?? 0, DRYING_HOURS) },
+      tideSince: { value: coast.tide.flow?.since ?? new Array<number>(SINCE_SAMPLES).fill(SINCE_CAP) },
       groundCover: { value: new Color(...groundCoverTint(params.biome.groundCover, phenologyFor(params))) },
       groundCoverAmount: { value: params.biome.groundCoverAmount },
       heathStems: { value: new Vector4(...(heath?.stems ?? [0, 0, 0]), heath?.specks ?? 0) },

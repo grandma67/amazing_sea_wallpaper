@@ -316,6 +316,27 @@ and tropic tides on diurnal coasts all come from the gauge.
 - **Real days:** the springs' swing is wider than the old ±20% (S2/M2 ~0.35–0.4): days at more
   than 1.1× the mean range 31% → 42%. Every land day's tide changed.
 
+### 3.4 Ebb and flow on the sand (built 0.206)
+
+The tide's direction shows on the beach between the swash and the last high water: the beach's
+groundwater lags the sea. Keyed by the beach's grain (it sets how fast the sand drains), not by place.
+
+| Fact | Consequence | Evidence |
+|---|---|---|
+| On a falling tide the water table can't retreat as fast as the shoreline: a **seepage face** forms below the exit point, groundwater exfiltrates there with a shiny surface; on the rising tide the beach "fills more rapidly than the tide rises, and drains more slowly than tide falls" | an ebb has a glassy band from the water up to the exit point; a flood has little or none | coastalwiki "Beach groundwater" (read); Ngarunui seepage-face thesis abstract (Waikato, summary); Turner 1993 SEEP model (abstract via search) |
+| Conductivity ~10⁻⁵ m/s fine, ~10⁻³ coarse; capillary fringe up to ~1 m in very fine sand, a few cm in very coarse | the face is widest on fine sand; stones drain at once; the fringe keeps fine sand moist further above the exit point | coastalwiki (read) |
+| The lower third of the intertidal stays saturated; higher sand can dry to ~5% once the water table is 0.4–0.5 m down | calibration of the drain: fine sand (0.2 mm), 2 m tide, low water → exit point ~⅓ up | Brakenhoff et al. 2019 (Egmond, abstract) |
+| A bar crest just below high water dries 2.5–4% moisture per hour; troughs stay saturated at low tide | sand dries over a few hours after the swash leaves it (e-folding 3 h, est.) | EGU2017-8791 (Egmond TLS, abstract) |
+
+Built (`tides.ts`, arch/COAST.md "Tides"): `tideFlowFor` reads the place's curve over the last 13 h at
+the scene's moment (`flowMoment`: now, or a forced stage's moment) for the rate (m/h), the last high
+water and the hours since the still water last stood at each height; `drainBeach` marches the exit
+point over a lunar day (raised by the rising sea, falling on the ebb at `drainRate` × its height above
+the sea, `drainRate` = 0.35/h × (d / 0.2 mm)², est. but for the calibration above) and sets the
+capillary fringe (0.06 / d m, ≤ 1 m). The terrain shader draws a glossy saturated face below the exit
+point, the fringe above it, and sand drying by the hours since the swash last reached it. Real beach
+days (2024–26): flood 39%, ebb 42% (half of them with a face > 0.1 m), slack 19%.
+
 ## 4. Bioluminescence seasons (phase 13, later)
 
 Glowing surf needs a dense dinoflagellate bloom (*Lingulodinium polyedra* in California,
@@ -421,6 +442,13 @@ Bioluminescence: [USC Sea Grant: San Diego red tide](https://dornsife.usc.edu/us
 [Jervis Bay (Australian Geographic)](https://australiangeographic.com.au/tag/bioluminescence),
 [Bioluminescent waves (UCSD)](https://today.ucsd.edu/story/new-study-uses-simulations-to-reveal-bioluminescent-light-intensity-in-breaking-waves),
 [Toyama firefly squid](https://www.amusingplanet.com/2012/03/firefly-squids-in-toyama-bay-japan.html).
+
+Ebb and flow on the sand (§3.4):
+[Beach groundwater (coastalwiki)](https://coastalwiki.org/wiki/Beach_groundwater),
+[Seepage face on meso-tidal dissipative beaches (Waikato)](https://researchcommons.waikato.ac.nz/entities/publication/c93a57e7-47c5-4fe8-9e79-408f6e57b222),
+[Surface moisture on an intertidal beach (Brakenhoff et al. 2019)](https://core.ac.uk/works/54265158),
+[Bar-crest drying, Egmond (EGU2017-8791)](https://meetingorganizer.copernicus.org/EGU2017/EGU2017-8791.pdf?pdf),
+[Water-table outcropping on macro-tidal beaches (Turner 1993)](https://acnpsearch.tweb-dev.unibo.it/singlejournalindex/1472805).
 
 Ebb and flow (§3.1):
 [Global tidal environments (Bosboom & Stive)](https://geo.libretexts.org/Bookshelves/Oceanography/Coastal_Dynamics_(Bosboom_and_Stive)/04%3A_Global_wave_and_tidal_environments/4.04%3A_Large-scale_variation_in_tidal_characteristics/4.4.01%3A_Global_tidal_environments),

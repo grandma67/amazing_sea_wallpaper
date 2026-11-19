@@ -230,7 +230,8 @@ step can't feed an earlier one without moving it):
 1. Place, climate, date; the sun (`sunElevationDeg`, morning or evening), so the scene's local
    solar time (`sunHourAngleDeg`); the Moon's phase; weather, wind (speed, heading), storm, fog,
    sea ice.
-2. **Tide** (`tideFor`): the place's curve at the date and local time, scaled to the drawn mean.
+2. **Tide** (`tideFor`): the place's curve at the date and local time, scaled to the drawn mean,
+   and its flow (`tideFlowFor`; after `generateCoast`, `drainBeach` adds the exit point by grain).
 3. **`generateCoast`**: coast kind (a tidal flat only below mid tide), material, state, terrace
    (from `springRange`), reef, marsh, rock or flat shape; **waterline** (`waterlineOf`, from
    `tide.level`); then the **composition**, which sets the final `seawardAzimuthDeg` and
@@ -268,6 +269,12 @@ step can't feed an earlier one without moving it):
   sand below today's high water (glossier near the water) and ponded runnels on a terrace;
   since 0.134 these films, rock pools and the swash mirror the scene, not just the sky
   (arch/OCEAN.md "Reflections", `passes.wetMirror`);
+  with ebb and flow (0.206, `coast.tide.flow`, REGIONS.md §3.4) the damp band is the last tide's,
+  not today's highest: a glossy seepage face below the beach's exit point (`flow.seep`, wide on a
+  fine-sand ebb, none on stones), the capillary fringe above it, then sand drying by the hours since
+  the swash last reached it (`flow.since`, `DRYING_HOURS`); runnels stop at the last high water.
+  Shader uniforms `tideFlow`, `tideFlowAge`, `tideSince`; terms `damp` (`dampW`); TS mirror
+  `surfaceMoisture`. `tideFlow: null` gives the old band exactly;
   `rockMaterial`'s `tideLine` gives rocks a dark weed and mussel band below the spring high water;
   mangroves keep to mean sea up to the spring high water.
 - With a spring range ≥ 2 m the beach state is tide-modified by RTR = range / Hb (`tideModified`,
