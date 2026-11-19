@@ -703,6 +703,8 @@ export async function renderScene(
   composer.setSize(width, height, false)
   // Lightning and rain shafts hang from storm cells in the Cb layer.
   const cells = stormCells(params.storm, camera.position)
+  // passes.stormShade: the cells' base as bright as the deck (before 0.215).
+  if (!pass('stormShade')) for (const cell of cells) cell.skyShade = 0
   // The shelf cloud is drawn by the volumetric clouds (shelfCloud.ts).
   const shelfCloud = params.storm?.shelf
   const shelf: ShelfSky | null =

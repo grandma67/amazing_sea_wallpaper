@@ -93,16 +93,12 @@ say how the cause was found.
   edges"; ours varies only over kilometres): [plans/SHELF_VOLUMETRIC.md](plans/SHELF_VOLUMETRIC.md)
   "Later". A backlit sunset shelf may still read as a flat pink band (2010-04-01; not re-checked
   since the volumetric shelf).
-- **`stormCells.ts` near latitude ±45°:** it maps the weather map's uv to metres linearly; on a cube
-  edge of the cube-sphere uv (at our longitude 0) that map breaks, as it did for the shelf
-  (arch/SKY.md "takram's clouds, from the inside"). Cells are ≤ 9 km so it may not show;
-  suspected, not checked.
-- **Far bolts without cloud** (found in CLOUD_ILLUMINATION phase 4, 2026-11-15): on 2016-06-21
-  (bolt 5.7 km off, mountains behind) takram draws almost no Cb near its 600 m base over the bolt,
-  so the bolt's top hangs in front of the range and its flash has no face to light. Measured with
-  `debug.cloudFace`: the ray to the base under the exit first meets cloud 6.3 km out at 340 m
-  (beyond the bolt), the one 900 m higher at 7.6 km. Cause not traced (the storm cell's fill at
-  that distance, or takram's height shaping).
+- **Shelf cloud front-lit tiers read as grainy bands** (since 0.215, 2016-06-21): with the storm
+  cell now over the strike, the shelf stands sunlit (sun 23° up, 40° off the view) in front of the
+  dark Cb, and its tiers and striations show as stacked bright horizontal bands with takram's
+  grain. Found by switching off the shelf (`{"shelfCloud":null}`: gone), then `params.debug.shelf`
+  `stria` and `tiers` in turn (both shape the bands). plans/SHELF_VOLUMETRIC.md "Later": front-lit
+  tiers.
 - **Night storms** (0.189): the Cb's base reads as flat bands receding to the horizon (2026-08-20,
   2026-03-27): lit only from above by the moon or the stand-in, it has no detail, and the gap of air
   under it shows the town dome as a brown strip with a hard top edge. Seen by eye with

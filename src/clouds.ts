@@ -231,7 +231,7 @@ export function createClouds(
     const main = CLOUD_GENERA[weather.formations[0]]
     arrangeClouds(clouds, worldToECEF, wind, weather.arrangement.kind, streetRowsFor(main.altitude + main.height, weather.weatherOffset))
   }
-  patchStormCells(clouds, worldToECEF, cells, stormLayer(weather.formations))
+  patchStormCells(clouds, cells, stormLayer(weather.formations))
   if (withShelf) patchShelfCloud(clouds, shelf, weather.formations.length, stormLayer(weather.formations))
   if (withRolls) patchRollCloud(clouds, rolls.roll, rolls.frame, weather.formations.length, rolls.shape)
   // Lightning lights the cloud from inside (lightning.ts).

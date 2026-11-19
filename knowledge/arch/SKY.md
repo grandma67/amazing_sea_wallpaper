@@ -46,7 +46,11 @@ How the sky code works. What is drawn where and how often: [CLOUDS.md](../CLOUDS
   `stabiliseCubeSphereUv` rewrites takram's u in a cancellation-free form.
 - **Storms:** `stormCells.ts` raises the Cb layer's weather to full (density ×3 in the core) in a
   cell (r ≈ 3.5 km + 10% of distance) over each bolt and rain curtain, in the clouds, shadow and
-  env-cube passes. `stormEffects.ts`: rain shafts, lens rain, rainbows (the flash's light is
+  env-cube passes. Cells are found from each sample's world position (captured where takram reads
+  its uv, as `cloudShapes.ts` does), never through the weather map's uv: that put them kilometres
+  off (0.215). Under and in a cell the sky light is ×`STORM_SKY_LIGHT` (0.25): takram lights a
+  sample by its height in its own layer, not by the cloud above it, so a Cb base was as bright as
+  the deck. `stormEffects.ts`: rain shafts, lens rain, rainbows (the flash's light is
   in the clouds: `lightning.ts`, below; the screen-space `FlashEffect` went in 0.186). Bolts strike
   3–9 km out, ribbons widened across each segment toward the camera, forks head down.
 - **Where a flash starts** (`lightning.ts`, plans/CLOUD_ILLUMINATION.md phase 1): in the storm's
