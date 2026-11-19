@@ -56,7 +56,8 @@ jobs:
           # downscaled image; 20:9 Androids crop ~3% of the width). Phone first,
           # as the app falls back to it. snapshot.mjs gives up after --budget
           # seconds (default 900, too short for SwiftShader); both fit the
-          # step's 120 min. A blank frame (--fail-blank) or a lost WebGL context fails the
+          # step's 120 min. A blank or broken frame (--fail-blank: NaN sky light, clipped
+          # white, many NaN cells; checks.mjs brokenFrame) or a lost WebGL context fails the
           # step; both sizes render outside dist/ and are copied in only when both pass,
           # so a failure publishes neither and the desktop scripts keep yesterday's. NaN
           # pixels the frame meter zeroed show as a "NaN pixels" warning on the run
@@ -82,6 +83,12 @@ jobs:
           name: failed-render
           path: ${{ runner.temp }}/daily
           if-no-files-found: warn
+
+      # The last 60 days' render JSON stays on the site (each deploy replaces dist/):
+      # daily/index.json and daily/{pc,phone}/DATE.json, read by scripts/ciDay.mjs.
+      # Never fails the job.
+      - name: Keep the daily render data
+        run: node scripts/dailyArchive.mjs --dist dist --keep 60
 
       - uses: actions/upload-pages-artifact@v5
         with:

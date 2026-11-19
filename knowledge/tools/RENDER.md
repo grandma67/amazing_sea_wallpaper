@@ -97,6 +97,52 @@ skips NaN, so `frameMedian` stayed normal. The Mac renders the day the same as b
 Ruled out on the way: Chromium's GPU watchdog (with it off the runner gave the same frames to
 the decimal: deterministic, not a reset).
 
+### Broken frames (2026-11-17)
+
+The Pages run of 2026-11-17 published a **white** frame (37 KB: a tilted grey band, the rest
+blown out) with only a `NaN pixels` warning ("191 meter cell(s)"). It passed `--fail-blank`:
+luma 199–255 is not a blank range. Found 2026-11-19 (measured, all on SwiftShader at 320×180
+unless said):
+
+- **The sky cube went NaN, and every lit material with it.** `debug.cubeSkylight` was NaN
+  (finite on the Mac); `nanTrace`: the cube clean after the clear sky, NaN in its whole upper
+  half after the clouds were drawn into it; the scene pass then had NaN on the terrain and every
+  `MeshStandardMaterial` (they read the cube), the clouds pass spread it over 75% of the frame,
+  and the grade turned it into white (median at the clamp, 40).
+- **The source is takram's cloud shadow map** (`ShadowPass`), on SwiftShader only: NaN in all
+  three cascades (~50–90% of texels) at a sun of −2…+3°; at +10° only the far cascade (harmless:
+  frame fine); on the Mac none. It is NaN even with no layer casting (`passes.cloudShadowCast:
+  false`), when nothing reads it and the frame is fine; so the ray setup makes it
+  (`shadow.frag` `getRayNearFar` / `maxRayDistance`, not yet pinned). Ruled out, each by a
+  render: the shadow's temporal resolve (off: still NaN), `frontDepth`'s 0/0 (guarded: still
+  NaN), zeroing the march's colour output, the ray–sphere helpers (guarded), the camera (56 m up).
+- **Which days:** a low sun (−2.5…+3°) with low or mid cloud (layers that cast shadows; cirrus
+  doesn't): 151 of 1096 days (2024–26). 6 of 6 such days rendered broken; 1 frame per render
+  does not show it, 24 do (the cube's clouds get frames / 5 passes).
+
+**What catches the next one (0.203):**
+- `checks.mjs` `brokenFrame`: non-finite sky light (`cubeSkylight`, `skyIrradiance`,
+  `sunIrradiance`, `cloudSkylight`), a median at the grade's clamp, > 144 NaN meter cells (1%;
+  2026-11-15's 1–4 still pass), or > 30% of the frame at luma ≥ 250. Measured: broken renders
+  50–100% white, 17 real frames (bright overcast and snow included) ≤ 2.2%. `snapshot.mjs`
+  prints `⚠ broken frame: …`; with `--fail-blank` (CI) the frame is kept as `NAME.blank.jpg`,
+  not published, and an `Broken frame` error marks the run: the desktop scripts keep yesterday's.
+- `nanTrace` reads the sky cube (after the clear sky and after the clouds) and the cloud shadow
+  map per cascade (tools/DEBUG.md).
+- The site keeps 60 days of render JSON (`daily/index.json`, `daily/{pc,phone}/DATE.json`,
+  `scripts/dailyArchive.mjs` in `pages.yml`): the numbers of a bad day stay readable.
+
+**Recipe: a bad published picture**
+1. `node scripts/ciDay.mjs DATE`: the day's Pages runs (commit, render step, warnings), the
+   archived numbers with `brokenFrame`'s reasons, then the day rendered as CI (that commit,
+   SwiftShader, 320×180, 24 frames, `nanTrace`) beside them. `--full` for 1920×1080, `--no-render`
+   for the first two only. CI renders the pushed commit: check it before blaming a local change.
+2. Read `nanTrace` top-down: sky cube → cloud shadow map → passes → meshes. Every lit object NaN at
+   once means a shared input (cube, shadow map, light), not the objects.
+3. Bisect with `debug.passes` (`clouds`, `cloudShadowCast`, `aerial`, `cloudLight`, `cloudShade`)
+   and forced fields (`sunElevationDeg`), one render each, then grep the named shader's divisors.
+   A Mac render says nothing: Apple GPUs hide NaN (`min(NaN, x)` returns x).
+
 ## `scripts/diff.mjs`: did it show up?
 
 Checks every spec first (a bad field fails before any render), then renders each as-is (`OUT/on`) and with `--off` merged deeply (`OUT/off`), and prints %

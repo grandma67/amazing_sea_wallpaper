@@ -67,7 +67,7 @@ import { eclipseSky } from './eclipse'
 import type { DebugPass } from './debug'
 import { ICE_REFLECTANCE, meterScene } from './exposure'
 import { frameBoost, frameBoostRule, FrameMeterPass, longExposureLook, shutterSeconds } from './frameMeter'
-import { NonFiniteStagePass, passLabel, traceMeshes } from './nanTrace'
+import { NonFiniteStagePass, passLabel, scanCube, scanLayers, traceMeshes, type CubeReading } from './nanTrace'
 import { cloudDrift } from './cloudArrangement'
 import { windDirection } from './props/wind'
 import { FogEffect } from './fog'
@@ -716,7 +716,7 @@ export async function renderScene(
       : null
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky, params.debug?.cloudFace === true)
+      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky, params.debug?.cloudFace === true, pass('cloudShadowCast'))
       : null
   // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
   // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).
@@ -925,6 +925,9 @@ export async function renderScene(
   }
   let shadeCoverage: ReturnType<typeof shadeProps> = {}
   cubeCamera.update(renderer, envScene)
+  // debug.nanTrace: the sky cube's NaN/∞ texels, clear and with clouds (nanTrace.ts).
+  const cubeTrace: ({ after: string } & CubeReading)[] = []
+  if (params.debug?.nanTrace === true) cubeTrace.push({ after: 'clear sky', ...scanCube(renderer, envTarget.texture, ENV_SIZE) })
   // Clouds by day and under the moon: dust gives its own light back
   // (dustSkylight); starlit nights are set from the night's lux (below), and
   // totality keeps its own units.
@@ -950,8 +953,10 @@ export async function renderScene(
       shelf,
       rolls,
       flashLit,
-      townSky
+      townSky,
+      pass('cloudShadowCast')
     )
+    if (params.debug?.nanTrace === true) cubeTrace.push({ after: 'clouds', ...scanCube(renderer, envTarget.texture, ENV_SIZE) })
   }
   // What the sky cube gives a level surface: the props' sky light.
   const cubeSkylight = measureSkylight(renderer, envTarget)
@@ -1170,9 +1175,15 @@ export async function renderScene(
   let nanTrace: Record<string, unknown> | undefined
   if (nanStages.length > 0) {
     const sceneBox = nanStages[0].reading?.box ?? null
+    const shadow = clouds?.shadow
     nanTrace = {
       stages: nanStages.map(s => ({ after: s.after, ...s.reading })),
-      meshes: sceneBox != null ? traceMeshes(renderer, scene, camera, sceneBox, width, height) : null
+      meshes: sceneBox != null ? traceMeshes(renderer, scene, camera, sceneBox, width, height) : null,
+      cube: cubeTrace,
+      cloudShadow:
+        clouds != null && shadow != null
+          ? scanLayers(renderer, clouds.shadowPass.outputBuffer, shadow.mapSize.x, shadow.mapSize.y, shadow.cascadeCount)
+          : null
     }
   }
   camera.clearViewOffset()

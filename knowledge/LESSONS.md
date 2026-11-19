@@ -99,6 +99,15 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
   causes): `params.debug.passes` with `diff.mjs --off`, no code edits. Before an
   edit-render-revert loop, look for a switch (`params.debug`, a spec field, a `params` patch).
   Never restore a file with `git checkout` mid-work: it drops every uncommitted change in it.
+  (Broken again on 2026-11-19: temporary experiment lines go in with Edit and come out with Edit.)
+- **A bad picture only CI made: reproduce CI, then read the render's own numbers** (2026-11-17,
+  white; tools/RENDER.md "Broken frames"). The first hour went on a Mac render (fine: Apple GPUs
+  hide NaN), a theory from a params diff (camera in the water; the render's JSON said 56 m up),
+  full-size SwiftShader renders (320×180 reproduces it in 90 s, but only at 24 frames, not 1), and
+  shader patches on hunches. Start with `ciDay.mjs DATE`; when every lit object makes NaN at once,
+  look at what they share (sky cube, shadow maps: `nanTrace` reads both); and read an
+  intermediate buffer before patching the shader that writes it: patching `frontDepth` and the
+  march's output cost two rounds the shadow-map reading would have skipped.
 - Shader debugging: force a visible output (`coverage = 1.0` over a region), move it step by step;
   for terrain and sea first try the false-colour views (`terrainView`, `oceanView`).
 - Suspect float precision when a pattern depends on one direction only; isolate by changing one

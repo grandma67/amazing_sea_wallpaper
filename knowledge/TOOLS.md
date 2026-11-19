@@ -24,6 +24,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Animal shares table for ANIMALS.md | `animals.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
 | See a render; where props landed; prop build time | `snapshot.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Did a feature show up; was it already broken | `diff.mjs` | [tools/RENDER.md](tools/RENDER.md) |
+| Why did the published picture of a day look wrong (white, black, odd light); what CI rendered it from | `ciDay.mjs DATE` (the day's runs, commit, warnings, archived render numbers, then the day rendered as CI: SwiftShader, that commit, `nanTrace`) | [tools/RENDER.md](tools/RENDER.md) "Broken frames" |
 | Does a new off switch give back the old image exactly | `diff.mjs --ref HEAD --off PATCH --off-here` (expect "identical"); when HEAD already has the feature (a later phase), `--off-both` | [tools/RENDER.md](tools/RENDER.md) |
 | Render time vs a commit (10% rule); same image | `bench.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A new mesh alone | `mesh.mjs` | [tools/RENDER.md](tools/RENDER.md) |
@@ -182,6 +183,12 @@ answers in 1–2 s: cap a wait loop at ~10 s and treat longer as a fault. The fi
 minutes (dep optimisation).
 
 ## Gotchas
+
+- **A bad published picture is a SwiftShader bug until shown otherwise:** CI has no GPU and renders
+  on x86 SwiftShader, which keeps NaN where Apple GPUs hide it (`min(NaN, x)`, w ≈ 0). A Mac render
+  of the day says nothing; and CI renders the **pushed** commit, not your HEAD. Start with
+  `node scripts/ciDay.mjs DATE` (tools/RENDER.md "Broken frames"). 2026-11-17 lost a Mac render
+  and a wrong theory from a params diff before this.
 
 - **Probing a render you saw in a diff:** `snapshot.mjs` defaults to 4K, `diff.mjs` to 1080p, so the
   same spec frames differently; pass `--w 1920 --h 1080`. `NAME.diff.jpg`'s top panels are cropped

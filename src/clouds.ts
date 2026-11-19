@@ -149,7 +149,9 @@ export function createClouds(
   flash: FlashSky | null = null,
   town: TownSky | null = null,
   /** params.debug.cloudFace: output the face's height and distance (cloudFace.ts). */
-  face = false
+  face = false,
+  /** False (debug.passes.cloudShadowCast): no layer casts into the cloud shadow map. */
+  castShadow = true
 ): CloudsEffect {
   const clouds = new CloudsEffect(camera)
   Object.assign(clouds, textures)
@@ -216,6 +218,7 @@ export function createClouds(
     layers[0].set({ channel: 'r', altitude: 0, height: 4000, densityScale: 0, shadow: false })
   }
   clouds.cloudLayers.copy(layers)
+  if (!castShadow) for (const layer of clouds.cloudLayers) layer.shadow = false
   const cellScale = weather.formations.length > 0 ? (CLOUD_GENERA[weather.formations[0]].cellScale ?? 1) : 1
   clouds.localWeatherRepeat.multiplyScalar(cellScale)
   clouds.shapeRepeat.multiplyScalar(cellScale)
@@ -280,7 +283,8 @@ export function renderCloudyEnvironment(
   shelf: ShelfSky | null = null,
   rolls: RollSky | null = null,
   flash: FlashSky | null = null,
-  town: TownSky | null = null
+  town: TownSky | null = null,
+  castShadow = true
 ): void {
   const size = target.width
   // EffectComposer.setSize also resizes the renderer; restore it afterwards.
@@ -324,7 +328,7 @@ export function renderCloudyEnvironment(
     Object.assign(aerialPerspective, textures)
     aerialPerspective.worldToECEFMatrix.copy(worldToECEF)
     aerialPerspective.sunDirection.copy(lightECEF)
-    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells, shelf, rolls, flash, town)
+    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells, shelf, rolls, flash, town, false, castShadow)
     clouds.qualityPreset = 'medium'
     clouds.temporalUpscale = false
     clouds.events.addEventListener('change', event => {

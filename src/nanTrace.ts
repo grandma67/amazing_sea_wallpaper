@@ -3,6 +3,8 @@ import {
   FloatType,
   Mesh,
   Object3D,
+  OrthographicCamera,
+  PlaneGeometry,
   ShaderMaterial,
   Uniform,
   WebGLRenderTarget,
@@ -21,7 +23,10 @@ import {
 //   frame's NaN and ∞ pixels (count, box, the first ones' positions), so the
 //   first stage that has them is the one that makes them;
 // - meshes: when the scene draw has them, each drawn object alone, with its
-//   own material, the same camera and jitter, over the bad pixels' box.
+//   own material, the same camera and jitter, over the bad pixels' box;
+// - cube: the sky cube every lit material reads, after the clear sky and
+//   after the clouds are drawn into it (scanCube);
+// - cloudShadow: the clouds' shadow map, per cascade (scanLayers).
 
 /** NaN and ±∞ from the bits: compilers may fold isnan()/isinf() away. */
 const NON_FINITE_GLSL = /* glsl */ `
@@ -91,6 +96,124 @@ function maskMaterial(): ShaderMaterial {
     depthTest: false,
     depthWrite: false
   })
+}
+
+/** NaN/∞ texels of a cube texture (level 0), split by sky (+y) and below. */
+export interface CubeReading {
+  nan: number
+  inf: number
+  /** Bad texels looking up (y > 0) and down: a sky or a ground source. */
+  up: number
+  down: number
+  texels: number
+}
+
+/**
+ * Scans a cube texture's level 0: the six faces side by side in a 6s × s
+ * mask, each texel's direction from its face (GL's cube layout). The light
+ * every lit material reads (2026-11-17: the sky half went NaN on SwiftShader,
+ * and with it all of them, while the frame's own sky stayed clean).
+ */
+export function scanCube(renderer: WebGLRenderer, cube: Texture, size: number): CubeReading {
+  const material = new ShaderMaterial({
+    vertexShader,
+    fragmentShader: /* glsl */ `
+      uniform samplerCube map;
+      uniform float size;
+      ${NON_FINITE_GLSL}
+      void main() {
+        int face = int(gl_FragCoord.x / size);
+        vec2 st = (vec2(mod(gl_FragCoord.x, size), gl_FragCoord.y) / size) * 2.0 - 1.0;
+        vec3 d = face == 0 ? vec3(1.0, -st.y, -st.x)
+          : face == 1 ? vec3(-1.0, -st.y, st.x)
+          : face == 2 ? vec3(st.x, 1.0, st.y)
+          : face == 3 ? vec3(st.x, -1.0, -st.y)
+          : face == 4 ? vec3(st.x, -st.y, 1.0)
+          : vec3(-st.x, -st.y, -1.0);
+        vec4 c = textureLod(map, d, 0.0);
+        bool nan = isNaNBits(c.r) || isNaNBits(c.g) || isNaNBits(c.b) || isNaNBits(c.a);
+        bool inf = isInfBits(c.r) || isInfBits(c.g) || isInfBits(c.b) || isInfBits(c.a);
+        gl_FragColor = vec4(nan ? 1.0 : 0.0, inf ? 1.0 : 0.0, d.y > 0.0 ? 1.0 : 0.0, 1.0);
+      }
+    `,
+    uniforms: { map: new Uniform<Texture | null>(cube), size: new Uniform(size) },
+    depthTest: false,
+    depthWrite: false
+  })
+  const w = size * 6
+  const target = new WebGLRenderTarget(w, size, { depthBuffer: false })
+  const quad = new Mesh(new PlaneGeometry(2, 2), material)
+  quad.frustumCulled = false
+  const before = renderer.getRenderTarget()
+  const px = new Uint8Array(w * size * 4)
+  try {
+    renderer.setRenderTarget(target)
+    renderer.render(quad, new OrthographicCamera())
+    renderer.readRenderTargetPixels(target, 0, 0, w, size, px)
+  } finally {
+    renderer.setRenderTarget(before)
+    target.dispose()
+    quad.geometry.dispose()
+    material.dispose()
+  }
+  const reading: CubeReading = { nan: 0, inf: 0, up: 0, down: 0, texels: w * size }
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i] === 0 && px[i + 1] === 0) continue
+    if (px[i] > 0) reading.nan++
+    else reading.inf++
+    if (px[i + 2] > 0) reading.up++
+    else reading.down++
+  }
+  return reading
+}
+
+/** NaN/∞ texels per layer of an array texture (the clouds' shadow cascades). */
+export function scanLayers(renderer: WebGLRenderer, texture: Texture, width: number, height: number, layers: number): { nan: number; inf: number }[] {
+  const material = new ShaderMaterial({
+    vertexShader,
+    fragmentShader: /* glsl */ `
+      precision highp sampler2DArray;
+      uniform sampler2DArray map;
+      uniform int layer;
+      ${NON_FINITE_GLSL}
+      void main() {
+        vec4 c = texelFetch(map, ivec3(ivec2(gl_FragCoord.xy), layer), 0);
+        bool nan = isNaNBits(c.r) || isNaNBits(c.g) || isNaNBits(c.b) || isNaNBits(c.a);
+        bool inf = isInfBits(c.r) || isInfBits(c.g) || isInfBits(c.b) || isInfBits(c.a);
+        gl_FragColor = vec4(nan ? 1.0 : 0.0, inf ? 1.0 : 0.0, 0.0, 1.0);
+      }
+    `,
+    uniforms: { map: new Uniform<Texture | null>(texture), layer: new Uniform(0) },
+    depthTest: false,
+    depthWrite: false
+  })
+  const target = new WebGLRenderTarget(width, height, { depthBuffer: false })
+  const quad = new Mesh(new PlaneGeometry(2, 2), material)
+  quad.frustumCulled = false
+  const camera = new OrthographicCamera()
+  const before = renderer.getRenderTarget()
+  const px = new Uint8Array(width * height * 4)
+  const result: { nan: number; inf: number }[] = []
+  try {
+    for (let l = 0; l < layers; l++) {
+      material.uniforms.layer.value = l
+      renderer.setRenderTarget(target)
+      renderer.render(quad, camera)
+      renderer.readRenderTargetPixels(target, 0, 0, width, height, px)
+      const r = { nan: 0, inf: 0 }
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i] > 0) r.nan++
+        else if (px[i + 1] > 0) r.inf++
+      }
+      result.push(r)
+    }
+  } finally {
+    renderer.setRenderTarget(before)
+    target.dispose()
+    quad.geometry.dispose()
+    material.dispose()
+  }
+  return result
 }
 
 /** What a composer pass is, for the report: its name and its effects'. */

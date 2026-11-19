@@ -5,6 +5,36 @@
 
 const DEG = Math.PI / 180
 
+/** The grade's clamp (scene.ts): an exposed median there is a frame of clipped white. */
+const CLIPPED_MEDIAN = 39
+/** Share of a frame's pixels (at 160×90) at luma ≥ 250 above which it is washed out.
+ * Measured (tools/RENDER.md "Broken frames"): broken renders 0.50–1.00, real frames ≤ 0.022. */
+export const WHITE_SHARE = 0.3
+/** Meter cells (160×90 = 14 400) with NaN/∞ above which the frame is not trusted: 2026-11-15's
+ * few (1–4 a frame) are zeroed harmlessly; 2026-11-17 had 191 and published white. */
+export const NON_FINITE_CELLS = 144
+/** The light numbers every lit material is built from (scene.ts debug). */
+const LIGHT_FIELDS = ['cubeSkylight', 'skyIrradiance', 'sunIrradiance', 'cloudSkylight']
+
+/**
+ * Why a render must not be published, or [] if it may. `params` is a snapshot's params with
+ * `debug` (NaN in the page, null once written to JSON: both count as broken), `luma` the frame
+ * shrunk to 160×90 ({min, max, mean, white}: white the share at luma ≥ 250). snapshot.mjs
+ * --fail-blank treats these like a blank frame (not saved, exit 1), so the site keeps yesterday's.
+ */
+export function brokenFrame(params, luma = null) {
+  const debug = params?.debug ?? {}
+  const reasons = []
+  for (const field of LIGHT_FIELDS) {
+    const v = debug[field]
+    if (Array.isArray(v) && v.some(x => typeof x !== 'number' || !Number.isFinite(x))) reasons.push(`${field} is not finite (${v.map(String).join(', ')})`)
+  }
+  if (typeof debug.frameMedian === 'number' && debug.frameMedian >= CLIPPED_MEDIAN) reasons.push(`frame median ${debug.frameMedian.toFixed(1)} is the grade's clamp: clipped white`)
+  if ((debug.frameNonFinite ?? 0) > NON_FINITE_CELLS) reasons.push(`${debug.frameNonFinite} meter cells read NaN/inf (> ${NON_FINITE_CELLS})`)
+  if (luma?.white != null && luma.white > WHITE_SHARE) reasons.push(`${(luma.white * 100).toFixed(0)}% of the frame is white (> ${WHITE_SHARE * 100}%)`)
+  return reasons
+}
+
 /** Warnings for one render, from its params (with debug.props) and its GL
  * messages (`watchPage(…).gl()` in lib.mjs). */
 export function snapshotWarnings(params, props = [], gl = []) {

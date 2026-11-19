@@ -258,6 +258,10 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   static read of the shaders. Which file for what: TOOLS.md "Tests".
 - **CI** (`.github/workflows/pages.yml`): deploys on push and daily at 00:05 UTC renders
   `/latest.jpg` (1920×1080) and `/latest-portrait.jpg` (1290×2796) with SwiftShader (24 frames).
+  A blank or broken frame (NaN sky light, clipped white: `checks.mjs` `brokenFrame`) fails the
+  render and publishes neither size. The last 60 days' render JSON stays on the site
+  (`daily/index.json`, older `daily/{pc,phone}/<date>.json`; `scripts/dailyArchive.mjs`); only
+  today's pictures are kept. A bad day: `scripts/ciDay.mjs DATE` (tools/RENDER.md "Broken frames").
 - **Desktop-wallpaper scripts** (`crons/`, plan `plans/CRON.md`): each installed machine asks
   for `daily/pc/<UTC date>.jpg` (or `daily/phone/…`) once at its own random 07:MM local and at
   login; a 404 means "not rendered yet" and gets one re-run at the later of +3 h and 08:00 UTC.

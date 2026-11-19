@@ -31,6 +31,10 @@
 //                     the others; prints each frame's luma range. CI uses it, so a failed
 //                     render never becomes latest.jpg (2026-11-15 published a black frame).
 //                     The blank frame goes to NAME.blank.jpg/.json for a look instead.
+//                     A broken frame fails the same way (checks.mjs brokenFrame: non-finite
+//                     sky light, a median at the grade's clamp, > 144 NaN meter cells, > 30%
+//                     of the frame white; 2026-11-17 published a white one). Without the flag
+//                     both are ⚠ lines only.
 // --ref REF           render that commit (worktree on port 5177); implies --drop-unknown
 // --drop-unknown      leave out (and name) spec fields the served commit rejects
 // DEBUG=1             print each render's debug (exposure, luminance, …)
@@ -42,7 +46,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
-import { snapshotWarnings } from './checks.mjs'
+import { brokenFrame, snapshotWarnings } from './checks.mjs'
 import { expandDates, parseArgs, readSpecs, requireServer, watchPage } from './lib.mjs'
 import { serveRef } from './refServer.mjs'
 
@@ -101,6 +105,12 @@ function warnNonFinite(name, debug) {
 /** params.debug.nanTrace (src/nanTrace.ts) as short lines: CI logs cut a long one. */
 function printNanTrace(trace) {
   if (trace == null) return
+  for (const c of trace.cube ?? []) {
+    console.log(`  nanTrace sky cube after ${c.after}: ${c.nan} NaN, ${c.inf} inf of ${c.texels} texels (${c.up} looking up, ${c.down} down)`)
+  }
+  if (trace.cloudShadow != null) {
+    console.log(`  nanTrace cloud shadow map: ${trace.cloudShadow.map((l, i) => `cascade ${i} ${l.nan} NaN, ${l.inf} inf`).join('; ')}`)
+  }
   for (const st of trace.stages) {
     const where = st.box == null ? '' : ` box ${st.box.join(',')} at ${st.at.map(p => p.join(',')).join(' ')}`
     console.log(`  nanTrace after ${st.after}: ${st.nan} NaN, ${st.inf} inf${where}`)
@@ -255,15 +265,17 @@ for (const { date, spec: asked, name } of todo) {
       const g = small.getContext('2d')
       g.drawImage(await createImageBitmap(blob), 0, 0, 160, 90)
       const px = g.getImageData(0, 0, 160, 90).data
-      let min = 255, max = 0, sum = 0
+      let min = 255, max = 0, sum = 0, white = 0
       for (let i = 0; i < px.length; i += 4) {
         const y = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]
         min = Math.min(min, y); max = Math.max(max, y); sum += y
+        if (y >= 250) white++
       }
+      const n = px.length / 4
       return {
         dataUrl,
         params: { ...window.__sea.params, debug: result.debug },
-        luma: { min, max, mean: sum / (px.length / 4) }
+        luma: { min, max, mean: sum / n, white: white / n }
       }
     }, quality)
   } catch (error) {
@@ -277,9 +289,16 @@ for (const { date, spec: asked, name } of todo) {
   const { dataUrl, params, luma } = rendered
   const file = join(outDir, `${name}.jpg`)
   const blank = luma.max - luma.min < BLANK_RANGE
-  if (failBlank) console.log(`  frame luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)}, mean ${luma.mean.toFixed(1)}${blank ? ' ⚠ BLANK' : ''}`)
-  if (blank) {
-    console.log(`  ⚠ blank frame: luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)} (a failed render?)${failBlank ? `; not saved (kept as ${name}.blank.jpg)` : ''}`)
+  // Not blank but not a picture either: NaN light, clipped white (2026-11-17), checks.mjs.
+  const broken = blank ? [] : brokenFrame(params, luma)
+  if (failBlank) console.log(`  frame luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)}, mean ${luma.mean.toFixed(1)}, white ${(luma.white * 100).toFixed(1)}%${blank ? ' ⚠ BLANK' : ''}${broken.length > 0 ? ' ⚠ BROKEN' : ''}`)
+  for (const reason of broken) {
+    console.log(`  ⚠ broken frame: ${reason}`)
+    if (process.env.GITHUB_ACTIONS === 'true') console.log(`::error title=Broken frame::${name}: ${reason} (tools/RENDER.md "Broken frames"; reproduce: node scripts/ciDay.mjs ${params.date ?? name})`)
+  }
+  if (blank || broken.length > 0) {
+    if (blank) console.log(`  ⚠ blank frame: luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)} (a failed render?)${failBlank ? `; not saved (kept as ${name}.blank.jpg)` : ''}`)
+    else if (failBlank) console.log(`  not saved (kept as ${name}.blank.jpg)`)
     if (failBlank) {
       // Kept for a look, under a name nothing publishes, with its debug numbers.
       await writeFile(join(outDir, `${name}.blank.jpg`), Buffer.from(dataUrl.split(',')[1], 'base64'))
@@ -391,7 +410,7 @@ for (const { date, spec: asked, name } of todo) {
 
 await browser.close()
 if (blankFrames > 0) {
-  console.log(`[snapshot] ${blankFrames} blank frame(s) not saved (--fail-blank)`)
+  console.log(`[snapshot] ${blankFrames} blank or broken frame(s) not saved (--fail-blank)`)
   process.exitCode = 1
 }
 if (failedRenders > 0) {

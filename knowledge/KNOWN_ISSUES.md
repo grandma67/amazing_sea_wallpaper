@@ -12,6 +12,17 @@ say how the cause was found.
 
 ## CI and the daily render
 
+- **Low sun under low or mid cloud renders white on CI** (measured 2026-11-19 with `nanTrace` on
+  SwiftShader; story: tools/RENDER.md "Broken frames"): takram's cloud shadow map holds NaN on
+  x86/any SwiftShader when the sun is within ~3° of the horizon, the sky cube takes it from the
+  clouds' self-shadowing, and every lit material goes NaN, then white. 2026-11-17 was published
+  white; 151 of 1096 days are at risk. From 0.203 such a frame fails the render (`brokenFrame`),
+  so the site and the desktops keep yesterday's picture: the day is lost, not shown broken. Not
+  fixed: the NaN is made in `shadow.frag`'s ray setup (`getRayNearFar` / `maxRayDistance`), not
+  yet pinned; the shadow's temporal resolve and the march's 0/0 are ruled out. Next: read
+  `rayNear`, `rayFar` and `sunPosition` per texel (a debug output of the shadow material), then
+  guard the term, and check a +10° day's far cascade (also NaN, harmless so far).
+
 - **Other shaders may hold the edge that blacked 2026-11-15** (fixed in 0.195, measured; story:
   tools/RENDER.md "Blank frames"): x86 SwiftShader turns a depth a hair under 1 into ∞, then NaN,
   where Apple GPUs stay finite. NaN reaching bloom is now zeroed by the frame meter and warned
