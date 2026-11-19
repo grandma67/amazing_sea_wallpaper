@@ -1,7 +1,7 @@
 # Waterspouts: fog check and frequency
 
-Two open bugs in `src/props/waterspout.ts` / `src/params.ts` (found 2026-10-16, still open
-2026-10-31).
+Two bugs in `src/props/waterspout.ts` / `src/params.ts` (found 2026-10-16). **Status: §1 fixed in
+0.209 (2026-11-19); §2 (the rate) waits on the choice between options A and B.**
 
 ## 1. A waterspout can appear inside fog
 

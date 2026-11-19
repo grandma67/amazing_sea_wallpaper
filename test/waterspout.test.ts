@@ -32,6 +32,17 @@ describe('waterspouts', () => {
     expect(waterspoutChance('nordic', 'atlantic', 7)).toBe(0)
   })
 
+  it('never stands in fog: fog rules a drawn spout out, a forced spout clears the date\'s fog', () => {
+    expect(days.filter(p => p.waterspout != null && p.fog != null)).toEqual([])
+    // Caribbean summer days, where spouts are likeliest, under forced fog.
+    const foggy = scenes({ place: 'caribbean', timeOfDay: 'daylight', weather: 'scattered', fog: 'advection', eclipse: null }, DAYS.length)
+    expect(foggy.filter(p => p.waterspout != null)).toEqual([])
+    const forcedSpouts = scenes({ waterspout: true, eclipse: null }, DAYS.length)
+    expect(forcedSpouts.filter(p => p.fog != null)).toEqual([])
+    // A spec that sets both keeps both.
+    expect(scene({ waterspout: true, fog: 'bank', eclipse: null }).fog).not.toBeNull()
+  })
+
   it('is forced by a spec, tornadic in a storm', () => {
     expect(scene({ waterspout: true, weather: 'scattered', timeOfDay: 'daylight', storm: null, eclipse: null }).waterspout?.kind).toBe('fair-weather')
     expect(scene({ waterspout: 'tornadic', storm: 'squall', timeOfDay: 'daylight', eclipse: null }).waterspout?.kind).toBe('tornadic')

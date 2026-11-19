@@ -80,8 +80,8 @@ say how the cause was found.
 
 ## Sky
 
-- **Waterspouts:** the fog rule never applies and they're far rarer than intended (1 in 3 years):
-  [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md). The Florida Keys get the Mediterranean's
+- **Waterspouts:** far rarer than intended (1 in 3 years; the fog rule works since 0.209):
+  [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md) §2, waiting on a decision. The Florida Keys get the Mediterranean's
   waterspout season (biome-keyed).
 - **2016-08-09:** the title's mountain range (36 km, 1.6 km high, in frame) can't be seen even with
   `fog: null`: lost in haze against a 3° sun. Not traced.

@@ -1973,6 +1973,16 @@ function buildParams(
     spec.clouds ?? (weather.marineLayer ? marineDeck : undefined)
   )
   const seaIce = pickSeaIce(seed, place.id, { date, latitudeDeg }, spec.seaIce, spec.props?.phenology)
+  // Fog is picked before the waterspout, which needs a clear view and warm,
+  // unstable air: sea fog is neither. A forced spout (or rainbow, or eclipse)
+  // clears the date's fog unless the spec sets it. pickFog reads the weather's
+  // kind, not its formations, so the spout's congestus below can't change it.
+  const drawnFog =
+    (rainbowDay || eclipse != null || forced(spec.waterspout, false)) && spec.fog === undefined
+      ? null
+      : pickFog(seed, biome, climate, basin.name, seasonMonth({ date, latitudeDeg }), timeOfDay, weather, windSpeed, spec.fog)
+  // Sea smoke rises off open water; a frozen sea has none to give it.
+  const fog = seaIce != null && spec.fog === undefined && drawnFog?.kind === 'sea-smoke' ? null : drawnFog
   const drawnSpout = waterspoutFor(
     {
       biome: biome.name,
@@ -1984,7 +1994,7 @@ function buildParams(
       headingDeg,
       // By day, where no aurora changes the lens.
       halfFovDeg: horizontalHalfFovDeg(lensFor(aurora != null), aspect),
-      fog: false
+      fog: fog != null
     },
     Random.derive(seed, 'waterspout'),
     spec.waterspout
@@ -1997,12 +2007,6 @@ function buildParams(
     weather.formations = ['cumulus-congestus', ...weather.formations.filter(g => CLOUD_GENERA[g].etage !== 'low')]
   }
   weather.arrangement = pickArrangement(seed, weather, climate === 'tropical', windSpeed, windHeadingDeg, spec.cloudArrangement)
-  const drawnFog =
-    (rainbowDay || eclipse != null) && spec.fog === undefined
-      ? null
-      : pickFog(seed, biome, climate, basin.name, seasonMonth({ date, latitudeDeg }), timeOfDay, weather, windSpeed, spec.fog)
-  // Sea smoke rises off open water; a frozen sea has none to give it.
-  const fog = seaIce != null && spec.fog === undefined && drawnFog?.kind === 'sea-smoke' ? null : drawnFog
   if (fog != null) {
     // Fog comes with light airs: the sea calms under it.
     if (spec.wind == null) windSpeed = Math.min(windSpeed, fog.kind === 'sea-smoke' ? 3 : 6)
