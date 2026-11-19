@@ -301,7 +301,7 @@ only; `bareOn` is phase 4.
 
 **Before code:** reference photos (cistus scrub above a Mediterranean cove, gorse on a Cornish
 cliff top, wattle on a NSW headland); open ARCHITECTURE.md "Draw order in `buildParams`" and
-"Biome, climate or place", `arch/PROPS.md`, LESSONS.md (plants).
+"Biome, climate or place", `arch/PROPS.md`, lessons/PROPS.md.
 
 **Done when:** a western-Med May cove shows pink and white cistus; a Cornish May cliff top yellow
 gorse; a September NSW headland yellow wattle; far maquis a faint tint; other months and places
@@ -734,7 +734,7 @@ swell; the weed table over every place × month, the 41°N and 40°N limits.
   the plan): Florida turf has rings all year, most in summer (UF/IFAS LH046), so Apr–Oct, ×0.5
   otherwise. Tropical, arid and polar none (no source).
 - **The plan's colour drew a bright-green thread**, not a dark ring (round 1: 0.79 of the
-  luminance, bands 0.3–0.45 m); round 2 at 0.7 and 0.4–0.6 m reads as a darker band (LESSONS.md).
+  luminance, bands 0.3–0.45 m); round 2 at 0.7 and 0.4–0.6 m reads as a darker band (lessons/LIGHT.md).
 - `props.fairyRings`: true forces at full strength, false is the switch. `diff.mjs --ref HEAD
   --off '{"props":{"fairyRings":false}}' --off-here`: identical on all 4 views of
   `scenes/fairyRings.json`.

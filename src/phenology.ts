@@ -107,7 +107,7 @@ export interface BloomRow {
    * (`scales: 'crowns'`) or the cards in flower on each (`'leaves'`); `on`
    * thins a flowering crown's leaves (flamboyant flowers nearly bare);
    * `leaves` overrides the row's card share. A place row reads local
-   * calendar months (as turtle nesting; LESSONS.md "Seasons"). */
+   * calendar months (as turtle nesting; knowledge/lessons/PROPS.md "Seasons and plants"). */
   today: (day: PhenologyDay) => { strength: number; on?: number; leaves?: number }
   scales: 'crowns' | 'leaves'
   /** Share of the kind's crowns in flower, and of a flowering crown's leaf

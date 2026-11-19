@@ -50,7 +50,7 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   gets a ⚠. See "Blank frames" below.
 - A shader compile failure prints `[browser error] THREE.WebGLProgram: Shader Error` +
   `ERROR: 0:LINE: …` and the numbered source; read them, don't grep them away. Reserved words:
-  LESSONS.md "Shaders".
+  ../lessons/SHADERS.md.
 
 ### Blank frames (2026-11-15)
 
@@ -353,7 +353,7 @@ node scripts/params.mjs --rendered 2016-06-21 --each 'p => src.shelfCloud.lipEle
 
 A CPU prediction against the render's edge is the parity check for a sky shader with a TS mirror
 (within a few px). Probe above, on and below a feature: a brightness that matches one neighbour can
-still read wrong against the other (LESSONS.md).
+still read wrong against the other (../lessons/SKY.md).
 
 ## `scripts/rows.mjs`: rows of a photo
 

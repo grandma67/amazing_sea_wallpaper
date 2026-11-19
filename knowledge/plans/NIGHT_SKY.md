@@ -86,7 +86,7 @@ the map's 6.5–11.5 stars are glow at 0.35°/texel.
   1–3). Bortle ≥ 4: a warm dome low over the land, low clouds lit orange from below.
 - Applies to the main sky and **the env cube** (the sea reflects the Milky Way and airglow; they
   are smooth, so the small cube is fine, unlike stars). This breaks the "patch the main sky
-  only" rule in LESSONS.md on purpose: say so there.
+  only" rule in lessons/SKY.md on purpose: say so there.
 - Spec fields: `milkyWay: false`, `airglow: false`, `zodiacalLight: true|false`. Diff on clear
   **and** cloudy skies (clear days skip the clouds pass).
 
@@ -200,7 +200,7 @@ Colours on the mirror (RGB normalised to the brightest channel, before the sky):
 (0.69, 1, 0.2), 10° above it (1, 0.2, 0.1); example 5 body (0.74, 1, 0.22), red (1, 0.14–0.28)
 from 10° above the arc to 60°; example 4's weaker arc reads yellow-green (1, 0.93) at its peak
 (the red glow and farther arcs' tops behind it), green below, red above. Storm colours 0.93: what
-bit and why in LESSONS.md "Sky". The sea mirrors the arcs through the env cube;
+bit and why in lessons/SKY.md. The sea mirrors the arcs through the env cube;
 the blur on a "glassy" sea is the sea's own (Jupiter's reflection blurs the same).
 
 Left (from the 2026-11-04 handoff, `handoff.md`, now merged here):

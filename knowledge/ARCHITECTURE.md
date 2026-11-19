@@ -14,7 +14,7 @@ How each area works (read the one you touch):
 | [arch/PROPS.md](arch/PROPS.md) | plants, mangroves, islands, lighthouse, debris, shore life, wildlife, pinnipeds, storms and animals, ships and their lights |
 
 What appears where and how often: [COASTS.md](COASTS.md), [CLOUDS.md](CLOUDS.md),
-[ANIMALS.md](ANIMALS.md). Pitfalls: [LESSONS.md](LESSONS.md). Bugs and gaps:
+[ANIMALS.md](ANIMALS.md). Pitfalls: [LESSONS.md](LESSONS.md) (index of `lessons/`). Bugs and gaps:
 [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Tools: [TOOLS.md](TOOLS.md),
 [SCENE_SPECS.md](SCENE_SPECS.md). Sources: [REFERENCES.md](REFERENCES.md). Versions:
 [changelog.md](../changelog.md).
@@ -157,7 +157,7 @@ Playwright (headless snapshots), Vitest.
 ### Biome, climate or place: what keys each table
 
 The biome is a look preset shared by places that differ (`mediterranean` is also Florida, Taiwan
-and Natal; `volcanic` is Hawaii and Kamchatka). Key a table by what it follows (LESSONS.md "Coast
+and Natal; `volcanic` is Hawaii and Kamchatka). Key a table by what it follows (lessons/COAST.md "Coast
 and terrain"): **rock** → biome; **weather** (plants, clouds, fog, haze, wrack, animals) → the
 day's `place.climate`; **one place's difference** → a place field (`places.ts`). Before a phase
 that touches one of these, read this list; when adding a biome-keyed table, add it here. Find
@@ -231,7 +231,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   (planar reflection).
 - **Render targets and their ranges** (0.204). A `HalfFloatType` texel holds ≤ 65 504; past it
   Apple GPUs saturate the write and SwiftShader (CI) writes ∞, which filtering turns into NaN
-  (LESSONS.md "Shaders"). Before writing a large value (metres, an unexposed bright source, a
+  (lessons/SHADERS.md). Before writing a large value (metres, an unexposed bright source, a
   night-scaled lamp) into one of these, check its type and clamp; `nanTrace` counts texels at
   the ceiling (`sat`) on the Mac, where an overflow is otherwise invisible:
 

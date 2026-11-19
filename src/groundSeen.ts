@@ -7,7 +7,7 @@ import { terrainHeight } from './terrain'
 
 // What ground the camera sees (no render): for "will a ground feature be in
 // view at all?" before building one. Fairy rings, mushrooms, fireflies and the
-// bloom each asked it with a one-off script (knowledge/LESSONS.md
+// bloom each asked it with a one-off script (knowledge/lessons/PROPS.md
 // "Placement"): the cameras face the sea, and the turf near them is mostly
 // behind. In params.mjs expressions: `src.groundSeen.groundSeen(p.ctx)`
 // (with --rendered).

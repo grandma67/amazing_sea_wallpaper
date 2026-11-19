@@ -5,8 +5,8 @@ Docs in `knowledge/` (read what the task needs):
   page/CI. How each area works: `arch/SKY.md`, `arch/OCEAN.md`, `arch/COAST.md` (coordinates and
   heights, beaches, tides, reefs, stones), `arch/PROPS.md`.
 - `KNOWN_ISSUES.md`: open bugs and gaps by area; fix plans with steps: `tasks.md` (repo root).
-- `LESSONS.md`: pitfalls by topic. `LEAKS.md`: in-place day changes, freeing GPU resources,
-  `npm run check:restart`.
+- `lessons/`: pitfalls by topic (index: `LESSONS.md`; `lessons/PROCESS.md` on every task).
+  `LEAKS.md`: in-place day changes, freeing GPU resources, `npm run check:restart`.
 - `TOOLS.md`: which tool answers what, tests, conventions, dev server, gotchas; `tools/PARAMS.md`
   (params, profile, test helpers), `tools/RENDER.md` (snapshot, diff, bench, mesh, contact sheet),
   `tools/DEBUG.md` (`params.debug` switches and views).
@@ -44,8 +44,9 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 
 ## 1. Before code
 - Read the relevant `arch/` doc (for a new decision in `params.ts`, ARCHITECTURE.md "Draw order in
-  `buildParams`" first), LESSONS.md (relevant sections) and the closest module: `props/rocks.ts` /
-  `props/debris.ts` (instanced), `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
+  `buildParams`" first), `lessons/PROCESS.md` plus the `lessons/` file for the area (index:
+  LESSONS.md), and the closest module: `props/rocks.ts` / `props/debris.ts` (instanced),
+  `props/vegetation.ts` (plants), `scene.ts` (lighting, post).
 - Define "done": which views (shoreline, along-beach, framed, overlook, open sea) on which coasts
   (beach; rock-shore: platform, boulder, cliff top; tidal-flat, salt-marsh beach), what distance, how
   often, and whether it must read at wallpaper size or may be realistic and subtle. Ask if it's
@@ -220,6 +221,6 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
   changed values; `--changed 'p => p.place.id'` where; `--fields` narrows the comparison, not just
   the print) for the changelog row.
 - Update docs: changelog.md, ARCHITECTURE.md and the `arch/` doc (how it works), KNOWN_ISSUES.md,
-  LESSONS.md, REFERENCES.md, the topic doc (ANIMALS, CLOUDS, COASTS), SCENE_SPECS.md (new fields),
-  the plan's status, and TODO.md if used.
+  the `lessons/` file for the area, REFERENCES.md, the topic doc (ANIMALS, CLOUDS, COASTS),
+  SCENE_SPECS.md (new fields), the plan's status, and TODO.md if used.
 - Never commit TODO.md. One commit per feature, with a descriptive message.

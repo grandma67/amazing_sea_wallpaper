@@ -234,7 +234,7 @@ node scripts/params.mjs --scene '{"coast":"tidal-flat"}' --stats 'p => src.terra
 `p.plants` lists every plant `createVegetation` placed today (`vegetation.ts` `plantInstances`):
 `kind`, `x y z`, `u` (m inland of s = 0), `top` (drawn height), `shrub` (a bush's species),
 `salt` (`saltOn`'s cap), `distance`, `inFrame` (its middle). Identity comes from the code's own
-positions: **never re-derive a position hash from an instance matrix** (float32; LESSONS.md
+positions: **never re-derive a position hash from an instance matrix** (float32; ../lessons/PROPS.md
 "Seasons and plants"). `p.withProps(patch, f)` runs `f` with spec props merged into today's
 overrides, for an on/off pair on the same day. Building plants costs ~0.3 s a day: `--every K`
 keeps every K-th date (uniform, before generation), so a share over three years takes a minute.

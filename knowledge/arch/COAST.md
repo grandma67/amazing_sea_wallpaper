@@ -1,7 +1,7 @@
 # Coast: terrain, beaches, tides, reefs
 
 How the land and the shore work. What appears where and how often: [COASTS.md](../COASTS.md);
-research numbers: REGIONS.md §2–3. Pitfalls: LESSONS.md "Coast and terrain".
+research numbers: REGIONS.md §2–3. Pitfalls: [lessons/COAST.md](../lessons/COAST.md).
 
 ## Coordinates and heights (read before changing terrain, tides or the shore)
 

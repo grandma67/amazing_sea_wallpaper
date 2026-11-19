@@ -180,7 +180,7 @@ months, with moon illumination < 30% and no storm; it shows on ~15% of eligible 
 
 - Spec: `offshoreWind`, `snow`, `bioluminescence`, `seaBreeze`.
 - Specs, tests, renders and docs as in the other phases (CLOUDS.md for sea breeze,
-  LESSONS.md, changelog with the days that change).
+  lessons/, changelog with the days that change).
 
 ### 14. Animals (later)
 

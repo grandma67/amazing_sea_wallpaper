@@ -1,8 +1,7 @@
 # Ocean and surf
 
 How the water works. Heights and shore coordinates: [COAST.md](COAST.md) "Coordinates and
-heights". Ships, wakes and ship lights: [PROPS.md](PROPS.md). Pitfalls: LESSONS.md "Sea and
-surf".
+heights". Ships, wakes and ship lights: [PROPS.md](PROPS.md). Pitfalls: [lessons/OCEAN.md](../lessons/OCEAN.md).
 
 - `spectrum.ts` (on `spectrumWorker.ts`): JONSWAP + swell on 3 cascades with `fft.ts`.
   `ocean.ts`: whitecaps, glitter, refracted surf in sets, shallows, caustics, foam, rain rings;
@@ -43,7 +42,7 @@ surf".
   (`windWaveOnset`, Kahma & Donelan 1988's onset u* ≈ 2–5 cm/s; 0.131), and so does the
   0.0006 capillary floor (`windWaves`): JONSWAP's short waves don't shrink with the wind, so a
   0.5 m/s sea still spread reflections ±3–4°. Same switch. A flat variance term was tried first: a uniform grey sheet
-  and a hazy glitter near the camera (LESSONS.md). Off: `passes.shortWaves`. 0% render time.
+  and a hazy glitter near the camera (../lessons/OCEAN.md). Off: `passes.shortWaves`. 0% render time.
 - **Rip water:** `ripWater(sa)` (COAST.md "Bars, rips, cusps") makes the water over a channel
   rougher (+GGX variance) with half the breaking foam.
 - **Reefs:** `reefCover` gives the seabed `coralAlbedo` under water; white water over the crest;

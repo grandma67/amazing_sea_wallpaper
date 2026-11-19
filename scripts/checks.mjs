@@ -38,7 +38,7 @@ export function brokenFrame(params, luma = null) {
 /** Warnings for one render, from its params (with debug.props) and its GL
  * messages (`watchPage(…).gl()` in lib.mjs). */
 export function snapshotWarnings(params, props = [], gl = []) {
-  const warnings = gl.map(m => `GL: ${m} (knowledge/LESSONS.md "Page")`)
+  const warnings = gl.map(m => `GL: ${m} (knowledge/lessons/SCRIPTS.md "Page")`)
   const [x, y, z] = params.sunDirection
   const elevation = Math.asin(Math.max(-1, Math.min(1, y))) / DEG
   const azimuth = Math.atan2(x, -z) / DEG

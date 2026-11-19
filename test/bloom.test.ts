@@ -76,7 +76,7 @@ describe('the blossom table', () => {
     expect(bloomOf(day('2025-09-15', 'new-zealand-north'), 'gorse')?.strength).toBe(1)
     expect(bloomOf(day('2025-04-15', 'new-zealand-north'), 'gorse')?.strength).toBe(0.1)
     // Each check names only the rows it's about, so a new row elsewhere in
-    // the table doesn't break it (LESSONS.md "Randomness, params and tests").
+    // the table doesn't break it (knowledge/lessons/SCRIPTS.md "Randomness, params and tests").
     expect(only(day('2025-06-01', 'western-med'), BUSH_ROWS)).toEqual(['rock-rose'])
     expect(only(day('2025-09-01', 'western-med'), BUSH_ROWS)).toEqual([])
     expect(only(day('2025-09-01', 'east-australia'), BUSH_ROWS)).toEqual(['wattle'])

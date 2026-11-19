@@ -1,7 +1,7 @@
 # Clouds
 
 Which clouds the wallpaper draws, on which coasts and in which weather. How the code works:
-[arch/SKY.md](arch/SKY.md); pitfalls: LESSONS.md (takram, storms); sources: REFERENCES.md.
+[arch/SKY.md](arch/SKY.md); pitfalls: [lessons/SKY.md](lessons/SKY.md) (takram, storms); sources: REFERENCES.md.
 
 ## How a sky is chosen
 

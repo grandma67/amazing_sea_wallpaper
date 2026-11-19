@@ -33,7 +33,7 @@ const BLOCK = 1
 /** The meshes sink fully into the ground over the last 20% of the radius. */
 const FADE = 0.8
 /** A plain vertex-coloured mesh lights brighter than the terrain shader
- * (LESSONS.md, sand overlays). */
+ * (knowledge/lessons/LIGHT.md, sand overlays). */
 const TINT = 0.8
 
 /** How far (m) stones of this size keep a mesh: while ≥ MESH_PIXELS wide,

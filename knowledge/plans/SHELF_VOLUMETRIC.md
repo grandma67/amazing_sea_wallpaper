@@ -78,7 +78,7 @@ citing Goff 1976, *Mon. Wea. Rev.* 104, 1429–1440.
   (3.5–8 km). Within ±45° of its direction, rain shafts move back to at least the lip + a lead of
   1.5–5 km (an estimate around the one measured case, 8 km), and bolts to at least the lip +
   500 m. Bolts come from the storm's line just behind the gust front, and a whole lead pushed
-  the nearest bolt past 9 km on 43% of shelf days, where LESSONS says they wash out. The
+  the nearest bolt past 9 km on 43% of shelf days, where lessons/SKY.md says they wash out. The
   shelf's chance (40% of storms) is drawn before any of this, so it doesn't change.
 - **Off switch while building:** `params.debug.passes.shelfVolume: false` draws the 0.172 mesh
   instead (add it to the `passes` row in tools/DEBUG.md while it exists). Phase 6 deletes the mesh;
@@ -286,7 +286,7 @@ The steps as planned:
 - Add `scenes/shelf.json`: the five days and the front-lit spec, for later checks.
 - Docs: changelog row (days changed: `params.mjs --ref HEAD`), ARCHITECTURE (draw order line 9;
   replace both shelf known issues), arch/SKY.md (how the patch works, the free channel `a`),
-  CLOUDS.md (shelf: volumetric), LESSONS.md (a cloud shape is a weather patch, not a mesh;
+  CLOUDS.md (shelf: volumetric), lessons/SKY.md (a cloud shape is a weather patch, not a mesh;
   measured gate numbers), TOOLS/DEBUG if a probe was added.
 - `npm test`, `npx tsc --noEmit`, a final `bench.mjs --ref HEAD`.
 - **Done when:** the mesh is gone, the tests pass, and `diff.mjs` with `shelfCloud: false` shows

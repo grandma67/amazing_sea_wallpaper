@@ -54,7 +54,7 @@ export function shelfCloudFor(
 export const SHELF_LEAD_M = [1500, 5000] as const
 /** Bolts come from the storm's line just behind the gust front: at least
  * this far behind the lip (m), not a whole lead (bolts past ~9 km wash out
- * in haze, LESSONS). */
+ * in haze, knowledge/lessons/SKY.md). */
 export const SHELF_BOLT_BEHIND_M = 500
 /** The sector round the shelf's direction whose rain must lie behind it (deg). */
 export const SHELF_SECTOR_DEG = 45

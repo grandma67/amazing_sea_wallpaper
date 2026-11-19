@@ -1,7 +1,7 @@
 # Sky, clouds, light
 
 How the sky code works. What is drawn where and how often: [CLOUDS.md](../CLOUDS.md). Pitfalls:
-LESSONS.md "Light and exposure", "takram sky, clouds, post", "Storms and sky objects".
+[lessons/LIGHT.md](../lessons/LIGHT.md) "Light and exposure", [lessons/SKY.md](../lessons/SKY.md).
 
 - **The real sun** (`celestial.ts`, PLAN_BIOMES 12): `solarDeclinationDeg(date)`, `sunLimits(lat,
   date)` (noon 90° − |φ − δ|, midnight |φ + δ| − 90°) and `sunAzimuthDeg` (compass bearing for an

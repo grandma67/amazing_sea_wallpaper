@@ -109,7 +109,7 @@ Keeping it fast:
   shared `allParams()`. Check with `npx vitest run --sequence.shuffle.files`.
 
 Speed work on `src/`: hash its output before and after (every prop mesh, the framing, terrain heights against
-`HEAD` in a worktree), then `bench.mjs --ref HEAD` for pixels; then inject bugs into the new code (LESSONS.md
+`HEAD` in a worktree), then `bench.mjs --ref HEAD` for pixels; then inject bugs into the new code (lessons/SCRIPTS.md
 "A speed change is proved by fingerprints").
 
 Coverage: `npm i --no-save @vitest/coverage-v8@5` (then `git checkout package-lock.json`), and `npx vitest run --exclude
@@ -142,7 +142,7 @@ each source file as fully covered, so leave it out.
 
 ## Real colours from photos and scans (`asset.mjs`)
 
-- **Brightness:** a photo's is the camera's (LESSONS.md "Colours from photos"). Take hue from
+- **Brightness:** a photo's is the camera's (lessons/LIGHT.md "Colours from photos"). Take hue from
   photos; brightness from a calibrated scan (Poly Haven, ambientCG), or `--anchor` a known material
   **next to the target, in the same light**. Petals with no anchor:
   the brightest unclipped cluster ×0.8 (`--petal`), ±30%.
