@@ -67,6 +67,9 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
     A ground feature (turf, rings, flowers): `src.groundSeen.groundSeen(p.ctx)` (how much of each
     ground is seen, by band). Mushrooms, glow-worms and the lomas range each lost a round to "in
     frame but hidden";
+  - wet surfaces (damp sand, swash, seepage, wet rock, pools): `snapshot.mjs --where … --sample 8
+    --water` on and off (`debug.water.share` per kind). Ebb and flow's band was ≤ 0.2% of real
+    frames, found only after the look renders;
   - light and colour: a faint light's magnitude at its distance (`fireflyMagnitude`), a tint's
     luminance ratio (~0.7 reads darker; channel ratios alone don't), a far colour against the
     ground's own (an average of several often matches it).

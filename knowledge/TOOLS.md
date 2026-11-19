@@ -42,6 +42,8 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | How the frame hazes objects (T, haze colour, which weighting) before matching it | `haze.mjs --scene --points` | [tools/RENDER.md](tools/RENDER.md) |
 | Did a feature show up on real days (not specs) | `diff.mjs --where --sample --off` | [tools/RENDER.md](tools/RENDER.md) |
 | Where the shore's water films are (pools, runnels, swash, damp sand) and how near the camera | `params.mjs` `p.pools` (no render: nearest pool, m and image point) → `snapshot.mjs --water` (the render's count) → `terrainView: 'water'` (see) | [tools/DEBUG.md](tools/DEBUG.md) |
+| How much of real frames a wet-surface change touches (damp sand, swash, seepage, wet rock), before judging it by eye | `snapshot.mjs --where … --sample 8 --water` with the feature on and off (`--off` patch): `debug.water.share` per kind | [tools/RENDER.md](tools/RENDER.md) |
+| A day's tide over time (when high water was, rising or falling, how fast) | `params.mjs` `src.tides.tideCurve(p.coast.tide, p.place.id, hours)`; `p.coast.tide.flow` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Does the CPU terrain (camera height, props, `p.view`, `p.pools`) match the drawn terrain | `parity.mjs` (after any height or film term edit) | [tools/RENDER.md](tools/RENDER.md) |
 | A terrain shader term's value (h, shore coords, masks, rock profile) at a pixel or world point | `params.debug.terrainProbe` (not a temporary shader edit) | [tools/DEBUG.md](tools/DEBUG.md) |
 | Bands or grain along a line of pixels, and from what | `params.debug.probeLine` (render) vs `params.mjs --line` (CPU mirrors) | [tools/DEBUG.md](tools/DEBUG.md), [tools/PARAMS.md](tools/PARAMS.md) |
@@ -220,6 +222,13 @@ minutes (dep optimisation).
   `node_modules/.vite` (a worktree symlinking `node_modules`): stop 5174,
   `rm -rf node_modules/.vite`, start again. `refServer.mjs` gives its worktree its own `cacheDir`.
 - macOS has no `timeout`; don't wrap commands in one (snapshot has `--budget`).
+- **A background render's output goes to its file raw:** `run_in_background` with `… 2>&1 | grep
+  … | tail` writes nothing until the run ends (`tail` holds it all), so a monitor watching the file
+  sees an empty file and a dead-looking run (0.206 lost a monitor and a wake-up). Run the command
+  bare, then `grep` the finished output file.
+- **WebFetch 403s:** core.ac.uk (`/works/…`) and the unibo journal index (`acnpsearch…unibo.it`)
+  refuse it. Take the abstract from the search result, or look for the paper on the publisher's,
+  ResearchGate's or a university repository's page; say "abstract only" where you cite it.
 - **`snapshot.mjs` takes dates or `--scene`/`--where`, not both**: dates beside `--scene` fail
   ("dates are ignored"). Put real dates in the spec file (`{"name":"d","date":"…"}`).
 - **The probe's raw value is clamped:** the grade clamps exposed values at 40, so `raw` tops out

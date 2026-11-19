@@ -38,6 +38,11 @@ export interface Tide {
   high: number
   /** The M2 term's phase (rad): 0 at its high water, π at its low. */
   phase: number
+  /** The scene's tide clock (date, local solar hours) and the gauge curve's
+   * scale to the beach's range: with the place's `harmonicsFor`, the whole
+   * curve (`tideCurve`). */
+  clock: TideClock
+  scale: number
   /** Ebb and flow (REGIONS.md §3.4, `tideFlowFor`, `drainBeach`): the
    * water's history over the last tide; null with the spec's `tideFlow: null`
    * (the look before 0.206). */
@@ -231,8 +236,18 @@ export function tideFor(
     high: scale * hi,
     surge: 0,
     phase,
+    clock: { date: clock.date, localHours: clock.localHours },
+    scale,
     flow: force.tideFlow === null ? null : tideFlowFor(harmonics, clock, scale, flowMoment(harmonics, clock, force))
   }
+}
+
+/** The day's tide `hours` from the scene's moment (a forced stage's moment
+ * when the flow is on), m above mean sea, scaled to the beach's range, with
+ * today's surge: `level` at 0. For probes (`params.mjs --stats 'p =>
+ * src.tides.tideCurve(p.coast.tide, p.place.id, -3)'`), not drawing. */
+export function tideCurve(tide: Pick<Tide, 'clock' | 'scale' | 'surge' | 'flow'>, placeId: string, hours: number): number {
+  return tide.scale * tideHeight(harmonicsFor(placeId), tide.clock, (tide.flow?.moment ?? 0) + hours) + tide.surge
 }
 
 /** Where on the curve (hours from the clock) the scene stands: now, or for

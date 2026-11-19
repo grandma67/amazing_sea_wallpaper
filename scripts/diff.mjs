@@ -37,6 +37,8 @@
 // NAME.diff.jpg's top panels are cropped to the changed box, not the whole frame: never
 // read pixel positions from it. NAME.crop.jpg (the box at full size) is saved with every
 // diff, and the printed box is its full-frame rectangle; --zoom-at X,Y takes frame pixels.
+// A box more than 4 × as wide as high (a band along the shore) is cut into tiles ~4 × as
+// wide as high, stacked top to bottom and enlarged to ~160 px a row (the line says so).
 
 import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
@@ -173,6 +175,30 @@ for (const file of names) {
         ctx.drawImage(ib, x, y, w, h, w * zoom + gap, 0, w * zoom, h * zoom)
         return encode(sheet)
       }
+      // A thin changed box (a band along the shore, 1800 × 80 px) read at
+      // full size is a sliver: cut it into tiles about 4 × as wide as high,
+      // stack them top to bottom (left to right in the frame), and enlarge
+      // so each row is ≥ ~160 px high (×4 at most).
+      const stripped = async (x, y, w, h) => {
+        if (w <= 4 * h) return { jpeg: await fullSize(x, y, w, h), tiles: 1, zoom }
+        const tw = Math.max(Math.ceil(w / 6), Math.min(w, Math.max(4 * h, 240)))
+        const n = Math.ceil(w / tw)
+        const z = Math.max(zoom, Math.min(4, Math.floor(160 / h)))
+        const gap = 4
+        const sheet = new OffscreenCanvas(tw * z * 2 + gap, n * (h * z + gap) - gap)
+        const ctx = sheet.getContext('2d')
+        ctx.imageSmoothingEnabled = false
+        ctx.fillStyle = '#fff'
+        ctx.fillRect(0, 0, sheet.width, sheet.height)
+        for (let i = 0; i < n; i++) {
+          const sx = x + i * tw
+          const sw = Math.min(tw, x + w - sx)
+          const dy = i * (h * z + gap)
+          ctx.drawImage(ia, sx, y, sw, h, 0, dy, sw * z, h * z)
+          ctx.drawImage(ib, sx, y, sw, h, tw * z + gap, dy, sw * z, h * z)
+        }
+        return { jpeg: await encode(sheet), tiles: n, zoom: z }
+      }
       const load = async data => createImageBitmap(await (await fetch(`data:image/jpeg;base64,${data}`)).blob())
       const [ia, ib] = await Promise.all([load(a), load(b)])
       const W = ia.width
@@ -247,8 +273,9 @@ for (const file of names) {
       dc.getContext('2d').putImageData(diff, 0, 0)
       ctx.drawImage(dc, 0, 0, cw, ch, w / 2, h, w, h)
       const jpeg = await encode(sheet)
-      const boxed = crop === 'box' ? await fullSize(x0, y0, x1 - x0 + 1, y1 - y0 + 1) : asked
-      return { W, H, changed, share: changed / (W * H), box: [x0, y0, x1, y1], mean: sum / changed, max, brighter: brighter / changed, jpeg, crop: boxed }
+      const strip = crop === 'box' ? await stripped(x0, y0, x1 - x0 + 1, y1 - y0 + 1) : null
+      const boxed = strip?.jpeg ?? asked
+      return { W, H, changed, share: changed / (W * H), box: [x0, y0, x1, y1], mean: sum / changed, max, brighter: brighter / changed, jpeg, crop: boxed, tiles: strip?.tiles ?? 1, tileZoom: strip?.zoom ?? zoom }
     },
     { a, b, threshold, crop, zoom }
   )
@@ -260,7 +287,7 @@ for (const file of names) {
   if (result.crop != null) {
     const cropFile = join(outDir, `${name}.crop.jpg`)
     await writeFile(cropFile, Buffer.from(result.crop, 'latin1'))
-    console.log(`  ${cropFile}`)
+    console.log(`  ${cropFile}${result.tiles > 1 ? `  (thin box: ${result.tiles} tiles, left to right = top to bottom, ×${result.tileZoom})` : ''}`)
   }
   if (result.changed === 0) {
     console.log(`${name}: identical (no pixel moved more than ${threshold}/255)`)

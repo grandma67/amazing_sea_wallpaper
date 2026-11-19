@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { Random } from '../src/random'
-import { capillaryFringe, drainRate, exitPoint, harmonicsFor, SINCE_CAP, surfaceMoisture, tideFor, tideFlowFor, type TideFlow } from '../src/tides'
+import { capillaryFringe, drainRate, exitPoint, harmonicsFor, SINCE_CAP, surfaceMoisture, tideCurve, tideFor, tideFlowFor, type TideFlow } from '../src/tides'
 import { allParams, expectShare, scene } from './days'
 
 // Ebb and flow (REGIONS.md §3.4): the last tide's history, the beach's
@@ -111,5 +111,24 @@ describe('on real days', () => {
     const p = beaches[0]
     expect(p.coast.tide.flow!.moment).toBe(0)
     expect(tideFlowFor(harmonicsFor(p.place.id), { date: p.date, localHours: 0 }, 1, 0)).toEqual(tideFlowFor(harmonicsFor(p.place.id), { date: p.date, localHours: 0 }, 1, 0))
+  })
+})
+
+describe('tideCurve (the probe helper)', () => {
+  it("gives today's level now on real days and forced stages, with the surge", () => {
+    for (const p of allParams().filter(q => q.coast.type === 'beach').slice(0, 40)) expect(tideCurve(p.coast.tide, p.place.id, 0)).toBeCloseTo(p.coast.tide.level, 6)
+    for (const tide of ['low', 'high'] as const) {
+      const p = scene({ coast: 'beach', place: 'brittany', tide, eclipse: null })
+      // The stage's level is sampled every 15 min, its moment every 5: ≤ 1 cm apart.
+      expect(Math.abs(tideCurve(p.coast.tide, p.place.id, 0) - p.coast.tide.level)).toBeLessThan(0.01)
+    }
+  })
+
+  it('runs the way the flow says', () => {
+    for (const tideFlow of ['ebb', 'flood'] as const) {
+      const p = scene({ coast: 'beach', place: 'brittany', tide: 'mid', tideFlow, eclipse: null })
+      const ahead = tideCurve(p.coast.tide, p.place.id, 1) - tideCurve(p.coast.tide, p.place.id, 0)
+      expect(Math.sign(ahead)).toBe(tideFlow === 'flood' ? 1 : -1)
+    }
   })
 })

@@ -186,7 +186,10 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
   off | on side by side at full size over the changed box (`--crop X,Y,W,H` for another
   rectangle; `--zoom N` enlarges with sharp pixels: tell a real edge from something in front of
   it). To look closer at a spot, `--zoom-at X,Y` (full-frame pixels; 320×120 around it, ×3); with
-  `--a/--b`, no new render.
+  `--a/--b`, no new render. A changed box more than 4 × as wide as high (a band along the shore:
+  1800 × 80 px) is cut into tiles ~4 × as wide as high, stacked top to bottom (left to right in the
+  frame) and enlarged to ~160 px a row; the crop line says `thin box: N tiles` (0.206: a full-size
+  sliver of the ebb's damp band couldn't be judged and cost a second zoom pass per view).
 - `--where EXPR [--sample N] [--spread EXPR]`: real days instead of `--scene` (as `snapshot.mjs`),
   with `--off` or `--ref`: the first render round's real days in one command.
 

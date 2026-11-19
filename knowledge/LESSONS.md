@@ -725,6 +725,15 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
 
 ## Coast and terrain
 
+- **Sweep a calibrated model's inputs before wiring it in (ebb and flow, 0.206):** a fixed fall
+  rate for the beach's exit point matched the one calibration point (fine sand) but gave medium
+  sand no seepage face at all, a cliff the research doesn't show; a draining model (rate × head)
+  grades smoothly. Print the model over the input's whole range (grain 0.15–1 mm, tide 1–8 m) in
+  one `params.mjs --stats` before the shader reads it.
+- **A forced stage must be a moment, not just a value (0.206):** `tide: 'high'` set the level and
+  left the clock, so anything reading the tide's history (ebb and flow) saw a different tide; now
+  `flowMoment` moves the clock to the stage. Forcing any time-varying field: force the time.
+
 - **A camera's shore position includes the wobble (surge, 0.200):** a beach camera placed at
   s = −distanceToWater from a bare-profile waterline stood in the water on 10 of 433 beach days; its
   real s is −distanceToWater − `wobbleAtCamera` (3–25 m). Check the drawn ground

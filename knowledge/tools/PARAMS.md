@@ -201,6 +201,19 @@ node scripts/params.mjs --rendered --where 'p => p.coast.rock?.kind === "platfor
 node scripts/params.mjs --rendered --where 'p => p.pools.m != null && p.pools.m < 12' --each 'p => JSON.stringify(p.pools)'
 ```
 
+### The day's tide over time: `src.tides.tideCurve`
+
+`coast.tide` keeps its clock (`clock`: date, local solar hours) and the gauge curve's `scale`, so
+the whole tide curve of a day is one call: `tideCurve(p.coast.tide, p.place.id, hours)` (m above
+mean sea with today's surge; 0 is `level`, from a forced stage's moment when one is forced).
+`coast.tide.flow` has the rest of ebb and flow (rate m/h, last high, `since`, `seep`, `fringe`;
+REGIONS.md §3.4). Don't rebuild the clock from the sun: it took two probes in 0.206 (one NaN).
+
+```sh
+node scripts/params.mjs --where 'p => p.coast.type === "beach"' --stats 'p => p.coast.tide.flow.rate > 0.05 ? "flood" : p.coast.tide.flow.rate < -0.05 ? "ebb" : "slack"'
+node scripts/params.mjs --scene '{"coast":"beach","place":"brittany","eclipse":null}' --each 'p => [-6, -3, 0, 3, 6].map(h => src.tides.tideCurve(p.coast.tide, p.place.id, h).toFixed(2)).join(" ")' 2025-07-10
+```
+
 ### Props and helpers on real days: `p.ctx`, `src.X`, `props.X`
 
 `p.ctx` is the props' `PropContext` at 1080p (render camera and frustum, `ground`, `visible`,
