@@ -526,6 +526,9 @@ function checkDebug(value: unknown, path: string): void {
     terrainView: oneOf(...TERRAIN_VIEWS),
     water: boolean,
     nanTrace: boolean,
+    shadowDump: (v, p) => {
+      if (typeof v !== 'string' || !/^vec4\(.*\)$/s.test(v.trim()) || /[;{}`]/.test(v)) fail(p, 'must be one GLSL vec4(…) expression (no ; { } or backticks), e.g. "vec4(rayNear, rayFar, point.w, 0.0)"')
+    },
     terrainProbe: (v, p) => {
       const o = v as Record<string, unknown>
       if (o === null || typeof o !== 'object' || Array.isArray(o)) fail(p, 'must be {terms, at?, every?}')

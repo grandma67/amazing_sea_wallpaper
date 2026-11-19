@@ -18,6 +18,9 @@ say how the cause was found.
   SwiftShader. Harmless today because we run its resolve with `temporalAlpha = 1` and no temporal
   upscale, and every SwiftShader frame checked after 0.204 has a clean clouds stage; if either
   setting changes, clamp it as `cloudShadowPatch.ts` does the shadow map.
+- **Fixed (0.205): the moon's disc overflowed the half-float frame at night** (measured with
+  `nanTrace` `sat` on the Mac, 6 NaN pixels on SwiftShader): clamped in `moon.ts`. New bright
+  sources: run `nanTrace` on the Mac and read `sat` (tools/DEBUG.md).
 - **Residual NaN in the far shadow cascade on SwiftShader** (measured: 2 270 texels on
   2024-02-19 after 0.204): made after the shader's own output, read as "no shadow" by the guarded
   read. Harmless; source not pinned.

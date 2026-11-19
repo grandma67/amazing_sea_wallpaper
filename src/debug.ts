@@ -70,6 +70,12 @@ export interface DebugParams {
    * drawn object alone over the scene pass's bad pixels. In `debug.nanTrace`.
    * Changes nothing in the picture. */
   nanTrace?: boolean
+  /** Write this GLSL vec4 into the main clouds' shadow map in place of takram's output
+   * (shadow.frag `cascade()`: `color`, `rayNear`, `rayFar`, `point`, `sunPosition`,
+   * `rayDirection` are in scope), unclamped, with the shadow's temporal resolve off so it
+   * is read raw: `nanTrace`'s cloud shadow lines give each channel's NaN, saturated count
+   * and largest value. Changes the clouds' shadows (a debug view, not a picture). */
+  shadowDump?: string
   /** Read the terrain shader's own terms (terrainTerms.ts TERRAIN_TERMS: h,
    * s, a, x, z, pools, wet, snow, rockBare…) at image or world points and/or
    * on a grid every N px, in `debug.terrainProbe`. Changes nothing in the

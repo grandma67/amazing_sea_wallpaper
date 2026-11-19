@@ -128,6 +128,11 @@ unless said):
   the resolve keeps the current texel when its blend is not finite; clouds.frag's shadow read
   returns 0 for a non-finite optical depth. The Mac's renders are identical to before (8 days,
   `diff.mjs --ref HEAD`); on SwiftShader the broken days match the Mac.
+- **A sweep with `sat` on the Mac (0.205)** over bright sources (sun in frame, glint, lighthouse,
+  storm and moonlit nights, a full moon, totality): only the moon's disc passed the ceiling (5–6 px
+  at night units; on SwiftShader 6 NaN pixels in its centre after blending, clipped white by the
+  grade, but `min(NaN, 40)` is undefined). `moon.ts` clamps its output to 65 504: Mac identical,
+  SwiftShader clean. The far shadow cascade still saturates on storm days (guarded readers).
 - Ruled out on the way, each by a render: the shadow's temporal resolve alone, the march's colour
   output alone, the ray–sphere helpers (guarded), the camera (56 m up), JS-side uniforms (finite
   on both GPUs; printed from the page).
@@ -153,7 +158,9 @@ unless said):
    SwiftShader, 320×180, 24 frames, `nanTrace`) beside them. `--full` for 1920×1080, `--no-render`
    for the first two only. CI renders the pushed commit: check it before blaming a local change.
 2. Read `nanTrace` top-down: sky cube → cloud shadow map → passes → meshes. Every lit object NaN at
-   once means a shared input (cube, shadow map, light), not the objects.
+   once means a shared input (cube, shadow map, light), not the objects. On the Mac, `sat` > 0
+   (texels at the half-float ceiling) marks where SwiftShader holds ∞: the 2026-11-17 shadow map
+   read `r 465023 sat` on a 2.5 s Mac render. Dump an intermediate with `debug.shadowDump`.
 3. Bisect with `debug.passes` (`clouds`, `cloudShadowCast`, `aerial`, `cloudLight`, `cloudShade`)
    and forced fields (`sunElevationDeg`), one render each, then grep the named shader's divisors.
    A Mac render says nothing: Apple GPUs hide NaN (`min(NaN, x)` returns x).

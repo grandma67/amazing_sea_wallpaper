@@ -61,7 +61,10 @@ void main() {
     vec3 copper = vec3(1.0, 0.3, 0.1) * 0.0008 * (0.5 + 1.5 * smoothstep(umbraRadius - 1.2, umbraRadius, d));
     color = mix(color * (1.0 - 0.6 * penumbra), radiance * albedo * copper, inside);
   }
-  gl_FragColor = vec4(color * coverage, coverage);
+  // At night's render units the full disc passes the frame's half-float ceiling (65 504): the Mac
+  // saturates it, SwiftShader (CI) wrote ∞ and blending made 6 NaN pixels in its centre
+  // (nanTrace, 0.205). The grade clips it to white anyway, so the clamp changes no image.
+  gl_FragColor = vec4(min(color * coverage, vec3(65504.0)), coverage);
 }
 `
 

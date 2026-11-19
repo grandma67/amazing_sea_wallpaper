@@ -258,6 +258,10 @@ describe('parseSceneSpec', () => {
     expect(() => parseSceneSpec({ date: '2026-10-32' })).toThrow(/spec\.date must be a real YYYY-MM-DD day/)
     expect(() => parseSceneSpec({ date: '2024-13-14' })).toThrow(/spec\.date must be a real/)
     expect(parseSceneSpec({ date: '2028-02-29' })).toEqual({ date: '2028-02-29' })
+    // debug.shadowDump: one GLSL vec4 expression, nothing that could end the statement.
+    expect(() => parseSceneSpec({ params: { debug: { shadowDump: 'vec4(rayNear, rayFar, point.w, 0.0)' } } } as never)).not.toThrow()
+    for (const bad of ['rayNear', 'vec4(1.0); discard', 'vec4(1.0) } {', 42])
+      expect(() => parseSceneSpec({ params: { debug: { shadowDump: bad } } } as never)).toThrow(/vec4/)
     // The shelf cloud's detail switches (shelfCloud.ts SHELF_TERMS).
     expect(() => parseSceneSpec({ params: { debug: { shelf: { tiers: false, stria: false } } } } as never)).not.toThrow()
     expect(() => parseSceneSpec({ params: { debug: { shelf: { scud: false } } } } as never)).toThrow(/is not a shelf term/)

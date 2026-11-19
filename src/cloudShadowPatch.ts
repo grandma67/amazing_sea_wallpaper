@@ -19,19 +19,26 @@ export const SHADOW_FRONT ='float frontDepth = min(weightedDistanceSum / transmi
  * clouds' self-shadowing, the sky cube and every lit material went NaN: 2026-11-17 was
  * published white (tools/RENDER.md "Broken frames"). Clamping in the shader does what the
  * Mac did, so its image is unchanged. Throws if takram's shader changes.
+ *
+ * `dump` (debug.shadowDump): a GLSL vec4 written unclamped in place of the output, with the
+ * shadow's temporal resolve off so nanTrace reads it raw (through the resolve every dump read
+ * NaN: it reprojects by r and clips by the neighbours).
  */
-export function clampShadowToHalf(clouds: CloudsEffect): void {
+export function clampShadowToHalf(clouds: CloudsEffect, dump: string | null = null): void {
   const material = clouds.shadowPass.currentMaterial
   const source = material.fragmentShader
   if ([SHADOW_COLOR_OUT, SHADOW_DEPTH_OUT, SHADOW_FRONT].some(line => source.split(line).length !== 2))
     throw new Error('clampShadowToHalf: takram shadow.frag has changed; update the patch')
+  if (dump != null) clouds.shadowPass.temporalPass = false
   material.fragmentShader = source
     .replace(SHADOW_FRONT, 'float frontDepth = transmittanceSum > 0.0 ? min(weightedDistanceSum / transmittanceSum, maxRayDistance) : maxRayDistance;')
     // NaN/∞ by the bits (fast-math folds isnan away): no front depth reads as none in range
     // (HALF_MAX, what the Mac's saturating write gives), other channels 0; then clamp.
     .replace(
       SHADOW_COLOR_OUT,
-      `vec4 safe = color;
+      dump != null
+        ? `outputColor = ${dump};`
+        : `vec4 safe = color;
   if ((floatBitsToUint(safe.x) & 0x7f800000u) == 0x7f800000u) safe.x = ${HALF_MAX}.0;
   for (int k = 1; k < 4; ++k) if ((floatBitsToUint(safe[k]) & 0x7f800000u) == 0x7f800000u) safe[k] = 0.0;
   outputColor = min(safe, vec4(${HALF_MAX}.0));`

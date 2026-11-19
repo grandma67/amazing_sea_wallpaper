@@ -716,7 +716,7 @@ export async function renderScene(
       : null
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky, params.debug?.cloudFace === true, pass('cloudShadowCast'))
+      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky, params.debug?.cloudFace === true, pass('cloudShadowCast'), params.debug?.shadowDump ?? null)
       : null
   // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
   // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).

@@ -15,6 +15,8 @@ import {
   type WebGLRenderer
 } from 'three'
 
+import { HALF_MAX } from './cloudShadowPatch'
+
 // Where NaN and ±∞ pixels come from (params.debug.nanTrace). x86 SwiftShader
 // (the CI runner) drew a few on 2026-11-15 that the Mac never draws, and
 // bloom spread them over the frame as black (tools/RENDER.md "Blank frames").
@@ -32,6 +34,14 @@ import {
 const NON_FINITE_GLSL = /* glsl */ `
   bool isNaNBits(float x) { uint b = floatBitsToUint(x); return (b & 0x7f800000u) == 0x7f800000u && (b & 0x007fffffu) != 0u; }
   bool isInfBits(float x) { uint b = floatBitsToUint(x); return (b & 0x7fffffffu) == 0x7f800000u; }
+  // The largest finite |r, g or b| (0 if none): the Mac saturates a half-float overflow at
+  // 65 504 where SwiftShader writes ∞, so a texel there is an overflow on either GPU.
+  // Colour only: alpha is 1 in the frame and the cube, and would hide a dim frame's maximum.
+  float finiteMax(vec4 c) {
+    float m = 0.0;
+    for (int k = 0; k < 3; k++) if (!isNaNBits(c[k]) && !isInfBits(c[k])) m = max(m, abs(c[k]));
+    return m;
+  }
 `
 
 const vertexShader = /* glsl */ `
@@ -48,6 +58,10 @@ const MAX_AT = 24
 export interface NonFiniteReading {
   nan: number
   inf: number
+  /** Pixels with a channel at the half-float ceiling (≥ HALF_MAX): an overflow on the Mac. */
+  saturated: number
+  /** The largest finite magnitude of any channel. */
+  max: number
   /** [x0, y0, x1, y1] round them all, px from the top left. */
   box: [number, number, number, number] | null
   at: [number, number][]
@@ -60,15 +74,18 @@ function scan(renderer: WebGLRenderer, material: ShaderMaterial, quad: Scene, ca
   const before = renderer.getRenderTarget()
   renderer.setRenderTarget(scratch)
   renderer.render(quad, camera)
-  const px = new Uint8Array(w * h * 4)
+  const px = new Float32Array(w * h * 4)
   renderer.readRenderTargetPixels(scratch, 0, 0, w, h, px)
   renderer.setRenderTarget(before)
-  const reading: NonFiniteReading = { nan: 0, inf: 0, box: null, at: [] }
+  const reading: NonFiniteReading = { nan: 0, inf: 0, saturated: 0, max: 0, box: null, at: [] }
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = (y * w + x) * 4
-      if (px[i] === 0 && px[i + 1] === 0) continue
-      if (px[i] > 0) reading.nan++
+      const m = px[i + 3]
+      if (m >= HALF_MAX) reading.saturated++
+      if (m > reading.max) reading.max = m
+      if (px[i] < 0.5 && px[i + 1] < 0.5) continue
+      if (px[i] > 0.5) reading.nan++
       else reading.inf++
       const top = h - 1 - y
       const b = reading.box
@@ -89,7 +106,7 @@ function maskMaterial(): ShaderMaterial {
         vec4 c = texelFetch(map, ivec2(gl_FragCoord.xy), 0);
         bool nan = isNaNBits(c.r) || isNaNBits(c.g) || isNaNBits(c.b) || isNaNBits(c.a);
         bool inf = isInfBits(c.r) || isInfBits(c.g) || isInfBits(c.b) || isInfBits(c.a);
-        gl_FragColor = vec4(nan ? 1.0 : 0.0, inf ? 1.0 : 0.0, 0.0, 1.0);
+        gl_FragColor = vec4(nan ? 1.0 : 0.0, inf ? 1.0 : 0.0, 0.0, finiteMax(c));
       }
     `,
     uniforms: { map: new Uniform<Texture | null>(null) },
@@ -106,6 +123,9 @@ export interface CubeReading {
   up: number
   down: number
   texels: number
+  /** Texels at the half-float ceiling, and the largest finite magnitude (the sun disc's). */
+  saturated: number
+  max: number
 }
 
 /**
@@ -133,7 +153,7 @@ export function scanCube(renderer: WebGLRenderer, cube: Texture, size: number): 
         vec4 c = textureLod(map, d, 0.0);
         bool nan = isNaNBits(c.r) || isNaNBits(c.g) || isNaNBits(c.b) || isNaNBits(c.a);
         bool inf = isInfBits(c.r) || isInfBits(c.g) || isInfBits(c.b) || isInfBits(c.a);
-        gl_FragColor = vec4(nan ? 1.0 : 0.0, inf ? 1.0 : 0.0, d.y > 0.0 ? 1.0 : 0.0, 1.0);
+        gl_FragColor = vec4(nan ? 1.0 : 0.0, inf ? 1.0 : 0.0, d.y > 0.0 ? 1.0 : 0.0, finiteMax(c));
       }
     `,
     uniforms: { map: new Uniform<Texture | null>(cube), size: new Uniform(size) },
@@ -141,11 +161,11 @@ export function scanCube(renderer: WebGLRenderer, cube: Texture, size: number): 
     depthWrite: false
   })
   const w = size * 6
-  const target = new WebGLRenderTarget(w, size, { depthBuffer: false })
+  const target = new WebGLRenderTarget(w, size, { depthBuffer: false, type: FloatType })
   const quad = new Mesh(new PlaneGeometry(2, 2), material)
   quad.frustumCulled = false
   const before = renderer.getRenderTarget()
-  const px = new Uint8Array(w * size * 4)
+  const px = new Float32Array(w * size * 4)
   try {
     renderer.setRenderTarget(target)
     renderer.render(quad, new OrthographicCamera())
@@ -156,29 +176,52 @@ export function scanCube(renderer: WebGLRenderer, cube: Texture, size: number): 
     quad.geometry.dispose()
     material.dispose()
   }
-  const reading: CubeReading = { nan: 0, inf: 0, up: 0, down: 0, texels: w * size }
+  const reading: CubeReading = { nan: 0, inf: 0, up: 0, down: 0, texels: w * size, saturated: 0, max: 0 }
   for (let i = 0; i < px.length; i += 4) {
-    if (px[i] === 0 && px[i + 1] === 0) continue
-    if (px[i] > 0) reading.nan++
+    if (px[i + 3] >= HALF_MAX) reading.saturated++
+    if (px[i + 3] > reading.max) reading.max = px[i + 3]
+    if (px[i] < 0.5 && px[i + 1] < 0.5) continue
+    if (px[i] > 0.5) reading.nan++
     else reading.inf++
-    if (px[i + 2] > 0) reading.up++
+    if (px[i + 2] > 0.5) reading.up++
     else reading.down++
   }
   return reading
 }
 
+type RGBA = [number, number, number, number]
+
+/** One layer's reading: NaN/∞ texels, and per channel the non-finite, saturated (≥ HALF_MAX)
+ * texels and the largest finite magnitude. */
+export interface LayerReading {
+  nan: number
+  inf: number
+  channels: RGBA
+  saturatedChannels: RGBA
+  maxChannels: RGBA
+}
+
 /** NaN/∞ texels per layer of an array texture (the clouds' shadow cascades: r frontDepth,
- * g meanExtinction, b maxOpticalDepth, a its tail), and per channel which carry them. */
-export function scanLayers(renderer: WebGLRenderer, texture: Texture, width: number, height: number, layers: number): { nan: number; inf: number; channels: [number, number, number, number] }[] {
+ * g meanExtinction, b maxOpticalDepth, a its tail), and per channel which carry them, how many
+ * sit at the half-float ceiling and the largest finite value (two passes: a mask, then each
+ * channel's finite magnitude into a float target). */
+export function scanLayers(renderer: WebGLRenderer, texture: Texture, width: number, height: number, layers: number): LayerReading[] {
   const material = new ShaderMaterial({
     vertexShader,
     fragmentShader: /* glsl */ `
       precision highp sampler2DArray;
       uniform sampler2DArray map;
       uniform int layer;
+      uniform int values;
       ${NON_FINITE_GLSL}
       void main() {
         vec4 c = texelFetch(map, ivec3(ivec2(gl_FragCoord.xy), layer), 0);
+        if (values == 1) {
+          vec4 m;
+          for (int k = 0; k < 4; k++) m[k] = isNaNBits(c[k]) || isInfBits(c[k]) ? 0.0 : abs(c[k]);
+          gl_FragColor = m;
+          return;
+        }
         bool nan = isNaNBits(c.r) || isNaNBits(c.g) || isNaNBits(c.b) || isNaNBits(c.a);
         bool inf = isInfBits(c.r) || isInfBits(c.g) || isInfBits(c.b) || isInfBits(c.a);
         // Which channels are non-finite, as 4 bits in blue.
@@ -187,35 +230,48 @@ export function scanLayers(renderer: WebGLRenderer, texture: Texture, width: num
         gl_FragColor = vec4(nan ? 1.0 : 0.0, inf ? 1.0 : 0.0, bits / 15.0, 1.0);
       }
     `,
-    uniforms: { map: new Uniform<Texture | null>(texture), layer: new Uniform(0) },
+    uniforms: { map: new Uniform<Texture | null>(texture), layer: new Uniform(0), values: new Uniform(0) },
     depthTest: false,
     depthWrite: false
   })
   const target = new WebGLRenderTarget(width, height, { depthBuffer: false })
+  const valueTarget = new WebGLRenderTarget(width, height, { depthBuffer: false, type: FloatType })
   const quad = new Mesh(new PlaneGeometry(2, 2), material)
   quad.frustumCulled = false
   const camera = new OrthographicCamera()
   const before = renderer.getRenderTarget()
   const px = new Uint8Array(width * height * 4)
-  const result: { nan: number; inf: number; channels: [number, number, number, number] }[] = []
+  const values = new Float32Array(width * height * 4)
+  const result: LayerReading[] = []
   try {
     for (let l = 0; l < layers; l++) {
       material.uniforms.layer.value = l
+      material.uniforms.values.value = 0
       renderer.setRenderTarget(target)
       renderer.render(quad, camera)
       renderer.readRenderTargetPixels(target, 0, 0, width, height, px)
-      const r = { nan: 0, inf: 0, channels: [0, 0, 0, 0] as [number, number, number, number] }
+      material.uniforms.values.value = 1
+      renderer.setRenderTarget(valueTarget)
+      renderer.render(quad, camera)
+      renderer.readRenderTargetPixels(valueTarget, 0, 0, width, height, values)
+      const r: LayerReading = { nan: 0, inf: 0, channels: [0, 0, 0, 0], saturatedChannels: [0, 0, 0, 0], maxChannels: [0, 0, 0, 0] }
       for (let i = 0; i < px.length; i += 4) {
         if (px[i] > 0) r.nan++
         else if (px[i + 1] > 0) r.inf++
         const bits = Math.round((px[i + 2] / 255) * 15)
-        for (let k = 0; k < 4; k++) if (bits & (1 << k)) r.channels[k]++
+        for (let k = 0; k < 4; k++) {
+          if (bits & (1 << k)) r.channels[k]++
+          const v = values[i + k]
+          if (v >= HALF_MAX) r.saturatedChannels[k]++
+          if (v > r.maxChannels[k]) r.maxChannels[k] = v
+        }
       }
       result.push(r)
     }
   } finally {
     renderer.setRenderTarget(before)
     target.dispose()
+    valueTarget.dispose()
     quad.geometry.dispose()
     material.dispose()
   }
@@ -244,7 +300,7 @@ export class NonFiniteStagePass extends Pass {
     const { width, height } = inputBuffer
     if (this.scratch == null || this.scratch.width !== width || this.scratch.height !== height) {
       this.scratch?.dispose()
-      this.scratch = new WebGLRenderTarget(width, height, { depthBuffer: false })
+      this.scratch = new WebGLRenderTarget(width, height, { depthBuffer: false, type: FloatType })
     }
     this.reading = scan(renderer, this.mask, this.scene, this.camera, inputBuffer.texture, this.scratch)
   }

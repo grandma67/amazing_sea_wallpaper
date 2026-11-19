@@ -229,6 +229,23 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   `composition.ts` (ray-grid coverage, re-rolls bad framings; `frameView`: eye
   height, pixel angle and nearest ground in frame, for `params.mjs` `p.view`); `reflection.ts`
   (planar reflection).
+- **Render targets and their ranges** (0.204). A `HalfFloatType` texel holds ≤ 65 504; past it
+  Apple GPUs saturate the write and SwiftShader (CI) writes ∞, which filtering turns into NaN
+  (LESSONS.md "Shaders"). Before writing a large value (metres, an unexposed bright source, a
+  night-scaled lamp) into one of these, check its type and clamp; `nanTrace` counts texels at
+  the ceiling (`sat`) on the Mac, where an overflow is otherwise invisible:
+
+  | Target | Type | Holds | Range risk |
+  |---|---|---|---|
+  | composer frame buffers (`scene.ts`, `frameBufferType`) | half | raw radiance up to the grade (exposure, clamp 40) | night units: the moon's disc passed it (clamped in `moon.ts` since 0.205); a 0.205 sweep found nothing else (sun ≤ ~1 by day here, lamps, flashes, totality) |
+  | sky cube `envTarget` (`scene.ts`, 256²) and folded cube (`reflection.ts`) | half | sky radiance incl. the sun disc, clouds | as the frame |
+  | planar mirror (`reflection.ts`) | half | the mirrored scene's radiance | as the frame |
+  | `stillScene.ts` cache and geometry | half | the averaged scene, geometry colour | as the frame |
+  | takram cloud shadow map (`ShadowPass`) | half | front depth (m), extinction, optical depth | **overflowed** under a low sun; clamped since 0.204 (`cloudShadowPatch.ts`) |
+  | takram clouds pass depth-velocity (`CloudsPass`) | half | front depth (m; sky: 400 km) | overflows every day; harmless while its resolve runs with `temporalAlpha = 1` (KNOWN_ISSUES.md) |
+  | ocean, night glow, lighthouse window data textures | half | tables built in JS | values chosen in JS |
+  | `traceMeshes`, `measureSkylight` scratch | float | readings | none |
+
 - `accumulate.ts` + `stillScene.ts`: render the scene once, redraw only clouds/spray per frame
   (Halton sub-pixel jitter; takram's cloud TAA history off). A second sky-less render gives each
   pixel's geometry coverage and `SkyFillEffect` blends the finished sky into silhouette pixels.

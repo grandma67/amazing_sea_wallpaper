@@ -135,6 +135,15 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
 - **Before the first render of a session, check the dev server** (`lsof -tiTCP:5174
   -sTCP:LISTEN`): `diff.mjs --ref` renders REF first and only then fails on this tree's missing
   server, a lost round (trunk moss, 0.148).
+- **Don't edit `src/` while a render runs against the dev server:** Vite reloads the page mid-run,
+  so the render fails or renders half-old code (2026-11-19: a `diff.mjs` run failed with
+  "clampShadowToHalf is not defined" while code moved between files, and a 20-minute SwiftShader
+  batch had to be restarted). Edit docs and `scripts/` meanwhile (node loads a script once), or
+  render the state you want with `--ref` (its own worktree and server).
+- **Read a buffer's values, not only its NaN count:** "only channel r is NaN" took eight renders
+  to become "r holds metres in a half float". `nanTrace` reports each reading's largest finite
+  magnitude and the texels at the half-float ceiling (`sat`) since 0.205; dump an intermediate
+  into the shadow map with `debug.shadowDump` (tools/DEBUG.md), which reads it raw.
 - **A mesh's "nearest" and box are its bounding box** (`snapshot --props`, `--project`'s box): the
   ice foot read 2946 m away while it ran past the camera at 6 m, and a range "1/1 in frame" was out of
   view (lomas, 0.154). Use `--project`'s rows (its points) and `--find` (visible vertices, haze
@@ -443,6 +452,19 @@ new lesson as a rule for the next thing of its kind, not as the story of this on
   penumbra and jitter samples per pixel.
 
 ## Shaders (GLSL)
+
+- **A target's texel type bounds what a shader may write (0.204):** a `HalfFloatType` target holds
+  ≤ 65 504; metres (a depth, a ray length) pass that past 65 km. Apple GPUs saturate the write,
+  SwiftShader writes ∞, and linear filtering turns ∞ next to finite into NaN. Takram's cloud shadow
+  map did this under every low sun (2026-11-17 published white). When a value can be large, check
+  the target's type (`grep HalfFloatType`) and clamp the write.
+- **Dump intermediates only into what is read raw:** a value written into a buffer that a temporal
+  resolve reads back (reprojects by its depth, clips by its neighbours) comes out scrambled: every
+  dump into takram's shadow map read NaN, even a sum of finite uniforms, until its resolve was
+  switched off for the dump. That cost three renders and a wrong theory (bad uniforms).
+- **After fixing the first NaN, re-render the day:** others hide behind it (2024-02-19 had three
+  more once the overflow was gone: a 0/0, a resolve blend, a light-shaft march). Guard the reader
+  too (a bad texel reads as "no shadow"), not only the writer.
 
 - Reserved words that read like names: `flat`, `smooth`, `half`, `input`, `output`, `filter`,
   `active`, `common`, `partition`, `fixed`, `long`, `short`. `smoothstep(e0, e1, x)` with e0 ≥ e1 is

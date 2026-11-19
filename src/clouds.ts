@@ -152,7 +152,9 @@ export function createClouds(
   /** params.debug.cloudFace: output the face's height and distance (cloudFace.ts). */
   face = false,
   /** False (debug.passes.cloudShadowCast): no layer casts into the cloud shadow map. */
-  castShadow = true
+  castShadow = true,
+  /** debug.shadowDump: a GLSL vec4 written raw into the shadow map (cloudShadowPatch.ts). */
+  shadowDump: string | null = null
 ): CloudsEffect {
   const clouds = new CloudsEffect(camera)
   Object.assign(clouds, textures)
@@ -244,7 +246,7 @@ export function createClouds(
   // unshadowed rays of the geometry leak into the sky; over the jittered
   // frames that spread into a bright halo around trees against a low sun.
   clouds.cloudsPass.resolveMaterial.uniforms.temporalAlpha.value = 1
-  clampShadowToHalf(clouds)
+  clampShadowToHalf(clouds, shadowDump)
   return clouds
 }
 
