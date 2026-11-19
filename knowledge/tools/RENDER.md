@@ -111,11 +111,26 @@ unless said):
   and the grade turned it into white (median at the clamp, 40).
 - **The source is takram's cloud shadow map** (`ShadowPass`), on SwiftShader only: NaN in all
   three cascades (~50–90% of texels) at a sun of −2…+3°; at +10° only the far cascade (harmless:
-  frame fine); on the Mac none. It is NaN even with no layer casting (`passes.cloudShadowCast:
-  false`), when nothing reads it and the frame is fine; so the ray setup makes it
-  (`shadow.frag` `getRayNearFar` / `maxRayDistance`, not yet pinned). Ruled out, each by a
-  render: the shadow's temporal resolve (off: still NaN), `frontDepth`'s 0/0 (guarded: still
-  NaN), zeroing the march's colour output, the ray–sphere helpers (guarded), the camera (56 m up).
+  frame fine); on the Mac none.
+- **Cause (fixed in 0.204): the map is `HalfFloatType` (≤ 65 504) and holds metres.** Channel r is
+  the front depth along the sun's ray; under a sun near the horizon that ray grazes the cloud shell
+  for hundreds of km. Apple GPUs saturate an out-of-range write; SwiftShader writes ∞, and linear
+  filtering between ∞ and finite texels is ∞ − ∞ = NaN. Found with `nanTrace`'s per-channel count
+  (only r) and dumps of the ray setup into the map (with the temporal resolve **off**: through it
+  every dump read NaN, even a sum of finite uniforms, because the resolve reprojects by the dumped
+  r). Three more NaN paths showed once the overflow was gone (2024-02-19: a glowing band at the
+  horizon on SwiftShader, clean on the Mac): the march's 0/0 front depth when the first sample is
+  opaque, the temporal resolve's blend in the far cascade, and the light shafts' march
+  (`marchShadowLength`), where one bad texel made a whole shaft NaN.
+- **Fix:** `src/cloudShadowPatch.ts` `clampShadowToHalf` patches takram's shaders by string (it
+  throws, and `test/cloudShadowPatch.test.ts` fails, if takram moves the lines): front depth and
+  the map clamped to 65 504 with NaN/∞ (bit test) read as "no front in range"; the 0/0 guarded;
+  the resolve keeps the current texel when its blend is not finite; clouds.frag's shadow read
+  returns 0 for a non-finite optical depth. The Mac's renders are identical to before (8 days,
+  `diff.mjs --ref HEAD`); on SwiftShader the broken days match the Mac.
+- Ruled out on the way, each by a render: the shadow's temporal resolve alone, the march's colour
+  output alone, the ray–sphere helpers (guarded), the camera (56 m up), JS-side uniforms (finite
+  on both GPUs; printed from the page).
 - **Which days:** a low sun (−2.5…+3°) with low or mid cloud (layers that cast shadows; cirrus
   doesn't): 151 of 1096 days (2024–26). 6 of 6 such days rendered broken; 1 frame per render
   does not show it, 24 do (the cube's clouds get frames / 5 passes).

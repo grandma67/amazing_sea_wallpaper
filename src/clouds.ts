@@ -44,6 +44,7 @@ import { patchCloudsFlash, type FlashSky } from './lightning'
 import { patchCloudsTownLight, type TownSky } from './nightGlow'
 import { patchStormCells, stormLayer, type StormCell } from './stormCells'
 import { applySeaHaze } from './seaHaze'
+import { clampShadowToHalf } from './cloudShadowPatch'
 import { CLOUD_GENERA, layerChannels, MAX_LAYERS } from './cloudTypes'
 import { dirFromAzEl, type WeatherParams } from './params'
 
@@ -243,6 +244,7 @@ export function createClouds(
   // unshadowed rays of the geometry leak into the sky; over the jittered
   // frames that spread into a bright halo around trees against a low sun.
   clouds.cloudsPass.resolveMaterial.uniforms.temporalAlpha.value = 1
+  clampShadowToHalf(clouds)
   return clouds
 }
 

@@ -105,15 +105,25 @@ function warnNonFinite(name, debug) {
 /** params.debug.nanTrace (src/nanTrace.ts) as short lines: CI logs cut a long one. */
 function printNanTrace(trace) {
   if (trace == null) return
+  // sat: texels at the half-float ceiling (≥ 65 504), where the Mac saturates an overflow that
+  // SwiftShader writes as ∞; max: the largest finite magnitude (ARCHITECTURE.md "Render targets").
+  const g = v => (typeof v !== 'number' ? '?' : Math.abs(v) >= 1e4 || (v !== 0 && Math.abs(v) < 1e-2) ? v.toExponential(2) : String(Number(v.toPrecision(3))))
+  const range = r => (r.saturated == null ? '' : `, ${r.saturated} sat, max ${g(r.max)}`)
   for (const c of trace.cube ?? []) {
-    console.log(`  nanTrace sky cube after ${c.after}: ${c.nan} NaN, ${c.inf} inf of ${c.texels} texels (${c.up} looking up, ${c.down} down)`)
+    console.log(`  nanTrace sky cube after ${c.after}: ${c.nan} NaN, ${c.inf} inf${range(c)} of ${c.texels} texels (${c.up} looking up, ${c.down} down)`)
   }
   if (trace.cloudShadow != null) {
-    console.log(`  nanTrace cloud shadow map: ${trace.cloudShadow.map((l, i) => `cascade ${i} ${l.nan} NaN, ${l.inf} inf`).join('; ')}`)
+    // Channels: r frontDepth, g meanExtinction, b maxOpticalDepth, a its tail (takram shadow.frag),
+    // or a debug.shadowDump's four values.
+    const names = ['r', 'g', 'b', 'a']
+    for (const [i, l] of trace.cloudShadow.entries()) {
+      const per = names.map((n, k) => `${n} ${l.channels[k]}${l.saturatedChannels != null ? `/${l.saturatedChannels[k]} sat/max ${g(l.maxChannels[k])}` : ''}`).join(', ')
+      console.log(`  nanTrace cloud shadow cascade ${i}: ${l.nan} NaN, ${l.inf} inf (non-finite${l.saturatedChannels != null ? '/sat/max' : ''} by channel: ${per})`)
+    }
   }
   for (const st of trace.stages) {
     const where = st.box == null ? '' : ` box ${st.box.join(',')} at ${st.at.map(p => p.join(',')).join(' ')}`
-    console.log(`  nanTrace after ${st.after}: ${st.nan} NaN, ${st.inf} inf${where}`)
+    console.log(`  nanTrace after ${st.after}: ${st.nan} NaN, ${st.inf} inf${range(st)}${where}`)
   }
   if (trace.meshes == null) return console.log('  nanTrace meshes: not run (the scene pass is clean)')
   console.log(`  nanTrace meshes: ${trace.meshes.found.length} of ${trace.meshes.tested} drawn objects make NaN/inf alone`)

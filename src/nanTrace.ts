@@ -167,8 +167,9 @@ export function scanCube(renderer: WebGLRenderer, cube: Texture, size: number): 
   return reading
 }
 
-/** NaN/∞ texels per layer of an array texture (the clouds' shadow cascades). */
-export function scanLayers(renderer: WebGLRenderer, texture: Texture, width: number, height: number, layers: number): { nan: number; inf: number }[] {
+/** NaN/∞ texels per layer of an array texture (the clouds' shadow cascades: r frontDepth,
+ * g meanExtinction, b maxOpticalDepth, a its tail), and per channel which carry them. */
+export function scanLayers(renderer: WebGLRenderer, texture: Texture, width: number, height: number, layers: number): { nan: number; inf: number; channels: [number, number, number, number] }[] {
   const material = new ShaderMaterial({
     vertexShader,
     fragmentShader: /* glsl */ `
@@ -180,7 +181,10 @@ export function scanLayers(renderer: WebGLRenderer, texture: Texture, width: num
         vec4 c = texelFetch(map, ivec3(ivec2(gl_FragCoord.xy), layer), 0);
         bool nan = isNaNBits(c.r) || isNaNBits(c.g) || isNaNBits(c.b) || isNaNBits(c.a);
         bool inf = isInfBits(c.r) || isInfBits(c.g) || isInfBits(c.b) || isInfBits(c.a);
-        gl_FragColor = vec4(nan ? 1.0 : 0.0, inf ? 1.0 : 0.0, 0.0, 1.0);
+        // Which channels are non-finite, as 4 bits in blue.
+        float bits = 0.0;
+        for (int k = 0; k < 4; k++) if (isNaNBits(c[k]) || isInfBits(c[k])) bits += exp2(float(k));
+        gl_FragColor = vec4(nan ? 1.0 : 0.0, inf ? 1.0 : 0.0, bits / 15.0, 1.0);
       }
     `,
     uniforms: { map: new Uniform<Texture | null>(texture), layer: new Uniform(0) },
@@ -193,17 +197,19 @@ export function scanLayers(renderer: WebGLRenderer, texture: Texture, width: num
   const camera = new OrthographicCamera()
   const before = renderer.getRenderTarget()
   const px = new Uint8Array(width * height * 4)
-  const result: { nan: number; inf: number }[] = []
+  const result: { nan: number; inf: number; channels: [number, number, number, number] }[] = []
   try {
     for (let l = 0; l < layers; l++) {
       material.uniforms.layer.value = l
       renderer.setRenderTarget(target)
       renderer.render(quad, camera)
       renderer.readRenderTargetPixels(target, 0, 0, width, height, px)
-      const r = { nan: 0, inf: 0 }
+      const r = { nan: 0, inf: 0, channels: [0, 0, 0, 0] as [number, number, number, number] }
       for (let i = 0; i < px.length; i += 4) {
         if (px[i] > 0) r.nan++
         else if (px[i + 1] > 0) r.inf++
+        const bits = Math.round((px[i + 2] / 255) * 15)
+        for (let k = 0; k < 4; k++) if (bits & (1 << k)) r.channels[k]++
       }
       result.push(r)
     }

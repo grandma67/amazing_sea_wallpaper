@@ -12,16 +12,21 @@ say how the cause was found.
 
 ## CI and the daily render
 
-- **Low sun under low or mid cloud renders white on CI** (measured 2026-11-19 with `nanTrace` on
-  SwiftShader; story: tools/RENDER.md "Broken frames"): takram's cloud shadow map holds NaN on
-  x86/any SwiftShader when the sun is within ~3° of the horizon, the sky cube takes it from the
-  clouds' self-shadowing, and every lit material goes NaN, then white. 2026-11-17 was published
-  white; 151 of 1096 days are at risk. From 0.203 such a frame fails the render (`brokenFrame`),
-  so the site and the desktops keep yesterday's picture: the day is lost, not shown broken. Not
-  fixed: the NaN is made in `shadow.frag`'s ray setup (`getRayNearFar` / `maxRayDistance`), not
-  yet pinned; the shadow's temporal resolve and the march's 0/0 are ruled out. Next: read
-  `rayNear`, `rayFar` and `sunPosition` per texel (a debug output of the shadow material), then
-  guard the term, and check a +10° day's far cascade (also NaN, harmless so far).
+- **Takram's clouds pass stores metres in half floats too** (read in the source 2026-11-19, not
+  seen to break): `CloudsPass` writes its front depth (sky pixels: `cameraFar`, 400 km; horizon
+  clouds 150–200 km) into a `HalfFloatType` depth-velocity target, which overflows to ∞ on
+  SwiftShader. Harmless today because we run its resolve with `temporalAlpha = 1` and no temporal
+  upscale, and every SwiftShader frame checked after 0.204 has a clean clouds stage; if either
+  setting changes, clamp it as `cloudShadowPatch.ts` does the shadow map.
+- **Residual NaN in the far shadow cascade on SwiftShader** (measured: 2 270 texels on
+  2024-02-19 after 0.204): made after the shader's own output, read as "no shadow" by the guarded
+  read. Harmless; source not pinned.
+- **Our own shaders: no unguarded NaN found** (audit 2026-11-19 of 83 GLSL blocks: every `sqrt`,
+  `inversesqrt`, `log`, `pow`, `acos`/`asin`, `atan`, `normalize` and division by a variable,
+  ~360 sites; the risky ones already floor or clamp: `NoV ≥ 1e-3`, GGX roughness ≥ 0.02/0.08, the
+  sky denoiser starts its weight at 1, mirror distances go through `mirrorRayLength`). Degenerate
+  but unreached: a lighthouse view ray through the lantern (`sweptSegment` /d), the rainbow's
+  `cross(antisolar, up)` with the sun overhead, `cross(z, up)` at a geographic pole.
 
 - **Other shaders may hold the edge that blacked 2026-11-15** (fixed in 0.195, measured; story:
   tools/RENDER.md "Blank frames"): x86 SwiftShader turns a depth a hair under 1 into ∞, then NaN,
