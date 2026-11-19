@@ -1124,6 +1124,9 @@ uniform samplerCube envMap;
 // The mirror image (reflection.ts) for the water films: 0 while the mirror
 // target itself is drawn (the terrain is in it) and with passes.wetMirror off.
 uniform float planarOn;
+// 1: wet rock reads the sky cube as blurred as it is rough (passes.wetRockBlur;
+// 0 gives the fixed lod 2 of before 0.213).
+uniform float wetRockBlur;
 ${MIRROR_UNIFORMS_GLSL}
 ${MIRROR_GLSL}
 uniform vec3 sandAlbedo;
@@ -1585,7 +1588,13 @@ void main() {
     float F = 0.02 + 0.98 * pow(1.0 - NoV, 5.0);
     vec3 R = reflect(-V, Nw);
     R.y = abs(R.y);
-    vec3 reflected = textureLod(envMap, R, 2.0).rgb * skyOpenHere;
+    // The cube's blur follows the surface's roughness, as on the sea
+    // (ocean.ts: lod = log2(alpha · 164)): bare wet rock is rough (alpha 0.35,
+    // below), so its sheen is a blur of the sky, not a mirror. At lod 2 its
+    // rippled normal swept a sharp horizon glow up a sloping face in bands
+    // (2026-05-01, tasks.md D38). Films, pools and stones keep lod 2.
+    float rockSheen = wetRockBlur * rockW * (1.0 - pools);
+    vec3 reflected = textureLod(envMap, R, mix(2.0, log2(0.35 * 164.0), rockSheen)).rgb * skyOpenHere;
     // The scene mirrored in the film (plans/REFLECTION.md phase 5): the
     // sea's lookup along this film's own reflected ray, from the film's own
     // height (the mirror camera sees the real scene, so a hit point projects
@@ -1756,6 +1765,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       envMap: { value: null as Texture | null },
       // The mirror image, bound after the mirror pass (scene.ts).
       planarOn: { value: 0 },
+      wetRockBlur: { value: params.debug?.passes?.wetRockBlur === false ? 0 : 1 },
       planarMap: { value: null as Texture | null },
       planarMatrix: { value: new Matrix4() },
       planarDepth: { value: null as Texture | null },
