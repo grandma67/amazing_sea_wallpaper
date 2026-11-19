@@ -131,9 +131,9 @@ say how the cause was found.
   the Mediterranean's volcano odds; only flat places (`mountains: false`) opt out. Per-place table:
   plans/TERRAIN_FORMS.md phase 4. Other biome-keyed leftovers: ARCHITECTURE.md "Biome, climate or
   place".
-- **Drawn snow lines** (`pickLandform`, biome-keyed): tropical mountains can have snow below 3 km
-  (32 of 61 tropical landform days; real tropical snow starts far higher), and the nordic biome's
-  0.35–0.6 of the height is low for a temperate summer (west Norway ~630 m in late August).
+- **Drawn snow lines** (`pickLandform`, biome-keyed): the nordic biome's 0.35–0.6 of the height is
+  low for a temperate summer (west Norway ~630 m in late August). (Tropical mountains: bare since
+  0.211, `TROPICAL_SNOW_LINE`.)
 - **Seasons** (0.98): no leaves in the wrack; no larch (conifers stay green); tropical wet and dry
   seasons aren't modelled beyond the dry-grass and flamboyant windows. The distant woods' autumn
   tint (`canopyTint`) was tested in numbers, not checked in a render. More in

@@ -176,7 +176,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | landform chance, volcano chance, snow line | `params.ts` `pickLandform` | biome; flat places opt out (`mountains`) | **leftover**: volcanoes on Greenland and Norway, subtropical places get the Mediterranean's odds (phase 10: per place) |
 | island kinds | `params.ts` `ISLANDS` | biome; flat places only low ones | **leftover**: phase 10 |
 | leaf colour and fall, grass dryness, deciduous share | `phenology.ts` | climate × hemisphere; `AUTUMN_RED` and the deciduous lenga by place | right |
-| snow line by season | `phenology.ts` `SNOW_SEASON` | climate × hemisphere | right (the drawn line under it is the `pickLandform` leftover above) |
+| snow line by season | `phenology.ts` `SNOW_SEASON`, `TROPICAL_SNOW_LINE` | climate × hemisphere; the tropics one line all year (0.211) | right (the drawn line under it is the `pickLandform` leftover above) |
 | fallen leaves by season | `phenology.ts` `LITTER_DAYS` | climate × hemisphere | right |
 | blossom (rock rose, gorse, wattle; flamboyant, pōhutukawa) | `phenology.ts` `BLOOM` | place × local calendar month (gorse: a northern and a southern row); flamboyant by the place's dry season (`onDryCoast`) | right |
 | tree flowers (oak and holm-oak catkins, olive, umbrella thorn, gum blossom; red flowering gum) | `phenology.ts` `BLOOM` (`where`) | climate × northern-equivalent month, where the place's plant pool holds the tree (`poolHas`); holm oak: Mediterranean climate minus California, the Cape, Chile, SW Australia; gums and the red flowering gum by place, local months | right |

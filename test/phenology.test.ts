@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { CLIMATES, PLACES } from '../src/places'
 import type { Climate, VegetationKind } from '../src/biome'
-import { autumnColors, band, canopyTint, deciduousShare, groundCoverTint, phenologyFor, plantSeason, seasonalSnowLine, SNOW_SEASON, type PhenologyDay } from '../src/phenology'
+import { autumnColors, band, canopyTint, deciduousShare, groundCoverTint, phenologyFor, plantSeason, seasonalSnowLine, SNOW_SEASON, TROPICAL_SNOW_LINE, type PhenologyDay } from '../src/phenology'
 import { birch, broadleaf, bush } from '../src/props/trees'
 import { Random } from '../src/random'
 import { seasonDay } from '../src/seasons'
@@ -290,13 +290,20 @@ describe('seasonal snow line', () => {
     }
   })
 
-  it('leaves tropical and arid mountains as drawn, every month', () => {
-    for (const climate of ['tropical', 'arid'] as const) {
-      for (const date of MONTHS) {
-        expect(seasonalSnowLine(land(1500), climate, at(date))).toBe(1500)
-        expect(seasonalSnowLine(land(Infinity, 3500), climate, at(date))).toBe(Infinity)
-      }
+  it('leaves arid mountains as drawn; keeps the tropics\' snow line at ~4.6 km all year', () => {
+    for (const date of MONTHS) {
+      expect(seasonalSnowLine(land(1500), 'arid', at(date))).toBe(1500)
+      expect(seasonalSnowLine(land(Infinity, 3500), 'arid', at(date))).toBe(Infinity)
+      expect(seasonalSnowLine(land(1500), 'tropical', at(date))).toBe(TROPICAL_SNOW_LINE)
+      expect(seasonalSnowLine(land(Infinity, 3500), 'tropical', at(date))).toBe(Infinity)
     }
+    expect(TROPICAL_SNOW_LINE).toBeGreaterThanOrEqual(4500)
+  })
+
+  it('over real days: no tropical mountain has snow below the tropical snow line', () => {
+    const tropical = allParams().filter(p => p.landform != null && p.place.climate === 'tropical')
+    expect(tropical.length).toBeGreaterThan(20)
+    for (const p of tropical) expect(p.landform!.snowLine).toBeGreaterThanOrEqual(TROPICAL_SNOW_LINE)
   })
 
   it('whitens a mountain bare in summer only in winter, only if it\'s tall enough', () => {

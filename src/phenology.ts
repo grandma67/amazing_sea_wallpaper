@@ -766,6 +766,12 @@ export const SNOW_SEASON: Partial<Record<Climate, { winter: number; bareFrom: nu
   subtropical: { winter: 0.85, bareFrom: 2500, level: [1800, 2300] }
 }
 
+/** The tropics' snow line (m): Ecuador 4.8–5 km, New Guinea 4.6–4.7 km,
+ * Kilimanjaro 5.5 km (Wikipedia "Snow line" table); ~4.5 km at the equator.
+ * Above every drawn peak (≤ 4 km), so tropical mountains are bare. Not
+ * modelled: Mauna Kea's (4.2 km) occasional winter snow cap. */
+export const TROPICAL_SNOW_LINE = 4600
+
 /** A range's real peaks reach about this share of its `height` (the envelope
  * and ridges in props/landforms.ts); a volcano's cone reaches all of it. */
 const RANGE_PEAK = 0.8
@@ -778,6 +784,8 @@ const RANGE_PEAK = 0.8
  * season. A function of the date: no draw.
  */
 export function seasonalSnowLine(land: { snowLine: number; height: number; kind: 'range' | 'strato' | 'shield'; seed: number }, climate: Climate, day: Day): number {
+  // The tropics have one snow line all year, far above our coastal peaks.
+  if (climate === 'tropical') return Math.max(land.snowLine, TROPICAL_SNOW_LINE)
   const table = SNOW_SEASON[climate]
   if (table == null) return land.snowLine
   const d = seasonDay(day)
