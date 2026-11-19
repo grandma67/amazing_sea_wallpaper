@@ -17,7 +17,8 @@ Terrain, shore, snow, ice and big shapes. How it works: arch/COAST.md. Other top
   s = −distanceToWater from a bare-profile waterline stood in the water on 10 of 433 beach days; its
   real s is −distanceToWater − `wobbleAtCamera` (3–25 m). Check the drawn ground
   (`terrainHeight(coast, 0, 0)`), not a profile; `realDays.test.ts` now holds every land camera
-  above the water.
+  above the water. The same wobble (±25 m at a = 0) can put a cliff-top camera on the face: check
+  `rockGround` there.
 - **Before a tide model, check it against real predictions (0.201):** NOAA's API gives a station's
   constants (`harcon`) and its own hourly predictions; four constituents matched Pensacola to 5 cm,
   which settled the equilibrium arguments' signs in one run.
@@ -44,8 +45,6 @@ Terrain, shore, snow, ice and big shapes. How it works: arch/COAST.md. Other top
   walls, ragged edges): widen or fade each by distance from the camera (at the origin, so the TS
   mirror can too) and by bare slope; teeth that halve with a 2× grid are aliasing. Find the feature by
   its period: a saw every ~1 m on rock was beds dipping 20° (bedding / dip).
-- A camera placed at `distanceToWater` is not at s = −distanceToWater: the wobble at a = 0 (±25 m)
-  can put a cliff-top camera on the face. Correct by `wobbleAtCamera` and check `rockGround`.
 - Wet ground shaded like wet sand (a near-mirror film) turns a gently sloping intertidal platform
   white: wet rock is a dull sheen; only pools are mirrors.
 - Tides move the water off s = 0: every "distance from the shore" in shaders and props must measure
