@@ -214,6 +214,12 @@ say how the cause was found.
   the riser notches above; the 0.198 rock grain didn't change it (the teeth are in the shape, not
   the colour). Check with a 2× grid or `debug.terrainProbe` first.
 - A cliff's rounded crest near the camera is smooth and bare: in low light it reads as sand.
+- **Wet rock in zebra bands** (2026-05-01, the platform's edge 25–35 m off, blue hour): wavy light
+  and dark bands up a wet, sloping rock face. Measured: they are the wet rock's sky reflection
+  (`terrain.ts`, `gloss` 0.7–1 on `kind` 3 pixels, final 0→144 as `ny` swings 0.55–0.75; switching
+  off `reflection`, `wetMirror`, `props.rockEdge` or recolouring the sea leaves them). Cause
+  **suspected**: the reflection reads the env cube at a fixed `textureLod(envMap, R, 2.0)` while wet
+  rock is rough (alpha 0.35), so its rippled normal sweeps a sharp mirror of the horizon glow.
 - A low platform at a cliff's foot is topped by big waves, which then wash over it as foam: no burst
   against the cliff behind (`edgeRocks` takes only the first face at the water).
 - Midday boulder shores render up to ~20% slower than the same day as a beach (a 3×3 cell search in
@@ -235,6 +241,13 @@ say how the cause was found.
 - Seals on sandbanks and waders on the flats (PLAN_BIOMES phase 14) are missing.
 
 ## Props
+
+- **Spray as dark square blocks** (seen 2026-11-19 on 2026-05-01, blue hour, round two dolphins at
+  ~150 m; on 2026-12-08, night, along the surf): `SprayBuilder` droplets are 1.5–3 px point sprites
+  with screen-door alpha, lit only by the average sky (`skyIrradiance`, and the sun as
+  `max(sunDirection.y, 0)`, a flat surface's term, not a droplet cloud's). Against water that
+  mirrors a bright horizon at grazing they come out darker than the water, in hard squares.
+  Whether darker spray is physical there is unchecked (needs photos); the squares are not.
 
 - **Salt (0.199), left over:** (1) no gale browning on the seaward side of crowns (needs a weather
   history: "a gale in the last weeks"); (2) a pruned tree is its mesh scaled shorter and wider, so a

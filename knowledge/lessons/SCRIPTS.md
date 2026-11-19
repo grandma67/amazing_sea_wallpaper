@@ -4,6 +4,11 @@ Scripts, randomness, params, tests and the page. Other topics: [LESSONS.md](../L
 
 ## Scripts and tools
 
+- **`params.mjs --ref` compares params, not prop code (0.210):** an expression calling `props.X`
+  (or `src.X`) runs this tree's module on the ref's params, so "92 built at the ref, 92 now" hid
+  15 days the ref's `createLighthouse` failed on. To test old prop code, run the new test in a
+  throwaway `git worktree add DIR HEAD` (link `node_modules`), then `git worktree remove`.
+
 - **Before the first render of a session, check the dev server** (`lsof -tiTCP:5174
   -sTCP:LISTEN`): `diff.mjs --ref` renders REF first and only then fails on this tree's missing
   server, a lost round (trunk moss, 0.148).
