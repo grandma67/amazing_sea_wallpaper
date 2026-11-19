@@ -90,4 +90,18 @@ describe('places', () => {
     expect(scenes({ place: 'florida-carolinas', landform: 'range' }, 3).every(p => p.landform?.kind === 'range')).toBe(true)
     expect(scenes({ place: 'iceland' }, 60).some(p => p.landform != null)).toBe(true)
   })
+
+  it('draws volcanoes only where there are some in view', () => {
+    const none = PLACES.filter(p => !p.volcanoes).map(p => p.id)
+    for (const id of ['norway-west', 'norway-north', 'greenland', 'arctic-canada', 'scotland']) expect(none).toContain(id)
+    for (const id of ['iceland', 'iceland-faroe', 'cook-inlet', 'patagonia-fjords', 'japan']) expect(none).not.toContain(id)
+    const volcano = (p: { landform: { kind: string } | null }) => p.landform != null && p.landform.kind !== 'range'
+    // Real days, and their mountains forced on every date.
+    const wrong = allParams().filter(p => none.includes(p.place.id) && volcano(p)).map(p => `${p.date} ${p.place.id}`)
+    expect(wrong).toEqual([])
+    for (const place of ['greenland', 'norway-north']) expect(scenes({ place, landform: true }, 60).filter(volcano)).toEqual([])
+    expect(scenes({ place: 'iceland-faroe', landform: true }, 60).some(volcano)).toBe(true)
+    // A spec can still ask for one.
+    expect(scene({ place: 'greenland', landform: 'strato' }).landform?.kind).toBe('strato')
+  })
 })

@@ -126,9 +126,9 @@ say how the cause was found.
 
 ## Places, seasons, snow
 
-- **Landforms and islands are chosen by biome** (`pickLandform`, `ISLANDS`): nordic places without
-  volcanoes (Greenland, Norway) draw one on ~6% of their landform days, and subtropical places get
-  the Mediterranean's volcano odds; only flat places (`mountains: false`) opt out. Per-place table:
+- **Landforms and islands are chosen by biome** (`pickLandform`, `ISLANDS`): subtropical places get
+  the Mediterranean's volcano odds; flat places (`mountains: false`) and, since 0.212, coasts with no
+  volcano in sight (`volcanoes: false`, `NO_VOLCANOES`) opt out. Per-place table:
   plans/TERRAIN_FORMS.md phase 4. Other biome-keyed leftovers: ARCHITECTURE.md "Biome, climate or
   place".
 - **Drawn snow lines** (`pickLandform`, biome-keyed): the nordic biome's 0.35–0.6 of the height is

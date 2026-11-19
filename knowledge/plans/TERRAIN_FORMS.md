@@ -19,7 +19,7 @@ which our terrain doesn't draw.
 | 1 | A `RELIEF` place table (kind, height, distance from the shore, face slope) replacing the generic hill draw where a place has a row | the rows' places | 1.5–2 h | planned |
 | 2 | Coastal escarpment (Atacama–Peru first) in the height function, GLSL and TS mirror | `atacama-peru` land days: **10** in the test set (18 days in all incl. open sea) | 4–6 h | planned |
 | 3 | Other backland kinds phase 0 finds mismatched (e.g. Namib dune sea, cliffed plateaus, coastal plains) | per kind | 3–5 h each | after phase 0 |
-| 4 | Landform chance and kinds per place (the ARCHITECTURE.md "Biome, climate or place" leftover: volcanoes on Greenland and Norway, subtropical places on Mediterranean odds) | every day with mountains in view | 2–3 h | planned |
+| 4 | Landform chance and kinds per place (the ARCHITECTURE.md "Biome, climate or place" leftover: subtropical places on Mediterranean odds; volcanoes on Greenland and Norway fixed in 0.212 by `NO_VOLCANOES`) | every day with mountains in view | 2–3 h | planned |
 | 5 | PLAN_BIOMES phase 10 forms: barrier lagoon, spit, fjord mouth (design in PLAN_BIOMES.md §10, moved here) | ~10% of a few places' days | 8–15 h | later, after 1–4 |
 
 **Order:** 0 → 1 → 2 → 4 → 3 → 5. Each phase is its own commit; phases 1, 2 and 4 change

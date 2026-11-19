@@ -1287,6 +1287,7 @@ function pickLandform(
   seed: string,
   biome: Biome,
   mountains: boolean,
+  volcanoes: boolean,
   ocean: OceanName,
   timeOfDay: TimeOfDay,
   headingDeg: number,
@@ -1298,7 +1299,8 @@ function pickLandform(
   // Flat places (places.ts FLAT_LAND) have none.
   if (!forced(force, rng.chance(chance[biome.name]) && mountains)) return null
   const volcanoChance: Record<Biome['name'], number> = { volcanic: 0.85, nordic: 0.15, mediterranean: 0.3, tropical: 0.45, desert: 0.1 }
-  const drawnVolcano = rng.chance(volcanoChance[biome.name])
+  // Drawn everywhere (the same draws), kept where the place has volcanoes.
+  const drawnVolcano = rng.chance(volcanoChance[biome.name]) && volcanoes
   const kind = forcedKind(force, drawnVolcano ? (rng.chance(0.75) ? 'strato' : 'shield') : 'range')
   const volcano = kind !== 'range'
   const height = kind === 'range' ? rng.range(900, 2600) : kind === 'strato' ? rng.range(1500, 3800) : rng.range(1200, 4000)
@@ -2072,7 +2074,7 @@ function buildParams(
   const colony = pickColony(seed, basin.name, climate, latitudeDeg < 0, coast.type, spec.colony, spec.colonySite)
   const pinnipeds = pickPinnipeds(seed, date, basin.name, biome, climate, latitudeDeg, coast.type, spec.pinnipeds, spec.haulOut)
   const lighthouse = pickLighthouse(seed, biome, basin.name, coast.type, timeOfDay, fog, spec.lighthouse)
-  const landform = pickLandform(seed, biome, place.mountains, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
+  const landform = pickLandform(seed, biome, place.mountains, place.volcanoes, basin.name, timeOfDay, headingDeg, horizontalHalfFovDeg(focalLengthMm, aspect), spec.landform)
   // After the draws: the season moves the snow line, by date and climate.
   if (landform != null && spec.props?.phenology !== false) landform.snowLine = seasonalSnowLine(landform, climate, { date, latitudeDeg })
   const snow = pickSnow(seed, place.id, climate, { date, latitudeDeg }, spec.snow, spec.props?.iceFoot, spec.props?.phenology, seaIce != null)

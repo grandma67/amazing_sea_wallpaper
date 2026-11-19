@@ -116,6 +116,9 @@ export interface Place {
   /** Mountains or volcanoes can stand behind the coast (pickLandform); not
    * on flat barrier, delta and coral coasts. */
   mountains: boolean
+  /** A volcano can be the mountain in view (pickLandform); not on old,
+   * glaciated shields and fold mountains (NO_VOLCANOES). */
+  volcanoes: boolean
   /** Night-sky darkness, Bortle class (nightGlow.ts). */
   bortle: 1 | 2 | 3 | 4
   /** A savanna coast's dry season, when its grass cures (phenology.ts);
@@ -561,6 +564,35 @@ const FLAT_LAND = new Set([
   'arctic-russia'
 ])
 
+// Cool coasts with mountains but no volcano in view: Caledonian and
+// Appalachian fold mountains, the Canadian and Greenland shields, the
+// Scandinavian fjords, Tasmania's dolerite, the Andes' southern tip and the
+// South Atlantic islands (no Holocene volcano within sight). Nordic coasts
+// that keep them: Iceland, Alaska's Gulf and Cook Inlet, the Cascades and BC,
+// the Russian Far East, Chile's fjords (Osorno, Corcovado).
+const NO_VOLCANOES = new Set([
+  'norway-west',
+  'norway-north',
+  'scotland',
+  'ireland',
+  'cornwall-wales',
+  'bristol-channel',
+  'morecambe-bay',
+  'newfoundland',
+  'nova-scotia',
+  'fundy',
+  'maine',
+  'brittany',
+  'arctic-canada',
+  'greenland',
+  'svalbard',
+  'new-zealand-south',
+  'tierra-del-fuego',
+  'tasmania',
+  'south-georgia',
+  'falklands'
+])
+
 /** Every place, from REGIONS.md §1. Animals listed on a row replace the
  * region's. */
 const ROWS: readonly PlaceRow[] = [
@@ -711,6 +743,7 @@ function resolve(): Place[] {
       coast: landKinds(ROCK[row.id] ?? ROCK[region] ?? ROCK_BY_BIOME[row.biome], FLAT[row.id] ?? 0),
       mud: MUD[row.id] ?? DEFAULT_MUD,
       mountains: !FLAT_LAND.has(row.id),
+      volcanoes: !NO_VOLCANOES.has(row.id),
       bortle: BORTLE[row.id] ?? BORTLE[region] ?? 2,
       drySeason: DRY_SEASON[row.id]
     }

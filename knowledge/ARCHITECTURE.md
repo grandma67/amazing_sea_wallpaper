@@ -173,7 +173,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
 | wrack, coconuts | `props/debris.ts` | biome, then climate on mediterranean and volcanic | phase 11 |
 | ghost, hermit, shore crabs | `props/shoreLife.ts` | climate | phase 11 |
 | seals, colonies, migratory birds | `params.ts` `pinnipedTable`, `pickColony`; `props/migratory.ts` | climate (seals: biome × ocean table under it) | phase 11 |
-| landform chance, volcano chance, snow line | `params.ts` `pickLandform` | biome; flat places opt out (`mountains`) | **leftover**: volcanoes on Greenland and Norway, subtropical places get the Mediterranean's odds (phase 10: per place) |
+| landform chance, volcano chance, snow line | `params.ts` `pickLandform` | biome; flat places opt out (`mountains`), coasts with no volcano in sight too (`volcanoes`, 0.212) | **leftover**: subtropical places get the Mediterranean's odds (TERRAIN_FORMS phase 4: per place) |
 | island kinds | `params.ts` `ISLANDS` | biome; flat places only low ones | **leftover**: phase 10 |
 | leaf colour and fall, grass dryness, deciduous share | `phenology.ts` | climate × hemisphere; `AUTUMN_RED` and the deciduous lenga by place | right |
 | snow line by season | `phenology.ts` `SNOW_SEASON`, `TROPICAL_SNOW_LINE` | climate × hemisphere; the tropics one line all year (0.211) | right (the drawn line under it is the `pickLandform` leftover above) |
