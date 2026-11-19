@@ -193,11 +193,6 @@ say how the cause was found.
   wash band carries the rough-sea look. All islands of a day share one wash-band material.
 - **Tidepools** are runnels and puddles on the terrace (shader patches), not pools among rocks. A
   rock pool within ~15 m beside a boulder hasn't been rendered yet (plans/WATER_VIEW.md).
-- **Lightning mirrored as blocky glints** (2025-04-25, re-measured 2026-11-20): the swash no longer
-  shows the bolt at this framing; the sea does, as white 2×2 blocks in a column on the breaker band.
-  Not the blur's depth (sizing it from the landed object changed nothing there). Suspected: a ~3 px,
-  ×250-bright line in the half-size mirror target, blurred only ~1 texel sideways by the streak
-  lookup (tasks.md C4). Storm days with a bolt over the sea only.
 - **Stony beaches:** shingle reads as a flat mottled colour on most 1080p views (a 2–5 cm pebble is
   under a pixel past ~10 m at eye height; the nearest ground is often 20–40 m); `framed` stands
   15–60 m inland behind the plants, so it never has stones in the foreground. Iceland (volcanic

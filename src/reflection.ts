@@ -197,11 +197,12 @@ export function renderPlanarReflection(
   camera: PerspectiveCamera,
   width: number,
   height: number,
-  hide: Object3D[]
+  hide: Object3D[],
+  scale = 0.5
 ): PlanarReflection {
   const { mirror, textureMatrix } = mirrorCamera(camera)
 
-  const renderTarget = new WebGLRenderTarget(Math.ceil(width / 2), Math.ceil(height / 2), {
+  const renderTarget = new WebGLRenderTarget(Math.ceil(width * scale), Math.ceil(height * scale), {
     type: HalfFloatType,
     samples: 4,
     generateMipmaps: true,

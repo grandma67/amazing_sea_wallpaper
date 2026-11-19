@@ -1047,7 +1047,12 @@ export async function renderScene(
         // Lamps: the sea mirrors them as point lights (ocean.ts).
         ...lampSprites(props)
       ]
-      const reflection = renderPlanarReflection(renderer, scene, camera, width, height, hide)
+      // A lightning bolt mirrored on frozen waves is a column of glints, one
+      // per facet that faces it, each about a pixel: at half size each glint
+      // was a 2×2 block (2025-04-25, tasks.md C4). Full size on bolt days
+      // only (passes.boltMirror).
+      const boltDay = (params.storm?.bolts.length ?? 0) > 0 && pass('boltMirror')
+      const reflection = renderPlanarReflection(renderer, scene, camera, width, height, hide, boltDay ? 1 : 0.5)
       gpu.add(reflection.target)
       ocean.material.uniforms.planarMap.value = reflection.target.texture
       ocean.material.uniforms.planarMatrix.value.copy(reflection.textureMatrix)
