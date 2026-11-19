@@ -346,6 +346,9 @@ billowy tubes, base low over the sea); `bench.mjs` within +10% on roll days; the
 - **A tattered lip** (WMO: arcus has "more or less tattered edges"): on far days the lip reads
   ruler-straight. A fine, multi-octave ragged edge (tens of metres, under ~500 m long) without the
   1.2 km waves that read as hills (phase 4). Check with `edges.mjs` along the lip (`az` range).
+- **The storm's shadow (0.216):** with the sun behind the storm the shelf gets no direct sun
+  (`shelfSunScale`): the storm cell over the strike (0.215) let it under the deck onto the tiers
+  as bright grainy bands on backlit days.
 - **Front-lit tiers:** under a full deck the sun reaches the face neither way, so tiers barely
   show front-lit. Real front-lit shelves (photo B) often stand ahead of the deck in sunlight:
   a gap in the deck over the lip on front-lit days would let it in.

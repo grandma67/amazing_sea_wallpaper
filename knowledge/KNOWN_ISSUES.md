@@ -93,12 +93,6 @@ say how the cause was found.
   edges"; ours varies only over kilometres): [plans/SHELF_VOLUMETRIC.md](plans/SHELF_VOLUMETRIC.md)
   "Later". A backlit sunset shelf may still read as a flat pink band (2010-04-01; not re-checked
   since the volumetric shelf).
-- **Shelf cloud front-lit tiers read as grainy bands** (since 0.215, 2016-06-21): with the storm
-  cell now over the strike, the shelf stands sunlit (sun 23° up, 40° off the view) in front of the
-  dark Cb, and its tiers and striations show as stacked bright horizontal bands with takram's
-  grain. Found by switching off the shelf (`{"shelfCloud":null}`: gone), then `params.debug.shelf`
-  `stria` and `tiers` in turn (both shape the bands). plans/SHELF_VOLUMETRIC.md "Later": front-lit
-  tiers.
 - **Night storms** (0.189): the Cb's base reads as flat bands receding to the horizon (2026-08-20,
   2026-03-27): lit only from above by the moon or the stand-in, it has no detail, and the gap of air
   under it shows the town dome as a brown strip with a hard top edge. Seen by eye with

@@ -1,7 +1,8 @@
 import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { lipHeight, lipLine, SHELF_SHAPE, SHELF_TERMS, shelfDensity, shelfFrame, shelfGlsl, shelfShapeWith, shelfTop } from '../src/shelfCloud'
+import { lipHeight, lipLine, SHELF_SHAPE, SHELF_TERMS, shelfDensity, shelfFrame, shelfGlsl, shelfShapeWith, shelfSunScale, shelfTop } from '../src/shelfCloud'
+import { dirFromAzEl } from '../src/params'
 import type { ShelfCloudParams } from '../src/skyEvents'
 import { allParams, scene } from './days'
 
@@ -117,3 +118,18 @@ describe('shelf cloud density', () => {
     expect(shelfGlsl()).toContain(`faceBack += ${SHELF_SHAPE.striaM.toFixed(1)} * sin(`)
   })
 })
+
+describe('shelf cloud sun', () => {
+  // A shelf due north (azimuth 0) of the camera: the storm lies beyond it.
+  const frame = shelfFrame({ azimuthDeg: 0, distanceM: 5000 } as ShelfCloudParams, new Vector3())
+  it('is in the storm\'s shadow with the sun behind the storm, lit with the sun behind the camera', () => {
+    expect(shelfSunScale(frame, dirFromAzEl(0, 20))).toBe(0)
+    expect(shelfSunScale(frame, dirFromAzEl(40, 23))).toBe(0)
+    expect(shelfSunScale(frame, dirFromAzEl(180, 20))).toBe(1)
+    expect(shelfSunScale(frame, dirFromAzEl(140, 10))).toBe(1)
+    expect(shelfSunScale(frame, dirFromAzEl(90, 10))).toBeCloseTo(0.5)
+    // Overhead: no side to take.
+    expect(shelfSunScale(frame, [0, 1, 0])).toBe(1)
+  })
+})
+

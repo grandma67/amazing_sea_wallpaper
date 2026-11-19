@@ -97,7 +97,7 @@ import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
 import { rollFrame, rollShapeWith } from './rollCloud'
-import { shelfFrame, shelfShapeWith, type ShelfSky } from './shelfCloud'
+import { shelfFrame, shelfShapeWith, shelfSunScale, type ShelfSky } from './shelfCloud'
 import { cloudBase } from './cloudTypes'
 import { setRainBoost, stormEffects } from './stormEffects'
 import { flashColour, flashGroundLights, flashPower, flashShutter, flashSky, lightningFor, setFlashScale } from './lightning'
@@ -709,7 +709,12 @@ export async function renderScene(
   const shelfCloud = params.storm?.shelf
   const shelf: ShelfSky | null =
     shelfCloud != null
-      ? { frame: shelfFrame(shelfCloud, camera.position), shelf: shelfCloud, base: cloudBase(weather.formations, 'cumulonimbus'), shape: shelfShapeWith(params.debug?.shelf) }
+      ? (() => {
+          const frame = shelfFrame(shelfCloud, camera.position)
+          // passes.shelfShadow: the shelf takes the sun however it stands (before 0.216).
+          const sunScale = pass('shelfShadow') ? shelfSunScale(frame, lightDirection) : 1
+          return { frame, shelf: shelfCloud, base: cloudBase(weather.formations, 'cumulonimbus'), shape: shelfShapeWith(params.debug?.shelf), sunScale }
+        })()
       : null
   // The Morning Glory, likewise (rollCloud.ts).
   const rolls: RollSky | null =

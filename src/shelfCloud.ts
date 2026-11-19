@@ -1,4 +1,4 @@
-import { Vector2, type Vector3, Vector4 } from 'three'
+import { Uniform, Vector2, type Vector3, Vector4 } from 'three'
 import type { CloudsEffect } from '@takram/three-clouds'
 
 import { f1, patchCloudShape, setLayerDensity, shapeLayer, smoothstep, valueNoise1, VISIBLE_DENSITY, withTermsOff } from './cloudShapes'
@@ -247,6 +247,26 @@ export interface ShelfSky {
   base: number
   /** SHELF_SHAPE, or with terms off (`params.debug.shelf`). */
   shape?: ShelfShape
+  /** The share of the sun's light the shelf gets (shelfSunScale; 1 with
+   * passes.shelfShadow off). */
+  sunScale?: number
+}
+
+/** The sun's light on the shelf, 0–1. A shelf hangs from its storm's leading
+ * edge, under the cumulonimbus and its anvil, which overhang it by
+ * kilometres: with the sun behind the storm the shelf is in its shadow and
+ * the face is dark blue-grey, about as bright as the deck (photo A);
+ * front-lit it is bright, its tiers showing (photo B; plans/SHELF_VOLUMETRIC.md
+ * "Light"). Our storm has no anvil, and takram's march and shadow map let
+ * the sun under the deck onto the tiers: backlit on 2016-06-21 (sun 23° up,
+ * 40° off the view) they shone in bright bands, 3–5× the deck (0.215). Full
+ * sun on the camera's side, none on the storm's, blended over ±15° of
+ * azimuth either side of across. */
+export function shelfSunScale(frame: ShelfFrame, sunDirection: readonly [number, number, number]): number {
+  const h = Math.hypot(sunDirection[0], sunDirection[2])
+  if (h < 1e-6) return 1
+  const side = (sunDirection[0] * frame.toStorm.x + sunDirection[2] * frame.toStorm.y) / h
+  return 1 - smoothstep(-0.25, 0.25, side)
 }
 
 /** How far in front of the lip the storm's deck is filled (m): the deck
@@ -352,4 +372,18 @@ export function patchShelfCloud(clouds: CloudsEffect, sky: ShelfSky, index: numb
       shelfTiers: shelf.tiers
     }
   })
+  // The sun's share on the shelf (shelfSunScale): scale the sun (and ground
+  // bounce) the sample got by the shelf layer's share of its density, before
+  // takram adds the sky light.
+  const material = clouds.cloudsPass.currentMaterial
+  if (material.fragmentShader.split(SKY_LINE).length !== 2) throw new Error('patchShelfCloud: the clouds shader has changed; update the patch')
+  material.fragmentShader = material.fragmentShader
+    .replace('vec4 marchClouds(', 'uniform float shelfSunScale;\nvec4 marchClouds(')
+    .replace(SKY_LINE, `radiance *= 1.0 - media.weight.${layer} * (1.0 - shelfSunScale);\n      ${SKY_LINE}`)
+  material.uniforms.shelfSunScale = new Uniform(sky.sunScale ?? 1)
+  material.needsUpdate = true
 }
+
+/** takram's marchClouds adds a sample's sky light here, after its sun light
+ * (stormCells.ts, lightning.ts, nightGlow.ts patch here too). */
+const SKY_LINE = 'radiance += skyIrradiance * RECIPROCAL_PI4 * skyGradient * skyLightScale;'
