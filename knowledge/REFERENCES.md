@@ -36,6 +36,10 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   Observatory)
 - Moon: Allen, *Astrophysical Quantities* (lunar phase magnitude); astronomy-engine
   `SearchLunarEclipse` / `SearchGlobalSolarEclipse`
+- Totally eclipsed moon at −0.8 ± 0.3 mag at mid-totality (2022, advanced amateurs; the Danjon
+  scale for comparison): [Sky & Telescope, useful projects for a lunar eclipse](https://skyandtelescope.org/stargazing-and-observing/useful-projects-for-a-lunar-eclipse/),
+  [NASA, Danjon scale](https://eclipse.gsfc.nasa.gov/OH/OHres/Danjon.html) (search summaries;
+  `LUNAR_TOTAL_LIGHT`, 0.224)
 - Waterspouts: NWS Key West (1,400+ events 2006–2024, peak Aug); Balearic climatology 1989–2020
   (65% in autumn, Sep peak); Sioutas, Aegean 1957–2012 (Sep–Oct); Croatian Adriatic 2001–2011
   (DHMZ)

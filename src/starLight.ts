@@ -42,12 +42,41 @@ export const STARLIT_ZENITH = 0.0653
  * (STARS.md §1, "Light on the ground"). */
 export const STARLIT_LUX = 0.002
 
-/** Render units per real lux (or cd/m²) of the sky as drawn. */
-export function renderPerLux(night: 'moonlit' | 'starlit' | null, elongationDeg: number): number {
+/** Render units per real lux (or cd/m²) of the sky as drawn. `eclipseDim`:
+ * the share of the phase's moonlight a lunar eclipse leaves (eclipseDim()):
+ * the atmosphere is still drawn at the moon-as-sun's strength, so in
+ * totality each render unit is that much less real light, and the sky,
+ * clouds and haze come out as dim as the eclipsed moon makes them. */
+export function renderPerLux(night: 'moonlit' | 'starlit' | null, elongationDeg: number, eclipseDim = 1): number {
   if (night === 'starlit') return STARLIT_ZENITH / darkZenithLuminance()
   // The light drawn at the sun's strength is really the sun, or the moon.
-  const light = night === 'moonlit' ? 10 ** (-0.4 * (FULL_MOON_MAG - SUN_MAG)) * phaseLight(elongationDeg) : 1
+  const light = night === 'moonlit' ? 10 ** (-0.4 * (FULL_MOON_MAG - SUN_MAG)) * phaseLight(elongationDeg) * eclipseDim : 1
   return 1 / (light * RENDER_UNIT)
+}
+
+/** A full moon's illuminance at mean distance (lux, ~0.33). */
+export const FULL_MOON_LUX = SUN_TOA * RENDER_UNIT * 10 ** (-0.4 * (FULL_MOON_MAG - SUN_MAG))
+
+type EclipseNight = Pick<SceneParams, 'eclipse' | 'moonlight' | 'nightSky' | 'sunDirection' | 'moonDirection'>
+
+/** The light of a lunar eclipse night as a share of the phase's moonlight;
+ * 1 without one. The eclipsed moon (params.moonlight, ×LUNAR_TOTAL_LIGHT in totality)
+ * plus the starlight and airglow that light every night (STARLIT_LUX: more
+ * than the eclipsed moon, and what a starlit night's stand-in carries), so
+ * in totality the sky falls to about the moonless level (JAAVSO 2019: the
+ * zenith reached the site's new-moon brightness; tasks.md D14) and an
+ * overcast deck keeps the starlit night's light, not black. */
+export function eclipseDim(p: EclipseNight): number {
+  if (p.nightSky !== 'moonlit' || p.eclipse == null || !p.eclipse.type.startsWith('lunar')) return 1
+  const phase = phaseLight(elongationDeg(p)) * FULL_MOON_LUX
+  return phase > 0 ? Math.min(1, (p.moonlight * FULL_MOON_LUX + STARLIT_LUX) / phase) : 1
+}
+
+/** Of an eclipse night's light, the eclipsed moon's share (the rest is
+ * starlight and airglow): what takes the umbra's copper tint. */
+export function eclipseMoonShare(p: EclipseNight): number {
+  const moon = p.moonlight * FULL_MOON_LUX
+  return moon / (moon + STARLIT_LUX)
 }
 
 /** Angle between the sun and the moon (degrees). */
@@ -65,8 +94,8 @@ export function darkZenithLuminance(): number {
 
 /** Irradiance of a magnitude-0 star above the air, in render units, for the
  * sky as drawn: `night` is `params.nightSky` (null by day and in twilight). */
-export function starScale(night: 'moonlit' | 'starlit' | null, elongationDeg: number): number {
-  return SUN_TOA * RENDER_UNIT * 10 ** (0.4 * SUN_MAG) * renderPerLux(night, elongationDeg)
+export function starScale(night: 'moonlit' | 'starlit' | null, elongationDeg: number, eclipseDim = 1): number {
+  return SUN_TOA * RENDER_UNIT * 10 ** (0.4 * SUN_MAG) * renderPerLux(night, elongationDeg, eclipseDim)
 }
 
 /** The lens's point spread, in pixels at 1080p (scaled with the image): a

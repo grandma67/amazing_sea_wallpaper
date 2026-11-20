@@ -17,6 +17,13 @@ import { EclipseKind, SearchGlobalSolarEclipse, SearchLunarEclipse } from 'astro
 // 2.7 moon diameters across, takes a dark bite, and in totality the moon
 // glows copper-red with the sunsets of the whole earth bent into the shadow.
 
+/** A totally eclipsed moon's light, as a share of the full moon's: measured
+ * at −0.8 ± 0.3 mag at mid-totality (2022, Sky & Telescope), the full moon
+ * −12.7: ~12 mag fainter, 1.7e-5; brighter coppery eclipses (Danjon L3–4)
+ * reach ~−2. 3e-5 (−1.4 mag) between them. It was 0.0015 (−5.7 mag), which
+ * a moon-bright sky hid until the sky dimmed with it (tasks.md D14). */
+export const LUNAR_TOTAL_LIGHT = 3e-5
+
 /** Moonlight relative to a full moon, for an elongation from the sun of
  * `elongationDeg` (180 = full). */
 export function moonlight(elongationDeg: number): number {

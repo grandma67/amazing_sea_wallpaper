@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { moonlight as phaseLight } from '../src/celestial'
 import {
   darkZenithLuminance,
+  eclipseDim,
+  eclipseMoonShare,
   elongationDeg,
+  FULL_MOON_LUX,
   limitingMagnitude,
   PSF,
   psfWeight,
@@ -11,10 +14,11 @@ import {
   renderPerLux,
   starPeak,
   starScale,
+  STARLIT_LUX,
   STARLIT_ZENITH,
   SUN_TOA
 } from '../src/starLight'
-import { allParams } from './days'
+import { allParams, scenes } from './days'
 
 // NIGHT_SKY phase 2: stars in the sky's own units.
 
@@ -103,6 +107,33 @@ describe('star light', () => {
     for (const p of allParams()) {
       const s = starScale(p.nightSky, elongationDeg(p))
       expect(Number.isFinite(s) && s > 0).toBe(true)
+    }
+  })
+})
+
+// D14: a lunar eclipse dims the moon-lit sky, clouds and haze through the
+// night's render units; its light is the eclipsed moon plus the starlight and
+// airglow every night has, so totality falls to about the starlit level.
+describe('eclipseDim', () => {
+  it('is 1 without a lunar eclipse', () => {
+    for (const p of allParams().filter(p => p.eclipse == null || !p.eclipse.type.startsWith('lunar')).slice(0, 200)) expect(eclipseDim(p)).toBe(1)
+  })
+  it('leaves totality at the starlit night\'s light plus the copper moon', () => {
+    for (const p of scenes({ eclipse: 'lunar-total' }, 10)) {
+      const phase = phaseLight(elongationDeg(p)) * FULL_MOON_LUX
+      const lux = eclipseDim(p) * phase
+      expect(lux).toBeGreaterThanOrEqual(STARLIT_LUX)
+      expect(lux).toBeLessThan(1.1 * STARLIT_LUX)
+      expect(eclipseMoonShare(p)).toBeLessThan(0.05)
+      // The render units follow: the same drawn sky is that much less light.
+      expect(renderPerLux('moonlit', elongationDeg(p), eclipseDim(p)) / renderPerLux('moonlit', elongationDeg(p))).toBeCloseTo(1 / eclipseDim(p), 6)
+    }
+  })
+  it('dims a partial eclipse by its share and keeps it mostly moonlight', () => {
+    for (const p of scenes({ eclipse: 'lunar-partial' }, 10)) {
+      expect(eclipseDim(p)).toBeLessThan(1)
+      expect(eclipseDim(p)).toBeGreaterThan(0.04)
+      expect(eclipseMoonShare(p)).toBeGreaterThan(0.8)
     }
   })
 })

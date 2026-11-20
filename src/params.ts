@@ -1,6 +1,6 @@
 import { MoonPhase } from 'astronomy-engine'
 
-import { eclipseOfType, eclipseOn, moonlight as phaseLight, REAL_SUN_LATITUDE, sunAzimuthDeg, sunHourAngleDeg, sunLimits, type EclipseParams, type SunLimits } from './celestial'
+import { eclipseOfType, eclipseOn, LUNAR_TOTAL_LIGHT, moonlight as phaseLight, REAL_SUN_LATITUDE, sunAzimuthDeg, sunHourAngleDeg, sunLimits, type EclipseParams, type SunLimits } from './celestial'
 
 import { beachName, isStony, materialChances, STONE_SIZES, STONY_RUNUP, stonyShape, type BeachMaterial, type Ridge } from './beach'
 import { beachShape, beachStateFor, breakerHeight, grainIn, sedimentFor, wavePeriod, type Bar, type BeachState, type Cusps, type Rips } from './beachState'
@@ -1874,7 +1874,7 @@ function buildParams(
   const nightSky =
     timeOfDay !== 'night' ? null : lunarEclipse || (moonElevationDeg > 2 && moonIllumination > 0.03) ? 'moonlit' : 'starlit'
   let moonlight = nightSky === 'moonlit' ? phaseLight(elongation) : 0
-  if (lunarEclipse) moonlight *= eclipse!.type === 'lunar-total' ? 0.0015 : 1 - 0.95 * eclipse!.obscuration
+  if (lunarEclipse) moonlight *= eclipse!.type === 'lunar-total' ? LUNAR_TOTAL_LIGHT : 1 - 0.95 * eclipse!.obscuration
 
   const heightM = keep(
     'heightM',

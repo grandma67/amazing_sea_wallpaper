@@ -190,7 +190,14 @@ How the sky code works. What is drawn where and how often: [CLOUDS.md](../CLOUDS
   vertical; impossible elevations clamp the hour angle, keeping the pole exact; the moon stays
   within 5° of the ecliptic, `eclipticOffset`, on either side of the sun); moon disc at
   constant surface brightness, earthshine on crescents, umbra with copper glow (`moon.ts`); lunar
-  eclipses dim the moonlight. `eclipse.ts`: the moon covers the sun; in totality the sky darkens
+  eclipses dim the night through its render units (0.224, `passes.lunarEclipseSky`;
+  `starLight.ts` `eclipseDim`): the night's light is the eclipsed moon (`LUNAR_TOTAL_LIGHT`, 3e-5 of
+  full in totality, −1.4 mag) plus starlight and airglow (`STARLIT_LUX`), as a share of the phase's
+  moonlight; `renderPerLux`, `starScale`, `glowScale` take it, so the sky, clouds and haze drawn at
+  the moon-as-sun's strength become that dim while stars, airglow, lamps and flashes keep their
+  real brightness; the copper disc's surface (`umbraGlow`) and the umbra's tint on the ground follow
+  the moon's share (`eclipseMoonShare`), and the night grade blends to a starlit night's by it.
+  Totality reads 20.7–21.3 mag/arcsec² 15° up on clear real days (17.3–17.8 before). `eclipse.ts`: the moon covers the sun; in totality the sky darkens
   to a horizon glow with corona and stars, no direct sun, sky light ×~0.01, no aerial-perspective
   inscatter, dim environment on props. Simplification: the scene has no real location, so
   off-path days show the eclipse as if on the path (partials at a random 30–85%).

@@ -19,6 +19,8 @@ uniform float earthshine;
 // Lunar eclipse: the earth's umbra, in units of the moon's radius.
 uniform float umbra;
 uniform vec2 umbraCenter;
+// The copper umbra's surface brightness, a share of the full disc's (scene.ts).
+uniform float umbraGlow;
 uniform float umbraRadius;
 varying vec2 vUv;
 
@@ -58,7 +60,7 @@ void main() {
     float d = length(vUv - umbraCenter);
     float penumbra = smoothstep(umbraRadius + 1.0, umbraRadius, d);
     float inside = smoothstep(umbraRadius + 0.05, umbraRadius - 0.05, d);
-    vec3 copper = vec3(1.0, 0.3, 0.1) * 0.0008 * (0.5 + 1.5 * smoothstep(umbraRadius - 1.2, umbraRadius, d));
+    vec3 copper = vec3(1.0, 0.3, 0.1) * umbraGlow * (0.5 + 1.5 * smoothstep(umbraRadius - 1.2, umbraRadius, d));
     color = mix(color * (1.0 - 0.6 * penumbra), radiance * albedo * copper, inside);
   }
   // At night's render units the full disc passes the frame's half-float ceiling (65 504): the Mac
@@ -78,7 +80,8 @@ export function createMoon(): Mesh<PlaneGeometry, ShaderMaterial> {
       earthshine: { value: 0.002 },
       umbra: { value: 0 },
       umbraCenter: { value: new Vector2() },
-      umbraRadius: { value: 1 }
+      umbraRadius: { value: 1 },
+      umbraGlow: { value: 0.0008 }
     },
     transparent: true,
     premultipliedAlpha: true,

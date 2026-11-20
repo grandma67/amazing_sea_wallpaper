@@ -2,7 +2,7 @@ import { EclipseKind, SearchGlobalSolarEclipse, SearchLunarEclipse } from 'astro
 import { describe, expect, it } from 'vitest'
 
 import { shiftDate } from '../src/dates'
-import { eclipseOn, moonlight, offsetFor, overlap, UMBRA_RATIO } from '../src/celestial'
+import { eclipseOn, LUNAR_TOTAL_LIGHT, moonlight, offsetFor, overlap, UMBRA_RATIO } from '../src/celestial'
 import { generateParams, SUN_ANGULAR_RADIUS } from '../src/params'
 import { allParams, scenes } from './days'
 
@@ -81,7 +81,14 @@ describe('eclipses', () => {
       // Dimmed by the part of the disc in the umbra; nearly dark in totality.
       // The night's moonlight without the eclipse, from the phase.
       const full = moonlight(p.moonPhaseDeg <= 180 ? p.moonPhaseDeg : 360 - p.moonPhaseDeg)
-      if (p.eclipse!.type === 'lunar-total') expect(p.moonlight).toBeLessThan(0.002 * full)
+      // Totality: ~12 mag under the full moon (−0.8 ± 0.3 mag measured in 2022;
+      // coppery eclipses to ~−2): between −3 and 0 mag at full phase (D14).
+      if (p.eclipse!.type === 'lunar-total') {
+        expect(p.moonlight).toBeCloseTo(full * LUNAR_TOTAL_LIGHT, 9)
+        const mag = -12.74 - 2.5 * Math.log10(LUNAR_TOTAL_LIGHT)
+        expect(mag).toBeGreaterThan(-3)
+        expect(mag).toBeLessThan(0)
+      }
       else expect(p.moonlight).toBeCloseTo(full * (1 - 0.95 * p.eclipse!.obscuration), 6)
     }
   })

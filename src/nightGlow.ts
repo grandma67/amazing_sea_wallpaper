@@ -225,8 +225,8 @@ export function nightGlowFor(
 }
 
 /** Render units per S10 of the sky as drawn. */
-export function glowScale(night: SceneParams['nightSky'], elongationDeg: number): number {
-  return s10Luminance() * renderPerLux(night, elongationDeg)
+export function glowScale(night: SceneParams['nightSky'], elongationDeg: number, eclipseDim = 1): number {
+  return s10Luminance() * renderPerLux(night, elongationDeg, eclipseDim)
 }
 
 

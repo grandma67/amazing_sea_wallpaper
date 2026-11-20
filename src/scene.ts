@@ -55,7 +55,7 @@ import { AccumulatePass } from './accumulate'
 import { assetUrl } from './assets'
 import type { RGB } from './biome'
 import { createCamera } from './camera'
-import { moonlight as phaseLight } from './celestial'
+import { LUNAR_TOTAL_LIGHT, moonlight as phaseLight } from './celestial'
 import { createClouds, type RollSky, loadCloudAssets, loadImageTexture, primeCloudShadow, renderCloudyEnvironment } from './clouds'
 import { patchSkyContrails } from './contrails'
 import { patchSkyNoctilucent } from './noctilucent'
@@ -91,7 +91,7 @@ import { setGlowBrightness } from './props/storm'
 import { setSprayLighting, type WaterIsland } from './props/surf'
 import { foldedSkyCube, renderPlanarReflection } from './reflection'
 import { apply, ECLIPTIC_POLE, skyRotation, sunECI } from './skyClock'
-import { darkZenithLuminance, elongationDeg, PSF, renderPerLux, starScale, STARLIT_LUX } from './starLight'
+import { darkZenithLuminance, eclipseDim, eclipseMoonShare, elongationDeg, PSF, renderPerLux, starScale, STARLIT_LUX } from './starLight'
 import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, StillScenePass } from './stillScene'
@@ -251,10 +251,17 @@ export async function renderScene(
   const eclipse = params.eclipse
   const solarEclipse = eclipse != null && eclipse.type.startsWith('solar')
   const totality = eclipse?.type === 'solar-total'
+  // A lunar eclipse dims the moon-lit sky, clouds and haze through the
+  // night's render units (passes.lunarEclipseSky; tasks.md D14); off: only
+  // the ground light dimmed, the sky at the phase's full strength.
+  const lunarDim = params.debug?.passes?.lunarEclipseSky !== false ? eclipseDim(params) : 1
   // How far the camera opens up for a darker night: partly, as the eye
   // adapts, so a half moon is dimmer than a full one and starlight dimmer
   // still (a long exposure under the stars alone).
-  const nightScale = !night ? 1 : moonlit ? Math.max(params.moonlight, 0.06) ** 0.5 : 0.5
+  const moonScale = Math.max(params.moonlight, 0.06) ** 0.5
+  // An eclipse night is lit mostly by starlight and airglow (eclipseMoonShare):
+  // graded like a starlit night by that share (passes.lunarEclipseSky).
+  const nightScale = !night ? 1 : moonlit ? (lunarDim === 1 ? moonScale : eclipseMoonShare(params) * moonScale + (1 - eclipseMoonShare(params)) * 0.5) : 0.5
   const lightDirectionWorld = new Vector3(...lightDirection)
   const lightECEF = toECEF(lightDirection)
   const moonECEF = toECEF(params.moonDirection)
@@ -341,7 +348,7 @@ export async function renderScene(
   patchSkyNoctilucent(skyMaterial, params.noctilucent, params.nacreous)
   patchSkyContrails(skyMaterial, params.contrails, worldToECEF, AtmosphereParameters.DEFAULT.bottomRadius, METER_TO_LENGTH_UNIT)
   // Shooting stars in the stars' units (meteors.ts); too thin for the cube.
-  if (pass('meteors')) patchSkyMeteors(skyMaterial, params.meteors, worldToECEF, starScale(params.nightSky, elongationDeg(params)), vfov)
+  if (pass('meteors')) patchSkyMeteors(skyMaterial, params.meteors, worldToECEF, starScale(params.nightSky, elongationDeg(params), lunarDim), vfov)
   const sky = skyMesh(skyMaterial)
   sky.userData.sky = true
   scene.add(sky)
@@ -359,7 +366,7 @@ export async function renderScene(
   // patch so they add to the night sky it draws.
   const aurora = pass('aurora') ? params.aurora : null
   if (aurora != null) {
-    const scale = auroraScale(renderPerLux(params.nightSky, elongationDeg(params)))
+    const scale = auroraScale(renderPerLux(params.nightSky, elongationDeg(params), lunarDim))
     for (const material of [skyMaterial, envSkyMaterial]) patchSkyAurora(material, aurora, worldToECEF, scale)
   }
   // The towns' light on the clouds from below (nightGlow.ts), on nights with a glow.
@@ -373,7 +380,7 @@ export async function renderScene(
       realSun: apply(eciToWorld, sunECI(params.date)),
       inland: hasLand(params.coast) ? [-Math.sin(az), 0, Math.cos(az)] : null
     }
-    const scale = glowScale(params.nightSky, elongationDeg(params))
+    const scale = glowScale(params.nightSky, elongationDeg(params), lunarDim)
     const map = milkyWayMap ?? new Texture()
     for (const material of [skyMaterial, envSkyMaterial]) patchSkyNightGlow(material, glow, frame, map, scale, night && !moonlit)
     if (pass('townLight')) townSky = townSkyFor(glow, frame.inland, scale)
@@ -388,7 +395,7 @@ export async function renderScene(
     const geometry = new StarsGeometry(data)
     const r = eciToWorld
     const starRotation = new Matrix4().set(r[0], r[1], r[2], 0, r[3], r[4], r[5], 0, r[6], r[7], r[8], 0, 0, 0, 0, 1)
-    const scale = starScale(params.nightSky, elongationDeg(params))
+    const scale = starScale(params.nightSky, elongationDeg(params), lunarDim)
     for (const target of [scene, envScene]) {
       // The reflection cube's faces are 90° and ENV_SIZE texels tall.
       const material =
@@ -411,7 +418,7 @@ export async function renderScene(
   const planets = pass('stars') ? params.planets : []
   if (planets.length > 0) {
     const geometry = new StarsGeometry(planetStarData(planets, PLANET_MAGNITUDES))
-    const material = createStarsMaterial({ ...textures }, starScale(params.nightSky, elongationDeg(params)), height, height / 1080)
+    const material = createStarsMaterial({ ...textures }, starScale(params.nightSky, elongationDeg(params), lunarDim), height, height / 1080)
     material.magnitudeRange.set(...PLANET_MAGNITUDES)
     material.worldToECEFMatrix.copy(worldToECEF)
     material.sunDirection.copy(lightECEF)
@@ -433,6 +440,9 @@ export async function renderScene(
         mu.umbra.value = 1
         mu.umbraCenter.value.set(Math.cos(eclipse.angle), Math.sin(eclipse.angle)).multiplyScalar(eclipse.offset)
         mu.umbraRadius.value = eclipse.ratio
+        // passes.lunarEclipseSky: the copper disc at LUNAR_TOTAL_LIGHT of the
+        // full one (its luminance; the edge brightening averages ~1); off: 0.0008.
+        if (lunarDim !== 1) mu.umbraGlow.value = LUNAR_TOTAL_LIGHT / (0.2126 + 0.7152 * 0.3 + 0.0722 * 0.1)
       }
       moon.userData.sky = true
       target.add(moon)
@@ -495,7 +505,7 @@ export async function renderScene(
     // against it.
     const moonRadiance = sunIrradiance
       .clone()
-      .multiplyScalar(1 / (Math.PI * REAL_MOON_ANGULAR_RADIUS ** 2 * phaseLight(elongation)))
+      .multiplyScalar(1 / (Math.PI * REAL_MOON_ANGULAR_RADIUS ** 2 * phaseLight(elongation) * lunarDim))
     for (const target of [scene, envScene]) {
       target.traverse(o => {
         const mat = (o as Mesh).material as { uniforms?: Record<string, Uniform> }
@@ -510,8 +520,12 @@ export async function renderScene(
   // A lunar eclipse takes the moonlight away (the sky only through the
   // night's exposure): what's left is the umbra's dim copper glow.
   if (eclipse != null && !solarEclipse) {
-    sunIrradiance.multiplyScalar(params.moonlight / phaseLight(elongation))
-    if (eclipse.type === 'lunar-total') sunIrradiance.multiply(new Color(1, 0.35, 0.15))
+    // (With passes.lunarEclipseSky the render units carry the dimming.)
+    if (lunarDim === 1) sunIrradiance.multiplyScalar(params.moonlight / phaseLight(elongation))
+    // The umbra's copper on the moon's share of the light only (the rest is
+    // starlight and airglow) with the eclipse sky; all of it before.
+    const copper = new Color(1, 0.35, 0.15)
+    if (eclipse.type === 'lunar-total') sunIrradiance.multiply(lunarDim === 1 ? copper : new Color(1, 1, 1).lerp(copper, eclipseMoonShare(params)))
   }
 
   // --- Ocean ----------------------------------------------------------------
@@ -583,7 +597,7 @@ export async function renderScene(
   // The aurora's own light on the ground: the display as drawn, integrated
   // over the sky (aurora.ts auroraLux), through the gaps in the cloud.
   if (aurora != null) {
-    const auroraLight = new Color(...auroraLux(aurora)).multiplyScalar(renderPerLux(params.nightSky, elongation) * weather.sunVisibility)
+    const auroraLight = new Color(...auroraLux(aurora)).multiplyScalar(renderPerLux(params.nightSky, elongation, lunarDim) * weather.sunVisibility)
     tu.skyIrradiance.value.add(auroraLight)
     u.skyIrradiance.value.add(auroraLight)
     auroraAmbient = new AmbientLight(auroraLight, 1)
@@ -657,7 +671,7 @@ export async function renderScene(
   // the sea. passes.flashLight off: no flash light.
   const flashOn = pass('flashLight')
   const flashWbLum = 0.2126 * whiteBalance.r + 0.7152 * whiteBalance.g + 0.0722 * whiteBalance.b
-  const renderPerCd = renderPerLux(params.nightSky, elongationDeg(params))
+  const renderPerCd = renderPerLux(params.nightSky, elongationDeg(params), lunarDim)
   // The luminance the exposure puts at mid-grey (cd/m²).
   const ambientCd = 0.18 / (exposure * flashWbLum) / renderPerCd
   const flashShutterS = flashShutter(ambientCd)
@@ -743,7 +757,7 @@ export async function renderScene(
   composer.addPass(still ?? new RenderPass(scene, camera))
   // The display lights the clouds (their edges toward it glow).
   if (clouds != null && aurora != null && pass('auroraClouds')) {
-    patchCloudsAurora(clouds.cloudsPass.currentMaterial, worldToECEF, aurora, renderPerLux(params.nightSky, elongation))
+    patchCloudsAurora(clouds.cloudsPass.currentMaterial, worldToECEF, aurora, renderPerLux(params.nightSky, elongation, lunarDim))
   }
   if (clouds != null) {
     // Clouds are soft: ray march them at no more than ~1080p. Except on a
@@ -770,7 +784,7 @@ export async function renderScene(
   } else {
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }
-  setGlowBrightness(props, sceneLuminance, pass('beamCandela') ? renderPerLux(params.nightSky, elongationDeg(params)) : null)
+  setGlowBrightness(props, sceneLuminance, pass('beamCandela') ? renderPerLux(params.nightSky, elongationDeg(params), lunarDim) : null)
   // Ships' lamps: candela into scene units by what the metered sky really is.
   const perCdM2 = sceneLuminance / skyLuminance(params)
   setLampBrightness(props, perCdM2)
@@ -785,7 +799,7 @@ export async function renderScene(
     ;(u.lampIntensities.value as Vector3[])[i].copy(lamp.intensity).multiplyScalar(perCdM2)
   })
   const far = 1e7
-  const scaleNow = starScale(params.nightSky, elongationDeg(params))
+  const scaleNow = starScale(params.nightSky, elongationDeg(params), lunarDim)
   bright.forEach((planet, k) => {
     const i = lamps.length + k
     const colour = PLANETS.find(q => q.id === planet.id)!.colour
@@ -1112,7 +1126,7 @@ export async function renderScene(
   // (a streak along the wind over the averaged frames).
   const longShutter = night && boostRule != null && still != null && accumulate != null && pass('longExposure')
   const wbLum = 0.2126 * whiteBalance.r + 0.7152 * whiteBalance.g + 0.0722 * whiteBalance.b
-  const cdPerUnit = 1 / renderPerLux(params.nightSky, elongationDeg(params))
+  const cdPerUnit = 1 / renderPerLux(params.nightSky, elongationDeg(params), lunarDim)
   const shutterOf = (medianExposed: number, boost: number): number => shutterSeconds((medianExposed / (exposure * wbLum)) * cdPerUnit, medianExposed * boost)
   // The lighthouse's lens turns while the shutter is open. The shutter is the
   // sky meter's (the median cancels out of shutterOf) times the frame's boost,
@@ -1221,7 +1235,7 @@ export async function renderScene(
   const probeGrade = {
     exposure: exposed,
     whiteBalance: whiteBalance.toArray() as [number, number, number],
-    cdPerUnit: 1 / renderPerLux(params.nightSky, elongationDeg(params)),
+    cdPerUnit: 1 / renderPerLux(params.nightSky, elongationDeg(params), lunarDim),
     darkZenithCd: darkZenithLuminance()
   }
   const probe =
