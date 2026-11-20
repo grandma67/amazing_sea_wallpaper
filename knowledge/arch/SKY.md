@@ -79,6 +79,10 @@ How the sky code works. What is drawn where and how often: [CLOUDS.md](../CLOUDS
     `PointLight` per bolt for the props, no shadows; the sea mirrors the cloud. Storm nights keep the
     boost metered with the flash off (`FrameMeterPass.held`), so the flash adds to the ambient
     exposure as in a photo; ~3× starlight on a beach 5 km from a bolt, invisible by day;
+  - **the shelf is part of the face** (0.222, `passes.flashShelf`): on shelf days a sample that
+    is mostly the shelf's layer (`media.weight` > 0.5) starts the face too, below the Cb base; scud
+    still doesn't. Without it a night shelf in front of the flash stayed a dark flat band
+    (2026-08-20, 2026-03-27);
   - `passes.flashLight: false`: no flash light (0.185 kept the old screen-space glow under it;
     removed in 0.186 with the ocean's own glow term).
 - **The shelf cloud** (`shelfCloud.ts`, plans/SHELF_VOLUMETRIC.md; 0.174–0.177): drawn by takram's

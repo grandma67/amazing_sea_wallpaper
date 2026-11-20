@@ -667,6 +667,8 @@ export async function renderScene(
     flashOn && cloudAssets != null && params.storm != null
       ? flashSky(flashes, cloudBase(weather.formations, 'cumulonimbus'), flashPowerLm, renderPerCd, params.debug?.flash?.scale ?? 1, params.debug?.flash?.lights)
       : null
+  // passes.flashShelf: the shelf cloud is part of the flash's face (lightning.ts).
+  if (flashLit != null) flashLit.shelfFace = pass('flashShelf')
   // The lit cloud base over each bolt lights the land (the terrain shader's own
   // term, point lights for the props); the sea mirrors the cloud itself.
   const groundLights = flashOn && pass('flashGround') ? flashGroundLights(flashes, flashPowerLm * (params.debug?.flash?.scale ?? 1), renderPerCd) : []

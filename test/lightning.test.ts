@@ -1,8 +1,8 @@
-import { Vector3 } from 'three'
+import { ShaderMaterial, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import { CLOUD_GENERA, cloudBase } from '../src/cloudTypes'
-import { CHARGE_HEIGHT_M, chargeHeightM, LIGHTS_PER_FLASH, LOW_LIGHTS, MAX_FLASHES, exitLift, FLASH, flashGlowCd, flashPower, flashShutter, flashGroundLights, flashSky, GROUND_SHARE, lightningFor, ORIGIN_OFFSET_M } from '../src/lightning'
+import { CHARGE_HEIGHT_M, chargeHeightM, LIGHTS_PER_FLASH, LOW_LIGHTS, MAX_FLASHES, exitLift, FLASH, flashGlowCd, flashPower, flashShutter, flashGroundLights, flashSky, GROUND_SHARE, patchCloudsFlash, lightningFor, ORIGIN_OFFSET_M } from '../src/lightning'
 import type { SceneParams } from '../src/params'
 import type { Climate } from '../src/places'
 import { season, type Season } from '../src/seasons'
@@ -210,5 +210,31 @@ describe('thunderstorms at night', () => {
     // Every test day forced to night: the storm draw doesn't know the hour.
     const nights = DAYS.filter((_, i) => i % 3 === 0).map(d => scene({ timeOfDay: 'night' }, d))
     expectShare(nights, p => p.storm != null, 0.07)
+  })
+})
+
+// The shelf cloud is the storm's own face (D31): on shelf days a ray's face
+// may start in the shelf's layer below the Cb base; passes.flashShelf off (or
+// no shelf) keeps the base-only test.
+describe('patchCloudsFlash on a shelf day', () => {
+  const source = [
+    'vec4 marchClouds(',
+    '  float transmittanceSum = 0.0;',
+    '      radiance += skyIrradiance * RECIPROCAL_PI4 * skyGradient * skyLightScale;',
+    '      #endif // POWDER',
+    ''
+  ].join('\n')
+  const patched = (shelfLayer: number | null, shelfFace?: boolean): string => {
+    const material = new ShaderMaterial({ fragmentShader: source })
+    const sky = flashSky([lightningFor(scene({ storm: 'thunderstorm', timeOfDay: 'night', eclipse: null }), new Vector3())[0]], 600, 1e9, 1)!
+    patchCloudsFlash(material, { ...sky, shelfLayer, shelfFace })
+    return material.fragmentShader
+  }
+  it('starts the face in the shelf layer', () => {
+    expect(patched(2)).toContain('(height >= flashFaceHeight || media.weight.z > 0.5)')
+  })
+  it('keeps the base-only face without a shelf or with the switch off', () => {
+    expect(patched(null)).toContain('(height >= flashFaceHeight)')
+    expect(patched(2, false)).toContain('(height >= flashFaceHeight)')
   })
 })

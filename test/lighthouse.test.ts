@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { Vector3 } from 'three'
+import { Vector3, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial } from 'three'
 
 import { BEAM_MAX, BEAM_SAMPLES, beamDirections, beamPower, DIVERGENCE, LAMP_CD, beamLight, beamSampleAt, lensTurnSeconds, sweepAngle, sweptWindow, SWEEP_MIN } from '../src/lighthouse'
-import { EARTH_RADIUS, type LighthouseParams } from '../src/params'
+import type { RGB } from '../src/biome'
+import { EARTH_RADIUS, type LighthouseParams, type SceneParams } from '../src/params'
 import { createLighthouse, LANTERN_SIDE_CD, tower } from '../src/props/lighthouse'
+import { setGlowBrightness } from '../src/props/storm'
 import { allParams, expectEvery, viewOf } from './days'
 
 const light = (flashes: number, groups: number, beamAzimuthDeg = 0): LighthouseParams => ({
@@ -220,5 +222,23 @@ describe('a lamp of real intensity (passes.beamCandela)', () => {
       .filter(p => createLighthouse(viewOf(p), null).length === 0)
       .map(p => `${p.date} ${p.place.id} ${p.coast.type}`)
     expect(missing).toEqual([])
+  })
+
+  // The lit glazing is glass (D27): it mirrors the sky over the lamp's glow
+  // (emissive), so at sunset it isn't a matte band; passes.lanternGlass off
+  // gives the glow alone, as before.
+  it('glazes a lit lantern with glass that glows through its emissive', () => {
+    const day = allParams().find(p => p.lighthouse?.lit === true)!
+    const glassOf = (p: SceneParams): Mesh => createLighthouse(viewOf(p), null).find(o => o.userData.glow != null) as Mesh
+    const glass = glassOf(day)
+    const material = glass.material as MeshStandardMaterial
+    expect(material.isMeshStandardMaterial).toBe(true)
+    expect(material.metalness).toBe(0)
+    setGlowBrightness(glass, 1, 1)
+    const { cd, color } = glass.userData.glow as { cd: number; color: RGB }
+    const luma = 0.2126 * color[0] + 0.7152 * color[1] + 0.0722 * color[2]
+    expect(material.emissive.g).toBeCloseTo((color[1] * cd) / luma)
+    const old = glassOf({ ...day, debug: { passes: { lanternGlass: false } } }).material as MeshBasicMaterial
+    expect(old.isMeshBasicMaterial).toBe(true)
   })
 })

@@ -332,7 +332,12 @@ node scripts/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --
   1080p), the core widened by the lit lens's disc (`LENS_RADIUS` 0.6 m); bloom does the rest. The
   glazing between flashes is `LANTERN_SIDE_CD` (500 cd, an estimate) over its side-on area, ~90
   cd/m² (`userData.glow.cd`, `setGlowBrightness` with `renderPerCd`). Off: `passes.beamCandela:
-  false` (multiples of the metered sky per time of day, as before).
+  false` (multiples of the metered sky per time of day, as before). The lit glazing is glass
+  (0.221, `passes.lanternGlass`): a `MeshStandardMaterial` (dark, metalness 0, roughness 0.05) that
+  mirrors the sky cube with a dielectric's Fresnel, the glow as its `emissive` (`setGlowBrightness`
+  sets `emissive` on a standard material, `color` on a basic one); it casts and takes the near
+  shadow. A sunset sky (1 000–5 000 cd/m²) outshines the ~90 cd/m² glow, so there the glass reads
+  by its reflection, as in photos; the bare glow was a matte olive band.
 
 ## On the beach
 

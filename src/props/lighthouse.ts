@@ -288,13 +288,23 @@ export function createLighthouse(ctx: PropContext, avoid: Object3D | null): Obje
   mesh.position.copy(at)
   mesh.castShadow = true
   mesh.receiveShadow = true
+  // Lit glazing (passes.lanternGlass): glass, so it mirrors the sky (a
+  // dielectric's Fresnel: ~4% face on, more toward the rim) over the lamp's
+  // glow (emissive, setGlowBrightness). A sunset sky (1 000–5 000 cd/m²)
+  // outshines the ~90 cd/m² glow; the bare glow was a dull, matte band there
+  // (tasks.md D27). Off: the glow alone, as before.
+  const glazing = ctx.params.debug?.passes?.lanternGlass !== false
   const glass = new Mesh(
     lantern.build(),
     light.lit
-      ? new MeshBasicMaterial({ vertexColors: true })
+      ? glazing
+        ? new MeshStandardMaterial({ color: 0x0d1014, roughness: 0.05, metalness: 0, emissive: 0xffffff })
+        : new MeshBasicMaterial({ vertexColors: true })
       : new MeshStandardMaterial({ color: 0x0d1014, roughness: 0.1, metalness: 0.6 })
   )
   glass.position.copy(at)
+  // Lit by the sun now, so in the near shadow like every solid prop.
+  if (light.lit && glazing) glass.castShadow = glass.receiveShadow = true
   // The glazing between flashes: the lamp's side light over its face (cd/m²,
   // passes.beamCandela), else a multiple of the metered sky.
   if (light.lit) glass.userData.glow = { color: [1, 0.86, 0.62], scale: LANTERN_GLOW[ctx.params.timeOfDay], cd: LANTERN_SIDE_CD / glazingArea }

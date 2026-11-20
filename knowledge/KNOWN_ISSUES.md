@@ -61,15 +61,13 @@ say how the cause was found.
   moonlight's ~4100 K it should be near neutral. A starlit cloud deck is lit blue (raw B/R 2.4: the
   stand-in sun's Bruneton colour), not by the airglow's warm green. Birds stay sharp in a 30–130 s
   exposure. All three show once a cloudy night is opened up.
-- **Lighthouses** (found 2026-11-07): every lighthouse day builds one since 0.210 (15 of 92 found
+- **Lighthouses** (found 2026-11-07; the lit glazing is glass since 0.221): every lighthouse day builds one since 0.210 (15 of 92 found
   no site when the horizon sat above the frame's middle). Since 0.196 the
   lamp is 10⁶ cd (the whiteouts of `2025-08-21`, `2024-11-30`, the veil of `2015-02-22` are gone).
   Left, judged by eye on renders, not measured: the forced rock light in night fog
   (`{"date":"2025-07-10","timeOfDay":"night","lighthouse":"rock","fog":"advection"}`) keeps a large
-  forward-scattered halo (real round a bright lamp in fog, its size unchecked against a photo); at
-  sunset the lit glazing (90 cd/m², `LANTERN_SIDE_CD` an estimate) is darker than the sky behind it
-  and shows as a dull band, with no sky reflection on the glass; the divergence stays 2.2° (e-fold
-  half-width; Sabik's LED beacon is 1.5° full width at 5%, classic lenses wider).
+  forward-scattered halo (real round a bright lamp in fog, its size unchecked against a photo); the
+  divergence stays 2.2° (e-fold half-width; Sabik's LED beacon is 1.5° full width at 5%, classic lenses wider).
 - **Light pollution** (`nightGlow.ts`): at the night white balance (4000 K) the domes and the
   town-lit cloud bases (0.190) come out only mildly warm (sodium ~2100 K stays orange; the LED
   share pulls them neutral).
@@ -93,10 +91,14 @@ say how the cause was found.
   edges"; ours varies only over kilometres): [plans/SHELF_VOLUMETRIC.md](plans/SHELF_VOLUMETRIC.md)
   "Later". A backlit sunset shelf may still read as a flat pink band (2010-04-01; not re-checked
   since the volumetric shelf).
-- **Night storms** (0.189): the Cb's base reads as flat bands receding to the horizon (2026-08-20,
-  2026-03-27): lit only from above by the moon or the stand-in, it has no detail, and the gap of air
-  under it shows the town dome as a brown strip with a hard top edge. Seen by eye with
-  `passes.clouds` off and on; cause in the clouds' night light (not measured further).
+- **Night storms** (0.189; re-measured 2026-11-20): the flat bands of 2026-08-20 and 2026-03-27
+  are the **shelf cloud**, not the Cb's base (`shelfCloud: false` removes them; `cloudFace` puts the
+  face at a constant ~6.3 km, 340–560 m up: the shelf's face, below the 600 m base). Since 0.222 the
+  flash lights it (`passes.flashShelf`); left: its ruler-straight lip and smooth face (the shelf
+  item above, tasks.md D13), and the town dome's brown strip under it. Also: **scud in front of a
+  bolt stays unlit** (2026-08-20, left bolt 6.3 km: the rays over its exit meet scud at ~380 m,
+  5.4–5.8 km out, below the base, which the flash's face rule skips), so that bolt lights no
+  visible cloud; measured with `cloudFace` probes.
 - **Aurora** (`aurora.ts`): on quiet starlit nights its light on clouds barely shows: the clouds
   pass's stand-in sun (`scene.ts` `starlight`, nearly overhead, a sun's strength in the night's
   units) outweighs the display's physical light on cloud tops (fix the stand-in, diffuse

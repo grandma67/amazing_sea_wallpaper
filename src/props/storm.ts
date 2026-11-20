@@ -1,4 +1,4 @@
-import { DoubleSide, Mesh, MeshBasicMaterial, Vector3, type Object3D } from 'three'
+import { DoubleSide, Mesh, MeshBasicMaterial, Vector3, type MeshStandardMaterial, type Object3D } from 'three'
 
 import { cloudBase } from '../cloudTypes'
 import { lightningFor } from '../lightning'
@@ -148,7 +148,10 @@ export function setGlowBrightness(root: Object3D, sceneLuminance: number, render
   root.traverse(o => {
     const glow = o.userData.glow as { color: [number, number, number]; scale: number; cd?: number } | undefined
     if (glow == null) return
-    const color = ((o as Mesh).material as MeshBasicMaterial).color.setRGB(...glow.color)
+    // A standard material (the lit lantern's glazing) glows through its
+    // emissive and keeps its own colour for what it reflects.
+    const material = (o as Mesh).material as MeshBasicMaterial | MeshStandardMaterial
+    const color = ('isMeshStandardMaterial' in material ? material.emissive : material.color).setRGB(...glow.color)
     if (glow.cd != null && renderPerCd != null) {
       const luma = 0.2126 * glow.color[0] + 0.7152 * glow.color[1] + 0.0722 * glow.color[2]
       color.multiplyScalar((glow.cd * renderPerCd) / luma)

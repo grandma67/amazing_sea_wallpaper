@@ -235,7 +235,7 @@ export function createClouds(
   if (withShelf) patchShelfCloud(clouds, shelf, weather.formations.length, stormLayer(weather.formations))
   if (withRolls) patchRollCloud(clouds, rolls.roll, rolls.frame, weather.formations.length, rolls.shape)
   // Lightning lights the cloud from inside (lightning.ts).
-  if (flash != null) patchCloudsFlash(clouds.cloudsPass.currentMaterial, flash)
+  if (flash != null) patchCloudsFlash(clouds.cloudsPass.currentMaterial, { ...flash, shelfLayer: withShelf ? weather.formations.length : null })
   // The towns light the clouds from below at night (nightGlow.ts).
   if (town != null) patchCloudsTownLight(clouds.cloudsPass.currentMaterial, town)
   if (face) patchCloudFace(clouds.cloudsPass.currentMaterial)

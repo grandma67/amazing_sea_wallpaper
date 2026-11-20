@@ -368,6 +368,13 @@ export interface FlashSky {
   /** The Cb's base (m): the face is the first cloud a ray meets at or above
    * it (scud and fractus below the base aren't the storm's face). */
   baseM: number
+  /** passes.flashShelf (default on): a ray's face may also be a sample that
+   * is mostly shelf, below the base. The shelf is the storm's own leading
+   * edge, not scud; without it a night shelf in front of the flash stayed
+   * dark and flat (tasks.md D31). */
+  shelfFace?: boolean
+  /** The shelf cloud's layer index, set by createClouds on shelf days. */
+  shelfLayer?: number | null
   /** Debug: a fixed face glow (render units) instead of the lights', to read
    * what the march passes on (params.debug.flash.constant). */
   constant?: number
@@ -449,6 +456,8 @@ const MARCH_START = '  float transmittanceSum = 0.0;\n'
 /** Light the clouds from inside each flash's channel (flashGlowCd). */
 export function patchCloudsFlash(material: ShaderMaterial, sky: FlashSky): void {
   const source = material.fragmentShader
+  const shelf = sky.shelfLayer
+  const onShelf = sky.shelfFace !== false && shelf != null && shelf >= 0 && shelf <= 3 ?` || media.weight.${'xyzw'[shelf]} > 0.5` : ''
   if (source.split(SKY_LINE).length !== 2 || source.split(MARCH_START).length !== 2 || source.split(POWDER_END).length !== 2 || !source.includes('vec4 marchClouds(')) {
     throw new Error('patchCloudsFlash: the clouds shader has changed; update the patch')
   }
@@ -460,7 +469,7 @@ export function patchCloudsFlash(material: ShaderMaterial, sky: FlashSky): void 
       `${SKY_LINE}
       // Lightning inside the cloud (lightning.ts patchCloudsFlash): the face's
       // glow, added after the powder term below.
-      if (!flashEntered && height >= flashFaceHeight) {
+      if (!flashEntered && (height >= flashFaceHeight${onShelf})) {
         flashFaceGlow = flashConstant > 0.0 ? flashColour * flashConstant : flashGlow(position);
         flashEntered = true;
       }
