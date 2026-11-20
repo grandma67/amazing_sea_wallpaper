@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { hasBeach, hasLand, hasSurfZone } from '../src/coastKind'
 import { Random } from '../src/random'
 import { bareRock, ROCK_GRAIN, ROCK_KINDS, rockShoreFor, rockWaterline, scarpFoot, wobbleAtCamera } from '../src/rockShore'
-import { terrainHeight, terrainNormal } from '../src/terrain'
+import { createTerrain, terrainHeight, terrainNormal } from '../src/terrain'
+import { createCamera } from '../src/camera'
+import { generateParams } from '../src/params'
 import { BIOMES } from '../src/biome'
 import { placeNamed, PLACES } from '../src/places'
 import { allParams, expectDryCameras, expectShare, heightAt as at, scene, scenes } from './days'
@@ -178,5 +180,26 @@ describe('rock grain up close', () => {
     }
     for (const [b] of BIOMES) expect(ROCK_GRAIN.nordic).toBeGreaterThanOrEqual(ROCK_GRAIN[b.name])
     expect(ROCK_GRAIN.volcanic).toBeLessThan(ROCK_GRAIN.nordic / 2)
+  })
+})
+
+// D9: the teeth along a near boulder's foot were the per-pixel normal of the
+// true height on a triangle the grid drew across the step; boulder shores
+// shade there by the triangle's own normal (passes.terrainStepNormal).
+// Platforms and cliffs keep the per-pixel normal: their softened risers'
+// thin triangles showed as stripes (2025-08-04).
+describe('step normal on boulder shores', () => {
+  const stepNormal = (date: string, off = false): number => {
+    const p = generateParams(date)
+    const params = off ? { ...p, debug: { passes: { terrainStepNormal: false } } } : p
+    const { camera } = createCamera(params, 1920, 1080)
+    return createTerrain(params, camera).material.uniforms.terrainStepNormal.value as number
+  }
+  it('is on for a boulder shore, off for a platform and with the switch off', () => {
+    expect(generateParams('2025-05-18').coast.rock?.kind).toBe('boulder')
+    expect(generateParams('2025-08-04').coast.rock?.kind).toBe('platform')
+    expect(stepNormal('2025-05-18')).toBe(1)
+    expect(stepNormal('2025-08-04')).toBe(0)
+    expect(stepNormal('2025-05-18', true)).toBe(0)
   })
 })

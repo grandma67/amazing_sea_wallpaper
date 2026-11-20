@@ -1127,6 +1127,10 @@ uniform float planarOn;
 // 1: wet rock reads the sky cube as blurred as it is rough (passes.wetRockBlur;
 // 0 gives the fixed lod 2 of before 0.213).
 uniform float wetRockBlur;
+// 1: at a step the grid cuts across (a boulder's foot, a riser), shade by the
+// drawn triangle's own normal (passes.terrainStepNormal; tasks.md D9).
+uniform float terrainStepNormal;
+uniform float earthRadius;
 ${MIRROR_UNIFORMS_GLSL}
 ${MIRROR_GLSL}
 uniform vec3 sandAlbedo;
@@ -1224,6 +1228,30 @@ void main() {
   float hx = terrainHeight(p + vec2(e, 0.0));
   float hz = terrainHeight(p + vec2(0.0, e));
   vec3 N = normalize(vec3(h - hx, e, h - hz));
+  // At a step the grid's triangles cut across (a boulder's side meeting the
+  // ground), the triangle drawn here can be on the side while the true height
+  // at this point is still the ground's: lit as level ground, pixel by pixel
+  // along the foot, it drew a fringe of light teeth up the shaded side
+  // (2025-05-18: neighbours alternating ny 0.98 / 0.25 at the same height;
+  // a 2× grid only narrowed it). Where the true surface is off the drawn one
+  // by about a grid cell or more, near the camera only (screen derivatives can be
+  // NaN on far silhouettes), take the triangle's own normal.
+  if (terrainStepNormal > 0.5) {
+    float dist = length(toCamera);
+    float off = abs(h - 0.9 * dot(p, p) / (2.0 * earthRadius) - vWorld.y);
+    // Relative to the grid's cell here: a step is cells' worth off its
+    // triangle, a smooth steep riser a fraction of one (a fixed 1–4 cm
+    // striped the facets of a riser at 30 m, 2025-08-04). Teeth stand within
+    // ~5 m; past 20 m it fades out.
+    float cell = max(dist * max(gridStep.x, gridStep.y), 1e-3);
+    float w = smoothstep(0.4, 1.2, off / cell) * (1.0 - smoothstep(15.0, 25.0, dist));
+    if (w > 0.0) {
+      vec3 g = cross(dFdx(vWorld), dFdy(vWorld));
+      g = g.y < 0.0 ? -g : g;
+      float gl = length(g);
+      if (gl > 1e-12 && gl == gl) N = normalize(mix(N, g / gl, w));
+    }
+  }
   // The land's own slope, before stones and ripples tilt it.
   vec3 Nland = N;
 
@@ -1766,6 +1794,10 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       // The mirror image, bound after the mirror pass (scene.ts).
       planarOn: { value: 0 },
       wetRockBlur: { value: params.debug?.passes?.wetRockBlur === false ? 0 : 1 },
+      // Boulder shores only: a boulder's tall, rounded side shades well by its
+      // triangles; a platform's or cliff's risers are softened steps whose
+      // thin triangles showed as stripes (2025-08-04).
+      terrainStepNormal: { value: params.debug?.passes?.terrainStepNormal !== false && params.coast.rock?.kind === 'boulder' ? 1 : 0 },
       planarMap: { value: null as Texture | null },
       planarMatrix: { value: new Matrix4() },
       planarDepth: { value: null as Texture | null },

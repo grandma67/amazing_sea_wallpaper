@@ -190,11 +190,12 @@ say how the cause was found.
 - Near bed risers on a platform seen along the shore (10–40 m) can show a row of small dark notches
   (grid aliasing: a 2× grid halves them). The far scarp and cliff saws were fixed by the view-wedge
   grid (0.76).
-- Boulder sides within ~5 m show a hair-like fringe of thin vertical teeth along their foot, where the
-  side meets the ground or a lower boulder (2025-05-18, 1080p crop of the bottom half). Cause
-  **suspected**, not measured: the heightfield grid sampling the steep step at the side's foot, like
-  the riser notches above; the 0.198 rock grain didn't change it (the teeth are in the shape, not
-  the colour). Check with a 2× grid or `debug.terrainProbe` first.
+- (0.226) The teeth along near boulders' feet are fixed on boulder shores (`passes.terrainStepNormal`).
+  Measured: not the grid's silhouette (a 2× grid left them) nor shadows (`passes.shadows` off left
+  them); `terrainProbe` along a row showed neighbours at the same height alternating ny 0.98 / 0.25,
+  the per-pixel normal of the true height lit as ground on a triangle the grid drew on the side.
+  Left: a few dark specks along a sunlit boulder's foot (the triangles' own normal), and the same
+  trick striped a platform's risers (2025-08-04), so platforms and cliffs keep the old normal.
 - A cliff's rounded crest near the camera is smooth and bare: in low light it reads as sand.
 - A low platform at a cliff's foot is topped by big waves, which then wash over it as foam: no burst
   against the cliff behind (`edgeRocks` takes only the first face at the water).
