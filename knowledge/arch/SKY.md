@@ -118,8 +118,12 @@ How the sky code works. What is drawn where and how often: [CLOUDS.md](../CLOUDS
      the deck it belongs to (the shelf: the Cb's, or it reads as sky).
   6. **Clear days skip the cloud pass:** load the cloud assets when the shape is there.
   7. **Terms and switches:** every detail term's amplitude in the constants object, listed in a
-     `*_TERMS` table, switchable with `params.debug.<shape>` (`withTermsOff`): an artifact is found
-     by switching terms off one by one, before a second guess.
+     `*_TERMS` table in `shapeTerms.ts` (the spec check and debug types read it there; a copied
+     list once rejected a new term), switchable with `params.debug.<shape>` (`withTermsOff`): an
+     artifact is found by switching terms off one by one, before a second guess.
+  7b. **Edge detail: check a far day in round 1** (~15 km beside a near one): far off only the
+     largest octave resolves, and a wide or rounded bump reads as hills or a treeline. Fringes
+     hang one way, pointed, each about as deep as half its width (the shelf's tatter, 0.223).
   8. **Measure before looking:** `bench.mjs --ref HEAD` (10%), and `edges.mjs` on a `probeLine`
      against the CPU's prediction (parity, sharpness, brightness against what's above and below).
 - **takram's clouds, from the inside** (`three-clouds` 0.7.6, `src/shaders/clouds.glsl`,

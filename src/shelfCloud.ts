@@ -5,6 +5,7 @@ import { f1, patchCloudShape, setLayerDensity, shapeLayer, smoothstep, valueNois
 import { cloudBase, type CloudGenus } from './cloudTypes'
 import { dirFromAzEl } from './params'
 import type { ShelfCloudParams } from './skyEvents'
+import { SHELF_TERMS, type ShelfTerm } from './shapeTerms'
 import { seedInt } from './skyMirror'
 
 // The shelf cloud as cloud: a density the volumetric clouds draw
@@ -111,16 +112,7 @@ export type ShelfShape = { readonly [K in keyof typeof SHELF_SHAPE]: number }
 /** The shape's detail terms, each switchable off for debugging
  * (`params.debug.shelf: { tiers: false }`): the term's amplitude goes to 0
  * on the CPU and in the GLSL alike, no shader edit. */
-export const SHELF_TERMS = {
-  bow: ['bowM'],
-  wobble: ['wobbleM'],
-  scallops: ['scallopM'],
-  lipVary: ['lipVaryLarge', 'lipVarySmall'],
-  tiers: ['tierGrooveM', 'tierBulgeM'],
-  stria: ['striaM'],
-  tatter: ['tatterM', 'tatter2M', 'tatter3M']
-} as const satisfies Record<string, readonly (keyof typeof SHELF_SHAPE)[]>
-export type ShelfTerm = keyof typeof SHELF_TERMS
+export { SHELF_TERMS, type ShelfTerm }
 
 /** SHELF_SHAPE with the given terms off. */
 export function shelfShapeWith(off: Partial<Record<ShelfTerm, boolean>> | undefined): ShelfShape {

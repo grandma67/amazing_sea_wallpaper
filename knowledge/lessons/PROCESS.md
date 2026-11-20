@@ -75,6 +75,18 @@ How to work and how to debug: read this one on every task. Other topics: [LESSON
   island).
 - **Check a known issue's own repro before closing it:** a date alone can land on another time of
   day (Mont-Saint-Michel's date rendered at night and proved nothing): force what it names.
+- **A task's "Known:" is numbers plus a reading of them: re-measure the reading (D27/D31/D13,
+  0.221–0.223, 2026-11-20):** D31's "measured" wall (`cloudFace`: 6.3 km, 340–560 m) was the shelf
+  cloud, not the storm cell's side it named; the code read on that guess was wasted, and one
+  `diff --off '{"shelfCloud":false}'` showed it. Step 0 confirms *what* is there, not only that it is:
+  list the day's parts (`params.mjs --each 'p => p.storm'`), then switch each off. In the same session:
+  - the first lantern round rendered lighthouses 550–870 m off (a few px; "⚠ invisible"):
+    `params.mjs --find KIND` (nearest px, ranked days) before the first render of a prop's look;
+  - a new term passed its own file's tests, then the spec check rejected it in a render
+    (a hand-copied list in `sceneSpec.ts`; now shared, `shapeTerms.ts`): `npm test` in full, not
+    one file, before the first render after adding a switch or term (`sceneSpec.test.ts` guards it);
+  - full frames shown as before/after left the user asking what changed: show side-by-side crops of
+    the feature (`diff.mjs --a --b --crop X,Y,W,H`), say which side is which and what to look at.
 - **Long outputs: summary last, saved to a file** (`bench.mjs` table, `params.mjs` "… N more not
   shown"): a `| tail` that cuts the table off costs a full re-run.
 

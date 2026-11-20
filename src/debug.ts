@@ -1,8 +1,9 @@
+import type { RollTerm, ShelfTerm } from './shapeTerms'
 // Render-only switches and views for debugging (SceneParams.debug), set by a
 // scene spec's `params` patch: {"params": {"debug": {"terrainView": "slope"}}}.
 // The generator never reads them, so no draw and no other param changes.
-// How to use them: knowledge/tools/DEBUG.md. No imports:
-// params.ts and sceneSpec.ts both use it.
+// How to use them: knowledge/tools/DEBUG.md. No value imports (types
+// only): params.ts and sceneSpec.ts both use it.
 
 /** A probe: a point as fractions of the image (x right, y down), a sky
  * direction: azimuth from the view (deg, + right) and elevation (deg), a
@@ -26,14 +27,12 @@ export interface DebugParams {
   markers?: string[]
   /** Passes to switch off (false), to find which one causes an effect. */
   passes?: Partial<Record<DebugPass, boolean>>
-  /** The shelf cloud's detail terms to switch off (false): bow, wobble,
-   * scallops, lipVary, tiers, stria (shelfCloud.ts SHELF_TERMS). On the CPU
-   * pass the same to shelfShapeWith. */
-  shelf?: Partial<Record<'bow' | 'wobble' | 'scallops' | 'lipVary' | 'tiers' | 'stria' | 'tatter', boolean>>
-  /** The Morning Glory's detail terms to switch off (false): wander, rise,
-   * lumps, shrink (rollCloud.ts ROLL_TERMS). On the CPU pass the same to
-   * rollShapeWith. */
-  roll?: Partial<Record<'wander' | 'rise' | 'lumps' | 'shrink', boolean>>
+  /** The shelf cloud's detail terms to switch off (false; shapeTerms.ts
+   * SHELF_TERMS). On the CPU pass the same to shelfShapeWith. */
+  shelf?: Partial<Record<ShelfTerm, boolean>>
+  /** The Morning Glory's detail terms to switch off (false; shapeTerms.ts
+   * ROLL_TERMS). On the CPU pass the same to rollShapeWith. */
+  roll?: Partial<Record<RollTerm, boolean>>
   /** Lightning's light in the clouds (lightning.ts): `scale` multiplies its
    * power, `lights` keeps only those light indices (0–3 along the channel
    * from the origin, 4 and 5 the low ones 150 and 450 m inside the base);

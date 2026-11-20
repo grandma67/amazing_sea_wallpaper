@@ -4,6 +4,7 @@ import type { CloudsEffect } from '@takram/three-clouds'
 import { f1, patchCloudShape, setLayerDensity, shapeLayer, smoothstep, valueNoise1, valueNoise2, VISIBLE_DENSITY, withTermsOff } from './cloudShapes'
 import { dirFromAzEl } from './params'
 import type { RollCloudParams } from './skyEvents'
+import { ROLL_TERMS, type RollTerm } from './shapeTerms'
 import { seedInt } from './skyMirror'
 
 // The Morning Glory as cloud: tubes the volumetric clouds draw (as the shelf,
@@ -52,13 +53,7 @@ export type RollShape = { readonly [K in keyof typeof ROLL_SHAPE]: number }
 
 /** The shape's detail terms, each switchable off (`params.debug.roll:
  * { lumps: false }`), on the CPU and in the GLSL alike. */
-export const ROLL_TERMS = {
-  wander: ['wanderM'],
-  rise: ['riseM'],
-  lumps: ['lumpLarge', 'lumpSmall'],
-  shrink: ['shrinkPerRoll']
-} as const satisfies Record<string, readonly (keyof typeof ROLL_SHAPE)[]>
-export type RollTerm = keyof typeof ROLL_TERMS
+export { ROLL_TERMS, type RollTerm }
 
 /** ROLL_SHAPE with the given terms off. */
 export function rollShapeWith(off: Partial<Record<RollTerm, boolean>> | undefined): RollShape {

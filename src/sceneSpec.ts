@@ -15,6 +15,7 @@ import { ROCK_KINDS, type RockKind } from './rockShore'
 import type { SeaIceForce } from './seaIce'
 import type { TideFlowForce, TideStage } from './tides'
 import { DEBUG_MARKERS, DEBUG_PASSES, OCEAN_VIEWS, TERRAIN_VIEWS } from './debug'
+import { ROLL_TERMS, SHELF_TERMS } from './shapeTerms'
 import { TERRAIN_TERM_NAMES } from './terrainTerms'
 import type { ColonyKind, ColonySite, Composition, HaulOut, IslandKind, PinnipedKind, SceneParams, TimeOfDay, WeatherKind } from './params'
 import type { DebrisSpec } from './props/debris'
@@ -588,8 +589,8 @@ function checkDebug(value: unknown, path: string): void {
     probeHalf: (v, p) => {
       if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 20) fail(p, 'must be an integer 0–20')
     },
-    shelf: (v, p) => checkTerms(v, p, 'shelf', ['bow', 'wobble', 'scallops', 'lipVary', 'tiers', 'stria', 'tatter']),
-    roll: (v, p) => checkTerms(v, p, 'roll', ['wander', 'rise', 'lumps', 'shrink']),
+    shelf: (v, p) => checkTerms(v, p, 'shelf', Object.keys(SHELF_TERMS)),
+    roll: (v, p) => checkTerms(v, p, 'roll', Object.keys(ROLL_TERMS)),
     cloudFace: boolean,
     flash: (v, p) => {
       const o = v as Record<string, unknown>

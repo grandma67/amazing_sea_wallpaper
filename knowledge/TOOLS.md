@@ -222,6 +222,11 @@ minutes (dep optimisation).
   `node_modules/.vite` (a worktree symlinking `node_modules`): stop 5174,
   `rm -rf node_modules/.vite`, start again. `refServer.mjs` gives its worktree its own `cacheDir`.
 - macOS has no `timeout`; don't wrap commands in one (snapshot has `--budget`).
+- **A dev server started in the background isn't up yet:** a render chained right after it fails
+  "dev server not reachable". Wait for its `ready in` line (or `until curl -s localhost:5174 >
+  /dev/null; do sleep 1; done`) before the first render.
+- **Shape switches (`params.debug.shelf`/`roll`) come from `src/shapeTerms.ts`:** add a new term
+  there; the spec check, the debug types and the shapes all read it.
 - **A background render's output goes to its file raw:** `run_in_background` with `… 2>&1 | grep
   … | tail` writes nothing until the run ends (`tail` holds it all), so a monitor watching the file
   sees an empty file and a dead-looking run (0.206 lost a monitor and a wake-up). Run the command
