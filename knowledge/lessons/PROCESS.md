@@ -91,6 +91,12 @@ How to work and how to debug: read this one on every task. Other topics: [LESSON
   stands the "before" camera at the "after" one's ground height and frames two unrelated views
   (53–67% "changed" on two beach days whose real change was ≤ 0.11%). A huge diff on a change
   that can't move the camera: re-run without it before reading the images.
+- **Remove the feature before naming a speck (D37, 2026-11-20):** white specks on a sea stack were
+  shown to the user as "spray dots above the horizon"; with the swell at 0.2 m (no spray) they were
+  still there: the stack's own surface. One `--off` render first.
+- **An unbound sampler can change a switched-off image (0.229):** a `sampler2D` uniform left null
+  shifted the spray material's other textures (its cloud shade); `--off-both` caught it. Compile an
+  optional texture read in with a `#define`, set only when the feature is on.
 - **Show each before/after when it's done, not at the end (2026-11-20):** three fixes were
   finished and committed before the user saw one; they had to ask twice.
 - **Long outputs: summary last, saved to a file** (`bench.mjs` table, `params.mjs` "… N more not

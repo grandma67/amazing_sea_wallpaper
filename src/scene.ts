@@ -88,13 +88,13 @@ import { loadScan } from './props/scans'
 import { loadSkins } from './props/skins'
 import { lampsForOcean, lampSprites, setLampBrightness, skyLuminance } from './props/shipLights'
 import { setGlowBrightness } from './props/storm'
-import { setSprayLighting, type WaterIsland } from './props/surf'
+import { setSprayDepth, setSprayLighting, type WaterIsland } from './props/surf'
 import { foldedSkyCube, renderPlanarReflection } from './reflection'
 import { apply, ECLIPTIC_POLE, skyRotation, sunECI } from './skyClock'
 import { darkZenithLuminance, eclipseDim, eclipseMoonShare, elongationDeg, PSF, renderPerLux, starScale, STARLIT_LUX } from './starLight'
 import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
-import { SkyFillEffect, StillScenePass } from './stillScene'
+import { SkyFillEffect, SpraySkyPass, StillScenePass } from './stillScene'
 import { stormCells } from './stormCells'
 import { rollFrame, rollShapeWith } from './rollCloud'
 import { shelfFrame, shelfShapeWith, shelfSunScale, type ShelfSky } from './shelfCloud'
@@ -745,16 +745,22 @@ export async function renderScene(
   // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).
   if (clouds != null && !pass('seaHaze')) clouds.haze = false
   // Accumulated frames only redraw what changes: the spray sprites.
+  // Their blended veils too (props/surf.ts): they read the scene's depth,
+  // which the still pass caches on its first frame, so they're drawn after it.
   const spray: Object3D[] = []
+  const veils: Object3D[] = []
   props.traverse(o => {
     if (o.userData.spray === true) spray.push(o)
+    if (o.userData.sprayVeil === true) veils.push(o)
   })
   const skyObjects: Object3D[] = []
   scene.traverse(o => {
     if (o.userData.sky === true) skyObjects.push(o)
   })
-  const still = clouds != null ? new StillScenePass(scene, camera, spray, skyObjects) : null
+  const still = clouds != null ? new StillScenePass(scene, camera, [...spray, ...veils], skyObjects) : null
   composer.addPass(still ?? new RenderPass(scene, camera))
+  // The veil's sky test and soft particles read the still's depth.
+  setSprayDepth(props, pass('softSpray') ? (still?.depthTexture ?? null) : null, width, height, camera)
   // The display lights the clouds (their edges toward it glow).
   if (clouds != null && aurora != null && pass('auroraClouds')) {
     patchCloudsAurora(clouds.cloudsPass.currentMaterial, worldToECEF, aurora, renderPerLux(params.nightSky, elongation, lunarDim))
@@ -781,6 +787,8 @@ export async function renderScene(
     })
     composer.addPass(new EffectPass(camera, clouds, aerialPerspective))
     if (pass('skyFill')) composer.addPass(new EffectPass(camera, new SkyFillEffect(still!)))
+    // The spray's veil where the sky stands behind it, over the clouds.
+    if (veils.length > 0) composer.addPass(new SpraySkyPass(scene, camera, veils))
   } else {
     composer.addPass(new EffectPass(camera, aerialPerspective))
   }

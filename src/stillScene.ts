@@ -36,6 +36,7 @@ import {
 // the finished sky back in by that coverage.
 
 const SPRAY_LAYER = 31
+const SKY_SPRAY_LAYER = 30
 
 export class StillScenePass extends Pass {
   private readonly renderPass: RenderPass
@@ -143,6 +144,12 @@ export class StillScenePass extends Pass {
     this.stochastic.forEach((o, i) => (o.layers.mask = layers[i]))
   }
 
+  /** The first frame's depth (the scene without the spray), for the spray
+   * veil's sky test and soft particles (props/surf.ts). */
+  get depthTexture(): Texture {
+    return this.cache.depthTexture as Texture
+  }
+
   /** The first frame's geometry coverage (alpha), for SkyFillEffect. */
   get geometryTexture(): Texture {
     return this.geometry.texture
@@ -223,5 +230,43 @@ export class SkyFillEffect extends Effect {
         uniforms: new Map<string, Uniform>([['geometryMap', new Uniform(still.geometryTexture)]])
       }
     )
+  }
+}
+
+/** The spray's blended veil where the sky stands behind it (props/surf.ts,
+ * part 3), drawn after the clouds and aerial perspective: in the scene pass
+ * the clouds, composited later by depth, would cover it. The same veil
+ * objects and materials are drawn again here with part 3, no depth test
+ * (the sky test is the shader's, on the scene depth), then restored. */
+export class SpraySkyPass extends Pass {
+  constructor(
+    private readonly stillScene: Scene,
+    private readonly stillCamera: Camera,
+    private readonly veils: Object3D[]
+  ) {
+    super('SpraySkyPass')
+    this.needsSwap = false
+  }
+
+  override render(renderer: WebGLRenderer, inputBuffer: WebGLRenderTarget): void {
+    const live = this.veils.filter(o => o.visible)
+    if (live.length === 0) return
+    const materials = live.map(o => (o as Object3D & { material: ShaderMaterial }).material)
+    const saved = live.map((o, i) => ({ layers: o.layers.mask, part: materials[i].uniforms.part.value as number, depthTest: materials[i].depthTest }))
+    live.forEach((o, i) => {
+      o.layers.set(SKY_SPRAY_LAYER)
+      materials[i].uniforms.part.value = 3
+      materials[i].depthTest = false
+    })
+    const cameraLayers = this.stillCamera.layers.mask
+    this.stillCamera.layers.set(SKY_SPRAY_LAYER)
+    renderer.setRenderTarget(inputBuffer)
+    renderer.render(this.stillScene, this.stillCamera)
+    this.stillCamera.layers.mask = cameraLayers
+    live.forEach((o, i) => {
+      o.layers.mask = saved[i].layers
+      materials[i].uniforms.part.value = saved[i].part
+      materials[i].depthTest = saved[i].depthTest
+    })
   }
 }

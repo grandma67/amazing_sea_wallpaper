@@ -218,10 +218,9 @@ say how the cause was found.
 
 ## Props
 
-- **Spray against the sky still reads as dots** (0.228 left over; `SprayBuilder`): below the horizon
-  spray is a blended veil, but where it stands against the sky it keeps the screen door, because the
-  clouds pass composites over sky pixels and would hide a blended sprite. A burst crossing the
-  horizon switches method at the horizon line (no seam seen on the specs rendered, not hunted).
+- **Sea stacks' white flecks** (seen 2026-11-20, `stacks-shoreline` spec, 2025-07-10 Brittany): the
+  stack's surface carries dense white single-pixel flecks (there with the swell at 0.2 m, so not
+  spray); first taken for spray dots. Not traced (the stack's skin or lichen grain).
 - **Night surf in blue 2×2 blocks on lighthouse nights** (2026-12-08; found 2026-11-20, was filed as
   spray, D37): `passes.reflection` off removes them, `softSpray` and the spray don't touch them, and
   `lighthouse: null` takes the planar mirror away with them. On rough surf facets the water flips,

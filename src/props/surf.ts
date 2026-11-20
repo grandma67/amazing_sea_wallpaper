@@ -8,11 +8,13 @@ import {
   Quaternion,
   Raycaster,
   ShaderMaterial,
+  Vector2,
   Vector3,
   type InstancedMesh,
   type Mesh,
   type Object3D,
-  type PerspectiveCamera
+  type PerspectiveCamera,
+  type Texture
 } from 'three'
 
 import type { CoastParams } from '../params'
@@ -82,12 +84,30 @@ const sprayShader = {
     // function (1); a level surface's cosine before (0).
     uniform float spherePhase;
     // Which part this copy draws (passes.softSpray): 0 all of it by screen
-    // door (as before); 1 only what stands against the sky, by screen door
-    // (the clouds pass composites over sky pixels, so it must be opaque
-    // there); 2 only what stands below the horizon, blended: a translucent
-    // veil over water or land, as spray looks past a few metres (D37 photos),
-    // where the screen door's few frames left uneven dots.
+    // door (as before); 2 the blended veil where geometry stands behind
+    // (water, rock, land: in the scene pass); 3 the blended veil where the
+    // sky stands behind (SpraySkyPass, after the clouds, which would cover it
+    // in the scene pass); 4 nothing (the screen-door copy with the veil on).
+    // A translucent veil is how spray looks past a few metres (D37 photos);
+    // the screen door's few frames left uneven dots.
     uniform float part;
+    // The scene's depth without the spray (StillScenePass), for the sky test
+    // and soft particles: the veil fades out within SOFT_M of the surface
+    // behind it, so droplets bursting at a rock face don't end in hard specks
+    // (NVIDIA, Soft Particles, 2007).
+    // Compiled in only with the veil on and a depth cache (setSprayDepth): an
+    // unbound sampler here shifted the material's other textures (its cloud
+    // and land shade) and changed the switched-off image.
+    #ifdef SPRAY_DEPTH
+    uniform sampler2D sceneDepth;
+    #endif
+    uniform vec2 viewport;
+    uniform vec2 nearFar;
+    const float SOFT_M = 0.5;
+    float viewDepth(float d) {
+      float z = d * 2.0 - 1.0;
+      return 2.0 * nearFar.x * nearFar.y / (nearFar.y + nearFar.x - z * (nearFar.y - nearFar.x));
+    }
     varying float vOpacity;
     varying float vShade;
     varying vec3 vWorld;
@@ -104,8 +124,17 @@ const sprayShader = {
       float edge = max(1.0 - dot(p, p), 0.0);
       float alpha = vOpacity * edge * edge;
       vec3 V = normalize(vWorld - cameraPosition);
-      bool below = V.y < 0.0;
-      if ((part > 0.5 && part < 1.5 && below) || (part > 1.5 && !below)) discard;
+      if (part > 3.5) discard;
+      if (part > 1.5) {
+        #ifdef SPRAY_DEPTH
+          float d = texture2D(sceneDepth, gl_FragCoord.xy / viewport).r;
+          bool skyBehind = d >= 1.0;
+          if ((part < 2.5 && skyBehind) || (part > 2.5 && !skyBehind)) discard;
+          if (!skyBehind) alpha *= smoothstep(0.0, SOFT_M, viewDepth(d) - viewDepth(gl_FragCoord.z));
+        #else
+          if (part > 2.5) discard;
+        #endif
+      }
       // Screen-door transparency, re-seeded every frame: averaging the
       // frames (accumulate.ts) turns it into soft, translucent spray.
       vec2 q = gl_FragCoord.xy + vec2(frame * 7.13, frame * 3.71);
@@ -334,7 +363,10 @@ export class SprayBuilder {
           frame: { value: 0 },
           minPx: { value: 1.5 },
           spherePhase: { value: 0 },
-          part: { value: 0 }
+          part: { value: 0 },
+          sceneDepth: { value: null },
+          viewport: { value: new Vector2(1, 1) },
+          nearFar: { value: new Vector2(0.5, 400_000) }
         }
       })
     )
@@ -529,9 +561,27 @@ export function setSprayLighting(
     u.pixelsPerRadian.value = pixelsPerRadian
     u.minPx.value = soft ? 4 : 1.5
     u.spherePhase.value = soft ? 1 : 0
-    u.part.value = soft ? 1 : 0
+    u.part.value = soft ? 4 : 0
     ;(u.sunDirection.value as Vector3).copy(sunDirection)
     ;(u.sunIrradiance.value as Color).copy(sunIrradiance)
     ;(u.skyIrradiance.value as Color).copy(skyIrradiance)
+  })
+}
+
+/** The scene's depth without the spray (StillScenePass) for the veil's sky
+ * test and soft particles; null where there's no still pass (clear days:
+ * the veil then draws everywhere in the scene pass, nothing covers it) or
+ * with passes.softSpray off (the shader then has no depth read at all). */
+export function setSprayDepth(root: Object3D, depth: Texture | null, width: number, height: number, camera: PerspectiveCamera): void {
+  root.traverse(o => {
+    if (o.userData.spray !== true && o.userData.sprayVeil !== true) return
+    const material = (o as Points).material as ShaderMaterial
+    const u = material.uniforms
+    u.sceneDepth.value = depth
+    ;(u.viewport.value as Vector2).set(width, height)
+    ;(u.nearFar.value as Vector2).set(camera.near, camera.far)
+    if (depth != null) material.defines = { ...material.defines, SPRAY_DEPTH: '' }
+    else if (material.defines != null) delete material.defines.SPRAY_DEPTH
+    material.needsUpdate = true
   })
 }
