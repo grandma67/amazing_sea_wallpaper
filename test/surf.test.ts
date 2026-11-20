@@ -134,4 +134,28 @@ describe('spray lighting switch', () => {
     expect(m.fragmentShader).toContain('spherePhase')
     expect(m.vertexShader).toContain('max(px, minPx)')
   })
+  // Below the horizon the spray is a blended veil (one copy, shown only with
+  // the switch); against the sky the screen door stays (the clouds composite
+  // over sky pixels). The veil shares the uniforms, so it's lit alike.
+  it('draws a blended veil below the horizon only with the switch', () => {
+    const b = new SprayBuilder()
+    b.add(new Vector3(0, 1, -50), 0.05, 0.5)
+    b.add(new Vector3(1, 1, -50), 2, 0.1, 0.3)
+    const points = b.build() as Points
+    const veil = points.children[0] as Points
+    expect(veil.userData.sprayVeil).toBe(true)
+    const vm = veil.material as ShaderMaterial
+    expect(vm.transparent).toBe(true)
+    expect(vm.depthWrite).toBe(false)
+    expect(vm.uniforms.part.value).toBe(2)
+    expect(Array.from(points.geometry.getAttribute('veil').array)).toEqual([1, 0.30000001192092896])
+    const root = new Group()
+    root.add(points)
+    for (const soft of [true, false]) {
+      setSprayLighting(root, new PerspectiveCamera(50, 16 / 9), 1080, new Vector3(0, 1, 0), new Color(1, 1, 1), new Color(0.2, 0.2, 0.3), soft)
+      expect(veil.visible).toBe(soft)
+      expect((points.material as ShaderMaterial).uniforms.part.value).toBe(soft ? 1 : 0)
+      expect(vm.uniforms.sunIrradiance).toBe((points.material as ShaderMaterial).uniforms.sunIrradiance)
+    }
+  })
 })

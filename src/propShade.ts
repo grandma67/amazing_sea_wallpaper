@@ -132,7 +132,8 @@ export function shadeProps(root: Object3D, uniforms: Uniforms, view = false): Re
     const row = (coverage[kind] ??= { lit: 0, shaded: 0, unlit: 0, spray: 0, casts: 0, receives: 0 })
     if (o.castShadow) row.casts++
     if (o.receiveShadow) row.receives++
-    if (o.userData.spray === true) {
+    // The spray's blended veil (surf.ts, passes.softSpray) is shaded alike.
+    if (o.userData.spray === true || o.userData.sprayVeil === true) {
       const material = value as ShaderMaterial
       if (!done.has(material)) shadeSpray(material, uniforms)
       done.add(material)

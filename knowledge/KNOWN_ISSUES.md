@@ -218,11 +218,10 @@ say how the cause was found.
 
 ## Props
 
-- **Spray reads as speckle far off** (0.225 left over; `SprayBuilder`): the squares and the dark
-  low-sun shading are fixed (`passes.softSpray`), but a far droplet carries less "ink" (opacity ×
-  (px/4)²) than 1/16 of a pixel, which 16 frames of screen door can only show as scattered faint
-  dots, not a veil (front-lit surf at ~440 m, 2025-07-10 spec). A real fix: blended sprites, or far
-  droplets merged into fewer, larger, fainter ones (a mist sprite per burst). Measured by diff crops.
+- **Spray against the sky still reads as dots** (0.228 left over; `SprayBuilder`): below the horizon
+  spray is a blended veil, but where it stands against the sky it keeps the screen door, because the
+  clouds pass composites over sky pixels and would hide a blended sprite. A burst crossing the
+  horizon switches method at the horizon line (no seam seen on the specs rendered, not hunted).
 - **Night surf in blue 2×2 blocks on lighthouse nights** (2026-12-08; found 2026-11-20, was filed as
   spray, D37): `passes.reflection` off removes them, `softSpray` and the spray don't touch them, and
   `lighthouse: null` takes the planar mirror away with them. On rough surf facets the water flips,

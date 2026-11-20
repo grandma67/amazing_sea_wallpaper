@@ -36,9 +36,17 @@ const sprayShader = {
   vertexShader: /* glsl */ `
     attribute float size;
     attribute float opacity;
+    attribute float veil;
     uniform float pixelsPerRadian;
     // The smallest footprint (px): 1.5 before passes.softSpray, 4 with it.
     uniform float minPx;
+    // The veil (part 2): sprites drawn larger and fainter, so neighbours merge
+    // into one haze; blended, overlaps add up (1 − Π(1 − α)), where the
+    // screen door showed only the strongest sprite in a pixel, which the
+    // opacities were tuned for (D37).
+    uniform float part;
+    const float VEIL_SIZE = 1.6;
+    const float VEIL_ALPHA = 0.25;
     varying float vOpacity;
     varying float vShade;
     varying vec3 vWorld;
@@ -56,6 +64,10 @@ const sprayShader = {
       // soft mist of the same weight.
       float px = size / -view.z * pixelsPerRadian;
       vOpacity = opacity * (minPx > 2.0 ? min(1.0, (px / minPx) * (px / minPx)) : min(1.0, px / minPx));
+      if (part > 1.5) {
+        px *= VEIL_SIZE;
+        vOpacity *= VEIL_ALPHA * veil;
+      }
       gl_PointSize = max(px, minPx);
       gl_Position = projectionMatrix * view;
     }`,
@@ -69,6 +81,13 @@ const sprayShader = {
     // passes.softSpray: the sun on a droplet cloud by a sphere's phase
     // function (1); a level surface's cosine before (0).
     uniform float spherePhase;
+    // Which part this copy draws (passes.softSpray): 0 all of it by screen
+    // door (as before); 1 only what stands against the sky, by screen door
+    // (the clouds pass composites over sky pixels, so it must be opaque
+    // there); 2 only what stands below the horizon, blended: a translucent
+    // veil over water or land, as spray looks past a few metres (D37 photos),
+    // where the screen door's few frames left uneven dots.
+    uniform float part;
     varying float vOpacity;
     varying float vShade;
     varying vec3 vWorld;
@@ -84,6 +103,9 @@ const sprayShader = {
       // Soft-edged, so overlapping droplets merge into one mass.
       float edge = max(1.0 - dot(p, p), 0.0);
       float alpha = vOpacity * edge * edge;
+      vec3 V = normalize(vWorld - cameraPosition);
+      bool below = V.y < 0.0;
+      if ((part > 0.5 && part < 1.5 && below) || (part > 1.5 && !below)) discard;
       // Screen-door transparency, re-seeded every frame: averaging the
       // frames (accumulate.ts) turns it into soft, translucent spray.
       vec2 q = gl_FragCoord.xy + vec2(frame * 7.13, frame * 3.71);
@@ -94,8 +116,7 @@ const sprayShader = {
       // smooth veil instead of a speckle of full-bright pixels (D37).
       float cell = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
       if (spherePhase > 0.5) noise = fract(cell + frame * 0.6180339887);
-      if (noise > alpha) discard;
-      vec3 V = normalize(vWorld - cameraPosition);
+      if (part < 1.5 && noise > alpha) discard;
       float sunUp = step(0.0, sunDirection.y);
       // Water droplets: bright white in sky and sun light, glowing when
       // the sun shines through them.
@@ -113,7 +134,7 @@ const sprayShader = {
       // Spray bow.
       float theta = degrees(acos(clamp(dot(V, -sunDirection), -1.0, 1.0)));
       color += bow((theta - 40.4) / 2.3) * sun * 0.06 * sunUp * bowStrength;
-      gl_FragColor = vec4(color, 1.0);
+      gl_FragColor = vec4(color, part > 1.5 ? clamp(alpha, 0.0, 1.0) : 1.0);
     }`
 }
 
@@ -278,11 +299,16 @@ export class SprayBuilder {
   readonly positions: number[] = []
   readonly sizes: number[] = []
   readonly opacities: number[] = []
+  readonly veils: number[] = []
 
-  add(p: Vector3, size: number, opacity: number): void {
+  /** `veil`: the sprite's weight in the blended veil (passes.softSpray), 1
+   * for droplets and whitewater; thin wind-blown mist less, so it stays a
+   * faint haze rather than a solid trail (D37). The screen door ignores it. */
+  add(p: Vector3, size: number, opacity: number, veil = 1): void {
     this.positions.push(p.x, p.y, p.z)
     this.sizes.push(size)
     this.opacities.push(opacity)
+    this.veils.push(veil)
   }
 
   /** `albedo`: how white the droplets are; `bow`: whether they're water
@@ -293,6 +319,7 @@ export class SprayBuilder {
     geometry.setAttribute('position', new BufferAttribute(new Float32Array(this.positions), 3))
     geometry.setAttribute('size', new BufferAttribute(new Float32Array(this.sizes), 1))
     geometry.setAttribute('opacity', new BufferAttribute(new Float32Array(this.opacities), 1))
+    geometry.setAttribute('veil', new BufferAttribute(new Float32Array(this.veils), 1))
     const points = new Points(
       geometry,
       new ShaderMaterial({
@@ -306,10 +333,22 @@ export class SprayBuilder {
           bowStrength: { value: bow ? 1 : 0 },
           frame: { value: 0 },
           minPx: { value: 1.5 },
-          spherePhase: { value: 0 }
+          spherePhase: { value: 0 },
+          part: { value: 0 }
         }
       })
     )
+    // The blended copy below the horizon (part 2), shown by setSprayLighting
+    // with passes.softSpray; it shares the uniforms but its own part.
+    const main = points.material as ShaderMaterial
+    const veil = new Points(
+      geometry,
+      new ShaderMaterial({ ...sprayShader, uniforms: { ...main.uniforms, part: { value: 2 } }, transparent: true, depthWrite: false })
+    )
+    veil.visible = false
+    veil.frustumCulled = false
+    veil.userData.sprayVeil = true
+    points.add(veil)
     points.onBeforeRender = () => (points.material as ShaderMaterial).uniforms.frame.value++
     points.frustumCulled = false
     points.userData.spray = true
@@ -374,7 +413,8 @@ export function createSurf(ctx: PropContext, rocks: InstancedMesh[]): Points[] {
       for (let i = 0; i < Math.round(2 * windy); i++) {
         const [px, pz] = shoreToWorld(coast, s + rng.range(0, 3) * height, a + rng.range(-step, step))
         const size = rng.range(1, 2.2) * (0.5 + height * 0.5)
-        spray.add(new Vector3(px, height * rng.range(0.7, 1.4), pz), size, rng.range(0.08, 0.18) * fade)
+        // Spindrift is thin and streaky in photos: a faint haze in the veil.
+        spray.add(new Vector3(px, height * rng.range(0.7, 1.4), pz), size, rng.range(0.08, 0.18) * fade, 0.3)
       }
     }
   }
@@ -482,11 +522,14 @@ export function setSprayLighting(
 ): void {
   const pixelsPerRadian = height / 2 / Math.tan((camera.fov * Math.PI) / 360)
   root.traverse(o => {
+    // The veil shares its spray's uniforms; only its visibility is its own.
+    if (o.userData.sprayVeil === true) o.visible = soft
     if (o.userData.spray !== true) return
     const u = ((o as Points).material as ShaderMaterial).uniforms
     u.pixelsPerRadian.value = pixelsPerRadian
     u.minPx.value = soft ? 4 : 1.5
     u.spherePhase.value = soft ? 1 : 0
+    u.part.value = soft ? 1 : 0
     ;(u.sunDirection.value as Vector3).copy(sunDirection)
     ;(u.sunIrradiance.value as Color).copy(sunIrradiance)
     ;(u.skyIrradiance.value as Color).copy(skyIrradiance)

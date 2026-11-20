@@ -87,6 +87,12 @@ How to work and how to debug: read this one on every task. Other topics: [LESSON
     one file, before the first render after adding a switch or term (`sceneSpec.test.ts` guards it);
   - full frames shown as before/after left the user asking what changed: show side-by-side crops of
     the feature (`diff.mjs --a --b --crop X,Y,W,H`), say which side is which and what to look at.
+- **`diff.mjs --keep-camera` is for terrain changes only (D37, 2026-11-20):** on other days it
+  stands the "before" camera at the "after" one's ground height and frames two unrelated views
+  (53–67% "changed" on two beach days whose real change was ≤ 0.11%). A huge diff on a change
+  that can't move the camera: re-run without it before reading the images.
+- **Show each before/after when it's done, not at the end (2026-11-20):** three fixes were
+  finished and committed before the user saw one; they had to ask twice.
 - **Long outputs: summary last, saved to a file** (`bench.mjs` table, `params.mjs` "… N more not
   shown"): a `| tail` that cuts the table off costs a full re-run.
 
