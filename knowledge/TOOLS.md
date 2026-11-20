@@ -61,6 +61,7 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Photos of a species with a licence we can ship (PD, CC0, CC BY) | `asset.mjs search QUERY…` (numbered contact sheet; waits out Commons' rate limit) | `asset.mjs` header |
 | Reference photos when the name also means other things (a keyword search fills with noise) | `asset.mjs search --wiki ARTICLE…` (the article's own photos; `--all` for share-alike ones, fine to look at, not to ship) | `asset.mjs` header |
 | An animal skin from a photo (atlas layer) | `asset.mjs search` → `asset.mjs fetch commons:File:… --id ID` → `asset.mjs grid ID --px` (pixel labels) → recipe in `src/props/skins.json` → `asset.mjs patch ID` (outline on the photo beside the baked tile) → `npm run skins` (sets up its Python; warns when a layer clips; `contrast: "auto"`) → `mesh.mjs --material 'props/skins#skinPreviewMaterial()'` | `scripts/skinBake.py` header; [arch/PROPS.md](arch/PROPS.md) "Animal skins" |
+| One section of a long doc; a phrase across wrapped lines in all the docs | `doc.mjs FILE "heading words"` (whole section; `--toc FILE` lists headings and lengths); `doc.mjs --grep "phrase"` (each matching paragraph or bullet whole, with its heading path; default `knowledge/` and CLAUDE.md) | `doc.mjs` header |
 | A scanned model as a prop mesh (vertex colours, levels of detail) | `asset.mjs bake ID` → `src/props/scans/ID.ts`; `mesh.mjs 'props/scans/index#scanVariant(…)'` | "Real colours" below; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §11 |
 
 ## Tests

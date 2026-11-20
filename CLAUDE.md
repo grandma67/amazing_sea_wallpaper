@@ -1,6 +1,8 @@
 # Amazing Sea Wallpaper
 
-Docs in `knowledge/` (read what the task needs):
+Docs in `knowledge/` (read what the task needs: one section with `node scripts/doc.mjs FILE "heading"`,
+`--toc FILE` for headings, `--grep "phrase"` to search all docs across wrapped lines; a doc this
+file says to *open* is read whole):
 - `ARCHITECTURE.md`: decisions, params and draw order, biome/climate/place tables, frame and post,
   page/CI. How each area works: `arch/SKY.md`, `arch/OCEAN.md`, `arch/COAST.md` (coordinates and
   heights, beaches, tides, reefs, stones), `arch/PROPS.md`.
@@ -163,7 +165,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Fixing a value's misuse in one place (a normal, a ray, a distance)? Grep its other readers in the
   same shader and check each (REFLECTION phase 2 moved only the mirror lookup off a tilted normal;
   the sky reflection three lines down kept it for four phases).
-- Debugging a look: grep KNOWN_ISSUES.md for the symptom first. Probe creators and helpers with
+- Debugging a look: `doc.mjs --grep SYMPTOM KNOWN_ISSUES` first. Probe creators and helpers with
   `params.mjs` (`p.ctx`, `src.X`, `props.X`), not throwaway tests; `profile.mjs` maps the view cone
   and warns when dry land floods. Then `params.debug` switches and false-colour views
   (`tools/DEBUG.md`) before editing code to test a guess. A wrong look: find its cause (grep every
