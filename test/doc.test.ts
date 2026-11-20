@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { blocks, grepBlocks, headings, resolve, sections } from '../scripts/doc.mjs'
+import { blocks, grepBlocks, headings, resolve, sections } from '../scripts/dev/doc.mjs'
 
 // doc.mjs reads the knowledge docs by section and searches across wrapped
 // lines: a missed hit or a cut section sends the reader back to offsets.

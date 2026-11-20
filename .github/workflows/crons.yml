@@ -9,13 +9,13 @@ on:
     branches: [main]
     paths:
       - 'crons/**'
-      - 'scripts/snapshot.mjs'
+      - 'scripts/render/snapshot.mjs'
       - '.github/workflows/pages.yml'
       - '.github/workflows/crons.yml'
   pull_request:
     paths:
       - 'crons/**'
-      - 'scripts/snapshot.mjs'
+      - 'scripts/render/snapshot.mjs'
       - '.github/workflows/pages.yml'
       - '.github/workflows/crons.yml'
   workflow_dispatch:

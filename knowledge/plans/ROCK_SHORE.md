@@ -114,7 +114,7 @@ subtracts `tide.level` as everywhere (decision 6).
   (Verrucaria, splash zone), orange/grey lichen and the biome's ground cover on the plateau;
   pools: water in hollows of the relief between today's sea and the spring high water (flat,
   glossy); stones (the phase-2 stone texture, cobble size) on gully floors.
-- Preview: `scripts/mesh.mjs` can't show the shader terrain; preview with renders of forced
+- Preview: `scripts/render/mesh.mjs` can't show the shader terrain; preview with renders of forced
   specs (`--w 960`), one per kind, and compare against Peggy's Cove, Big Sur and Iceland photos.
 
 ## Water

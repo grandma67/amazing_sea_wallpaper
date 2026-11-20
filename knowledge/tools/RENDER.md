@@ -3,12 +3,12 @@
 Index, dev server and shared conventions: [TOOLS.md](../TOOLS.md). Debug switches:
 [DEBUG.md](DEBUG.md).
 
-## `scripts/snapshot.mjs`: render
+## `scripts/render/snapshot.mjs`: render
 
 ```sh
-node scripts/snapshot.mjs --out $SP/feat --w 1920 --h 1080 --frames 16 2024-01-03 2024-09-05 …
-node scripts/snapshot.mjs --out $SP/feat --frames 16 --scene '{"timeOfDay":"night","lighthouse":"rock"}'
-node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands --scene $SP/specs.json
+node scripts/render/snapshot.mjs --out $SP/feat --w 1920 --h 1080 --frames 16 2024-01-03 2024-09-05 …
+node scripts/render/snapshot.mjs --out $SP/feat --frames 16 --scene '{"timeOfDay":"night","lighthouse":"rock"}'
+node scripts/render/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands --scene $SP/specs.json
 ```
 
 - **Real days:** `--where 'p => p.seaIce' --sample 8` renders 8 days the generator gives that, spread by `--spread EXPR` (default place, coast type and time of day; biggest groups first). It prints which. Use it in a feature's first round: on sea ice these showed streaks, low-sun paving and an unrendered midday that forced specs hid. Narrow to what shows it: `p.coast.type !== "open-sea" && p.timeOfDay !== "night"`.
@@ -37,7 +37,7 @@ node scripts/snapshot.mjs --out $SP/feat --frames 16 --props all --crop islands 
   `snapshot.mjs --where 'p => p.coast.rock?.kind === "platform"' --sample 30 --water --w 1920 --h 1080 --frames 16`.
 - `params.debug.probe` in the spec: one line per point (raw, cd/m², mag/″², exposed, final RGB;
   tools/DEBUG.md). Numbers instead of judging brightness or tint from the JPEG.
-- ⚠ warnings (`scripts/checks.mjs`): backlit (low sun within 60° of the view: pale features
+- ⚠ warnings (`scripts/render/checks.mjs`): backlit (low sun within 60° of the view: pale features
   vanish; check front-lit with `"sunAzimuthDeg": 160`), prop not placed or none in frame, and
   `GL: N× …` (any WebGL or GPU-process GL message during that render, page or worker: always a
   bug, often invisible in the picture; `watchPage` in `lib.mjs`). Act on them before reading
@@ -150,10 +150,10 @@ unless said):
 - `nanTrace` reads the sky cube (after the clear sky and after the clouds) and the cloud shadow
   map per cascade (tools/DEBUG.md).
 - The site keeps 60 days of render JSON (`daily/index.json`, `daily/{pc,phone}/DATE.json`,
-  `scripts/dailyArchive.mjs` in `pages.yml`): the numbers of a bad day stay readable.
+  `scripts/ci/dailyArchive.mjs` in `pages.yml`): the numbers of a bad day stay readable.
 
 **Recipe: a bad published picture**
-1. `node scripts/ciDay.mjs DATE`: the day's Pages runs (commit, render step, warnings), the
+1. `node scripts/ci/ciDay.mjs DATE`: the day's Pages runs (commit, render step, warnings), the
    archived numbers with `brokenFrame`'s reasons, then the day rendered as CI (that commit,
    SwiftShader, 320×180, 24 frames, `nanTrace`) beside them. `--full` for 1920×1080, `--no-render`
    for the first two only. CI renders the pushed commit: check it before blaming a local change.
@@ -165,7 +165,7 @@ unless said):
    and forced fields (`sunElevationDeg`), one render each, then grep the named shader's divisors.
    A Mac render says nothing: Apple GPUs hide NaN (`min(NaN, x)` returns x).
 
-## `scripts/diff.mjs`: did it show up?
+## `scripts/render/diff.mjs`: did it show up?
 
 Checks every spec first (a bad field fails before any render), then renders each as-is (`OUT/on`) and with `--off` merged deeply (`OUT/off`), and prints %
 changed, pixel box (98% of the change), mean/max Δ and brighter/darker, plus `NAME.diff.jpg`
@@ -173,12 +173,12 @@ changed, pixel box (98% of the change), mean/max Δ and brighter/darker, plus `N
 hidden (cloud layer, geometry) or too faint: fix that before looking. ~6 s/spec at 960×540.
 
 ```sh
-node scripts/diff.mjs --scene $SP/specs.json --off '{"contrails":null}' --out $SP/contrails --w 960 --h 540 --frames 16
-node scripts/diff.mjs --scene $SP/specs.json --off '{"props":{"rocks":false}}' --out $SP/rocks     # keeps the other props
-node scripts/diff.mjs --scene S --ref HEAD --out $SP/change   # S at the ref (off) vs now (on)
-node scripts/diff.mjs --a $SP/before --b $SP/after            # two folders, same names
-node scripts/diff.mjs --a $SP/x/off --b $SP/x/on --match NAME --out $SP/x --crop 0,700,180,90 --zoom 4   # look closer, no new render
-node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH --out $SP/real   # real days, named by date
+node scripts/render/diff.mjs --scene $SP/specs.json --off '{"contrails":null}' --out $SP/contrails --w 960 --h 540 --frames 16
+node scripts/render/diff.mjs --scene $SP/specs.json --off '{"props":{"rocks":false}}' --out $SP/rocks     # keeps the other props
+node scripts/render/diff.mjs --scene S --ref HEAD --out $SP/change   # S at the ref (off) vs now (on)
+node scripts/render/diff.mjs --a $SP/before --b $SP/after            # two folders, same names
+node scripts/render/diff.mjs --a $SP/x/off --b $SP/x/on --match NAME --out $SP/x --crop 0,700,180,90 --zoom 4   # look closer, no new render
+node scripts/render/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH --out $SP/real   # real days, named by date
 ```
 
 - `NAME.diff.jpg`'s top panels are cropped to the changed box, not the frame: don't read pixel
@@ -223,14 +223,14 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
 - `--threshold N` (0–255, default 4): above JPEG noise; two renders of the same code on the same
   GPU are identical.
 
-### Showing a before/after: `scripts/show.mjs`
+### Showing a before/after: `scripts/render/show.mjs`
 
 One command from a diff to a labelled image in Preview, so each fix is shown when it's done:
 
 ```sh
-node scripts/show.mjs --from $SP/spray --name 2024-05-08 --label 'veil edge at the stack'          # changed box
-node scripts/show.mjs --from $SP/spray --name 2024-05-08 --label 'crest' --zoom-at 900,520 --full  # zoom, plus both frames
-node scripts/show.mjs --before DIR --after DIR --name NAME --label TEXT --no-open                  # any two folders
+node scripts/render/show.mjs --from $SP/spray --name 2024-05-08 --label 'veil edge at the stack'          # changed box
+node scripts/render/show.mjs --from $SP/spray --name 2024-05-08 --label 'crest' --zoom-at 900,520 --full  # zoom, plus both frames
+node scripts/render/show.mjs --before DIR --after DIR --name NAME --label TEXT --no-open                  # any two folders
 ```
 
 It runs `diff.mjs --a off --b on` (no new render) and copies the crop to
@@ -248,7 +248,7 @@ Preview shows what to look at); `--full` adds `-full-before.jpg` and `-full-afte
 - Each run's worktree path is its own (`/private/tmp/claude-TAG-SHA-PID`), so one run's reaper
   can't remove another's tree.
 
-## `scripts/haze.mjs`: how does the frame haze these objects?
+## `scripts/measure/haze.mjs`: how does the frame haze these objects?
 
 Before writing anything that must match the frame's haze (a reflection, a sprite, a far mesh):
 render the spec as is and with the haze off (`passes.aerial` and `passes.seaHaze`; clouds and their
@@ -257,8 +257,8 @@ each point implies, with T = Koschmieder's over the distance and w = 1 − T or 
 whose H agrees across distances is the one the frame uses.
 
 ```sh
-node scripts/params.mjs --scene $SP/day.json --project islands --rows 100000 --above 40 > $SP/proj.txt  # pick points, not covered
-node scripts/haze.mjs --scene $SP/day.json --points '[[841.2,40.9,2693.5],[1977.9,42.9,7266.7]]'
+node scripts/scene/params.mjs --scene $SP/day.json --project islands --rows 100000 --above 40 > $SP/proj.txt  # pick points, not covered
+node scripts/measure/haze.mjs --scene $SP/day.json --points '[[841.2,40.9,2693.5],[1977.9,42.9,7266.7]]'
 #   dist m   T (R G B)          raw        hazed       H if 1−T               H if (1−T)²
 #     2822   0.724 0.708 0.670  …          …           0.0484 0.0407 0.0388   0.1751 0.1394 0.1176
 #     7531   0.422 0.398 0.343  …          …           0.0948 0.0756 0.0624   0.1639 0.1255 0.0950   ← (1−T)² agrees
@@ -268,14 +268,14 @@ Two renders, ~1 min. Points at least two distances apart; under ~100 m high (T a
 sea-level density). 2003-03-11 (V 32 km): takram's sea haze fades with (1 − T)², to ≈ the frame's
 horizon sky (`--sky` prints it for reference).
 
-## `scripts/horizon.mjs`: does the sea reflect the sky it should?
+## `scripts/measure/horizon.mjs`: does the sea reflect the sky it should?
 
 One render with probes at mirrored angles: the frame's sky at +el, the sea at −el, and the sky
 cube (`debug.cubeProbe`) at +el, sharp and at a rough sea's blur. Calm water at grazing angle el
 reads ≈ F(el) × the sky there.
 
 ```sh
-node scripts/horizon.mjs --scene '{"date":"2003-03-11","coast":"open-sea","landform":null,"islands":null,"weather":"broken",
+node scripts/measure/horizon.mjs --scene '{"date":"2003-03-11","coast":"open-sea","landform":null,"islands":null,"weather":"broken",
   "timeOfDay":"daylight","eclipse":null,"storm":null,"fog":null,"params":{"ocean":{"windSpeed":0.5,"airWindSpeed":0.5,"swellHeight":0.2}}}' --az -10
 #     el     sky (G)    sea (G)     F   sea/(F·sky)  cube/sky  cube lod 5/sky
 #    0.5   1.47e-1   9.52e-2    0.96        0.68       1.00         0.36     ← 0.30 before phase 6
@@ -288,15 +288,15 @@ node scripts/horizon.mjs --scene '{"date":"2003-03-11","coast":"open-sea","landf
   design (it mirrors a spread of sky that darkens with height). Aim `--az` at open sea, away from
   land and the sun's glitter.
 
-## `scripts/parity.mjs`: do the CPU mirrors match the drawn terrain?
+## `scripts/measure/parity.mjs`: do the CPU mirrors match the drawn terrain?
 
 Also the ground cover (`groundCover.ts` `groundCoverAt` against the shader's `cover` term, where
 a pixel is under 0.5 m: `cover |Δ| p95`, ⚠ past `--cover-tol` 0.1).
 
 ```sh
-node scripts/parity.mjs                       # 12 real land days spread across coast kinds, ~45 s
-node scripts/parity.mjs --scene scenes/wet-mirror.json
-node scripts/parity.mjs 2024-06-13 --every 8  # one day, a finer grid
+node scripts/measure/parity.mjs                       # 12 real land days spread across coast kinds, ~45 s
+node scripts/measure/parity.mjs --scene scenes/wet-mirror.json
+node scripts/measure/parity.mjs 2024-06-13 --every 8  # one day, a finer grid
 ```
 
 Renders each day (960×540, 1 frame) with a grid of terrain terms (`x z h pools snow`,
@@ -309,11 +309,11 @@ Run it after any edit to a terrain height or film term, in GLSL or TS: the camer
 itself. Today (0.137): every kind within 6 mm, pools identical. With 0.136's `bareRock` it
 flags 3 of 4 platform days (p99 up to 0.87 m; 111 pool pixels against 0).
 
-## `scripts/summary.mjs`: one number over many renders
+## `scripts/measure/summary.mjs`: one number over many renders
 
 ```sh
-node scripts/summary.mjs $SP/nights 'j => j.debug.frameMedian' --by 'j => j.weather.kind'
-node scripts/summary.mjs $SP/d1/on 'j => j.debug.propTimes["sky-open"]' --each
+node scripts/measure/summary.mjs $SP/nights 'j => j.debug.frameMedian' --by 'j => j.weather.kind'
+node scripts/measure/summary.mjs $SP/d1/on 'j => j.debug.propTimes["sky-open"]' --each
 ```
 
 Reads every `NAME.json` in a folder (for a `diff.mjs` folder give `OUT/on` or `OUT/off`). Numbers:
@@ -322,11 +322,11 @@ every render by value. A render the expression throws on is named, not dropped s
 instead of `node -e` loops over JSON files: phase 6 of SHADOWS.md measured 173 renders' medians this
 way to choose its floors.
 
-## `scripts/bench.mjs`: speed
+## `scripts/render/bench.mjs`: speed
 
 ```sh
-node scripts/bench.mjs --ref HEAD~3 | tail -20
-node scripts/bench.mjs --scene $SP/specs.json
+node scripts/render/bench.mjs --ref HEAD~3 | tail -20
+node scripts/render/bench.mjs --scene $SP/specs.json
 ```
 
 Serves the ref on 5175 and renders the same dates (default: a clear, a cloudy, a storm and a
@@ -340,7 +340,7 @@ for the 10% rule and for speed work, where the image must stay identical.
 - Run it with nothing else on the GPU; under `caffeinate -i` on battery.
 - Its first HEAD render can come out wrong (no haze): re-run before blaming the change.
 
-## `scripts/mesh.mjs`: one mesh alone
+## `scripts/render/mesh.mjs`: one mesh alone
 
 ~0.4 s/mesh: side, front, 3/4 above, and at eye height `--eye` m off (default 20), on sand-albedo
 ground with a 1 m ruler; prints size and triangles. The builder is any export under `src/`
@@ -348,14 +348,14 @@ returning a BufferGeometry or Object3D; args are JSON, `$rng` is a seeded Random
 can't show shader terrain: preview that with forced-spec renders.
 
 ```sh
-node scripts/mesh.mjs --out $SP/mesh 'props/wildlife#hippoGeometry($rng, 0)' 'props/wildlife#crocodileGeometry($rng, "nile", 0.4)'
+node scripts/render/mesh.mjs --out $SP/mesh 'props/wildlife#hippoGeometry($rng, 0)' 'props/wildlife#crocodileGeometry($rng, "nile", 0.4)'
 # As the scene draws it: its own material, its real size, a low sun.
-node scripts/mesh.mjs --out $SP/mesh --material 'props/seaIce#rubbleMaterial(0.5)' --scale 1.1,0.3,1 --sun 8 --eye 3 'props/seaIce#slabGeometry($rng)'
+node scripts/render/mesh.mjs --out $SP/mesh --material 'props/seaIce#rubbleMaterial(0.5)' --scale 1.1,0.3,1 --sun 8 --eye 3 'props/seaIce#slabGeometry($rng)'
 ```
 
 `--focus head` frames side, front and 3/4 on the front 15% of the mesh (animals face +x): eyes, nostrils, mouths, bills. `--focus top` frames the top 30% (a tree's crown), `--focus box:X0,Y0,Z0,X1,Y1,Z1` the vertices in that box (m, the mesh's frame): a whole tree's panels are too far out for 12 cm cones, and the first look at the crown top showed every cone hidden inside the needle brushes (0.169 review). A tree with a fruit row on it: `props/fruitPreview#fruitTree($rng, "spruce-cones", "2025-10-20")` (a date: that day's stages; none: the row's peak). Any plant with a flower row, a fruit row or both on every crown, bushes' species too, at a place where they grow: `props/fruitPreview#plantLook($rng, "blackthorn", "blackthorn")` (`null` for none; a third argument, a date). `--ref HEAD` (or any commit) renders each call at that commit too, through today's preview page (a worktree on port 5178): `NAME-N.ref.jpg` and `NAME-N.compare.jpg` (ref above, now below), no stashing; a `--material` the ref doesn't have fails there, so leave it out for old commits. `--material` is a call like the mesh's; its `onBeforeCompile` runs, so world-position shaders show. The preview has no instancing and none of the scene's shade, so light is neutral: use it for shape and surface, a render for colour against the scene. On sea ice it showed a noise lattice and too-strong bumps that no scene render had.
 
-## `scripts/edges.mjs`: where is the edge, how sharp?
+## `scripts/measure/edges.mjs`: where is the edge, how sharp?
 
 Reads the `debug.probeLine` that `snapshot.mjs` saved and lists every step in luminance along it
 (medians each side over `--window`°, so stars and rain streaks don't count): where it is (50%
@@ -363,26 +363,26 @@ crossing), 10–90% width in pixels, the levels each side. `--mean A:B,C:D` give
 over ranges and each one's ratio to the first.
 
 ```sh
-node scripts/snapshot.mjs --out $SP/p --scene '{"name":"lip","date":"2016-06-21","params":{"debug":{"probeLine":[{"az":0,"el":[3,12],"step":0.02}]}}}'
-node scripts/edges.mjs $SP/p/lip.json --mean 6:8,10.5:12
+node scripts/render/snapshot.mjs --out $SP/p --scene '{"name":"lip","date":"2016-06-21","params":{"debug":{"probeLine":[{"az":0,"el":[3,12],"step":0.02}]}}}'
+node scripts/measure/edges.mjs $SP/p/lip.json --mean 6:8,10.5:12
 #   edge at el 4.47°: 884 → 1.16e+3 cd/m² (+31%), 10–90% 2.0 px
 #   mean 6–8°: 1.11e+3, 10.5–12°: 1.13e+3 (×1.02)
-node scripts/params.mjs --rendered 2016-06-21 --each 'p => src.shelfCloud.lipElevationAhead(p)'   # 4.62
+node scripts/scene/params.mjs --rendered 2016-06-21 --each 'p => src.shelfCloud.lipElevationAhead(p)'   # 4.62
 ```
 
 A CPU prediction against the render's edge is the parity check for a sky shader with a TS mirror
 (within a few px). Probe above, on and below a feature: a brightness that matches one neighbour can
 still read wrong against the other (../lessons/SKY.md).
 
-## `scripts/rows.mjs`: rows of a photo
+## `scripts/measure/rows.mjs`: rows of a photo
 
 Mean sRGB and a relative luminance of image rows or columns (`--rows 100,200` or `0:1080:40`,
 `--from`/`--to` to limit the span), for reference photos where there's no probe; macOS (`sips`).
 For a render's real luminance use the probes.
 
-## `scripts/contact-sheet.mjs`: look at results cheaply
+## `scripts/render/contact-sheet.mjs`: look at results cheaply
 
-- `node scripts/contact-sheet.mjs --dir $SP/feat`: one image read, not eight.
+- `node scripts/render/contact-sheet.mjs --dir $SP/feat`: one image read, not eight.
 - `--region top|bottom|centre|X0,Y0,X1,Y1` (fractions) for sky features; `--compare $SP/before`
   puts pairs side by side; `--match REGEX` filters names (`'\.rocks$'` for crops).
 - **Zoom into one render:** `--match '^NAME$' --region X0,Y0,X1,Y1` (fractions of the frame,

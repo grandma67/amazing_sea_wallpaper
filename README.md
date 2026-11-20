@@ -70,9 +70,9 @@ npm install
 npm run dev            # http://localhost:5174/
 npm run build          # type-check + production build into dist/
 npm test               # unit tests of the scene logic (Vitest)
-node scripts/snapshot.mjs --url http://localhost:5174/ 2026-12-01..2026-12-07
-node scripts/snapshot.mjs --scene scenes/examples.json   # scenes described in JSON
-node scripts/contact-sheet.mjs --dir out --cols 4
+node scripts/render/snapshot.mjs --url http://localhost:5174/ 2026-12-01..2026-12-07
+node scripts/render/snapshot.mjs --scene scenes/examples.json   # scenes described in JSON
+node scripts/render/contact-sheet.mjs --dir out --cols 4
 ```
 
 A scene spec (`src/sceneSpec.ts`, also `?scene=<JSON>` on the page) forces any part of
@@ -106,11 +106,11 @@ and daily at 00:05 UTC with fresh `latest*.jpg`. Enable it under
 - Atmosphere, clouds, star data and blue-noise texture in `public/assets/`:
   [takram-design-engineering/three-geospatial](https://github.com/takram-design-engineering/three-geospatial)
   (MIT). Star data: Yale Bright Star Catalog.
-- Milky Way (`public/assets/milkyway.png`, built by `scripts/milkyway.mjs`):
+- Milky Way (`public/assets/milkyway.png`, built by `scripts/assets/milkyway.mjs`):
   [NASA/Goddard Space Flight Center Scientific Visualization Studio](https://svs.gsfc.nasa.gov/4851),
   Deep Star Maps 2020; Gaia DR2 data: ESA/Gaia/DPAC.
 - Moon phase: [astronomy-engine](https://github.com/cosinekitty/astronomy) (MIT).
-- Animal skins (`public/assets/skins.png`, baked by `scripts/skinBake.py`): patterns
+- Animal skins (`public/assets/skins.png`, baked by `scripts/assets/skinBake.py`): patterns
   derived from photos on Wikimedia Commons; each photo, author and licence is listed in
   `src/props/skins.json`. CC BY photos:
   - "Nile Crocodile basking (13869043013).jpg" by Steve Slater (CC BY 2.0, [source](https://commons.wikimedia.org/wiki/File:Nile_Crocodile_basking_(13869043013).jpg))

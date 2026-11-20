@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { publishedRun, runsForDay, summarise } from '../scripts/ciDay.mjs'
+import { publishedRun, runsForDay, summarise } from '../scripts/ci/ciDay.mjs'
 
-// scripts/ciDay.mjs: which Pages run made a day's picture (tools/RENDER.md "Broken frames").
+// scripts/ci/ciDay.mjs: which Pages run made a day's picture (tools/RENDER.md "Broken frames").
 
 const run = (id: number, at: string, conclusion: string | null) => ({ id, created_at: at, run_started_at: at, head_sha: `sha${id}`, conclusion })
 

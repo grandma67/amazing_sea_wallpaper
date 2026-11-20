@@ -34,7 +34,7 @@ import type { Wildlife } from './props/wildlife'
 // the finished SceneParams (it can't change the title or anything derived).
 //
 // Use it with ?scene=<JSON> on the page, or a JSON file of one spec or a list
-// of them: node scripts/snapshot.mjs --scene specs.json
+// of them: node scripts/render/snapshot.mjs --scene specs.json
 
 /** Present, absent, or a given kind. */
 export type Force<K extends string> = K | boolean | null

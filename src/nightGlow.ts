@@ -22,7 +22,7 @@ import { darkZenithLuminance, DARK_ZENITH_MAG, renderPerLux } from './starLight'
 //
 // - Milky Way: NASA SVS Deep Star Maps 2020 (Gaia DR2, Hipparcos, Tycho-2)
 //   without the stars we draw as points, calibrated on Masana et al. 2021
-//   (scripts/milkyway.mjs): the Sagittarius star cloud ~1,050 S10, the
+//   (scripts/assets/milkyway.mjs): the Sagittarius star cloud ~1,050 S10, the
 //   galactic poles ~6–9.
 // - Airglow: green 557.7 nm and continuum from a shell at ~95 km, red
 //   630 nm at ~250 km, brighter toward the horizon (van Rhijn) until the air
@@ -168,7 +168,7 @@ export function galactic(eci: [number, number, number]): { l: number; b: number 
   return { l, b: (Math.asin(Math.max(-1, Math.min(1, g[2]))) * 180) / Math.PI }
 }
 
-/** How milkyway.png is encoded (scripts/milkyway.mjs): log2 S10 over this
+/** How milkyway.png is encoded (scripts/assets/milkyway.mjs): log2 S10 over this
  * range in 8 bits. */
 export const MILKY_WAY_LOG2: [number, number] = [-2, 12]
 

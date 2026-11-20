@@ -742,7 +742,7 @@ export async function renderScene(
       ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky, params.debug?.cloudFace === true, pass('cloudShadowCast'), params.debug?.shadowDump ?? null)
       : null
   // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
-  // its haze): an object's unhazed colour under the same light (scripts/haze.mjs).
+  // its haze): an object's unhazed colour under the same light (scripts/measure/haze.mjs).
   if (clouds != null && !pass('seaHaze')) clouds.haze = false
   // Accumulated frames only redraw what changes: the spray sprites.
   // Their blended veils too (props/surf.ts): they read the scene's depth,
@@ -1320,7 +1320,7 @@ export async function renderScene(
       pitchDeg: camera.rotation.x / DEG,
       // Ground under the camera (diff.mjs --keep-camera).
       cameraGroundM: camera.position.y - params.camera.heightM,
-      // World position (m): distances to probed world points (scripts/haze.mjs).
+      // World position (m): distances to probed world points (scripts/measure/haze.mjs).
       cameraPosition: camera.position.toArray().map(v => +v.toFixed(2)),
       props: reportProps(props, camera, width, height),
       // CPU time (ms) each prop kind took to build.

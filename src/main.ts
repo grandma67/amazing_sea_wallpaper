@@ -9,7 +9,7 @@ import type { RenderReply, RenderRequest } from './renderWorker'
 //   /random/           a random day before today (public/random/index.html)
 //   ?date=YYYY-MM-DD   render a specific day (default: today, local time);
 //                      future days fall back to today
-//   ?future=1          allow future days (scripts/snapshot.mjs previews)
+//   ?future=1          allow future days (scripts/render/snapshot.mjs previews)
 //   ?w=1920&h=1080     output resolution (default: 3840×2160, less on small or
 //                      limited devices; taller than wide = portrait)
 //   ?portrait=1|0      force a portrait (phone) or landscape composition
@@ -367,7 +367,7 @@ document.getElementById('download')!.addEventListener('click', () => {
   ).catch(() => {}) // a failed render says so on the splash
 })
 
-// Hook for scripts/snapshot.mjs and scripts/restart.mjs: the day on screen.
+// Hook for scripts/render/snapshot.mjs and scripts/render/restart.mjs: the day on screen.
 declare global {
   interface Window {
     __sea: { ready: Promise<Rendered & { params: SceneParams }>; params: SceneParams | null; view: View }

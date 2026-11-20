@@ -2,7 +2,7 @@
 
 Which coasts the wallpaper draws and how often, and the research behind them. Status
 2026-10-30 (PLAN_BIOMES phases 1–7). Shares are over 2024–2026 (1096 days, 715 beach days;
-`node scripts/params.mjs --stats … 2024-01-01..2026-12-31`). How the code works:
+`node scripts/scene/params.mjs --stats … 2024-01-01..2026-12-31`). How the code works:
 [arch/COAST.md](arch/COAST.md); research numbers per region: REGIONS.md; plan:
 [plans/PLAN_BIOMES.md](plans/PLAN_BIOMES.md).
 

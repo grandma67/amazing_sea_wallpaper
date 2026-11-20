@@ -50,7 +50,7 @@ Scripts, randomness, params, tests and the page. Other topics: [LESSONS.md](../L
 - Cleanup in `finally` or a signal handler doesn't survive every stop: Ctrl+C skips `finally` unless
   a handler exits, `kill -9` runs nothing, and a handler waits for a synchronous loop. For anything
   that must not be left behind, use a detached watcher that polls the owner's pid
-  (`scripts/worktreeReaper.mjs`), and test it by stopping the script.
+  (`scripts/shared/worktreeReaper.mjs`), and test it by stopping the script.
 - `child.kill()` on `npx vite` signals npx only; start the server `detached` and kill the group
   (`process.kill(-pid)`).
 - **Shell scripts** (CRON): BSD `date -j -f FORMAT` fills fields the format lacks from now (parsing
@@ -111,7 +111,7 @@ Scripts, randomness, params, tests and the page. Other topics: [LESSONS.md](../L
   files failing to load. Put shared helpers in a module with no imports (`reef.ts`). A cycle can
   hang on one constant: `terrain.ts` imported only `EARTH_RADIUS` from `params.ts`, which cost the
   surge ten test rounds of guessing the ground from the bare profile (0.200). Look for what a
-  cycle is made of (`scripts/importReach.py`) before working around it.
+  cycle is made of (`scripts/dev/importReach.py`) before working around it.
 
 ## Page
 

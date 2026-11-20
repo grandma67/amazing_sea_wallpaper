@@ -121,7 +121,7 @@ vec4 mirrorAlongRay(vec3 P, float D, float t, vec3 Rm, float alpha, float sinVie
  * and land lost in the haze leaves exactly the sky reflection, no patch. The
  * sea haze fades its share by (1 − T)², as takram's main pass does (it mixes
  * in a haze colour already scaled by its opacity, by that opacity again:
- * scripts/haze.mjs on 2003-03-11's islands); the air's by (1 − T).
+ * scripts/measure/haze.mjs on 2003-03-11's islands); the air's by (1 − T).
  * Premultiplied: the coverage stays. */
 vec4 hazeMirror(vec4 planar, float hazeT, vec3 R, vec3 skyReflected) {
   float x = max(R.y * hazeT, 0.0) / 1000.0;

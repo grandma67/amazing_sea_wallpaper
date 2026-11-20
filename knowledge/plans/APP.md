@@ -54,7 +54,7 @@ one) and 3–4 Androids (low-end Mali, mid Adreno, Pixel, Samsung). For each, re
   debugging (Safari Web Inspector / `chrome://inspect`).
 - Time to image at the default portrait size and 64 frames, and with `?frames=24`.
 - Peak memory, thermal throttling over 2–3 runs, crashes/context loss.
-- Visual diff against a desktop render of the same `?date=&w=&h=` (`scripts/diff.mjs --a
+- Visual diff against a desktop render of the same `?date=&w=&h=` (`scripts/render/diff.mjs --a
   --b`) — GPU precision differences (mediump defaults, half floats) show here.
 
 Outcome decides: minimum OS / GPU, default resolution and frames on phones, and whether a
@@ -171,7 +171,7 @@ The project rule is that cheaper rendering must not change the image (ARCHITECTU
   Photos add-only permission string (`NSPhotoLibraryAddUsageDescription`).
 - Android: target the current API level, `SET_WALLPAPER` permission (normal, no prompt),
   `POST_NOTIFICATIONS` for the fallback notification.
-- Screenshots: render them with `scripts/snapshot.mjs` at store sizes (6.9" iPhone
+- Screenshots: render them with `scripts/render/snapshot.mjs` at store sizes (6.9" iPhone
   1320×2868, 13" iPad, Android phone) using a few specs from `scenes/examples.json`.
 - CI (later): GitHub Actions macOS runner + fastlane for TestFlight / Play internal track.
   Until then, archive from Xcode / Android Studio manually.
@@ -181,7 +181,7 @@ The project rule is that cheaper rendering must not change the image (ARCHITECTU
 - `npm test` stays the gate; add tests for `platform.ts` choices (cache key, which image
   to use for a given local date vs server date, crop rect) — pure functions, no WebGL.
 - Determinism: a device render and a desktop render of the same date + size should match
-  within GPU noise (`scripts/diff.mjs`); keep one reference per platform from phase 0.
+  within GPU noise (`scripts/render/diff.mjs`); keep one reference per platform from phase 0.
 - Manual device matrix each release: one old + one new iPhone, one low-end + one flagship
   Android; check first launch offline, background/resume during render, the daily job
   (Android: `adb shell cmd jobscheduler run`), the Shortcuts automation (iOS).

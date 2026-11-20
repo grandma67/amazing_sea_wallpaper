@@ -10,11 +10,11 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "snapshot": "node scripts/snapshot.mjs",
+    "snapshot": "node scripts/render/snapshot.mjs",
     "test": "tsc --noEmit -p test && vitest run",
-    "test:times": "node scripts/testTimes.mjs",
-    "check:restart": "node scripts/restart.mjs",
-    "skins": "node scripts/skins.mjs"
+    "test:times": "node scripts/dev/testTimes.mjs",
+    "check:restart": "node scripts/render/restart.mjs",
+    "skins": "node scripts/assets/skins.mjs"
   },
   "dependencies": {
     "@takram/three-atmosphere": "^0.19.1",

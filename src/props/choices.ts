@@ -16,7 +16,7 @@ import { wildlifeFor } from './wildlife'
 // What the props decide for themselves on a day, without placing anything:
 // the pure `xxxFor(params, rng)` choices on the same random streams the
 // creators use (PropContext.rng), so they match the render. For
-// scripts/params.mjs (`p.props.wildlife.hippos`) and the tests. Whether a
+// scripts/scene/params.mjs (`p.props.wildlife.hippos`) and the tests. Whether a
 // choice lands in the frame is still up to placement.
 
 export function propChoices(params: SceneParams) {

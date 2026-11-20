@@ -151,7 +151,7 @@ Playwright (headless snapshots), Vitest.
   choices reach props as `params.overrides`; a final `params` deep patch covers the rest.
 - **Prop choices without rendering:** `props/choices.ts` `propChoices(params)` runs each
   creator's pure `xxxFor(params, rng)` (gulls, marine, migratory, wildlife, shore life, debris,
-  mangroves) on its own stream, for `scripts/params.mjs` (`p.props`), `scripts/animals.mjs` and
+  mangroves) on its own stream, for `scripts/scene/params.mjs` (`p.props`), `scripts/scene/animals.mjs` and
   tests.
 
 ### Biome, climate or place: what keys each table
@@ -268,7 +268,7 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   `navigator.webdriver`; `?cache=1|0` forces. A first visit renders before the worker controls
   the page, then stores.
 - **Mesh preview:** `tools/mesh.html` + `src/meshPreview.ts` (dev only), screenshot by
-  `scripts/mesh.mjs`.
+  `scripts/render/mesh.mjs`.
 - **Tests** (`test/`, Vitest, `npm test`, also in CI before the build): logic, not rendering —
   PRNG, dates, FFT, `generateParams` invariants over three years, terrain/surf mirrors, choice
   tables, meshes, specs, and with no GPU the whole prop tree (built, finite, shaded, freed) and a
@@ -277,8 +277,8 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   `/latest.jpg` (1920×1080) and `/latest-portrait.jpg` (1290×2796) with SwiftShader (24 frames).
   A blank or broken frame (NaN sky light, clipped white: `checks.mjs` `brokenFrame`) fails the
   render and publishes neither size. The last 60 days' render JSON stays on the site
-  (`daily/index.json`, older `daily/{pc,phone}/<date>.json`; `scripts/dailyArchive.mjs`); only
-  today's pictures are kept. A bad day: `scripts/ciDay.mjs DATE` (tools/RENDER.md "Broken frames").
+  (`daily/index.json`, older `daily/{pc,phone}/<date>.json`; `scripts/ci/dailyArchive.mjs`); only
+  today's pictures are kept. A bad day: `scripts/ci/ciDay.mjs DATE` (tools/RENDER.md "Broken frames").
 - **Desktop-wallpaper scripts** (`crons/`, plan `plans/CRON.md`): each installed machine asks
   for `daily/pc/<UTC date>.jpg` (or `daily/phone/…`) once at its own random 07:MM local and at
   login; a 404 means "not rendered yet" and gets one re-run at the later of +3 h and 08:00 UTC.

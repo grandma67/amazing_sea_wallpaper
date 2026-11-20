@@ -19,7 +19,7 @@ makes must be freed, in two stages:
    render loses its context (`renderer.forceContextLoss()`), the canvas leaves the page. Page-wide
    listeners (bar toggle, Download, nav clicks, `popstate`) are added once, never per day.
 
-## `npm run check:restart` (`scripts/restart.mjs`, ~1 min)
+## `npm run check:restart` (`scripts/render/restart.mjs`, ~1 min)
 
 Run it after anything that adds to the scene, the page or a listener (dev server on 5174), with
 `--date` on real days that have the addition: the default start is June, so a seasonal or rare

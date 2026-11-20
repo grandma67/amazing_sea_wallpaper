@@ -29,7 +29,7 @@ and a WMO `genus`, so code checks `genus === 'cumulonimbus'` (`stormEffects.ts`,
 | `overcast` | 6% | Sc, St or Ns deck, sometimes As; sun hidden. Less likely at night and blue hour |
 | `storm` | 6% | cumulonimbus (never at night) |
 
-Shares are over 2024–2026 (`node scripts/params.mjs --stats 'p => p.weather.kind'`).
+Shares are over 2024–2026 (`node scripts/scene/params.mjs --stats 'p => p.weather.kind'`).
 
 ### What the coast and conditions change
 

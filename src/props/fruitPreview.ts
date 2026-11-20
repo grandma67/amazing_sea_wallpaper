@@ -1,10 +1,10 @@
-// For scripts/mesh.mjs: one tree with a fruit row on it, on a date (or at
+// For scripts/render/mesh.mjs: one tree with a fruit row on it, on a date (or at
 // the row's peak), to judge a fruit's look alone:
-//   node scripts/mesh.mjs 'props/fruitPreview#fruitTree($rng, "spruce-cones", "2025-05-20")'
+//   node scripts/render/mesh.mjs 'props/fruitPreview#fruitTree($rng, "spruce-cones", "2025-05-20")'
 // Any plant with a flower row, a fruit row or both on every crown (bushes'
 // species too), at their peak or on a date, at a place where they grow:
-//   node scripts/mesh.mjs 'props/fruitPreview#plantLook($rng, "blackthorn", null)'
-//   node scripts/mesh.mjs --focus top 'props/fruitPreview#plantLook($rng, null, "spruce-cones", "2025-05-22")'
+//   node scripts/render/mesh.mjs 'props/fruitPreview#plantLook($rng, "blackthorn", null)'
+//   node scripts/render/mesh.mjs --focus top 'props/fruitPreview#plantLook($rng, null, "spruce-cones", "2025-05-22")'
 
 import type { BufferGeometry } from 'three'
 

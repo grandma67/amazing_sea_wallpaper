@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { mergeIndex, siteOf } from '../scripts/dailyArchive.mjs'
+import { mergeIndex, siteOf } from '../scripts/ci/dailyArchive.mjs'
 
 // The site's daily/index.json (pages.yml): what a bad day's numbers can be read from later.
 

@@ -129,7 +129,7 @@ waterspout, stones and beachrock (COAST.md). Which animals appear where:
   nothing draws it yet.
 - **Animal skins** (`props/skins.ts`, 0.157): markings from photos on the procedural animals. One
   atlas (`public/assets/skins.png`, a 256² grey layer per skin) baked offline by
-  `scripts/skinBake.py` from the recipes in `props/skins.json` (photo, patch, the animal's length in
+  `scripts/assets/skinBake.py` from the recipes in `props/skins.json` (photo, patch, the animal's length in
   the photo for scale, licence): a straight patch of flank between a line near the backbone and one
   low on the side, its light divided out (row mean down the side, wide blur of the column mean
   along it), brightness only (shadows lit by blue sky carry the sky's hue), tiled along the body
@@ -268,7 +268,7 @@ at 20 m, which is about 14% of stone-pine days; at 300 m + (most days) it's noth
 cases are mostly framed shots' heroes (9–30 m), whose crowns the frame often cuts. Recount with:
 
 ```sh
-node scripts/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --stats "$(cat scripts/plant-near.js)"
+node scripts/scene/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --stats "$(cat scripts/scene/plant-near.js)"
 # per kind, the min ctx.distance over instances with ctx.inFrame(x, y + 2, z, 1), banded;
 # `--count` over many days gives only the overall minimum, `--find` only unoccluded ones.
 ```

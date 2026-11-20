@@ -234,7 +234,7 @@ export function shelfDensity(
  * azimuth `headingDeg + azDeg` whose ray meets the shelf at the density
  * takram shows (SHELF_VISIBLE_DENSITY), within 20 km; null if none below
  * 25°. Earth's curvature included. Compare with the render's probeLine step
- * (`scripts/edges.mjs`): they agreed within 3 px at 1080p in phase 4.
+ * (`scripts/measure/edges.mjs`): they agreed within 3 px at 1080p in phase 4.
  *   params.mjs --rendered DATE --each 'p => src.shelfCloud.lipElevationAhead(p)'
  */
 export function lipElevationAhead(

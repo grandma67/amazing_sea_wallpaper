@@ -1,4 +1,4 @@
-// Baked by `node scripts/asset.mjs bake ph_flower_ursinia` (--lods 5000:0.003,1500:0.012 --texel 2 --threshold 0.5).
+// Baked by `node scripts/assets/asset.mjs bake ph_flower_ursinia` (--lods 5000:0.003,1500:0.012 --texel 2 --threshold 0.5).
 // Flower Ursinia: https://polyhaven.com/a/flower_ursinia (CC0, Jenelle van Heerden, Rico Cilliers). Do not edit.
 
 import type { Scan } from './scan'

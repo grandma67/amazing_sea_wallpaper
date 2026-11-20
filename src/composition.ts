@@ -50,7 +50,7 @@ export function measureFrame(params: SceneParams): FrameCoverage {
 }
 
 /** What the camera sees of the ground, for sizing near-camera props by
- * pixels on screen before rendering (scripts/params.mjs `p.view`). */
+ * pixels on screen before rendering (scripts/scene/params.mjs `p.view`). */
 export interface FrameView {
   /** Eye height above the ground (or sea) below the camera (m). */
   eye: number

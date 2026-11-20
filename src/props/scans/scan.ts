@@ -1,6 +1,6 @@
 import { BufferAttribute, BufferGeometry } from 'three'
 
-// Baked scans (NATURE_PLAN phase 11; `node scripts/asset.mjs bake ID`): each
+// Baked scans (NATURE_PLAN phase 11; `node scripts/assets/asset.mjs bake ID`): each
 // module in this folder is one scanned model's variants, each at several
 // levels of detail, quantised, with its licence. Loaded on demand
 // (index.ts loadScan: a chunk of its own on the page), built synchronously.

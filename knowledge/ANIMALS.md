@@ -7,7 +7,7 @@ near the camera (a 10 cm crab is a speck at 20 m; turtles and monkeys within ~40
 
 "Storm" below means a thunderstorm or squall, or a storm sky (`stormy()` in
 `src/props/context.ts`). Probabilities are per day, from the generator's own choices over
-three years (see the table at the end, `node scripts/animals.mjs`); placement can still
+three years (see the table at the end, `node scripts/scene/animals.mjs`); placement can still
 miss the frame, so a chosen animal isn't always seen.
 
 Rocky shores (PLAN_BIOMES 8, about a quarter of all days) have no sand: no turtles, ghost,
@@ -132,7 +132,7 @@ sharks): PLAN_BIOMES.md phase 14.
 ## How often, over three years
 
 Share of days on which the generator chooses each animal, of all days and of each biome's
-and ocean's days. Regenerate with `node scripts/animals.mjs`.
+and ocean's days. Regenerate with `node scripts/scene/animals.mjs`.
 
 1095 days (2024-01-01 … 2026-12-30).
 

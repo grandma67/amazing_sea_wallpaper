@@ -4,6 +4,20 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 (`params.mjs --help` prints it). `SP` = scratchpad. Spec format and fields:
 [SCENE_SPECS.md](SCENE_SPECS.md).
 
+Scripts by folder (`scripts/`; run from the repo root, they spawn each other by root-relative path):
+
+| Folder | Holds |
+|---|---|
+| `scene/` | no-render questions: `params.mjs`, `profile.mjs`, `animals.mjs`, `plant-near.js` (a `--stats` expression) |
+| `render/` | headless renders and their comparison: `snapshot.mjs` (+ `checks.mjs`, its warnings), `diff.mjs`, `bench.mjs`, `show.mjs`, `contact-sheet.mjs`, `mesh.mjs`, `restart.mjs` |
+| `measure/` | numbers off renders: `haze.mjs`, `horizon.mjs`, `parity.mjs` (render and solve), `edges.mjs`, `rows.mjs`, `summary.mjs` (read saved renders or photos) |
+| `assets/` | builders of committed data: `asset.mjs` (+ `assetBake.mjs`, `asset-*.json`), `skins.mjs` → `skinBake.py`, `milkyway.mjs`, `tideGauges.py` |
+| `ci/` | the published site: `ciDay.mjs`, `dailyArchive.mjs` |
+| `dev/` | the repo itself: `doc.mjs`, `testTimes.mjs`, `importReach.py` |
+| `shared/` | not run directly: `lib.mjs` (arguments, specs, dates, worktrees), `refServer.mjs`, `worktreeReaper.mjs` |
+
+A `.d.mts` beside a script types it for the tests that import it.
+
 | Question | Tool | Guide |
 |---|---|---|
 | How often, which days, what a spec gives, real dates | `params.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
@@ -58,11 +72,11 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | A real colour or size: albedo of a petal, bark, moss; a scan's size (CC0/CC-BY, no server) | `asset.mjs grid` (pick the region) → `asset.mjs measure SOURCE --region --hue --anchor`; `asset.mjs replay` re-measures everything recorded | "Real colours" below |
 | Is a prop **visible** on a day (not behind props or terrain), which spec dates show it best; how hazed far land is | `params.mjs --find KIND` | tools/PARAMS.md "Which days show it" |
 | Each plant today: kind, distance from shore, height, species, salt; on/off on the same day | `params.mjs` `p.plants`, `p.withProps(patch, f)`, `--every K` for a quick share | tools/PARAMS.md "Plants on real days" |
-| Can module A import B without a cycle (B half-loaded)? | `python3 -I scripts/importReach.py src/A.ts src/B.ts`: the value-import chain from A to B, or "does not reach" | below, "Gotchas" |
+| Can module A import B without a cycle (B half-loaded)? | `python3 -I scripts/dev/importReach.py src/A.ts src/B.ts`: the value-import chain from A to B, or "does not reach" | below, "Gotchas" |
 | How much turf, bare land, sea a camera sees, by distance | `src.groundSeen.groundSeen(p.ctx)` in a `params.mjs` expression | tools/PARAMS.md |
 | Photos of a species with a licence we can ship (PD, CC0, CC BY) | `asset.mjs search QUERY…` (numbered contact sheet; waits out Commons' rate limit) | `asset.mjs` header |
 | Reference photos when the name also means other things (a keyword search fills with noise) | `asset.mjs search --wiki ARTICLE…` (the article's own photos; `--all` for share-alike ones, fine to look at, not to ship) | `asset.mjs` header |
-| An animal skin from a photo (atlas layer) | `asset.mjs search` → `asset.mjs fetch commons:File:… --id ID` → `asset.mjs grid ID --px` (pixel labels) → recipe in `src/props/skins.json` → `asset.mjs patch ID` (outline on the photo beside the baked tile) → `npm run skins` (sets up its Python; warns when a layer clips; `contrast: "auto"`) → `mesh.mjs --material 'props/skins#skinPreviewMaterial()'` | `scripts/skinBake.py` header; [arch/PROPS.md](arch/PROPS.md) "Animal skins" |
+| An animal skin from a photo (atlas layer) | `asset.mjs search` → `asset.mjs fetch commons:File:… --id ID` → `asset.mjs grid ID --px` (pixel labels) → recipe in `src/props/skins.json` → `asset.mjs patch ID` (outline on the photo beside the baked tile) → `npm run skins` (sets up its Python; warns when a layer clips; `contrast: "auto"`) → `mesh.mjs --material 'props/skins#skinPreviewMaterial()'` | `scripts/assets/skinBake.py` header; [arch/PROPS.md](arch/PROPS.md) "Animal skins" |
 | One section of a long doc; a phrase across wrapped lines in all the docs | `doc.mjs FILE "heading words"` (whole section; `--toc FILE` lists headings and lengths); `doc.mjs --grep "phrase"` (each matching paragraph or bullet whole, with its heading path; default `knowledge/` and CLAUDE.md) | `doc.mjs` header |
 | A scanned model as a prop mesh (vertex colours, levels of detail) | `asset.mjs bake ID` → `src/props/scans/ID.ts`; `mesh.mjs 'props/scans/index#scanVariant(…)'` | "Real colours" below; [plans/NATURE_PLAN.md](plans/NATURE_PLAN.md) §11 |
 
@@ -123,7 +137,7 @@ each source file as fully covered, so leave it out.
 
 - **Specs** (`--scene`, all scripts): a JSON file or inline JSON; one spec, a list, or
   `{ "base": {…}, "scenes": [{ "name": …, … }] }` (each scene merged deeply over the base:
-  objects merge, the rest replaces). Shared code: `scripts/lib.mjs`.
+  objects merge, the rest replaces). Shared code: `scripts/shared/lib.mjs`.
 - **Dates**: `YYYY-MM-DD` or `FROM..TO` (snapshot also `today`). The test days are 1095 days
   from 2024-01-01 (`test/days.ts` `DAYS`).
 - **`--ref REF`** (params, snapshot, diff, bench) checks the commit out into a temporary worktree
@@ -152,13 +166,13 @@ each source file as fully covered, so leave it out.
 - **Region:** `asset.mjs grid ID` writes the image with a labelled 10% grid; read `--region` off it,
   don't guess from a contact sheet. `--hue H0,H1[,S]` keeps only the target's pixels (flowers, not
   the sunlit leaves and glints a cluster mixes in); check two regions agree.
-- **Record:** every measure goes into `scripts/asset-measures.json` (committed); `assets-src/` isn't.
+- **Record:** every measure goes into `scripts/assets/asset-measures.json` (committed); `assets-src/` isn't.
   `asset.mjs replay [ID]` measures them all again. Commons rate-limits after ~5 quick requests (the
   script retries).
 - **Bake a scanned model** (NATURE_PLAN phase 11): `asset.mjs fetch polyhaven:ID` (glTF and its
   `.bin`), then `asset.mjs bake ph_ID [--lods 5000:0.003,1500:0.012] [--texel 2]` →
   `src/props/scans/ph_ID.ts` (each glTF node a variant, levels of detail finest first; recorded in
-  `scripts/asset-bakes.json`, which `replay` rebakes byte for byte). Register it in
+  `scripts/assets/asset-bakes.json`, which `replay` rebakes byte for byte). Register it in
   `src/props/scans/index.ts`; preview with `mesh.mjs --material 'props/vegetation#plantMaterial()'
   'props/scans/index#scanVariant("ph_ID", 0, 0)'`. Each level stops at its triangles or its error
   (a share of the plant's size), whichever comes first: thin stalks need an error below their width.
@@ -193,7 +207,7 @@ minutes (dep optimisation).
 - **A bad published picture is a SwiftShader bug until shown otherwise:** CI has no GPU and renders
   on x86 SwiftShader, which keeps NaN where Apple GPUs hide it (`min(NaN, x)`, w ≈ 0). A Mac render
   of the day says nothing; and CI renders the **pushed** commit, not your HEAD. Start with
-  `node scripts/ciDay.mjs DATE` (tools/RENDER.md "Broken frames"). 2026-11-17 lost a Mac render
+  `node scripts/ci/ciDay.mjs DATE` (tools/RENDER.md "Broken frames"). 2026-11-17 lost a Mac render
   and a wrong theory from a params diff before this.
 
 - **Probing a render you saw in a diff:** `snapshot.mjs` defaults to 4K, `diff.mjs` to 1080p, so the
@@ -253,7 +267,7 @@ minutes (dep optimisation).
   coast). Re-measure, don't widen the bounds; say so in the test's comment.
 - **Import cycles:** `params.ts` already loads `terrain.ts` (through the surf props); a module that
   `params.ts` loads must not import a value from `params.ts`. Constants that both need live in their
-  own module (`earth.ts`). Check before adding an import: `scripts/importReach.py`.
+  own module (`earth.ts`). Check before adding an import: `scripts/dev/importReach.py`.
 - **Killing the dev server** (`lsof … | xargs kill`) also stops a `run_in_background` vite task; the
   next render says "dev server not reachable": start it again before the next render.
 - **Sampling a reference photo's colours** without PIL: `sips -s format bmp in.jpg --out x.bmp`, then
@@ -275,6 +289,9 @@ minutes (dep optimisation).
   `======` is too (`echo '---'`). `LINES` and `COLUMNS` are the terminal's: assigning JSON to `LINES`
   fails ("bad output format specification"); keep line specs in a file (`--line "$(cat
   $SP/lines.json)"`).
+- **`python3 -I` doesn't put the script's folder on `sys.path`** (Python ≥ 3.11: `-I` implies
+  `-P`), so a script can't import a sibling module: keep each Python script one file (the tide
+  gauge generator was two, and its documented command failed with `No module named 'places'`).
 - **Patching with a heredoc:** in `<<'EOF'` nothing is unescaped, so `\`` stays a backslash and backtick in the file. In `<<EOF` it's the reverse: `$` and backticks run. Use `<<'EOF'` and write backticks plain.
 - Vitest hides `console.log` from passing tests: `--silent=false`, or `process.stderr.write(…)` in
   a throwaway probe test (deleted afterwards). Better: probe with `params.mjs` (`p.ctx`, `src.X`).

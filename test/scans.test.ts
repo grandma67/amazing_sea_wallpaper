@@ -2,10 +2,10 @@ import { beforeAll, describe, expect, it } from 'vitest'
 
 import { loadScan, SCAN_IDS, scanVariant } from '../src/props/scans'
 import { scanGeometry, type Scan } from '../src/props/scans/scan'
-import bakesJson from '../scripts/asset-bakes.json'
+import bakesJson from '../scripts/assets/asset-bakes.json'
 import { expectMesh, triangles } from './mesh'
 
-// NATURE_PLAN phase 11: baked scans (scripts/asset.mjs bake; src/props/scans).
+// NATURE_PLAN phase 11: baked scans (scripts/assets/asset.mjs bake; src/props/scans).
 // Each variant at each level of detail at its real size, base on y = 0, in
 // budget (props ≤ ~5k triangles an instance); every scan's bake recorded so
 // `asset.mjs replay` rebuilds it, with a licence the page may ship.

@@ -26,7 +26,7 @@ Terrain, shore, snow, ice and big shapes. How it works: arch/COAST.md. Other top
 - **A CPU mirror can drift from its shader while every test passes** (they check it against itself):
   TS `bareRock` sloped the platform over the ragged width, GLSL over the nominal one, so the camera
   and props stood up to ~0.6 m off the drawn rock (0.137). Found only when a CPU pool search missed a
-  pool the GPU saw. Now `scripts/parity.mjs` checks every coast kind (~45 s; after any height or film
+  pool the GPU saw. Now `scripts/measure/parity.mjs` checks every coast kind (~45 s; after any height or film
   term edit) and `params.debug.terrainProbe` reads any term without a shader edit. Reading two
   versions side by side missed the one-word difference (`width` vs `rockShape.x`) the numbers showed
   at once: dump the terms. Compare a render with code of the same version: a TS height fix moves the

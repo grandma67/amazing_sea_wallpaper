@@ -81,7 +81,7 @@ function pieces(object: Object3D, camera: Camera, width: number, height: number)
 }
 
 /** Report on everything under `props`, by each object's userData.prop, or by
- * `by(object)` within it ("kind/key", for scripts/params.mjs --count). */
+ * `by(object)` within it ("kind/key", for scripts/scene/params.mjs --count). */
 export function reportProps(props: Object3D, camera: Camera, width: number, height: number, by?: (object: Object3D) => unknown): Record<string, PropReport> {
   props.updateMatrixWorld(true)
   camera.updateMatrixWorld()

@@ -188,7 +188,7 @@ puts the peak in Sep–Oct.
 - The 165 bush days with no species (§1): fynbos, matorral, laurel scrub, arid shrubs.
 - Saw palmetto and sea grape are drawn on the round-leaf bush mesh, not their own shapes.
 - Mānuka's South Island month lag; Natal and Calafate months *(est.)* where noted.
-- Colours measured (2026-11-14, `scripts/asset-measures.json`): sea buckthorn, Japanese-rose hips, haws,
+- Colours measured (2026-11-14, `scripts/assets/asset-measures.json`): sea buckthorn, Japanese-rose hips, haws,
   Spanish broom, blackthorn. The rest are *(est.)*.
 - Photos: Commons `Sea buckthorn Russia 2007.JPG`, `Hippophaë rhamnoides DSCN3694-01.jpg`,
   `Rose hips Rosa rugosa Hansa 1.jpg`, `Crataegus monogyna fruit NT2.jpg`, `Spartium junceum 1.JPG`,

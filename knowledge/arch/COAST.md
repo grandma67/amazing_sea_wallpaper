@@ -56,7 +56,7 @@ research numbers: REGIONS.md §2–3. Pitfalls: [lessons/COAST.md](../lessons/CO
   turf (mushrooms, fireflies, `groundSeen.ts`); change both, then `parity.mjs` (cover term).
 - **Mirrors:** every height term lives in both `TERRAIN_GLSL` and the TS `beachHeight`
   (`terrain.ts`); `test/terrain.test.ts` and `test/tides.test.ts` check them against themselves,
-  `scripts/parity.mjs` against the drawn terrain (all coast kinds, heights and pools; the TS
+  `scripts/measure/parity.mjs` against the drawn terrain (all coast kinds, heights and pools; the TS
   `bareRock` had drifted until 0.137).
 
 ## Terrain and coast kinds
@@ -246,7 +246,7 @@ step can't feed an earlier one without moving it):
 
 `params.ts` reads the drawn ground with `terrainHeight` (0.202: `EARTH_RADIUS` moved to
 `earth.ts`, so `terrain.ts` no longer imports `params.ts`; check a new import with
-`python3 -I scripts/importReach.py FROM TO`).
+`python3 -I scripts/dev/importReach.py FROM TO`).
 
 ## Tides (`tides.ts`, PLAN_BIOMES 5)
 

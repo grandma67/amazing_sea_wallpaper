@@ -65,7 +65,7 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
 
 | Fact | How checked |
 |---|---|
-| `latest.jpg`: 1920×1080, ~290 KB. `latest-portrait.jpg`: 1290×2796. `latest.json` (12.7 KB, the same file as the day's `daily/pc/<date>.json`) has exactly one `"date": "YYYY-MM-DD"` (the UTC day rendered) and one `"title"` (UTF-8, no quotes in titles), one key per line | live `curl` + `grep -o`; `scripts/snapshot.mjs:223` |
+| `latest.jpg`: 1920×1080, ~290 KB. `latest-portrait.jpg`: 1290×2796. `latest.json` (12.7 KB, the same file as the day's `daily/pc/<date>.json`) has exactly one `"date": "YYYY-MM-DD"` (the UTC day rendered) and one `"title"` (UTF-8, no quotes in titles), one key per line | live `curl` + `grep -o`; `scripts/render/snapshot.mjs:223` |
 | Every file has `cache-control: max-age=600` | live `curl -I` |
 | The CDN caches the JSON and the JPEG separately, so for up to 10 min after a deploy a fresh JSON can come with yesterday's JPEG | follows from per-URL `max-age` |
 | Only today's image is published. If the render step fails (`continue-on-error`), there's no `latest.jpg` (404) that day | `.github/workflows/pages.yml` |
@@ -645,7 +645,7 @@ and one commit. The test harness comes first, so every later phase is checked by
      - The state and config are the same `key=value` files as the bash script.
      - Not run on Windows yet: `SystemParametersInfoW`, the registry, Task Scheduler cmdlets,
        `conhost --headless`, policy checks (stubbed here; CI parses under 5.1 and 7).
-8. **CI** (`.github/workflows/crons.yml`, on changes to `crons/`, `scripts/snapshot.mjs` or
+8. **CI** (`.github/workflows/crons.yml`, on changes to `crons/`, `scripts/render/snapshot.mjs` or
    `.github/workflows/pages.yml`).
    - `ubuntu-latest`:
      - shellcheck

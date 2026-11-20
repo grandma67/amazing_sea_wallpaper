@@ -2,20 +2,20 @@
 
 Index and shared conventions: [TOOLS.md](../TOOLS.md).
 
-## `scripts/params.mjs`: ask the generator
+## `scripts/scene/params.mjs`: ask the generator
 
 All test days in ~1.5 s. Use it for frequencies, which days, what a spec gives, real dates
 (eclipses) and "is it there at all?". Pick 4–8 dates covering the cases (each biome, near/far,
 day/night) when not running all days.
 
 ```sh
-node scripts/params.mjs --stats 'p => p.weather.formations'                  # counts (each array element)
-node scripts/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
-node scripts/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
-node scripts/params.mjs --scene '{"storm":"squall"}' --stats 'p => p.weather.formations'   # spec on every day
-node scripts/params.mjs --scene scenes/stony.json --fields title,place.id    # each scene of a file
-node scripts/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'   # prop choices
-node scripts/params.mjs --where 'p => p.lighthouse?.lit' --each 'p => [p.place.id, p.coast.type]'   # which days, each value
+node scripts/scene/params.mjs --stats 'p => p.weather.formations'                  # counts (each array element)
+node scripts/scene/params.mjs --stats 'p => p.contrails.length' --where 'p => p.sea.ocean === "southern"'
+node scripts/scene/params.mjs --list --where 'p => p.storm?.shelf != null' --fields title,camera.headingDeg
+node scripts/scene/params.mjs --scene '{"storm":"squall"}' --stats 'p => p.weather.formations'   # spec on every day
+node scripts/scene/params.mjs --scene scenes/stony.json --fields title,place.id    # each scene of a file
+node scripts/scene/params.mjs --stats 'p => p.props.wildlife?.crocodile ?? null'   # prop choices
+node scripts/scene/params.mjs --where 'p => p.lighthouse?.lit' --each 'p => [p.place.id, p.coast.type]'   # which days, each value
 ```
 
 `--stats` says how many; `--each` says which: one line per kept day, date and value (an error on its
@@ -38,7 +38,7 @@ above the ground, pixel. Use it **before a first render** of a new prop, and for
 beside the camera". Kinds: `props/index.ts`, comma-separated, or `all`.
 
 ```sh
-node scripts/params.mjs --scene scenes/snow.json --project ice-foot,rocks --rows 6
+node scripts/scene/params.mjs --scene scenes/snow.json --project ice-foot,rocks --rows 6
 #   ice-foot: 1/1 in frame, nearest 2946 m, box [0,492,1730,510]     ← box centre of one long mesh
 #       dist       s       a       y  above        x        z   px         mirror px  covered by
 #        6.4    -4.6     6.4     0.4     0.0    …        …     1259,776   1259,790   -     ← its real nearest point
@@ -86,10 +86,10 @@ days, so narrow it with `--where` or dates). Choices, frequencies and sky framin
 counted; null leaves a place out. Use it for a test's `expectShare` target instead of a probe test.
 
 ```sh
-node scripts/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null'   # 0.46
-node scripts/params.mjs --stats 'p => p.coast.reef != null' --where 'p => p.placeData.reef > 0.5'
+node scripts/scene/params.mjs --expect 'pl => pl.biome === "tropical" ? pl.reef : null'   # 0.46
+node scripts/scene/params.mjs --stats 'p => p.coast.reef != null' --where 'p => p.placeData.reef > 0.5'
 # A share on a subset of days: weigh each place by its beach share too (sand on beach days: 0.645, first climate).
-node scripts/params.mjs --expect 'pl => src.beach.materialChances(pl, Object.keys(pl.climate)[0]).sand / 100' --weight 'pl => (pl.coast.beach ?? 0) + 0.5 * (pl.coast["tidal-flat"] ?? 0)'
+node scripts/scene/params.mjs --expect 'pl => src.beach.materialChances(pl, Object.keys(pl.climate)[0]).sand / 100' --weight 'pl => (pl.coast.beach ?? 0) + 0.5 * (pl.coast["tidal-flat"] ?? 0)'
 ```
 
 `--weight 'pl => …'` multiplies each place's share of days, and the first line says what share of
@@ -104,9 +104,9 @@ the 12 commonest) or range (numbers). Use it before writing `--where`: a wrong n
 (`coast.rockShore` for `coast.rock`, `timeOfDay === "morning"`) silently keeps 0 days.
 
 ```sh
-node scripts/params.mjs --schema coast.rock      # coast.rock.kind  280/1095  string  "platform" "boulder" "cliff"
-node scripts/params.mjs --schema timeOfDay       # the six values
-node scripts/params.mjs --schema props.debris    # the props' choices too
+node scripts/scene/params.mjs --schema coast.rock      # coast.rock.kind  280/1095  string  "platform" "boulder" "cliff"
+node scripts/scene/params.mjs --schema timeOfDay       # the six values
+node scripts/scene/params.mjs --schema props.debris    # the props' choices too
 ```
 
 ### Triangles a prop draws
@@ -135,10 +135,10 @@ specs for it). `--by` works with `--find` too, and `--sample N [--spread]` build
 `--where` days, spread, instead of all (the props cost ~1 s a day).
 
 ```sh
-node scripts/params.mjs --find fungi --scene scenes/fungi.json                  # are the spec's mushrooms visible?
-node scripts/params.mjs --find fireflies --scene '{"place":"maine","timeOfDay":"night","props":{"fireflies":"flash"}}' 2025-07-01..2025-07-20
-node scripts/params.mjs --find surf --rank above --where 'p => p.coast.surfAmplitude > 0.9' 2024-01-01..2025-12-31 --sample 12   # spray seen high
-node scripts/params.mjs --find landforms --scene '{"landform":"range","place":"atacama-peru"}' 2025-08-01..2025-08-30   # the range's slopes seen, and how hazed
+node scripts/scene/params.mjs --find fungi --scene scenes/fungi.json                  # are the spec's mushrooms visible?
+node scripts/scene/params.mjs --find fireflies --scene '{"place":"maine","timeOfDay":"night","props":{"fireflies":"flash"}}' 2025-07-01..2025-07-20
+node scripts/scene/params.mjs --find surf --rank above --where 'p => p.coast.surfAmplitude > 0.9' 2024-01-01..2025-12-31 --sample 12   # spray seen high
+node scripts/scene/params.mjs --find landforms --scene '{"landform":"range","place":"atacama-peru"}' 2025-08-01..2025-08-30   # the range's slopes seen, and how hazed
 ```
 
 It caught every "in frame but hidden" case of NATURE_PLAN phases 12–15 (mushrooms behind grass
@@ -152,7 +152,7 @@ in bands near (< 20 m), mid (20–60 m) and far (≥ 60 m). For a ground feature
 on most land days the turf near a sea-facing camera is out of view.
 
 ```sh
-node scripts/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --stats 'p => { const g = src.groundSeen.groundSeen(p.ctx); return g.near.turf + g.mid.turf > 200 ? "turf within 60 m" : "none" }'
+node scripts/scene/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --stats 'p => { const g = src.groundSeen.groundSeen(p.ctx); return g.near.turf + g.mid.turf > 200 ? "turf within 60 m" : "none" }'
 ```
 
 ### How many in frame: `--count`
@@ -165,9 +165,9 @@ many days each sub-kind was placed and was in frame, the median and max in frame
 
 ```sh
 # Flowering trees on Northland at Christmas (blossom twins carry userData.blossom):
-node scripts/params.mjs --count vegetation --by 'o => [o.userData.plantKind, o.userData.blossom].filter(Boolean).join(" ")' --scene '{"place":"new-zealand-north","coast":"beach"}' 2025-12-25
+node scripts/scene/params.mjs --count vegetation --by 'o => [o.userData.plantKind, o.userData.blossom].filter(Boolean).join(" ")' --scene '{"place":"new-zealand-north","coast":"beach"}' 2025-12-25
 # On real days: how often is a flowering broadleaf in frame at all?
-node scripts/params.mjs --count vegetation --by 'o => o.userData.blossom ?? ""' --where 'p => src.phenology.phenologyFor(p).bloom.some(b => b.row.plant === "broadleaf")'
+node scripts/scene/params.mjs --count vegetation --by 'o => o.userData.blossom ?? ""' --where 'p => src.phenology.phenologyFor(p).bloom.some(b => b.row.plant === "broadleaf")'
 ```
 
 Run it before the first render of anything placed (CLAUDE.md §1): phase 4's flamboyant took a render
@@ -185,8 +185,8 @@ uses the params the page renders (`generateSceneParams` may re-roll a bad framin
 for counts of what's in frame, and before calling a real day "invisible".
 
 ```sh
-node scripts/params.mjs --rendered --scene '{"place":"nova-scotia","composition":"shoreline"}' --fields view 2025-07-10
-node scripts/params.mjs --stats 'p => p.coast.composition + " " + Math.min(40, Math.round(p.view.nearest / 5) * 5)' --where 'p => p.coast.type === "beach"'
+node scripts/scene/params.mjs --rendered --scene '{"place":"nova-scotia","composition":"shoreline"}' --fields view 2025-07-10
+node scripts/scene/params.mjs --stats 'p => p.coast.composition + " " + Math.min(40, Math.round(p.view.nearest / 5) * 5)' --where 'p => p.coast.type === "beach"'
 ```
 
 - Must-be-in-frame features (moon, eclipse): compute from `camera.headingDeg`, `focalLengthMm`
@@ -207,8 +207,8 @@ under ~2 m across can be missed past ~70 m. Checked against `debug.water` on 24 
 the rest are > 300 m (the search's end), sea ice, props in front, or a sliver at 72 m.
 
 ```sh
-node scripts/params.mjs --rendered --where 'p => p.coast.rock?.kind === "platform"' --stats 'p => p.pools.m == null ? "none" : p.pools.m < 15 ? "< 15 m" : "further"'
-node scripts/params.mjs --rendered --where 'p => p.pools.m != null && p.pools.m < 12' --each 'p => JSON.stringify(p.pools)'
+node scripts/scene/params.mjs --rendered --where 'p => p.coast.rock?.kind === "platform"' --stats 'p => p.pools.m == null ? "none" : p.pools.m < 15 ? "< 15 m" : "further"'
+node scripts/scene/params.mjs --rendered --where 'p => p.pools.m != null && p.pools.m < 12' --each 'p => JSON.stringify(p.pools)'
 ```
 
 ### The day's tide over time: `src.tides.tideCurve`
@@ -220,8 +220,8 @@ mean sea with today's surge; 0 is `level`, from a forced stage's moment when one
 REGIONS.md §3.4). Don't rebuild the clock from the sun: it took two probes in 0.206 (one NaN).
 
 ```sh
-node scripts/params.mjs --where 'p => p.coast.type === "beach"' --stats 'p => p.coast.tide.flow.rate > 0.05 ? "flood" : p.coast.tide.flow.rate < -0.05 ? "ebb" : "slack"'
-node scripts/params.mjs --scene '{"coast":"beach","place":"brittany","eclipse":null}' --each 'p => [-6, -3, 0, 3, 6].map(h => src.tides.tideCurve(p.coast.tide, p.place.id, h).toFixed(2)).join(" ")' 2025-07-10
+node scripts/scene/params.mjs --where 'p => p.coast.type === "beach"' --stats 'p => p.coast.tide.flow.rate > 0.05 ? "flood" : p.coast.tide.flow.rate < -0.05 ? "ebb" : "slack"'
+node scripts/scene/params.mjs --scene '{"coast":"beach","place":"brittany","eclipse":null}' --each 'p => [-6, -3, 0, 3, 6].map(h => src.tides.tideCurve(p.coast.tide, p.place.id, h).toFixed(2)).join(" ")' 2025-07-10
 ```
 
 ### Props and helpers on real days: `p.ctx`, `src.X`, `props.X`
@@ -234,9 +234,9 @@ Use these instead of throwaway test files to probe a creator, a placement rule o
 helper. Creators build meshes (ms each): use a spec or a few dates.
 
 ```sh
-node scripts/params.mjs --scene '{"place":"fundy","coast":"tidal-flat","tide":"high"}' --stats 'p => p.ctx.ground(0, 0) > p.coast.runup'
-node scripts/params.mjs --scene '{"saltMarsh":true,"composition":"framed"}' --stats 'p => props.saltMarsh.createSaltMarsh(p.ctx).reduce((n, m) => n + m.count, 0) > 300' 2025-07-01..2025-07-20
-node scripts/params.mjs --scene '{"coast":"tidal-flat"}' --stats 'p => src.terrain.worldToShore(p.coast, 0, 0).map(Math.round)' 2025-07-10
+node scripts/scene/params.mjs --scene '{"place":"fundy","coast":"tidal-flat","tide":"high"}' --stats 'p => p.ctx.ground(0, 0) > p.coast.runup'
+node scripts/scene/params.mjs --scene '{"saltMarsh":true,"composition":"framed"}' --stats 'p => props.saltMarsh.createSaltMarsh(p.ctx).reduce((n, m) => n + m.count, 0) > 300' 2025-07-01..2025-07-20
+node scripts/scene/params.mjs --scene '{"coast":"tidal-flat"}' --stats 'p => src.terrain.worldToShore(p.coast, 0, 0).map(Math.round)' 2025-07-10
 ```
 
 ### Plants on real days: `p.plants`, `p.withProps`, `--every`
@@ -250,9 +250,9 @@ overrides, for an on/off pair on the same day. Building plants costs ~0.3 s a da
 keeps every K-th date (uniform, before generation), so a share over three years takes a minute.
 
 ```sh
-node scripts/params.mjs --rendered --every 3 --where 'p => p.coast.type !== "open-sea"' --stats 'p => p.plants.filter(t => t.inFrame && t.kind === "bush").length > 0'
-node scripts/params.mjs --scene '{"place":"cornwall-wales","coast":"beach","props":{"vegetation":["bush"]}}' --stats 'p => { const on = new Set(p.plants.map(t => t.x)); return p.withProps({ saltShear: false }, () => p.plants).filter(t => !on.has(t.x)).map(t => "dropped " + t.shrub) }' 2025-05-10
-node scripts/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --stats "$(cat scripts/plant-near.js)"   # nearest in-frame instance per kind
+node scripts/scene/params.mjs --rendered --every 3 --where 'p => p.coast.type !== "open-sea"' --stats 'p => p.plants.filter(t => t.inFrame && t.kind === "bush").length > 0'
+node scripts/scene/params.mjs --scene '{"place":"cornwall-wales","coast":"beach","props":{"vegetation":["bush"]}}' --stats 'p => { const on = new Set(p.plants.map(t => t.x)); return p.withProps({ saltShear: false }, () => p.plants).filter(t => !on.has(t.x)).map(t => "dropped " + t.shrub) }' 2025-05-10
+node scripts/scene/params.mjs --rendered --where 'p => p.coast.type !== "open-sea"' --stats "$(cat scripts/scene/plant-near.js)"   # nearest in-frame instance per kind
 ```
 
 Tests: `plantInstances(view(spec))` and `withProps(spec, { … })` (`test/days.ts`).
@@ -266,7 +266,7 @@ roll; the horizon's dip if given), with no WebGL: `project(p, dir)` → NDC (±1
 
 ```sh
 # Is the galactic centre in frame tonight, and where?
-node scripts/params.mjs --scene S --stats 'p => { const d = src.skyClock.apply(src.skyClock.skyRotation(p).matrix, src.meteors.radec(266.4, -28.9)); return src.skyFrame.pixelOf(p, d, 1920, 1080)?.map(Math.round) ?? "out" }'
+node scripts/scene/params.mjs --scene S --stats 'p => { const d = src.skyClock.apply(src.skyClock.skyRotation(p).matrix, src.meteors.radec(266.4, -28.9)); return src.skyFrame.pixelOf(p, d, 1920, 1080)?.map(Math.round) ?? "out" }'
 ```
 
 Checking only the azimuth missed the vertical field: three "core in frame" nights had it 20°
@@ -279,7 +279,7 @@ can be read along a line of pixels without rendering, in cd/m²: the same line f
 as the render's `params.debug.probeLine` (tools/DEBUG.md), so the two compare directly.
 
 ```sh
-node scripts/params.mjs --scene scenes/aurora.json --line '[{"az":-25,"el":[4,30]},{"az":[-40,40],"el":12,"step":0.1}]'
+node scripts/scene/params.mjs --scene scenes/aurora.json --line '[{"az":-25,"el":[4,30]},{"az":[-40,40],"el":12,"step":0.1}]'
 # 2026-02-18  az -25 el [4,30]: no bands, ±0.41% ripple; mean 1.05e-3, 6.59e-4–2.09e-3; grain 0.0%
 #     ▂▃▃▄▆▇█████▇▆▆▅▄▄▃▃▃▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
 ```
@@ -309,24 +309,24 @@ changelog's "N of 1095 days change" and to catch cascades (a new draw on the wro
 - **Where:** `--changed 'p => …'` counts a value over the changed days (new params); `--where`
   keeps only days whose new params pass. One call each instead of listing dates and re-querying:
   ```sh
-  node scripts/params.mjs --ref HEAD --changed 'p => Math.abs(p.latitudeDeg) >= 63'   # all true?
-  node scripts/params.mjs --ref HEAD --changed 'p => p.place.climate'                  # which climates
-  node scripts/params.mjs --ref HEAD --where 'p => Math.abs(p.latitudeDeg) < 63'       # expect 0 changed
+  node scripts/scene/params.mjs --ref HEAD --changed 'p => Math.abs(p.latitudeDeg) >= 63'   # all true?
+  node scripts/scene/params.mjs --ref HEAD --changed 'p => p.place.climate'                  # which climates
+  node scripts/scene/params.mjs --ref HEAD --where 'p => Math.abs(p.latitudeDeg) < 63'       # expect 0 changed
   ```
 - **Did the shares move:** `--ref HEAD --stats 'p => …' [--where …]` prints each value's share at
   the ref and now side by side, with the change in points (⚠ at ≥ 5). `--where` runs on each
   side's own params; a field the ref lacks reads as undefined there. Run it on every choice a
   change touches before rendering.
 
-## `scripts/profile.mjs`: coast shape without rendering
+## `scripts/scene/profile.mjs`: coast shape without rendering
 
 ~0.6 s/scene, TS mirror of the terrain shader, on the params the page renders. Use it for any
 terrain or depth feature before a render, and compare every **drawn** number with the
 **reached** one.
 
 ```sh
-node scripts/profile.mjs --scene scenes/beach-states.json --out $SP/profile
-node scripts/profile.mjs --scene '{"place":"namibia","coast":"beach","swellHeight":2.5,"swellPeriod":12}' 2024-06-11
+node scripts/scene/profile.mjs --scene scenes/beach-states.json --out $SP/profile
+node scripts/scene/profile.mjs --scene '{"place":"namibia","coast":"beach","swellHeight":2.5,"swellPeriod":12}' 2024-06-11
 ```
 
 Prints:
@@ -351,7 +351,7 @@ long lens stretches across the picture shows here, not after a render.
 
 ### A prop against the shore: `profile.mjs --props`
 
-`node scripts/profile.mjs --scene S --props ice-foot [--at A]` prints a cross-section through the prop at low, mid and
+`node scripts/scene/profile.mjs --scene S --props ice-foot [--at A]` prints a cross-section through the prop at low, mid and
 high tide: `s`, ground, water depth, the prop's top, and its height above the ground or water. Use it for anything
 standing on the shore, to see before rendering if it hangs over the water or drowns at some tide. An instance's height
 is its box, so a rounded rock reads a little taller than it is.
@@ -376,7 +376,7 @@ is its box, so a rounded rock reads a little taller than it is.
 - Table checks over every place × climate × ocean (`test/climate.test.ts` "grows only what the
   climate allows") catch a wrong combination without sampling; add one when a table gains a key.
 
-## `scripts/animals.mjs`
+## `scripts/scene/animals.mjs`
 
-`node scripts/animals.mjs` prints the animal shares table (all days, per biome, per ocean;
+`node scripts/scene/animals.mjs` prints the animal shares table (all days, per biome, per ocean;
 choices, not what lands in frame): paste it into ANIMALS.md.

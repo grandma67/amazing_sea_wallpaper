@@ -427,7 +427,7 @@ const SPECIES_BY_OCEAN: Record<OceanName, readonly (readonly [Species, number])[
 }
 
 /** Which animal shows at the surface today, or null. */
-/** One animal's mesh (scripts/mesh.mjs, tests): its pose's defaults. */
+/** One animal's mesh (scripts/render/mesh.mjs, tests): its pose's defaults. */
 export function marineGeometry(rng: Random, species: Species, skin = false): BufferGeometry {
   if (species === 'dolphin') return dolphin(rng, 0.05, skin)
   if (species === 'orca') return orca(rng, true, skin)

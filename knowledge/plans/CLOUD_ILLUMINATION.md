@@ -204,7 +204,7 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
      sampling): origin inside the Cb layer and inside its cell; path continuous; last point =
      `exit`; deterministic over 3 seeds;
    - the forced `lightning` field moves the origin and nothing else.
-6. **Check:** `node scripts/params.mjs --ref HEAD` shows no changed fields on unforced days
+6. **Check:** `node scripts/scene/params.mjs --ref HEAD` shows no changed fields on unforced days
    (lightning is computed at render time, not stored in params). Then
    `params.mjs 2016-06-21 2026-11-02 --rendered --each 'p => src.lightning.lightningFor(p, p.ctx.camera.position).map(f => [f.origin.y, f.origin.distanceTo(f.exit)])'`:
    - origin heights from the table: 2016-06-21 is temperate summer (5.5 km); 2026-11-02 is
@@ -314,10 +314,10 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
    3. Probes (`params.debug.probe`, world points from the phase 1 `exit` and 1 km away, and a
       `probeLine` across the exit) on both dates, against `flashGlowCd` + the measured base:
       within ±30%.
-   4. `node scripts/diff.mjs --scene <specs> --off '{"passes":{"flashLight":false}}' --w 960 --h 540 --frames 16`
+   4. `node scripts/render/diff.mjs --scene <specs> --off '{"passes":{"flashLight":false}}' --w 960 --h 540 --frames 16`
       on both dates and two forced night specs (`{"date":…,"timeOfDay":"night","storm":"thunderstorm","eclipse":null}`):
       no `⚠ invisible`.
-   5. `node scripts/bench.mjs --ref HEAD` on both dates: ≤ +10%.
+   5. `node scripts/render/bench.mjs --ref HEAD` on both dates: ≤ +10%.
    6. One render round at 1080p, 16 frames: both dates, the forced "same storm at four hours"
       set (decision 3), and `snapshot.mjs --where 'p => p.storm?.bolts?.length > 0' --sample 8`.
       Also front-lit (`"sunAzimuthDeg": 160` on one date). At most 3 rounds in all.
@@ -442,7 +442,7 @@ Storm days by climate and season are spread over all 28 cells (68 storm days; th
 2. **Titles:** keep the moon phase in the title (the moon still rises; a broken storm sky shows
    it). `stormBarred` and the aurora rule stay as they are.
 3. **Count:**
-   - `node scripts/params.mjs --ref HEAD --stats 'p => p.storm != null && p.timeOfDay === "night"'`:
+   - `node scripts/scene/params.mjs --ref HEAD --stats 'p => p.storm != null && p.timeOfDay === "night"'`:
      expect 8–9;
    - `--list` the changed days; `--changed 'p => p.place.id'` for the changelog;
    - if far off, find the reason before going on.

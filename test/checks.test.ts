@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { brokenFrame, NON_FINITE_CELLS, snapshotWarnings, WHITE_SHARE } from '../scripts/checks.mjs'
+import { brokenFrame, NON_FINITE_CELLS, snapshotWarnings, WHITE_SHARE } from '../scripts/render/checks.mjs'
 import { dirFromAzEl } from '../src/params'
 
 // The warnings snapshot.mjs prints after a render: they stop a wasted render

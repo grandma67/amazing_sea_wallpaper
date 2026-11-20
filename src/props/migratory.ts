@@ -195,7 +195,7 @@ function birdFace(b: MeshBuilder, species: Species, head: Vector3, radii: Vector
   beak(b, base, dir, new Vector3(0, 1, 0), billLength, L * look.depth, L * look.width, look)
 }
 
-/** One bird (scripts/mesh.mjs, tests): flying, or a flamingo wading. */
+/** One bird (scripts/render/mesh.mjs, tests): flying, or a flamingo wading. */
 export function migratoryGeometry(species: Species, wading: boolean, skin = false): BufferGeometry {
   return wading ? wadingFlamingo(false, false, skin) : flying(species, 0.35, skin)
 }

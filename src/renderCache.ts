@@ -2,7 +2,7 @@
 // (prev/next, reload) shows it at once. One image per build, date, size,
 // frame count and scene spec: renders are deterministic, so a hit is the very
 // image a new render would give. Off in dev (the code changes under it) and
-// under automation (scripts/snapshot.mjs must really render); ?cache=1 forces
+// under automation (scripts/render/snapshot.mjs must really render); ?cache=1 forces
 // it on, ?cache=0 off.
 
 declare const __BUILD_ID__: string

@@ -98,7 +98,7 @@ left in runnels).
 Step 3's mismatch took ~10 rounds: no way to read a shader term (three temporary shader edits),
 no check of the TS terrain against the drawn one, two comparisons of my own done wrong. Now:
 `params.debug.terrainProbe` (any terrain term at points or on a grid; `debug.water` is built on
-it), `scripts/parity.mjs` (TS heights and pools against the render on real days; flags the old
+it), `scripts/measure/parity.mjs` (TS heights and pools against the render on real days; flags the old
 `bareRock` on 3 of 4 platform days, passes today within 6 mm), and `debug.water`'s nearest gets a
 pixel count (the "12.9 m" on 2024-06-13 was one pixel on a ridge).
 

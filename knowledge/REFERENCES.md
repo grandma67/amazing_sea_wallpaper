@@ -198,7 +198,7 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   Trust, Dorset Nature, Lincolnshire Life; New Zealand: NZ Flora, APWT, Hawke's Bay RC), wattle,
   flamboyant (World Agroforestry DB, Indian Forester, NParks, a Caribbean table), pōhutukawa (RNZ, Te
   Papa, NZ Herald): links in NATURE.md "Sources". Colours measured from the photos and scans listed
-  in plans/NATURE_PLAN.md §1 (`scripts/asset-measures.json`).
+  in plans/NATURE_PLAN.md §1 (`scripts/assets/asset-measures.json`).
 - Fairy rings (0.149; `fairyRings.ts`, `phenology.ts` `FAIRY_SEASON`): RHS, Utah State herbarium,
   Britannica (NATURE.md "Sources"); ring types and the subtropical season: UF/IFAS "Fairy rings"
   LH046 (https://edis.ifas.ufl.edu/lh046), K-State lawn problem solver
@@ -212,7 +212,7 @@ blossom, fungi, fireflies, moss, seaweed and animal seasons in [NATURE.md](NATUR
   Wikipedia "Chlorophyllum molybdites". Cap colours measured from Commons photos (public domain:
   `AD2009Sep13_Boletus_edulis_01.jpg`, `Amanita_muscaria_tyndrum.jpg`; CC BY-SA 3.0:
   `Lactarius-deliciosus-Finland.jpg`, `Agaricus_campestris_051011A.JPG`; CC BY 4.0:
-  `Marasmius_oreades_14.jpg`), recorded in `scripts/asset-measures.json`.
+  `Marasmius_oreades_14.jpg`), recorded in `scripts/assets/asset-measures.json`.
 - Baked scans (0.150; `src/props/scans/`): Poly Haven "Flower Ursinia"
   (https://polyhaven.com/a/flower_ursinia, CC0, Jenelle van Heerden, Rico Cilliers): geometry,
   alpha and albedo. Simplified with meshoptimizer (MIT, devDependency).

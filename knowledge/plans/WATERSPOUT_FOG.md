@@ -22,7 +22,7 @@ How often: real days 0 in three years; forced `{"waterspout": true}` gets fog on
 days (5%).
 
 ```sh
-node scripts/params.mjs --scene '{"waterspout":true}' --list --where 'p => p.fog != null' --fields fog.kind,fog.start,fog.visibility
+node scripts/scene/params.mjs --scene '{"waterspout":true}' --list --where 'p => p.fog != null' --fields fog.kind,fog.start,fog.visibility
 ```
 
 Fix:
@@ -38,7 +38,7 @@ Fix:
 ## 2. Waterspouts are far rarer than intended
 
 ```sh
-node scripts/params.mjs --list --where 'p => p.waterspout != null' --fields title 2024-01-01..2026-12-31
+node scripts/scene/params.mjs --list --where 'p => p.waterspout != null' --fields title 2024-01-01..2026-12-31
 ```
 
 - **One in three years** (2026-09-27, Mediterranean), 0.09% of days. changelog 0.25 and CLOUDS.md
@@ -54,7 +54,7 @@ Decide, then fix:
   August, Mediterranean September), realistic for the hotspots; aim 2–5 a year.
 - **Option B: keep ~1% of eligible days** (one every 2–3 years) and say so in the docs.
 - Either way: make the test check the intended rate over `allParams()`, update changelog/CLOUDS.md.
-- Render check: `node scripts/diff.mjs --scene <spec> --off '{"waterspout":null}'` on a front-lit
+- Render check: `node scripts/render/diff.mjs --scene <spec> --off '{"waterspout":null}'` on a front-lit
   Mediterranean September spec.
 
 Season data (in `waterspout.ts`, sources in REFERENCES.md): Keys May–Oct, peak Aug; Balearics 65%

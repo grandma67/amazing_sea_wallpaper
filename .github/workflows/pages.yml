@@ -63,9 +63,9 @@ jobs:
           # pixels the frame meter zeroed show as a "NaN pixels" warning on the run
           # (tools/RENDER.md "Blank frames").
           OUT="$RUNNER_TEMP/daily"
-          node scripts/snapshot.mjs --url http://localhost:4173/ --out "$OUT/phone" \
+          node scripts/render/snapshot.mjs --url http://localhost:4173/ --out "$OUT/phone" \
             --w 1290 --h 2796 --frames 24 --quality 0.92 --fail-blank --budget 3600 "$TODAY"
-          node scripts/snapshot.mjs --url http://localhost:4173/ --out "$OUT/pc" \
+          node scripts/render/snapshot.mjs --url http://localhost:4173/ --out "$OUT/pc" \
             --w 1920 --h 1080 --frames 24 --quality 0.92 --fail-blank --budget 3000 "$TODAY"
           mkdir -p dist/daily/phone dist/daily/pc
           cp "$OUT/phone/$TODAY.jpg" "$OUT/phone/$TODAY.json" dist/daily/phone/
@@ -85,10 +85,10 @@ jobs:
           if-no-files-found: warn
 
       # The last 60 days' render JSON stays on the site (each deploy replaces dist/):
-      # daily/index.json and daily/{pc,phone}/DATE.json, read by scripts/ciDay.mjs.
+      # daily/index.json and daily/{pc,phone}/DATE.json, read by scripts/ci/ciDay.mjs.
       # Never fails the job.
       - name: Keep the daily render data
-        run: node scripts/dailyArchive.mjs --dist dist --keep 60
+        run: node scripts/ci/dailyArchive.mjs --dist dist --keep 60
 
       - uses: actions/upload-pages-artifact@v5
         with:

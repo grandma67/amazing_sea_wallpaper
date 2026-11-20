@@ -3,7 +3,7 @@ import { DataArrayTexture, LinearFilter, LinearMipmapLinearFilter, NoColorSpace,
 import recipes from './skins.json'
 
 // Animal skins from photos: one atlas (public/assets/skins.png, a layer of
-// SIZE² per skin, baked by scripts/skinBake.py from the recipes in
+// SIZE² per skin, baked by scripts/assets/skinBake.py from the recipes in
 // skins.json). Each layer is a patch of an animal's side from a photo with
 // its light divided out (row and column means), made to tile, stored as
 // brightness only with mean 1 (value / 2, linear): the markings (spots,
@@ -114,7 +114,7 @@ export function loadSkins(): Promise<void> {
     context.drawImage(bitmap, 0, 0)
     const rgba = context.getImageData(0, 0, bitmap.width, bitmap.height).data
     const layers = bitmap.height / SIZE
-    if (bitmap.width !== SIZE || layers !== SKIN_IDS.length) throw new Error(`skins.png is ${bitmap.width}×${bitmap.height}, expected ${SIZE}×${SIZE * SKIN_IDS.length}: bake it again (scripts/skinBake.py)`)
+    if (bitmap.width !== SIZE || layers !== SKIN_IDS.length) throw new Error(`skins.png is ${bitmap.width}×${bitmap.height}, expected ${SIZE}×${SIZE * SKIN_IDS.length}: bake it again (scripts/assets/skinBake.py)`)
     // Layer k is rows k·SIZE…: the image's own row order, so v runs down it.
     const grey = new Uint8Array(SIZE * SIZE * layers)
     for (let i = 0; i < grey.length; i++) grey[i] = rgba[i * 4]
@@ -169,7 +169,7 @@ diffuseColor.rgb *= mix(1.0, texture(skinAtlas, vec3(vSkin.yz, floor(vSkin.w + 0
   return material
 }
 
-/** A standard material with skins, loading them first: for scripts/mesh.mjs
+/** A standard material with skins, loading them first: for scripts/render/mesh.mjs
  * (`--material 'props/skins#skinPreviewMaterial()'`). */
 export async function skinPreviewMaterial(roughness = 0.8): Promise<MeshStandardMaterial> {
   const { MeshStandardMaterial, DoubleSide } = await import('three')

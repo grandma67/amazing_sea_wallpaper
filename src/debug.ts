@@ -78,7 +78,7 @@ export interface DebugParams {
   /** Read the terrain shader's own terms (terrainTerms.ts TERRAIN_TERMS: h,
    * s, a, x, z, pools, wet, snow, rockBare…) at image or world points and/or
    * on a grid every N px, in `debug.terrainProbe`. Changes nothing in the
-   * picture. scripts/parity.mjs compares them with the TS mirrors. */
+   * picture. scripts/measure/parity.mjs compares them with the TS mirrors. */
   terrainProbe?: TerrainProbeSpec
   /** False colour on the sea: 'shelter', 'breaking', 'depth' (1 m bands),
    * 'foam' (coverage). */

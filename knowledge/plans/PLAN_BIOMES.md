@@ -195,9 +195,9 @@ months, with moon illumination < 30% and no storm; it shows on ~15% of eligible 
 | Blacktip sharks | reef lagoons, by day | dorsal fins in the shallows near the camera |
 
 - Each animal goes into the place pools (1a) where it lives; `xxxFor` choice per animal,
-  `props/choices.ts`, `test/<animal>.test.ts`, meshes checked with `scripts/mesh.mjs`
+  `props/choices.ts`, `test/<animal>.test.ts`, meshes checked with `scripts/render/mesh.mjs`
   first.
-- After each: `node scripts/animals.mjs`, paste into ANIMALS.md and update its rules.
+- After each: `node scripts/scene/animals.mjs`, paste into ANIMALS.md and update its rules.
 
 ## Later and skipped
 

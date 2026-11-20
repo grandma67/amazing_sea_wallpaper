@@ -22,7 +22,7 @@ import {
 import { Random } from './random'
 
 // A mesh on its own, for judging shape and colour without rendering a whole
-// beach (scripts/mesh.mjs, dev server only): /tools/mesh.html?call=…
+// beach (scripts/render/mesh.mjs, dev server only): /tools/mesh.html?call=…
 //
 //   call = MODULE#FUNCTION(ARGS)   e.g. props/wildlife#hippoGeometry($rng, 0)
 //

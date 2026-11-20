@@ -57,7 +57,7 @@ Seasons and plants, placement, meshes. How it works: arch/PROPS.md. Other topics
 - **Check where a kind stands on real days before choosing what to draw on it (0.168):** a stone
   pine's nearest in-frame instance is within 30 m on 14% of its days and past 300 m on 58% (arch/PROPS.md
   "Where each plant kind stands"), so its 12 cm cones show on few days. `--find` reports only the
-  nearest *unoccluded* one, `--count` only the overall minimum: use `scripts/plant-near.js`.
+  nearest *unoccluded* one, `--count` only the overall minimum: use `scripts/scene/plant-near.js`.
 - **A position hash can't be recomputed from an instance matrix (salt, 0.199):** `instanceMatrix` is
   float32, and `sin(x · 12.9898 …) · 43758` turns the rounding into a different hash, so a probe
   that re-derived each bush's species from the mesh found "hawthorn" the code never placed (~8 calls

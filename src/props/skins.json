@@ -1,5 +1,5 @@
 {
-  "about": "Animal skin recipes, in atlas layer order (public/assets/skins.png; scripts/skinBake.py bakes it, props/skins.ts reads the scale). x: patch x0, x1 (px); top, bottom: the lines' y at x0 and x1; scale: mPerPx, or the animal's length in the photo (lengthM) over its length in pixels (lengthPx), assumed where not measured; lengthM is also the photographed animal's length, which the skin scales against (a bigger animal, bigger scales). Licences: public domain, CC0 or CC BY (credited on the page).",
+  "about": "Animal skin recipes, in atlas layer order (public/assets/skins.png; scripts/assets/skinBake.py bakes it, props/skins.ts reads the scale). x: patch x0, x1 (px); top, bottom: the lines' y at x0 and x1; scale: mPerPx, or the animal's length in the photo (lengthM) over its length in pixels (lengthPx), assumed where not measured; lengthM is also the photographed animal's length, which the skin scales against (a bigger animal, bigger scales). Licences: public domain, CC0 or CC BY (credited on the page).",
   "skins": [
     {
       "id": "harbour-seal",

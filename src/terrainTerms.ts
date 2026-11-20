@@ -9,7 +9,7 @@ import { Color, FloatType, MeshBasicMaterial, Vector3, WebGLRenderTarget, type B
 // the canvas: this changes nothing in it.
 //
 // Used by debug.water (waterCount.ts), debug.terrainProbe (points or a
-// grid) and scripts/parity.mjs (the TS mirrors against the drawn terrain).
+// grid) and scripts/measure/parity.mjs (the TS mirrors against the drawn terrain).
 // A term is any GLSL expression valid at the end of terrain.ts main(); add
 // one to TERRAIN_TERMS and it's available everywhere.
 

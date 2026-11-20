@@ -130,7 +130,7 @@ profile"):**
   | storm swell | – | run-up and wet band unchanged | – |
 
 - **Readers to update** (COAST.md list, the ones that apply to a land-side term): TS mirror
-  `beachHeight`; `scripts/parity.mjs` (all coast kinds); `profile.mjs` (extend the map to show
+  `beachHeight`; `scripts/measure/parity.mjs` (all coast kinds); `profile.mjs` (extend the map to show
   the wall; print foot and H); the terrain caster disc reaches 2 km (`createTerrainCaster`): a
   wall at 2–5 km won't cast into the near shadow map: **check at a low morning sun** (the sun
   rises behind the wall on a west-facing coast; real beaches lie in its shade after sunrise) and

@@ -13,7 +13,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 
 | # | Phase | Code it touches | Days touched (of 1095, measured) | Estimate | Needs |
 |---|---|---|---|---|---|
-| 1 | ✅ Real assets: measure (fetch CC0 photos, textures, scans; sizes and colours), 2026-11-12 | `scripts/asset.mjs` (new) | none (data for every later phase) | done | – |
+| 1 | ✅ Real assets: measure (fetch CC0 photos, textures, scans; sizes and colours), 2026-11-12 | `scripts/assets/asset.mjs` (new) | none (data for every later phase) | done | – |
 | 2 | ✅ Close two place gaps (Atacama 26–30°S, Namaqualand and the Sandveld 29–33°S), 2026-11-12 | `places.ts`, one test | **95** days change, 67 to another place | done | – |
 | 3 | ✅ Bush blossom: rock rose, gorse, wattle; the `BLOOM` table and far tint, 2026-11-12 | `phenology.ts`, `props/trees.ts` `leaves()` | **50** land days with bushes in the pool: rock rose 12 full + 1; gorse 4 full + 30 part; wattle 2 full + 2 | done | 1 |
 | 4 | ✅ Tree blossom: flamboyant (per-crown thinning, dry-season window), pōhutukawa, 2026-11-12 | `phenology.ts` `onDryCoast`, `props/trees.ts`, `props/vegetation.ts` (flowering twins) | land days with broadleaf in the pool: flamboyant **19** full, 7 part, **146** scattered; pōhutukawa **1**; in frame rarely (below) | done | 3 |
@@ -23,7 +23,7 @@ choice table, a mesh, one shader), so it can be checked on its own.
 | 8 | ✅ Shore zonation: the spray belt, laver, sea lettuce, 2026-11-12 | rock-shore shader, `phenology.ts` `sprayBelt`, `shoreWeed` | every rock-shore day (belt); weed on 55 real rock-shore days (not night) | done | 7 |
 | 9 | ✅ Moss and lichen on trunks, 2026-11-12 | `props/builder.ts` bark weight, `props/trunkMoss.ts` (shader), `phenology.ts` `trunkGrowth`, `props/vegetation.ts` | 0 params; trees in frame with moss on 337 days, mostly lichen on 324 (fringe trees) | done | 7, 8 (belt), 6 |
 | 10 | ✅ Fairy rings, 2026-11-12 | `fairyRings.ts` (new), terrain ground-cover shader, `phenology.ts` `FAIRY_SEASON` | 0 params; rings at some strength on 323 land days (temperate, boreal, Mediterranean, subtropical); grass in frame within 300 m on ~67 of the 259 non-subtropical ones; real days 2 of 8 changed | done | 5 (heath mask) |
-| 11 | ✅ Real assets: bake (reduce, vertex colours, emit, check), proved on Poly Haven's *Ursinia* (no CC0 mushroom scan exists), 2026-11-12 | `scripts/asset.mjs`, `scripts/assetBake.mjs`, `src/props/scans/` | none (a mesh for phase 16; nothing draws it yet) | done | 1 |
+| 11 | ✅ Real assets: bake (reduce, vertex colours, emit, check), proved on Poly Haven's *Ursinia* (no CC0 mushroom scan exists), 2026-11-12 | `scripts/assets/asset.mjs`, `scripts/assets/assetBake.mjs`, `src/props/scans/` | none (a mesh for phase 16; nothing draws it yet) | done | 1 |
 | 12 | ✅ Mushrooms under trees and on grass, 2026-11-13 | `props/fungi.ts`, `groundCover.ts` (new), `phenology.ts` `fungiSeason` | **96** land days in season (temperate, boreal, Mediterranean, polar) + 236 tropical and subtropical (false parasol); in frame on ~15 of the 332 | done | 9, 10 |
 | 13 | ✅ Fireflies: the choice table, weather rules, placement and counts (no drawing), 2026-11-13 | `props/fireflies.ts` `firefliesFor`, `fireflyLights`, `props/choices.ts` | **13** land evenings in a region's months; **1** night out (2025-07-30, Norway glow-worms) after wind, moon and the 0.7 chance | done | – |
 | 14 | ✅ Fireflies: drawing (streaks and dots, brightness by intensity, streaks), 2026-11-13 | `props/fireflies.ts` meshes, `scene.ts` | as 13 | done | 13 |
@@ -105,10 +105,10 @@ see more of it). Choices made before that rule stay as made (the stylised firefl
 - **Ready for the move-around mode:** what a thing is comes from its world position (a crown's
   hash, a fungus or ring cell's hash); only the choice of what to draw reads the camera
   (`props/leafLitter.ts` pattern).
-- **Colours:** linear albedo, measured in phase 1 (`scripts/asset.mjs`; table in §1): hue from
+- **Colours:** linear albedo, measured in phase 1 (`scripts/assets/asset.mjs`; table in §1): hue from
   photos, brightness from calibrated scans (Poly Haven, ambientCG), else from a known material
   beside the target in the same photo (`--anchor`), else petals' brightest unclipped cluster
-  ×0.8. Values the photos couldn't give stay *(est.)*. `scripts/mesh.mjs --sun 8` checks each
+  ×0.8. Values the photos couldn't give stay *(est.)*. `scripts/render/mesh.mjs --sun 8` checks each
   against its reference photos when its phase builds it.
 - **Estimates stay estimates** until each phase's photo, count and render steps check them: those
   are build steps, not open questions.
@@ -131,7 +131,7 @@ textures are **inputs to an offline bake**, not files the page streams.
 | iNaturalist research-grade / Wikimedia Commons photos | the 2–3 reference photos per row | CC-BY / CC0 per photo | colours and shapes (the *(est.)* values below) |
 | Fab / Megascans | high-quality scans | Fab Standard licence: product use allowed, **raw asset redistribution not**; the licence summary also requires that end users can't extract the asset, and a public web build serves every mesh to the browser: **excluded** (Answers 2026-11-12; [Fab licences](https://dev.epicgames.com/documentation/fab/licenses-and-pricing-in-fab), [forum](https://forums.unrealengine.com/t/can-i-use-3d-assets-from-fab-s-standard-license-in-a-revenue-generating-web-app/2453541): no official answer) | – |
 
-**Pipeline** (`scripts/asset.mjs`, new; sources in a git-ignored `assets-src/`, only outputs
+**Pipeline** (`scripts/assets/asset.mjs`, new; sources in a git-ignored `assets-src/`, only outputs
 committed):
 1. **Fetch** by URL into `assets-src/<id>/` with a `source.json` (URL, licence, author, date).
 2. **Measure**: real size (bounding box, scale from the scan's metadata or a photo with a known
@@ -146,7 +146,7 @@ committed):
 5. **Emit** a compact typed-array module (`src/props/scans/<id>.ts`: positions, normals, colours,
    indices, quantised) or a `public/assets/<id>.bin` loaded via `assets.ts` for anything over
    ~50 kB; budget for all scans together ~2 MB.
-6. **Check**: `expectMesh` row (`meshes.test.ts`: real size, finite, budget), `scripts/mesh.mjs
+6. **Check**: `expectMesh` row (`meshes.test.ts`: real size, finite, budget), `scripts/render/mesh.mjs
    --sun 8` beside the reference photo, then `--project KIND` as usual.
 
 Procedural builders stay where they're already right (trees, rocks); a scan replaces a builder
@@ -157,13 +157,13 @@ only when `mesh.mjs` beside a photo shows it reads better at the distance it's s
 near and from ~300 m; eucalyptus leaf and bark; moss, lichen and laver albedo from
 ambientCG/Poly Haven materials and photos.
 
-**Done when:** `node scripts/asset.mjs measure <url>` writes `source.json` and the measured size
+**Done when:** `node scripts/assets/asset.mjs measure <url>` writes `source.json` and the measured size
 and linear colour mean and spread per region; the rows above measured and their *(est.)* colours
 replaced in this plan.
 
 ### Measured (2026-11-12)
 
-`node scripts/asset.mjs list` shows them; `assets-src/<id>/measure.json` holds every cluster. How
+`node scripts/assets/asset.mjs list` shows them; `assets-src/<id>/measure.json` holds every cluster. How
 brightness was fixed, per row: **cal.** a calibrated scan or texture; **anchor** a known material
 beside the target in the same photo (`--anchor`, its albedo given); **petal** the flower's
 brightest unclipped cluster ×0.8 (photo exposure: hue sure, brightness ±30% *(est.)*). Photos
@@ -187,7 +187,7 @@ are CC-BY / CC-BY-SA on Commons (colours only, nothing redistributed); scans CC0
 | Ursinia (16) | `[0.61, 0.19, 0.02]`; plant 0.43 × 0.17 × 0.34 m | `[0.75, 0.25, 0.02]` | cal. | `ph_flower_ursinia` |
 
 **Sources, and measuring them again:** every measure's options are in
-`scripts/asset-measures.json` (committed; `assets-src/` is git-ignored), and `node scripts/asset.mjs
+`scripts/assets/asset-measures.json` (committed; `assets-src/` is git-ignored), and `node scripts/assets/asset.mjs
 replay [ID]` fetches what's missing and measures them all again (checked: the same numbers).
 
 - `acg_moss002`: [view?id=Moss002](https://ambientcg.com/view?id=Moss002) (CC0, ambientCG (Lennart Demes))
@@ -748,7 +748,7 @@ swell; the weed table over every place × month, the 41°N and 40°N limits.
 
 Steps 3–6 of phase 1's pipeline (reduce, bake, emit, check), adding `@gltf-transform` now.
 
-**Done when:** `node scripts/asset.mjs <url>` produces a baked mesh with its measured size and
+**Done when:** `node scripts/assets/asset.mjs <url>` produces a baked mesh with its measured size and
 colours, its licence recorded; one scan (a mushroom) through every step to prove the pipeline.
 Then a fly agaric, a bolete and a field mushroom for phase 12; PLAN_BIOMES phase-14 animals from Smithsonian
 specimens (proportions) and photos (colour) for phase 17.
@@ -760,7 +760,7 @@ specimens (proportions) and photos (colour) for phase 17.
   16's Namaqualand bloom uses; phase 12's mushrooms stay procedural (cap + stem, ~200 triangles,
   sizes and colours from photos), where a scan buys little. Poly Haven also has *Gazania*,
   *Heliophila*, stinkkruid, *Empodium* (more Namaqualand flowers) and a *Lambis* shell.
-- `asset.mjs fetch` also downloads a model's `.bin`; `asset.mjs bake ID` (`scripts/assetBake.mjs`):
+- `asset.mjs fetch` also downloads a model's `.bin`; `asset.mjs bake ID` (`scripts/assets/assetBake.mjs`):
   each glTF node a variant (its translation dropped, base on y = 0, centred); **alpha cut**:
   every edge longer than `--texel` (2) texels split at its midpoint, pass after pass, then the
   triangles whose alpha (corners and centre ×3) averages ≥ 0.5 kept: 2–10k source triangles →
@@ -768,7 +768,7 @@ specimens (proportions) and photos (colour) for phase 17.
   (meshoptimizer `simplifyWithAttributes`, colour weighted, `Prune`) per level of detail to its
   triangles or error, whichever first: 5000 / 0.3% and 1500 / 1.2% by default; emit Int16
   positions over the box, Int8 normals, sRGB Uint8 colours, Uint16 indices, base64, in
-  `src/props/scans/<id>.ts` (`scripts/asset-bakes.json` records the options; `replay` rebakes the
+  `src/props/scans/<id>.ts` (`scripts/assets/asset-bakes.json` records the options; `replay` rebakes the
   same bytes).
 - **Plan changes:** meshoptimizer directly, not `@gltf-transform` (only its simplifier was
   needed); a TS module per scan loaded by **dynamic import** (`src/props/scans/index.ts`
@@ -994,7 +994,7 @@ and upswing of a U arc) for *Photinus*; a short straight or gently curved dash f
 it). `glow` and `synchronous`: dots. Geometry, not motion blur, so the 16 render frames agree.
 Move-around mode: flashes ½–1 s every 5–7 s, `synchronous` together, `glow` steady.
 
-**Before the first render:** the in-frame count with `--project fireflies`; `scripts/mesh.mjs` for
+**Before the first render:** the in-frame count with `--project fireflies`; `scripts/render/mesh.mjs` for
 the ribbon; a forced spec (`fireflies: 'flash'`, `timeOfDay: 'night'`, `eclipse: null`,
 `moonPhaseDeg: 0`) beside real days (`snapshot.mjs --where 'p => p.props.fireflies != null'
 --sample 8`); `params.debug.probe` on a near and a far firefly against the magnitudes.
@@ -1163,7 +1163,7 @@ Build with each animal of PLAN_BIOMES phase 14 (its own plan); the season goes i
 | Reef blacktips | reef lagoons, all year | – |
 | Monarchs (new) | `california` late Oct – Feb: cluster on `eucalyptus` (phase 6) near the camera; on cypress and pine where none stands | place, month, plant pool |
 
-After each: `node scripts/animals.mjs`, paste into ANIMALS.md with its rule in "Seasons".
+After each: `node scripts/scene/animals.mjs`, paste into ANIMALS.md with its rule in "Seasons".
 
 ## Still open
 

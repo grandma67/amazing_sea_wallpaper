@@ -1,6 +1,6 @@
 # Amazing Sea Wallpaper
 
-Docs in `knowledge/` (read what the task needs: one section with `node scripts/doc.mjs FILE "heading"`,
+Docs in `knowledge/` (read what the task needs: one section with `node scripts/dev/doc.mjs FILE "heading"`,
 `--toc FILE` for headings, `--grep "phrase"` to search all docs across wrapped lines; a doc this
 file says to *open* is read whole):
 - `ARCHITECTURE.md`: decisions, params and draw order, biome/climate/place tables, frame and post,
@@ -36,7 +36,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
   - Instance repeats; bake colour into vertices instead of shader work; each mesh < ~100k tris.
   - Cap per-pixel loops (ocean foam goes round the nearest 48 rocks only).
   - Render time (snapshot, 1080p, 16 frames) is ~2–3 s per day; adding more than ~10% needs a
-    reason (`scripts/bench.mjs`).
+    reason (`scripts/render/bench.mjs`).
 - **A move-around mode is planned** (`plans/LIVE_MODE.md`, not designed): "rare in frame" alone
   isn't a reason to drop a feature, so raise it before dropping one on a visibility count. Where it
   costs little, decide what a thing is from its world position and let only the choice of what to
@@ -138,13 +138,13 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
   (`--project`, `--count`, `--find` imply it): the page's framing differs on 30% of land days (coast
   and eye height only).
 - A new mesh, in this order, before any scene render: its geometry tests (faces up, finite, budget),
-  `scripts/mesh.mjs` alone (a look: `--material … --scale … --sun 8`, ~1 s; low sun shows what a high
+  `scripts/render/mesh.mjs` alone (a look: `--material … --scale … --sun 8`, ~1 s; low sun shows what a high
   one flatters), then `params.mjs --project KIND` for where it lands. `--props KIND` also prints CPU
   build time. Render the beach only for placement and light.
 - Terrain and water-depth features (bars, cusps, tides, reefs, flats): `profile.mjs` (numbers,
   cross-shore profile, depth map with the break line); compare drawn and reached numbers; force
   waves with `swellHeight`/`swellPeriod`. Diff terrain changes with `diff.mjs --keep-camera`. After
-  editing a height or film term (GLSL or its TS mirror), run `node scripts/parity.mjs` (the camera,
+  editing a height or film term (GLSL or its TS mirror), run `node scripts/measure/parity.mjs` (the camera,
   props and `p.view` stand on the TS mirror); read a terrain term at a pixel with
   `params.debug.terrainProbe`, not a temporary shader edit.
 - A spec file's base forces `timeOfDay` and `weather` (the date's own may be night); add `eclipse:
@@ -179,7 +179,7 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
   term that feeds it) before the next render, so one render tests one idea. Writing a known issue:
   say how the cause was found (measured with what, or suspected). Water's sky reflection:
   `horizon.mjs`; the sky cube itself: `debug.cubeProbe`.
-- Prove visibility with `scripts/diff.mjs` before the first full render (`⚠ invisible` = fix before
+- Prove visibility with `scripts/render/diff.mjs` before the first full render (`⚠ invisible` = fix before
   looking): props with `--off '{"props":{"<kind>":false}}'`; sky, light, haze and weather features
   with their spec field off (`'{"dust":null}'`) on a clear **and** a cloudy sky (clear days skip the
   clouds pass). Read a contact sheet, not single frames.
@@ -224,12 +224,12 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Say "done" only for what a render or `diff.mjs` showed; otherwise "placed, not checked". A subtle
   feature needs a before/after with its own switch off (`diff.mjs --crop`): a full frame or contact
   sheet doesn't show it.
-- Show each fix when it's done, before the next one or its commit: `node scripts/show.mjs --from
+- Show each fix when it's done, before the next one or its commit: `node scripts/render/show.mjs --from
   DIFF_OUT --name NAME --label 'what to look at'` (labelled side-by-side crop in Preview, left
   before; `--full` adds both frames).
-- After new animals or changed chances: `node scripts/animals.mjs`, paste its table into ANIMALS.md
+- After new animals or changed chances: `node scripts/scene/animals.mjs`, paste its table into ANIMALS.md
   (update the rules there too).
-- Count the days a change touches with `node scripts/params.mjs --ref HEAD` (`--list` each day's
+- Count the days a change touches with `node scripts/scene/params.mjs --ref HEAD` (`--list` each day's
   changed values; `--changed 'p => p.place.id'` where; `--fields` narrows the comparison, not just
   the print) for the changelog row.
 - Update docs: changelog.md, ARCHITECTURE.md and the `arch/` doc (how it works), KNOWN_ISSUES.md,

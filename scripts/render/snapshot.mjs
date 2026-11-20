@@ -1,0 +1,429 @@
+// Render dates or scene specs in headless Chrome; saves NAME.jpg and NAME.json
+// (params + debug). Needs a dev server at --url. Guide: knowledge/tools/RENDER.md.
+//
+//   node scripts/render/snapshot.mjs [OPTIONS] DATE... | --scene SPEC
+//
+// DATE: YYYY-MM-DD, FROM..TO or "today" (default). SPEC: JSON file or inline;
+//   one spec, a list, or { base, scenes } (scenes merged deeply over base).
+//   Saved as the spec's name, else its date, else scene-N.
+// --where EXPR --sample N [--spread EXPR]   real days instead of DATEs: N of the days
+//                     'p => …' keeps, spread across places, coasts and times of day
+//                     (params.mjs --sample). Use it in a feature's first render round:
+//                     forced specs hide what real days show.
+// --seeds N           each render N times, each on its own seed (a shader or a choice
+//                     that depends on the day's seed); saved as NAME-s1, NAME-s2…
+// --out DIR (out)  --w 3840 --h 2160  --frames N (page default 64)  --quality 0.92
+// --url http://localhost:5174/  --angle metal|swiftshader  --channel chrome|chromium
+// --props KINDS|all   per prop: placed, in frame, nearest m, triangles (× instances), pixel box, CPU build
+//                     time; then the three slowest kinds
+// --crop KINDS|all    also save NAME.KIND.jpg cropped to that prop's box
+// --budget S (900)    exit after S seconds in all; --timeout MS per page (5 min: a
+//                     1080p render takes 2–3 s, 4K ~10 s, the first after a server
+//                     start up to a minute or two). The server is checked every
+//                     second: if it stops answering (or the --ref server exits),
+//                     the run stops at once, with the ref server's log.
+// --water             count the shore's water films (params.debug.water): share of
+//                     the frame per kind, nearest pool/swash/damp/wet rock (m, at);
+//                     one line per render. Find near-pool days: --where … --water,
+//                     then summary.mjs DIR 'j => j.debug.water.nearest.pool?.m'
+// --fail-blank        a blank frame (no picture: the frame shrunk to 160×90 spans < BLANK_RANGE
+//                     luma levels, e.g. a black canvas) is not saved and the run exits 1 after
+//                     the others; prints each frame's luma range. CI uses it, so a failed
+//                     render never becomes latest.jpg (2026-11-15 published a black frame).
+//                     The blank frame goes to NAME.blank.jpg/.json for a look instead.
+//                     A broken frame fails the same way (checks.mjs brokenFrame: non-finite
+//                     sky light, a median at the grade's clamp, > 144 NaN meter cells, > 30%
+//                     of the frame white; 2026-11-17 published a white one). Without the flag
+//                     both are ⚠ lines only.
+// --ref REF           render that commit (worktree on port 5177); implies --drop-unknown
+// --drop-unknown      leave out (and name) spec fields the served commit rejects
+// DEBUG=1             print each render's debug (exposure, luminance, …)
+//                     params.debug.probe (tools/DEBUG.md) prints one line per point,
+//                     params.debug.probeLine its band/grain stats and shape
+
+import { execFileSync } from 'node:child_process'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { chromium } from 'playwright'
+
+import { brokenFrame, snapshotWarnings } from './checks.mjs'
+import { expandDates, parseArgs, readSpecs, requireServer, watchPage } from '../shared/lib.mjs'
+import { serveRef } from '../shared/refServer.mjs'
+
+/** A row of characters showing a line's shape (as skyMirror.ts sparkline). */
+function sparkline(values, width = 60) {
+  const bars = '▁▂▃▄▅▆▇█'
+  const n = Math.min(width, values.length)
+  const cells = Array.from({ length: n }, (_, i) => {
+    const a = Math.floor((i * values.length) / n)
+    const b = Math.max(a + 1, Math.floor(((i + 1) * values.length) / n))
+    return values.slice(a, b).reduce((s, x) => s + x, 0) / (b - a)
+  })
+  const [lo, hi] = [Math.min(...cells), Math.max(...cells)]
+  return cells.map(v => bars[hi > lo ? Math.min(7, Math.floor(((v - lo) / (hi - lo)) * 8)) : 0]).join('')
+}
+
+
+const { args, option, flag, rejectUnknown, rejectPositional } = parseArgs()
+let baseUrl = option('url', 'http://localhost:5174/')
+const ref = option('ref', null)
+const dropUnknown = flag('drop-unknown') || ref != null
+const outDir = option('out', 'out')
+const width = Number(option('w', 3840))
+const height = Number(option('h', 2160))
+const quality = Number(option('quality', 0.92))
+const frames = option('frames', null)
+const channel = option('channel', process.env.CI ? undefined : 'chrome')
+// 'metal' uses the Mac's GPU; 'swiftshader' is software WebGL (CI has no GPU).
+const angle = option('angle', process.env.CI ? 'swiftshader' : 'metal')
+const timeoutMs = Number(option('timeout', 5 * 60_000))
+const sceneArg = option('scene', null)
+const whereArg = option('where', null)
+const sampleArg = option('sample', whereArg != null ? '8' : null)
+const spreadArg = option('spread', null)
+const seeds = Number(option('seeds', 0))
+const list = value => (value == null ? [] : value.split(',').filter(Boolean))
+const cropKinds = list(option('crop', null))
+const propKinds = [...new Set([...list(option('props', null)), ...cropKinds])]
+const budget = Number(option('budget', 900))
+const water = flag('water')
+const failBlank = flag('fail-blank')
+// The darkest real frames measured at CI settings (1920×1080, 24 frames) span far more than
+// this (knowledge/tools/RENDER.md "Blank frames"); a black canvas spans 0.
+const BLANK_RANGE = 4
+let blankFrames = 0
+/** NaN/∞ the frame meter zeroed before bloom (frameMeter.ts): not in the picture, but a
+ * shader made them, on this machine (x86 SwiftShader on CI; the Mac reads 0). On GitHub
+ * Actions also a warning on the run, so a new source shows on its summary. */
+function warnNonFinite(name, debug) {
+  const n = debug?.frameNonFinite ?? 0
+  if (!(n > 0)) return
+  const text = `${name}: ${n} meter cell(s) read NaN/inf, zeroed before bloom; find the shader with params.debug.nanTrace (tools/DEBUG.md)`
+  console.log(`  ⚠ ${text}`)
+  if (process.env.GITHUB_ACTIONS === 'true') console.log(`::warning title=NaN pixels::${text}`)
+}
+/** params.debug.nanTrace (src/nanTrace.ts) as short lines: CI logs cut a long one. */
+function printNanTrace(trace) {
+  if (trace == null) return
+  // sat: texels at the half-float ceiling (≥ 65 504), where the Mac saturates an overflow that
+  // SwiftShader writes as ∞; max: the largest finite magnitude (ARCHITECTURE.md "Render targets").
+  const g = v => (typeof v !== 'number' ? '?' : Math.abs(v) >= 1e4 || (v !== 0 && Math.abs(v) < 1e-2) ? v.toExponential(2) : String(Number(v.toPrecision(3))))
+  const range = r => (r.saturated == null ? '' : `, ${r.saturated} sat, max ${g(r.max)}`)
+  for (const c of trace.cube ?? []) {
+    console.log(`  nanTrace sky cube after ${c.after}: ${c.nan} NaN, ${c.inf} inf${range(c)} of ${c.texels} texels (${c.up} looking up, ${c.down} down)`)
+  }
+  if (trace.cloudShadow != null) {
+    // Channels: r frontDepth, g meanExtinction, b maxOpticalDepth, a its tail (takram shadow.frag),
+    // or a debug.shadowDump's four values.
+    const names = ['r', 'g', 'b', 'a']
+    for (const [i, l] of trace.cloudShadow.entries()) {
+      const per = names.map((n, k) => `${n} ${l.channels[k]}${l.saturatedChannels != null ? `/${l.saturatedChannels[k]} sat/max ${g(l.maxChannels[k])}` : ''}`).join(', ')
+      console.log(`  nanTrace cloud shadow cascade ${i}: ${l.nan} NaN, ${l.inf} inf (non-finite${l.saturatedChannels != null ? '/sat/max' : ''} by channel: ${per})`)
+    }
+  }
+  for (const st of trace.stages) {
+    const where = st.box == null ? '' : ` box ${st.box.join(',')} at ${st.at.map(p => p.join(',')).join(' ')}`
+    console.log(`  nanTrace after ${st.after}: ${st.nan} NaN, ${st.inf} inf${range(st)}${where}`)
+  }
+  if (trace.meshes == null) return console.log('  nanTrace meshes: not run (the scene pass is clean)')
+  console.log(`  nanTrace meshes: ${trace.meshes.found.length} of ${trace.meshes.tested} drawn objects make NaN/inf alone`)
+  for (const m of trace.meshes.found) console.log(`    ${m.path} [${m.material}] (${m.what}): ${m.nan} NaN, ${m.inf} inf`)
+}
+/** JSON.stringify writes NaN and ±Infinity as null: keep them readable. */
+const keepNonFinite = (_key, value) => (typeof value === 'number' && !Number.isFinite(value) ? String(value) : value)
+// Renders the page reported as failed (a lost WebGL context, a shader error…).
+let failedRenders = 0
+// A misspelt or unsupported option (e.g. --match) used to be ignored and the
+// whole spec file rendered.
+rejectUnknown()
+if (sceneArg != null || whereArg != null) rejectPositional('dates are ignored with --scene or --where')
+setTimeout(() => {
+  console.log(`[snapshot] budget of ${budget}s used up; stopping`)
+  process.exit(2)
+}, budget * 1000).unref()
+
+/** One render: a date, or a scene spec. */
+async function jobs() {
+  if (whereArg != null) {
+    const asked = ['--where', whereArg, '--sample', sampleArg, ...(spreadArg != null ? ['--spread', spreadArg] : [])]
+    const dates = execFileSync(process.execPath, [new URL('../scene/params.mjs', import.meta.url).pathname, ...asked], { encoding: 'utf8' }).split('\n').filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l))
+    console.log(`[snapshot] real days: ${dates.join(' ') || 'none'}`)
+    return dates.map(date => ({ date, name: date }))
+  }
+  if (sceneArg == null) return expandDates(args.length > 0 ? args : ['today']).map(date => ({ date, name: date }))
+  const { specs } = await readSpecs(sceneArg)
+  const used = new Set()
+  return specs.map((spec, i) => {
+    let name = spec.name ?? spec.date ?? `scene-${i + 1}`
+    if (used.has(name)) name = `${name}-${i + 1}`
+    used.add(name)
+    return { date: spec.date ?? null, spec, name }
+  })
+}
+/** Each job on `seeds` seeds of its own. */
+const seeded = list =>
+  seeds < 1 ? list : list.flatMap(job => Array.from({ length: seeds }, (_, i) => ({ ...job, name: `${job.name}-s${i + 1}`, spec: { ...job.spec, seed: `${job.name}/${i + 1}` } })))
+/** --water: params.debug.water on every job, dates and real days too (a
+ * spec with only debug fields renders the same day). */
+const withWater = job =>
+  !water ? job : { ...job, spec: { ...job.spec, params: { ...job.spec?.params, debug: { ...job.spec?.params?.debug, water: true } } } }
+const todo = seeded(await jobs()).map(withWater)
+await mkdir(outDir, { recursive: true })
+if (ref != null) {
+  const old = await serveRef(ref, 5177)
+  // Synchronous, so it also runs when the budget timer exits the process.
+  process.on('exit', old.close)
+  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(130))
+  baseUrl = old.url
+  console.log(`[snapshot] rendering ${ref} (${old.sha})`)
+  // A dead server leaves the page waiting on its modules until the timeout:
+  // stop at once instead, with its log.
+  setInterval(() => {
+    if (old.alive()) return
+    console.error(`[snapshot] the ${ref} server stopped during the run; its log (${old.log}):\n${old.tail()}`)
+    process.exit(3)
+  }, 1000).unref()
+} else {
+  await requireServer(baseUrl)
+  // This tree's server: two missed answers in a row (stopped, restarted) stop the run.
+  let missed = 0
+  setInterval(async () => {
+    try {
+      await fetch(baseUrl, { signal: AbortSignal.timeout(3000) })
+      missed = 0
+    } catch {
+      if (++missed < 2) return
+      console.error(`[snapshot] the dev server at ${baseUrl} stopped answering during the run`)
+      process.exit(3)
+    }
+  }, 2000).unref()
+}
+
+const browser = await chromium.launch({
+  channel,
+  args: ['--ignore-gpu-blocklist', '--enable-gpu', `--use-angle=${angle}`, '--enable-unsafe-swiftshader']
+})
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+page.setDefaultTimeout(timeoutMs)
+// GL messages (worker and GPU process too) become ⚠ warnings per render.
+const messages = await watchPage(page, {
+  format: msg => {
+    const text = msg.text()
+    // three.js logs a failed shader with its whole source: keep the errors and
+    // the numbered lines it quotes round them.
+    if (!/Shader Error|VALIDATE_STATUS false/.test(text) || text.length <= 2000) return `[browser ${msg.type()}] ${text}`
+    const lines = text.split('\n')
+    const keep = lines.filter(l => /ERROR:|^\s*>?\s*\d+:/.test(l)).slice(0, 40)
+    return `[browser ${msg.type()}] ${lines[0]}\n${keep.join('\n')}`
+  }
+})
+
+/** The spec without the fields the served commit's parser rejects as
+ * unknown (its own src/sceneSpec.ts, loaded from the dev server). */
+async function knownFields(spec) {
+  await page.goto(new URL('src/sceneSpec.ts', baseUrl).toString())
+  const { kept, dropped } = await page.evaluate(async spec => {
+    const { parseSceneSpec } = await import('/src/sceneSpec.ts')
+    const dropped = []
+    for (;;) {
+      try {
+        parseSceneSpec(spec)
+        return { kept: spec, dropped }
+      } catch (error) {
+        // A field this commit doesn't have, or a value it doesn't know yet
+        // (a kind added since: props.bloom ["flamboyant"]): leave the field out.
+        const m = /scene spec: spec\.([\w.]+) is not a known field/.exec(error.message) ?? /scene spec: spec\.([\w.]+)(?:\[\d+\])* must be one of/.exec(error.message)
+        if (m == null) throw error
+        const path = m[1].split('.')
+        const owner = path.slice(0, -1).reduce((o, k) => o[k], spec)
+        if (owner == null || !(path.at(-1) in owner)) throw error
+        delete owner[path.at(-1)]
+        dropped.push(/must be one of/.test(error.message) ? `${m[1]} (a value it doesn't know)` : m[1])
+      }
+    }
+  }, structuredClone(spec))
+  if (dropped.length > 0) console.log(`[snapshot] not known at this commit, left out: ${dropped.join(', ')}`)
+  return kept
+}
+
+for (const { date, spec: asked, name } of todo) {
+  const spec = asked != null && dropUnknown ? await knownFields(asked) : asked
+  const started = Date.now()
+  const url = new URL(baseUrl)
+  if (date != null) url.searchParams.set('date', date)
+  if (spec != null) url.searchParams.set('scene', JSON.stringify(spec))
+  url.searchParams.set('future', '1')
+  url.searchParams.set('w', String(width))
+  url.searchParams.set('h', String(height))
+  if (frames != null) url.searchParams.set('frames', frames)
+  messages.gl() // not this render's
+  await page.goto(url.toString())
+  await page.waitForFunction(() => window.__sea != null)
+  let rendered
+  try {
+    rendered = await page.evaluate(async quality => {
+      const result = await window.__sea.ready
+      // The canvas may belong to the render worker: ask it for the image.
+      const blob = await result.toBlob('image/jpeg', quality)
+      const dataUrl = await new Promise(resolve => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.readAsDataURL(blob)
+      })
+      // The saved JPEG shrunk to 160×90: its luma range finds a blank frame (--fail-blank).
+      const small = new OffscreenCanvas(160, 90)
+      const g = small.getContext('2d')
+      g.drawImage(await createImageBitmap(blob), 0, 0, 160, 90)
+      const px = g.getImageData(0, 0, 160, 90).data
+      let min = 255, max = 0, sum = 0, white = 0
+      for (let i = 0; i < px.length; i += 4) {
+        const y = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]
+        min = Math.min(min, y); max = Math.max(max, y); sum += y
+        if (y >= 250) white++
+      }
+      const n = px.length / 4
+      return {
+        dataUrl,
+        params: { ...window.__sea.params, debug: result.debug },
+        luma: { min, max, mean: sum / n, white: white / n }
+      }
+    }, quality)
+  } catch (error) {
+    // The page's render rejected (scene.ts: a lost WebGL context fails it): nothing is saved.
+    console.log(`  ⚠ render failed: ${String(error.message ?? error).split('\n')[0]}; not saved`)
+    await page.waitForTimeout(100)
+    for (const message of messages.gl()) console.log(`  GL: ${message}`)
+    failedRenders++
+    continue
+  }
+  const { dataUrl, params, luma } = rendered
+  const file = join(outDir, `${name}.jpg`)
+  const blank = luma.max - luma.min < BLANK_RANGE
+  // Not blank but not a picture either: NaN light, clipped white (2026-11-17), checks.mjs.
+  const broken = blank ? [] : brokenFrame(params, luma)
+  if (failBlank) console.log(`  frame luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)}, mean ${luma.mean.toFixed(1)}, white ${(luma.white * 100).toFixed(1)}%${blank ? ' ⚠ BLANK' : ''}${broken.length > 0 ? ' ⚠ BROKEN' : ''}`)
+  for (const reason of broken) {
+    console.log(`  ⚠ broken frame: ${reason}`)
+    if (process.env.GITHUB_ACTIONS === 'true') console.log(`::error title=Broken frame::${name}: ${reason} (tools/RENDER.md "Broken frames"; reproduce: node scripts/ci/ciDay.mjs ${params.date ?? name})`)
+  }
+  if (blank || broken.length > 0) {
+    if (blank) console.log(`  ⚠ blank frame: luma ${luma.min.toFixed(1)}–${luma.max.toFixed(1)} (a failed render?)${failBlank ? `; not saved (kept as ${name}.blank.jpg)` : ''}`)
+    else if (failBlank) console.log(`  not saved (kept as ${name}.blank.jpg)`)
+    if (failBlank) {
+      // Kept for a look, under a name nothing publishes, with its debug numbers.
+      await writeFile(join(outDir, `${name}.blank.jpg`), Buffer.from(dataUrl.split(',')[1], 'base64'))
+      await writeFile(join(outDir, `${name}.blank.json`), JSON.stringify({ ...params, spec }, keepNonFinite, 2))
+      if (process.env.DEBUG) console.log(JSON.stringify(params.debug, keepNonFinite))
+      printNanTrace(params.debug?.nanTrace)
+      warnNonFinite(name, params.debug)
+      blankFrames++
+      continue
+    }
+  }
+  await writeFile(file, Buffer.from(dataUrl.split(',')[1], 'base64'))
+  await writeFile(join(outDir, `${name}.json`), JSON.stringify({ ...params, spec }, null, 2))
+  console.log(`${file}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${params.title}`)
+  if (process.env.DEBUG) console.log(JSON.stringify(params.debug, keepNonFinite))
+  printNanTrace(params.debug?.nanTrace)
+  warnNonFinite(name, params.debug)
+  // The pixel probe (params.debug.probe): one line per point.
+  for (const r of params.debug?.probe ?? []) {
+    const at = Array.isArray(r.at) ? `[${r.at.join(', ')}]` : r.at.world != null ? `world ${r.at.world.join(',')}` : r.at.mirror != null ? `mirror of ${r.at.mirror.join(',')}` : `az ${r.at.az} el ${r.at.el}`
+    if (r.pixel == null) {
+      console.log(`  probe ${at}: out of frame`)
+      continue
+    }
+    const e = v => v.map(x => x.toExponential(2)).join(' ')
+    const mag = r.magArcsec2 != null ? `, ${r.magArcsec2} mag/″²` : ''
+    console.log(
+      `  probe ${at} px ${r.pixel.join(',')}: raw ${e(r.raw.mean)} (peak ${e(r.raw.peak)}), ${r.cdm2.toExponential(2)} cd/m²${mag}; ` +
+        `exposed ${r.exposed.mean.map(x => x.toFixed(3)).join(' ')}; final ${r.final.mean.join(',')} (peak ${r.final.peak.join(',')})${r.clipped ? ' ⚠ clipped' : ''}`
+    )
+  }
+  // The water films (params.debug.water).
+  const w = params.debug?.water
+  if (w != null) {
+    const pct = v => `${(v * 100).toFixed(1)}%`
+    const near = n => (n == null ? '–' : `${n.m} m at [${n.at.join(', ')}]${n.pixels === 1 ? ' (1 px: a sliver or noise)' : ` (${n.pixels} px)`}`)
+    console.log(`  water: pool ${pct(w.share.pool)} (≤15 m ${pct(w.poolWithin15m)}, mirror ${w.poolMirror ?? '–'}), swash ${pct(w.share.swash)}, damp ${pct(w.share.damp)}, wet rock ${pct(w.share.wetRock)}`)
+    console.log(`    nearest pool ${near(w.nearest.pool)}; swash ${near(w.nearest.swash)}; damp ${near(w.nearest.damp)}; wet rock ${near(w.nearest.wetRock)}`)
+  }
+  // The terrain's own terms (params.debug.terrainProbe): one line per point.
+  const tp = params.debug?.terrainProbe
+  for (const pt of tp?.points ?? []) {
+    const at = Array.isArray(pt.at) ? `[${pt.at.join(', ')}]` : `world ${pt.at.world.join(',')}`
+    const what = pt.pixel == null ? 'out of frame' : pt.values == null ? `px ${pt.pixel.join(',')}: no terrain (sky, sea or a prop)` : `px ${pt.pixel.join(',')}: ${Object.entries(pt.values).map(([k, v]) => `${k} ${v}`).join(', ')}`
+    console.log(`  terrain ${at} ${what}`)
+  }
+  if (tp?.grid != null) console.log(`  terrain grid every ${tp.grid.every} px: ${tp.grid.samples.length} samples on terrain (debug.terrainProbe.grid)`)
+  // The sky cube (params.debug.cubeProbe): what the sea reflects there.
+  for (const r of params.debug?.cubeProbe ?? []) console.log(`  cube az ${r.at.az} el ${r.at.el}${r.at.lod != null ? ` lod ${r.at.lod}` : ''}: raw ${r.raw.map(x => x.toExponential(2)).join(' ')}`)
+  // The line probe (params.debug.probeLine): its stats and shape.
+  for (const pl of params.debug?.probeLine ?? []) {
+    const what = `az ${JSON.stringify(pl.line.az)} el ${JSON.stringify(pl.line.el)}`
+    if (pl.stats == null) console.log(`  probe line ${what}: out of frame`)
+    else {
+      console.log(`  probe line ${what}, ${pl.samples.length} px: ${pl.stats.summary}`)
+      console.log(`    ${sparkline(pl.samples.map(s => s.cdm2))}`)
+    }
+  }
+  // GPU-process messages arrive a few ms after the frame.
+  await page.waitForTimeout(100)
+  const warnings = snapshotWarnings(params, propKinds.filter(k => k !== 'all'), messages.gl())
+  for (const warning of warnings) console.log(`  ⚠ ${warning}`)
+  const props = params.debug?.props ?? {}
+  const times = params.debug?.propTimes ?? {}
+  const built = kind => (times[kind] != null ? `, built in ${times[kind]} ms` : '')
+  for (const kind of propKinds.includes('all') ? Object.keys(props) : propKinds) {
+    const r = props[kind]
+    if (r == null) {
+      console.log(`  ${kind}: none placed${built(kind)}`)
+      continue
+    }
+    const tris = r.triangles >= 1e6 ? `${(r.triangles / 1e6).toFixed(2)} M` : `${Math.round(r.triangles / 1e3)} k`
+    console.log(`  ${kind}: ${r.inFrame}/${r.placed} in frame, nearest ${r.nearest} m, ${tris} triangles, box ${JSON.stringify(r.box)}${built(kind)}`)
+  }
+  if (propKinds.length > 0) {
+    const total = Object.values(times).reduce((a, b) => a + b, 0)
+    const slowest = Object.entries(times).sort((a, b) => b[1] - a[1]).slice(0, 3)
+    console.log(`  props built in ${total} ms; slowest ${slowest.map(([k, ms]) => `${k} ${ms}`).join(', ')}`)
+    const heavy = Object.entries(props).sort((a, b) => b[1].triangles - a[1].triangles).slice(0, 3)
+    const sum = Object.values(props).reduce((a, r) => a + (r.triangles ?? 0), 0)
+    console.log(`  prop triangles ${(sum / 1e6).toFixed(2)} M; most ${heavy.map(([k, r]) => `${k} ${(r.triangles / 1e6).toFixed(2)} M`).join(', ')}`)
+  }
+  for (const kind of cropKinds.includes('all') ? Object.keys(props) : cropKinds) {
+    const box = props[kind]?.box
+    if (box == null) continue
+    const crop = await page.evaluate(
+      async ({ dataUrl, box, quality }) => {
+        const image = await createImageBitmap(await (await fetch(dataUrl)).blob())
+        // Pad by a quarter each side and at least 256 px across.
+        const [x0, y0, x1, y1] = box
+        const w = Math.max(256, (x1 - x0) * 1.5)
+        const h = Math.max(256 * (image.height / image.width), (y1 - y0) * 1.5, w * 0.4)
+        const cx = (x0 + x1) / 2
+        const cy = (y0 + y1) / 2
+        const left = Math.max(0, Math.min(image.width - w, cx - w / 2))
+        const top = Math.max(0, Math.min(image.height - h, cy - h / 2))
+        const canvas = new OffscreenCanvas(Math.min(w, image.width), Math.min(h, image.height))
+        canvas.getContext('2d').drawImage(image, left, top, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height)
+        const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality })
+        return new Uint8Array(await blob.arrayBuffer()).reduce((s, b) => s + String.fromCharCode(b), '')
+      },
+      { dataUrl, box, quality }
+    )
+    const cropFile = join(outDir, `${name}.${kind}.jpg`)
+    await writeFile(cropFile, Buffer.from(crop, 'latin1'))
+    console.log(`  ${cropFile}`)
+  }
+}
+
+await browser.close()
+if (blankFrames > 0) {
+  console.log(`[snapshot] ${blankFrames} blank or broken frame(s) not saved (--fail-blank)`)
+  process.exitCode = 1
+}
+if (failedRenders > 0) {
+  console.log(`[snapshot] ${failedRenders} render(s) failed, not saved`)
+  process.exitCode = 1
+}

@@ -8,6 +8,9 @@ graphify-out/
 knowledge/OLD.md
 knowledge/TODO.md
 
-# Real-asset sources (scripts/asset.mjs): only baked outputs are committed
+# Real-asset sources (scripts/assets/asset.mjs): only baked outputs are committed
 assets-src/
 .venv-skins/
+
+# Python bytecode (scripts/*/*.py)
+__pycache__/

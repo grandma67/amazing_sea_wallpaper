@@ -2,7 +2,7 @@ import type { BufferGeometry } from 'three'
 
 import { scanGeometry, type Scan } from './scan'
 
-// Every baked scan by id (scripts/asset.mjs bake; scripts/asset-bakes.json).
+// Every baked scan by id (scripts/assets/asset.mjs bake; scripts/assets/asset-bakes.json).
 // Each is a dynamic import: on the page a chunk fetched only by a day that
 // draws it (a scan is ~0.5 MB). Load before building the props that use it.
 
@@ -30,7 +30,7 @@ export function scanIfLoaded(id: string): Scan | undefined {
   return loaded.get(id)
 }
 
-/** A scan's variant by id, loading it first: for scripts/mesh.mjs and tests. */
+/** A scan's variant by id, loading it first: for scripts/render/mesh.mjs and tests. */
 export async function scanVariant(id: string, variant: number, lod = 0): Promise<BufferGeometry> {
   return scanGeometry(await loadScan(id), variant, lod)
 }

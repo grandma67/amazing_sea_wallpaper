@@ -1,4 +1,4 @@
-// Decodes public/assets/milkyway.png (scripts/milkyway.mjs) for the tests:
+// Decodes public/assets/milkyway.png (scripts/assets/milkyway.mjs) for the tests:
 // luminance in S10 at galactic (l, b). Plain JS: the tests' typecheck has
 // no Node types.
 import { readFileSync } from 'node:fs'

@@ -24,7 +24,7 @@ rock platform and a beach. Tools: [TOOLS.md](../TOOLS.md).
 | `nanTrace: true` | on the last frame, after every composer pass up to the frame meter: the full-resolution NaN and ∞ pixels (count, box, first 24 positions, px from the top left); if the scene pass has any, each drawn object alone (camera layer 31, the frame's jitter, shadow maps kept) over their box, worst first, with geometry, vertex count and a ShaderMaterial's first uniforms. An object that mirrors the scene (terrain's wet sand, the sea) shows NaN it reflects: the source is the one that mirrors nothing. Also (0.203) the **sky cube** every lit material reads, after the clear sky and after the clouds are drawn into it (NaN/∞ texels, split looking up and down: `nanTrace sky cube after …`), and the **clouds' shadow map** per cascade and per channel (`nanTrace cloud shadow map`: r front depth, g mean extinction, b max optical depth, a its tail; a value dumped there for a look goes through takram's temporal resolve: switch `clouds.shadowPass.temporalPass` off for the dump): when every lit object makes NaN at once, the source is one of these, not the objects. Each reading also gives **`sat`**, the texels at the half-float ceiling (≥ 65 504), and **`max`**, the largest finite colour (per channel for the shadow map): an overflow the Mac saturates, invisible as NaN there, is ∞ on SwiftShader (0.205; ARCHITECTURE.md "Render targets"). `snapshot.mjs` prints it as short lines. The picture is unchanged (`src/nanTrace.ts`) | where NaN pixels come from: the first stage that has them makes them (x86 SwiftShader on CI, 2026-11-15: tools/RENDER.md "Blank frames"; 2026-11-17: "Broken frames"). Checked on the Mac by injecting NaN into a lighthouse mesh and the grade: both named. On a SwiftShader render (`--angle swiftshader`): small frames reproduce CI (320×180), but use 24 frames, not 1 |
 | `shadowDump: "vec4(…)"` | writes this GLSL vec4 into the main clouds' shadow map instead of takram's output (in scope in `shadow.frag` `cascade()`: `color`, `rayNear`, `rayFar`, `point`, `sunPosition`, `rayDirection`), unclamped, with the shadow's temporal resolve off, so `nanTrace`'s cloud shadow lines read it raw: each channel's NaN, `sat` and `max`. Validated as one `vec4(…)` expression. Changes the clouds' shadows | "what is this intermediate, per texel?" without editing takram: `"vec4(rayNear, rayFar, rayFar - rayNear, point.w)"` on 2026-11-17 showed `rayFar` at the ceiling everywhere (rays past 65 km) |
 | `probeLine: {az, el, step}` or a list | reads lines of single pixels (az from the view; one of az/el a `[from, to]` range): per pixel cd/m² and final RGB, and per line `lineStats`: bands (period, regularity), ripple, stars left out, a sparkline. Same format as `params.mjs --line` on the CPU mirrors | "stripes or grain? from what?": compare the render's line with the mirror's ("Lines of pixels" below) |
-| `terrainProbe: {terms, at?, every?}` | the terrain shader's own numbers (`src/terrainTerms.ts` `TERRAIN_TERMS`: `x y z h s a dist kind pools wet exposed gloss mirror snow hard rock stone coral creek mud marsh footprint ny rockGully rockWidth rockBare`) at image points `[x, y]` or world points `{world: [x, y, z]}` (full size), and/or a grid, one sample per `every` px block. `debug.terrainProbe.points` (null where no terrain: sky, sea beyond the land, a prop) and `.grid.samples` (`[x, y, ...terms]`). `snapshot.mjs` prints one line per point. Below: "Terrain terms" | "what does the shader have here?" for any term, instead of a temporary edit to the shader: a CPU mirror against the GPU (`scripts/parity.mjs` does it for heights and pools), a mask's value where a look goes wrong |
+| `terrainProbe: {terms, at?, every?}` | the terrain shader's own numbers (`src/terrainTerms.ts` `TERRAIN_TERMS`: `x y z h s a dist kind pools wet exposed gloss mirror snow hard rock stone coral creek mud marsh footprint ny rockGully rockWidth rockBare`) at image points `[x, y]` or world points `{world: [x, y, z]}` (full size), and/or a grid, one sample per `every` px block. `debug.terrainProbe.points` (null where no terrain: sky, sea beyond the land, a prop) and `.grid.samples` (`[x, y, ...terms]`). `snapshot.mjs` prints one line per point. Below: "Terrain terms" | "what does the shader have here?" for any term, instead of a temporary edit to the shader: a CPU mirror against the GPU (`scripts/measure/parity.mjs` does it for heights and pools), a mask's value where a look goes wrong |
 | `probe: [...]` | reads the render at points `[x, y]` (fractions of the image, y down) or sky directions `{az, el}` (degrees, az from the view, + right): **raw** radiance (render units, before exposure and white balance), its luminance in **cd/m²** and **mag/arcsec²**, **exposed** (after exposure and white balance, before bloom and tone mapping), **final** 8-bit; mean and peak of a 5×5 box (`probeHalf`: 0–20); `⚠ clipped` past the grade's clamp (40). `snapshot.mjs` prints one line per point; the `.json` has them under `debug.probe` (`src/probe.ts`) | "how bright is X against the sky behind it?" in numbers: a star or planet's peak vs the sky beside it, an aurora arc vs the sky between arcs, a colour's real RGB. Instead of reading JPEGs or boosting a term ×20 to find it |
 | `oceanView` | false colour on the sea: `shelter` (blue → red), `breaking` (deep blue, steepening green, breaking red), `depth` (sand → blue over 15 m, a line every metre), `foam` (coverage, grey) | calm water, break lines, depth under the camera's view |
 
@@ -44,7 +44,7 @@ scope at the end of `terrain.ts` main(): add it to `TERRAIN_TERMS` (`src/terrain
 works in specs, `debug.water` and `parity.mjs` at once.
 
 ```sh
-node scripts/snapshot.mjs --w 1920 --h 1080 --frames 16 --out $SP/tp --scene \
+node scripts/render/snapshot.mjs --w 1920 --h 1080 --frames 16 --out $SP/tp --scene \
   '{"date":"2024-06-13","params":{"debug":{"terrainProbe":{"terms":["h","s","a","rockBare","pools","kind"],"at":[[0.5,0.95],{"world":[3,0,-20]}]}}}}'
 #  terrain [0.5, 0.95] px 960,1026: h -0.142, s 78.51, a -13.72, rockBare -0.478, pools 1, kind 6
 ```
@@ -53,12 +53,12 @@ node scripts/snapshot.mjs --w 1920 --h 1080 --frames 16 --out $SP/tp --scene \
   there (`params.mjs` `src.X`), with the render's own params (its `.json`). A mismatch: read the
   mirror's sub-terms the same way, one by one (0.137 found TS `bareRock` this way, with three
   temporary shader edits the probe now replaces).
-- A grid (`every: 16`) gives a few thousand samples per frame: what `scripts/parity.mjs` uses.
+- A grid (`every: 16`) gives a few thousand samples per frame: what `scripts/measure/parity.mjs` uses.
 
 ## The pixel probe: brightness in numbers
 
 ```sh
-node scripts/snapshot.mjs --out $SP/p --w 1920 --h 1080 --frames 16 \
+node scripts/render/snapshot.mjs --out $SP/p --w 1920 --h 1080 --frames 16 \
   --scene '{"date":"2024-02-12","params":{"debug":{"probe":[{"az":0,"el":12},{"az":2,"el":12},[0.5,0.1]],"probeHalf":0}}}'
 #  probe az 0 el 12 px 960,301: raw … (peak …), 2.3e+1 cd/m², 9.24 mag/″²; exposed …; final 97,81,129 (peak …)
 ```
@@ -93,7 +93,7 @@ A stripe, a band or a texture in the sky is a question about a *line* of pixels:
 a 2° running median), stars left out, and the shape.
 
 ```sh
-node scripts/snapshot.mjs --out $SP/l --w 1920 --h 1080 --frames 16 --scene '{"date":"2026-02-18", …,
+node scripts/render/snapshot.mjs --out $SP/l --w 1920 --h 1080 --frames 16 --scene '{"date":"2026-02-18", …,
   "params":{"debug":{"passes":{"aurora":false},"probeLine":[{"az":-25,"el":[6,30]},{"az":[-40,40],"el":12,"step":0.1}]}}}'
 #  probe line az -25 el [6,30], 481 px: bands every 2.05° (corr 0.34), ±0.32%; mean 6.34e-4, …; 2 spikes (stars) left out
 #    ▇████████████████▇▇▇█▇▇▆▆▆▅▅▅▅▅▅▅▅▄▄▄▄▄▃▃▃▃▃▃▃▂▂▂▂▂▁▁▁▁▁▁▁▁▁
