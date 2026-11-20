@@ -144,6 +144,32 @@ case_unloaded_retry_plist_is_reloaded() {
   expect_state retry_at "$(utc_epoch "$TODAY 09:30")"
 }
 
+case_hanging_server_times_out() {
+  # the run's own limit (5 min; 2 s here) stops a hung download, logs it and frees the lock
+  site_dated pc "$TODAY" valid
+  printf '30\n' > "$SITE/daily/pc/$TODAY.jpg.delay"
+  state "date=$YESTERDAY"
+  CASE_ENV=AMAZING_SEA_WALLPAPER_RUN_LIMIT=2
+  t0=$(date +%s)
+  run_script --now
+  [ $(($(date +%s) - t0)) -lt 15 ] || fail "took $(($(date +%s) - t0)) s"
+  expect_exit 124
+  expect_output 'timed out after 2 s during: fetch'
+  expect_state date "$YESTERDAY"
+  expect_no_file lock
+  [ -z "$(ls -A "$CASE_HOME/wallpapers" 2>/dev/null)" ] || fail "left in wallpapers: $(ls -A "$CASE_HOME/wallpapers")"
+}
+
+case_watchdog_gone_after_run() {
+  # a normal run leaves no watchdog behind (it would hold the runner's pipes for 5 min)
+  site_dated pc "$TODAY" valid
+  state "date=$YESTERDAY"
+  CASE_ENV=AMAZING_SEA_WALLPAPER_RUN_LIMIT=97
+  run_script
+  expect_exit 0
+  ! pgrep -f '^sleep 97$' >/dev/null || fail "watchdog sleep left running"
+}
+
 case_daily_run_already_set_unloads_leftover_retry() {
   # the main job, not the re-run, finds today's set (e.g. by --now) with a re-run still loaded
   state "date=$TODAY" "retry_day=$YESTERDAY" "retry_at=$((NOW_EPOCH - 86400))"

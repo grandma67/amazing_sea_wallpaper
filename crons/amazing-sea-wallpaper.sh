@@ -514,14 +514,14 @@ json_field() {
 
 take_lock() {
   mkdir -p "$DIR" || die 4 "can't create $DIR"
-  if mkdir "$LOCK" 2>/dev/null; then echo $$ > "$LOCK/pid"; trap 'rm -rf "$LOCK"' EXIT; return 0; fi
+  if mkdir "$LOCK" 2>/dev/null; then echo $$ > "$LOCK/pid"; CLEAN_LOCK=1; return 0; fi
   local pid age
   pid=$(cat "$LOCK/pid" 2>/dev/null)
   age=$(($(date +%s) - $(mtime "$LOCK" 2>/dev/null || date +%s)))
   if [ $age -gt 600 ] || { [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; }; then
     rm -rf "$LOCK"
     mkdir "$LOCK" 2>/dev/null || return 1
-    echo $$ > "$LOCK/pid"; trap 'rm -rf "$LOCK"' EXIT
+    echo $$ > "$LOCK/pid"; CLEAN_LOCK=1
     return 0
   fi
   return 1
@@ -719,9 +719,50 @@ on_signal() {
   log "stopped by SIG$1 during: $STEP"; exit $((128 + $2))
 }
 
+# One run takes at most RUN_LIMIT seconds (5 min; a normal run takes seconds): a watchdog
+# process sends the run SIGALRM, then stops its children (curl, osascript), since bash runs a trap
+# only once its foreground child returns. Below the lock's 10 min, so a live run's lock is never
+# taken as stale. launchd has no run-time limit of its own; Windows sets ExecutionTimeLimit.
+RUN_LIMIT=${AMAZING_SEA_WALLPAPER_RUN_LIMIT:-300}
+WATCHDOG=
+CLEAN_LOCK=
+CLEAN_DIR=
+on_timeout() {
+  [ "$STEP" = finished ] && exit 0
+  log "timed out after ${RUN_LIMIT} s during: $STEP"; exit 124
+}
+# descendants PID: every process under PID, deepest first
+descendants() { local c; for c in $(pgrep -P "$1" 2>/dev/null); do descendants "$c"; echo "$c"; done; }
+start_watchdog() {
+  local me=$$
+  (
+    trap '' TERM   # it stops the run's whole tree, itself included
+    sleep "$RUN_LIMIT"
+    kill -ALRM "$me" 2>/dev/null || exit 0
+    for c in $(descendants "$me"); do kill -TERM "$c" 2>/dev/null; done
+  ) < /dev/null > /dev/null 2>&1 &
+  WATCHDOG=$!
+}
+stop_watchdog() {
+  [ -n "$WATCHDOG" ] || return 0
+  # the watchdog first: its sleep killed first would let it go on to the SIGALRM
+  local kids
+  kids=$(pgrep -P "$WATCHDOG" 2>/dev/null)
+  kill -KILL "$WATCHDOG" 2>/dev/null
+  for c in $kids; do kill -KILL "$c" 2>/dev/null; done
+  WATCHDOG=
+}
+on_exit() {
+  stop_watchdog
+  if [ -n "$CLEAN_DIR" ]; then rm -rf "$CLEAN_DIR"; fi
+  if [ -n "$CLEAN_LOCK" ]; then rm -rf "$LOCK"; fi
+}
+
 do_run() {
   local today yesterday now last retry_day local_today got_date='' got_title='' status=0 kind part json latest_date retry_at e
   trap 'on_signal TERM 15' TERM; trap 'on_signal HUP 1' HUP; trap 'on_signal INT 2' INT
+  trap on_timeout ALRM; trap on_exit EXIT
+  start_watchdog
   today=$(utc_today); now=$(now_epoch)
   local_today=$(epoch_fmt "$now" '%F')
   if [ "$MODE" != dry-run ]; then
@@ -757,8 +798,9 @@ do_run() {
 
   DL=$(downloader) || die 4 "neither curl nor wget is installed: $(install_hint curl curl curl curl curl net-misc/curl)"
   if [ "$(kv_get "$CONFIG" portrait)" = 1 ]; then kind=phone; json=latest-portrait; else kind=pc; json=latest; fi
-  if [ "$MODE" = dry-run ]; then part=$(mktemp -d "${TMPDIR:-/tmp}/$NAME.XXXXXX"); trap 'rm -rf "$part"' EXIT
-  else mkdir -p "$WALL"; part="$WALL/.part-$$"; mkdir -p "$part"; trap 'rm -rf "$LOCK" "$part"' EXIT; fi
+  if [ "$MODE" = dry-run ]; then part=$(mktemp -d "${TMPDIR:-/tmp}/$NAME.XXXXXX")
+  else mkdir -p "$WALL"; part="$WALL/.part-$$"; mkdir -p "$part"; fi
+  CLEAN_DIR=$part
 
   # 3. today's dated image
   if fetch "${URL}daily/$kind/$today.jpg" "$part/img"; then

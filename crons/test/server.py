@@ -3,7 +3,8 @@
 Serves ROOT on 127.0.0.1 at a free port (written to PORT_FILE once listening) and appends every
 request path (with its query) to LOG_FILE, opened per request so the runner can truncate it
 between cases. A sidecar file `<name>.ctype` overrides the Content-Type of `<name>`, so a case can
-serve HTML as `daily/pc/<date>.jpg`. Missing files are 404. Same headers the real site sends that
+serve HTML as `daily/pc/<date>.jpg`; a sidecar `<name>.delay` (seconds) holds the answer that
+long (a hanging server). Missing files are 404. Same headers the real site sends that
 the script may read: Content-Type, Content-Length, Cache-Control.
 
 usage: python3 -I server.py ROOT PORT_FILE LOG_FILE
@@ -12,6 +13,7 @@ usage: python3 -I server.py ROOT PORT_FILE LOG_FILE
 import http.server
 import os
 import sys
+import time
 import urllib.parse
 
 ROOT, PORT_FILE, LOG_FILE = sys.argv[1:4]
@@ -25,7 +27,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             log.write(f"{self.command} {self.path}\n")
         rel = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path).lstrip("/")
         path = os.path.normpath(os.path.join(ROOT, rel))
-        if not path.startswith(os.path.abspath(ROOT)) or not os.path.isfile(path) or path.endswith(".ctype"):
+        try:
+            with open(path + ".delay") as f:
+                time.sleep(float(f.read().strip()))
+        except (FileNotFoundError, BrokenPipeError):
+            pass
+        if not path.startswith(os.path.abspath(ROOT)) or not os.path.isfile(path) or path.endswith((".ctype", ".delay")):
             self.send_response(404)
             self.send_header("Content-Type", "text/html")
             self.send_header("Content-Length", "9")

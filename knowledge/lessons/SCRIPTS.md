@@ -41,6 +41,12 @@ Scripts, randomness, params, tests and the page. Other topics: [LESSONS.md](../L
   "Operation not permitted"; copy them to the scratchpad). A bash TERM trap with a foreground
   child that waits on the job itself deadlocks into SIGKILL: run such children `& wait $!`
   (plans/CRON.md §2.4).
+- **A bash watchdog: signal the shell, then its children; stop the watchdog before its sleep**
+  (wallpaper script 1.0.2): bash runs a trap only once its foreground child (curl) returns, so the
+  watchdog kills the children after signalling; and killing the watchdog's `sleep` first let the
+  watchdog fire its signal at a run that was exiting (a flaky "timed out" in an unrelated case).
+  Background helpers need `< /dev/null > /dev/null 2>&1`, or a test runner reading the script's
+  output waits on them.
 - Cleanup in `finally` or a signal handler doesn't survive every stop: Ctrl+C skips `finally` unless
   a handler exits, `kill -9` runs nothing, and a handler waits for a synchronous loop. For anything
   that must not be left behind, use a detached watcher that polls the owner's pid

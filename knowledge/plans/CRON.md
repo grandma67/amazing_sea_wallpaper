@@ -15,7 +15,8 @@ so users don't all hit the site at once.
 
 Status: built (2026-11-15): phases 1–9 done, version 1.0.1 (size floor 20 KB); 1.0.2 (2026-11-20, shell
 script only): the macOS re-run no longer unloads itself before its work (§2.4 "A launchd job can't
-unload itself"), and a run stopped by a signal logs it. 118 test cases pass (bash 3.2 and with
+unload itself"), a run stopped by a signal logs it, and a run takes at most 5 min (§4.3 "Limits";
+Windows 1.0.2: `ExecutionTimeLimit` 5 min). 118 test cases pass (bash 3.2 and with
 GNU `date`, curl and wget, pwsh 7.7). Live on this Mac (macOS 27.0.1): `--now`, `--install`, the
 LaunchAgent setting the picture, `--uninstall`. Left for real machines: every Linux edition and
 Windows (the list at the end of §6), the picture across a macOS logout, a sleep through 07:M.
@@ -337,6 +338,16 @@ check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 20 KB; moved to 
   exit 3.
 - Proxy: `curl -x` / `wget -e https_proxy=` from `config` when set.
 - Limits: `curl --fail --retry 2 --max-time 60`, `wget --tries=3 --timeout=60`.
+- **A run takes at most 5 min** (1.0.2; a normal run takes seconds, a hung server could keep one
+  ~12 min: up to 4 requests × 3 attempts × 60 s). The shell script starts a watchdog process
+  that, at the limit, sends the run SIGALRM and stops its children (curl, osascript), since bash
+  runs a trap only once its foreground child returns; the run logs `timed out after 300 s during:
+  <step>` and exits 124. The watchdog is stopped before its `sleep` (else it can go on to the
+  signal). launchd has no run-time limit of its own; the Windows tasks set `ExecutionTimeLimit` 5
+  min (was 30). Both stay under the lock's 10 min, so a live run's lock is never taken as stale.
+  `AMAZING_SEA_WALLPAPER_RUN_LIMIT` (seconds) shortens it for tests. Checked on a real LaunchAgent
+  against a hanging fixture server (`server.py`'s `.delay` sidecar): stopped at 3 s, lock freed,
+  no curl left, the re-run still loaded.
 - Exit status: 0 when today's (or the newest) image is set or nothing was due; 1 when a fetch or
   check failed, even if a re-run was scheduled.
 

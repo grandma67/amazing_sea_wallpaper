@@ -41,7 +41,7 @@ param(
     [switch]$ShowWindow
 )
 
-$Version = '1.0.1'
+$Version = '1.0.2'
 $Name = 'amazing-sea-wallpaper'
 $DefaultUrl = 'https://grandma67.github.io/amazing_sea_wallpaper/'
 $UpgradeUrl = 'https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/amazing-sea-wallpaper.ps1'
@@ -183,7 +183,7 @@ function Get-TaskAction([string]$Arguments) {
 }
 function Get-TaskSetting([switch]$Expire) {
     $p = @{ StartWhenAvailable = $true; AllowStartIfOnBatteries = $true; DontStopIfGoingOnBatteries = $true
-        ExecutionTimeLimit = (New-TimeSpan -Minutes 30) }
+        ExecutionTimeLimit = (New-TimeSpan -Minutes 5) }   # a run takes seconds; under the lock's 10 min
     if ($Expire) { $p.DeleteExpiredTaskAfter = (New-TimeSpan -Seconds 1) }
     return New-ScheduledTaskSettingsSet @p
 }
