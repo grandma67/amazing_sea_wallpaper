@@ -750,6 +750,7 @@ stop_watchdog() {
   kids=$(pgrep -P "$WATCHDOG" 2>/dev/null)
   kill -KILL "$WATCHDOG" 2>/dev/null
   for c in $kids; do kill -KILL "$c" 2>/dev/null; done
+  wait "$WATCHDOG" 2>/dev/null   # reaped quietly: else bash prints "Killed: 9" into the log
   WATCHDOG=
 }
 on_exit() {

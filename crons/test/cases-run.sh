@@ -168,6 +168,7 @@ case_watchdog_gone_after_run() {
   run_script
   expect_exit 0
   ! pgrep -f '^sleep 97$' >/dev/null || fail "watchdog sleep left running"
+  expect_no_output 'Killed'   # bash's notice for the reaped watchdog would land in the log
 }
 
 case_daily_run_already_set_unloads_leftover_retry() {
