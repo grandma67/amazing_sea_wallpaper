@@ -218,12 +218,18 @@ say how the cause was found.
 
 ## Props
 
-- **Spray as dark square blocks** (seen 2026-11-19 on 2026-05-01, blue hour, round two dolphins at
-  ~150 m; on 2026-12-08, night, along the surf): `SprayBuilder` droplets are 1.5–3 px point sprites
-  with screen-door alpha, lit only by the average sky (`skyIrradiance`, and the sun as
-  `max(sunDirection.y, 0)`, a flat surface's term, not a droplet cloud's). Against water that
-  mirrors a bright horizon at grazing they come out darker than the water, in hard squares.
-  Whether darker spray is physical there is unchecked (needs photos); the squares are not.
+- **Spray reads as speckle far off** (0.225 left over; `SprayBuilder`): the squares and the dark
+  low-sun shading are fixed (`passes.softSpray`), but a far droplet carries less "ink" (opacity ×
+  (px/4)²) than 1/16 of a pixel, which 16 frames of screen door can only show as scattered faint
+  dots, not a veil (front-lit surf at ~440 m, 2025-07-10 spec). A real fix: blended sprites, or far
+  droplets merged into fewer, larger, fainter ones (a mist sprite per burst). Measured by diff crops.
+- **Night surf in blue 2×2 blocks on lighthouse nights** (2026-12-08; found 2026-11-20, was filed as
+  spray, D37): `passes.reflection` off removes them, `softSpray` and the spray don't touch them, and
+  `lighthouse: null` takes the planar mirror away with them. On rough surf facets the water flips,
+  texel by texel of the half-size mirror, between the mirror's sky (brown-orange there) and the sky
+  cube's (blue, the starlit stand-in). Why the mirror's night sky is brown and the cube's blue is
+  not traced (both sky materials get the night glow, `scene.ts`): next, `{mirror}` probes and
+  `debug.cubeProbe` at the same direction.
 
 - **Salt (0.199), left over:** (1) no gale browning on the seaward side of crowns (needs a weather
   history: "a gale in the last weeks"); (2) a pruned tree is its mesh scaled shorter and wider, so a

@@ -37,6 +37,8 @@ const sprayShader = {
     attribute float size;
     attribute float opacity;
     uniform float pixelsPerRadian;
+    // The smallest footprint (px): 1.5 before passes.softSpray, 4 with it.
+    uniform float minPx;
     varying float vOpacity;
     varying float vShade;
     varying vec3 vWorld;
@@ -46,10 +48,15 @@ const sprayShader = {
       vShade = 1.0;
       vec4 view = viewMatrix * world;
       vWorld = world.xyz;
-      // Sub-pixel droplets keep a 1.5 px footprint but fade out instead.
+      // Small droplets keep a minimum footprint but fade out instead. Under
+      // ~4 px a sprite's pixels all sit at the same distance from its middle,
+      // so its round, soft edge can't show and it draws a hard 2×2 or 3×3
+      // block (tasks.md D37): with passes.softSpray the footprint is 4 px and
+      // the opacity falls with the area it stands for, so the spray reads as a
+      // soft mist of the same weight.
       float px = size / -view.z * pixelsPerRadian;
-      vOpacity = opacity * min(1.0, px / 1.5);
-      gl_PointSize = max(px, 1.5);
+      vOpacity = opacity * (minPx > 2.0 ? min(1.0, (px / minPx) * (px / minPx)) : min(1.0, px / minPx));
+      gl_PointSize = max(px, minPx);
       gl_Position = projectionMatrix * view;
     }`,
   fragmentShader: /* glsl */ `
@@ -59,6 +66,9 @@ const sprayShader = {
     uniform vec3 albedo;
     uniform float bowStrength;
     uniform float frame;
+    // passes.softSpray: the sun on a droplet cloud by a sphere's phase
+    // function (1); a level surface's cosine before (0).
+    uniform float spherePhase;
     varying float vOpacity;
     varying float vShade;
     varying vec3 vWorld;
@@ -78,6 +88,12 @@ const sprayShader = {
       // frames (accumulate.ts) turns it into soft, translucent spray.
       vec2 q = gl_FragCoord.xy + vec2(frame * 7.13, frame * 3.71);
       float noise = fract(sin(dot(q, vec2(12.9898, 78.233))) * 43758.5453);
+      // passes.softSpray: stratified over the frames (a fixed offset per pixel
+      // plus a golden-ratio step per frame), so a pixel is covered in about
+      // alpha × frames of them, not a random count: faint mist averages to a
+      // smooth veil instead of a speckle of full-bright pixels (D37).
+      float cell = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+      if (spherePhase > 0.5) noise = fract(cell + frame * 0.6180339887);
       if (noise > alpha) discard;
       vec3 V = normalize(vWorld - cameraPosition);
       float sunUp = step(0.0, sunDirection.y);
@@ -85,7 +101,14 @@ const sprayShader = {
       // the sun shines through them.
       float forward = pow(max(dot(V, sunDirection), 0.0), 6.0);
       vec3 sun = sunIrradiance * vShade;
-      vec3 color = albedo * (skyIrradiance + sun * max(sunDirection.y, 0.0) * 0.8) / 3.14159;
+      // A cloud of droplets lit by the sun is lit like a Lambert sphere seen at
+      // the phase angle a (sun to eye at the spray): (sin a + (π − a) cos a) / π,
+      // 1 with the sun behind the eye, 1/π side-on; a low sun lights it too.
+      // Before: a level surface's cos(sun elevation), dark at a low sun.
+      float a = acos(clamp(dot(-V, sunDirection), -1.0, 1.0));
+      float sphere = (sin(a) + (3.14159 - a) * cos(a)) / 3.14159;
+      float sunShare = mix(max(sunDirection.y, 0.0) * 0.8, sphere * sunUp, spherePhase);
+      vec3 color = albedo * (skyIrradiance + sun * sunShare) / 3.14159;
       color += sun * forward * 0.25 * sunUp;
       // Spray bow.
       float theta = degrees(acos(clamp(dot(V, -sunDirection), -1.0, 1.0)));
@@ -281,7 +304,9 @@ export class SprayBuilder {
           skyIrradiance: { value: new Color() },
           albedo: { value: albedo },
           bowStrength: { value: bow ? 1 : 0 },
-          frame: { value: 0 }
+          frame: { value: 0 },
+          minPx: { value: 1.5 },
+          spherePhase: { value: 0 }
         }
       })
     )
@@ -451,13 +476,17 @@ export function setSprayLighting(
   height: number,
   sunDirection: Vector3,
   sunIrradiance: Color,
-  skyIrradiance: Color
+  skyIrradiance: Color,
+  /** passes.softSpray: soft 4 px mist and the sphere phase (D37). */
+  soft = true
 ): void {
   const pixelsPerRadian = height / 2 / Math.tan((camera.fov * Math.PI) / 360)
   root.traverse(o => {
     if (o.userData.spray !== true) return
     const u = ((o as Points).material as ShaderMaterial).uniforms
     u.pixelsPerRadian.value = pixelsPerRadian
+    u.minPx.value = soft ? 4 : 1.5
+    u.spherePhase.value = soft ? 1 : 0
     ;(u.sunDirection.value as Vector3).copy(sunDirection)
     ;(u.sunIrradiance.value as Color).copy(sunIrradiance)
     ;(u.skyIrradiance.value as Color).copy(skyIrradiance)

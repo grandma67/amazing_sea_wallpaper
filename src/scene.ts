@@ -606,7 +606,7 @@ export async function renderScene(
   setOceanRocks(ocean, props.userData.waterRocks ?? [], camera.position)
   setOceanIslands(ocean, props.userData.waterIslands ?? [], camera.position)
   setOceanShips(ocean, props.userData.ships ?? [], camera.position)
-  setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, skyIrradiance)
+  setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, skyIrradiance, pass('softSpray'))
   scene.add(props)
 
   // --- Exposure ---------------------------------------------------------------
@@ -988,7 +988,7 @@ export async function renderScene(
     cloudSkylight = cloudSkylightRatio(clearSkylight, measureSkylight(renderer, envTarget))
     const [r, g, b] = cloudSkylight
     for (const c of [u.skyIrradiance.value as Color, tu.skyIrradiance.value as Color]) c.setRGB(c.r * r, c.g * g, c.b * b)
-    setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, u.skyIrradiance.value as Color)
+    setSprayLighting(props, camera, height, lightDirectionWorld, sunIrradiance, u.skyIrradiance.value as Color, pass('softSpray'))
   }
   // At night props and ground must see the same sky light. The cube holds
   // more than the ground's skyIrradiance: airglow and the Milky Way, and on

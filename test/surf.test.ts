@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { waveOnRock } from '../src/props/surf'
+import { Color, Group, PerspectiveCamera, type Points, type ShaderMaterial, Vector3 } from 'three'
+import { setSprayLighting, SprayBuilder, waveOnRock } from '../src/props/surf'
 import { breakerIndex, surfBreakDepth, surfProfile, surfWave } from '../src/terrain'
 import { scene } from './days'
 
@@ -106,5 +107,31 @@ describe('waves on rocks', () => {
     const deeper = waveOnRock(coast, { top: 0.6, depth: 2 }, 0)
     expect(shallow.crest).toBeLessThan(deeper.crest)
     expect(shallow.breaks).toBeGreaterThan(deeper.breaks)
+  })
+})
+
+// D37: spray under ~4 px drew hard 2–3 px blocks, lit by a level surface's
+// cosine (dark at a low sun). passes.softSpray: a 4 px soft footprint with
+// area-scaled opacity, a sphere's phase for the sun, a stratified screen door;
+// off: the old 1.5 px footprint and cosine.
+describe('spray lighting switch', () => {
+  const spray = (): ShaderMaterial => {
+    const b = new SprayBuilder()
+    b.add(new Vector3(0, 1, -50), 0.05, 0.5)
+    const points = b.build() as Points
+    const root = new Group()
+    root.add(points)
+    for (const soft of [true, false]) {
+      setSprayLighting(root, new PerspectiveCamera(50, 16 / 9), 1080, new Vector3(0, 0.1, 1).normalize(), new Color(1, 1, 1), new Color(0.2, 0.2, 0.3), soft)
+      const u = (points.material as ShaderMaterial).uniforms
+      expect(u.minPx.value).toBe(soft ? 4 : 1.5)
+      expect(u.spherePhase.value).toBe(soft ? 1 : 0)
+    }
+    return points.material as ShaderMaterial
+  }
+  it('sets the soft footprint and sphere phase only with the switch', () => {
+    const m = spray()
+    expect(m.fragmentShader).toContain('spherePhase')
+    expect(m.vertexShader).toContain('max(px, minPx)')
   })
 })
