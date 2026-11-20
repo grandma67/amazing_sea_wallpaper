@@ -82,7 +82,6 @@ say how the cause was found.
   waterspout season (biome-keyed).
 - **2016-08-09:** the title's mountain range (36 km, 1.6 km high, in frame) can't be seen even with
   `fog: null`: lost in haze against a 3° sun. Not traced.
-- **2026-02-13:** sparkly dots in the air over the sea. Not traced.
 - **Shelf cloud** (volumetric since 0.174): on far real days (2024-06-21, 2024-04-24, 2024-07-01,
   2024-12-12, 2025-02-12) it reads as a dark strip on the horizon with a ruler-straight top.
   Measured on 2024-06-21 (`edges.mjs`, shelf on and off): the strip is the storm's rain region, as
@@ -106,8 +105,14 @@ say how the cause was found.
   sky: the airglow's, not the aurora's (`passes.aurora: false` keeps them; the mirror predicts
   them: `params.mjs --line --sky glow`). The 5 km N₂⁺ fringe (a single-layer feature in the march)
   leaves ~3% grain at the arcs' lower edge on Kp ≥ 5 nights.
-- **Lunar eclipse:** it dims the moonlight (`scene.ts`), not the drawn sky, so stars may stay
-  hidden; written before the airglow (0.86), re-check before fixing.
+- **Lunar eclipse** (measured 2026-11-20, 2025-03-14 total, night forced, probe at 15° up): the
+  sky reads 17.84 mag/arcsec², against 17.36 with the eclipse off (full moon) and 20.33 at new moon;
+  in totality it should fall to about the new-moon level (JAAVSO 2019: the zenith reached the
+  site's new-moon brightness), so it is ~2.5 mag (10×) too bright and the stars stay faint. Cause
+  (read in the code): `params.moonlight` is ×0.0015 in totality and the ground light follows it
+  (`scene.ts`, `sunIrradiance` × moonlight / phase), but the sky, clouds and haze are drawn by the
+  atmosphere at the moon-as-sun's full strength and graded by `renderPerLux(nightSky,
+  elongation)`, which reads the phase, not the eclipsed moonlight. tasks.md D14.
 - **The sea near the horizon** (measured with `horizon.mjs`, 2003-03-11 broken, calm sea, 0.135):
   sea / (F × sky) is 0.62–0.77 within 1° of the horizon (1.0 expected on calm water; 0.30–0.36
   before REFLECTION phase 6) and ~1 at 2°. Cause **suspected**: the 0.2 m swell tilting facets

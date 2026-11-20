@@ -8,5 +8,6 @@
   { "name": "eclipse-volcano", "date": "2025-06-01", "eclipse": "solar-total", "biome": "volcanic", "landform": "strato",
     "params": { "landform": { "plume": "steam" } } },
   { "name": "nordic-rainbow-seals", "date": "2024-06-26", "biome": "nordic", "ocean": "atlantic", "rainbow": true, "storm": null,
-    "pinnipeds": "seal", "colony": "gannet", "props": { "seaStacks": true, "migratory": "goose" } }
+    "pinnipeds": "seal", "colony": "gannet", "props": { "seaStacks": true, "migratory": "goose" } },
+  { "name": "golden-broken-cloud-edges", "date": "2026-02-13", "note": "tasks.md A2: sparkly dots by the cloud gaps at 1 frame (the clouds' per-frame noise); must be clean at 16 frames" }
 ]
