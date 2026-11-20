@@ -155,6 +155,26 @@ await mkdir(outDir, { recursive: true })
 
 const browser = await chromium.launch({ channel: process.env.CI ? undefined : 'chrome' })
 const page = await browser.newPage()
+/**
+ * How the two renders' cameras differ (position, heading, lens), or null. A diff
+ * across two views reads as a huge change: --keep-camera on a non-terrain change
+ * framed two unrelated views at 53–67% "changed" (D37, lessons/PROCESS.md).
+ */
+async function cameraMoved(fileA, fileB) {
+  const [ja, jb] = await Promise.all([fileA, fileB].map(f => readFile(f, 'utf8').then(JSON.parse).catch(() => null)))
+  const [pa, pb] = [ja?.debug?.cameraPosition, jb?.debug?.cameraPosition]
+  if (pa == null || pb == null) return null
+  const at = p => (Array.isArray(p) ? p : [p.x, p.y, p.z])
+  const [[ax, ay, az], [bx, by, bz]] = [at(pa), at(pb)]
+  const out = []
+  const d = Math.hypot(ax - bx, ay - by, az - bz)
+  if (d > 0.05) out.push(`${d.toFixed(2)} m apart`)
+  const turn = Math.abs(((ja.camera.headingDeg - jb.camera.headingDeg + 540) % 360) - 180)
+  if (turn > 0.1) out.push(`heading ${turn.toFixed(1)}°`)
+  if (Math.abs(ja.camera.focalLengthMm - jb.camera.focalLengthMm) > 0.1) out.push(`lens ${ja.camera.focalLengthMm.toFixed(1)} vs ${jb.camera.focalLengthMm.toFixed(1)} mm`)
+  return out.length > 0 ? out.join(', ') : null
+}
+
 for (const file of names) {
   const [a, b] = await Promise.all([readFile(join(dirA, file)), readFile(join(dirB, file))].map(p => p.then(buf => buf.toString('base64'))))
   const result = await page.evaluate(
@@ -280,6 +300,12 @@ for (const file of names) {
     { a, b, threshold, crop, zoom }
   )
   const name = file.replace(/\.jpg$/, '')
+  const moved = await cameraMoved(join(dirA, `${name}.json`), join(dirB, `${name}.json`))
+  if (moved != null)
+    console.log(
+      `${name}: ⚠ the two sides' cameras differ (${moved}): the % compares two views. ` +
+        (keepCamera ? 'A change that doesn\'t touch terrain: re-run without --keep-camera.' : 'A terrain change: re-run with --keep-camera.')
+    )
   if (result.error != null) {
     console.log(`${name}: ${result.error}`)
     continue

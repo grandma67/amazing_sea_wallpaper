@@ -90,7 +90,8 @@ How to work and how to debug: read this one on every task. Other topics: [LESSON
 - **`diff.mjs --keep-camera` is for terrain changes only (D37, 2026-11-20):** on other days it
   stands the "before" camera at the "after" one's ground height and frames two unrelated views
   (53–67% "changed" on two beach days whose real change was ≤ 0.11%). A huge diff on a change
-  that can't move the camera: re-run without it before reading the images.
+  that can't move the camera: re-run without it before reading the images. `diff.mjs` now warns
+  when the two sides' cameras differ (position, heading or lens) and says which way to re-run.
 - **Remove the feature before naming a speck (D37, 2026-11-20):** white specks on a sea stack were
   shown to the user as "spray dots above the horizon"; with the swell at 0.2 m (no spray) they were
   still there: the stack's own surface. One `--off` render first.
@@ -98,7 +99,24 @@ How to work and how to debug: read this one on every task. Other topics: [LESSON
   shifted the spray material's other textures (its cloud shade); `--off-both` caught it. Compile an
   optional texture read in with a `#define`, set only when the feature is on.
 - **Show each before/after when it's done, not at the end (2026-11-20):** three fixes were
-  finished and committed before the user saw one; they had to ask twice.
+  finished and committed before the user saw one; they had to ask twice, and the left-over teeth
+  and dots they'd have spotted at once came back late. Copying and renaming crops by hand made
+  showing costly; `show.mjs` makes it one command.
+- **The rule was written and still skipped (D37, D9, 2026-11-20):** "remove the feature before
+  naming a speck" was already here; under time pressure the task's own guess was taken instead
+  (D9's "grid aliasing" got two shading rounds and a regression before the real cause, the
+  boulder's vertical rim). It is now a CLAUDE.md step: switch off what the task blames, say what
+  the thing is, *then* fix.
+- **Ask for the right technique before working around a symptom (D9, D37, 2026-11-20):** a shading
+  trick (D9), a veil below the horizon only, then a depth-aware veil (D37): each a render round.
+  Asking up front how renderers solve the look (soft particles; a pass after the clouds) would have
+  skipped two.
+- **Ask before extending scope (D14, D37, D9, 2026-11-20):** D14 found a second bug (the eclipsed
+  moon too bright), D37 became three versions plus a new bug (the mirror), D9 a geometry change.
+  Each was worth doing, but chained without asking. Stop and ask at each extension.
+- **No tool for "where does this effect show?" (D37):** scene specs were hand-built three times (a
+  close lighthouse, a burst above the horizon, cloud-shaded crests). `params.mjs --find KIND --rank
+  above|height|px` now ranks days by the effect's on-screen box (sprites at their drawn size).
 - **Long outputs: summary last, saved to a file** (`bench.mjs` table, `params.mjs` "… N more not
   shown"): a `| tail` that cuts the table off costs a full re-run.
 

@@ -125,9 +125,19 @@ nearest visible and its size in px, and past 1 km the contrast the haze leaves (
 exp(−3.912 d / `visibilityKm`)); then the days ranked. A non-instanced mesh (a landform) counts
 vertices (≤ 600 sampled): the share of the slope seen. ~1 s a day.
 
+Each kind also gets its visible pieces' **box on a 1920×1080 frame** and how far its top stands
+above (or below) the sea horizon. Sprites (surf spray: `Points` with a `size` attribute) count one
+piece per sprite at its drawn size (`size / (dist · pixelAngle)`, as the shader), with the largest
+px; sprites don't hide other pieces. `--rank visible` (default; then nearest) | `px` (largest
+piece) | `height` (box px) | `above` (box top above the horizon) orders the best days: "where does
+the spray rise above the horizon" is `--find surf --rank above` (built after D37 hand-built three
+specs for it). `--by` works with `--find` too, and `--sample N [--spread]` builds N of the
+`--where` days, spread, instead of all (the props cost ~1 s a day).
+
 ```sh
 node scripts/params.mjs --find fungi --scene scenes/fungi.json                  # are the spec's mushrooms visible?
 node scripts/params.mjs --find fireflies --scene '{"place":"maine","timeOfDay":"night","props":{"fireflies":"flash"}}' 2025-07-01..2025-07-20
+node scripts/params.mjs --find surf --rank above --where 'p => p.coast.surfAmplitude > 0.9' 2024-01-01..2025-12-31 --sample 12   # spray seen high
 node scripts/params.mjs --find landforms --scene '{"landform":"range","place":"atacama-peru"}' 2025-08-01..2025-08-30   # the range's slopes seen, and how hazed
 ```
 

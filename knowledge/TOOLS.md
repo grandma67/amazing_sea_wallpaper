@@ -24,6 +24,8 @@ Reason from numbers (no-render tools) before rendering. Each script's header lis
 | Animal shares table for ANIMALS.md | `animals.mjs` | [tools/PARAMS.md](tools/PARAMS.md) |
 | See a render; where props landed; prop build time | `snapshot.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | Did a feature show up; was it already broken | `diff.mjs` | [tools/RENDER.md](tools/RENDER.md) |
+| Show the user a before/after (labelled side-by-side crop in Preview) | `show.mjs --from DIFF_OUT --name NAME --label TEXT` | [tools/RENDER.md](tools/RENDER.md) "Showing a before/after" |
+| Which days show an effect big or high on screen (spray above the horizon) | `params.mjs --find KIND --rank above\|height\|px` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Will a value overflow a half-float target (∞ on CI's SwiftShader, silently clamped on the Mac)? | `snapshot.mjs` with `params.debug.nanTrace`: `sat` per pass, sky cube and shadow channel; `debug.shadowDump` for an intermediate | [tools/DEBUG.md](tools/DEBUG.md) |
 | Why did the published picture of a day look wrong (white, black, odd light); what CI rendered it from | `ciDay.mjs DATE` (the day's runs, commit, warnings, archived render numbers, then the day rendered as CI: SwiftShader, that commit, `nanTrace`) | [tools/RENDER.md](tools/RENDER.md) "Broken frames" |
 | Does a new off switch give back the old image exactly | `diff.mjs --ref HEAD --off PATCH --off-here` (expect "identical"); when HEAD already has the feature (a later phase), `--off-both` | [tools/RENDER.md](tools/RENDER.md) |

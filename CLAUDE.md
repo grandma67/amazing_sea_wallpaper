@@ -91,6 +91,8 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
   stale: grep for what each step adds before building it. Write the answers in the plan.
 - TODO lists: read all open items first, then ask every build-changing question (visibility,
   places, kinds) in one batch.
+- Scope grows mid-task (a second bug found, another version of the fix, geometry instead of
+  shading)? Stop and ask before extending it, one at a time; don't chain them (D14, D37, D9).
 - A biome-keyed table? Read ARCHITECTURE.md "Biome, climate or place" first: key it by what it
   follows (rock → biome, weather → `place.climate`, one place → a place field) and add it there.
 - Research briefly (1–2 searches; cite only what you read), then encode it as a data table by place
@@ -165,6 +167,11 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Fixing a value's misuse in one place (a normal, a ray, a distance)? Grep its other readers in the
   same shader and check each (REFLECTION phase 2 moved only the mirror lookup off a tilted normal;
   the sky reflection three lines down kept it for four phases).
+- **Fixing a named symptom (a tasks.md row): what it is, then the right technique, then the fix.**
+  Before any fix, switch off what the task blames on the same frame (`diff.mjs --off`) and say
+  what the thing is: D37's "spray" was the sea's mirror image and a stack's texture, D9's "grid
+  aliasing" a boulder's vertical rim. Then ask how renderers solve that look (soft particles, a pass
+  after the clouds) before any workaround: each workaround on D9 and D37 cost a render round.
 - Debugging a look: `doc.mjs --grep SYMPTOM KNOWN_ISSUES` first. Probe creators and helpers with
   `params.mjs` (`p.ctx`, `src.X`, `props.X`), not throwaway tests; `profile.mjs` maps the view cone
   and warns when dry land floods. Then `params.debug` switches and false-colour views
@@ -217,6 +224,9 @@ Versions: `changelog.md` (repo root). Dev server: port **5174** (`strictPort`; 5
 - Say "done" only for what a render or `diff.mjs` showed; otherwise "placed, not checked". A subtle
   feature needs a before/after with its own switch off (`diff.mjs --crop`): a full frame or contact
   sheet doesn't show it.
+- Show each fix when it's done, before the next one or its commit: `node scripts/show.mjs --from
+  DIFF_OUT --name NAME --label 'what to look at'` (labelled side-by-side crop in Preview, left
+  before; `--full` adds both frames).
 - After new animals or changed chances: `node scripts/animals.mjs`, paste its table into ANIMALS.md
   (update the rules there too).
 - Count the days a change touches with `node scripts/params.mjs --ref HEAD` (`--list` each day's

@@ -196,6 +196,10 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
 - Renders at 1920×1080 and 16 frames unless `--w --h --frames` say otherwise (`snapshot.mjs`
   alone defaults to 4K, so pass `--w 1920 --h 1080` to probe a frame seen in a diff).
 - A failed snapshot prints its own reason ("dev server not reachable …").
+- `NAME: ⚠ the two sides' cameras differ (…)`: the renders' `debug.cameraPosition`, heading or lens
+  differ, so the % compares two views. Without `--keep-camera` on a terrain change: add it. With
+  it on a change that can't move the camera: drop it (D37: 53–67% "changed" where the real change
+  was ≤ 0.11%).
 - `--keep-camera`: terrain changes (bars, cusps, tides) also move the camera, which stands on the
   ground. With it the "on" renders go first and each "off" render stands at the same height
   (`params.camera.groundM`, from `debug.cameraGroundM`). Heading and lens are the date's in both;
@@ -218,6 +222,21 @@ node scripts/diff.mjs --where 'p => p.landform != null' --sample 8 --off PATCH -
   yet** (a kind added since: `props.bloom: ["flamboyant"]`), and says so.
 - `--threshold N` (0–255, default 4): above JPEG noise; two renders of the same code on the same
   GPU are identical.
+
+### Showing a before/after: `scripts/show.mjs`
+
+One command from a diff to a labelled image in Preview, so each fix is shown when it's done:
+
+```sh
+node scripts/show.mjs --from $SP/spray --name 2024-05-08 --label 'veil edge at the stack'          # changed box
+node scripts/show.mjs --from $SP/spray --name 2024-05-08 --label 'crest' --zoom-at 900,520 --full  # zoom, plus both frames
+node scripts/show.mjs --before DIR --after DIR --name NAME --label TEXT --no-open                  # any two folders
+```
+
+It runs `diff.mjs --a off --b on` (no new render) and copies the crop to
+`out/show/NN-<label>-left-before-right-after.jpg` (NN counts up; the label is the file name, so
+Preview shows what to look at); `--full` adds `-full-before.jpg` and `-full-after.jpg`; `--crop`,
+`--zoom-at`, `--zoom` go to `diff.mjs`. Say which side is which when showing it.
 
 ### When a render hangs (0.143)
 
