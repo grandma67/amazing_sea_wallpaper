@@ -44,8 +44,9 @@ Terrain, shore, snow, ice and big shapes. How it works: arch/COAST.md. Other top
 - **Teeth that don't halve with a 2× grid are the shading, not the silhouette (D9, 0.226):** the
   per-pixel normal comes from the true height at the pixel, the position from the triangle; at a
   step they disagree. `terrainProbe` with `y` and `ny` along a row shows it (same height, ny
-  flipping). The triangle's own normal (screen derivatives of `vWorld`) fixes it where the surface
-  is tall and smooth (boulders) but stripes thin triangles (softened risers): test both kinds.
+  flipping). Fix the geometry, not the shading: give the step a face the grid can follow
+  (`ROCK_MIN_FACE` × r; boulders' feet 0.227). Shading by the triangle's own normal (0.226) hid the
+  teeth but left specks and striped thin triangles on risers.
 - Sharp relief zig-zags across the polar grid wherever it's in silhouette (steep faces, risers, gully
   walls, ragged edges): widen or fade each by distance from the camera (at the origin, so the TS
   mirror can too) and by bare slope; teeth that halve with a 2× grid are aliasing. Find the feature by

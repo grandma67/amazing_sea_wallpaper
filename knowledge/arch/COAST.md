@@ -118,10 +118,8 @@ Plan and research: [plans/ROCK_SHORE.md](../plans/ROCK_SHORE.md); shares: COASTS
   same): steep faces are at least `ROCK_MIN_FACE` (3%) × r wide, risers widen with r and on
   steep bare slopes, gully walls widen and gullies, edge cut-backs, boulders and fine ridges fade
   out (40–400 m). Probed with a 2× grid: the remaining teeth halve, so they are grid aliasing.
-  On boulder shores, where the true height at a pixel is a grid cell or more off the triangle drawn
-  there (a boulder's foot), within ~20 m, the shading takes the triangle's own normal
-  (`terrainStepNormal`, 0.226): the per-pixel normal drew teeth up the shaded side. Not on
-  platforms and cliffs: their softened risers' thin triangles show as stripes by their own normal.
+  Boulders too (0.227): a boulder's side met the ground vertically; its foot now comes down over at
+  least `ROCK_MIN_FACE` × r, up to 30% of its radius (`boulderField`'s `minFace`, TS and GLSL).
 - **Camera** (`rockCamera` in `params.ts`, stream `'rock-camera'`): shoreline at the drawn
   distance from today's water; along-shore 6–30 m from it; framed 3–15 m behind the back face's
   top; overlook (every cliff) 2–10 m behind the cliff's crest, eye 1.5–2.1 m, plants starting

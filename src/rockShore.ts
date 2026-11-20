@@ -303,8 +303,11 @@ export function rockGully(coast: RockCoast, s: number, a: number, r = 0): number
   return g
 }
 
-/** Half-buried boulders (mirrors boulderField). */
-export function boulderField(x: number, z: number, size: number): number {
+/** Half-buried boulders (mirrors boulderField). `minFace` (m): the foot
+ * comes down to the ground over at least this, up to 30% of the radius (a
+ * sphere's side meets it vertically, which the grid drew as teeth and a saw
+ * along near boulders' feet, tasks.md D9); 0 for the sharp foot. */
+export function boulderField(x: number, z: number, size: number, minFace = 0): number {
   const gx = x / size
   const gz = z / size
   const cx = Math.floor(gx)
@@ -323,7 +326,9 @@ export function boulderField(x: number, z: number, size: number): number {
       const lump = 0.8 + 0.4 * vnoise(dx * 3 + (n >>> 24), dz * 3 + 7)
       const k = Math.hypot(dx, dz) / (r * lump)
       const tall = 0.6 + (0.8 * ((n >>> 24) & 0xf)) / 15
-      h = Math.max(h, r * tall * Math.min(1, 1.6 * Math.sqrt(Math.max(0, 1 - k * k))))
+      const wk = Math.min(0.3, minFace / (r * lump * size))
+      const foot = wk > 0 ? 1 - smoothstep(1 - wk, 1, k) : 1
+      h = Math.max(h, r * tall * Math.min(1, 1.6 * Math.sqrt(Math.max(0, 1 - k * k))) * foot)
     }
   }
   return h * size
@@ -362,7 +367,7 @@ export function rockSurface(coast: RockCoast, s: number, a: number, x: number, z
     const sharp = 0.22 * (1 - Math.sqrt(k1 * k1 + 0.02)) + 0.08 * (1 - Math.sqrt(k2 * k2 + 0.02)) * (1 - smoothstep(40, 120, dist)) - 0.2
     let r: number
     if (rock.boulder > 0) {
-      r = h + 0.3 * n + sharp + (boulderField(qx, qz, rock.boulder) - 0.35 * rock.boulder) * (1 - smoothstep(80, 250, dist))
+      r = h + 0.3 * n + sharp + (boulderField(qx, qz, rock.boulder, ROCK_MIN_FACE * dist) - 0.35 * rock.boulder) * (1 - smoothstep(80, 250, dist))
     } else {
       const planes = (-s * Math.sin(rock.strike) + a * Math.cos(rock.strike)) * rock.dip
       const layer = (h + n - planes) / rock.bedding
