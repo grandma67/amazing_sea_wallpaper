@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { blocks, grepBlocks, headings, sections } from '../scripts/doc.mjs'
+import { blocks, grepBlocks, headings, resolve, sections } from '../scripts/doc.mjs'
 
 // doc.mjs reads the knowledge docs by section and searches across wrapped
 // lines: a missed hit or a cut section sends the reader back to offsets.
@@ -58,5 +58,13 @@ describe('doc.mjs', () => {
     const fence = blocks(DOC).find(b => b.lines[0].startsWith('```'))
     expect(fence?.lines).toHaveLength(3)
     expect(grepBlocks(DOC, '| a | b |')[0].path.at(-1)).toBe('Tide stages')
+  })
+
+  it('resolves names by exact case, knowledge/ first (macOS paths ignore case)', () => {
+    expect(resolve('TOOLS')).toMatch(/knowledge\/TOOLS\.md$/)
+    expect(resolve('tools', true)).toMatch(/knowledge\/tools$/)
+    expect(() => resolve('tools')).toThrow(/no such doc/)
+    expect(resolve('arch/COAST')).toMatch(/knowledge\/arch\/COAST\.md$/)
+    expect(resolve('CLAUDE.md')).toMatch(/[^e]\/CLAUDE\.md$/)
   })
 })

@@ -8,3 +8,5 @@ export function sections(text: string, query: string): { heading: Heading; text:
 export function blocks(text: string): Block[]
 /** Blocks containing `phrase`, case and whitespace ignored. */
 export function grepBlocks(text: string, phrase: string): Block[]
+/** A doc's absolute path from a name (`TOOLS`, `arch/COAST`, `CLAUDE.md`); folders only with `dirs`. */
+export function resolve(name: string, dirs?: boolean): string

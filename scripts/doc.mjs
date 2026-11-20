@@ -15,7 +15,7 @@
 // FILE may skip `knowledge/` and `.md`: `doc.mjs arch/COAST tides`. Headings inside code
 // fences don't count. Made after the docs grew to ~8k lines read with offset/limit.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { basename, dirname, join, relative, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..')
@@ -103,10 +103,16 @@ export function grepBlocks(text, phrase) {
   return blocks(text).filter(b => squash(b.lines.join(' ')).includes(p))
 }
 
-function resolve(f) {
-  for (const c of [f, `${f}.md`, join('knowledge', f), join('knowledge', `${f}.md`)]) {
-    const abs = join(ROOT, c)
-    if (existsSync(abs)) return abs
+/** Exists with this exact case: macOS paths ignore case (`TOOLS` would find `knowledge/tools/`). */
+function existsExact(abs) {
+  return existsSync(abs) && (abs === dirname(abs) || (existsExact(dirname(abs)) && readdirSync(dirname(abs)).includes(basename(abs))))
+}
+
+/** A doc's path; folders only where `dirs` (--grep). */
+export function resolve(f, dirs = false) {
+  for (const c of [join('knowledge', f), join('knowledge', `${f}.md`), f, `${f}.md`]) {
+    const abs = resolvePath(ROOT, c)
+    if (existsExact(abs) && (dirs || statSync(abs).isFile())) return abs
   }
   throw new Error(`doc.mjs: no such doc: ${f}`)
 }
@@ -138,7 +144,7 @@ function main(argv) {
     const max = mi >= 0 ? Number(rest.splice(mi, 2)[1]) : 40
     const [phrase, ...targets] = rest
     if (!phrase) throw new Error('doc.mjs --grep: give a phrase')
-    const files = (targets.length ? targets : ['knowledge', 'CLAUDE.md']).map(resolve).flatMap(mdFiles)
+    const files = (targets.length ? targets : ['knowledge', 'CLAUDE.md']).map(t => resolve(t, true)).flatMap(mdFiles)
     let shown = 0
     let total = 0
     for (const f of files) {
