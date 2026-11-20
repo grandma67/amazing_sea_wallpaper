@@ -91,7 +91,7 @@ How the sky code works. What is drawn where and how often: [CLOUDS.md](../CLOUDS
   wedge in a frame along the gust front (lip, receding face with local tiers and striations,
   rising underside, top 300 m into the Cb's base), at each sample's exact world position. The Cb
   is filled over it. The GLSL is written from `SHELF_SHAPE` with the TS mirror's steps;
-  `params.debug.shelf: {tiers: false, …}` zeroes a term on both sides; `lipElevationAhead`
+  `params.debug.shelf: {tiers: false, …}` zeroes a term on both sides; the lip is tattered (0.223, term `tatter`): fringes hang from the underside, three octaves of ridged 2D noise ((1 − |2n − 1|)², down only, each about as deep as half its width: 35/15/7 m over 80/30/12 m), since wider or two-sided bumps read as hills on far days; `lipElevationAhead`
   predicts where the lip shows (`scripts/edges.mjs` reads it off a `probeLine`). Placement:
   `skyEvents.ts` `placeShelf` keeps rain and bolts in its direction behind the lip.
 - **The Morning Glory** (`rollCloud.ts`, 0.180): the same way as the shelf, one more layer on roll

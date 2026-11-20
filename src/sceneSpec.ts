@@ -588,7 +588,7 @@ function checkDebug(value: unknown, path: string): void {
     probeHalf: (v, p) => {
       if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 20) fail(p, 'must be an integer 0–20')
     },
-    shelf: (v, p) => checkTerms(v, p, 'shelf', ['bow', 'wobble', 'scallops', 'lipVary', 'tiers', 'stria']),
+    shelf: (v, p) => checkTerms(v, p, 'shelf', ['bow', 'wobble', 'scallops', 'lipVary', 'tiers', 'stria', 'tatter']),
     roll: (v, p) => checkTerms(v, p, 'roll', ['wander', 'rise', 'lumps', 'shrink']),
     cloudFace: boolean,
     flash: (v, p) => {

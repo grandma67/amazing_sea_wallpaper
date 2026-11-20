@@ -1,7 +1,7 @@
 import { Uniform, Vector2, type Vector3, Vector4 } from 'three'
 import type { CloudsEffect } from '@takram/three-clouds'
 
-import { f1, patchCloudShape, setLayerDensity, shapeLayer, smoothstep, valueNoise1, VISIBLE_DENSITY, withTermsOff } from './cloudShapes'
+import { f1, patchCloudShape, setLayerDensity, shapeLayer, smoothstep, valueNoise1, valueNoise2, VISIBLE_DENSITY, withTermsOff } from './cloudShapes'
 import { cloudBase, type CloudGenus } from './cloudTypes'
 import { dirFromAzEl } from './params'
 import type { ShelfCloudParams } from './skyEvents'
@@ -85,7 +85,22 @@ export const SHELF_SHAPE = {
   striaM: 8,
   striaPeriodM: 30,
   striaDrift: 14,
-  striaDriftScaleM: 2_500
+  striaDriftScaleM: 2_500,
+  /** The tattered lip (D13; WMO: arcus has "more or less tattered edges"):
+   * fringes hanging from the underside, three octaves of ridged 2D noise
+   * ((1 − |2n − 1|)²: pointed tips, rounded gaps; along the front × back
+   * toward the storm), the deepest hang (m) and size (m) each. Down only and
+   * pointed, and narrow: each octave about as deep as half its width. Smooth
+   * noise up and down at 400 m (round 1) and fringes 40 m deep over 250 m
+   * (1:6, round 2) both read as a distant range of hills or a treeline on far
+   * days (2024-06-21, frontlit-near). Below the lip the face carries on down
+   * in the fringes. Before, the lip read ruler-straight. */
+  tatterM: 35,
+  tatterScaleM: 80,
+  tatter2M: 15,
+  tatter2ScaleM: 30,
+  tatter3M: 7,
+  tatter3ScaleM: 12
   // No scud tufts of its own: thresholded value noise lowering the underside
   // drew flat-topped humps along the front (2006-06-26, found by switching
   // each detail off). takram's detail noise tears the underside instead.
@@ -102,7 +117,8 @@ export const SHELF_TERMS = {
   scallops: ['scallopM'],
   lipVary: ['lipVaryLarge', 'lipVarySmall'],
   tiers: ['tierGrooveM', 'tierBulgeM'],
-  stria: ['striaM']
+  stria: ['striaM'],
+  tatter: ['tatterM', 'tatter2M', 'tatter3M']
 } as const satisfies Record<string, readonly (keyof typeof SHELF_SHAPE)[]>
 export type ShelfTerm = keyof typeof SHELF_TERMS
 
@@ -112,7 +128,7 @@ export function shelfShapeWith(off: Partial<Record<ShelfTerm, boolean>> | undefi
 }
 
 /** Noise streams (added to the shelf's integer seed): one per use. */
-const NOISE = { wobble: 0, lipLarge: 1, lipSmall: 2, scallop: 3, stria: 4, tierDrift: 10, tierFade: 20 } as const
+const NOISE = { wobble: 0, lipLarge: 1, lipSmall: 2, scallop: 3, stria: 4, tierDrift: 10, tierFade: 20, tatter: 30 } as const
 
 /** Where the shelf is measured from, in world x/z (x north, z east): the lip
  * line's middle, the along-front axis and the axis toward the storm. */
@@ -149,6 +165,20 @@ export function lipHeight(shelf: ShelfCloudParams, s: number, S: ShelfShape = SH
   const large = S.lipVaryLarge * (valueNoise1(seed + NOISE.lipLarge, s / S.lipVaryLargeScaleM) - 0.5)
   const small = S.lipVarySmall * (valueNoise1(seed + NOISE.lipSmall, s / S.lipVarySmallScaleM) - 0.5)
   return shelf.lipHeightM * (1 + large + small)
+}
+
+/** A ridged value of noise n in [0, 1]: 1 at n = 0.5 (a pointed tip), 0 at
+ * the ends (rounded gaps). */
+const ridge = (n: number): number => (1 - Math.abs(2 * n - 1)) ** 2
+
+/** How far the underside hangs below its smooth line here (m, ≥ 0): the
+ * tattered lip's fringes, three octaves along the front and back. */
+export function tatter(seed: number, s: number, back: number, S: ShelfShape = SHELF_SHAPE): number {
+  return (
+    S.tatterM * ridge(valueNoise2(seed + NOISE.tatter, s / S.tatterScaleM, back / S.tatterScaleM)) +
+    S.tatter2M * ridge(valueNoise2(seed + NOISE.tatter + 1, s / S.tatter2ScaleM, back / S.tatter2ScaleM)) +
+    S.tatter3M * ridge(valueNoise2(seed + NOISE.tatter + 2, s / S.tatter3ScaleM, back / S.tatter3ScaleM))
+  )
 }
 
 /** Height of the storm's base the shelf hangs from, and the shelf's top (m). */
@@ -197,7 +227,7 @@ export function shelfDensity(
   faceBack += S.striaM * Math.sin(((heightM - lip) / S.striaPeriodM) * 2 * Math.PI + drift) * (1 - u)
   // Underside: its height this far back.
   const f = Math.min(1, Math.max(0, back / shelf.depthM))
-  const under = lip + rise * S.undersideRise * f ** 1.3
+  const under = lip + rise * S.undersideRise * f ** 1.3 - tatter(seed, s, back, S)
   return (
     ends *
     smoothstep(-S.faceEdgeM, S.faceEdgeM, back - faceBack) *
@@ -295,6 +325,10 @@ uniform vec2 shelfToStorm;
 uniform vec4 shelfShape;
 uniform float shelfTiers;
 // (the shelf's density, 1 where the storm's deck must be full over it).
+float shelfRidge(const float n) {
+  float r = 1.0 - abs(2.0 * n - 1.0);
+  return r * r;
+}
 vec2 shelfSample(const float height) {
   vec2 d = shelfWorld().xz - shelfOrigin;
   float s = dot(d, shelfAcross);
@@ -329,7 +363,10 @@ vec2 shelfSample(const float height) {
   float drift = ${f1(S.striaDrift)} * shelfNoise1(s / ${f1(S.striaDriftScaleM)}, ${f1(NOISE.stria)});
   faceBack += ${f1(S.striaM)} * sin((height - lip) / ${f1(S.striaPeriodM)} * 6.283185307 + drift) * (1.0 - u);
   float f = clamp(back / depth, 0.0, 1.0);
-  float under = lip + rise * ${S.undersideRise.toFixed(3)} * pow(f, 1.3);
+  float under = lip + rise * ${S.undersideRise.toFixed(3)} * pow(f, 1.3)
+    - ${f1(S.tatterM)} * shelfRidge(shelfNoise2(vec2(s, back) / ${f1(S.tatterScaleM)}, ${f1(NOISE.tatter)}))
+    - ${f1(S.tatter2M)} * shelfRidge(shelfNoise2(vec2(s, back) / ${f1(S.tatter2ScaleM)}, ${f1(NOISE.tatter + 1)}))
+    - ${f1(S.tatter3M)} * shelfRidge(shelfNoise2(vec2(s, back) / ${f1(S.tatter3ScaleM)}, ${f1(NOISE.tatter + 2)}));
   float density = ends
     * smoothstep(${f1(-S.faceEdgeM)}, ${f1(S.faceEdgeM)}, back - faceBack)
     * smoothstep(${f1(-S.undersideEdgeM)}, ${f1(S.undersideEdgeM)}, height - under)

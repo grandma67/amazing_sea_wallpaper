@@ -343,7 +343,7 @@ forced front-lit and backlit spec render as cloud (a contact sheet against photo
 billowy tubes, base low over the sea); `bench.mjs` within +10% on roll days; the docs updated.
 
 ## Later
-- **A tattered lip** (WMO: arcus has "more or less tattered edges"): on far days the lip reads
+- ✅ 0.223 **A tattered lip** (WMO: arcus has "more or less tattered edges"): on far days the lip reads
   ruler-straight. A fine, multi-octave ragged edge (tens of metres, under ~500 m long) without the
   1.2 km waves that read as hills (phase 4). Check with `edges.mjs` along the lip (`az` range).
 - **The storm's shadow (0.216):** with the sun behind the storm the shelf gets no direct sun

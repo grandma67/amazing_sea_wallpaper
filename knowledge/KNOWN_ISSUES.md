@@ -87,15 +87,14 @@ say how the cause was found.
   2024-12-12, 2025-02-12) it reads as a dark strip on the horizon with a ruler-straight top.
   Measured on 2024-06-21 (`edges.mjs`, shelf on and off): the strip is the storm's rain region, as
   dark with the shelf off; its top is the lip (1.2 px sharp, 4 px from the CPU's prediction); the
-  face is 1.09× the deck. Left: the lip's straightness (the WMO's arcus has "more or less tattered
-  edges"; ours varies only over kilometres): [plans/SHELF_VOLUMETRIC.md](plans/SHELF_VOLUMETRIC.md)
-  "Later". A backlit sunset shelf may still read as a flat pink band (2010-04-01; not re-checked
+  face is 1.09× the deck. Since 0.223 the lip is tattered (fringes ≤ 57 m deep, 12–80 m wide);
+  on a far shelf (~15 km, 2024-06-21) the fringed top of the strip may read as a distant treeline
+  (judged fine by eye, no far-arcus photo to compare). A backlit sunset shelf may still read as a flat pink band (2010-04-01; not re-checked
   since the volumetric shelf).
 - **Night storms** (0.189; re-measured 2026-11-20): the flat bands of 2026-08-20 and 2026-03-27
   are the **shelf cloud**, not the Cb's base (`shelfCloud: false` removes them; `cloudFace` puts the
   face at a constant ~6.3 km, 340–560 m up: the shelf's face, below the 600 m base). Since 0.222 the
-  flash lights it (`passes.flashShelf`); left: its ruler-straight lip and smooth face (the shelf
-  item above, tasks.md D13), and the town dome's brown strip under it. Also: **scud in front of a
+  flash lights it (`passes.flashShelf`); the lip is tattered since 0.223; left: the town dome's brown strip under it. Also: **scud in front of a
   bolt stays unlit** (2026-08-20, left bolt 6.3 km: the rays over its exit meet scud at ~380 m,
   5.4–5.8 km out, below the base, which the flash's face rule skips), so that bolt lights no
   visible cloud; measured with `cloudFace` probes.

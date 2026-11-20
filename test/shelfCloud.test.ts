@@ -7,6 +7,8 @@ import type { ShelfCloudParams } from '../src/skyEvents'
 import { allParams, scene } from './days'
 
 const BASE = 600
+/** The deepest the tattered underside's fringes hang below its smooth line (m). */
+const TATTER = SHELF_SHAPE.tatterM + SHELF_SHAPE.tatter2M + SHELF_SHAPE.tatter3M
 const camera = new Vector3(0, 0, 0)
 
 /** A world point `back` m behind the lip line and `along` m along the front:
@@ -32,7 +34,7 @@ describe('shelf cloud density', () => {
       const at = (along: number, back: number, h: number) => shelfDensity(frame, shelf, BASE, ...pointOn(shelf, along, back), h)
       for (const along of [-30_000, -5_000, 0, 7_000, 25_000]) {
         expect(at(along, -200, lipHeight(shelf, along) + 50)).toBe(0)
-        expect(at(along, 300, lipHeight(shelf, along) - 60)).toBe(0)
+        expect(at(along, 300, lipHeight(shelf, along) - 60 - TATTER)).toBe(0)
         expect(at(along, 1500, shelfTop(BASE) + 100)).toBe(0)
         expect(at(along, 250, lipHeight(shelf, along) + 60)).toBeGreaterThanOrEqual(0.9)
       }
@@ -54,7 +56,7 @@ describe('shelf cloud density', () => {
             break
           }
         }
-        expect(Math.abs(lowest - lipHeight(shelf, along)) / lipHeight(shelf, along)).toBeLessThan(0.1)
+        expect(Math.abs(lowest - lipHeight(shelf, along))).toBeLessThan(0.1 * lipHeight(shelf, along) + TATTER)
         // The lip varies along the front, within ±13.5% of the drawn height.
         expect(Math.abs(lipHeight(shelf, along) / shelf.lipHeightM - 1)).toBeLessThanOrEqual(0.135)
         // Where the face stands, going up: farther back each time, but for a
@@ -86,10 +88,36 @@ describe('shelf cloud density', () => {
       for (let along = -36_000; along <= 36_000; along += 1_700) {
         const lip = lipHeight(shelf, along)
         for (let h = 5; h < shelfTop(BASE) + 150; h += 25) expect(shelfDensity(frame, shelf, BASE, ...pointOn(shelf, along, -120), h)).toBe(0)
-        // Just behind the lip, nothing below it.
-        expect(shelfDensity(frame, shelf, BASE, ...pointOn(shelf, along, 40), lip - 40)).toBe(0)
+        // Just behind the lip, nothing below it but the tattered fringe.
+        expect(shelfDensity(frame, shelf, BASE, ...pointOn(shelf, along, 40), lip - 40 - TATTER)).toBe(0)
       }
     }
+  })
+
+  // D13: the lip is tattered at scales under ~500 m (not the 1.2 km waves
+  // that read as hills), within TATTER of its smooth line.
+  it('has a ragged lip: fringes tens of metres deep, hundreds of metres apart', () => {
+    const shelf = shelves()[0]
+    const frame = shelfFrame(shelf, camera)
+    const lowest = (along: number): number => {
+      for (let h = 0; h < 1200; h += 2) if (shelfDensity(frame, shelf, BASE, ...pointOn(shelf, along, 80), h) > 0.5) return h
+      return NaN
+    }
+    const smooth = shelfShapeWith({ tatter: false })
+    const smoothLowest = (along: number): number => {
+      for (let h = 0; h < 1200; h += 2) if (shelfDensity(frame, shelf, BASE, ...pointOn(shelf, along, 80), h, smooth) > 0.5) return h
+      return NaN
+    }
+    const offsets: number[] = []
+    for (let along = 0; along < 3000; along += 25) offsets.push(lowest(along) - smoothLowest(along))
+    // Fringes hang down only (pointed, never bites up: those read as hills).
+    for (const o of offsets) {
+      expect(o).toBeLessThanOrEqual(2)
+      expect(o).toBeGreaterThanOrEqual(-TATTER - 2)
+    }
+    // Ragged: it moves ≥ 10 m between points 100 m apart somewhere, and spans ≥ 25 m.
+    expect(Math.max(...offsets) - Math.min(...offsets)).toBeGreaterThanOrEqual(25)
+    expect(Math.max(...offsets.slice(4).map((o, i) => Math.abs(o - offsets[i])))).toBeGreaterThanOrEqual(10)
   })
 
   it('prints its cross-section (height × distance behind the lip)', () => {

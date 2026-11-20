@@ -29,7 +29,7 @@ export interface DebugParams {
   /** The shelf cloud's detail terms to switch off (false): bow, wobble,
    * scallops, lipVary, tiers, stria (shelfCloud.ts SHELF_TERMS). On the CPU
    * pass the same to shelfShapeWith. */
-  shelf?: Partial<Record<'bow' | 'wobble' | 'scallops' | 'lipVary' | 'tiers' | 'stria', boolean>>
+  shelf?: Partial<Record<'bow' | 'wobble' | 'scallops' | 'lipVary' | 'tiers' | 'stria' | 'tatter', boolean>>
   /** The Morning Glory's detail terms to switch off (false): wander, rise,
    * lumps, shrink (rollCloud.ts ROLL_TERMS). On the CPU pass the same to
    * rollShapeWith. */

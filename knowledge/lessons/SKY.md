@@ -156,3 +156,12 @@ takram sky, clouds and post; night sky; storms and sky objects. How it works: ar
   shot facing away from the sun (2024-06-21 until 0.121). Decide the cancel first where its draw
   allows (`stormComes`).
 - `Vector3.transformDirection` normalises: scale after transforming (contrails all landed 1 km away).
+- **Name what's in a band before fixing it (D31, 0.222):** "flat Cb base, wall at a constant
+  6.3 km" was the shelf cloud, below the 600 m base; the task's guess (the storm cell's side) would
+  have cost a build on the wrong thing. One `diff --off '{"shelfCloud":false}'` showed it. On a
+  storm day list the sky's parts first (`params.mjs --each 'p => p.storm'`: shelf, curtains, bolts),
+  then switch each off.
+- **Edge detail on a cloud: aspect, not just size (D13, 0.223, 3 rounds):** a far edge resolves
+  only its largest octave, so smooth or wide bumps read as hills or a treeline (±15 m over 400 m;
+  40 m over 250 m). Fringes hang one way, pointed (ridged noise), each about as deep as half its
+  width. Check a far day (~15 km) in round 1, beside the near one.
