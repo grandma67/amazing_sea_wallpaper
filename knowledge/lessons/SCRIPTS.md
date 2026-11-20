@@ -34,6 +34,13 @@ Scripts, randomness, params, tests and the page. Other topics: [LESSONS.md](../L
   `--rendered` (0.153).
 - A leak check proves nothing about days it doesn't visit: its default dates are June. Pass `--date`
   to cover days that have the feature (`params.mjs --list --where`).
+- **A launchd job that boots itself out is stopped there** (wallpaper script 1.0.2): `bootout`
+  means "stop the service", so the re-run died silently at its first line for days. A silent
+  scheduled job: compare the folder's and files' mtimes with the log before guessing, and test
+  launchd behaviour with a throwaway LaunchAgent (scripts under `~/Documents` can't run from one:
+  "Operation not permitted"; copy them to the scratchpad). A bash TERM trap with a foreground
+  child that waits on the job itself deadlocks into SIGKILL: run such children `& wait $!`
+  (plans/CRON.md §2.4).
 - Cleanup in `finally` or a signal handler doesn't survive every stop: Ctrl+C skips `finally` unless
   a handler exits, `kill -9` runs nothing, and a handler waits for a synchronous loop. For anything
   that must not be left behind, use a detached watcher that polls the owner's pid

@@ -89,17 +89,70 @@ case_new_install_catches_up() {
 }
 
 case_retry_never_schedules_another() {
+  # today's still not out: the launchd re-run stays loaded (it fires again at its time, also on
+  # wake); unloading itself would stop it (CRON.md "A launchd job can't unload itself")
   site_latest "$YESTERDAY" valid
   state "date=$YESTERDAY" "retry_day=$TODAY" "retry_at=$NOW_EPOCH"
   mkdir -p "$USER_HOME/Library/LaunchAgents"; : > "$CASE_DIR/$RETRY_PLIST"
   run_script --retry
   expect_exit 0
   expect_no_stub bootstrap
-  expect_stub 'bootout .*-retry\.plist$' 1
-  expect_no_file "../$RETRY_PLIST"
-  [ ! -e "$CASE_DIR/$RETRY_PLIST" ] || fail "retry plist kept"
-  expect_state retry_at ''
+  expect_no_stub bootout
+  expect_file "../$RETRY_PLIST"
+  expect_state retry_at "$NOW_EPOCH"
   expect_requested '^GET /latest\.json$'
+}
+
+case_retry_unloads_itself_only_after_setting() {
+  # the unload is the run's last step: state written, picture set, log line out first
+  site_latest "$TODAY" valid "Noon · reef"
+  state "date=$YESTERDAY" "retry_day=$TODAY" "retry_at=$NOW_EPOCH"
+  mkdir -p "$USER_HOME/Library/LaunchAgents"; : > "$CASE_DIR/$RETRY_PLIST"
+  mkdir -p "$CASE_HOME/stub"; printf 'amazing-sea-wallpaper-retry\n' > "$CASE_HOME/stub/launchd-loaded"
+  run_script --retry
+  expect_exit 0
+  expect_state date "$TODAY"
+  expect_state retry_at ''
+  expect_no_file "../$RETRY_PLIST"
+  expect_stub '^launchctl bootout gui/[0-9]+/amazing-sea-wallpaper-retry$' 1
+  [ "$(tail -n 1 "$CASE_HOME/stubs.log")" = "$(grep 'bootout' "$CASE_HOME/stubs.log")" ] || fail "the unload isn't the last step"
+}
+
+case_loaded_retry_is_not_replaced() {
+  # a re-run still loaded from an earlier day: kept as it is, no second one
+  site_latest "$YESTERDAY" valid
+  state "date=$YESTERDAY" "retry_day=$YESTERDAY" "retry_at=$((NOW_EPOCH - 86400))"
+  mkdir -p "$USER_HOME/Library/LaunchAgents" "$CASE_HOME/stub"; : > "$CASE_DIR/$RETRY_PLIST"
+  printf 'amazing-sea-wallpaper-retry\n' > "$CASE_HOME/stub/launchd-loaded"
+  run_script
+  expect_exit 0
+  expect_no_stub bootstrap
+  expect_no_stub bootout
+  expect_state retry_day "$TODAY"
+  expect_state retry_at "$((NOW_EPOCH - 86400))"
+  expect_output 'a re-run is already scheduled'
+}
+
+case_unloaded_retry_plist_is_reloaded() {
+  # a plist launchd doesn't have loaded (stopped by an older version): scheduled again
+  site_latest "$YESTERDAY" valid
+  state "date=$YESTERDAY" "retry_day=$YESTERDAY" "retry_at=$((NOW_EPOCH - 86400))"
+  mkdir -p "$USER_HOME/Library/LaunchAgents"; : > "$CASE_DIR/$RETRY_PLIST"
+  run_script
+  expect_exit 0
+  expect_stub 'bootstrap .*-retry\.plist$' 1
+  expect_state retry_at "$(utc_epoch "$TODAY 09:30")"
+}
+
+case_already_set_unloads_leftover_retry() {
+  state "date=$TODAY" "retry_day=$YESTERDAY" "retry_at=$((NOW_EPOCH - 86400))"
+  mkdir -p "$USER_HOME/Library/LaunchAgents" "$CASE_HOME/stub"; : > "$CASE_DIR/$RETRY_PLIST"
+  printf 'amazing-sea-wallpaper-retry\n' > "$CASE_HOME/stub/launchd-loaded"
+  run_script --retry
+  expect_exit 0
+  expect_requests 0
+  expect_no_file "../$RETRY_PLIST"
+  expect_stub '^launchctl bootout gui/[0-9]+/amazing-sea-wallpaper-retry$' 1
 }
 
 case_retry_gets_today_from_latest() {

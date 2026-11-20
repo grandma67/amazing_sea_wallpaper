@@ -77,8 +77,13 @@ case_retry_plist_lifecycle() {
   run_script
   expect_stub 'bootstrap .*-retry\.plist$' 1
   run_script --retry
-  # one bootout before the bootstrap (agent_load), one by --retry
-  expect_stub 'bootout .*-retry\.plist$' 2
+  # today's still not out: the re-run stays (only agent_load's bootout before the bootstrap)
+  expect_stub 'bootout .*-retry\.plist$' 1
+  [ -e "$USER_HOME/Library/LaunchAgents/amazing-sea-wallpaper-retry.plist" ] || fail "retry plist gone"
+  site_latest "$TODAY" valid
+  run_script --retry
+  # set: unloaded by label, plist gone
+  expect_stub 'bootout gui/[0-9]+/amazing-sea-wallpaper-retry$' 1
   [ ! -e "$USER_HOME/Library/LaunchAgents/amazing-sea-wallpaper-retry.plist" ] || fail "retry plist kept"
   expect_stub 'bootstrap .*-retry\.plist$' 1
 }
@@ -154,8 +159,8 @@ case_uninstall_removes_everything() {
   [ -e "$USER_HOME/Library/LaunchAgents/amazing-sea-wallpaper-retry.plist" ] || fail "setup: no retry plist"
   : > "$CASE_HOME/stubs.log"
   run_script --uninstall < /dev/null
-  expect_stub 'bootout .*/amazing-sea-wallpaper\.plist$' 1
-  expect_stub 'bootout .*/amazing-sea-wallpaper-retry\.plist$' 1
+  expect_stub 'bootout gui/[0-9]+/amazing-sea-wallpaper$' 1
+  expect_stub 'bootout gui/[0-9]+/amazing-sea-wallpaper-retry$' 1
   run_script --uninstall --yes
   expect_exit 0
   [ -z "$(ls -A "$USER_HOME/Library/LaunchAgents")" ] || fail "LaunchAgents left: $(ls "$USER_HOME/Library/LaunchAgents")"

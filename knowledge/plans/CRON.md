@@ -13,7 +13,9 @@ so users don't all hit the site at once.
     desktops.
   - macOS, and Windows 10/11 (activated).
 
-Status: built (2026-11-15): phases 1–9 done, version 1.0.1 (size floor 20 KB). 118 test cases pass (bash 3.2 and with
+Status: built (2026-11-15): phases 1–9 done, version 1.0.1 (size floor 20 KB); 1.0.2 (2026-11-20, shell
+script only): the macOS re-run no longer unloads itself before its work (§2.4 "A launchd job can't
+unload itself"), and a run stopped by a signal logs it. 118 test cases pass (bash 3.2 and with
 GNU `date`, curl and wget, pwsh 7.7). Live on this Mac (macOS 27.0.1): `--now`, `--install`, the
 LaunchAgent setting the picture, `--uninstall`. Left for real machines: every Linux edition and
 Windows (the list at the end of §6), the picture across a macOS logout, a sleep through 07:M.
@@ -158,6 +160,33 @@ The User-Agent is `amazing-sea-wallpaper/<version>`.
   invocations when the computer is asleep, launchd will start the job the next time the computer
   wakes up", with missed intervals coalesced into one. A powered-off Mac is covered by `RunAtLoad`
   at login.
+- **A launchd job can't unload itself (found 2026-11-20, measured on macOS 27):** in launchd a
+  running process belongs to its service, and `launchctl bootout` removes the service, so it stops
+  the process: SIGTERM, then SIGKILL after `ExitTimeOut` (`man launchctl`, `man launchd.plist`;
+  the older `unload` "will also stop the job if it is running"; admins report the same for
+  self-removing jobs, [Jamf](https://community.jamf.com/general-discussions-2/how-do-i-delete-a-launch-daemon-using-a-script-35236)).
+  A job booting itself out asks to be stopped.
+  - What it cost: 1.0.1's `--retry` booted its own job out first, so the re-run never ran past
+    that line. On 2026-11-20 the daily run (08:23) found today's picture not out and scheduled the
+    re-run at 11:46; at 11:46 launchd started it in a 60 s maintenance DarkWake, it took the lock,
+    booted itself out and died, leaving no log line, the plist on disk, `retry_at` in the state and
+    the job gone from launchd. Found from the folder's mtime (11:46:05) against the log (last line
+    08:23), then reproduced with a throwaway LaunchAgent.
+  - Measured with that LaunchAgent: with no TERM trap, bash ran its EXIT trap 0.01 s after its
+    own bootout and printed nothing after it. With a TERM trap and `launchctl bootout` in the
+    foreground, bash defers the trap until launchctl returns while launchctl waits for the job to
+    exit: neither trap ran, and the job was gone after 5.06 s (launchd's SIGKILL; the default
+    `ExitTimeOut` is "system-defined"). With `launchctl bootout … & wait $!` the TERM trap ran at once.
+  - So (1.0.2): the re-run stays loaded until today's picture is set, and the unload is the run's
+    last step (after the state, the picture and the log line); until then it fires again at its
+    time each day, also on wake. A run never schedules a second re-run while one is loaded
+    (`launchctl print gui/$UID/<label>`), and a run that finds today's already set unloads a
+    leftover one. Unloads go by label, so a job whose plist is gone is still removed. A bigger
+    `ExitTimeOut` was considered and dropped: reportedly capped at 60 s
+    ([Apple forum](https://developer.apple.com/forums/thread/854315)), and a DarkWake lasts 60 s.
+  - Windows needs none of this: its re-run is a one-time trigger that expires (+6 h). cron doesn't
+    stop a run when its line is removed; systemd's re-run disables only its `.timer`
+    (`systemd_remove`), not the running `.service` (read in the code, not tested on Linux).
 - **Windows:** `powershell -WindowStyle Hidden` still flashes a console. `conhost.exe --headless`
   doesn't (Windows 10 1809+ / 11), but it's undocumented and flagged by some EDR rules
   ([PowerShell #3028](https://www.github.com/PowerShell/PowerShell/issues/3028), [Sigma rule](https://detection.fyi/sigmahq/sigma/windows/process_creation/proc_creation_win_conhost_headless_powershell)).
@@ -256,7 +285,7 @@ crons/test/                       # one flat folder: run.sh, server.py, stub-scr
 | `--install [--portrait] [--hour H] [--url U] [--scheduler cron\|systemd]` | `-Install [-Portrait] [-Hour H] [-Url U]` | checks tools and session (§4.4), copies itself into the folder, writes `config` (random minute; `proxy` from `https_proxy` now, since cron and launchd won't pass it), removes the other Linux backend's entries, registers the schedule (§4.5), runs once (`--now`). Safe to re-run |
 | *(no flag: the schedule)* | *(none)* | the daily run (§4.3) after a random 0–300 s sleep. launchd (`RunAtLoad`), the Windows logon trigger and systemd (`Persistent=true`) start this same command at login |
 | `--login` | `-Login` | the cron backend's autostart entry: like the daily run, without the sleep |
-| `--retry` | `-Retry` | the one re-run; removes its own job, never schedules another |
+| `--retry` | `-Retry` | the one re-run; never schedules another. Removes its own job (cron, systemd, Windows); on macOS only once today's picture is set, as its last step (§2.4) |
 | `--now` | `-Now` | no sleep, ignores the state: today's dated image, else the newest `latest`; never schedules a re-run |
 | `--dry-run` | `-DryRun` | fetch and check; prints what it would set or schedule; changes nothing |
 | `--status` | `-Status` | version, OS/distro, desktop, scheduler and next run, last date/title/sha256, pending re-run, last 10 log lines. No network |
@@ -280,7 +309,9 @@ today_utc = date -u +%F
 5. today's not set (404, failed or bad image)
    and not --retry/--now and state.retry_day != today → schedule the one re-run; retry_day = today (local)
 6. after any set: verify, write state (date, sha256, title, set_at), prune to 7 (never the file now
-   set: macOS stores a file:// URL to it, not a copy, §2.4), cancel a pending re-run
+   set: macOS stores a file:// URL to it, not a copy, §2.4), cancel a pending re-run (on macOS the
+   last step, and also when step 1 finds today's already set; step 5 skips scheduling while a
+   re-run is loaded)
 
 check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 20 KB; moved to wallpapers/<date>.jpg
         (20 KB since 1.0.1: real dark nights are 39-46 KB at 1080p, tools/RENDER.md "Blank frames";
@@ -401,8 +432,12 @@ check = HTTP 200, Content-Type image/jpeg, first bytes FF D8, > 20 KB; moved to 
 - Ventura+ shows "Background item added". If the user switches it off in Login Items, the job is
   disabled: `--status` reads `launchctl print-disabled gui/$UID`.
 - Re-run: `amazing-sea-wallpaper-retry.plist` at the re-run's local hour/minute
-  (`date -r EPOCH +%H` / `%M`) with `--retry`. The `--retry` run boots it out and deletes it,
-  since `StartCalendarInterval` repeats daily.
+  (`date -r EPOCH +%H` / `%M`) with `--retry`. `StartCalendarInterval` repeats daily, so it stays
+  loaded until today's picture is set; then the setting run (the re-run itself, as its last step,
+  or a later daily run) deletes the plist and boots the job out by label. Never booted out
+  before the work: that stops the run (§2.4 "A launchd job can't unload itself").
+- A run stopped by a signal logs `stopped by SIG… during: <step>`; the re-run's own last-step
+  unload exits 0 quietly.
 
 **Windows (Task Scheduler, folder `\amazing-sea-wallpaper\`):**
 - Task `amazing-sea-wallpaper`: `-Daily -At H:M -RandomDelay 00:05:00` plus

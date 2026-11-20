@@ -21,7 +21,7 @@
 #   AMAZING_SEA_WALLPAPER_HOME, _TODAY, _NOW_EPOCH, _STUBS=1, _OS=macos|linux, _ROOT,
 #   _DOWNLOADER=curl|wget, _RANDOM, _STUB_MISSING, _STUB_NOSESSION.
 
-VERSION="1.0.1"
+VERSION="1.0.2"
 NAME=amazing-sea-wallpaper
 DEFAULT_URL="https://grandma67.github.io/amazing_sea_wallpaper/"
 UPGRADE_URL="https://raw.githubusercontent.com/grandma67/amazing_sea_wallpaper/main/crons/amazing-sea-wallpaper.sh"
@@ -163,7 +163,13 @@ sys() {
     "osascript get") cat "$S/macos-wallpaper" 2>/dev/null ;;
     "osascript set") stub_log "osascript set $3"; printf '%s\n' "$3" > "$S/macos-wallpaper" ;;
     "launchctl print-disabled") cat "$S/launchctl-disabled" 2>/dev/null; return 0 ;;
-    "launchctl print") stub_log "$*"; return 0 ;;
+    "launchctl print")   # read-only: not logged
+      case $3 in */*/*) grep -qxF "${3##*/}" "$S/launchd-loaded" 2>/dev/null ;; *) return 0 ;; esac ;;
+    "launchctl bootstrap") stub_log "$*"; grep -qxF "$(basename "$4" .plist)" "$S/launchd-loaded" 2>/dev/null || basename "$4" .plist >> "$S/launchd-loaded" ;;
+    "launchctl bootout")
+      stub_log "$*"
+      { grep -vxF "$(basename "${4:-${3##*/}}" .plist)" "$S/launchd-loaded" 2>/dev/null || true; } > "$S/launchd-loaded.tmp"
+      mv "$S/launchd-loaded.tmp" "$S/launchd-loaded" ;;
     "systemctl --user")
       case ${3:-} in
         show-environment) [ ! -f "$S/no-systemd" ] ;;
@@ -620,7 +626,21 @@ plist_write() {
   } > "$tmp" && mv "$tmp" "$f"
 }
 agent_load() { sys launchctl bootout "gui/$MY_UID" "$1" >/dev/null 2>&1; sys launchctl bootstrap "gui/$MY_UID" "$1" || die 4 "launchctl bootstrap $1 failed"; }
-agent_unload() { [ -f "$1" ] || return 0; sys launchctl bootout "gui/$MY_UID" "$1" >/dev/null 2>&1; rm -f "$1"; }
+# agent_loaded LABEL: launchd has the job (loaded, whether or not its plist is still on disk)
+agent_loaded() { sys launchctl print "gui/$MY_UID/$1" >/dev/null 2>&1; }
+# agent_unload PLIST: the plist first, then the job by label (also when the plist is gone).
+# Booting out a job stops it if it is running (SIGTERM, SIGKILL after ExitTimeOut): a job that
+# boots itself out is stopped there (CRON.md "A launchd job can't unload itself"), so the re-run
+# does it only as its last step. In the foreground bash would defer its TERM trap until launchctl
+# returns, and launchctl waits for the job to exit: a deadlock that launchd ends ~5 s later with
+# SIGKILL (no trap, no log, the lock left). `& wait` lets the trap run at once (measured, macOS 27).
+agent_unload() {
+  local label
+  label=$(basename "$1" .plist)
+  [ -f "$1" ] || agent_loaded "$label" || return 0
+  rm -f "$1"
+  sys launchctl bootout "gui/$MY_UID/$label" >/dev/null 2>&1 & wait $!
+}
 
 schedule_daily() {
   local h=$1 m=$2
@@ -660,12 +680,12 @@ schedule_retry() {
 }
 
 cancel_retry() {
+  kv_del "$STATE" retry_at   # first: on launchd the re-run itself is stopped by its unload
   case $BACKEND in
     launchd) agent_unload "$RETRY_PLIST" ;;
     cron|fcron) if sys "$(crontab_cmd)" -l 2>/dev/null | grep -q " # $NAME-retry\$"; then crontab_edit " # $NAME-retry\$"; fi ;;
     systemd) if [ -f "$DIR/$NAME-retry.timer" ]; then systemd_remove "$NAME-retry"; rm -f "$DIR/$NAME-retry.service" "$DIR/$NAME-retry.timer"; fi ;;
   esac
-  kv_del "$STATE" retry_at
 }
 
 retry_epoch() {
@@ -689,8 +709,19 @@ prune() {
     done
 }
 
+# A run stopped by a signal says so in the log, with the step it was on (launchd stops a job
+# with SIGTERM when it is booted out, also when the job boots itself out; the EXIT traps still
+# clean up after this exit).
+STEP=start
+on_signal() {
+  # the re-run unloading itself once its work is done (agent_unload): expected, not a failure
+  [ "$STEP" = finished ] && exit 0
+  log "stopped by SIG$1 during: $STEP"; exit $((128 + $2))
+}
+
 do_run() {
   local today yesterday now last retry_day local_today got_date='' got_title='' status=0 kind part json latest_date retry_at e
+  trap 'on_signal TERM 15' TERM; trap 'on_signal HUP 1' HUP; trap 'on_signal INT 2' INT
   today=$(utc_today); now=$(now_epoch)
   local_today=$(epoch_fmt "$now" '%F')
   if [ "$MODE" != dry-run ]; then
@@ -703,14 +734,22 @@ do_run() {
   retry_day=$(kv_get "$STATE" retry_day)
   retry_at=$(kv_get "$STATE" retry_at)
 
-  if [ "$MODE" = retry ]; then cancel_retry
-  elif [ -n "$retry_at" ] && [ "$now" -gt $((retry_at + 21600)) ] && [ -n "$BACKEND" ]; then
-    cancel_retry   # a missed re-run never fires later (e.g. a cron line a year on)
+  # launchd: the re-run is unloaded only once today's picture is set (a job that unloads itself
+  # is stopped there); until then it stays and fires again at its time, also on wake
+  STEP="cancel the re-run"
+  if [ "$BACKEND" != launchd ]; then
+    if [ "$MODE" = retry ]; then cancel_retry
+    elif [ -n "$retry_at" ] && [ "$now" -gt $((retry_at + 21600)) ] && [ -n "$BACKEND" ]; then
+      cancel_retry   # a missed re-run never fires later (e.g. a cron line a year on)
+    fi
   fi
+  STEP="fetch"
 
   # 1. today's already set
   if [ "$last" = "$today" ] && [ "$MODE" != now ] && [ "$MODE" != dry-run ]; then
-    log "today's picture ($today) is already set"; exit 0
+    log "today's picture ($today) is already set"
+    if [ "$BACKEND" = launchd ]; then STEP=finished; cancel_retry; fi
+    exit 0
   fi
 
   # 2. session and desktop
@@ -760,6 +799,7 @@ do_run() {
     exit $status
   fi
 
+  STEP="set the picture"
   # 6. set it
   if [ -n "$got_date" ]; then
     local file="$WALL/$got_date.jpg"
@@ -770,15 +810,19 @@ do_run() {
       mv "$STATE.tmp.$$" "$STATE"
       prune "$file"
       log "set $got_date: $got_title"
-      [ "$got_date" = "$today" ] && [ -n "$BACKEND" ] && cancel_retry
+      if [ "$got_date" = "$today" ] && [ -n "$BACKEND" ]; then STEP=finished; cancel_retry; fi
     else
       log "setting the picture failed"; status=1
     fi
   fi
 
   # 5. one re-run when today's isn't set
+  STEP="schedule the re-run"
   if [ "$got_date" != "$today" ] && [ "$MODE" != retry ] && [ "$MODE" != now ] && [ "$retry_day" != "$local_today" ]; then
-    if [ -n "$BACKEND" ]; then
+    if [ "$BACKEND" = launchd ] && agent_loaded "$NAME-retry"; then
+      kv_set "$STATE" retry_day "$local_today"
+      log "today's picture isn't out yet: a re-run is already scheduled"
+    elif [ -n "$BACKEND" ]; then
       e=$(retry_epoch "$now")
       schedule_retry "$e"
       kv_set "$STATE" retry_day "$local_today"
@@ -899,7 +943,10 @@ do_status() {
     say "  last set:  $(kv_get "$STATE" date) \"$(kv_get "$STATE" title)\" at $(epoch_fmt "$(kv_get "$STATE" set_at)" '%F %H:%M' 2>/dev/null)"
     say "  sha256:    $(kv_get "$STATE" sha256)"
     retry_at=$(kv_get "$STATE" retry_at)
-    [ -n "$retry_at" ] && say "  re-run:    pending at $(epoch_fmt "$retry_at" '%F %H:%M')"
+    if [ "$sched" = launchd ] && [ -n "$retry_at" ]; then
+      # the launchd re-run repeats daily at its time until today's picture is set
+      say "  re-run:    pending, daily at $(epoch_fmt "$retry_at" '%H:%M') until today's is set"
+    elif [ -n "$retry_at" ]; then say "  re-run:    pending at $(epoch_fmt "$retry_at" '%F %H:%M')"; fi
   fi
   if [ -f "$LOG" ]; then say "  log ($LOG):"; tail -n 10 "$LOG" | sed 's/^/    /'; fi
 }
