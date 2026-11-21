@@ -236,13 +236,8 @@ say how the cause was found.
 
 ## Props
 
-- **Sea stacks' white flecks** (seen 2026-11-20, `stacks-shoreline` spec, 2025-07-10 Brittany): the
-  stack's surface carries dense white single-pixel flecks (there with the swell at 0.2 m, so not
-  spray); first taken for spray dots. Cause measured 2026-11-21: the **lichen spots**
-  (`props/rocks.ts`, `smoothstep(0.72, 0.78, rockNoise(q * 5.5))`, ~0.2 m pale spots with a hard
-  edge) aliasing at 657 m; with them off (tried, reverted) the flecks are gone (0.13% of the
-  frame, only the stack). Fix: fade the spots to their mean cover once under a pixel (`fwidth`);
-  touches every rock. The stack's top also reads as a pale see-through triangle (not traced).
+- **Sea stacks' top** (`stacks-shoreline`, 2025-07-10 Brittany, 657 m): the stack's top reads as a
+  pale see-through triangle against the land behind (seen 2026-11-21; not traced).
 - **Night surf in blue 2×2 blocks on lighthouse nights** (2026-12-08; found 2026-11-20, was filed as
   spray, D37): `passes.reflection` off removes them, `softSpray` and the spray don't touch them, and
   `lighthouse: null` takes the planar mirror away with them. On rough surf facets the water flips,

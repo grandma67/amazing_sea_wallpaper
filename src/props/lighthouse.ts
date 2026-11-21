@@ -234,7 +234,7 @@ function site(ctx: PropContext, light: LighthouseParams, avoid: Object3D | null)
       if (!clear) continue
     }
     const growth = { moss: 0, mossColor: [0, 0, 0] as RGB, lichen: 0.4, lichenColor: [0.5, 0.48, 0.38] as RGB, algae: 0.8, algaeColor: [0.06, 0.07, 0.025] as RGB }
-    const foot = new Mesh(rockGeometry(rng, kind === 'rock'), rockMaterial(rng.pick(ctx.params.biome.rockColors), coast.runup * 2 + 0.6, growth, 0, snowLook(ctx.params)))
+    const foot = new Mesh(rockGeometry(rng, kind === 'rock'), rockMaterial(rng.pick(ctx.params.biome.rockColors), coast.runup * 2 + 0.6, growth, 0, snowLook(ctx.params), undefined, ctx.params.debug?.passes?.lichenFade !== false))
     foot.scale.set(width / 2, height, (width / 2) * rng.range(0.6, 0.9))
     foot.position.copy(p).setY(base - height * 0.3)
     foot.rotation.y = rng.range(0, Math.PI * 2)

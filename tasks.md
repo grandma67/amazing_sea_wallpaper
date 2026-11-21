@@ -82,7 +82,7 @@ Status: `[ ]` open, `[~]` started, `[x]` done.
 | D37 | ~~Spray squares, speckle, horizon seam~~ (0.225–0.229: done); mist-streak check left | | | ¼ |
 | D39 | Night surf in blue 2×2 blocks on lighthouse nights (planar mirror vs cube) | none | | ½–1 |
 | D40 | Scud in front of a bolt stays unlit (from D31) | none | yes | ½ |
-| D41 | Sea stacks' flecks: lichen spots alias (measured) | none | | ¼ |
+| D41 | ~~Sea stacks' flecks~~ (0.230: done); pale top left (KNOWN_ISSUES) | | | |
 | D38 | ~~Wet rock in zebra bands~~ (0.213: done) | | | |
 | E1 | CI: half-float limits that could break SwiftShader again | none | | ¼ each |
 | E2 | Scheduled render finishes late | none | | ½ |
@@ -925,7 +925,8 @@ A4 and A5 cover it.
   hides the lit base. Real scud near a flash is lit. **Decision:** changes storm days.
 - **Size:** ½.
 
-#### D41. [~] Sea stacks' dense white flecks
+#### D41. [x] Sea stacks' dense white flecks
+- **Fixed in 0.230:** the spots fade to their mean cover under a pixel (`passes.lichenFade`).
 - **2026-11-21, cause measured:** the lichen spots (`props/rocks.ts`, a hard `smoothstep(0.72,
   0.78, …)` on ~0.2 m noise) aliasing at 657 m; spots off (tried, reverted) removes them (0.13% of
   the frame, only the stack). Fix: fade to mean cover under a pixel (`fwidth`); touches every

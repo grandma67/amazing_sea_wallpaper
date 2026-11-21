@@ -163,7 +163,7 @@ function flock(spots: Matrix4[], skin: boolean): InstancedMesh | null {
 }
 
 function rockMesh(ctx: PropContext, geometry: BufferGeometry, style: ColonyStyle): Mesh {
-  const mesh = new Mesh(geometry, rockMaterial([1, 1, 1], ctx.params.coast.runup * 3, style.growth, 0, snowLook(ctx.params)))
+  const mesh = new Mesh(geometry, rockMaterial([1, 1, 1], ctx.params.coast.runup * 3, style.growth, 0, snowLook(ctx.params), undefined, ctx.params.debug?.passes?.lichenFade !== false))
   mesh.castShadow = true
   mesh.receiveShadow = true
   mesh.userData.island = true

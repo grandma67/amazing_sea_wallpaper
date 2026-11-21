@@ -313,7 +313,7 @@ function skerry(ctx: PropContext, rng: Random): Mesh | null {
     if (clear) at = p
   }
   if (at == null) return null
-  const mesh = new Mesh(skerryGeometry(rng), rockMaterial(rng.pick(ctx.params.biome.rockColors), 0.6, SKERRY_GROWTH, 0, snowLook(ctx.params)))
+  const mesh = new Mesh(skerryGeometry(rng), rockMaterial(rng.pick(ctx.params.biome.rockColors), 0.6, SKERRY_GROWTH, 0, snowLook(ctx.params), undefined, ctx.params.debug?.passes?.lichenFade !== false))
   const height = rng.range(2.5, 5)
   mesh.scale.set(width / 2, height, (width / 2) * rng.range(0.5, 0.9))
   mesh.position.copy(at).setY(-height * 0.25)

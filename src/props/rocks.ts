@@ -130,6 +130,10 @@ const GROWTH: Record<Biome['name'], { chance: number; growth: RockGrowth }> = {
   }
 }
 
+/** Mean of the lichen spots' mask, smoothstep(0.72, 0.78, rockNoise), over
+ * the noise (Monte Carlo of the shader's hash, 4·10⁵ samples: 0.097). */
+const LICHEN_COVER = '0.097'
+
 /** `tideLine`: world height of the spring high water; below it, above the
  * splash zone, rocks the tide has left carry a dark band of wrack weed,
  * mussels and barnacles (0: none). */
@@ -141,7 +145,10 @@ export function rockMaterial(
   snow: SnowLook | null = null,
   /** Moss by climate and today's wetness (phenology.ts mossLook); none: the
    * growth's own amount, green. */
-  mossToday?: { amount: number; dry: number; belt: number }
+  mossToday?: { amount: number; dry: number; belt: number },
+  /** Lichen spots fade to their mean cover once under a pixel (false: the
+   * hard spots everywhere, as before; `passes.lichenFade`). */
+  fadeLichen = true
 ): MeshStandardMaterial {
   const material = new MeshStandardMaterial({
     color: new Color(...color),
@@ -169,6 +176,7 @@ export function rockMaterial(
     shader.uniforms.mossColor = { value: new Color(...g.mossColor) }
     shader.uniforms.lichen = { value: g.lichen }
     shader.uniforms.lichenColor = { value: new Color(...g.lichenColor) }
+    shader.uniforms.lichenFade = { value: fadeLichen ? 1 : 0 }
     shader.uniforms.algae = { value: g.algae }
     shader.uniforms.algaeColor = { value: new Color(...g.algaeColor) }
     shader.vertexShader = shader.vertexShader
@@ -198,6 +206,7 @@ export function rockMaterial(
         uniform vec3 mossColor;
         uniform float lichen;
         uniform vec3 lichenColor;
+        uniform float lichenFade;
         uniform float algae;
         uniform vec3 algaeColor;
         float rockHash(vec3 p) {
@@ -240,7 +249,18 @@ export function rockMaterial(
         vec3 mossC = mix(mossColor * (0.6 + 0.8 * rockNoise(q * 11.0)), vec3(${MOSS_DRY.join(', ')}), mossDry);
         diffuseColor.rgb = mix(diffuseColor.rgb, mossC, moss * mossMask);
         // Crusty lichen spots on dry stone.
-        float spots = smoothstep(0.72, 0.78, rockNoise(q * 5.5)) * dry;
+        float lichenN = rockNoise(q * 5.5);
+        float spots = smoothstep(0.72, 0.78, lichenN);
+        if (lichenFade > 0.5) {
+          // Spots ~0.2 m across alias into single white pixels past ~100 m
+          // (sea stacks at 650 m: tasks.md D41). Widen the edge to the
+          // pixel, then fade to the spots' mean cover (${LICHEN_COVER},
+          // measured over the noise) as a pixel spans a noise cell.
+          float w = max(0.03, fwidth(lichenN));
+          float cells = length(fwidth(q * 5.5));
+          spots = mix(smoothstep(0.75 - w, 0.75 + w, lichenN), ${LICHEN_COVER}, smoothstep(0.3, 1.0, cells));
+        }
+        spots *= dry;
         diffuseColor.rgb = mix(diffuseColor.rgb, lichenColor, lichen * spots * 0.8);`
       )
       .replace(
@@ -360,7 +380,7 @@ export function createRocks(ctx: PropContext): InstancedMesh[] {
   const picked = rng.pick(biome.rockColors)
   const color = coast.rock?.color ?? picked
   const growthSpec = GROWTH[biome.name]
-  const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null, tideMarks(coast).spring, snowLook(params), mossLook(params))
+  const material = rockMaterial(color, coast.runup, rng.chance(growthSpec.chance) ? growthSpec.growth : null, tideMarks(coast).spring, snowLook(params), mossLook(params), params.debug?.passes?.lichenFade !== false)
   const meshes: InstancedMesh[] = []
   const m = new Matrix4()
   const q = new Quaternion()

@@ -45,6 +45,10 @@ GLSL pitfalls. Other topics: [LESSONS.md](../LESSONS.md).
   offset mod a few tens of metres. The terrain's `footprint` assumes flat ground: on a steep face seen head-on
   it is many times too big and fades the detail out; divide by |N·V| instead. Noise read in x, z smears down
   steep heightfield faces: blend three planes by the normal.
+- **A hard threshold on noise turns to flecks once a pixel spans a cell (lichen, 0.230):** the rocks'
+  `smoothstep(0.72, 0.78, noise)` spots read as white single pixels on stacks at 650 m, first taken
+  for spray. Widen the edge to `fwidth(noise)` and fade to the mask's mean cover (measure it: Monte
+  Carlo of the shader's own hash) by `fwidth(coords)`; near detail stays.
 - Screen-space derivatives explode on silhouettes: clamp footprints, or NaN normals become white
   bloom dashes (Metal fast-math also defeats `isnan`). Overflowing `exp()` gave NaN terrain.
   `min(NaN, x)` is undefined: Apple GPUs give x, x86 SwiftShader keeps the NaN and bloom spreads it
