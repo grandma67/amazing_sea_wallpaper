@@ -42,6 +42,7 @@ uniform sampler2D planarDepth;
 uniform mat4 planarProjInv;
 uniform vec3 reflectionAir;
 uniform float reflectionSeaHaze;
+uniform float reflectionHazeLinear;
 `
 
 /** Looking up the mirror image along a reflected ray, shared by the sea and
@@ -119,16 +120,19 @@ vec4 mirrorAlongRay(vec3 P, float D, float t, vec3 Rm, float alpha, float sinVie
  * It fades toward the sky this ray mirrors (skyReflected): far land's image
  * sits just under the horizon, where that is the horizon sky in its azimuth,
  * and land lost in the haze leaves exactly the sky reflection, no patch. The
- * sea haze fades its share by (1 − T)², as takram's main pass does (it mixes
- * in a haze colour already scaled by its opacity, by that opacity again:
- * scripts/measure/haze.mjs on 2003-03-11's islands); the air's by (1 − T).
+ * frame fades as Koschmieder's (1 − T) since 0.232 (passes.hazeLinear), so
+ * the image fades by both media's T at once, 1 − airT·seaT; off: the sea
+ * haze's share by (1 − T)², as the main pass did then (an opacity-scaled
+ * colour mixed by the opacity again), the air's by (1 − T).
  * Premultiplied: the coverage stays. */
 vec4 hazeMirror(vec4 planar, float hazeT, vec3 R, vec3 skyReflected) {
   float x = max(R.y * hazeT, 0.0) / 1000.0;
   float thin = x < 1e-3 ? 1.0 - 0.5 * x : (1.0 - exp(-x)) / x;
   vec3 airT = exp(-reflectionAir * hazeT);
   float seaT = exp(-reflectionSeaHaze * thin * hazeT);
-  vec3 fade = 1.0 - airT + (1.0 - seaT) * (1.0 - seaT);
+  // Since 0.232 (passes.hazeLinear) the frame fades as Koschmieder's
+  // (1 − T) to one haze colour, so the image fades by both media's T at once.
+  vec3 fade = reflectionHazeLinear > 0.5 ? 1.0 - airT * seaT : 1.0 - airT + (1.0 - seaT) * (1.0 - seaT);
   planar.rgb = planar.rgb * airT * seaT + clamp(planar.a, 0.0, 1.0) * skyReflected * min(fade, vec3(1.0));
   return planar;
 }

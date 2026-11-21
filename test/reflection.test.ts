@@ -101,3 +101,11 @@ describe('reflection haze', () => {
     expect(-Math.log(high) / 5000 - ext.air[1]).toBeCloseTo(ext.haze * (1 - Math.exp(-1)), 8)
   })
 })
+
+describe('mirror haze weighting (passes.hazeLinear, tasks.md B1)', () => {
+  it('fades by both media at once when on, the old (1 − T)² sea share when off', async () => {
+    const { MIRROR_GLSL, MIRROR_UNIFORMS_GLSL } = await import('../src/reflection')
+    expect(MIRROR_UNIFORMS_GLSL).toContain('uniform float reflectionHazeLinear;')
+    expect(MIRROR_GLSL).toContain('reflectionHazeLinear > 0.5 ? 1.0 - airT * seaT : 1.0 - airT + (1.0 - seaT) * (1.0 - seaT)')
+  })
+})

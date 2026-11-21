@@ -221,8 +221,10 @@ uniform float reflectionRay;
 uniform float reflectionStreaks;
 uniform float reflectionHaze;
 uniform float skyRay;
+uniform float seaFresnelSky;
 uniform vec3 reflectionAir;
 uniform float reflectionSeaHaze;
+uniform float reflectionHazeLinear;
 // Depth of the mirror image and the mirror camera's (oblique) inverse
 // projection: how far each reflected ray travels (reflection.ts).
 uniform sampler2D planarDepth;
@@ -598,7 +600,11 @@ ${RIPPLE_LAYERS.map(({ shrink, turn }) => {
     if (reflectionHaze > 0.5) planar = hazeMirror(planar, hazeT, R, skyReflected);
     reflected = reflected * (1.0 - clamp(planar.a, 0.0, 1.0)) + planar.rgb;
   }
-  float F = fresnel(NoV);
+  // Fresnel at the facet that mirrors the sky (skyNormal), as the sky ray:
+  // the face-the-viewer N floors NoV at ~0.05, which held F at ~0.78 within
+  // ~3° of grazing (0.92–0.97 there): a calm sea read 0.62 of F × sky at
+  // 0.3° (tasks.md A4; passes.seaFresnelSky).
+  float F = seaFresnelSky > 0.5 ? fresnel(clamp(dot(skyNormal, V), 1e-4, 1.0)) : fresnel(NoV);
 
   // Sun glitter.
   // The sun's light at this point: cloud and land shade take all of it from
@@ -900,8 +906,10 @@ export function createOcean(
       // The sky reflection along the wave's own normal (0: the viewer-facing
       // one, as before 0.135).
       skyRay: { value: params.debug?.passes?.skyRay === false ? 0 : 1 },
+      seaFresnelSky: { value: params.debug?.passes?.seaFresnelSky === false ? 0 : 1 },
       reflectionAir: { value: new Vector3() },
       reflectionSeaHaze: { value: 0 },
+      reflectionHazeLinear: { value: params.debug?.passes?.hazeLinear === false ? 0 : 1 },
       planarDepth: { value: null as Texture | null },
       planarProjInv: { value: new Matrix4() },
       envMaxLod: { value: 8 },

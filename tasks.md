@@ -32,16 +32,16 @@ Status: `[ ]` open, `[~]` started, `[x]` done.
 | A1 | ~~Pale smear on the island~~ (not reproduced: done) | | | |
 | A2 | ~~Sparkly dots over the sea~~ (cloud noise at 1 frame: done) | | | |
 | A3 | ~~Sailboat as a bare tilted mast~~ (not reproduced: done) | | | |
-| A4 | Calm sea dark near the horizon: Fresnel floor + B1 haze (measured) | none | yes | ½ |
+| A4 | ~~Calm sea dark near the horizon~~ (0.232: done) | | | |
 | A5 | Sky cube too bright higher up: no light shafts (measured) | none | yes (cost) | ½ |
-| B1 | takram haze fades as (1 − T)² | photos | yes | 1 |
+| B1 | ~~Haze fades as (1 − T)²~~ (0.232: done) | | | |
 | B2 | Night frames' colour (sand blue, deck blue, sharp birds) | yes | yes | 1–2 |
 | B4 | Beach-state shares vs Australia's census | done (COASTS.md) | yes | ½ |
 | B5 | Run-up by beach state (Stockdon) | yes | yes | 1 |
 | B6 | Waterspouts: inside fog, and far too rare | check WATERSPOUT_FOG.md | yes | ½ |
 | C1 | Render a rock pool beside a boulder (tools built) | none | | ½ |
 | C2 | Glitter width vs Cox–Munk | none (REFLECTION.md §1.2) | | ½ |
-| C3 | Far mirror images slightly off-colour | none | | ½–1 |
+| C3 | ~~Far mirror images off-colour~~ (0.232, with B1: done) | | | |
 | C4 | ~~Speckled lightning in wet sand~~ (0.214: done) | | | |
 | C5 | ~~Far land mirrored about a flat plane~~ (invisible at 27–34 km: done) | | | |
 | C6 | Lee calm, slicks, mirroring ice, whitecaps | yes, each | per feature | plan each |
@@ -215,7 +215,8 @@ Sources:
 - **Done when:** the boat is upright and rigged on that date; the test passes on all ship days.
 - **Size:** ½.
 
-### A4. [~] Calm sea slightly dark within 1° of the horizon
+### A4. [x] Calm sea slightly dark within 1° of the horizon
+- **Fixed in 0.232** (`passes.seaFresnelSky`, with B1): calm sea / (F × sky) 0.98–1.01 within 1°.
 - **2026-11-21, causes measured** (`horizon.mjs`, `--az -10`): not the swell (0.01 m: same) nor the
   box (`--half 0`: same). (1) The Fresnel term uses the face-the-viewer normal (NoV ≥ ~0.05), so
   F ≈ 0.78 within ~3° of grazing: with F from `skyNormal` (tried, reverted) 0.3° reads 0.76, not
@@ -260,7 +261,10 @@ Sources:
 
 ## B. Decisions to make (measure first, then ask)
 
-### B1. [ ] takram's haze fades land as (1 − T)², not (1 − T)
+### B1. [x] takram's haze fades land as (1 − T)², not (1 − T)
+- **Fixed in 0.232** (`passes.hazeLinear`): frame, cube and mirror fade as (1 − T); `haze.mjs` on
+  `calm-islands` gives one haze colour with 1 − T (H green 0.128 / 0.137 at 2.9 / 7.5 km). No photos
+  compared: Koschmieder is the physics; the old weighting had no physical basis.
 - **Problem:** mid-distance land is darker than real haze would leave it; the sea's mirror images
   copy this (`ocean.ts` `reflectionHaze`).
 - **Known:** measured with `haze.mjs` (2003-03-11, islands at 2.8 and 7.5 km: one haze colour only
@@ -382,7 +386,9 @@ Sources:
 - **Done when:** measured width within ~20% of the prediction, or the gap's cause recorded.
 - **Size:** ½.
 
-### C3. [ ] Far mirror images slightly off-colour
+### C3. [x] Far mirror images slightly off-colour
+- **Fixed by 0.232 (B1):** both islands' mirror images within ±3% per channel of the island (was R
+  −9…−12%, B +12…+15%).
 - **2026-11-21, re-measured** (`calm-islands`, world/mirror probes at 2.8–3.0 and 7.2–7.5 km, per
   channel against green): R −9…−12%, B +12…+15% (bluer than 0.135's +5…+9%). With A4's Fresnel
   fix (tried, reverted) the images get ~17% brighter but the tint stays (R −9…−11%, B +10…+13%):

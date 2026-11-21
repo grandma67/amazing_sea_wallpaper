@@ -97,8 +97,12 @@ heights". Ships, wakes and ship lights: [PROPS.md](PROPS.md). Pitfalls: [lessons
   seaHaze·thin)·hazeT)`, `hazeT` from the mirror depth where the ray lands, `thin` takram's 1 km
   scale height averaged over the rise R.y·t, uniforms from `seaHaze.ts` `reflectionExtinction`.
   It fades toward `skyReflected` (the cube along R): land lost in haze leaves the sky reflection.
-  The sea haze's inscatter is weighted (1 − T)², matching takram (it mixes an opacity-scaled
-  colour by the opacity again); the air's (1 − T). Off: the `distant` cutoff, as 0.132.
+  Since 0.232 (`passes.hazeLinear`, tasks.md B1) the frame's sea haze is Koschmieder's (1 − T)
+  and the image fades by `1 − airT·seaT` to that one colour (before: the sea haze's share
+  (1 − T)², matching takram's double opacity, plus the air's 1 − T). Off: the `distant` cutoff, as
+  0.132. **Fresnel** (0.232, `passes.seaFresnelSky`, tasks.md A4) is taken at `skyNormal`, the
+  facet the sky ray reflects off, not the face-the-viewer N (NoV ≥ ~0.05 held F at ~0.78 within
+  ~3° of grazing): a calm sea reads 0.98–1.01 × F × sky within 1° of the horizon.
   **Shared with the shore (0.134):** the lookup, streaks and haze are `reflection.ts`
   `MIRROR_GLSL`; the terrain's water films (pools, runnels, swash, damp sand) call it from their
   own point and height, along a ray off their smooth surface, with their own roughness (pools

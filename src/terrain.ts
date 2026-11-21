@@ -1775,6 +1775,7 @@ export function createTerrain(params: SceneParams, camera: Camera): Mesh<BufferG
       planarProjInv: { value: new Matrix4() },
       reflectionAir: { value: new Vector3() },
       reflectionSeaHaze: { value: 0 },
+      reflectionHazeLinear: { value: params.debug?.passes?.hazeLinear === false ? 0 : 1 },
       sandAlbedo: { value: new Color(...coast.sand.albedo) },
       ...stoneUniforms(coast),
       runup: { value: coast.runup },

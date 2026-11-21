@@ -2,7 +2,8 @@
 // the haze off (aerial perspective and the sea haze; the clouds and their light
 // stay), probes each world point in both, and solves pixel = T·raw + w·H for the
 // haze colour H each point implies, under two weightings of the inscatter:
-// w = 1 − T (the textbook) and w = (1 − T)² (takram's sea haze mixes an
+// w = 1 − T (the textbook; the frame since 0.232) and w = (1 − T)² (before
+// 0.232, `passes.hazeLinear: false`: the sea haze mixed an
 // opacity-scaled colour by its opacity again). T is Koschmieder's (3.912/V,
 // with the air's colours: seaHaze.ts) over the camera → point distance. The
 // right weighting is the one that gives every point the same H. Use it before

@@ -757,7 +757,7 @@ export async function renderScene(
       : null
   const clouds =
     cloudAssets != null
-      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky, params.debug?.cloudFace === true, pass('cloudShadowCast'), params.debug?.shadowDump ?? null)
+      ? createClouds(camera, weather, textures, cloudAssets, worldToECEF, lightECEF, params.visibilityKm, cells, shelf, rolls, flashLit, townSky, params.debug?.cloudFace === true, pass('cloudShadowCast'), params.debug?.shadowDump ?? null, pass('hazeLinear'))
       : null
   // The sea haze off in the frame alone (the clouds stay, and the sky cube keeps
   // its haze): an object's unhazed colour under the same light (scripts/measure/haze.mjs).
@@ -1003,7 +1003,8 @@ export async function renderScene(
       rolls,
       flashLit,
       townSky,
-      pass('cloudShadowCast')
+      pass('cloudShadowCast'),
+      pass('hazeLinear')
     )
     if (params.debug?.nanTrace === true) cubeTrace.push({ after: 'clouds', ...scanCube(renderer, envTarget.texture, ENV_SIZE) })
   }

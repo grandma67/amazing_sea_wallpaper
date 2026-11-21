@@ -54,10 +54,6 @@ say how the cause was found.
   72 + 12 real days, so a class's typical brightness was tuned on the old whole-cube meter and only
   the spread is new (dusk facing the glow up to ~1.7 EV darker than before, facing away up to
   ~2.7 brighter). Not yet compared with photos per class.
-- **Sea haze fades as (1 − T)²** (measured in REFLECTION phase 4, 2003-03-11 `calm-islands`,
-  `haze.mjs`): takram mixes an inscatter already scaled by the opacity by the opacity again, so
-  mid-distance land is darker than Koschmieder's haze would leave it. The mirror image matches it
-  (`ocean.ts` `reflectionHaze`), so a fix must change both.
 - **Night frames** (found in SHADOWS phase 6, 2026-11-07; unchanged pending a decision, they touch
   all nights): the night white balance (`NIGHT_WHITE_BALANCE_K`, gains 0.67, 1.02, 1.77) turns
   moonlit white sand (raw 0.068, 0.060, 0.058) deep blue (exposed B/R 2.3); at ~4000 K and
@@ -106,17 +102,9 @@ say how the cause was found.
   sky: the airglow's, not the aurora's (`passes.aurora: false` keeps them; the mirror predicts
   them: `params.mjs --line --sky glow`). The 5 km N₂⁺ fringe (a single-layer feature in the march)
   leaves ~3% grain at the arcs' lower edge on Kp ≥ 5 nights.
-- **The sea near the horizon** (measured with `horizon.mjs`, 2003-03-11 broken, calm sea; causes
-  measured 2026-11-21): sea / (F × sky) is 0.62–0.77 within 1° of the horizon (1.0 expected on
-  calm water) and ~1 at 2°. Not the swell (0.01 m: same) nor the probe box (`--half 0`: same).
-  Two causes: (1) **Fresnel at the face-the-viewer normal**: `ocean.ts` takes `F = fresnel(NoV)`
-  after lifting N so NoV ≥ ~0.05, so F ≈ 0.78 within ~3° of grazing (0.92–0.97 there); with F from
-  the sky ray's own normal (`skyNormal`, tried and reverted) 0.3° reads 0.76 instead of 0.62, and
-  with `passes.seaHaze` off the sea matches the cube (3.69 vs 3.95 × sky; the rest is the lod-1.7
-  blur). (2) **The (1 − T)² sea haze** (above) takes the rest: raw 0.135 → hazed 0.109 at 0.3°.
-  Fixing (1) brightens every sea within ~3° of the horizon ~20%: a decision.
 - **The sky cube's clouds are too bright higher up** (measured 2026-11-21): cube / frame sky at
-  +4° is 1.32 (broken) and 1.35 (overcast), 1.76 at +8° overcast; 1.0 at ≤ 1°. Cause: the cube's
+  +4° is 1.32 (broken) and 1.35 (overcast), 1.76 at +8° overcast; 1.0 at ≤ 1° (1.21 at +4°
+  broken since 0.232's haze; the calm sea follows the cube there, sea/(F·sky) 1.25). Cause: the cube's
   `medium` preset has no `lightShafts` (takram's cloud-shadowed inscatter), and the shafts need
   the main frame's frame count to converge: shafts + full frames give 1.08 / 1.21 (+4° / +8°),
   `high` + full frames 1.05 / 1.09; shafts alone 1.25, full frames alone 1.33,

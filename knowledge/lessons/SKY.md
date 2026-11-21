@@ -46,10 +46,13 @@ takram sky, clouds and post; night sky; storms and sky objects. How it works: ar
   sand under a dimmed sun goes purple.
 - Haze lit by the clear-sky horizon glows under a storm deck: scale it by the light the clouds let
   through, with a floor (storm 0.06, overcast 0.3).
-- **A haze added beside takram's must match takram, not the textbook:** it mixes a colour already
-  scaled by the opacity by the opacity again, so inscatter goes as (1 − T)². Measure with `haze.mjs`
-  before trusting a formula; probe by world point and check `covered by` (a guessed pixel on a palm
-  frond once "proved" the textbook weighting).
+- **A haze added beside takram's must match the frame, measured:** until 0.232 our sea-haze patch
+  scaled the colour by the opacity and takram mixed it by the opacity again, so inscatter went as
+  (1 − T)²; the mirror copied it (REFLECTION phase 4), and the darker mid-distance land stood as a
+  known issue for weeks. Now Koschmieder's (1 − T) (`passes.hazeLinear`). When a measurement shows
+  a renderer departing from the textbook, fix the renderer if the textbook is physics, rather than
+  matching the error. Measure with `haze.mjs`; probe by world point and check `covered by` (a guessed
+  pixel on a palm frond once "proved" the textbook weighting).
 - Transparent or dithered meshes don't composite with clouds/aerial perspective (they only see the
   depth buffer).
 - postprocessing: `EffectComposer.setSize()` resizes the renderer (restore after side composers);

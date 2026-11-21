@@ -141,7 +141,7 @@ const HORIZON_INSCATTER = `  // A long path through haze takes the colour of the
     0.0,
     sunDirection,
     skyTransmittance
-  ) * hazeLight * hazeTint * transmittance;`
+  ) * hazeLight * hazeTint * (hazeLinear ? 1.0 : transmittance);`
 
 /** Light reaching the haze under today's clouds, as a fraction of the clear
  * sky's: the sun where it gets through, else the grey sky, which is dim under
@@ -180,7 +180,7 @@ export function hazeTint(weather: Pick<WeatherParams, 'dust'>): RGB {
 }
 
 /** Give the clouds pass sea haze of the given visibility (m). */
-export function applySeaHaze(clouds: CloudsEffect, visibilityM: number, weather: WeatherParams): void {
+export function applySeaHaze(clouds: CloudsEffect, visibilityM: number, weather: WeatherParams, linear = true): void {
   const material = clouds.cloudsPass.currentMaterial
   const source = material.fragmentShader
   if (!source.includes(MODULATION) || !source.includes(INSCATTER)) {
@@ -189,10 +189,15 @@ export function applySeaHaze(clouds: CloudsEffect, visibilityM: number, weather:
   material.fragmentShader = source
     .replace(MODULATION, 'float modulation = 1.0;')
     .replace(INSCATTER, HORIZON_INSCATTER)
-    .replace('vec4 approximateHaze(', 'uniform float hazeLight;\nuniform vec3 hazeTint;\nuniform bool hazeFromHorizon;\nvec4 approximateHaze(')
+    .replace('vec4 approximateHaze(', 'uniform float hazeLight;\nuniform vec3 hazeTint;\nuniform bool hazeFromHorizon;\nuniform bool hazeLinear;\nvec4 approximateHaze(')
   material.uniforms.hazeLight = new Uniform(hazeLight(weather))
   material.uniforms.hazeTint = new Uniform(new Vector3(...hazeTint(weather)))
   material.uniforms.hazeFromHorizon = new Uniform(weather.dust != null)
+  // takram composites mix(colour, haze.rgb, opacity); its inscatter (and the
+  // patch above) is already × the opacity (`transmittance` there is 1 − T),
+  // so land faded as (1 − T)², not Koschmieder's (1 − T) (tasks.md B1,
+  // scripts/measure/haze.mjs). On: the colour alone, mixed once.
+  material.uniforms.hazeLinear = new Uniform(linear)
   material.needsUpdate = true
   clouds.haze = true
   clouds.clouds.hazeDensityScale = seaHazeExtinction(visibilityM)

@@ -154,7 +154,9 @@ export function createClouds(
   /** False (debug.passes.cloudShadowCast): no layer casts into the cloud shadow map. */
   castShadow = true,
   /** debug.shadowDump: a GLSL vec4 written raw into the shadow map (cloudShadowPatch.ts). */
-  shadowDump: string | null = null
+  shadowDump: string | null = null,
+  /** False (debug.passes.hazeLinear): the sea haze fades as (1 − T)², as before 0.232. */
+  hazeLinear = true
 ): CloudsEffect {
   const clouds = new CloudsEffect(camera)
   Object.assign(clouds, textures)
@@ -239,7 +241,7 @@ export function createClouds(
   // The towns light the clouds from below at night (nightGlow.ts).
   if (town != null) patchCloudsTownLight(clouds.cloudsPass.currentMaterial, town)
   if (face) patchCloudFace(clouds.cloudsPass.currentMaterial)
-  applySeaHaze(clouds, visibilityKm * 1000, weather)
+  applySeaHaze(clouds, visibilityKm * 1000, weather, hazeLinear)
   // No temporal history: our frames are averaged afterwards (accumulate.ts).
   // takram's TAA reprojects the light-shaft buffer through scene depth and
   // clips it to each pixel's neighbourhood, so near a silhouette the short,
@@ -288,7 +290,8 @@ export function renderCloudyEnvironment(
   rolls: RollSky | null = null,
   flash: FlashSky | null = null,
   town: TownSky | null = null,
-  castShadow = true
+  castShadow = true,
+  hazeLinear = true
 ): void {
   const size = target.width
   // EffectComposer.setSize also resizes the renderer; restore it afterwards.
@@ -332,7 +335,7 @@ export function renderCloudyEnvironment(
     Object.assign(aerialPerspective, textures)
     aerialPerspective.worldToECEFMatrix.copy(worldToECEF)
     aerialPerspective.sunDirection.copy(lightECEF)
-    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells, shelf, rolls, flash, town, false, castShadow)
+    const clouds = createClouds(faceCamera, weather, textures, cloudAssets, worldToECEF, lightECEF, visibilityKm, cells, shelf, rolls, flash, town, false, castShadow, null, hazeLinear)
     clouds.qualityPreset = 'medium'
     clouds.temporalUpscale = false
     clouds.events.addEventListener('change', event => {

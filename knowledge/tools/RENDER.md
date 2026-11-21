@@ -267,7 +267,8 @@ node scripts/measure/haze.mjs --scene $SP/day.json --points '[[841.2,40.9,2693.5
 ```
 
 Two renders, ~1 min. Points at least two distances apart; under ~100 m high (T assumes the haze's
-sea-level density). 2003-03-11 (V 32 km): takram's sea haze fades with (1 − T)², to ≈ the frame's
+sea-level density). 2003-03-11 (V 32 km): the sea haze fades with (1 − T) since 0.232 (H green
+0.128 / 0.137 at 2.9 / 7.5 km; (1 − T)² before, `passes.hazeLinear: false`), to ≈ the frame's
 horizon sky (`--sky` prints it for reference).
 
 ## `scripts/measure/horizon.mjs`: does the sea reflect the sky it should?
