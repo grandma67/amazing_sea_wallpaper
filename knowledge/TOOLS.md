@@ -294,6 +294,9 @@ minutes (dep optimisation).
   `-P`), so a script can't import a sibling module: keep each Python script one file (the tide
   gauge generator was two, and its documented command failed with `No module named 'places'`).
 - **Patching with a heredoc:** in `<<'EOF'` nothing is unescaped, so `\`` stays a backslash and backtick in the file. In `<<EOF` it's the reverse: `$` and backticks run. Use `<<'EOF'` and write backticks plain.
+- **A temporary `console.warn('DBG …')` in the render does reach `snapshot.mjs`** (worker and all:
+  `[browser warning] DBG …`; `console.log` doesn't). No line means the code didn't run: check the
+  condition first (D11's probe printed nothing because no texel met it, which was the bug).
 - Vitest hides `console.log` from passing tests: `--silent=false`, or `process.stderr.write(…)` in
   a throwaway probe test (deleted afterwards). Better: probe with `params.mjs` (`p.ctx`, `src.X`).
 - `sips --cropOffset` silently returns the whole image here; system Python has no PIL (`.venv-skins/bin/python` has, after `npm run skins`): crop with
