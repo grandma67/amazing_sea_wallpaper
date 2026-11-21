@@ -415,6 +415,21 @@ function printExpect(places) {
   for (const [v, w] of [...counts].sort((a, b) => b[1] - a[1])) console.log(`${(100 * w / total).toFixed(1).padStart(6)}%  ${v}`)
 }
 
+// Prop kinds are props/index.ts's add('kind', …) names: an unknown one is
+// an error, not a silent "nothing placed" (tasks.md checks: `iceberg` for
+// `ice`, `seaStacks` for `rocks`, 2026-11-21).
+{
+  const kinds = [...(await readFile(resolve('src/props/index.ts'), 'utf8')).matchAll(/add\('([a-z-]+)'/g)].map(m => m[1])
+  for (const [flagName, value] of [['count', countArg], ['find', findArg], ['project', projectArg]]) {
+    if (value == null || value === 'all') continue
+    const unknown = value.split(',').filter(k => !kinds.includes(k.split('/')[0]))
+    if (unknown.length > 0) {
+      console.error(`--${flagName}: unknown prop kind ${unknown.join(', ')}. Kinds (src/props/index.ts): ${[...new Set(kinds)].join(', ')}`)
+      process.exit(1)
+    }
+  }
+}
+
 const here = await load(process.cwd())
 // Expressions that name `src.X` or `props.X` get this tree's modules
 // (src/X.ts, src/props/X.ts) as globals, loaded up front (they're async to
@@ -586,6 +601,8 @@ if (findArg != null) {
       const ranked = []
       // --sample N: N of the kept days, spread as for the date list (props cost ~1 s a day).
       const kept = dates.map(d => here.day(d, spec)).filter(p => keep(p))
+      // Over the test years without --sample this ran > 10 minutes silently (2026-11-21).
+      if (sample === 0 && kept.length > 100) console.error(`--find: ${kept.length} days at ~0.5–1 s each (props built per day): ~${Math.round(kept.length * 0.7 / 60)} min; --sample N or --where to cut it`)
       for (const p of sample > 0 ? spreadSample(kept, fn(spreadArg), sample) : kept) {
         const { camera, pixelAngle } = p.ctx
         const group = createProps(p.ctx)

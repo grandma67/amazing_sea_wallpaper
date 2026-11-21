@@ -131,7 +131,9 @@ piece per sprite at its drawn size (`size / (dist · pixelAngle)`, as the shader
 px; sprites don't hide other pieces. `--rank visible` (default; then nearest) | `px` (largest
 piece) | `height` (box px) | `above` (box top above the horizon) orders the best days: "where does
 the spray rise above the horizon" is `--find surf --rank above` (built after D37 hand-built three
-specs for it). `--by` works with `--find` too, and `--sample N [--spread]` builds N of the
+specs for it). Kinds are `props/index.ts`'s names (`ice`, not `iceberg`; sea stacks are `rocks`): an
+unknown one stops with the list (`--count`, `--project` too); over 100 days without `--sample` it says
+how long it will take first (all test years: ~10 min). `--by` works with `--find` too, and `--sample N [--spread]` builds N of the
 `--where` days, spread, instead of all (the props cost ~1 s a day).
 
 ```sh

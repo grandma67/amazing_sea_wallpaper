@@ -19,8 +19,9 @@ node scripts/render/snapshot.mjs --out $SP/feat --frames 16 --props all --crop i
   `--w 320 --h 180 --frames 1` first (GLSL errors show only at render time).
 - Saves `NAME.jpg` and `NAME.json`: the day's params at the top level (`date`, `title`,
   `timeOfDay`, `place`, `coast`, `weather`, …), and the render's numbers under **`debug`**
-  (`j.debug.X`, not `j.X`): `exposure`, `sceneLuminance`, `skyZenith` (clear-sky zenith, render
-  units), `sunIrradiance`, `skyIrradiance`, `cloudSkylight`, `nightScale`, `shadowCoverage`,
+  (`j.debug.X`, not `j.X`): `exposure` (× the frame meter's boost: ÷ `frameBoost` for the
+  metered exposure), `sceneLuminance`, `skyZenith` (clear-sky zenith, render
+  units; before 0.231 a whole-cube average, ~3× by day), `sunIrradiance`, `skyIrradiance`, `cloudSkylight`, `nightScale`, `shadowCoverage`,
   `fineShadowTexelM`, `skyOpenLeast`, `frameMedian`, `frameBoost`, `shutterSeconds`, `longExposure`, `cubeSkylight`, `cameraGroundM`, `props`, `propTimes` (CPU ms per kind, plus
   `sky-open`). `DEBUG=1` also prints `debug`. One field: `node -e "console.log(require('./out/NAME.json').debug.exposure)"`.
   Otherwise a temporary `console.warn('DBG …')` (snapshot echoes page and worker console errors
@@ -171,6 +172,7 @@ Checks every spec first (a bad field fails before any render), then renders each
 changed, pixel box (98% of the change), mean/max Δ and brighter/darker, plus `NAME.diff.jpg`
 (off | on cropped, diff ×8 below). `⚠ invisible` (< 0.01%) means not placed, out of frame,
 hidden (cloud layer, geometry) or too faint: fix that before looking. ~6 s/spec at 960×540.
+Each render's line streams as it lands (`[diff] off 3/72 …`), so a long run shows progress.
 
 ```sh
 node scripts/render/diff.mjs --scene $SP/specs.json --off '{"contrails":null}' --out $SP/contrails --w 960 --h 540 --frames 16
@@ -321,6 +323,24 @@ n, min, p25, median, p75, max per `--by` group; anything else: how many of each 
 every render by value. A render the expression throws on is named, not dropped silently. Use it
 instead of `node -e` loops over JSON files: phase 6 of SHADOWS.md measured 173 renders' medians this
 way to choose its floors.
+
+## `scripts/measure/ev.mjs`: how far did a change move the exposure?
+
+```sh
+node scripts/render/diff.mjs --where 'p => true' --sample 72 --spread 'p => p.timeOfDay' \
+  --off '{"params":{"debug":{"passes":{"meterAim":false}}}}' --w 320 --h 180 --frames 1 --out $SP/tune
+node scripts/measure/ev.mjs $SP/tune          # or --a DIR --b DIR; --by 'j => …'; --each
+# group                n   EV median    min    max   after boost: median    min    max   lifted before/after
+# blue-hour           12       -1.63  -3.32  +1.11                 -1.63  -3.32  +1.11   0/0
+```
+
+Per group (time of day, moonlit/starlit at night): the EV change log2(after/before exposure),
+median, min, max, before the frame meter's boost (`debug.exposure ÷ debug.frameBoost`) and after
+it, and how many frames the boost lifted. For re-tuning an exposure term so each class keeps its
+median (D11, 0.231: `meterAimBias` keeps the pre-boost median; the frame meter acts on top as
+before). The boost lifts dark frames non-linearly, so a correction read off the after-boost median
+misses (golden hour came out −0.3 EV, sun on horizon −0.9).
+Exposure doesn't depend on size or frames: 320×180, 1 frame, ~2 s a render.
 
 ## `scripts/render/bench.mjs`: speed
 

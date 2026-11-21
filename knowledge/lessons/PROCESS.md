@@ -117,6 +117,16 @@ How to work and how to debug: read this one on every task. Other topics: [LESSON
 - **No tool for "where does this effect show?" (D37):** scene specs were hand-built three times (a
   close lighthouse, a burst above the horizon, cloud-shaded crests). `params.mjs --find KIND --rank
   above|height|px` now ranks days by the effect's on-screen box (sprites at their drawn size).
+- **Cheap checks, nine at once (A4–D41, 2026-11-21, ~40 renders):** what cost time beyond the
+  renders: a spec a task named (`stacks-shoreline`) was never saved, so it was rebuilt from notes:
+  **a spec a task or known issue names goes into `scenes/` the session it's made**. Two cloud
+  settings tried blind before reading the difference between takram's presets (it named light
+  shafts at once): **diff the two configurations' settings before trying variants**. D10's probes
+  guessed pixels and landed on wet sand: probe by world point or check the water view first. Kind
+  names guessed (`iceberg`) gave a silent "nothing placed" (now an error), a `--find` over all days
+  ran 10 minutes (now warned), and long waits blocked the session: start long runs in the
+  background and work on something that doesn't touch `src/` meanwhile (the dev server serves
+  edits live, so a `src/` edit mid-run changes the renders).
 - **Long outputs: summary last, saved to a file** (`bench.mjs` table, `params.mjs` "… N more not
   shown"): a `| tail` that cuts the table off costs a full re-run.
 

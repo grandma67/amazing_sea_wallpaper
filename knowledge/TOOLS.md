@@ -10,7 +10,7 @@ Scripts by folder (`scripts/`; run from the repo root, they spawn each other by 
 |---|---|
 | `scene/` | no-render questions: `params.mjs`, `profile.mjs`, `animals.mjs`, `plant-near.js` (a `--stats` expression) |
 | `render/` | headless renders and their comparison: `snapshot.mjs` (+ `checks.mjs`, its warnings), `diff.mjs`, `bench.mjs`, `show.mjs`, `contact-sheet.mjs`, `mesh.mjs`, `restart.mjs` |
-| `measure/` | numbers off renders: `haze.mjs`, `horizon.mjs`, `parity.mjs` (render and solve), `edges.mjs`, `rows.mjs`, `summary.mjs` (read saved renders or photos) |
+| `measure/` | numbers off renders: `haze.mjs`, `horizon.mjs`, `parity.mjs` (render and solve), `edges.mjs`, `rows.mjs`, `summary.mjs`, `ev.mjs` (read saved renders or photos) |
 | `assets/` | builders of committed data: `asset.mjs` (+ `assetBake.mjs`, `asset-*.json`), `skins.mjs` → `skinBake.py`, `milkyway.mjs`, `tideGauges.py` |
 | `ci/` | the published site: `ciDay.mjs`, `dailyArchive.mjs` |
 | `dev/` | the repo itself: `doc.mjs`, `testTimes.mjs`, `importReach.py` |
@@ -50,6 +50,7 @@ A `.d.mts` beside a script types it for the tests that import it.
 | Triangles a prop draws (× its instances), before building more on it | `params.mjs --count KIND` (no render), `snapshot.mjs --props` | [tools/PARAMS.md](tools/PARAMS.md) |
 | Many renders in one image; zoom into one | `contact-sheet.mjs` | [tools/RENDER.md](tools/RENDER.md) |
 | A number over a folder of renders (median, quartiles by group; or counts) | `summary.mjs DIR 'j => j.debug.X' --by 'j => …'` | [tools/RENDER.md](tools/RENDER.md) |
+| How far a change moved exposure, per time of day (re-tuning) | `ev.mjs DIFF_OUT` | [tools/RENDER.md](tools/RENDER.md) |
 | Which pass, term or grid causes a look | `params.debug` switches and views | [tools/DEBUG.md](tools/DEBUG.md) |
 | How bright or what colour is X in the render (raw, cd/m², mag/″², final RGB) | `params.debug.probe` | [tools/DEBUG.md](tools/DEBUG.md) |
 | An object and its mirror image on the sea, by world point (not a guessed pixel) | `params.mjs --project KIND --above M` → probe `{world}` / `{mirror}` | [tools/PARAMS.md](tools/PARAMS.md), [tools/DEBUG.md](tools/DEBUG.md) |

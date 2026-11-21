@@ -40,7 +40,7 @@
 // A box more than 4 × as wide as high (a band along the shore) is cut into tiles ~4 × as
 // wide as high, stacked top to bottom and enlarged to ~160 px a row (the line says so).
 
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { chromium } from 'playwright'
@@ -120,14 +120,38 @@ if (sceneArg != null) {
   // --off-here: this tree carries the patch, the ref renders the specs as they are.
   // --off-both: both sides carry it.
   await writeFile(join(outDir, 'on.json'), JSON.stringify(offHere || offBoth ? named.map(s => merge(s, off)) : named))
-  const snapshot = (dir, file) => {
-    const atRef = refArg != null && file === 'off.json' ? ['--ref', refArg] : []
-    const run = spawnSync('node', ['scripts/render/snapshot.mjs', '--out', dir, ...render, ...atRef, '--scene', join(outDir, file)], { encoding: 'utf8' })
-    process.stdout.write(run.stdout.split('\n').filter(l => /\.jpg|⚠|rror|left out/.test(l)).map(l => `${l}\n`).join(''))
-    // snapshot.mjs says why on stdout too ("dev server not reachable…"): show both.
-    if (run.status !== 0) throw new Error(`snapshot.mjs failed:\n${[run.stdout.trim().split('\n').slice(-8).join('\n'), run.stderr.trim()].filter(Boolean).join('\n')}`)
-  }
-  if (onFirst) snapshot(dirB, 'on.json')
+  // Streamed, so a long run shows each render as it lands ([diff] off 3/72 …):
+  // a buffered 144-render run looked hung for minutes (2026-11-21).
+  const snapshot = (dir, file) =>
+    new Promise((done, fail) => {
+      const side = file === 'off.json' ? 'off' : 'on'
+      const atRef = refArg != null && side === 'off' ? ['--ref', refArg] : []
+      const child = spawn('node', ['scripts/render/snapshot.mjs', '--out', dir, ...render, ...atRef, '--scene', join(outDir, file)])
+      let stdout = ''
+      let stderr = ''
+      let pending = ''
+      let count = 0
+      child.stdout.setEncoding('utf8')
+      child.stderr.setEncoding('utf8')
+      child.stdout.on('data', chunk => {
+        stdout += chunk
+        const lines = (pending + chunk).split('\n')
+        pending = lines.pop()
+        for (const l of lines) {
+          if (/\.jpg/.test(l)) count++
+          if (/\.jpg|⚠|rror|left out/.test(l)) process.stdout.write(`${/\.jpg/.test(l) ? `[diff] ${side} ${count}/${named.length} ` : ''}${l}\n`)
+        }
+      })
+      child.stderr.on('data', chunk => (stderr += chunk))
+      child.on('error', fail)
+      child.on('close', status => {
+        if (pending !== '' && /\.jpg|⚠|rror|left out/.test(pending)) process.stdout.write(`${pending}\n`)
+        // snapshot.mjs says why on stdout too ("dev server not reachable…"): show both.
+        if (status !== 0) fail(new Error(`snapshot.mjs failed:\n${[stdout.trim().split('\n').slice(-8).join('\n'), stderr.trim()].filter(Boolean).join('\n')}`))
+        else done()
+      })
+    })
+  if (onFirst) await snapshot(dirB, 'on.json')
   const offSpecs = await Promise.all(
     named.map(async s => {
       const spec = offHere ? s : merge(s, off)
@@ -141,8 +165,8 @@ if (sceneArg != null) {
     })
   )
   await writeFile(join(outDir, 'off.json'), JSON.stringify(offSpecs))
-  snapshot(dirA, 'off.json')
-  if (!onFirst) snapshot(dirB, 'on.json')
+  await snapshot(dirA, 'off.json')
+  if (!onFirst) await snapshot(dirB, 'on.json')
 }
 if (dirA == null || dirB == null) throw new Error('give --scene SPECS --off PATCH, or --a DIR --b DIR')
 
