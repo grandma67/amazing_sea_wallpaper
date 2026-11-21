@@ -16,22 +16,27 @@ import {
   starScale,
   STARLIT_LUX,
   STARLIT_ZENITH,
-  SUN_TOA
+  STARLIT_ZENITH_BEFORE_METER_AIM,
+  SUN_TOA,
+  useStarlitZenith
 } from '../src/starLight'
 import { allParams, scenes } from './days'
 
 // NIGHT_SKY phase 2: stars in the sky's own units.
 
 /** takram's clear-sky zenith luminance (render units) by sun elevation,
- * measured with debug.skyZenith on 2026-08-12 (`timeOfDay` forced). */
+ * measured with debug.skyZenith on 2026-08-12 (`timeOfDay` and
+ * `sunElevationDeg` forced, stars and glow off); re-measured 2026-11-21
+ * after the meter's directions were fixed (0.231: it had read the whole
+ * cube's average; the cube's own zenith probe agrees to −8°). */
 const ZENITH: Record<number, number> = {
-  15: 1.856e-2,
-  0: 2.132e-3,
-  [-2]: 7.388e-4,
-  [-4]: 1.382e-4,
-  [-6]: 1.415e-5,
-  [-8]: 6.378e-7,
-  [-10]: 7.45e-8
+  15: 1.089e-2,
+  0: 2.298e-3,
+  [-2]: 7.86e-4,
+  [-4]: 1.396e-4,
+  [-6]: 1.316e-5,
+  [-8]: 4.136e-7,
+  [-10]: 6.801e-8
 }
 /** One pixel at 1080p with a 50° vertical field. */
 const PIXEL_SR = ((50 * Math.PI) / 180 / 1080) ** 2
@@ -94,12 +99,23 @@ describe('star light', () => {
     for (let i = 1; i < limits.length; i++) expect(limits[i]).toBeLessThan(limits[i - 1])
     // The limit follows the moon's light magnitude for magnitude.
     expect(limits[0] - limits[5]).toBeCloseTo(-2.5 * Math.log10(phaseLight(30) / phaseLight(180)), 6)
-    // Moonless is ~3 magnitudes deeper than a full moon. A noise-free render
-    // reaches past the catalogue (~6.5) on both: the exposure and the
-    // display hide the faint ones under a bright moon.
+    // Moonless is over 2 magnitudes deeper than a full moon 15° up (its
+    // zenith reads 19.35 mag/arcsec² against 21.6; 2.8 before 0.231, when
+    // ZENITH[15] was the meter's whole-cube average, 1.7× the zenith). A
+    // noise-free render reaches past the catalogue (~6.5) on both: the
+    // exposure and the display hide the faint ones under a bright moon.
     const dark = limitingMagnitude(starScale('starlit', 0), STARLIT_ZENITH, PIXEL_SR)
-    expect(dark - limits[5]).toBeGreaterThan(2.5)
+    expect(dark - limits[5]).toBeGreaterThan(2)
     expect(limits[5]).toBeGreaterThan(CATALOGUE_LIMIT)
+  })
+
+  it('takes the starlit units from the fixed meter, the old ones with passes.meterAim off', () => {
+    // tasks.md D11 (0.231): the old value was the whole cube's average.
+    expect(renderPerLux('starlit', 0)).toBeCloseTo(STARLIT_ZENITH / darkZenithLuminance(), 9)
+    useStarlitZenith(false)
+    expect(renderPerLux('starlit', 0)).toBeCloseTo(STARLIT_ZENITH_BEFORE_METER_AIM / darkZenithLuminance(), 9)
+    useStarlitZenith(true)
+    expect(STARLIT_ZENITH_BEFORE_METER_AIM / STARLIT_ZENITH).toBeGreaterThan(2)
   })
 
   it('scales the moon’s units with its phase', () => {

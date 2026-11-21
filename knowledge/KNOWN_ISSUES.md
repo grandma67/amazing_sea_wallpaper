@@ -49,15 +49,11 @@ say how the cause was found.
   red" sand was closed 2026-11-21: the camera moved in 0.200–0.202; at HEAD the dry sand in cloud
   shadow reads raw 0.0142, 0.0143, 0.0163 against ~0.012 predicted, and 0.090, 0.060, 0.040 with
   `passes.cloudShade` off; the old probe was on wet sand.)
-- **The exposure meter is a whole-cube average** (measured 2026-11-21, D11): `meterScene`
-  (`exposure.ts`) computes each texel's direction as `unproject(faceCamera).sub(faceCamera.position)`:
-  a **world** point ~0.2 m out minus the face camera's **local** position (0, 0, 0), so every
-  direction is ≈ the camera's world position, straight up. No texel counts as in view (`luminance`
-  falls back to `upperAverage`, the whole cube) and "zenith" is the whole cube too (0.074 vs the
-  cube's 0.023 at a 60° sun; 0 texels found at 20° elevation of 6 144). There since the first
-  commit (7c07828). With `.sub(camera.position)` (tried, reverted) the zenith reads 0.0230 and the
-  exposure moves: clear 60° sun +0.84 EV, 2024-07-12 +0.61, 2024-06-26 −0.98, 2024-04-24 −0.09,
-  2024-02-12 −0.27. The EV biases and the frame meter were tuned on the bug: a decision.
+- **Exposure re-tuned by class medians** (0.231, D11): the meter reads the sky in frame now; the
+  per-time-of-day corrections (`scene.ts` `meterAimBias`) hold each class's median exposure over
+  72 + 12 real days, so a class's typical brightness was tuned on the old whole-cube meter and only
+  the spread is new (dusk facing the glow up to ~1.7 EV darker than before, facing away up to
+  ~2.7 brighter). Not yet compared with photos per class.
 - **Sea haze fades as (1 − T)²** (measured in REFLECTION phase 4, 2003-03-11 `calm-islands`,
   `haze.mjs`): takram mixes an inscatter already scaled by the opacity by the opacity again, so
   mid-distance land is darker than Koschmieder's haze would leave it. The mirror image matches it

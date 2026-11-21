@@ -221,10 +221,15 @@ them with `grep -rnE "Record<(Biome\['name'\]|BiomeName)|biome\.name|biome === '
   → [probe] → bloom, vignette, AgX, saturation, contrast. Anything a feature adds goes through
   all of it: test colour and brightness with the probe (tools/DEBUG.md), not the shader output.
 - **Exposure** is metered from the reflection cube's sky (`exposure.ts` `meterScene` over the
-  env scene: 32² cube), not the frame. So everything patched into the env sky (night glow,
-  aurora) moves the whole frame's exposure; stars and the aurora are hidden while metering (a
-  photographer exposes for the scene, not for a display out of frame). Then × `nightScale`,
-  `evBias` by time of day, eclipse and gloom terms; `params.debug.exposure` fixes it.
+  env scene: 32² cube), not the frame: the texels whose direction is in the camera's view (sky
+  above the dipped horizon; the sea as 0.12 × the upper hemisphere's average). So everything
+  patched into the env sky (night glow, aurora) moves the whole frame's exposure; stars and the
+  aurora are hidden while metering (a photographer exposes for the scene, not for a display out of
+  frame). Then × `nightScale`, `evBias` by time of day, `meterAimBias` (per time of day and
+  moonlit/starlit, keeping each class's median from before 0.231, when a direction bug made the
+  meter read the whole cube: tasks.md D11, `passes.meterAim`), eclipse and gloom terms;
+  `params.debug.exposure` fixes it. `debug.skyZenith` is the mean of the texels within 3.6° of
+  the zenith (= the cube's zenith probe since 0.231).
 - `camera.ts` (pitch from `skyFrame.ts` `cameraPitch`, the same projection the choices use);
   `composition.ts` (ray-grid coverage, re-rolls bad framings; `frameView`: eye
   height, pixel angle and nearest ground in frame, for `params.mjs` `p.view`); `reflection.ts`

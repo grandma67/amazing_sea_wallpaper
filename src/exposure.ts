@@ -30,7 +30,12 @@ export function meterScene(
   skyScene: Scene,
   camera: PerspectiveCamera,
   horizonDip: number,
-  seaReflectance = SEA_REFLECTANCE
+  seaReflectance = SEA_REFLECTANCE,
+  /** Each texel's direction from the cube's centre (false: from the world
+   * origin, as before 0.231: every direction ≈ straight up, so the meter read
+   * the whole cube's average and "zenith" a height-dependent part of it;
+   * tasks.md D11, `passes.meterAim`). */
+  aim = true
 ): Metered {
   const target = new WebGLCubeRenderTarget(SIZE, { type: FloatType })
   const cubeCamera = new CubeCamera(0.1, 400_000, target)
@@ -66,7 +71,8 @@ export function meterScene(
         direction
           .set(u, v, 0.5)
           .unproject(faceCamera)
-          .sub(faceCamera.position)
+          // unproject gives a world point; faceCamera.position is local (0).
+          .sub(aim ? cubeCamera.position : faceCamera.position)
           .normalize()
 
         const i = (y * SIZE + x) * 4

@@ -180,7 +180,9 @@ How the sky code works. What is drawn where and how often: [CLOUDS.md](../CLOUDS
   **Stars** (`starLight.ts`, `stars.ts`, NIGHT_SKY phase 2) carry their real light whenever the
   sun is down: irradiance `starScale × 10^(−0.4 m)` in render units (one unit ≈ 75,700 lux; the
   light drawn at the sun's strength is the sun, the moon at its phase, or on starlit nights a
-  stand-in whose zenith, `STARLIT_ZENITH`, is taken as 21.6 mag/arcsec²), × the air's
+  stand-in whose zenith, `STARLIT_ZENITH` (0.0309, measured with the fixed meter in 0.231; 0.0653
+  before, the whole cube's average, which drew stars, airglow and town light 2.1× too bright for
+  the sky), is taken as 21.6 mag/arcsec²), × the air's
   transmittance, spread over a lens point spread (Gaussian core σ 0.6 px at 1080p, 4% halo for
   stars brighter than 2.5; `psfWeight` mirrors the GLSL), ÷ the pixel's solid angle (cos³ off
   axis), added to the sky (additive, so sky patches stay under them); the same in the

@@ -36,8 +36,19 @@ export const ARCSEC2_SR = (Math.PI / (180 * 3600)) ** 2
 /** A Bortle-2 zenith (STARS.md §1): the moonless sky we calibrate on. */
 export const DARK_ZENITH_MAG = 21.6
 /** Rendered zenith luminance of the starlit night's sky (the fake sun at
- * `STARLIT_LIGHT`), measured with `debug.skyZenith` (2026-11-03). */
-export const STARLIT_ZENITH = 0.0653
+ * `STARLIT_LIGHT`), measured with `debug.skyZenith` (2026-11-21, stars and
+ * glow off; the cube's own zenith probe reads 0.0312). */
+export const STARLIT_ZENITH = 0.0309
+/** What `debug.skyZenith` read before the meter's directions were fixed
+ * (0.231, tasks.md D11): the whole cube's average, not the zenith. Kept for
+ * `passes.meterAim` off, which gives back the old image. */
+export const STARLIT_ZENITH_BEFORE_METER_AIM = 0.0653
+let starlitZenith = STARLIT_ZENITH
+/** The starlit zenith the render units use: per render (scene.ts), from
+ * `passes.meterAim`. */
+export function useStarlitZenith(meterAim: boolean): void {
+  starlitZenith = meterAim ? STARLIT_ZENITH : STARLIT_ZENITH_BEFORE_METER_AIM
+}
 /** Light on the ground on a clear moonless night: airglow and starlight
  * (STARS.md §1, "Light on the ground"). */
 export const STARLIT_LUX = 0.002
@@ -48,7 +59,7 @@ export const STARLIT_LUX = 0.002
  * totality each render unit is that much less real light, and the sky,
  * clouds and haze come out as dim as the eclipsed moon makes them. */
 export function renderPerLux(night: 'moonlit' | 'starlit' | null, elongationDeg: number, eclipseDim = 1): number {
-  if (night === 'starlit') return STARLIT_ZENITH / darkZenithLuminance()
+  if (night === 'starlit') return starlitZenith / darkZenithLuminance()
   // The light drawn at the sun's strength is really the sun, or the moon.
   const light = night === 'moonlit' ? 10 ** (-0.4 * (FULL_MOON_MAG - SUN_MAG)) * phaseLight(elongationDeg) * eclipseDim : 1
   return 1 / (light * RENDER_UNIT)

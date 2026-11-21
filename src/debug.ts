@@ -111,7 +111,7 @@ export interface ProbeLine {
   step?: number
 }
 
-export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'beamCandela', 'lanternGlass','frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze', 'wetMirror', 'skyRay', 'skyFold', 'wetRockBlur', 'boltMirror', 'stormShade', 'shelfShadow', 'boltMirrorClip', 'flashLight', 'flashShelf', 'lunarEclipseSky', 'softSpray', 'flashGround', 'townLight', 'cloudShadowCast', 'lichenFade'] as const
+export const DEBUG_PASSES = ['clouds', 'aerial', 'skyFill', 'bloom', 'reflection', 'shadows', 'cloudLight', 'cloudShade', 'skyOcclusion', 'softShadows', 'beamShadow', 'beamSweep', 'beamCandela', 'lanternGlass','frameMeter', 'nightSkylight', 'longExposure', 'stars', 'glow', 'meteors', 'aurora', 'auroraClouds', 'shortWaves', 'reflectionRay', 'reflectionStreaks', 'reflectionHaze', 'seaHaze', 'wetMirror', 'skyRay', 'skyFold', 'wetRockBlur', 'boltMirror', 'stormShade', 'shelfShadow', 'boltMirrorClip', 'flashLight', 'flashShelf', 'lunarEclipseSky', 'softSpray', 'flashGround', 'townLight', 'cloudShadowCast', 'lichenFade', 'meterAim'] as const
 export type DebugPass = (typeof DEBUG_PASSES)[number]
 import type { TerrainProbeSpec } from './terrainTerms'
 

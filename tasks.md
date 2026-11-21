@@ -54,7 +54,7 @@ Status: `[ ]` open, `[~]` started, `[x]` done.
 | D8 | No terrain shadows past ~470 m | none | | 1 |
 | D9 | Smaller rocky-shore issues (notches, boulder teeth, crest, bursts, speed, placement) | photos (crest) | | ½ each |
 | D10 | ~~Brittany sand less red~~ (camera moved; fine: done) | | | |
-| D11 | Exposure meter is a whole-cube average (measured) | none | yes | ½ |
+| D11 | ~~Exposure meter a whole-cube average~~ (0.231: done) | | | |
 | D12 | ~~2016-08-09 range invisible~~ (shows faintly: done) | | | |
 | D13 | Shelf cloud: ~~straight lip~~ (0.223: done); backlit sunset band, front-lit tiers left | photos | | ½ |
 | D14 | ~~Lunar eclipse sky ~10× too bright~~ (0.224: done) | | | |
@@ -603,7 +603,11 @@ Sources:
   switch `passes.cloudLight`, `passes.skyOcclusion` off in turn to find the term that greys it.
 - **Done when:** the cause measured; fixed or recorded. **Size:** ½.
 
-#### D11. [~] Meter zenith 3× the cube's
+#### D11. [x] Meter zenith 3× the cube's
+- **Fixed in 0.231** (`passes.meterAim`): the meter reads the sky in frame; `STARLIT_ZENITH`
+  0.0653 → 0.0309 (stars, airglow and town light were 2.1× too bright for the starlit sky); the
+  test's twilight zenith table re-measured; per-time-of-day `meterAimBias` keeps each class's median
+  exposure (72 + 12 real days, `scripts/measure/ev.mjs`).
 - **2026-11-21, cause measured, bigger than the stat:** `meterScene` builds each texel's direction
   as `unproject(faceCamera).sub(faceCamera.position)`: a world point minus the face camera's local
   (0, 0, 0), so every direction is ≈ straight up. "Zenith" = the whole cube's average, and no texel

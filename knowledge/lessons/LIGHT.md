@@ -6,6 +6,17 @@ Exposure, light and colours taken from photos. Other topics: [LESSONS.md](../LES
 
 - Auto exposure re-normalises: scaling the whole scene does nothing; change `exposure` (e.g.
   `nightScale`) or relative brightness.
+- **Check the instrument before calibrating on it (meter, 0.231, tasks.md D11):** `meterScene`
+  had turned every direction straight up since the first commit (`unproject` gives a world point;
+  it subtracted the face camera's *local* position), so it read the whole cube's average.
+  `STARLIT_ZENITH` and a test table were measured with its `skyZenith`, and stars, airglow and town
+  light stood 2.1× too bright for the starlit sky. A 3× gap between two meters of one sky (meter vs
+  cube) sat in KNOWN_ISSUES as "only a stat". Before measuring a constant with a debug stat,
+  compare the stat with an independent probe once (`cubeProbe` vs `skyZenith`).
+- **Re-tune by keeping a class's median (meter, 0.231):** a fix that moves every frame's exposure
+  ±1–3 EV keeps each time of day's median (`scripts/measure/ev.mjs` over ~72 real days spread by
+  time of day, switch on vs off), so years of by-eye tuning of the class stay and only the
+  per-day spread changes.
 - Post-exposure units: sky ≈ 0.1–1; > 40 clamps white (GradeEffect). Effects added after exposure in
   fixed units look equally strong by day and dusk: physical sources need fixed scene radiance ×
   exposure. A fixed-power light is set in candela and turned into render units by `renderPerLux`

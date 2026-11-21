@@ -91,7 +91,7 @@ import { setGlowBrightness } from './props/storm'
 import { setSprayDepth, setSprayLighting, type WaterIsland } from './props/surf'
 import { foldedSkyCube, renderPlanarReflection } from './reflection'
 import { apply, ECLIPTIC_POLE, skyRotation, sunECI } from './skyClock'
-import { darkZenithLuminance, eclipseDim, eclipseMoonShare, elongationDeg, PSF, renderPerLux, starScale, STARLIT_LUX } from './starLight'
+import { darkZenithLuminance, eclipseDim, eclipseMoonShare, elongationDeg, PSF, renderPerLux, starScale, STARLIT_LUX, useStarlitZenith } from './starLight'
 import { createStarsMaterial } from './stars'
 import { synthesizeOceanAsync } from './spectrum'
 import { SkyFillEffect, SpraySkyPass, StillScenePass } from './stillScene'
@@ -274,6 +274,8 @@ export async function renderScene(
   // The clouds pass also draws the sea haze: dust days need it under a clear sky.
   // Passes a debug spec switches off (debug.ts): on unless false.
   const pass = (name: DebugPass): boolean => params.debug?.passes?.[name] !== false
+  // The starlit night's render units, from the meter's (fixed) zenith.
+  useStarlitZenith(pass('meterAim'))
   const cloudAssetsLoaded =
     (params.weather.kind === 'clear' && params.weather.dust == null && params.rollCloud == null) || !pass('clouds') ? Promise.resolve(null) : loadCloudAssets()
   // The night sky's glow (nightGlow.ts) needs the Milky Way map.
@@ -619,7 +621,7 @@ export async function renderScene(
   const auroraScaleValue = auroraUniform?.w ?? 0
   if (auroraUniform != null) auroraUniform.w = 0
   // A frozen sea is bright, and the meter sees it (seaIce.ts).
-  const metered = meterScene(renderer, envScene, camera, dip, params.seaIce != null ? ICE_REFLECTANCE : undefined)
+  const metered = meterScene(renderer, envScene, camera, dip, params.seaIce != null ? ICE_REFLECTANCE : undefined, pass('meterAim'))
   if (auroraUniform != null) auroraUniform.w = auroraScaleValue
   const sceneLuminance = metered.luminance
   starFields.forEach(o => (o.visible = true))
@@ -631,6 +633,21 @@ export async function renderScene(
     midday: 0,
     night: -2.7
   }
+  // The meter reads the sky in frame since 0.231 (passes.meterAim; tasks.md
+  // D11); before, it read the whole cube's average, and the biases above were
+  // tuned on that. Each class keeps its median exposure before the frame
+  // meter's lift over real days (72 days spread by time of day, 12 more
+  // starlit nights, 2026-11-21; scripts/measure/ev.mjs): only the day-to-day
+  // metering changes (dusk facing the glow darker, away brighter).
+  const meterAimBias: Record<SceneParams['timeOfDay'], number> = {
+    'golden-hour': 1.57,
+    'sun-on-horizon': 1.55,
+    'blue-hour': 1.63,
+    daylight: 0.34,
+    midday: -0.35,
+    night: params.nightSky === 'starlit' ? -1.21 : 1.08
+  }
+  const aimBias = pass('meterAim') ? meterAimBias[params.timeOfDay] : 0
   // A dark sky in totality, metered off its bright horizon.
   const eclipseBias = totality ? -1.6 : 0
   // An aurora photographer exposes for the aurora (10–25 s at high ISO):
@@ -661,6 +678,7 @@ export async function renderScene(
     (params.debug?.cloudFace === true ? 0.05 : undefined) ??
     (0.16 / Math.max(sceneLuminance, 1e-9)) * nightScale * 2 **
       (evBias[params.timeOfDay] +
+        aimBias +
         eclipseBias +
         auroraBias +
         // Low suns light the clouds from below and the horizon stays bright.
