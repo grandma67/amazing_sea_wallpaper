@@ -9,5 +9,8 @@
     "params": { "landform": { "plume": "steam" } } },
   { "name": "nordic-rainbow-seals", "date": "2024-06-26", "biome": "nordic", "ocean": "atlantic", "rainbow": true, "storm": null,
     "pinnipeds": "seal", "colony": "gannet", "props": { "seaStacks": true, "migratory": "goose" } },
-  { "name": "golden-broken-cloud-edges", "date": "2026-02-13", "note": "tasks.md A2: sparkly dots by the cloud gaps at 1 frame (the clouds' per-frame noise); must be clean at 16 frames" }
+  { "name": "golden-broken-cloud-edges", "date": "2026-02-13", "note": "tasks.md A2: sparkly dots by the cloud gaps at 1 frame (the clouds' per-frame noise); must be clean at 16 frames" },
+  { "name": "stacks-shoreline", "date": "2025-07-10", "place": "brittany", "composition": "shoreline", "timeOfDay": "daylight",
+    "weather": "broken", "eclipse": null, "storm": null, "fog": null, "props": { "seaStacks": true }, "params": { "ocean": { "swellHeight": 0.2 } },
+    "note": "tasks.md D41: two stacks at ~657 m, left edge (crop 0,390,240,200); white flecks = the lichen spots aliasing" }
 ]

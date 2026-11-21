@@ -45,12 +45,19 @@ say how the cause was found.
   skylight from clouds (`place: "western-med"`, 2024-05-08, along-beach is sand-coloured now),
   then by the frame's own meter (0.128, `frameMeter.ts`): a sun-up frame under 0.10 exposed opens
   up to 1.5 stops (`2024-11-05`, ×2.2). The Brittany case (`place: "brittany"`, 2025-07-10,
-  along-beach, daylight, `weather: "broken"`, sun 160°) meters 0.108 and isn't lifted. That sand
-  also reads less red than albedo × skylight predicts (raw 0.0069, 0.0076, 0.0112 against ~0.012
-  each); not traced.
-- **Meter zenith:** `meterScene`'s `zenith` (`debug.skyZenith`) reads ~3× the env cube's own zenith
-  luminance at the same sun (0.074 vs 0.023 at 60°). Not traced; the cube's is the darker part of
-  the sky, as it should be. Only a stat so far.
+  along-beach, daylight, `weather: "broken"`, sun 160°) meters 0.108 and isn't lifted. (Its "less
+  red" sand was closed 2026-11-21: the camera moved in 0.200–0.202; at HEAD the dry sand in cloud
+  shadow reads raw 0.0142, 0.0143, 0.0163 against ~0.012 predicted, and 0.090, 0.060, 0.040 with
+  `passes.cloudShade` off; the old probe was on wet sand.)
+- **The exposure meter is a whole-cube average** (measured 2026-11-21, D11): `meterScene`
+  (`exposure.ts`) computes each texel's direction as `unproject(faceCamera).sub(faceCamera.position)`:
+  a **world** point ~0.2 m out minus the face camera's **local** position (0, 0, 0), so every
+  direction is ≈ the camera's world position, straight up. No texel counts as in view (`luminance`
+  falls back to `upperAverage`, the whole cube) and "zenith" is the whole cube too (0.074 vs the
+  cube's 0.023 at a 60° sun; 0 texels found at 20° elevation of 6 144). There since the first
+  commit (7c07828). With `.sub(camera.position)` (tried, reverted) the zenith reads 0.0230 and the
+  exposure moves: clear 60° sun +0.84 EV, 2024-07-12 +0.61, 2024-06-26 −0.98, 2024-04-24 −0.09,
+  2024-02-12 −0.27. The EV biases and the frame meter were tuned on the bug: a decision.
 - **Sea haze fades as (1 − T)²** (measured in REFLECTION phase 4, 2003-03-11 `calm-islands`,
   `haze.mjs`): takram mixes an inscatter already scaled by the opacity by the opacity again, so
   mid-distance land is darker than Koschmieder's haze would leave it. The mirror image matches it
@@ -80,8 +87,6 @@ say how the cause was found.
 - **Waterspouts:** far rarer than intended (1 in 3 years; the fog rule works since 0.209):
   [plans/WATERSPOUT_FOG.md](plans/WATERSPOUT_FOG.md) §2, waiting on a decision. The Florida Keys get the Mediterranean's
   waterspout season (biome-keyed).
-- **2016-08-09:** the title's mountain range (36 km, 1.6 km high, in frame) can't be seen even with
-  `fog: null`: lost in haze against a 3° sun. Not traced.
 - **Shelf cloud** (volumetric since 0.174): on far real days (2024-06-21, 2024-04-24, 2024-07-01,
   2024-12-12, 2025-02-12) it reads as a dark strip on the horizon with a ruler-straight top.
   Measured on 2024-06-21 (`edges.mjs`, shelf on and off): the strip is the storm's rain region, as
@@ -105,12 +110,23 @@ say how the cause was found.
   sky: the airglow's, not the aurora's (`passes.aurora: false` keeps them; the mirror predicts
   them: `params.mjs --line --sky glow`). The 5 km N₂⁺ fringe (a single-layer feature in the march)
   leaves ~3% grain at the arcs' lower edge on Kp ≥ 5 nights.
-- **The sea near the horizon** (measured with `horizon.mjs`, 2003-03-11 broken, calm sea, 0.135):
-  sea / (F × sky) is 0.62–0.77 within 1° of the horizon (1.0 expected on calm water; 0.30–0.36
-  before REFLECTION phase 6) and ~1 at 2°. Cause **suspected**: the 0.2 m swell tilting facets
-  toward higher, darker sky, or the probe box mixing pixels at the horizon line. Under broken
-  cloud the cube is 1.3× the frame's sky at +4° (1.0 at ≤ 1°); **suspected**: the cube's clouds
-  drawn at `medium` quality with fewer frames (`renderCloudyEnvironment`).
+- **The sea near the horizon** (measured with `horizon.mjs`, 2003-03-11 broken, calm sea; causes
+  measured 2026-11-21): sea / (F × sky) is 0.62–0.77 within 1° of the horizon (1.0 expected on
+  calm water) and ~1 at 2°. Not the swell (0.01 m: same) nor the probe box (`--half 0`: same).
+  Two causes: (1) **Fresnel at the face-the-viewer normal**: `ocean.ts` takes `F = fresnel(NoV)`
+  after lifting N so NoV ≥ ~0.05, so F ≈ 0.78 within ~3° of grazing (0.92–0.97 there); with F from
+  the sky ray's own normal (`skyNormal`, tried and reverted) 0.3° reads 0.76 instead of 0.62, and
+  with `passes.seaHaze` off the sea matches the cube (3.69 vs 3.95 × sky; the rest is the lod-1.7
+  blur). (2) **The (1 − T)² sea haze** (above) takes the rest: raw 0.135 → hazed 0.109 at 0.3°.
+  Fixing (1) brightens every sea within ~3° of the horizon ~20%: a decision.
+- **The sky cube's clouds are too bright higher up** (measured 2026-11-21): cube / frame sky at
+  +4° is 1.32 (broken) and 1.35 (overcast), 1.76 at +8° overcast; 1.0 at ≤ 1°. Cause: the cube's
+  `medium` preset has no `lightShafts` (takram's cloud-shadowed inscatter), and the shafts need
+  the main frame's frame count to converge: shafts + full frames give 1.08 / 1.21 (+4° / +8°),
+  `high` + full frames 1.05 / 1.09; shafts alone 1.25, full frames alone 1.33,
+  `accurateSunSkyLight` + 3 ground steps 1.31, turbulence + 1e-5 densities 1.36 (each tried and
+  reverted). `high` + full frames costs +40–61% on cloudy days (`bench.mjs`) and darkens the sea
+  (2024-04-24: 33% of pixels, mean Δ 30): too dear as is; a cheaper shafts-only cube is open.
 
 ## Places, seasons, snow
 
@@ -178,7 +194,9 @@ say how the cause was found.
   face); against a low sun ahead it fades into the glare.
 - **Islands and bergs:** icebergs get the contact reflection but no wash band or island foam (not
   `waterline`-tagged). Island spray bursts are few-centimetre droplets, faint specks at ~850 m; the
-  wash band carries the rough-sea look. All islands of a day share one wash-band material.
+  wash band carries the rough-sea look. All islands of a day share one wash-band material. How
+  near bergs come (`params.mjs --find ice`, 2026-11-21): 5 real days within ~120 m (2025-09-01
+  46 m, 2025-05-22 75 m, 2024-11-11 97 m, 2024-03-31 106 m, 2026-08-22 116 m), 64–75 px.
 - **Tidepools** are runnels and puddles on the terrace (shader patches), not pools among rocks. A
   rock pool within ~15 m beside a boulder hasn't been rendered yet (plans/WATER_VIEW.md).
 - **Stony beaches:** shingle reads as a flat mottled colour on most 1080p views (a 2–5 cm pebble is
@@ -220,7 +238,11 @@ say how the cause was found.
 
 - **Sea stacks' white flecks** (seen 2026-11-20, `stacks-shoreline` spec, 2025-07-10 Brittany): the
   stack's surface carries dense white single-pixel flecks (there with the swell at 0.2 m, so not
-  spray); first taken for spray dots. Not traced (the stack's skin or lichen grain).
+  spray); first taken for spray dots. Cause measured 2026-11-21: the **lichen spots**
+  (`props/rocks.ts`, `smoothstep(0.72, 0.78, rockNoise(q * 5.5))`, ~0.2 m pale spots with a hard
+  edge) aliasing at 657 m; with them off (tried, reverted) the flecks are gone (0.13% of the
+  frame, only the stack). Fix: fade the spots to their mean cover once under a pixel (`fwidth`);
+  touches every rock. The stack's top also reads as a pale see-through triangle (not traced).
 - **Night surf in blue 2×2 blocks on lighthouse nights** (2026-12-08; found 2026-11-20, was filed as
   spray, D37): `passes.reflection` off removes them, `softSpray` and the spray don't touch them, and
   `lighthouse: null` takes the planar mirror away with them. On rough surf facets the water flips,
